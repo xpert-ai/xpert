@@ -6,7 +6,6 @@ import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, 
 import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatRadioModule } from '@angular/material/radio'
 import { MatStepper, MatStepperModule } from '@angular/material/stepper'
 import { Router } from '@angular/router'
 import { matchWithValidator } from '@metad/cloud/auth'
@@ -42,7 +41,7 @@ import { FeatureCategoryComponent } from '@cloud/app/@shared/features'
   selector: 'ngm-tenant-details',
   templateUrl: './tenant-details.component.html',
   styleUrls: ['./tenant-details.component.scss'],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, CdkListboxModule, MatStepperModule, ...ZardFormImports, ZardInputDirective, MatListModule, MatRadioModule, MatProgressBarModule, FormlyModule, FeatureCategoryComponent, NgmCommonModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, CdkListboxModule, MatStepperModule, ...ZardFormImports, ZardInputDirective, MatListModule, MatProgressBarModule, FormlyModule, FeatureCategoryComponent, NgmCommonModule],
   providers: [FeatureService]
 })
 export class TenantDetailsComponent {

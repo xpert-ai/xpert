@@ -9,7 +9,7 @@ import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/ma
 
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDialog } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -48,7 +48,6 @@ import {
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { ControlOptions } from '../types'
 import { NgmValueHelpComponent } from '../value-help/value-help.component'
-import { MatRadioModule } from '@angular/material/radio'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmTimeFilterEditorComponent } from '../timer'
 
@@ -87,12 +86,12 @@ export interface SmartFilterState {
     CdkMenuModule,
     ZardButtonComponent,
     ZardIconComponent,
+    ...ZardFormImports,
     MatProgressSpinnerModule,
     MatAutocompleteModule,
     ZardInputDirective,
     MatTooltipModule,
     MatMenuModule,
-    MatRadioModule,
     MatCheckboxModule,
     ScrollingModule,
     OcapCoreModule,

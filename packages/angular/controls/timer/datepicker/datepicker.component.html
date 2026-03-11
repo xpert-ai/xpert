@@ -101,12 +101,12 @@
 
 <ng-template #granularityMenu>
   <div cdkMenu class="cdk-menu__large ngm-density__compact min-w-[100px] overflow-hidden">
-    <mat-radio-group [(ngModel)]="granularity" class="flex flex-col gap-1">
+    <z-radio-group [(ngModel)]="granularity" class="flex flex-col gap-1">
       @for (value of TIME_GRANULARITY_SEQUENCES[granularitySequence ?? 2]; track value) {
-        <mat-radio-button [value]="value" class="cursor-pointer rounded-lg hover:bg-hover-bg">
+        <z-radio [value]="value" class="cursor-pointer rounded-lg hover:bg-hover-bg">
           {{ 'Ngm.DatePicker.' + value | translate: {Default: value} }}
-        </mat-radio-button>
+        </z-radio>
       }
-    </mat-radio-group>
+    </z-radio-group>
   </div>
 </ng-template>

@@ -8,7 +8,6 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatRadioModule } from '@angular/material/radio'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
@@ -17,7 +16,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { catchError, combineLatestWith, distinctUntilChanged, filter, map, of, startWith, switchMap, tap } from 'rxjs'
 import { EntitySelectResultType } from '../types'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 export type EntitySelectDataType = {
   dataSources: ISelectOption<string>[]
@@ -39,9 +38,9 @@ export type EntitySelectDataType = {
     TranslateModule,
     ScrollingModule,
     ZardButtonComponent,
+    ...ZardFormImports,
     MatDialogModule,
     ZardIconComponent,
-    MatRadioModule,
     MatListModule,
     MatProgressSpinnerModule,
     MatTooltipModule,

@@ -139,10 +139,10 @@ formly-group {
 
   .mat-mdc-menu-panel.ngm-formly {
     .mat-menu-item {
-      .mat-radio-button {
+      z-radio {
         max-width: 100%;
         width: 100%;
-        .mat-radio-label-content {
+        .z-radio__label {
           flex: 1;
           overflow: hidden;
         }

@@ -6,7 +6,6 @@ import { AbstractControl, FormBuilder, FormControl, ReactiveFormsModule, Validat
 
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatRadioModule } from '@angular/material/radio'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import {
@@ -39,7 +38,7 @@ export interface CalculationEditorData {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule, DragDropModule, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, MatRadioModule, ZardInputDirective, NgmCommonModule, NgmCalculatedMeasureComponent, NgmCalculationVarianceComponent, NgmConditionalAggregationComponent, NgmRestrictedMeasureComponent, NgmMeasureControlComponent],
+  imports: [CommonModule, ReactiveFormsModule, TranslateModule, DragDropModule, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, ZardInputDirective, NgmCommonModule, NgmCalculatedMeasureComponent, NgmCalculationVarianceComponent, NgmConditionalAggregationComponent, NgmRestrictedMeasureComponent, NgmMeasureControlComponent],
   selector: 'ngm-calculation-editor',
   templateUrl: './calculation-editor.component.html',
   styleUrls: ['./calculation-editor.component.scss']

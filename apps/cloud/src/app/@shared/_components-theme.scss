@@ -209,11 +209,16 @@
     display: block;
   }
 
-  .mat-radio-group.ngm-density__compact {
+  z-radio-group.ngm-density__compact,
+  z-radio-group[data-density='compact'] {
     --radio-size: 15px;
-    .mat-radio-container, .mat-radio-outer-circle, .mat-radio-inner-circle {
+    .z-radio__control {
       width: var(--radio-size);
       height: var(--radio-size);
+    }
+    .z-radio__dot {
+      width: calc(var(--radio-size) / 2);
+      height: calc(var(--radio-size) / 2);
     }
   }
 

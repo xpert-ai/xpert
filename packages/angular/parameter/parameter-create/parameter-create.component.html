@@ -29,17 +29,17 @@
     </div>
 
     <div class="flex flex-col justify-start items-start gap-4 py-4 px-2">
-      <mat-radio-group formControlName="paramType" class="flex flex-col justify-start items-start gap-4">
-        <mat-radio-button [value]="eCubeParameterEnum.Input">
+      <z-radio-group formControlName="paramType" class="flex flex-col justify-start items-start gap-4">
+        <z-radio [value]="eCubeParameterEnum.Input">
           {{ 'Ngm.Property.Input' | translate: {Default: "Input"} }}
-        </mat-radio-button>
-        <mat-radio-button [value]="eCubeParameterEnum.Select">
+        </z-radio>
+        <z-radio [value]="eCubeParameterEnum.Select">
           {{ 'Ngm.Property.Select' | translate: {Default: "Select"} }}
-        </mat-radio-button>
-        <mat-radio-button [value]="eCubeParameterEnum.Dimension">
+        </z-radio>
+        <z-radio [value]="eCubeParameterEnum.Dimension">
           {{ 'Ngm.Property.Dimensions' | translate: {Default: "Dimensions"} }}
-        </mat-radio-button>
-      </mat-radio-group>
+        </z-radio>
+      </z-radio-group>
     </div>
   </form>
 

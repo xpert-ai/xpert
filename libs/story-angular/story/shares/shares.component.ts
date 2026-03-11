@@ -7,7 +7,6 @@ import { FormsModule } from '@angular/forms'
 
 import { MAT_DIALOG_DATA } from '@angular/material/dialog'
 import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatRadioModule } from '@angular/material/radio'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatSnackBar } from '@angular/material/snack-bar'
@@ -21,7 +20,7 @@ import { firstValueFrom } from 'rxjs'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule, MatRadioModule, ...ZardFormImports, ZardInputDirective, ZardButtonComponent, ZardIconComponent, MatTooltipModule, MatSlideToggleModule, MatSliderModule, TranslateModule, NgmCommonModule],
+  imports: [CommonModule, FormsModule, DragDropModule, ...ZardFormImports, ZardInputDirective, ZardButtonComponent, ZardIconComponent, MatTooltipModule, MatSlideToggleModule, MatSliderModule, TranslateModule, NgmCommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-story-shares-dialog',
   templateUrl: 'shares.component.html',

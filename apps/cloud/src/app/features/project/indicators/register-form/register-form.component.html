@@ -100,14 +100,14 @@
     </div>
 
     <div class="section grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3">
-      <mat-radio-group formControlName="type" class="my-4">
-        <mat-radio-button [value]="IndicatorType.BASIC">
+      <z-radio-group formControlName="type" class="my-4">
+        <z-radio [value]="IndicatorType.BASIC">
           {{ 'PAC.INDICATOR.REGISTER.TYPE_BASIC' | translate: {Default: 'Basic'} }}
-        </mat-radio-button>
-        <mat-radio-button [value]="IndicatorType.DERIVE">
+        </z-radio>
+        <z-radio [value]="IndicatorType.DERIVE">
           {{ 'PAC.INDICATOR.REGISTER.TYPE_DERIVE' | translate: {Default: 'Derive'} }}
-        </mat-radio-button>
-      </mat-radio-group>
+        </z-radio>
+      </z-radio-group>
   
       @if (typeControl.value===IndicatorType.BASIC) {
         <ngm-mat-select [appearance]="appearance"

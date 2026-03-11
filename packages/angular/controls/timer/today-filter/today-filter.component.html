@@ -34,13 +34,13 @@
   </ng-container>
 </ng-container>
 
-<mat-radio-group [(ngModel)]="granularity">
+<z-radio-group [(ngModel)]="granularity">
   <mat-menu #granularityMenu="matMenu" class="ngm-formly ngm-density__compact">
     <button mat-menu-item disableRipple *ngFor="let value of TIME_GRANULARITY_SEQUENCES[granularitySequence]"
       (click)="$event.stopPropagation();">
-      <mat-radio-button [value]="value">
+      <z-radio [value]="value">
         {{ 'Ngm.TimeFilter.' + value | translate: {Default: value} }}
-      </mat-radio-button>
+      </z-radio>
     </button>
   </mat-menu>
-</mat-radio-group>
+</z-radio-group>

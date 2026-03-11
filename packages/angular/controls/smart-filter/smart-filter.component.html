@@ -104,13 +104,13 @@
 
 <ng-template #hierarchiesMenu>
   <div cdkMenu class="cdk-menu__large ngm-density__compact">
-    <mat-radio-group [(ngModel)]="hierarchy">
+    <z-radio-group [(ngModel)]="hierarchy">
       @for (property of hierarchies(); track property.name) {
-        <mat-radio-button class="ngm-radio-button__property flex-1" [value]="property.name">
+        <z-radio class="ngm-radio-button__property flex-1" [value]="property.name">
           <ngm-property class="flex-1" hiddenIcon [property]="property" />
-        </mat-radio-button>
+        </z-radio>
       }
-    </mat-radio-group>
+    </z-radio-group>
   </div>
 </ng-template>
 

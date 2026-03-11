@@ -2,7 +2,6 @@ import { CdkDrag, CdkDragDrop } from '@angular/cdk/drag-drop'
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { MatButtonToggleChange } from '@angular/material/button-toggle'
-import { MatRadioChange } from '@angular/material/radio'
 import { MatSlideToggleChange } from '@angular/material/slide-toggle'
 import { ActivatedRoute, Router } from '@angular/router'
 import { MDX } from '@metad/contracts'
@@ -12,6 +11,7 @@ import { EntitySchemaType } from '@metad/ocap-angular/entity'
 import { AggregationRole, C_MEASURES, EntityType, getEntityHierarchy } from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
+import type { ZardRadioGroupChange } from '@xpert-ai/headless-ui'
 import { SemanticModelService } from '../../../model.service'
 import { RoleComponent } from '../role.component'
 import { CubeStateService } from './cube.service'
@@ -120,7 +120,7 @@ export class CubeComponent {
     return item.hierarchy
   }
 
-  changeCubeAccess(event: MatRadioChange) {
+  changeCubeAccess(event: ZardRadioGroupChange<MDX.Access>) {
     this.#cubeState.patchState({
       access: event.value
     })

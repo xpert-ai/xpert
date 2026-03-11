@@ -14,7 +14,6 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
-import { MatRadioModule } from '@angular/material/radio'
 import { MatSliderDragEvent, MatSliderModule } from '@angular/material/slider'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
@@ -60,7 +59,7 @@ export interface ParameterOptions {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkListboxModule, ...ZardFormImports, ZardInputDirective, MatRadioModule, MatListModule, MatSliderModule, OcapCoreModule, NgmCommonModule, NgmControlsModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkListboxModule, ...ZardFormImports, ZardInputDirective, MatListModule, MatSliderModule, OcapCoreModule, NgmCommonModule, NgmControlsModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-parameter',
   templateUrl: 'parameter.component.html',

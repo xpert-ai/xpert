@@ -19,7 +19,6 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { MatListModule, MatSelectionListChange } from '@angular/material/list'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatRadioChange, MatRadioModule } from '@angular/material/radio'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayDensity, NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
@@ -61,7 +60,6 @@ export interface MemberListOptions extends ControlOptions {
     CommonModule,
     ScrollingModule,
     MatListModule,
-    MatRadioModule,
     MatProgressSpinnerModule,
     NgmCommonModule,
     OcapCoreModule,
@@ -111,10 +109,6 @@ export class NgmMemberListComponent implements OnChanges, ControlValueAccessor {
   }
 
   public readonly loading$ = this.smartFilterService.loading$
-  private readonly members$ = this.smartFilterService.selectOptions$
-  // Local orignal select options members
-  private _members = toSignal<IMember[], IMember[]>(this.members$, { initialValue: [] })
-
   // Select options filtered by search text
   public readonly selectOptions = toSignal(
     this.smartFilterService.selectOptions$.pipe(
@@ -243,16 +237,5 @@ export class NgmMemberListComponent implements OnChanges, ControlValueAccessor {
 
   isSelected(option: IMember) {
     return this.members?.findIndex((member) => member.value === option.value) > -1
-  }
-
-  onRadioChange(event: MatRadioChange) {
-    const member = this._members().find((item) => item.value === event.value)
-
-    this.slicer$.next({
-      ...(this.slicer$.value ?? {}),
-      members: member ? [{ ...member }] : []
-    })
-
-    this.onChange?.(this.slicer$.value)
   }
 }

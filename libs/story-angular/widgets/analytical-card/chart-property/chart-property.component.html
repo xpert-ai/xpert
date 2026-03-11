@@ -156,13 +156,13 @@
   </div>
 </ngm-property-select>
 
-<mat-radio-group [(ngModel)]="palette" displayDensity="cosy">
+<z-radio-group [(ngModel)]="palette" displayDensity="cosy">
   <mat-menu #paletteMenu="matMenu" class="ngm-density__compact">
     <ng-template matMenuContent>
       <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
-        <mat-radio-button class="ngm-radio-button__property" [value]="null">
+        <z-radio class="ngm-radio-button__property" [value]="null">
           {{ 'Story.ChartProperty.None' | translate: {Default: 'None'} }}
-        </mat-radio-button>
+        </z-radio>
       </button>
   
       <ng-container *ngFor="let group of interpolateGroups">
@@ -172,11 +172,11 @@
   
         <button mat-menu-item disableRipple *ngFor="let interpolate of group.values"
           (click)="$event.stopPropagation();">
-          <mat-radio-button [value]="interpolate.name" class="ngm-radio-button__property flex-1 w-full">
+          <z-radio [value]="interpolate.name" class="ngm-radio-button__property flex-1 w-full">
             <ngm-chromatic-preview class="flex-1 w-full" [interpolate]="interpolate"></ngm-chromatic-preview>
-          </mat-radio-button>
+          </z-radio>
         </button>
       </ng-container>
     </ng-template>
   </mat-menu>
-</mat-radio-group>
+</z-radio-group>

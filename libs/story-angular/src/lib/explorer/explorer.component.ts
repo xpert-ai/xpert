@@ -7,7 +7,6 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatRadioModule } from '@angular/material/radio'
 import { nonBlank } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { AnalyticalGridModule } from '@metad/ocap-angular/analytical-grid'
@@ -68,7 +67,6 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
     MatTooltipModule,
     ZardIconComponent,
     ...ZardTabsImports,
-    MatRadioModule,
     DragDropModule,
     OcapCoreModule,
     NgmMemberTreeComponent,

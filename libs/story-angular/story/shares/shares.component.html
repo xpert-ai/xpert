@@ -10,14 +10,14 @@
   <div class="flex-1 flex flex-col">
     <div *ngIf="data?.isAuthenticated && data?.access === AccessEnum.Write" class="p-4 flex flex-col">
       <label>{{ 'Story.Shares.StoryVisibility' | translate: {Default: 'Story Visibility'} }}</label>
-      <mat-radio-group class="visibility-radio-group flex justify-start items-center gap-4"
+      <z-radio-group class="visibility-radio-group flex justify-start items-center gap-4"
         [(ngModel)]="visibility"
         [disabled]="visibilityDisabled"
         >
-        <mat-radio-button class="visibility-radio-button" *ngFor="let option of visibilities" [value]="option">
+        <z-radio class="visibility-radio-button" *ngFor="let option of visibilities" [value]="option">
           {{ 'Story.Shares.Visibility_'+option | translate: {Default: option} }}
-        </mat-radio-button>
-      </mat-radio-group>
+        </z-radio>
+      </z-radio-group>
 
       <ng-container *ngIf="visibility() !== Visibility.Public">
         <mat-slide-toggle class="my-2" [(ngModel)]="isSecret">{{ 'Story.Shares.Visibility_secret' | translate: {Default: 'Secret'} }}</mat-slide-toggle>

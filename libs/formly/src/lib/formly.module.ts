@@ -17,6 +17,7 @@ import { NgmFormlyMatToggleModule } from '@metad/formly/mat-toggle'
 import { PACFormlySelectModule } from '@metad/formly/select'
 import { PACFormlySemanticModelModule } from '@metad/formly/semantic-model'
 import { PACFormlyMatSlicersModule } from '@metad/formly/slicers'
+import { NgmFormlyRadioModule } from '@metad/formly/radio'
 import { FormlyMatSliderModule } from '@metad/formly/slider'
 import { PACFormlySortModule } from '@metad/formly/sort'
 import { PACFormlyTextAreaModule } from '@metad/formly/textarea'
@@ -40,6 +41,7 @@ import { HLFormlyTabsModule } from '@metad/formly/hl-tabs'
     PACFormlyTableModule,
     PACFormlyInputModule,
     PACFormlySelectModule,
+    NgmFormlyRadioModule,
     NgmFormlyMatCheckboxModule,
     PACFormlyTextAreaModule,
     PACFormlySemanticModelModule,

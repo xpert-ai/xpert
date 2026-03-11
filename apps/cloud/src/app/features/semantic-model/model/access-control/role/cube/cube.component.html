@@ -8,14 +8,14 @@
             <label class="text-sm">
                 {{ 'PAC.MODEL.AccessControl.DefaultAccess' | translate: {Default: 'Default Access'} }}:
             </label>
-            <mat-radio-group class="ngm-radio-group__horizontal text-sm text-bluegray-800" displayDensity="compact"
+            <z-radio-group class="ngm-radio-group__horizontal text-sm text-bluegray-800" displayDensity="compact"
                 [ngModel]="cubeGrant.access"
                 (change)="changeCubeAccess($event)"
                 (click)="$event.stopPropagation()">
-                <mat-radio-button [value]="Access.all">{{ 'PAC.MODEL.AccessControl.Access_all' | translate: {Default: 'All'} }}</mat-radio-button>
-                <mat-radio-button [value]="Access.custom">{{ 'PAC.MODEL.AccessControl.Access_custom' | translate: {Default: 'Custom'} }}</mat-radio-button>
-                <mat-radio-button [value]="Access.none">{{ 'PAC.MODEL.AccessControl.Access_none' | translate: {Default: 'None'} }}</mat-radio-button>
-            </mat-radio-group>
+                <z-radio [value]="Access.all">{{ 'PAC.MODEL.AccessControl.Access_all' | translate: {Default: 'All'} }}</z-radio>
+                <z-radio [value]="Access.custom">{{ 'PAC.MODEL.AccessControl.Access_custom' | translate: {Default: 'Custom'} }}</z-radio>
+                <z-radio [value]="Access.none">{{ 'PAC.MODEL.AccessControl.Access_none' | translate: {Default: 'None'} }}</z-radio>
+            </z-radio-group>
         </div>
     </div>
 </div>

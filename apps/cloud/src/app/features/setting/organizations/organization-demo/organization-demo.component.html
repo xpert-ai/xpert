@@ -1,10 +1,10 @@
 <div class="flex flex-col mb-8">
   <label for="demo-network-source">{{ 'PAC.ORGANIZATIONS_PAGE.Organization.SelectDataNetwork' | translate: {Default: 'Select Data Network'} }}</label>
-  <mat-radio-group id="demo-network-source" [formControl]="source">
-    <mat-radio-button [value]="OrganizationDemoNetworkEnum.github">GitHub</mat-radio-button>
-    <mat-radio-button [value]="OrganizationDemoNetworkEnum.aliyun">Aliyun oss</mat-radio-button>
-    <mat-radio-button [value]="null">Others</mat-radio-button>
-  </mat-radio-group>
+  <z-radio-group id="demo-network-source" [formControl]="source">
+    <z-radio [value]="OrganizationDemoNetworkEnum.github">GitHub</z-radio>
+    <z-radio [value]="OrganizationDemoNetworkEnum.aliyun">Aliyun oss</z-radio>
+    <z-radio [value]="null">Others</z-radio>
+  </z-radio-group>
 
   @if (source.value === null) {
     <div class="flex items-center gap-2">

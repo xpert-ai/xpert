@@ -4,7 +4,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatRadioModule } from '@angular/material/radio'
 import { NgmColorsComponent } from '@metad/components/form-field'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
@@ -22,7 +21,6 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     ZardButtonComponent,
     ZardIconComponent,
     MatMenuModule,
-    MatRadioModule,
     MatCheckboxModule,
     TranslateModule,
 

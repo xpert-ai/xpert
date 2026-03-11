@@ -22,7 +22,6 @@ import { injectIndicatorFormulaCommand } from '../../copilot'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
 
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatRadioModule } from '@angular/material/radio'
 import { MatDatepickerModule } from '@angular/material/datepicker'
 import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatCheckboxModule } from '@angular/material/checkbox'
@@ -36,7 +35,7 @@ import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '@cloud/app/@shar
   selector: 'pac-indicator-register-form',
   templateUrl: 'register-form.component.html',
   styleUrls: ['register-form.component.scss'],
-  imports: [CommonModule, TranslateModule, FormsModule, ReactiveFormsModule, ZardIconComponent, ZardButtonComponent, MatTooltipModule, MatRadioModule, ...ZardFormImports, MatDatepickerModule, ZardInputDirective, MatCheckboxModule, DensityDirective, NgmMatSelectComponent, NgmTreeSelectComponent, TagEditorComponent, NgmHierarchySelectComponent, NgmCalculatedMeasureComponent, NgmSelectionModule],
+  imports: [CommonModule, TranslateModule, FormsModule, ReactiveFormsModule, ZardIconComponent, ZardButtonComponent, MatTooltipModule, ...ZardFormImports, MatDatepickerModule, ZardInputDirective, MatCheckboxModule, DensityDirective, NgmMatSelectComponent, NgmTreeSelectComponent, TagEditorComponent, NgmHierarchySelectComponent, NgmCalculatedMeasureComponent, NgmSelectionModule],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,

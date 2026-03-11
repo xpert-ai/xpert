@@ -6,11 +6,11 @@
 
     <div class="flex-1 flex flex-col">
       <label class="text-lg p-2">{{ 'Ngm.Entity.SemanticModel' | translate: {Default: 'Semantic Model'} }}</label>
-      <mat-radio-group class="flex flex-col" [(ngModel)]="modelKey">
+      <z-radio-group class="flex flex-col" [(ngModel)]="modelKey">
         @for (item of data.dataSources; track item.key) {
-          <mat-radio-button [value]="item.key">{{item.caption}}</mat-radio-button>
+          <z-radio [value]="item.key">{{item.caption}}</z-radio>
         }
-      </mat-radio-group>
+      </z-radio-group>
     </div>
 
     <div class="flex justify-between">

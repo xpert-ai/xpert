@@ -6,11 +6,11 @@
 
 <mat-dialog-content class="mat-typography flex flex-col justify-start items-stretch overflow-hidden">
     <form [formGroup]="formGroup" class="w-80 flex flex-col justify-start items-stretch gap-4">
-        <mat-radio-group formControlName="interactionApplyTo" class="flex flex-col gap-2" aria-label="Select an option" >
-            <mat-radio-button *ngFor="let option of applyTos" [value]="option">
+        <z-radio-group formControlName="interactionApplyTo" class="flex flex-col gap-2" aria-label="Select an option" >
+            <z-radio *ngFor="let option of applyTos" [value]="option">
                 {{ 'Story.LinkedAnalysis.' + option | translate: {Default: option} }}
-            </mat-radio-button>
-        </mat-radio-group>
+            </z-radio>
+        </z-radio-group>
 
         <mat-slide-toggle *ngIf="interactionApplyTo === LinkedInteractionApplyTo.OnlySelectedWidgets" class="w-full flex justify-end items-center px-4"
             style="display: flex;"

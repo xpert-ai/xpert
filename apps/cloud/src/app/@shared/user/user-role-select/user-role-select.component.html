@@ -45,11 +45,11 @@
   </z-form-field>
 
   @if (data?.roles) {
-    <mat-radio-group [(ngModel)]="role" displayDensity="cosy">
+    <z-radio-group [(ngModel)]="role" displayDensity="cosy">
       @for (role of data.roles; track role.value) {
-        <mat-radio-button  [value]="role.value">{{role.label}}</mat-radio-button>
+        <z-radio  [value]="role.value">{{role.label}}</z-radio>
       }
-    </mat-radio-group>
+    </z-radio-group>
   }
 </div>
 

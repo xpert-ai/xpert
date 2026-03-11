@@ -39,12 +39,12 @@
           />
         }
         @case ('radio') {
-          <mat-radio-group [ngModel]="credentials()[credential.variable]"
+          <z-radio-group [ngModel]="credentials()[credential.variable]"
               (ngModelChange)="updateValue(credential.variable, $event)">
             @for (option of credential.options; track option) {
-              <mat-radio-button [value]="option.value">{{option.label | i18n}}</mat-radio-button>
+              <z-radio [value]="option.value">{{option.label | i18n}}</z-radio>
             }
-          </mat-radio-group>
+          </z-radio-group>
         }
         @case (eParameterType.BOOLEAN) {
           <mat-slide-toggle [ngModel]="credentials()[credential.variable]"

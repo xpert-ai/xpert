@@ -6,7 +6,6 @@ import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, Reac
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatRadioModule } from '@angular/material/radio'
 import { NgmColorsComponent } from '@metad/components/form-field'
 import {
   NgmChromaticInterpolateGroup,
@@ -36,7 +35,7 @@ import { BehaviorSubject, distinctUntilChanged, from, map } from 'rxjs'
 import { NgmChartDimensionComponent } from './chart-dimension.component'
 import { NgmChartMeasureComponent } from './chart-measure.component'
 import { NgmReferenceLineComponent } from './reference-line.component'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -46,8 +45,8 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     ReactiveFormsModule,
     ZardButtonComponent,
     ZardIconComponent,
+    ...ZardFormImports,
     MatMenuModule,
-    MatRadioModule,
     MatCheckboxModule,
     MatButtonToggleModule,
     TranslateModule,

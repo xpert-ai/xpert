@@ -9,7 +9,6 @@ import { MatDialogModule } from '@angular/material/dialog'
 import { ZardButtonComponent, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatExpansionModule } from '@angular/material/expansion'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatRadioModule } from '@angular/material/radio'
 import { MatTableModule } from '@angular/material/table'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -34,7 +33,7 @@ import {
     NxYearFilterComponent,
     
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatTableModule, MatCheckboxModule, ZardInputDirective, ...ZardFormImports, ZardButtonComponent, MatExpansionModule, ZardIconComponent, ZardDividerComponent, MatDatepickerModule, MatRadioModule, MatMenuModule, DragDropModule, TranslateModule, DensityDirective, ButtonGroupDirective, AppearanceDirective, NgmMonthpickerComponent, NgmQuarterpickerComponent, NgmYearpickerComponent, NgmDatepickerComponent, NgmTimeFilterEditorComponent, NgmTodayFilterComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, MatTableModule, MatCheckboxModule, ZardInputDirective, ...ZardFormImports, ZardButtonComponent, MatExpansionModule, ZardIconComponent, ZardDividerComponent, MatDatepickerModule, MatMenuModule, DragDropModule, TranslateModule, DensityDirective, ButtonGroupDirective, AppearanceDirective, NgmMonthpickerComponent, NgmQuarterpickerComponent, NgmYearpickerComponent, NgmDatepickerComponent, NgmTimeFilterEditorComponent, NgmTodayFilterComponent],
   exports: [NgmTimeFilterEditorComponent, NgmTodayFilterComponent, NxYearFilterComponent]
 })
 export class NgmTimeFilterModule {}

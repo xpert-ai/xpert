@@ -30,11 +30,11 @@
     />
     <div class="flex-1 min-w-full flex flex-col">
       <label class="ngm-input-label shrink-0">{{'PAC.KEY_WORDS.Permission' | translate: {Default: 'Permission'} }}</label>
-      <mat-radio-group formControlName="permission" aria-label="Select an permission">
-        <mat-radio-button [value]="KnowledgebasePermission.Private">{{'PAC.Knowledgebase.Permission_Private' | translate: {Default:'Private'} }}</mat-radio-button>
-        <mat-radio-button [value]="KnowledgebasePermission.Organization">{{'PAC.Knowledgebase.Permission_Organization' | translate: {Default:'Organization'} }}</mat-radio-button>
-        <mat-radio-button [value]="KnowledgebasePermission.Public">{{'PAC.Knowledgebase.Permission_Public' | translate: {Default:'Public'} }}</mat-radio-button>
-      </mat-radio-group>
+      <z-radio-group formControlName="permission" aria-label="Select an permission">
+        <z-radio [value]="KnowledgebasePermission.Private">{{'PAC.Knowledgebase.Permission_Private' | translate: {Default:'Private'} }}</z-radio>
+        <z-radio [value]="KnowledgebasePermission.Organization">{{'PAC.Knowledgebase.Permission_Organization' | translate: {Default:'Organization'} }}</z-radio>
+        <z-radio [value]="KnowledgebasePermission.Public">{{'PAC.Knowledgebase.Permission_Public' | translate: {Default:'Public'} }}</z-radio>
+      </z-radio-group>
     </div>
 
     <copilot-model-select class=""

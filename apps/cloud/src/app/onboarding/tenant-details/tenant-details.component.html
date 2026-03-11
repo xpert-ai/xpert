@@ -90,10 +90,10 @@
 
       <form [formGroup]="demoFormGroup" class="flex flex-col">
         <label>{{ 'PAC.Onboarding.SelectNetwork' | translate: {Default: 'Select Network'} }}</label>
-        <mat-radio-group formControlName="source" [disabled]="loading()">
-          <mat-radio-button [value]="OrganizationDemoNetworkEnum.github">GitHub</mat-radio-button>
-          <mat-radio-button [value]="OrganizationDemoNetworkEnum.aliyun">Aliyun OSS</mat-radio-button>
-        </mat-radio-group>
+        <z-radio-group formControlName="source" [disabled]="loading()">
+          <z-radio [value]="OrganizationDemoNetworkEnum.github">GitHub</z-radio>
+          <z-radio [value]="OrganizationDemoNetworkEnum.aliyun">Aliyun OSS</z-radio>
+        </z-radio-group>
       </form>
 
       <div class="flex justify-center items-center w-full h-24">

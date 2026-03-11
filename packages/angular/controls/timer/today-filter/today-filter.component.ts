@@ -5,14 +5,13 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormControl, FormsModule, Reac
 import { MAT_DATE_FORMATS } from '@angular/material/core'
 import { MatDatepicker } from '@angular/material/datepicker'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatRadioModule } from '@angular/material/radio'
 import { DisplayDensity, NgmAppearance, NgmDSCoreService, NgmOcapCoreService, TIME_GRANULARITY_SEQUENCES } from '@metad/ocap-angular/core'
 import { TimeGranularity } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { getMonth, getYear, isDate, setMonth, setYear } from 'date-fns'
 import { filter } from 'rxjs/operators'
 import { NgmMemberDatepickerModule } from '../datepicker'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -23,8 +22,8 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     ZardButtonComponent,
     ZardIconComponent,
+    ...ZardFormImports,
     MatMenuModule,
-    MatRadioModule,
     NgmMemberDatepickerModule,
   ],
   selector: 'ngm-today-filter',

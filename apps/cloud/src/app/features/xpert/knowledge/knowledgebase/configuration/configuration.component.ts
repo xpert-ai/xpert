@@ -10,6 +10,7 @@ import { KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledg
 import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardFormImports } from '@xpert-ai/headless-ui'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { omit } from 'lodash-es'
 import {
@@ -38,6 +39,7 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
+    ...ZardFormImports,
     MatTooltipModule,
     NgmSelectComponent,
     EmojiAvatarComponent,

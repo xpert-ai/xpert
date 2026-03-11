@@ -14,7 +14,6 @@ import { ZardButtonComponent, ZardComboboxComponent, ZardComboboxGroup, ZardComb
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 
 import { MatMenuModule } from '@angular/material/menu'
-import { MatRadioModule } from '@angular/material/radio'
 import { MatListModule } from '@angular/material/list'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatBadgeModule } from '@angular/material/badge'
@@ -40,7 +39,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
       useExisting: forwardRef(() => NgmPropertySelectComponent),
     },
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkMenuModule, ...ZardFormImports, ZardInputDirective, ZardComboboxComponent, ZardIconComponent, ZardButtonComponent, MatMenuModule, MatRadioModule, ZardDividerComponent, MatListModule, MatCheckboxModule, MatBadgeModule, MatProgressSpinnerModule, TranslateModule, NgmCommonModule, NgmEntityPropertyComponent]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkMenuModule, ...ZardFormImports, ZardInputDirective, ZardComboboxComponent, ZardIconComponent, ZardButtonComponent, MatMenuModule, ZardDividerComponent, MatListModule, MatCheckboxModule, MatBadgeModule, MatProgressSpinnerModule, TranslateModule, NgmCommonModule, NgmEntityPropertyComponent]
 })
 export class NgmPropertySelectComponent implements ControlValueAccessor, AfterViewInit {
   private readonly createCalculationAction = '__create_calculation__'

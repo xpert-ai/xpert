@@ -146,38 +146,38 @@
   
 </mat-menu>
 
-<mat-radio-group [(ngModel)]="displayBehaviour">
+<z-radio-group [(ngModel)]="displayBehaviour">
   <mat-menu #displayMenu="matMenu" class="ngm-formly ngm-density__compact">
     <button mat-menu-item disableRipple *ngFor="let behaviour of DISPLAY_BEHAVIOUR_LIST"
       (click)="$event.stopPropagation();">
-      <mat-radio-button [value]="behaviour.value">
+      <z-radio [value]="behaviour.value">
         {{ 'Ngm.Property.' + behaviour.label | translate: {Default: behaviour.label} }}
-      </mat-radio-button>
+      </z-radio>
     </button>
   </mat-menu>
-</mat-radio-group>
+</z-radio-group>
 
-<mat-radio-group [(ngModel)]="memberCaption">
+<z-radio-group [(ngModel)]="memberCaption">
   <mat-menu #labelMenu="matMenu" class="ngm-formly ngm-density__compact">
     <button mat-menu-item disableRipple
       (click)="$event.stopPropagation();">
-      <mat-radio-button class="ngm-radio-button__property" [value]="null">
+      <z-radio class="ngm-radio-button__property" [value]="null">
         {{ 'Ngm.Property.Auto' | translate: {Default: "Auto"} }}
-      </mat-radio-button>
+      </z-radio>
     </button>
 
     @for (item of labels$ | async; track item.name) {
       <button mat-menu-item disableRipple
         (click)="$event.stopPropagation();">
-        <mat-radio-button class="ngm-radio-button__property" [value]="item.name" [title]="item.caption">
+        <z-radio class="ngm-radio-button__property" [value]="item.name" [title]="item.caption">
           {{item.caption}}
-        </mat-radio-button>
+        </z-radio>
       </button>
     }
   </mat-menu>
-</mat-radio-group>
+</z-radio-group>
 
-<mat-radio-group [(ngModel)]="level">
+<z-radio-group [(ngModel)]="level">
   <ng-template #hierarchyMenu>
     <div cdkMenu class="cdk-menu__large">
       <button cdkMenuItem [cdkMenuTriggerFor]="hierarchiesMenu">
@@ -234,7 +234,7 @@
       }
     </div>
   </ng-template>
-</mat-radio-group>
+</z-radio-group>
 
 <ng-template #hierarchiesMenu>
   <div cdkMenu class="cdk-menu__large">
@@ -311,23 +311,23 @@
   </div>
 </ng-template>
 
-<mat-radio-group [(ngModel)]="order">
+<z-radio-group [(ngModel)]="order">
   <mat-menu #orderMenu="matMenu" class="ngm-density__compact">
     <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
-      <mat-radio-button class="ngm-radio-button__property" [value]="null">
+      <z-radio class="ngm-radio-button__property" [value]="null">
         {{ 'Ngm.Property.None' | translate: {Default: "None"} }}
-      </mat-radio-button>
+      </z-radio>
     </button>
 
     <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
-      <mat-radio-button class="ngm-radio-button__property" value="ASC">
+      <z-radio class="ngm-radio-button__property" value="ASC">
         {{ 'Ngm.Property.Order_ASC' | translate: {Default: "ASC"} }}
-      </mat-radio-button>
+      </z-radio>
     </button>
     <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
-      <mat-radio-button class="ngm-radio-button__property" value="DESC">
+      <z-radio class="ngm-radio-button__property" value="DESC">
         {{ 'Ngm.Property.Order_DESC' | translate: {Default: "DESC"} }}
-      </mat-radio-button>
+      </z-radio>
     </button>
   </mat-menu>
-</mat-radio-group>
+</z-radio-group>
