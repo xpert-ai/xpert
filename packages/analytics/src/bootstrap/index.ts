@@ -9,6 +9,7 @@ import {
 	initI18next,
 	loadOrganizationPluginConfigs,
 	PluginModule,
+	resolveNestLogLevels,
 	registerPluginsAsync,
 	ServerAppModule,
 	SharedModule
@@ -33,7 +34,6 @@ import { AnalyticsModule } from '../app.module'
 import { AnalyticsService } from '../app.service'
 import { BootstrapModule } from './bootstrap.module'
 
-
 export async function bootstrap(options: { title: string; version: string }) {
 	// Pre-bootstrap the application configuration
 	const config = await preBootstrapApplicationConfig({})
@@ -49,6 +49,7 @@ export async function bootstrap(options: { title: string; version: string }) {
 	})
 
 	app.useLogger(app.get(Logger))
+	NestLogger.overrideLogger(resolveNestLogLevels())
 
 	// Set query parser to extended (In Express v5, query parameters are no longer parsed using the qs library by default.)
 	app.set('query parser', 'extended')
