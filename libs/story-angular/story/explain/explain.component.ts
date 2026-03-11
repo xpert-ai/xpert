@@ -6,14 +6,13 @@ import { OcapCoreModule, OmitBlankPipe } from '@metad/ocap-angular/core'
 import { isDataSettings } from '@metad/ocap-core'
 import { uuid } from '@metad/story/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { MatIconModule } from '@angular/material/icon'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -21,7 +20,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     CommonModule,
     TranslateModule,
     DragDropModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     MatTooltipModule,
     NgmTableComponent,

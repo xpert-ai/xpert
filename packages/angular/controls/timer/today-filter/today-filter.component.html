@@ -6,21 +6,21 @@
   <ng-container *ngSwitchCase="TimeGranularity.Year">
     <ngm-yearpicker [formControl]="date">
       <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="ngm-actionable-opacity" [matMenuTriggerFor]="granularityMenu" (click)="$event.stopPropagation();$event.preventDefault();">
-        <mat-icon>more_vert</mat-icon>
+        <z-icon zType="more_vert"></z-icon>
       </button>
     </ngm-yearpicker>
   </ng-container>
   <ng-container *ngSwitchCase="TimeGranularity.Quarter">
     <ngm-quarterpicker [formControl]="date">
       <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="ngm-actionable-opacity" [matMenuTriggerFor]="granularityMenu" (click)="$event.stopPropagation();$event.preventDefault();">
-          <mat-icon>more_vert</mat-icon>
+          <z-icon zType="more_vert"></z-icon>
       </button>
     </ngm-quarterpicker>
   </ng-container>
   <ng-container *ngSwitchCase="TimeGranularity.Month">
     <ngm-monthpicker [formControl]="date">
       <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="ngm-actionable-opacity" [matMenuTriggerFor]="granularityMenu" (click)="$event.stopPropagation();$event.preventDefault();">
-        <mat-icon>more_vert</mat-icon>
+        <z-icon zType="more_vert"></z-icon>
       </button>
     </ngm-monthpicker>
   </ng-container>
@@ -28,7 +28,7 @@
   <ng-container *ngSwitchDefault>
     <ngm-datepicker [formControl]="date">
       <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="ngm-actionable-opacity" [matMenuTriggerFor]="granularityMenu" (click)="$event.stopPropagation();$event.preventDefault();">
-          <mat-icon>more_vert</mat-icon>
+          <z-icon zType="more_vert"></z-icon>
       </button>
     </ngm-datepicker>
   </ng-container>

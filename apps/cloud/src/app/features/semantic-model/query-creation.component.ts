@@ -4,19 +4,18 @@ import { Component, HostBinding, OnInit } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatSelectModule } from '@angular/material/select'
+import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { firstValueFrom } from 'rxjs'
 import { ModelQueryService, uuid } from '../../@core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MatDialogModule, TranslateModule, FormsModule, ReactiveFormsModule, ...ZardFormImports, DragDropModule, ZardButtonComponent, ZardInputDirective, MatProgressBarModule, MatSelectModule, ButtonGroupDirective, DensityDirective],
+  imports: [CommonModule, MatDialogModule, TranslateModule, FormsModule, ReactiveFormsModule, ...ZardFormImports, DragDropModule, ZardButtonComponent, ZardInputDirective, MatProgressBarModule, ButtonGroupDirective, DensityDirective, NgmSelectComponent],
   selector: 'pac-query-creation',
   template: `<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
       <h4 style="pointer-events: none;">
@@ -38,15 +37,13 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
           <z-form-label>
             {{ 'PAC.KEY_WORDS.Model' | translate: { Default: 'Model' } }}
           </z-form-label>
-          <mat-select formControlName="modelId"
-            placeholder="{{
-              'PAC.MODEL.QueryBaseModelPlaceholder' | translate: { Default: 'Which model space do you want query' }
-            }}?"
-          >
-            <mat-option *ngFor="let model of models$ | async" [value]="model.id">
-              {{ model.name }}
-            </mat-option>
-          </mat-select>
+          <ngm-select
+            formControlName="modelId"
+            [placeholder]="
+              ('PAC.MODEL.QueryBaseModelPlaceholder' | translate: { Default: 'Which model space do you want query' }) + '?'
+            "
+            [selectOptions]="(models$ | async)?.map(model => ({ value: model.id, label: model.name }))"
+          />
         </z-form-field>
 
         <button type="submit"></button>

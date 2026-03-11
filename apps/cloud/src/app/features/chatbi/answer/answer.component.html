@@ -89,7 +89,7 @@
                       >
                         <div class="flex-1 flex justify-start">
                           <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="shrink-0" [matTooltip]=" 'PAC.ChatBI.ShowChart' | translate: {Default: 'Show Chart'} " (click)="answer.visualType = 'chart'">
-                            <mat-icon fontSet="material-icons-outlined">pie_chart</mat-icon>
+                            <z-icon zType="pie_chart"></z-icon>
                           </button>
                         </div>
                       </ngm-analytical-grid>
@@ -105,19 +105,19 @@
                       >
                         <div class="flex-1 flex justify-start">
                           <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="shrink-0" [matTooltip]=" 'PAC.ChatBI.ShowTable' | translate: {Default: 'Show Table'} " (click)="answer.visualType = 'table'">
-                            <mat-icon fontSet="material-icons-outlined">table_view</mat-icon>
+                            <z-icon zType="table_view"></z-icon>
                           </button>
                         </div>
                         <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAction displayDensity="compact" class="shrink-0" [matTooltip]=" 'PAC.ChatBI.AddtoStory' | translate: {Default: 'Add to Story'} " (click)="$event.stopPropagation();$event.preventDefault();addToStory(answer)">
-                          <mat-icon fontSet="material-icons-outlined"
+                          <z-icon
                             [matTooltip]="''"
-                          >addchart</mat-icon>
+                           zType="addchart"></z-icon>
                         </button>
                         <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAction displayDensity="compact" class="shrink-0" [matTooltip]=" 'Story.Widget.Explore' | translate: {Default: 'Explore'} " (click)="$event.stopPropagation();$event.preventDefault();openExplore(item)">
-                          <mat-icon fontSet="material-icons-outlined">explore</mat-icon>
+                          <z-icon zType="explore"></z-icon>
                         </button>
                         <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAction displayDensity="cosy" class="ngm-menu-trigger" [color]="answer.slicers ? 'accent':''" [matMenuTriggerFor]="filtersMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen">
-                          <mat-icon fontSet="material-icons-outlined">filter_alt</mat-icon>
+                          <z-icon zType="filter_alt"></z-icon>
                         </button>
                       </ngm-analytical-card>
             
@@ -171,9 +171,9 @@
 
 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-fullscreen-button opacity-20 group-hover:opacity-100 transition-opacity" (click)="toggleFullScreen()">
   @if (fullscreen()) {
-    <mat-icon fontSet="material-icons-round">fullscreen_exit</mat-icon>
+    <z-icon zType="fullscreen_exit"></z-icon>
   } @else {
-    <mat-icon fontSet="material-icons-round">fullscreen</mat-icon>
+    <z-icon zType="fullscreen"></z-icon>
   }
 </button>
 
@@ -196,23 +196,23 @@
 <ng-template #contextMenu>
   <div cdkMenu>
     <button cdkMenuItem [cdkMenuTriggerFor]="topMenu">
-      <mat-icon>military_tech</mat-icon>
+      <z-icon zType="military_tech"></z-icon>
       <span class="flex-1">{{ 'PAC.KEY_WORDS.Top' | translate: {Default: 'Top'} }}</span>
-      <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
+      <z-icon zType="arrow_right"></z-icon>
     </button>
     <button cdkMenuItem [cdkMenuTriggerFor]="sortMenu">
-      <mat-icon>sort</mat-icon>
+      <z-icon zType="sort"></z-icon>
       <span class="flex-1">{{ 'PAC.KEY_WORDS.Sort' | translate: {Default: 'Sort'} }}</span>
-      <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
+      <z-icon zType="arrow_right"></z-icon>
     </button>
 
     <button cdkMenuItem (click)="refresh(true)">
-      <mat-icon fontSet="material-icons-round">refresh</mat-icon>
+      <z-icon zType="refresh"></z-icon>
       {{ 'Story.Widget.Refresh' | translate: {Default: "Refresh"} }}
     </button>
 
     <button cdkMenuItem (click)="explain()">
-      <mat-icon fontSet="material-icons-round">code</mat-icon>
+      <z-icon zType="code"></z-icon>
       {{ 'Story.Widget.Explain' | translate: {Default: "Explain"} }}
     </button>
   </div>
@@ -226,9 +226,9 @@
         <ngm-entity-property [property]="measure" [highlight]="searchMeasure()" class="flex-1"/>
         @if (hasOrder()(measure); as order) {
           @if (!order.order || order.order === OrderDirection.ASC) {
-            <mat-icon fontSet="material-icons">arrow_downward</mat-icon>
+            <z-icon zType="arrow_downward"></z-icon>
           } @else {
-            <mat-icon fontSet="material-icons">arrow_upward</mat-icon>
+            <z-icon zType="arrow_upward"></z-icon>
           }
         }
       </button>
@@ -241,7 +241,7 @@
     @for (top of TOPS; track top) {
       <button cdkMenuItem (click)="toggleTop(top)">
         @if (rankTop() === top) {
-          <mat-icon fontSet="material-icons">done</mat-icon>
+          <z-icon zType="done"></z-icon>
         }
         <span class="flex-1 text-right">{{ 'PAC.KEY_WORDS.Top' | translate: {Default: 'Top'} }}{{top}}</span>
       </button>

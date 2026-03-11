@@ -5,10 +5,8 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { AbstractControl, FormBuilder, FormControl, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms'
 
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatRadioModule } from '@angular/material/radio'
-import { MatSelectModule } from '@angular/material/select'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import {
@@ -30,7 +28,6 @@ import { NgmCalculationVarianceComponent } from '../calculation-variance/varianc
 import { NgmConditionalAggregationComponent } from '../conditional-aggregation/conditional-aggregation.component'
 import { NgmMeasureControlComponent } from '../measure-control/measure-control.component'
 import { NgmRestrictedMeasureComponent } from '../restricted-measure/restricted-measure.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export interface CalculationEditorData {
   dataSettings: DataSettings
@@ -42,7 +39,7 @@ export interface CalculationEditorData {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule, DragDropModule, ...ZardFormImports, MatSelectModule, MatIconModule, ZardButtonComponent, MatRadioModule, ZardInputDirective, NgmCommonModule, NgmCalculatedMeasureComponent, NgmCalculationVarianceComponent, NgmConditionalAggregationComponent, NgmRestrictedMeasureComponent, NgmMeasureControlComponent],
+  imports: [CommonModule, ReactiveFormsModule, TranslateModule, DragDropModule, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, MatRadioModule, ZardInputDirective, NgmCommonModule, NgmCalculatedMeasureComponent, NgmCalculationVarianceComponent, NgmConditionalAggregationComponent, NgmRestrictedMeasureComponent, NgmMeasureControlComponent],
   selector: 'ngm-calculation-editor',
   templateUrl: './calculation-editor.component.html',
   styleUrls: ['./calculation-editor.component.scss']

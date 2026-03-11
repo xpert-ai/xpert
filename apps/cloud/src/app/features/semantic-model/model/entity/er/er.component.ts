@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common'
 import { Component, DestroyRef, ElementRef, HostListener, afterNextRender, computed, inject, signal, viewChild, viewChildren } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
-import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmDisplayBehaviourComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -15,7 +14,7 @@ import { debounceTime } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
 import { ModelDesignerType } from '../../types'
 import { ModelEntityService } from '../entity.service'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -26,7 +25,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     ZardButtonComponent,
     MatTooltipModule,
     ButtonGroupDirective,
-    MatIconModule,
+    ZardIconComponent,
     DensityDirective,
     NgmEntityPropertyComponent,
     NgmDisplayBehaviourComponent

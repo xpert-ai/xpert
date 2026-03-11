@@ -6,7 +6,6 @@ import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-i
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox'
-import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -34,7 +33,7 @@ import { uniq } from 'lodash-es'
 import { combineLatestWith, debounceTime, distinctUntilChanged, map, startWith } from 'rxjs/operators'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { TreeControlOptions } from '../types'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
   checked?: boolean
@@ -57,7 +56,7 @@ export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatIconModule,
+    ZardIconComponent,
     MatCheckboxModule,
     MatProgressSpinnerModule,
     ZardButtonComponent,

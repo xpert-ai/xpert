@@ -13,13 +13,13 @@
       (slicerChange)="update($event, i)"
       (removed)="remove(i)">
     </ngm-slicer>
-    <mat-divider></mat-divider>
+    <z-divider></z-divider>
   </ng-container>
 </mat-dialog-content>
 
 <mat-dialog-actions style="display: flex; justify-content: space-between; align-items: center;">
   <button z-button zType="ghost" color="primary" ngmAppearance="dashed" [matMenuTriggerFor]="menu">
-    <mat-icon>add</mat-icon>
+    <z-icon zType="add"></z-icon>
     {{ 'Ngm.Common.ADD' | translate: {Default: "Add"} }}
   </button>
 
@@ -57,13 +57,13 @@
 
   <button mat-menu-item *ngIf="showCombinationSlicer"
     (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.CombinationSlicer)">
-    <mat-icon>tune</mat-icon>
+    <z-icon zType="tune"></z-icon>
     {{ 'Ngm.Selection.CombinationSlicer' | translate: {Default: 'Combination Slicer'} }}
   </button>
 
   <button mat-menu-item *ngIf="showAdvancedSlicer"
     (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.AdvancedSlicer)">
-    <mat-icon>data_array</mat-icon>
+    <z-icon zType="data_array"></z-icon>
     {{ 'Ngm.Selection.AdvancedSlicer' | translate: {Default: 'Advanced Slicer'} }}
   </button>
 </mat-menu>
@@ -71,7 +71,7 @@
 <mat-menu #calendarMenu="matMenu" class="ngm-density__compact">
   <ng-template matMenuContent let-property="property">
     <button mat-menu-item (click)="openValueHelp(property)">
-      <mat-icon fontSet="material-icons-outlined">people_outline</mat-icon>
+      <z-icon zType="people_outline"></z-icon>
       {{ 'Ngm.Selection.DimensionMembers' | translate: {Default: 'Dimension Members'} }}
     </button>
 

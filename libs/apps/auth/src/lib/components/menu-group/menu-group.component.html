@@ -26,7 +26,7 @@
              #subMenuTrigger="cdkOverlayOrigin"
           >
             <div class="flex flex-col justify-start items-center">
-              <mat-icon fontSet="material-icons-round">{{ item.matIcon }}</mat-icon>
+              <z-icon [zType]="item.icon"></z-icon>
               <span class="text-xs">
                 {{ item.title }}
               </span>
@@ -62,8 +62,8 @@
                       (click)="clicked.emit()"
                     >
                       <div class="flex items-center">
-                        @if (child.matIcon) {
-                          <mat-icon fontSet="material-icons-round" class="text-text-secondary mr-2">{{ child.matIcon }}</mat-icon>
+                        @if (child.icon) {
+                          <z-icon class="text-text-secondary mr-2" [zType]="child.icon"></z-icon>
                         }
                         <span>{{ child.title }}</span>
                       </div>
@@ -73,8 +73,8 @@
               </div>
             </ng-template>
           }
-        } @else if (item.matIcon) {
-          <mat-icon displayDensity="cosy" fontSet="material-icons-round">{{ item.matIcon }}</mat-icon>
+        } @else if (item.icon) {
+          <z-icon zSize="default" [zType]="item.icon"></z-icon>
         }
 
         @if (!isCollapsed) {
@@ -103,8 +103,8 @@
                 (isActiveChange)="child.isActive = $event"
                 [class.active]="rla.isActive"
                 (click)="clicked.emit()">
-                @if (child.matIcon) {
-                  <mat-icon displayDensity="compact" fontSet="material-icons-round">{{ child.matIcon }}</mat-icon>
+                @if (child.icon) {
+                  <z-icon zSize="sm" [zType]="child.icon"></z-icon>
                 }
                 <span class="ml-3">{{ child.title }}</span>
               </li>

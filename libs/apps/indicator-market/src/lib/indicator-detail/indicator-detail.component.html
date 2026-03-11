@@ -23,8 +23,8 @@
           {{ 'IndicatorApp.MOM' | translate: {Default: 'MOM'} }}
         </div>
         <div [ngClass]="{'Trend-Up': mom$() === TREND.Up, 'Trend-Down': mom$() === TREND.Down}">
-          <mat-icon *ngIf="mom$() === TREND.Up" displayDensity="compact">arrow_drop_up</mat-icon>
-          <mat-icon *ngIf="mom$() === TREND.Down" displayDensity="compact">arrow_drop_down</mat-icon>
+          <z-icon *ngIf="mom$() === TREND.Up" zSize="sm" zType="arrow_drop_up"></z-icon>
+          <z-icon *ngIf="mom$() === TREND.Down" zSize="sm" zType="arrow_drop_down"></z-icon>
           {{(indicator.data?.MOM | percent:'0.2-2' | replaceNullWithText:'-' )!}}
         </div>
       </div>
@@ -44,10 +44,10 @@
         </div>
         <div [ngClass]="{'Trend-Up': yoy$() === TREND.Up, 'Trend-Down': yoy$() === TREND.Down}">
           @if (yoy$() === TREND.Up) {
-            <mat-icon displayDensity="compact">arrow_drop_up</mat-icon>
+            <z-icon zSize="sm" zType="arrow_drop_up"></z-icon>
           }
           @if (yoy$() === TREND.Down) {
-            <mat-icon displayDensity="compact">arrow_drop_down</mat-icon>
+            <z-icon zSize="sm" zType="arrow_drop_down"></z-icon>
           }
           {{(indicator.data?.YOY | percent:'0.2-2' | replaceNullWithText:'-' )!}}
         </div>
@@ -62,18 +62,18 @@
 
     <div class="flex justify-end items-start gap-2">
       <button z-button zType="ghost" zSize="icon" zShape="circle" [color]="favour() ? 'accent' : ''" (click)="toggleFavorite(indicator)">
-        <mat-icon>star</mat-icon>
+        <z-icon zType="star"></z-icon>
       </button>
 
       @if (isMobile$ | async) {
         <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-indicator-app__close bg-white/10" (click)="onClose($event)">
-          <mat-icon>close</mat-icon>
+          <z-icon zType="close"></z-icon>
         </button>
       }
     </div>
   </mat-card-header>
 
-  <mat-divider></mat-divider>
+  <z-divider></z-divider>
 
   <mat-card-content class="flex-1 overflow-y-auto">
     @if (isMobile$ | async) {
@@ -203,7 +203,7 @@
         </div>
 
         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="pac-indicator-app__comment-remove right-0 top-0" (click)="messages.splice(i, 1)">
-          <mat-icon>close</mat-icon>
+          <z-icon zType="close"></z-icon>
         </button>
       </div>
 
@@ -245,7 +245,7 @@
 
           @if (isModeler()) {
             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="pac-indicator-app__comment-remove" (click)="deleteComment(comment)">
-              <mat-icon>close</mat-icon>
+              <z-icon zType="close"></z-icon>
             </button>
           }
         </div>

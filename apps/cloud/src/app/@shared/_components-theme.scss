@@ -83,7 +83,7 @@
 
   [z-button][data-icon-only],
   z-button[data-icon-only] {
-    .mat-icon {
+    .z-icon {
       // display: block;
       // margin: auto;
     }
@@ -147,13 +147,6 @@
     .mat-mdc-list-item-content {
       padding: 0 6px;
     }
-  }
-
-  .mat-mdc-list-base.ngm-density__compact .mat-mdc-list-item .mat-mdc-list-item-content > .mat-icon {
-    font-size: 16px;
-    line-height: 18px;
-    width: 18px;
-    height: 18px;
   }
 
   .mat-toolbar.ngm-density__compact {
@@ -231,13 +224,6 @@
 
   .ngm-entity-property {
     --icon-size: 16px;
-    .mat-icon.mat-icon-no-color {
-      opacity: .5;
-      font-size: var(--icon-size);
-      width: var(--icon-size);
-      height: var(--icon-size);
-      line-height: var(--icon-size);
-    }
   }
 
   .ngxp__container > .ngxp__arrow::before {
@@ -352,9 +338,6 @@
     .mat-mdc-menu-item {
       &.ngm-appearance-danger:hover {
         @apply bg-red-400 text-white;
-        .mat-icon-no-color {
-          @apply text-white;
-        }
       }
 
       .mat-checkbox-layout {

@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { AbstractStoryWidget, StoryWidgetState, StoryWidgetStyling, WidgetMenuType, nonNullable } from '@metad/core'
 import { NgmObjectNumberComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -18,6 +17,7 @@ import { distinctUntilChanged, filter, map } from 'rxjs/operators'
 import { KPIPlaceholderComponent } from './placeholder/placeholder.component'
 import { KeyPerformanceIndicatorService } from './key-performance-indicator.service'
 import { NxWidgetKPIOptions } from './types'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
 
 export interface PacWidgetKPIStyling extends StoryWidgetStyling {
   title: ComponentStyling
@@ -36,7 +36,7 @@ export interface PacWidgetKPIStyling extends StoryWidgetStyling {
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatIconModule,
+    ZardIconComponent,
     MatTooltipModule,
 
     AnalyticalGridModule,

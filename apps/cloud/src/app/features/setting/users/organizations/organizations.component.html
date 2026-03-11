@@ -3,7 +3,7 @@
   <div ngmButtonGroup>
     <button z-button zType="default" color="primary" [cdkMenuTriggerFor]="orgMenu">
       <div class="flex items-center">
-        <mat-icon fontSet="material-icons-outlined">add</mat-icon>
+        <z-icon zType="add"></z-icon>
         {{ 'PAC.ACTIONS.ADD' | translate: {Default: "Add"} }}
       </div>
     </button>
@@ -33,7 +33,6 @@
   />
 </div>
 
-
 <ng-template #userTempl let-user>
   <pac-user-profile-inline [user]="user"></pac-user-profile-inline>
 </ng-template>
@@ -41,7 +40,7 @@
 <ng-template #actionTempl let-loading="loading" let-id="id" let-organization="organization">
   <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-gray-400" [disabled]="loading" (click)="removeOrg(id, organization)">
     <div class="flex justify-center items-center">
-      <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+      <z-icon zType="delete"></z-icon>
     </div>
   </button>
 </ng-template>

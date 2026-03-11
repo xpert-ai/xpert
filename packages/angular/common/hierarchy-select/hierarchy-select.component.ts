@@ -1,21 +1,20 @@
 import { CommonModule } from '@angular/common'
-import { Component, effect, forwardRef, inject, input, Input, signal } from '@angular/core'
+import { Component, computed, effect, forwardRef, inject, input, Input, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatSelectModule } from '@angular/material/select'
 import { nonNullable, PropertyDimension } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, startWith } from 'rxjs'
 import { NgmDisplayBehaviourComponent } from '../display-behaviour'
 import { NgmFieldAppearance } from "@metad/ocap-angular/core";
-import { ZardFormImports } from "@xpert-ai/headless-ui";
+import { ZardComboboxComponent, ZardComboboxGroup, ZardComboboxOption, ZardFormImports } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use headless components instead
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, ...ZardFormImports, MatSelectModule, ReactiveFormsModule, TranslateModule, NgmDisplayBehaviourComponent],
+  imports: [CommonModule, ...ZardFormImports, ZardComboboxComponent, ReactiveFormsModule, TranslateModule, NgmDisplayBehaviourComponent],
   selector: 'ngm-hierarchy-select',
   templateUrl: './hierarchy-select.component.html',
   styles: [],
@@ -42,6 +41,21 @@ export class NgmHierarchySelectComponent implements ControlValueAccessor {
   onTouched: () => void
 
   readonly value = toSignal(this.formControl.valueChanges.pipe(startWith(this.formControl.value)))
+  readonly noneOption = computed<ZardComboboxOption[]>(() => [
+    {
+      value: '',
+      label: `-- ${this.#translate.instant('Ngm.Common.None', { Default: 'None' })} --`
+    }
+  ])
+  readonly groups = computed<ZardComboboxGroup[]>(() =>
+    this.dimensions()?.map((dimension) => ({
+      label: dimension.caption,
+      options: dimension.hierarchies?.map((hierarchy) => ({
+        value: hierarchy.name,
+        label: hierarchy.caption || hierarchy.name
+      })) ?? []
+    })) ?? []
+  )
 
   readonly error = signal<string>('')
 
@@ -69,7 +83,7 @@ export class NgmHierarchySelectComponent implements ControlValueAccessor {
   )
 
   writeValue(obj: any): void {
-    this.formControl.setValue(obj)
+    this.formControl.setValue(obj ?? '', { emitEvent: false })
   }
   registerOnChange(fn: any): void {
     this.onChange = fn

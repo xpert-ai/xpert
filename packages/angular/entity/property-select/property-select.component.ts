@@ -1,23 +1,20 @@
-import { AfterViewInit, booleanAttribute, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, EventEmitter, forwardRef, HostBinding, inject, input, Output, signal, ViewChild, ViewContainerRef } from '@angular/core'
+import { AfterViewInit, booleanAttribute, ChangeDetectionStrategy, Component, computed, DestroyRef, effect, EventEmitter, forwardRef, HostBinding, inject, input, Output, signal, ViewContainerRef } from '@angular/core'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { AggregationRole, CalculationProperty, CalculationType, C_MEASURES, DataSettings, Dimension, DisplayBehaviour, EntityType, FilterSelectionType, getEntityProperty, getEntityProperty2, isCalculationProperty, isIndicatorMeasureProperty, isMeasure, isMeasureControlProperty, isParameterProperty, isVisible, LevelMemberProperty, Measure, Member, omit, OrderDirection, Property, PropertyHierarchy, Syntax, ParameterControlEnum, ParameterProperty, PropertyDimension, IntrinsicMemberProperties, isEntitySet, getEntityHierarchy, isPropertyMeasure, isPropertyDimension, PropertyMeasure, isVariableProperty, RuntimeLevelType, isPropertyHierarchy, isPropertyLevel, isDimension, ISlicer, } from '@metad/ocap-core'
 import { cloneDeep, includes, isEmpty, isEqual, isNil, isString, negate, pick, uniq } from 'lodash-es'
 import { BehaviorSubject, combineLatest, firstValueFrom, Observable, of } from 'rxjs'
 import { distinctUntilChanged, filter, map, shareReplay, startWith, combineLatestWith, debounceTime, switchMap } from 'rxjs/operators'
-import { MatSelect, MatSelectModule } from '@angular/material/select'
 import { getEntityMeasures, PropertyAttributes } from '@metad/ocap-core'
 import { DisplayDensity, NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
 import { ControlOptions, NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CommonModule } from '@angular/common'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardComboboxComponent, ZardComboboxGroup, ZardComboboxOption, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { MatIconModule } from '@angular/material/icon'
 
 import { MatMenuModule } from '@angular/material/menu'
 import { MatRadioModule } from '@angular/material/radio'
-import { MatDividerModule } from '@angular/material/divider'
 import { MatListModule } from '@angular/material/list'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatBadgeModule } from '@angular/material/badge'
@@ -29,7 +26,6 @@ import { PropertyCapacity } from '../types'
 import { NgmEntityPropertyComponent, propertyIcon } from '../property/property.component'
 import { NgmFormattingComponent } from '../formatting/formatting.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -44,9 +40,11 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
       useExisting: forwardRef(() => NgmPropertySelectComponent),
     },
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkMenuModule, ...ZardFormImports, ZardInputDirective, MatSelectModule, MatIconModule, ZardButtonComponent, MatMenuModule, MatRadioModule, MatDividerModule, MatListModule, MatCheckboxModule, MatBadgeModule, MatProgressSpinnerModule, TranslateModule, NgmCommonModule, NgmEntityPropertyComponent]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkMenuModule, ...ZardFormImports, ZardInputDirective, ZardComboboxComponent, ZardIconComponent, ZardButtonComponent, MatMenuModule, MatRadioModule, ZardDividerComponent, MatListModule, MatCheckboxModule, MatBadgeModule, MatProgressSpinnerModule, TranslateModule, NgmCommonModule, NgmEntityPropertyComponent]
 })
 export class NgmPropertySelectComponent implements ControlValueAccessor, AfterViewInit {
+  private readonly createCalculationAction = '__create_calculation__'
+  private readonly createMeasureControlAction = '__create_measure_control__'
   AggregationRole = AggregationRole
   DISPLAY_BEHAVIOUR = DisplayBehaviour
   DisplayDensity = DisplayDensity
@@ -121,9 +119,6 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
 
   @Output() valueChange = new EventEmitter()
   @Output() calculationChange = new EventEmitter()
-
-  @ViewChild('propertySelect', { read: MatSelect })
-  private _propertySelect: MatSelect
 
   readonly keyControl = new FormControl()
   readonly formGroup = new FormGroup({
@@ -313,6 +308,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   readonly measures = toSignal(this.measures$, { initialValue: [] })
   readonly calculations = computed(() => this.measures().filter((property => isCalculationProperty(property) && negate(isIndicatorMeasureProperty)(property))))
   readonly measureControls = computed(() => this.calculations().filter(isMeasureControlProperty))
+  readonly notCalculations = toSignal(this.notCalculations$, { initialValue: [] })
   readonly isMeasure$ = this.property$.pipe(map((property) => property?.role === AggregationRole.measure || property?.name === C_MEASURES))
   readonly isMeasure = computed(() => this.property()?.role === AggregationRole.measure || this.property()?.name === C_MEASURES)
   /**
@@ -331,6 +327,72 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   readonly showDisplayAs = computed(() => this.isDimension() || this.isVariable() || this.isParameter() && (<ParameterProperty>this.property()).paramType === ParameterControlEnum.Dimensions)
 
   readonly indicators$ = this.measures$.pipe(map(calculations => calculations?.filter(isIndicatorMeasureProperty) || []))
+  readonly indicators = toSignal(this.indicators$, { initialValue: [] })
+  readonly parameters = toSignal(this.parameters$, { initialValue: [] })
+  readonly dimensions = toSignal(this.dimensions$, { initialValue: [] })
+  readonly propertyGroups = computed<ZardComboboxGroup[]>(() => {
+    const groups: ZardComboboxGroup[] = []
+
+    if (this.showDimension()) {
+      groups.push({
+        label: this.getTranslation('Ngm.Property.DIMENSIONS', { Default: 'Dimensions' }),
+        options: this.dimensions()
+          ?.filter((property) => property?.visible !== false)
+          ?.map((property) => this.mapPropertyOption(property)) ?? []
+      })
+    }
+
+    if (this.showMeasure()) {
+      const options = this.calculations().map((property) => this.mapPropertyOption(property))
+      if (this.editable()) {
+        options.push({
+          value: this.createCalculationAction,
+          label: this.getTranslation('Ngm.Property.CREATE_CALCULATION', { Default: 'Create Calculation' })
+        })
+      }
+      groups.push({
+        label: this.getTranslation('Ngm.Property.CALCULATIONS', { Default: 'Calculations' }),
+        options
+      })
+    }
+
+    if (this.showMeasureControl()) {
+      const options = this.measureControls().map((property) => this.mapPropertyOption(property))
+      if (this.editable()) {
+        options.push({
+          value: this.createMeasureControlAction,
+          label: this.getTranslation('Ngm.Property.CREATE_MEASURE_CONTROL', { Default: 'Create Measure Control' })
+        })
+      }
+      groups.push({
+        label: this.getTranslation('Ngm.Property.MEASURE_CONTROLS', { Default: 'Measure Controls' }),
+        options
+      })
+    }
+
+    if (this.showMeasure()) {
+      groups.push({
+        label: this.getTranslation('Ngm.Property.MEASURES', { Default: 'Measures' }),
+        options: this.notCalculations().map((property) => this.mapPropertyOption(property))
+      })
+    }
+
+    if (this.showParameter()) {
+      groups.push({
+        label: this.getTranslation('Ngm.Property.PARAMETERS', { Default: 'Parameters' }),
+        options: this.parameters().map((property) => this.mapPropertyOption(property))
+      })
+    }
+
+    if (this.showMeasure()) {
+      groups.push({
+        label: this.getTranslation('Ngm.Property.INDICATORS', { Default: 'Indicators' }),
+        options: this.indicators().map((property) => this.mapPropertyOption(property))
+      })
+    }
+
+    return groups.filter((group) => group.options?.length)
+  })
 
   private readonly _members = toSignal(this.formGroup.get('members').valueChanges.pipe(startWith([])))
   public readonly membersSignal = computed(() => this.isMeasure() ? getEntityMeasures(this.entityType()).map((property) => ({
@@ -588,6 +650,16 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
     this.entityType$,
     this.keyControl.valueChanges.pipe(distinctUntilChanged())
     ]).pipe(takeUntilDestroyed()).subscribe(([entityType, dimension]) => {
+      if (dimension === this.createCalculationAction) {
+        this.keyControl.setValue(this.level || this.hierarchy || this.dimension(), { emitEvent: false })
+        this.onCreateCalculation()
+        return
+      }
+      if (dimension === this.createMeasureControlAction) {
+        this.keyControl.setValue(this.level || this.hierarchy || this.dimension(), { emitEvent: false })
+        this.onCreateCalculation(undefined, CalculationType.MeasureControl)
+        return
+      }
       const property = getEntityProperty2<PropertyDimension | PropertyMeasure>(entityType, dimension)
       if (isPropertyMeasure(property)) {
         this.formGroup.setValue({
@@ -742,6 +814,13 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
     })
   }
 
+  private mapPropertyOption(property: Property): ZardComboboxOption {
+    return {
+      value: property.name,
+      label: property.caption || property.name
+    }
+  }
+
   toggleMember(name: string, checked: boolean) {
     if (checked) {
       this.members = uniq([...(this.members || []), name])
@@ -780,9 +859,9 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
     })
   }
 
-  async onCreateCalculation(event: Event, calculationType?: CalculationType) {
-    event.preventDefault()
-    event.stopPropagation()
+  async onCreateCalculation(event?: Event, calculationType?: CalculationType) {
+    event?.preventDefault()
+    event?.stopPropagation()
 
     const data = {
       dataSettings: this.dataSettings(),
@@ -887,7 +966,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   }
 
   focus(options?: FocusOptions): void {
-    this._propertySelect?.focus()
+    // z-combobox currently doesn't expose a public focus method.
   }
 
   /**

@@ -3,7 +3,6 @@ import { Component, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
-import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatSliderModule } from '@angular/material/slider'
@@ -17,7 +16,7 @@ import { environment } from 'apps/cloud/src/environments/environment'
 import { Observable, of } from 'rxjs'
 import { AbstractAgent, LocalAgent, ServerSocketAgent, Store, ToastrService } from '../../@core'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -32,7 +31,7 @@ import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatIconModule,
+    ZardIconComponent,
     MatTooltipModule,
     ZardButtonComponent,
     ...ZardTabsImports,

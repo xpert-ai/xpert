@@ -74,18 +74,18 @@
     <div *ngIf="status===PermissionApprovalStatus.REQUESTED" ngmButtonGroup displayDensity="compact" class="inline-block">
         <button z-button zType="default" displayDensity="compact" color="primary" [disabled]="loading" (click)="approval(approvalId)">
             <div class="flex items-center">
-                <mat-icon>task_alt</mat-icon>
+                <z-icon zType="task_alt"></z-icon>
                 {{ 'PAC.KEY_WORDS.Approve' | translate: {Default: 'Approve'} }}
             </div>
         </button>
         <button z-button zType="default" displayDensity="compact" color="warn" [disabled]="loading" (click)="refuse(approvalId)">
             <div class="flex items-center">
-                <mat-icon>block</mat-icon>
+                <z-icon zType="block"></z-icon>
                 {{ 'PAC.KEY_WORDS.Refuse' | translate: {Default: 'Refuse'} }}
             </div>
         </button>
     </div>
 
-    <mat-icon *ngIf="status===PermissionApprovalStatus.APPROVED" displayDensity="cosy" color="primary">task_alt</mat-icon>
-    <mat-icon *ngIf="status===PermissionApprovalStatus.REFUSED" displayDensity="cosy" color="warn">block</mat-icon>
+    <z-icon *ngIf="status===PermissionApprovalStatus.APPROVED" zSize="default" color="primary" zType="task_alt"></z-icon>
+    <z-icon *ngIf="status===PermissionApprovalStatus.REFUSED" zSize="default" color="warn" zType="block"></z-icon>
 </ng-template>

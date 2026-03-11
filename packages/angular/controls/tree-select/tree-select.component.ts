@@ -4,7 +4,6 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
 
 import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatRadioModule } from '@angular/material/radio'
@@ -24,7 +23,7 @@ import { BehaviorSubject, delayWhen, filter, firstValueFrom } from 'rxjs'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { TreeControlOptions } from '../types'
 import { NgmValueHelpComponent } from '../value-help/value-help.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 export interface MemberTreeSelectOptions extends TreeControlOptions {
   maxTagCount?: number
@@ -53,7 +52,7 @@ export interface MemberTreeSelectOptions extends TreeControlOptions {
     FormsModule,
     MatProgressSpinnerModule,
     MatMenuModule,
-    MatIconModule,
+    ZardIconComponent,
     MatRadioModule,
     ZardButtonComponent,
 

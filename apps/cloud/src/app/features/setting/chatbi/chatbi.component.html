@@ -9,7 +9,7 @@
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla1.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined">generating_tokens</mat-icon>
+      <z-icon zType="generating_tokens"></z-icon>
       {{ 'PAC.KEY_WORDS.Basic' | translate: {Default: "Basic"} }}
     </span> -->
 
@@ -18,13 +18,13 @@
       [routerLinkActiveOptions]="{exact: false}"
       [active]="rla2.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined">database</mat-icon>
+      <z-icon zType="database"></z-icon>
       {{ 'PAC.KEY_WORDS.Models' | translate: {Default: "Models"} }}
     </span>
   </nav>
 </div>
 
-<mat-divider></mat-divider>
+<z-divider></z-divider>
   
 <z-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
   [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">

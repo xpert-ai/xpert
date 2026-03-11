@@ -1,10 +1,9 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardDividerComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardTabsImports } from '@xpert-ai/headless-ui'
 import { Store, routeAnimations } from '../../../@core'
 import { UserPipe } from '../../../@shared/pipes'
 import { UserAvatarEditorComponent } from '../../../@shared/user'
@@ -19,7 +18,7 @@ import { UserAvatarEditorComponent } from '../../../@shared/user'
   imports: [
     CommonModule,
     ...ZardTabsImports,
-    MatDividerModule,
+    ZardDividerComponent,
     TranslateModule,
     RouterModule,
     UserPipe,

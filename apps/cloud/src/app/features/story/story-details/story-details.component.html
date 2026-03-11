@@ -1,6 +1,6 @@
 <div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
   <div class="w-full flex justify-start items-center my-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+    <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-lg pointer-events-none">
       {{ 'Story.StoryDetails.TITLE' | translate: {Default: "Story Details"} }}
     </span>
@@ -24,7 +24,7 @@
     <div *ngIf="activeLink === c_thumbnail" class="flex-1 flex flex-col justify-start items-end gap-2 my-2">
       <button z-button zType="outline" ngmAppearance="dashed" displayDensity="cosy" color="accent" (click)="fileUpload.click()">
         <div class="flex justify-start items-center">
-          <mat-icon fontSet="material-icons-round">upload</mat-icon>
+          <z-icon zType="upload"></z-icon>
           {{ 'Story.Common.Upload' | translate: {Default: "Upload"} }}
         </div>
       </button>
@@ -76,7 +76,7 @@
         <mat-chip-row *ngFor="let model of models()" color="primary" highlighted (removed)="removeModel(model)">
           {{model.name}}
           <button matChipRemove [attr.aria-label]="'remove ' + model.name">
-            <mat-icon>cancel</mat-icon>
+            <z-icon zType="cancel"></z-icon>
           </button>
         </mat-chip-row>
       </mat-chip-grid>
@@ -91,7 +91,7 @@
         <mat-option *ngFor="let option of models$()" [value]="option">
           <div class="flex items-center">
             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="openSemanticModel(option.id)">
-              <mat-icon>open_in_new</mat-icon>
+              <z-icon zType="open_in_new"></z-icon>
             </button>
             <span [ngmHighlight]="highlight" [caseSensitive]="false" customClasses="bg-transparent font-semibold text-amber-500"
               [content]="option.name">
@@ -105,17 +105,13 @@
       <z-form-label>
         {{ 'Story.StoryDetails.LOCALE' | translate: {Default: "Locale"} }}
       </z-form-label>
-      <mat-select [(value)]="details.locale">
-        <!-- <mat-option value="en-US">
-          {{ 'Story.StoryDetails.LOCALE_enUS' | translate: {Default: "en-US"} }}
-        </mat-option> -->
-        <mat-option value="en">
-          {{ 'Story.StoryDetails.LOCALE_en' | translate: {Default: "en"} }}
-        </mat-option>
-        <mat-option value="zh-Hans">
-          {{ 'Story.StoryDetails.LOCALE_zhHans' | translate: {Default: "zh-Hans"} }}
-        </mat-option>
-      </mat-select>
+      <ngm-select
+        [(ngModel)]="details.locale"
+        [selectOptions]="[
+          { value: 'en', label: ('Story.StoryDetails.LOCALE_en' | translate: {Default: 'en'}) },
+          { value: 'zh-Hans', label: ('Story.StoryDetails.LOCALE_zhHans' | translate: {Default: 'zh-Hans'}) }
+        ]"
+      />
     </z-form-field>
 
     <mat-checkbox [(ngModel)]="details.fullscreen" class="col-span-1 my-2">
@@ -140,7 +136,7 @@
     </div>
 
     <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-story-details__thumbnail-remove absolute right-2 top-2" displayDensity="cosy" ngmAppearance="danger" (click)="deleteThumbnail()">
-      <mat-icon>close</mat-icon>
+      <z-icon zType="close"></z-icon>
     </button>
   </div>
 </div>

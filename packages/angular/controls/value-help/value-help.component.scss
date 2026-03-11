@@ -3,7 +3,7 @@
   @apply max-w-full text-text-primary;
 }
 
-.mat-divider.mat-divider-vertical {
+.z-divider[data-orientation='vertical'] {
   margin: 0 10px;
 }
 

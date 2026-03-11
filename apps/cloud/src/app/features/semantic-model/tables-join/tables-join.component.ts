@@ -3,16 +3,13 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MatDividerModule } from '@angular/material/divider'
-import { MatIconModule } from '@angular/material/icon'
-import { MatSelectModule } from '@angular/material/select'
+import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import { Join, Table } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { cloneDeep, isEqual, values } from 'lodash-es'
 import { BehaviorSubject, EMPTY, map, shareReplay } from 'rxjs'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -21,9 +18,8 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     FormsModule,
     CdkMenuModule,
 
-    MatIconModule,
-    MatSelectModule,
-    MatDividerModule,
+    ZardIconComponent,
+    ZardDividerComponent,
     ZardButtonComponent,
     TranslateModule,
 

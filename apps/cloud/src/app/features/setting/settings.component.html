@@ -14,7 +14,7 @@
         [matTooltipDisabled]="sideMenuOpened()"
       >
         @if (e.icon) {
-          <mat-icon displayDensity="cosy" fontSet="material-icons-round">{{ e.icon }}</mat-icon>
+          <z-icon zSize="default" [zType]="e.icon"></z-icon>
         }
 
         @if (sideMenuOpened()) {

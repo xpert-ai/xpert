@@ -60,13 +60,7 @@
         </mat-checkbox>
         <z-form-field appearance="fill" class="w-5/12">
             <z-form-label>{{ 'Ngm.Calculation.DivideBy' | translate: {Default: "Divide By"} }}</z-form-label>
-            <mat-select formControlName="divideBy">
-              <mat-option value="A">
-                {{ 'Ngm.Calculation.CompareValueA' | translate: {Default: "Compare Value (A)"} }}
-              </mat-option>
-              <mat-option value="B">{{ 'Ngm.Calculation.ToValueB' | translate: {Default: "To Value (B)"} }}
-              </mat-option>
-            </mat-select>
+            <ngm-select formControlName="divideBy" [selectOptions]="divideByOptions" />
         </z-form-field>
     </div>
 

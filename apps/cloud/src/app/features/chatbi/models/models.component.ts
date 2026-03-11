@@ -1,10 +1,8 @@
 import { CommonModule } from '@angular/common'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatIconModule } from '@angular/material/icon'
-import { MatSelectModule } from '@angular/material/select'
 import { RouterModule } from '@angular/router'
 import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
 import { DensityDirective, EntityCapacity } from '@metad/ocap-angular/core'
@@ -26,8 +24,7 @@ import { ChatbiHomeComponent } from '../home.component'
     RouterModule,
     TranslateModule,
     ScrollingModule,
-    MatSelectModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     MatProgressSpinnerModule,
     DensityDirective,

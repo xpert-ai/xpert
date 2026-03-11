@@ -3,13 +3,13 @@
   <div ngmButtonGroup >
     <button z-button zType="default" color="primary" (click)="createBusinessArea(null)">
         <div class="flex items-center">
-            <mat-icon>add</mat-icon>
+            <z-icon zType="add"></z-icon>
             {{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} {{ 'PAC.KEY_WORDS.BUSINESS_AREA' | translate: {Default: "Business Area"} }}
         </div>
     </button>
   </div>
 </div>
-<mat-divider />
+<z-divider />
 
 <ngm-splitter [type]="SplitterType.Horizontal" class="flex-1">
   <ngm-splitter-pane minSize="300px" size="30%" >

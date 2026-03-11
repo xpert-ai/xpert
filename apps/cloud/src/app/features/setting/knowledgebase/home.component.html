@@ -19,7 +19,7 @@
   @for (item of knowledgebases(); track item.id) {
     <div class="ngm-card min-h-[160px] flex-1 flex flex-col p-4 group bg-gray-50 hover:bg-white">
       <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-card__menu transition-opacity opacity-0 group-hover:opacity-100" displayDensity="cosy" #mt="cdkMenuTriggerFor" [cdkMenuTriggerFor]="menu" [cdkMenuTriggerData]="{item: item}" [class.active]="mt.isOpen()">
-        <mat-icon>more_vert</mat-icon>
+        <z-icon zType="more_vert"></z-icon>
       </button>
 
       <div class="flex-1">
@@ -30,9 +30,9 @@
           <div class="flex flex-col items-start overflow-hidden">
             <p class="text-xs flex items-center text-token-text-secondary opacity-80">
               @if (item.permission === KnowledgebasePermission.Public || item.permission === KnowledgebasePermission.Organization) {
-                <mat-icon class="mr-1 scale-75" displayDensity="compact" fontSet="material-icons-round">public</mat-icon> {{ 'PAC.Knowledgebase.Permission_Public' | translate: {Default:'Public'} }}
+                <z-icon class="mr-1 scale-75" zSize="sm" zType="public"></z-icon> {{ 'PAC.Knowledgebase.Permission_Public' | translate: {Default:'Public'} }}
               } @else {
-                <mat-icon class="mr-1 scale-75" displayDensity="compact" fontSet="material-icons-round">lock</mat-icon> {{ 'PAC.Knowledgebase.Permission_Private' | translate: {Default:'Private'} }}
+                <z-icon class="mr-1 scale-75" zSize="sm" zType="lock"></z-icon> {{ 'PAC.Knowledgebase.Permission_Private' | translate: {Default:'Private'} }}
               }
             </p>
             <div class="max-w-full font-bold text-base truncate" [title]="item.name">{{item.name}}</div>

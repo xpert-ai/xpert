@@ -4,13 +4,12 @@ import { Component, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
 import { ButtonGroupDirective, NgmThemeService, ThemesEnum } from '@metad/ocap-angular/core'
 import { EditorThemeMap } from '@metad/ocap-angular/formula'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -22,7 +21,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     MatDialogModule,
     MatListModule,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     MonacoEditorModule,
     ButtonGroupDirective
   ],

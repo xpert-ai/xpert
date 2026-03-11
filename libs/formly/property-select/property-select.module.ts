@@ -3,7 +3,6 @@ import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatRadioModule } from '@angular/material/radio'
 import { DensityDirective } from '@metad/ocap-angular/core'
@@ -13,7 +12,7 @@ import { NxChromaticPreviewComponent } from '@metad/components/palette'
 import { NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
 import { NgmColorsComponent } from '@metad/components/form-field'
 import { PACFormlyPropertySelectComponent } from './property-select.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [PACFormlyPropertySelectComponent],
@@ -22,7 +21,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     FormsModule,
     ReactiveFormsModule,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     MatMenuModule,
     MatRadioModule,
     MatCheckboxModule,

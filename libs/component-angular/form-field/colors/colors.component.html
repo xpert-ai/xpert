@@ -5,7 +5,7 @@
     <span class="flex-1"></span>
 
     <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="value" displayDensity="compact" [disabled]="!value" (click)="swapColors($event)">
-      <mat-icon class="m-0" style="margin: 0;">swap_horiz</mat-icon>
+      <z-icon class="m-0" style="margin: 0;" zType="swap_horiz"></z-icon>
     </button>
 
     <div class="flex justify-center items-center overflow-hidden" [@listEnterAnimation]="value">
@@ -30,7 +30,7 @@
     />
 
     <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="value" class="ngm-colors__clear right-0" displayDensity="compact" (click)="clear()">
-      <mat-icon>close</mat-icon>
+      <z-icon zType="close"></z-icon>
     </button>
   </div>
 
@@ -43,13 +43,16 @@
   (optionSelected)="onOptionSelected($event)"
 >
   <mat-option [value]="null">--</mat-option>
-  <mat-optgroup *ngFor="let group of options" [label]="group.label">
-    <mat-option *ngFor="let color of group.colors" [value]="color.colors">
+  @for (group of options; track group.label) {
+    <mat-option disabled>{{ group.label }}</mat-option>
+    @for (color of group.colors; track color.colors.join(',')) {
+      <mat-option [value]="color.colors">
       <div class="flex justify-start items-center">
         <div *ngFor="let color of color.colors" class="w-4 h-4"
             [style.background-color]="color"
         ></div>
       </div>
-    </mat-option>
-  </mat-optgroup>
+      </mat-option>
+    }
+  }
 </mat-autocomplete>

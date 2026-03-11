@@ -76,7 +76,7 @@
         <ng-container *ngIf="level0Column.columns">
             <igx-column-group [header]="level0Column.label" [collapsible]="collapsible">
                 <ng-template igxCollapsibleIndicator let-column="column">
-                    <igx-icon [attr.draggable]="false">{{column.expanded ? 'expand_more' : 'chevron_right'}} </igx-icon>
+                    <z-icon [attr.draggable]="false" [zType]="column.expanded ? 'expand_more' : 'chevron_right'"></z-icon>
                 </ng-template>
 
                 <ng-container *ngFor="let level1Column of level0Column.columns; trackBy:trackByName">
@@ -146,7 +146,7 @@
 
     <ng-template igxToolbarCustomContent>
         <button igxButton="flat" igxRipple [igxRippleCentered]="true">
-            <igx-icon fontSet="material">settings</igx-icon>
+            <z-icon zType="settings"></z-icon>
         </button>
     </ng-template>
 
@@ -253,7 +253,7 @@
 
     <igx-column-group *ngFor="let level0Column of columns$ | async" [header]="level0Column.label" [collapsible]="collapsible">
         <ng-template igxCollapsibleIndicator let-column="column">
-            <igx-icon [attr.draggable]="false">{{column.expanded ? 'expand_more' : 'chevron_right'}} </igx-icon>
+            <z-icon [attr.draggable]="false" [zType]="column.expanded ? 'expand_more' : 'chevron_right'"></z-icon>
         </ng-template>
 
         <ng-container *ngIf="!!level0Column.columns">
@@ -323,7 +323,7 @@
     
     <!-- <igx-column-group *ngIf="!!columnHeader" header="Columns" [collapsible]="collapsible">
         <ng-template igxCollapsibleIndicator let-column="column">
-            <igx-icon [attr.draggable]="false">{{column.expanded ? 'expand_more' : 'chevron_right'}} </igx-icon>
+            <z-icon [attr.draggable]="false" [zType]="column.expanded ? 'expand_more' : 'chevron_right'"></z-icon>
         </ng-template> -->
 
         <!-- <ng-container *ngFor="let level1Column of columnHeader?.columns; trackBy:trackByName">
@@ -384,7 +384,7 @@
 
     <ng-template igxToolbarCustomContent>
         <button igxButton="flat" igxRipple [igxRippleCentered]="true">
-            <igx-icon fontSet="material">settings</igx-icon>
+            <z-icon zType="settings"></z-icon>
         </button>
     </ng-template>
 

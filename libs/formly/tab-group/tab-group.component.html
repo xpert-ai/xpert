@@ -1,7 +1,7 @@
 <z-tab-group stretchTabs [disableRipple]="to?.disableRipple">
   <z-tab *ngFor="let tab of field.fieldGroup; let i = index; let last = last">
     <ng-template zTabLabel>
-      <mat-icon *ngIf="tab.templateOptions?.['icon']" fontSet="material-icons-outlined">{{tab.templateOptions?.['icon']}}</mat-icon>
+      <z-icon *ngIf="tab.templateOptions?.['icon']" [zType]="tab.templateOptions?.['icon']"></z-icon>
       {{tab.templateOptions?.label}}
     </ng-template>
 

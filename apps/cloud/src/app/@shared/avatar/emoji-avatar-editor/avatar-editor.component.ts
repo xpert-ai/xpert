@@ -2,7 +2,6 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, effect, inject, model, signal } from '@angular/core'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
 
 import { PickerComponent } from '@ctrl/ngx-emoji-mart'
 import { EmojiComponent } from '@ctrl/ngx-emoji-mart/ngx-emoji'
@@ -11,7 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
 import { ScreenshotService, TAvatar } from '../../../@core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -22,7 +21,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   imports: [
     CommonModule,
     CdkListboxModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     MatDialogModule,
     TranslateModule,

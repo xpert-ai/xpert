@@ -1,21 +1,20 @@
 import { CommonModule } from '@angular/common'
 import { Component, Inject } from '@angular/core'
 
-import { MatIconModule } from '@angular/material/icon'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSnackBarRef, MAT_SNACK_BAR_DATA } from '@angular/material/snack-bar'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { timer } from 'rxjs'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MatProgressSpinnerModule, MatIconModule, ZardButtonComponent, DensityDirective],
+  imports: [CommonModule, MatProgressSpinnerModule, ZardIconComponent, ZardButtonComponent, DensityDirective],
   template: `<div class="flex justify-start items-center">
     <ng-container [ngSwitch]="status">
       <mat-spinner *ngSwitchCase="'processing'" [diameter]="20"></mat-spinner>
-      <mat-icon *ngSwitchCase="'done'" class="text-green-500">done</mat-icon>
-      <mat-icon *ngSwitchCase="'error'" color="warn">error_outline</mat-icon>
+      <z-icon *ngSwitchCase="'done'" class="text-green-500" zType="done"></z-icon>
+      <z-icon *ngSwitchCase="'error'" color="warn" zType="error_outline"></z-icon>
     </ng-container>
 
     <div class="flex-1">
@@ -23,7 +22,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     </div>
 
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="cancel()">
-      <mat-icon>close</mat-icon>
+      <z-icon zType="close"></z-icon>
     </button>
   </div>`,
   styles: []

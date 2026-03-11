@@ -45,6 +45,7 @@ import {
 import { NxSettingsPanelService } from '@metad/story/designer'
 import { ISmartFilterBarOptions } from '@metad/story/widgets/filter-bar'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { ZardDividerComponent } from '@xpert-ai/headless-ui'
 import { isEqual, startsWith } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
@@ -90,7 +91,8 @@ import { NxStoryPointComponent } from '../story-point/story-point.component'
 
     // Local modules
     NgmTransformScaleDirective,
-    NxStoryPointComponent
+    NxStoryPointComponent,
+    ZardDividerComponent
   ]
 })
 export class NxStoryComponent implements AfterViewInit {

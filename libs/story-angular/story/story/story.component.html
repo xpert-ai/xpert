@@ -26,7 +26,7 @@
                     <span [ngClass]="{'ngm-story--point-hidden': point.hidden && editable()}">{{ point.name }}</span>
                     
                     <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="editable()" displayDensity="cosy" class="ngm-story-point__tab-menu-trigger" (click)="$event.preventDefault();$event.stopPropagation()" [cdkMenuTriggerFor]="pageMenu" [cdkMenuTriggerData]="{point: point, component: story_point}" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()">
-                        <mat-icon>more_vert</mat-icon>
+                        <z-icon zType="more_vert"></z-icon>
                     </button>
                 </div>
             </ng-template>
@@ -52,7 +52,7 @@
 
     <!-- 暂时没时间实现 global filters 功能
     <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-story__global-filter z-[100]" [popper]="gFilters" [popperTrigger]="NgxPopperjsTriggers.click" [popperHideOnClickOutside]="true" [popperHideOnScroll]="true" [popperHideOnMouseLeave]="false" [popperPlacement]="NgxPopperjsPlacements.TOPEND">
-        <mat-icon fontSet="material-icons-round">filter</mat-icon>
+        <z-icon zType="filter"></z-icon>
     </button> -->
 </div>
 
@@ -64,61 +64,61 @@
 <ng-template #pageMenu let-point="point" let-component="component">
   <div cdkMenu class="cdk-menu__medium space-y-1">
     <button cdkMenuItem class="disabled:opacity-50" [disabled]="!component?.dirtySignal()" (click)="saveStoryPoint(point.key)">
-        <mat-icon fontSet="material-icons-outlined" class="mr-1">save</mat-icon>
+        <z-icon class="mr-1" zType="save"></z-icon>
         {{ 'Story.Story.Save' | translate: {Default: "Save"} }}
     </button>
 
     <button cdkMenuItem (click)="duplicateStoryPoint(point.key)">
-        <mat-icon class="mr-1">content_copy</mat-icon>
+        <z-icon class="mr-1" zType="content_copy"></z-icon>
         {{ 'Story.Story.Duplicate' | translate: {Default: "Duplicate"} }}
     </button>
     <button cdkMenuItem (click)="component?.rename()">
-        <mat-icon fontSet="material-icons-outlined" class="mr-1">drive_file_rename_outline</mat-icon>
+        <z-icon class="mr-1" zType="drive_file_rename_outline"></z-icon>
         {{ 'Story.Story.Rename' | translate: {Default: "Rename"} }}
     </button>
 
-    <mat-divider></mat-divider>
+    <z-divider></z-divider>
 
     <button cdkMenuItem *ngIf="!point.hidden" (click)="toggleStoryPointHidden(point.key)">
-        <mat-icon class="mr-1">flip_to_back</mat-icon>
+        <z-icon class="mr-1" zType="flip_to_back"></z-icon>
         {{ 'Story.Story.Hidden' | translate: {Default: "Hidden"} }}
     </button>
     <button cdkMenuItem *ngIf="point.hidden" (click)="toggleStoryPointHidden(point.key)">
-        <mat-icon class="mr-1">flip_to_front</mat-icon>
+        <z-icon class="mr-1" zType="flip_to_front"></z-icon>
         {{ 'Story.Story.Visiable' | translate: {Default: "Visiable"} }}
     </button>
     <button cdkMenuItem class="disabled:opacity-50" [disabled]="component?.isFirst" (click)="move(point, 'left')">
-        <mat-icon class="mr-1">chevron_left</mat-icon>
+        <z-icon class="mr-1" zType="chevron_left"></z-icon>
         {{ 'Story.Story.MOVE_LEFT' | translate: {Default: "Move Left"} }}
     </button>
     <button cdkMenuItem class="disabled:opacity-50" [disabled]="component?.isLast" (click)="move(point, 'right')">
-        <mat-icon class="mr-1">chevron_right</mat-icon>
+        <z-icon class="mr-1" zType="chevron_right"></z-icon>
         {{ 'Story.Story.MOVE_RIGHT' | translate: {Default: "Move Right"} }}
     </button>
     <button cdkMenuItem class="disabled:opacity-50" [disabled]="component?.isFirst" (click)="move(point, 'first')">
-        <mat-icon class="mr-1">first_page</mat-icon>
+        <z-icon class="mr-1" zType="first_page"></z-icon>
         {{ 'Story.Story.MOVE_FIRST' | translate: {Default: "Move First"} }}
     </button>
     <button cdkMenuItem class="disabled:opacity-50" [disabled]="component?.isLast" (click)="move(point, 'last')">
-        <mat-icon class="mr-1">last_page</mat-icon>
+        <z-icon class="mr-1" zType="last_page"></z-icon>
         {{ 'Story.Story.MOVE_LAST' | translate: {Default: "Move Last"} }}
     </button>
 
-    <mat-divider></mat-divider>
+    <z-divider></z-divider>
     <!-- <button cdkMenuItem >
-        <mat-icon>comment</mat-icon>
+        <z-icon zType="comment"></z-icon>
         {{ 'Story.Story.COMMENT' | translate: {Default: "Comment"} }}
     </button> -->
     <button cdkMenuItem (click)="openShare(point)">
-        <mat-icon fontSet="material-icons-outlined" class="mr-1">share</mat-icon>
+        <z-icon class="mr-1" zType="share"></z-icon>
         {{ 'Story.Story.Share' | translate: {Default: "Share"} }}
     </button>
 
-    <mat-divider></mat-divider>
+    <z-divider></z-divider>
 
     <button cdkMenuItem class="ngm-cdk-menu__danger" color="warn" ngmAppearance="danger"
         (click)="removeStoryPoint(point)">
-        <mat-icon class="mr-1">delete_forever</mat-icon>
+        <z-icon class="mr-1" zType="delete_forever"></z-icon>
         {{ 'Story.Story.Delete' | translate: {Default: "Delete"} }}
     </button>
   </div>

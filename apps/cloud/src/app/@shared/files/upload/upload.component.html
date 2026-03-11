@@ -41,7 +41,7 @@
         <div class="flex justify-between items-center px-2 hover:bg-black/5 dark:hover:bg-white/10">
           {{ item.file.name }}
           <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" (click)="removeFile(item)">
-            <mat-icon>close</mat-icon> 
+            <z-icon zType="close"></z-icon> 
           </button>
         </div>
         <mat-progress-bar mode="determinate" [value]="item.progress" />

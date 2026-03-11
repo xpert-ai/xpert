@@ -48,9 +48,9 @@
       <z-form-field [appearance]="appearance">
         <z-form-label>{{ 'PAC.INDICATOR.REGISTER.VALIDITY' | translate: {Default: 'Validity'} }}</z-form-label>
         <input z-input [matDatepicker]="picker" formControlName="validity">
-        <mat-hint>YYYY/MM/DD</mat-hint>
         <mat-datepicker-toggle zFormSuffix [for]="picker"></mat-datepicker-toggle>
         <mat-datepicker #picker></mat-datepicker>
+        <z-form-message>YYYY/MM/DD</z-form-message>
       </z-form-field>
 
       <mat-checkbox formControlName="isActive" class="my-4">{{ 'PAC.INDICATOR.REGISTER.IsActive' | translate: {Default: 'Is Active'} }}</mat-checkbox>
@@ -127,7 +127,7 @@
           ></textarea>
     
           <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix [disabled]="!entityType()" (click)="toggleFormula()">
-            <mat-icon>code</mat-icon>
+            <z-icon zType="code"></z-icon>
           </button>
         </z-form-field>
       }
@@ -141,7 +141,7 @@
         formControlName="formula"
       >
         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="ngm-copilot-command-button ngm-calculated-measure__action" [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " (click)="aiFormula()">
-          <mat-icon fontSet="material-icons-outlined">auto_fix_high</mat-icon>
+          <z-icon zType="auto_fix_high"></z-icon>
         </button>
       </ngm-calculated-measure>
     }

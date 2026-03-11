@@ -35,7 +35,6 @@
   </div>
 </ng-template>
 
-
 <ng-template #joinMenu let-table="table" let-trigger="trigger">
   <div class="ngm-tables-join__join-menu rounded-2xl border border-solid border-divider-deep shadow-lg bg-components-card-bg">
     <div class="flex justify-between items-center p-2">
@@ -62,12 +61,12 @@
         </div>
       </div>
 
-      <mat-divider></mat-divider>
+      <z-divider></z-divider>
 
       <div class="join-fields-form flex flex-col justify-start items-stretch" displayDensity="compact">
         @if (table.join?.type && !table.join?.fields?.length) {
           <button z-button zType="ghost" class="fit-form-field" displayDensity="compact" (click)="addJoinField(table)">
-            <mat-icon>add</mat-icon>
+            <z-icon zType="add"></z-icon>
           </button>
         }
         @for (joinField of table.join?.fields; track i; let i = $index; let isFirst = $first; let isLast = $last) {
@@ -90,11 +89,11 @@
 
             @if (isFirst) {
               <button z-button zType="ghost" class="fit-form-field" (click)="addJoinField(table)">
-                <mat-icon>add</mat-icon>
+                <z-icon zType="add"></z-icon>
               </button>
             } @else {
               <button z-button zType="ghost" class="fit-form-field" (click)="removeJoinField(table, i)">
-                <mat-icon>close</mat-icon>
+                <z-icon zType="close"></z-icon>
               </button>
             }
           </div>

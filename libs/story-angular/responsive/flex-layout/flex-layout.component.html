@@ -24,21 +24,21 @@
 <div *ngIf="active && editable" class="ngm-responsive__fab-menu" [ngClass]="{rightSide: rightSide}"
     fxLayout="column" fxLayoutAlign="space-around center" fxLayoutGap="0.25rem">
     <button z-button zType="default" zSize="icon-sm" zShape="circle" [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
-      <mat-icon>menu</mat-icon>
+      <z-icon zType="menu"></z-icon>
     </button>
 </div>
 
 <mat-menu #menu="matMenu" class="ngm-density__compact">
     <button mat-menu-item [matMenuTriggerFor]="laneMenu">
-        <mat-icon >add</mat-icon> Add lane
+        <z-icon  zType="add"></z-icon> Add lane
     </button>
 
     <button mat-menu-item [matMenuTriggerFor]="swapMenu">
-        <mat-icon>{{parentDirection === 'row' ? 'swap_horiz' : 'swap_vert'}}</mat-icon>Swap
+        <z-icon [zType]="parentDirection === 'row' ? 'swap_horiz' : 'swap_vert'"></z-icon>Swap
     </button>
 
     <button mat-menu-item color="warn" class="ngm-button--warn" (click)="removeMyself()">
-        <mat-icon color="warn">delete_forever</mat-icon>
+        <z-icon color="warn" zType="delete_forever"></z-icon>
         <span>Delete</span>
     </button>
 </mat-menu>
@@ -60,11 +60,11 @@
 
 <mat-menu #swapMenu="matMenu" class="ngm-density__compact">
     <button mat-menu-item (click)="swapWithPrev()">
-        <mat-icon>{{parentDirection === 'row' ? 'arrow_back' : 'arrow_upward'}}</mat-icon>
+        <z-icon [zType]="parentDirection === 'row' ? 'arrow_back' : 'arrow_upward'"></z-icon>
         With Prev
     </button>
     <button mat-menu-item (click)="swapWithNext()">
-        <mat-icon>{{parentDirection === 'row' ? 'arrow_forward' : 'arrow_downward'}}</mat-icon>
+        <z-icon [zType]="parentDirection === 'row' ? 'arrow_forward' : 'arrow_downward'"></z-icon>
         With Next
     </button>
 </mat-menu>

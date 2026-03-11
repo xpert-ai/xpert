@@ -16,10 +16,9 @@ import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import { EMPTY, pipe, switchMap } from 'rxjs'
 import { CopilotExampleService, getErrorMessage, injectToastr, IXpert } from '../../../@core'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { CopilotCommandEnum } from '../types'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

@@ -192,4 +192,4 @@ export const ZARD_ICONS = {
   activity: Activity,
 } as const satisfies Record<string, LucideIconData>;
 
-export declare type ZardIcon = keyof typeof ZARD_ICONS | LucideIconData;
+export type ZardIcon = keyof typeof ZARD_ICONS | string | LucideIconData;

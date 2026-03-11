@@ -3,19 +3,16 @@ import { CommonModule } from '@angular/common'
 import { Component, HostBinding, OnInit } from '@angular/core'
 
 import { MatDialogModule } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, DragDropModule, MatDialogModule, ZardButtonComponent, MatIconModule, MatListModule, MatDividerModule, MatTooltipModule, ...ZardFormImports, ZardInputDirective, MatSlideToggleModule, TranslateModule, NgmCommonModule],
+  imports: [CommonModule, DragDropModule, MatDialogModule, ZardButtonComponent, ZardIconComponent, MatListModule, ZardDividerComponent, MatTooltipModule, ...ZardFormImports, ZardInputDirective, MatSlideToggleModule, TranslateModule, NgmCommonModule],
   selector: 'ngm-settings-query-setting',
   templateUrl: './query-setting.component.html',
   styleUrls: ['./query-setting.component.scss']

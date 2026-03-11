@@ -7,8 +7,7 @@ import { AbstractControl, FormArray, FormBuilder, FormControl, FormGroup, FormsM
 
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatRadioModule } from '@angular/material/radio'
 import { NgmInputModule, NgmHierarchySelectComponent, NgmCheckboxComponent } from '@metad/ocap-angular/common'
 import { NgmControlsModule, TreeControlOptions } from '@metad/ocap-angular/controls'
@@ -28,14 +27,13 @@ import {
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { filter, map, startWith } from 'rxjs'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   selector: 'ngm-parameter-create',
   templateUrl: 'parameter-create.component.html',
   styleUrls: ['parameter-create.component.scss'],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, DragDropModule, ZardInputDirective, ZardButtonComponent, ...ZardFormImports, MatButtonToggleModule, MatIconModule, MatRadioModule, MatCheckboxModule, TranslateModule, OcapCoreModule, NgmControlsModule, NgmInputModule, NgmHierarchySelectComponent, NgmCheckboxComponent]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, DragDropModule, ZardInputDirective, ZardButtonComponent, ...ZardFormImports, MatButtonToggleModule, ZardIconComponent, MatRadioModule, MatCheckboxModule, TranslateModule, OcapCoreModule, NgmControlsModule, NgmInputModule, NgmHierarchySelectComponent, NgmCheckboxComponent]
 })
 export class NgmParameterCreateComponent {
   eCubeParameterEnum = CubeParameterEnum

@@ -3,7 +3,7 @@
         <div class="h-full flex flex-col justify-start items-stretch">
             <mat-toolbar class="pac-sub-toolbar flex justify-between items-center gap-2" displayDensity="compact">
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="drawer.toggle()">
-                    <mat-icon fontSet="material-icons-round">segment</mat-icon>
+                    <z-icon zType="segment"></z-icon>
                 </button>
 
                 <span>
@@ -17,7 +17,7 @@
                 <span class="flex flex-1"></span>
 
                 <button z-button zType="ghost" zSize="icon" zShape="circle" color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin" cdkDropList [cdkDropListEnterPredicate]="entityDeletePredicate" (cdkDropListDropped)="deleteEntity($event)">
-                    <mat-icon color="warn" fontSet="material-icons-round">delete</mat-icon>
+                    <z-icon color="warn" zType="delete"></z-icon>
                 </button>
             </mat-toolbar>
 
@@ -51,11 +51,11 @@
                 <mat-toolbar class="pac-sub-toolbar pac-toolbar__editor flex justify-start items-center gap-2"
                     displayDensity="compact">
                     <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="!drawer.opened" displayDensity="compact" (click)="drawer.toggle()">
-                        <mat-icon fontSet="material-icons-round">segment</mat-icon>
+                        <z-icon zType="segment"></z-icon>
                     </button>
 
                     <button z-button zType="default" color="primary" displayDensity="compact" [disabled]="!statement" matTooltip=" {{ 'PAC.KEY_WORDS.ShortcutKey' | translate: {Default: 'Shortcut Key'} }}: F8" (click)="run()">
-                        <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
+                        <z-icon zType="arrow_right"></z-icon>
 
                         <span *ngIf="textSelection?.text">
                             {{ 'PAC.MENU.RUN_BY_SELECTION' | translate: {Default: "Run By Selection"} }}
@@ -67,48 +67,48 @@
                     </button>
 
                     <!-- <button z-button zType="ghost" color="primary" displayDensity="compact" [disabled]="!statement">
-                        <mat-icon fontSet="material-icons-round">agriculture</mat-icon>
+                        <z-icon zType="agriculture"></z-icon>
                         校验</button> -->
                     <button z-button zType="ghost" color="primary" displayDensity="compact" [disabled]="!dirty||!statement" (click)="save()">
-                        <mat-icon fontSet="material-icons-round">new_label</mat-icon>
+                        <z-icon zType="new_label"></z-icon>
                         {{ 'PAC.KEY_WORDS.SAVE' | translate: {Default: 'Save'} }}
                     </button>
                     
                     <ng-container *ngIf="isWasm()">
                         <button z-button zType="ghost" color="primary" displayDensity="compact" [disabled]="!statement || dbInitialization === selectedStatement" (click)="saveAsDBScript()">
-                            <mat-icon fontSet="material-icons-outlined" >save_as</mat-icon>
+                            <z-icon  zType="save_as"></z-icon>
                             {{ 'PAC.MODEL.QUERY.SaveAsDBInit' | translate: {Default: "Save as DB Init Script"} }}
                         </button>
                     </ng-container>
         
                     <!-- <button z-button zType="ghost" *ngIf="useSaveAsSQL$ | async" color="primary" displayDensity="compact" [disabled]="!statement" (click)="saveAsModel()">
-                        <mat-icon fontSet="material-icons-outlined" >database</mat-icon>
+                        <z-icon  zType="database"></z-icon>
                         {{ 'PAC.MODEL.QUERY.SaveAsModel' | translate: {Default: "Save As Model"} }}
                     </button> -->
 
                     <span class="flex-1 flex"></span>
 
                     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="triggerUndo()">
-                        <mat-icon fontSet="material-icons-round">undo</mat-icon>
+                        <z-icon zType="undo"></z-icon>
                     </button>
                     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="triggerRedo()">
-                        <mat-icon fontSet="material-icons-round">redo</mat-icon>
+                        <z-icon zType="redo"></z-icon>
                     </button>
                     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" matTooltip="🔍{{ 'PAC.KEY_WORDS.Search' | translate: {Default: 'Search'} }}" (click)="triggerFind()">
-                        <mat-icon fontSet="material-icons-round">search</mat-icon>
+                        <z-icon zType="search"></z-icon>
                     </button>
                     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" matTooltip="⛔{{ 'PAC.KEY_WORDS.Clear' | translate: {Default: 'Clear'} }}" (click)="triggerClear()">
-                        <mat-icon fontSet="material-icons-round">playlist_remove</mat-icon>
+                        <z-icon zType="playlist_remove"></z-icon>
                     </button>
 
                     @if (isMDX()) {
                         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" matTooltip="📦{{ 'PAC.KEY_WORDS.Compact' | translate: {Default: 'Compact'} }}" (click)="triggerCompress()">
-                            <mat-icon fontSet="material-icons-outlined">folder_zip</mat-icon>
+                            <z-icon zType="folder_zip"></z-icon>
                         </button>
                     }
 
                     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" matTooltip="💡{{ 'PAC.KEY_WORDS.Format' | translate: {Default: 'Format'} }}" (click)="triggerFormat()">
-                        <mat-icon fontSet="material-icons-round">format_indent_increase</mat-icon>
+                        <z-icon zType="format_indent_increase"></z-icon>
                     </button>
                 </mat-toolbar>
 
@@ -145,7 +145,7 @@
                       <div>{{ 'PAC.MODEL.QUERY.QueryResults' | translate: {Default: 'Query Results'} }}</div>
                     } @else {
                       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="pac-nav-tab__close" [cdkMenuTriggerFor]="menu">
-                        <mat-icon>more_vert</mat-icon>
+                        <z-icon zType="more_vert"></z-icon>
                       </button>
                     }
 
@@ -168,7 +168,7 @@
                             </span>
         
                             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="pac-nav-tab__close" ngmAppearance="danger" (click)="deleteResult(i);$event.stopPropagation();">
-                                <mat-icon>cancel</mat-icon>
+                                <z-icon zType="cancel"></z-icon>
                             </button>
                         </span>
                     </nav>
@@ -190,11 +190,11 @@
                   @if (activeResult) {
                     <div class="pac-model-ql-lab__stats">
                         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" [matTooltip]="'PAC.KEY_WORDS.EXPORT' | translate: {Default: 'Export'}" matTooltipPosition="above" (click)="export()">
-                            <mat-icon>file_download</mat-icon>
+                            <z-icon zType="file_download"></z-icon>
                         </button>
 
-                        <mat-icon fontSet="material-icons-outlined" displayDensity="compact"
-                            [matTooltip]="activeResult.statement">info</mat-icon>
+                        <z-icon zSize="sm"
+                            [matTooltip]="activeResult.statement" zType="info"></z-icon>
                         <span>
                         {{ 'PAC.MODEL.QUERY.TotalRecords' | translate: {Default: "Total Records"} }}
                         : {{activeResult.stats?.numberOfEntries}}</span>

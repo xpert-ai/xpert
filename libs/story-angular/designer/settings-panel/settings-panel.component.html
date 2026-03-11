@@ -9,7 +9,7 @@
           (click)="tabPortalIndex.set(i)"
         >
           @if (settingsPortal.icon) {
-            <mat-icon fontSet="material-icons-outlined" class="scale-75 origin-center text-zinc-500">{{settingsPortal.icon}}</mat-icon>
+            <z-icon class="scale-75 origin-center text-zinc-500" [zType]="settingsPortal.icon"></z-icon>
           }
           <span class="ml-1">{{settingsPortal.label | translate: {Default: settingsPortal.label} }}</span>
         </li>
@@ -27,21 +27,19 @@
     <mat-toolbar class="ngm-settings-panel__drawer-drawer flex justify-start items-center gap-2 sticky top-0 bg-components-card-bg">
       <button z-button zType="ghost" zSize="icon" zShape="circle" type="button" displayDensity="cosy" (click)="closeDrawer()">
         <span class="flex">
-          <mat-icon>chevron_right</mat-icon>
+          <z-icon zType="chevron_right"></z-icon>
         </span>
       </button>
       <span class="flex-1">{{ drawerTitle }}</span>
 
     @if (!liveMode) {
       <button z-button zType="ghost" zSize="icon" zShape="circle" type="submit" color="primary" displayDensity="cosy" [matTooltip]="'STORY.DESIGNER.SUBMIT' | translate: {Default: 'Submit'}" (click)="submitDrawer()">
-        <mat-icon>done</mat-icon>
+        <z-icon zType="done"></z-icon>
       </button>
     }
 
       <button z-button zType="ghost" zSize="icon" zShape="circle" type="button" displayDensity="cosy" ngmAppearance="danger" class="ngm-settings-panel__drawer-cancel" [matTooltip]="'STORY.DESIGNER.DELETE' | translate: {Default: 'Delete'}" (click)="remove()">
-        <mat-icon fontSet="material-icons-round">
-          delete
-        </mat-icon>
+        <z-icon zType="delete"></z-icon>
       </button>
     </mat-toolbar>
 

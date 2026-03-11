@@ -1,7 +1,7 @@
 <div class="ngm-theme-dark dark w-[400px] shrink-0 flex flex-col justify-start overflow-auto
   bg-bluegray-800 dark:bg-bluegray-900 text-white p-4 group">
   <div class="w-full flex justify-start items-center my-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+    <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-lg pointer-events-none">
       {{ 'Story.Shares.Share' | translate: {Default: 'Share'} }}
     </span>
@@ -59,13 +59,13 @@
 
       <div *ngIf="applicationUrl()" class="flex justify-end items-center">
         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="togglePreview()">
-          <mat-icon [ngStyle]="showPreview ? {
+          <z-icon [ngStyle]="showPreview ? {
             'transform': 'rotate(180deg)',
             'transition': 'transform 0.2s ease-in-out'
           } : {
             'transition': 'transform 0.2s ease-in-out'
           }"
-          >arrow_forward_ios</mat-icon>
+           zType="arrow_forward_ios"></z-icon>
         </button>
         {{ 'Story.Shares.Preview' | translate: {Default: 'Preview'} }}
       </div>
@@ -76,7 +76,7 @@
     >
       <div ngmSuffix class="block rounded-full bg-gray-500">
         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'Story.Shares.CopyURL' | translate: {Default: 'Copy URL'}" [disabled]="!applicationUrl()" (click)="copy(applicationUrl())">
-          <mat-icon>content_copy</mat-icon>
+          <z-icon zType="content_copy"></z-icon>
         </button>
       </div>
 

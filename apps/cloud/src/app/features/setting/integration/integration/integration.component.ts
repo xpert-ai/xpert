@@ -3,8 +3,7 @@ import { Component, computed, effect, inject, signal, viewChild } from '@angular
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
@@ -33,7 +32,6 @@ import {
   Store,
   ToastrService
 } from '../../../../@core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -48,7 +46,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     FormlyModule,
     TextFieldModule,
     MatTooltipModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardInputDirective,
     ZardButtonComponent,
     ContentLoaderModule,

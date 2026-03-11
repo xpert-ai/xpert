@@ -3,7 +3,7 @@
 
   <div ngmButtonGroup >
     <button z-button zType="default" zSize="icon-sm" zShape="circle" [matTooltip]=" 'PAC.Copilot.Roles.AddRole' | translate: {Default: 'Add new role' }" (click)="addRole()">
-      <mat-icon fontSet="material-icons-outlined">add</mat-icon>
+      <z-icon zType="add"></z-icon>
     </button>
   </div>
 </div>
@@ -70,18 +70,18 @@
           <div class="flex items-center gap-2 " displayDensity="cosy">
             @if (element.__edit__) {
               <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-50 hover:opacity-100" [matTooltip]="'PAC.KEY_WORDS.Save' | translate: {Default: 'Save'}" (click)="saveEdit(element)">
-                <mat-icon fontSet="material-icons-outlined">save</mat-icon>
+                <z-icon zType="save"></z-icon>
               </button>
             } @else {
               <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-50 hover:opacity-100" [matTooltip]="'PAC.KEY_WORDS.Edit' | translate: {Default: 'Edit'}" (click)="startEdit(element)">
-                <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+                <z-icon zType="edit"></z-icon>
               </button>
             }
 
-            <mat-divider vertical style="height: 20px;" />
+            <z-divider vertical style="height: 20px;" />
 
             <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-50 hover:opacity-100" ngmAppearance="danger" [matTooltip]="'PAC.KEY_WORDS.Delete' | translate: {Default: 'Delete'}" (click)="deleteRole(element)">
-              <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+              <z-icon zType="delete"></z-icon>
             </button>
           </div>
         </td>

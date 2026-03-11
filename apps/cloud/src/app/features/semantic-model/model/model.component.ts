@@ -17,7 +17,6 @@ import { CommonModule } from '@angular/common'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
-import { MatIconModule } from '@angular/material/icon'
 
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -67,7 +66,7 @@ import {
   TOOLBAR_ACTION_CATEGORY
 } from './types'
 import { markdownTableData, stringifyTableType } from './utils'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -80,7 +79,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     ReactiveFormsModule,
     ContentLoaderModule,
     ScrollingModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     MatSidenavModule,
     MatTooltipModule,

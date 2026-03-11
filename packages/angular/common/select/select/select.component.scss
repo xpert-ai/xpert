@@ -3,24 +3,15 @@
   @apply relative flex flex-col items-stretch min-w-[100px];// w-full;
 
   &.ngm-select-error {
-    .mat-mdc-select.ngm-select-element {
-      border-color: var(--mdc-theme-error);
+    .ngm-select-element [role='combobox'] {
+      border-color: var(--destructive);
     }
     .ngm-input-element {
-      border-color: var(--mdc-theme-error);
+      border-color: var(--destructive);
     }
   }
 }
 
 .ngm-select__message {
   display: inline-flex;
-}
-
-:host::ng-deep {
-  .mat-mdc-select-value {
-    padding-right: 5px;
-  }
-  .mat-mdc-select-placeholder {
-    @apply italic opacity-50;
-  }
 }

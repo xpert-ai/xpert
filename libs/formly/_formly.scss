@@ -11,29 +11,11 @@
 }
 
 .pac-formly-chart-type {
-  mat-select-trigger {
-    .mat-icon-no-color {
-      @apply text-gray-500;
-      svg {
-        g,
-        path {
-          fill: currentColor;
-        }
-      }
-    }
+  .pac-formly-chart-type__trigger {
   }
 }
 
 .pac-formly-chart-type__prefix {
-  .mat-icon-no-color {
-    @apply text-gray-600;
-    svg {
-      g,
-      path {
-        fill: currentColor;
-      }
-    }
-  }
 }
 
 .cdk-overlay-pane {
@@ -67,8 +49,10 @@
 }
 
 /* 为 pac-formly-select 扩大一些 select panel 组件高度 */
-.mat-select-panel-wrap {
-  .mat-select-panel {
+.ngm-select__autocomplete-panel,
+.ngm-select-panel {
+  &.mat-mdc-autocomplete-panel,
+  &.ngm-select-panel {
     max-height: 450px;
   }
 }

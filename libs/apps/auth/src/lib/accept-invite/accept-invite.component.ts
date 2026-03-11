@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatCheckboxModule } from '@angular/material/checkbox'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { TranslateModule } from '@ngx-translate/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
@@ -12,7 +12,6 @@ import { InviteService, ToastrService } from '@metad/cloud/state'
 import { IInvite, IUserRegistrationInput } from '@metad/contracts'
 import { tap } from 'rxjs/operators'
 import { AcceptInviteFormComponent } from './accept-invite-form/accept-invite-form.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

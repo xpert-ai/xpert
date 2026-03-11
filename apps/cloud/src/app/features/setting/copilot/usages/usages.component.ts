@@ -2,7 +2,6 @@ import { Component, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -21,7 +20,7 @@ import {
   ToastrService
 } from '../../../../@core'
 import { CommonModule } from '@angular/common'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -36,7 +35,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     ReactiveFormsModule,
     MatTooltipModule,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     WaIntersectionObserver,
     NgmCommonModule,
     OrgAvatarComponent,

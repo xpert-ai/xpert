@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { Component, DestroyRef, computed, effect, inject } from '@angular/core'
 
 import { MatDialogModule } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
 import { CalculationProperty } from '@metad/ocap-core'
@@ -14,7 +13,7 @@ import { injectParams } from 'ngxtension/inject-params'
 import { of } from 'rxjs'
 import { switchMap } from 'rxjs/operators'
 import { StoryCalculationsComponent } from '../calculations.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -23,7 +22,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     RouterModule,
     MatDialogModule,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     TranslateModule,
 
     NgmCalculationEditorComponent

@@ -4,11 +4,10 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, HostBinding, OnInit, inject } from '@angular/core'
 import { AbstractControl, FormControl, FormsModule, ReactiveFormsModule, ValidationErrors } from '@angular/forms'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EMPTY, Observable, switchMap } from 'rxjs'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export type TConfirmUniqueInfo = {
   title?: string;

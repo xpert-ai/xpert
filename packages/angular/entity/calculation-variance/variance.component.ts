@@ -5,15 +5,15 @@ import { CompareToEnum, DataSettings, EntityType } from '@metad/ocap-core'
 import { PropertyCapacity } from '../types'
 import { CommonModule } from '@angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { MatSelectModule } from '@angular/material/select'
+import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { NgmPropertySelectComponent } from '../property-select/property-select.component'
 import { NgmCompareMemberSelectComponent } from '../compare-member-select/member-select.component'
 import { MatCheckboxModule } from '@angular/material/checkbox'
-import { ZardFormImports } from "@xpert-ai/headless-ui";
+import { ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, MatSelectModule, MatCheckboxModule, NgmPropertySelectComponent, NgmCompareMemberSelectComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, MatCheckboxModule, NgmPropertySelectComponent, NgmCompareMemberSelectComponent, NgmSelectComponent],
   selector: 'ngm-calculation-variance',
   templateUrl: 'variance.component.html',
   styleUrls: ['variance.component.scss'],
@@ -28,6 +28,10 @@ import { ZardFormImports } from "@xpert-ai/headless-ui";
 export class NgmCalculationVarianceComponent implements ControlValueAccessor {
   PropertyCapacity = PropertyCapacity
   COMPARE_TO_ENUM = CompareToEnum
+  readonly divideByOptions = [
+    { value: 'A', label: 'Compare Value (A)' },
+    { value: 'B', label: 'To Value (B)' }
+  ]
 
   private formBuilder = inject(FormBuilder)
 

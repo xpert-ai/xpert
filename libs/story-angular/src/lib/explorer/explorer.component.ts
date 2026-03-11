@@ -5,7 +5,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatRadioModule } from '@angular/material/radio'
 import { nonBlank } from '@metad/core'
@@ -48,13 +48,11 @@ import {
 import { NxStoryService, WidgetComponentType } from '@metad/story/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { combineLatestWith, filter, map, startWith, switchMap } from 'rxjs/operators'
-import { MatIconModule } from '@angular/material/icon'
 import { NgmSearchComponent, ResizerModule } from '@metad/ocap-angular/common'
 import { firstValueFrom } from 'rxjs'
 import { ExplainComponent } from '@metad/story/story'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -66,9 +64,9 @@ import { ZardButtonComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
     CdkListboxModule,
     ZardButtonComponent,
     MatButtonToggleModule,
-    MatDividerModule,
+    ZardDividerComponent,
     MatTooltipModule,
-    MatIconModule,
+    ZardIconComponent,
     ...ZardTabsImports,
     MatRadioModule,
     DragDropModule,

@@ -11,19 +11,16 @@ import { MODEL_TYPE, SemanticModelEntityType } from '../types'
 import { uuid } from '@cloud/app/@core'
 import { debouncedSignal, ISelectOption } from '@metad/ocap-angular/core'
 import { CommonModule } from '@angular/common'
-import { MatIconModule } from '@angular/material/icon'
 
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardSelectImports } from '@xpert-ai/headless-ui'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { MatCheckboxModule } from '@angular/material/checkbox'
-import { MatSelectModule } from '@angular/material/select'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export type CreateEntityColumnType = {
   name: string
@@ -75,7 +72,7 @@ export type CreateEntityDialogRetType = {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, MatIconModule, ZardButtonComponent, MatButtonToggleModule, ...ZardFormImports, ZardInputDirective, MatAutocompleteModule, MatListModule, MatProgressSpinnerModule, MatCheckboxModule, MatSelectModule, TranslateModule, NgmCommonModule],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ZardIconComponent, ZardButtonComponent, MatButtonToggleModule, ...ZardFormImports, ZardInputDirective, ...ZardSelectImports, MatAutocompleteModule, MatListModule, MatProgressSpinnerModule, MatCheckboxModule, TranslateModule, NgmCommonModule],
   selector: 'pac-model-create-entity',
   templateUrl: 'create-entity.component.html',
   styleUrls: ['create-entity.component.scss']
@@ -83,6 +80,7 @@ export type CreateEntityDialogRetType = {
 export class ModelCreateEntityComponent {
   SemanticModelEntityType = SemanticModelEntityType
   MODEL_TYPE = MODEL_TYPE
+  readonly noDimensionValue = '__none__'
 
   private readonly modelService = inject(SemanticModelService)
 
@@ -158,6 +156,18 @@ export class ModelCreateEntityComponent {
 
   private readonly entityType = toSignal(this.type.valueChanges)
   public readonly sharedDimensions = toSignal(this.modelService.sharedDimensions$)
+  readonly sharedDimensionOptions = computed<ISelectOption[]>(() => [
+    {
+      key: this.noDimensionValue,
+      value: this.noDimensionValue,
+      caption: 'None'
+    },
+    ...((this.sharedDimensions() ?? []).map((dimension) => ({
+      key: dimension.name,
+      value: dimension.name,
+      caption: dimension.caption
+    })) as ISelectOption[])
+  ])
 
   constructor(
     @Inject(DIALOG_DATA) public data: CreateEntityDialogDataType,
@@ -264,6 +274,15 @@ export class ModelCreateEntityComponent {
     if (value) {
       column.isDimension = false
     }
+  }
+
+  selectDimension(column: CreateEntityColumnType, dimensionName: string | null) {
+    if (!dimensionName || dimensionName === this.noDimensionValue) {
+      column.dimension = null
+      return
+    }
+
+    column.dimension = this.sharedDimensions()?.find((dimension) => dimension.name === dimensionName) ?? null
   }
 
   clearSelection() {

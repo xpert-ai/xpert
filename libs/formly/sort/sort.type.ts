@@ -2,14 +2,13 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MatIconModule } from '@angular/material/icon'
 import { NgmSelectModule } from '@metad/ocap-angular/common'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
 import { OrderDirection } from '@metad/ocap-core'
 import { FieldType, FieldTypeConfig } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -22,8 +21,8 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   >
     <div ngmSuffix>
       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="$event.stopPropagation(); toggleOrder()">
-        <mat-icon *ngIf="order === OrderDirection.DESC">arrow_upward</mat-icon>
-        <mat-icon *ngIf="order === OrderDirection.ASC || !order">arrow_downward</mat-icon>
+        <z-icon *ngIf="order === OrderDirection.DESC" zType="arrow_upward"></z-icon>
+        <z-icon *ngIf="order === OrderDirection.ASC || !order" zType="arrow_downward"></z-icon>
       </button>
     </div>
 
@@ -33,7 +32,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   </ngm-select>`,
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./sort.type.scss'],
-  imports: [CommonModule, FormsModule, TranslateModule, MatIconModule, ZardButtonComponent, NgmSelectModule, OcapCoreModule, NgmEntityPropertyComponent]
+  imports: [CommonModule, FormsModule, TranslateModule, ZardIconComponent, ZardButtonComponent, NgmSelectModule, OcapCoreModule, NgmEntityPropertyComponent]
 })
 export class FormlyFieldSortComponent extends FieldType<FieldTypeConfig<any>> {
   OrderDirection = OrderDirection

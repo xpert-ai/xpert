@@ -9,7 +9,7 @@
 
                     <span class="flex flex-1"></span>
                     <button z-button zType="ghost" zSize="icon" zShape="circle" color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin" cdkDropList [cdkDropListEnterPredicate]="levelRemovePredicate" (cdkDropListDropped)="removeLevel($event)">
-                        <mat-icon color="warn" fontSet="material-icons-round">delete</mat-icon>
+                        <z-icon color="warn" zType="delete"></z-icon>
                     </button>
                 </mat-toolbar>
                 <div id="pac-model-dimension__hierarchy-levels"
@@ -45,7 +45,7 @@
                     </span>
                     
                     <button z-button zType="ghost" zSize="icon" zShape="circle" color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin" cdkDropList [cdkDropListEnterPredicate]="tableRemovePredicate" (cdkDropListDropped)="removeTable($event)">
-                        <mat-icon color="warn" fontSet="material-icons-round">delete</mat-icon>
+                        <z-icon color="warn" zType="delete"></z-icon>
                     </button>
                 </mat-toolbar>
                 <div [id]="HierarchyTableId"
@@ -97,15 +97,15 @@
                       }
                         <mat-button-toggle-group [(ngModel)]="viewMode" ngmAppearance="outline" color="accent">
                             <mat-button-toggle value="table" [matTooltip]=" 'PAC.KEY_WORDS.Table' | translate: {Default: 'Table'} ">
-                                <mat-icon fontSet="material-icons-outlined" displayDensity="compact" class="opacity-50">table_view</mat-icon>
+                                <z-icon zSize="sm" class="opacity-50" zType="table_view"></z-icon>
                             </mat-button-toggle>
                             <mat-button-toggle value="tree" [matTooltip]=" 'PAC.KEY_WORDS.Tree' | translate: {Default: 'Tree'} ">
-                                <mat-icon fontSet="material-icons-outlined" displayDensity="compact" class="opacity-50">account_tree</mat-icon>
+                                <z-icon zSize="sm" class="opacity-50" zType="account_tree"></z-icon>
                             </mat-button-toggle>
                         </mat-button-toggle-group>
 
                         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action" (click)="refresh()">
-                            <mat-icon fontSet="material-icons-round">refresh</mat-icon>
+                            <z-icon zType="refresh"></z-icon>
                         </button>
                     </div>
                 </mat-toolbar>

@@ -3,10 +3,8 @@
   @apply overflow-hidden;
 }
 
-.mat-mdc-select-disabled {
-  mat-select-trigger {
-    img {
-      opacity: 0.5;
-    }
+.ngm-select[disabled] {
+  img {
+    opacity: 0.5;
   }
 }

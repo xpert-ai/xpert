@@ -6,7 +6,7 @@
 
     @if (modelType() !== MODEL_TYPE.XMLA) {
       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100" [matTooltip]=" 'PAC.MODEL.ENTITY.NewDimension' | translate: {Default: 'New Dimension'} " (click)="$event.stopPropagation();$event.preventDefault();addNewItem({}, null);">
-        <mat-icon>add</mat-icon>
+        <z-icon zType="add"></z-icon>
       </button>
     }
   </div>
@@ -45,7 +45,7 @@
 
     @if (modelType() !== MODEL_TYPE.XMLA && editable()) {
       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100" [matTooltip]=" 'PAC.MODEL.ENTITY.NewMeasure' | translate: {Default: 'New Measure'} " (click)="$event.stopPropagation();$event.preventDefault();onAddMeasure($event)">
-        <mat-icon>add</mat-icon>
+        <z-icon zType="add"></z-icon>
       </button>
     }
   </div>
@@ -90,10 +90,10 @@
     <span class="flex-1"></span>
 
     <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " (click)="aiCalculated()">
-      <mat-icon fontSet="material-icons-outlined">auto_fix_high</mat-icon>
+      <z-icon zType="auto_fix_high"></z-icon>
     </button>
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100" [matTooltip]=" 'PAC.MODEL.ENTITY.NewCalculatedMember' | translate: {Default: 'New Calculated Member'} " (click)="$event.stopPropagation();$event.preventDefault();onAddCalculatedMember($event)">
-      <mat-icon>add</mat-icon>
+      <z-icon zType="add"></z-icon>
     </button>
   </div>
         
@@ -138,7 +138,7 @@
     <span class="flex-1"></span>
 
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100" [matTooltip]=" 'PAC.MODEL.ENTITY.NewCalculation' | translate: {Default: 'New Calculation'} " (click)="$event.stopPropagation();$event.preventDefault();onEditCalculation()">
-      <mat-icon>add</mat-icon>
+      <z-icon zType="add"></z-icon>
     </button>
   </div>
 
@@ -195,7 +195,6 @@
   </div>
 </div>
 
-
 <div class="group flex flex-col my-4">
   <div class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10" displayDensity="compact">
     <span>
@@ -205,7 +204,7 @@
     <span class="flex-1"></span>
 
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100" [matTooltip]=" 'PAC.MODEL.ENTITY.NewParameter' | translate: {Default: 'New Parameter'} " (click)="$event.stopPropagation();$event.preventDefault();onEditParameter()">
-      <mat-icon>add</mat-icon>
+      <z-icon zType="add"></z-icon>
     </button>
   </div>
 
@@ -262,7 +261,6 @@
     </div>
   </ng-template>
 </div>
-
 
 @if (variables()?.length) {
   <div class="flex flex-col my-4">

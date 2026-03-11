@@ -1,8 +1,7 @@
 import { Component, inject } from "@angular/core";
 
-import { MatIconModule } from "@angular/material/icon";
 import { MAT_SNACK_BAR_DATA, MatSnackBarRef } from "@angular/material/snack-bar";
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
     selector: 'ngm-snack-notification',
@@ -11,7 +10,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     <div class="ngm-snack-notification__description opacity-80">{{data?.description}}</div>
 </div>
 <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-snack-notification__close ngm-density__cosy" (click)="close()">
-    <mat-icon>close</mat-icon>
+    <z-icon zType="close"></z-icon>
 </button>
 `,
     styles: [
@@ -30,7 +29,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     standalone: true,
     imports: [
         ZardButtonComponent,
-        MatIconModule
+        ZardIconComponent
     ]
   })
 export class NgmNotificationComponent {

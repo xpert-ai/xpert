@@ -69,7 +69,7 @@
     <div class="ngm-story-point__quick-start absolute top-0 left-0 w-full h-full flex justify-center items-center z-10">
         <div class="container relative p-12 mx-8 rounded-xl flex flex-col justify-center items-center">
             <button z-button zType="ghost" zSize="icon" zShape="circle" style="position: absolute;" class="absolute right-1 top-1" (click)="closeQuickStart()">
-                <mat-icon class="mr-1">close</mat-icon>
+                <z-icon class="mr-1" zType="close"></z-icon>
             </button>
             
             <span class="text-6xl font-notoColorEmoji">🛒</span>
@@ -105,58 +105,58 @@
 <ng-template #context_menu>
     <div cdkMenu class="cdk-menu__medium space-y-1">
         <button cdkMenuItem *ngIf="!point.hidden" (click)="hidePage()">
-            <mat-icon class="mr-1">flip_to_back</mat-icon>
+            <z-icon class="mr-1" zType="flip_to_back"></z-icon>
             {{ 'Story.Story.Hidden' | translate: {Default: "Hidden"} }}
         </button>
         <button cdkMenuItem *ngIf="point.hidden" (click)="showPage()">
-            <mat-icon class="mr-1">flip_to_front</mat-icon>
+            <z-icon class="mr-1" zType="flip_to_front"></z-icon>
             {{ 'Story.Story.Visiable' | translate: {Default: "Visiable"} }}
         </button>
         <button cdkMenuItem (click)="openShare()">
-            <mat-icon class="mr-1" fontSet="material-icons-outlined">share</mat-icon>
+            <z-icon class="mr-1" zType="share"></z-icon>
             {{ 'Story.Story.Share' | translate: {Default: "Share"} }}
         </button>
         <ng-container *ngIf="editable()">
             <div class="w-full border-b border-solid border-divider-deep my-1"></div>
 
             <button cdkMenuItem (click)="openEditAttributes()">
-                <mat-icon class="mr-1" fontSet="material-icons-outlined">edit_attributes</mat-icon>
+                <z-icon class="mr-1" zType="edit_attributes"></z-icon>
                 {{ 'Story.Widget.EditAttributes' | translate: {Default: "Edit Attributes"} }}
             </button>
 
             <button cdkMenuItem class="disabled:opacity-50" [disabled]="isFirst" (click)="move('left')">
-                <mat-icon class="mr-1">chevron_left</mat-icon>
+                <z-icon class="mr-1" zType="chevron_left"></z-icon>
                 {{ 'Story.Story.MOVE_LEFT' | translate: {Default: "Move Left"} }}
             </button>
             <button cdkMenuItem class="disabled:opacity-50" [disabled]="isLast" (click)="move('right')">
-                <mat-icon class="mr-1">chevron_right</mat-icon>
+                <z-icon class="mr-1" zType="chevron_right"></z-icon>
                 {{ 'Story.Story.MOVE_RIGHT' | translate: {Default: "Move Right"} }}
             </button>
             <button cdkMenuItem class="disabled:opacity-50" [disabled]="isFirst" (click)="move('first')">
-                <mat-icon class="mr-1">first_page</mat-icon>
+                <z-icon class="mr-1" zType="first_page"></z-icon>
                 {{ 'Story.Story.MOVE_FIRST' | translate: {Default: "Move First"} }}
             </button>
             <button cdkMenuItem class="disabled:opacity-50" [disabled]="isLast" (click)="move('last')">
-                <mat-icon class="mr-1">last_page</mat-icon>
+                <z-icon class="mr-1" zType="last_page"></z-icon>
                 {{ 'Story.Story.MOVE_LAST' | translate: {Default: "Move Last"} }}
             </button>
             <button cdkMenuItem (click)="rename()">
-                <mat-icon class="mr-1" fontSet="material-icons-outlined">drive_file_rename_outline</mat-icon>
+                <z-icon class="mr-1" zType="drive_file_rename_outline"></z-icon>
                 {{ 'Story.Story.Rename' | translate: {Default: "Rename"} }}
             </button>
             <button cdkMenuItem (click)="duplicate()">
-                <mat-icon class="mr-1">content_copy</mat-icon>
+                <z-icon class="mr-1" zType="content_copy"></z-icon>
                 {{ 'Story.Story.Duplicate' | translate: {Default: "Duplicate"} }}
             </button>
 
             <button cdkMenuItem *ngIf="isCopyWidgetSelected$ | async as isCopyWidgetSelected"
                 (click)="isCopyWidgetSelected?pasteWidget():''">
-                <mat-icon class="mr-1" fontSet="material-icons-outlined">content_paste</mat-icon>
+                <z-icon class="mr-1" zType="content_paste"></z-icon>
                 {{ 'Story.Story.Paste' | translate: {Default: "Paste"} }}
             </button>
             
             <button cdkMenuItem (click)="fileUpload.click()">
-                <mat-icon class="mr-1" fontSet="material-icons-outlined">file_upload</mat-icon>
+                <z-icon class="mr-1" zType="file_upload"></z-icon>
                 {{ 'Story.Story.Upload' | translate: {Default: "Upload"} }}
             </button>
 

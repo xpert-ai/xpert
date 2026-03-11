@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common'
 import { Component, effect, inject, input, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatTreeFlatDataSource, MatTreeFlattener, MatTreeModule } from '@angular/material/tree'
 import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
@@ -20,7 +19,7 @@ import {
 import { TranslateModule } from '@ngx-translate/core'
 import { ModelEntityService } from '../../entity.service'
 import { mapDimensionToTreeItemNode, TreeItemFlatNode, TreeItemNode } from '../types'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -37,7 +36,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     DragDropModule,
     MatTreeModule,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     MatTooltipModule,
     NgmEntityPropertyComponent
   ]

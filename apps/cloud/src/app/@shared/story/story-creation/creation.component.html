@@ -2,7 +2,7 @@
   <form [formGroup]="form" class="flex-1 flex flex-col justify-start items-stretch"
     (ngSubmit)="onApply()">
     <div class="w-full flex justify-start items-center mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-      <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+      <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
       <span class="text-lg pointer-events-none">
         {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
       </span>

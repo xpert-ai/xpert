@@ -1,6 +1,6 @@
 <div class="ngm-modal-sidenav ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto p-4 group">
   <div class="w-full flex justify-start items-center my-2 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+    <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-xl pointer-events-none">
       {{ 'PAC.MODEL.CREATE_ENTITY.CREATE_ENTITY' | translate: { Default: 'Create Entity' } }}
     </span>
@@ -140,29 +140,21 @@
               </div>
               <div style="width: 140px;" class="shrink-0">
                 @if (!column.isMeasure) {
-                  <mat-select
-                    class="ngm-density__compact p-1 rounded-md hover:bg-slate-500/10 dark:hover:bg-white/10 focus:bg-slate-500/20 dark:focus:bg-white/20 dark:caret-slate-100"
-                    panelClass="ngm-select-panel ngm-density__compact"
-                    [(ngModel)]="column.dimension"
+                  <z-select
+                    class="ngm-density__compact p-1"
+                    [ngModel]="column.dimension?.name ?? noDimensionValue"
+                    (ngModelChange)="selectDimension(column, $event)"
+                    [zPlaceholder]="'PAC.MODEL.CREATE_ENTITY.AssociatedDimension' | translate: { Default: 'Dimension' }"
                   >
-                    <mat-select-trigger>
-                      @if (column.dimension) {
-                        <ngm-display-behaviour class="flex-1" [option]="{key: column.dimension.name, caption: column.dimension.caption}" />
-                      } @else {
-                        <span>
-                          {{ 'PAC.MODEL.CREATE_ENTITY.AssociatedDimension' | translate: { Default: 'Dimension' } }}
-                        </span>
-                      }
-                    </mat-select-trigger>
-                    <mat-option [value]="null">
+                    <z-select-item [zValue]="noDimensionValue">
                       {{ 'PAC.KEY_WORDS.None' | translate: { Default: 'None' } }}
-                    </mat-option>
+                    </z-select-item>
                     @for (dimension of sharedDimensions(); track dimension.name) {
-                      <mat-option [value]="dimension">
+                      <z-select-item [zValue]="dimension.name">
                         <ngm-display-behaviour class="flex-1" [option]="{key: dimension.name, caption: dimension.caption}" />
-                      </mat-option>
+                      </z-select-item>
                     }
-                  </mat-select>
+                  </z-select>
                 }
               </div>
             </div>
@@ -206,12 +198,9 @@
                   <label for="default-radio-{{i}}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300"></label>
                 </div>
           
-                <mat-icon class="ml-6 cursor-pointer group-hover:opacity-100" [class.opacity-0]="!column.visible"
-                  fontSet="material-icons-outlined"
+                <z-icon class="ml-6 cursor-pointer group-hover:opacity-100" [class.opacity-0]="!column.visible"
                   (click)="column.visible=!column.visible"
-                >
-                  {{column.visible ? 'visibility' : 'visibility_off'}}
-                </mat-icon>
+                 [zType]="column.visible ? 'visibility' : 'visibility_off'"></z-icon>
                 <ngm-display-behaviour class="flex-1 ml-8 overflow-hidden" [option]="{key: column.name, caption: column.caption}"
                   [highlight]="searchTerm()"
                   displayBehaviour="descriptionAndId"

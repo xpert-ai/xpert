@@ -6,11 +6,8 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angul
 
 import { MatChipsModule } from '@angular/material/chips'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatSelectModule } from '@angular/material/select'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -21,7 +18,6 @@ import { AdvancedSlicerOperator, DataSettings, DisplayBehaviour, EntityType, non
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, Observable } from 'rxjs'
 import { filter, map, startWith, switchMap } from 'rxjs/operators'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 const ADVANCED_SLICER_OPERATORS = [
   {
@@ -97,15 +93,14 @@ const ADVANCED_SLICER_OPERATORS = [
     ReactiveFormsModule,
     DragDropModule,
     MatDialogModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     ZardInputDirective,
     MatChipsModule,
     MatSlideToggleModule,
     MatTooltipModule,
-    MatDividerModule,
+    ZardDividerComponent,
     MatMenuModule,
-    MatSelectModule,
     TranslateModule,
 
     NgmCommonModule,

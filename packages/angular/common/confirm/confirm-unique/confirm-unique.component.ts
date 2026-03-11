@@ -5,11 +5,10 @@ import { Component, HostBinding, OnInit, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isString } from 'lodash-es'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use CdkConfirmUniqueComponent

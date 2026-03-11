@@ -9,8 +9,7 @@ import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/ma
 
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -52,7 +51,6 @@ import { NgmValueHelpComponent } from '../value-help/value-help.component'
 import { MatRadioModule } from '@angular/material/radio'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmTimeFilterEditorComponent } from '../timer'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 export interface SmartFilterOptions extends ControlOptions {
   maxTagCount?: number
@@ -88,7 +86,7 @@ export interface SmartFilterState {
     ReactiveFormsModule,
     CdkMenuModule,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     MatProgressSpinnerModule,
     MatAutocompleteModule,
     ZardInputDirective,

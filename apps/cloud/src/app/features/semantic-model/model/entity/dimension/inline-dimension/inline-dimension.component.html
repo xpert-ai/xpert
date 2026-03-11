@@ -59,9 +59,7 @@
     [cdkDragData]="node"
   >
     <button z-button zType="ghost" zSize="icon" zShape="circle" matTreeNodeToggle displayDensity="cosy">
-      <mat-icon class="mat-icon-rtl-mirror" fontSet="material-icons-round">
-        {{ treeControl.isExpanded(node) ? 'arrow_drop_down' : 'arrow_right' }}
-      </mat-icon>
+      <z-icon class="z-icon-rtl-mirror" [zType]="treeControl.isExpanded(node) ? 'arrow_drop_down' : 'arrow_right'"></z-icon>
     </button>
     @if (node.raw.visible === false || node.raw.semantics?.hidden) {
       <i class="ri-eye-off-line mr-0.5 text-text-tertiary"

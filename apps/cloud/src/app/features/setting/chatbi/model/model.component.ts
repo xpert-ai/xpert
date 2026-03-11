@@ -3,7 +3,7 @@ import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms'
 
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { IsDirty } from '@metad/core'
@@ -17,7 +17,6 @@ import { injectParams } from 'ngxtension/inject-params'
 import { catchError, EMPTY, map, of, pipe, startWith, switchMap } from 'rxjs'
 import { ChatBIModelService, getErrorMessage, injectToastr, OrderTypeEnum, routeAnimations } from '../../../../@core'
 import { ChatBIModelsComponent } from '../models/models.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

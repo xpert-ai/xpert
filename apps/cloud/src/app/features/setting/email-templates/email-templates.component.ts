@@ -15,13 +15,12 @@ import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { injectOrganization } from '@metad/cloud/state'
 import { LanguagesEnum } from '@metad/contracts'
 import { EmailTemplateComponent } from './template/template.component'
-import { MatIconModule } from '@angular/material/icon'
 
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { BehaviorSubject, combineLatest } from 'rxjs'
 import { CardCreateComponent } from '../../../@shared/card'
 import { LanguageSelectorComponent } from '../../../@shared/language'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -33,7 +32,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     CdkMenuModule,
 
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
 
     NgmSelectComponent,

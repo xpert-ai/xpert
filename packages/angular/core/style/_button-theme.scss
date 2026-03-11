@@ -10,22 +10,6 @@
 @mixin typography($config-or-theme) {
 }
 
-@mixin icon-cosy() {
-  line-height: 20px;
-  width: 20px;
-  height: 20px;
-  font-size: 20px;
-  margin: 0;
-}
-
-@mixin icon-compact() {
-  line-height: 16px;
-  width: 16px;
-  height: 16px;
-  font-size: 16px;
-  margin: 0;
-}
-
 @mixin _button-target($density-class) {
   [z-button].#{$density-class},
   z-button.#{$density-class},
@@ -58,18 +42,11 @@
       padding: 2px;
     }
 
-    .mat-icon {
-      @include icon-cosy();
-    }
   }
 
   @include _button-target('ngm-density__compact') {
     height: 24px;
     line-height: 24px;
-
-    .mat-icon {
-      @include icon-compact();
-    }
 
     &:not([data-icon-only]):not([data-z-size='icon']):not([data-z-size='icon-xs']):not([data-z-size='icon-sm']):not([data-z-size='icon-lg']) {
       padding: 0 6px;

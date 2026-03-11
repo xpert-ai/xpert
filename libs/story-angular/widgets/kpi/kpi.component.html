@@ -66,7 +66,7 @@
   <div class="w-full h-full flex flex-col justify-between items-stretch" [class.hidden]="drilling()">
     <div class="ngm-kpi--kpi flex-1 flex justify-center items-center">
       @if (options?.icon) {
-        <mat-icon>{{options.icon}}</mat-icon>
+        <z-icon [zType]="options.icon"></z-icon>
       }
       
       <ng-content select=".ngm-kpi--icon"></ng-content>
@@ -143,19 +143,19 @@
         <div class="ngm-kpi--arrow flex justify-center items-end">
           @switch (kpiValue.arrow) {
             @case (TrendType.StrongUp) {
-              <mat-icon>north</mat-icon>
+              <z-icon zType="north"></z-icon>
             }
             @case (TrendType.Up) {
-              <mat-icon>north_east</mat-icon>
+              <z-icon zType="north_east"></z-icon>
             }
             @case (TrendType.Down) {
-              <mat-icon>south_east</mat-icon>
+              <z-icon zType="south_east"></z-icon>
             }
             @case (TrendType.StrongDown) {
-              <mat-icon>south</mat-icon>
+              <z-icon zType="south"></z-icon>
             }
             @default {
-              <mat-icon>remove</mat-icon>
+              <z-icon zType="remove"></z-icon>
             }
           }
         </div>

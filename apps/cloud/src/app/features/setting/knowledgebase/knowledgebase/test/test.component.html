@@ -1,7 +1,7 @@
 <div class="pac-knowledgebase__test-container max-w-full lg:w-[400px] lg:max-w-[400px] rounded-lg flex flex-col gap-8 m-4 p-4">
   <h2>{{ 'PAC.Knowledgebase.RetrievalTest' | translate: {Default: 'Retrieval Test'} }}</h2>
 
-  <mat-divider></mat-divider>
+  <z-divider></z-divider>
 
   <ngm-slider-input [label]=" 'PAC.Knowledgebase.SimilarityThreshold' | translate: {Default: 'Similarity Threshold'}"
     [(ngModel)]="score" 
@@ -15,7 +15,7 @@
     [min]="1" [max]="100" [step]="1"></ngm-slider-input>
   <!-- <ngm-slider-input [label]="'关键字相似度权重'" [min]="0" [max]="1" [step]="0.01"></ngm-slider-input> -->
 
-  <mat-divider></mat-divider>
+  <z-divider></z-divider>
 
   <div class="flex flex-col items-end gap-4">
     <div class="flex-1 min-w-full flex flex-col">

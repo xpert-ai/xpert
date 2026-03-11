@@ -4,7 +4,7 @@
       [cdkDragDisabled]="!dialogRef"
     >
     @if (dialogRef) {
-      <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+      <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     }
       <span class="text-xl font-semibold pointer-events-none">
         {{ 'Ngm.Calculation.TITLE' | translate: {Default: "Calculation Editor"} }}

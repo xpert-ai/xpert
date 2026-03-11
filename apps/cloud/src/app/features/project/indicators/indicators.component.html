@@ -34,7 +34,7 @@
         } -->
         
         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [cdkMenuTriggerFor]="menu" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()">
-          <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
+          <z-icon zType="more_horiz"></z-icon>
         </button>
       </div>
     </div>
@@ -48,7 +48,7 @@
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined" displayDensity="cosy">settings</mat-icon>
+      <z-icon zSize="default" zType="settings"></z-icon>
       {{ 'PAC.INDICATOR.All' | translate: {Default: "All"} }}
     </span>
 
@@ -57,7 +57,7 @@
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla2.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined" displayDensity="cosy">group_add</mat-icon>
+      <z-icon zSize="default" zType="group_add"></z-icon>
       {{ 'PAC.INDICATOR.MY_INDICATORS.ALL' | translate: {Default: "All"} }}
     </span> -->
 
@@ -66,7 +66,7 @@
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla3.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined" displayDensity="cosy">verified_user</mat-icon>
+      <z-icon zSize="default" zType="verified_user"></z-icon>
       {{ 'PAC.INDICATOR.MY_INDICATORS.Approvals' | translate: {Default: "Approvals"} }}
     </span>
 
@@ -81,7 +81,7 @@
           </span>
         }
 
-        <mat-icon fontSet="material-icons-outlined" displayDensity="cosy">trending_up</mat-icon>
+        <z-icon zSize="default" zType="trending_up"></z-icon>
         @if (indicator.id === NewIndicatorCodePlaceholder) {
           <span class="mr-2">{{ 'PAC.INDICATOR.New' | translate: {Default: 'New'} }}</span>
         }
@@ -90,13 +90,13 @@
           <span class="overflow-hidden text-ellipsis max-w-[200px]" [title]="indicator.name">{{indicator.name}}</span>
         }
         <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-tab-close" displayDensity="compact" (click)="removeOpenedLink(indicator)">
-          <mat-icon>cancel</mat-icon>
+          <z-icon zType="cancel"></z-icon>
         </button>
       </span>
     }
   </nav>
 </div>
-<mat-divider></mat-divider>
+<z-divider></z-divider>
 
 <z-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
   [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">

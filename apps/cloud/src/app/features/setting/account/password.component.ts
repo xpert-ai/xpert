@@ -3,8 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http'
 import { Component, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { matchValidator, matchWithValidator } from '@metad/cloud/auth'
 import { UsersService } from '@metad/cloud/state'
 import { pick } from '@metad/ocap-core'
@@ -13,11 +12,10 @@ import { cloneDeep } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
 import { HttpStatus, Store, ToastrService, User, getErrorMessage } from '../../../@core'
 import { UserFormsModule } from '../../../@shared/user/forms'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ZardButtonComponent, MatIconModule, ...ZardFormImports, ZardInputDirective, FormsModule, ReactiveFormsModule, UserFormsModule, TranslateModule],
+  imports: [CommonModule, ZardButtonComponent, ZardIconComponent, ...ZardFormImports, ZardInputDirective, FormsModule, ReactiveFormsModule, UserFormsModule, TranslateModule],
   selector: 'pac-account-password',
   template: `<form
     class="flex flex-col items-start justify-start p-4 m-auto w-96"

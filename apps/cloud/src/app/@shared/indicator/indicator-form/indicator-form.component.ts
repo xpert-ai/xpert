@@ -4,7 +4,6 @@ import { Component, computed, effect, ElementRef, HostListener, inject, input, m
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
-import { MatIconModule } from '@angular/material/icon'
 import { getErrorMessage, injectToastr, ProjectAPIService } from '@cloud/app/@core'
 import { convertIndicatorResult, ICertification, IIndicator, IndicatorsService, IndicatorStatusEnum, ISemanticModel, Store, TIndicatorDraft, TMessageContentIndicator } from '@metad/cloud/state'
 import { saveAsYaml } from '@metad/core'
@@ -35,7 +34,7 @@ import { injectI18nService } from '../../i18n'
 import { XpIndicatorRegisterFormComponent } from '../register-form/register-form.component'
 import { exportIndicator } from '../types'
 import { ChecklistComponent } from '../../common'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -48,7 +47,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     CdkMenuModule,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     MatTooltipModule,
     NgmSpinComponent,
     AnalyticalCardModule,

@@ -15,20 +15,20 @@
     >
   @if (!pinToolbar()) {
     <button z-button zType="ghost" zSize="icon" zShape="circle" cdkDragHandle class="pac-cdk__drag-handle">
-        <mat-icon>drag_indicator</mat-icon>
+        <z-icon zType="drag_indicator"></z-icon>
     </button>
   }
 
     <button z-button zType="ghost" zSize="icon" zShape="circle" (click)="toggleToolbarPin()" [matTooltip]="pinToolbar() ? ('Story.Toolbar.OpenFloatingToolbar' | translate: {Default: 'Open Floating Toolbar'}) : ('Story.Toolbar.PinToolbar' | translate: {Default: 'Pin Toolbar'})" matTooltipPosition="after">
       @if (pinToolbar()) {
-        <mat-icon fontSet="material-icons-outlined">open_in_new</mat-icon>
+        <z-icon zType="open_in_new"></z-icon>
       } @else {
-        <mat-icon fontSet="material-icons-outlined">push_pin</mat-icon>
+        <z-icon zType="push_pin"></z-icon>
       }
     </button>
 
     <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-story-designer__menu-trigger mat-menu-trigger" [class.active]="drawer.opened" [matTooltip]="'Story.Toolbar.AttributesPanel' | translate: {Default: 'Attributes Panel'}" matTooltipPosition="after" (click)="drawer.opened=!drawer.opened">
-        <mat-icon fontSet="material-icons-outlined">edit_attributes</mat-icon>
+        <z-icon zType="edit_attributes"></z-icon>
     </button>
 </pac-story-toolbar>
 

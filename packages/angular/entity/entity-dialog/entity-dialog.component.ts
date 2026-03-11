@@ -6,7 +6,6 @@ import { toObservable } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatRadioModule } from '@angular/material/radio'
@@ -18,7 +17,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { catchError, combineLatestWith, distinctUntilChanged, filter, map, of, startWith, switchMap, tap } from 'rxjs'
 import { EntitySelectResultType } from '../types'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 export type EntitySelectDataType = {
   dataSources: ISelectOption<string>[]
@@ -41,7 +40,7 @@ export type EntitySelectDataType = {
     ScrollingModule,
     ZardButtonComponent,
     MatDialogModule,
-    MatIconModule,
+    ZardIconComponent,
     MatRadioModule,
     MatListModule,
     MatProgressSpinnerModule,

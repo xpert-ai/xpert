@@ -144,9 +144,6 @@
   .mat-mdc-option {
     &.ngm-appearance-danger:hover {
       color: mat.m2-get-color-from-palette($warn);
-      .mat-icon-no-color {
-        color: mat.m2-get-color-from-palette($warn);
-      }
     }
   }
 

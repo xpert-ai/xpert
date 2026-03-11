@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { Component, inject, ViewContainerRef } from '@angular/core'
 
 import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
 import { Router } from '@angular/router'
 import { StoriesService } from '@metad/cloud/state'
 import { uploadYamlFile } from '@metad/core'
@@ -13,14 +12,14 @@ import { firstValueFrom, switchMap, tap } from 'rxjs'
 import { DefaultCollection, IStory, IStoryTemplate, ProjectAPIService, ToastrService, tryHttp } from '../../../@core'
 import { ProjectComponent } from '../project/project.component'
 import { StoryCardComponent, StoryCreationComponent, StoryTemplateComponent } from '../../../@shared/story'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     StoryCardComponent,
-    MatIconModule,
+    ZardIconComponent,
     TranslateModule,
     ZardButtonComponent,
     ButtonGroupDirective,

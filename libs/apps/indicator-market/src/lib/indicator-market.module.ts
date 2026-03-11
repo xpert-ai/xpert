@@ -11,8 +11,7 @@ import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatRippleModule } from '@angular/material/core'
 import { MatDatepickerModule } from '@angular/material/datepicker'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatSliderModule } from '@angular/material/slider'
@@ -35,7 +34,6 @@ import { ReplaceNullWithTextPipe } from './shared/replace-null-with-text.pipe'
 import { AppSparkLineDirective } from './shared/sparkline.directive'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [
@@ -54,11 +52,12 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     ScrollingModule,
     DragDropModule,
     CdkMenuModule,
+    ZardDividerComponent,
     MatListModule,
     MatCardModule,
     MatCheckboxModule,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     MatRippleModule,
     MatMenuModule,
     MatBottomSheetModule,

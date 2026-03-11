@@ -21,7 +21,6 @@ import { CubeEventType } from '../types'
 import { CubeVariableFormComponent } from '@cloud/app/@shared/model'
 
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatIconModule } from '@angular/material/icon'
 import { MatListModule } from '@angular/material/list'
 import { SQLTableSchema } from '@metad/ocap-sql'
 import { CreateEntityDialogRetType, ModelCreateEntityComponent, toDimension } from '../../create-entity/create-entity.component'
@@ -29,7 +28,7 @@ import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
 import { ModelEntityComponent } from '../entity.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 /**
  * Display and edit the field list of the multidimensional analysis model
@@ -50,7 +49,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     ZardButtonComponent,
     MatTooltipModule,
-    MatIconModule,
+    ZardIconComponent,
     MatListModule,
     NgmCommonModule,
     CdkMenuModule,

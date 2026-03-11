@@ -1,6 +1,6 @@
 <div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
   <div class="w-full flex justify-start items-center my-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+    <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-lg pointer-events-none">
       {{ 'Story.Common.Calculations' | translate: { Default: 'Calculations' } }} & {{ 'Story.Common.Parameters' | translate: { Default: 'Parameters' } }}
     </span>
@@ -33,7 +33,7 @@
     <div class="flex justify-between items-center">
       <label class="text-lg p-2"> {{ 'Story.Common.Parameters' | translate: { Default: 'Parameters' } }} </label>
       <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-60" (click)="openCreateParameter()">
-        <mat-icon fontSet="material-icons-outlined">add_circle_outline</mat-icon>
+        <z-icon zType="add_circle_outline"></z-icon>
       </button>
     </div>
     
@@ -43,10 +43,10 @@
           <ngm-display-behaviour class="flex-1" [option]="{value: parameter.name, label: parameter.caption}"></ngm-display-behaviour>
 
           <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="opacity-0 group-hover:opacity-90" (click)="openCreateParameter(parameter.name)">
-              <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+              <z-icon zType="edit"></z-icon>
           </button>
           <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="opacity-0 group-hover:opacity-90" (click)="removeParameter(parameter.name)">
-              <mat-icon>close</mat-icon>
+              <z-icon zType="close"></z-icon>
           </button>
         </div>
       </mat-list-item>
@@ -55,7 +55,7 @@
     <div class="flex justify-between items-center">
       <label class="text-lg p-2"> {{ 'Story.Common.Calculations' | translate: { Default: 'Calculations' } }} </label>
       <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-60" (click)="openCreateCalculation()">
-        <mat-icon fontSet="material-icons-outlined">add_circle_outline</mat-icon>
+        <z-icon zType="add_circle_outline"></z-icon>
       </button>
     </div>
     
@@ -64,10 +64,10 @@
         <div class="flex items-center group">
           <ngm-display-behaviour class="flex-1" [option]="{value: calculation.name, label: calculation.caption}"></ngm-display-behaviour>
           <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="opacity-0 group-hover:opacity-90" (click)="openEditCalculation(calculation)">
-              <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+              <z-icon zType="edit"></z-icon>
           </button>
           <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="opacity-0 group-hover:opacity-90" (click)="removeCalculation(calculation)">
-              <mat-icon>close</mat-icon>
+              <z-icon zType="close"></z-icon>
           </button>
         </div>
       </mat-list-item>

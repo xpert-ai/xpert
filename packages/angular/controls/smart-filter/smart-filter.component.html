@@ -26,9 +26,10 @@
     }
 
     @if (slicerLabel() || isNotInitial()) {
-      <mat-icon class="cursor-pointer shrink-0 text-neutral-400" displayDensity="compact" ngmAppearance="danger"
+      <z-icon class="shrink-0 text-neutral-400 transition-colors hover:text-red-500"
+        [class.cursor-pointer]="!disabled$()"
         [class.cursor-not-allowed]="disabled$()"
-        (click)="disabled$() ? null : clearMembers()">close</mat-icon>
+        (click)="disabled$() ? null : clearMembers()" zType="close"></z-icon>
     }
   </div>
 
@@ -45,11 +46,11 @@
 
     @if (hierarchies()?.length > 1) {
       <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-actionable-opacity" displayDensity="compact" [disabled]="disabled$()" [cdkMenuTriggerFor]="hierarchiesMenu" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()" (click)="$event.stopPropagation();$event.preventDefault();">
-        <mat-icon fontSet="material-icons-outlined">account_tree</mat-icon>
+        <z-icon zType="account_tree"></z-icon>
       </button>
     }
     <button z-button zType="ghost" zSize="icon" zShape="circle" type="button" class="ngm-actionable-opacity" displayDensity="compact" [disabled]="disabled$()" (click)="$event.stopPropagation();$event.preventDefault();openValueHelp()">
-      <mat-icon>help_outline</mat-icon>
+      <z-icon zType="help_outline"></z-icon>
     </button>
 
     @if (isCalendar()) {
@@ -75,9 +76,7 @@
     >
       <div class="flex-1 flex justify-start items-center" >
         <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="_displayDensity()" [style.visibility]="!option.expandable ? 'hidden' : ''" [style.marginLeft.px]="option.level * treeNodePaddingIndent" (click)="$event.stopPropagation(); treeControl.toggle(option)">
-          <mat-icon class="mat-icon-rtl-mirror">
-            {{treeControl.isExpanded(option) ? 'expand_more' : 'chevron_right'}}
-          </mat-icon>
+          <z-icon class="z-icon-rtl-mirror" [zType]="treeControl.isExpanded(option) ? 'expand_more' : 'chevron_right'"></z-icon>
         </button>
 
         @if (multiple()) {
@@ -103,7 +102,6 @@
   </cdk-virtual-scroll-viewport>
 </mat-autocomplete>
 
-
 <ng-template #hierarchiesMenu>
   <div cdkMenu class="cdk-menu__large ngm-density__compact">
     <mat-radio-group [(ngModel)]="hierarchy">
@@ -119,7 +117,7 @@
 <ng-template #calendarMenu>
   <div cdkMenu class="cdk-menu__medium">
     <button cdkMenuItem (click)="openValueHelp()">
-      <mat-icon fontSet="material-icons-outlined" class="mr-1">people_outline</mat-icon>
+      <z-icon class="mr-1" zType="people_outline"></z-icon>
       {{ 'Ngm.Selection.DimensionMembers' | translate: {Default: 'Dimension Members'} }}
     </button>
     

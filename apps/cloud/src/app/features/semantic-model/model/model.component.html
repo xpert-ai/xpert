@@ -3,7 +3,7 @@
     @if (isMobile()) {
       <button cdkMenuItem class="pac-model__page-trigger flex-1"
         [cdkMenuTriggerFor]="mobileMenu">
-        <mat-icon fontSet="material-icons-outlined">more_horiz</mat-icon>
+        <z-icon zType="more_horiz"></z-icon>
       </button>
     }
     @if (!isMobile()) {
@@ -121,7 +121,7 @@
           </div> -->
           
           <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action" [matTooltip]=" 'PAC.MODEL.MODEL.New' | translate: {Default: 'New'} " matTooltipPosition="above" (click)="createEntity()">
-            <mat-icon>add</mat-icon>
+            <z-icon zType="add"></z-icon>
           </button>
         </div>
 
@@ -138,14 +138,14 @@
                 @if (cube() === entity.name) {
                   <i class="ri-star-fill" [matTooltip]="'PAC.MODEL.IsDefault' | translate: {Default: 'Is default'}"></i>
                 }
-                <mat-icon class="pac-model__nav-icon"
-                  displayDensity="compact" fontSet="material-icons-outlined">deployed_code</mat-icon>
+                <z-icon class="pac-model__nav-icon"
+                  zSize="sm" zType="deployed_code"></z-icon>
                 <ngm-display-behaviour class="flex-1 text-sm truncate"
                   [option]="{ key: entity.name, caption: entity.caption }"
                 />
 
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="pac-model__nav-action opacity-0 group-hover/item:opacity-100" [cdkMenuTriggerFor]="entityMenu" [cdkMenuTriggerData]="{entity: entity}" #mt="cdkMenuTriggerFor" [class.opacity-100]="mt.isOpen()" (click)="$event.stopPropagation();$event.preventDefault()">
-                  <mat-icon>more_vert</mat-icon>
+                  <z-icon zType="more_vert"></z-icon>
                 </button>
               </li>
             }
@@ -158,14 +158,14 @@
                 routerLinkActive #rla2="routerLinkActive"
                 cdkDrag
                 [cdkDragData]="entity">
-                <mat-icon class="pac-model__nav-icon"
-                  displayDensity="compact" fontSet="material-icons-outlined">account_tree</mat-icon>
+                <z-icon class="pac-model__nav-icon"
+                  zSize="sm" zType="account_tree"></z-icon>
                 <ngm-display-behaviour class="flex-1 text-sm truncate"
                   [option]="{ key: entity.name, caption: entity.caption }"
                 />
 
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="pac-model__nav-action opacity-0 group-hover/item:opacity-100" [cdkMenuTriggerFor]="entityMenu" [cdkMenuTriggerData]="{entity: entity}" #mt="cdkMenuTriggerFor" [class.opacity-100]="mt.isOpen()" (click)="$event.stopPropagation();$event.preventDefault()">
-                  <mat-icon>more_vert</mat-icon>
+                  <z-icon zType="more_vert"></z-icon>
                 </button>
               </li>
             }
@@ -180,13 +180,13 @@
                 cdkDrag
                 [cdkDragData]="entity"
               >
-                <mat-icon class="pac-model__nav-icon" displayDensity="compact" fontSet="material-icons-outlined">dataset_linked</mat-icon>
+                <z-icon class="pac-model__nav-icon" zSize="sm" zType="dataset_linked"></z-icon>
                 <ngm-display-behaviour class="flex-1 text-sm truncate"
                   [option]="{key: entity.name, caption: entity.caption}"
                 />
 
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="pac-model__nav-action opacity-0 group-hover/item:opacity-100" [cdkMenuTriggerFor]="entityMenu" [cdkMenuTriggerData]="{entity: entity}" #mt="cdkMenuTriggerFor" [class.opacity-100]="mt.isOpen()" (click)="$event.stopPropagation();$event.preventDefault()">
-                  <mat-icon>more_vert</mat-icon>
+                  <z-icon zType="more_vert"></z-icon>
                 </button>
               </li>
             }
@@ -201,19 +201,19 @@
 
             <div class="flex">
               <button z-button zType="ghost" zSize="icon" zShape="circle" color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin" cdkDropList [cdkDropListEnterPredicate]="tableRemovePredicate" (cdkDropListDropped)="dropTable($event)">
-                <mat-icon color="warn" fontSet="material-icons-round">delete_forever</mat-icon>
+                <z-icon color="warn" zType="delete_forever"></z-icon>
               </button>
               <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action" [matTooltip]=" 'PAC.MODEL.MODEL.RefreshSchema' | translate: {Default: 'Refresh Schema'} " (click)="refreshSchema()">
-                <mat-icon fontSet="material-icons-round">refresh</mat-icon>
+                <z-icon zType="refresh"></z-icon>
               </button>
               <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="isWasm$()" displayDensity="cosy" class="ngm-toolbar__action" [matTooltip]=" 'PAC.MODEL.MODEL.NewTable' | translate: {Default: 'New Table'} " (click)="addTable()">
-                <mat-icon fontSet="material-icons-round">add</mat-icon>
+                <z-icon zType="add"></z-icon>
               </button>
               <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="writable$()" displayDensity="cosy" class="ngm-toolbar__action" [matTooltip]=" 'PAC.MODEL.MODEL.UploadTable' | translate: {Default: 'Upload Table'} " (click)="uploadTable()">
-                <mat-icon fontSet="material-icons-round">upload</mat-icon>
+                <z-icon zType="upload"></z-icon>
               </button>
               <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="dbInitialization" displayDensity="cosy" class="ngm-toolbar__action" [matTooltip]=" 'PAC.MODEL.MODEL.RemoveDBInitScript' | translate: {Default: 'Remove DB Init Script'} " (click)="removeDBInit()">
-                <mat-icon fontSet="material-icons-round">playlist_remove</mat-icon>
+                <z-icon zType="playlist_remove"></z-icon>
               </button>
             </div>
           </div>
@@ -243,10 +243,10 @@
 
                   <!-- <ngm-action-strip #actionStrip [hidden]="true">
                     <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="isWasm$() && entity.sourceUrl" displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();editTable(entity)">
-                      <mat-icon>edit</mat-icon>
+                      <z-icon zType="edit"></z-icon>
                     </button>
                     <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="isWasm$() && entity.sourceUrl" color="warn" displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();deleteTable(entity)">
-                      <mat-icon>delete</mat-icon>
+                      <z-icon zType="delete"></z-icon>
                     </button>
                   </ngm-action-strip> -->
                 </li>
@@ -294,19 +294,19 @@
   <div cdkMenu class="p-2">
     <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="generalMenu" class="relative">
       <span>{{ 'PAC.KEY_WORDS.GENERAL' | translate: {Default: "General"} }}</span>
-      <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
+      <z-icon zType="arrow_right"></z-icon>
     </button>
     <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="editMenu">
       <span>{{ 'PAC.KEY_WORDS.EDIT' | translate: {Default: "Edit"} }}</span>
-      <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
+      <z-icon zType="arrow_right"></z-icon>
     </button>
     <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="dataMenu">
       <span>{{ 'PAC.KEY_WORDS.DATA' | translate: {Default: "Data"} }}</span>
-      <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
+      <z-icon zType="arrow_right"></z-icon>
     </button>
     <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="manageMenu">
       <span>{{ 'PAC.KEY_WORDS.Management' | translate: {Default: "Management"} }}</span>
-      <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
+      <z-icon zType="arrow_right"></z-icon>
     </button>
   </div>
 </ng-template>
@@ -314,12 +314,12 @@
 <ng-template #generalMenu>
   <div cdkMenu class="p-2">
     <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="openPreferences()">
-      <mat-icon fontSet="material-icons-outlined">settings_suggest</mat-icon>
+      <z-icon zType="settings_suggest"></z-icon>
       <span class="ml-2">{{ 'PAC.KEY_WORDS.PREFERENCES' | translate: {Default: "Preferences"} }}</span>
     </button>
 
     <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="onDownload()">
-      <mat-icon fontSet="material-icons-outlined">file_download</mat-icon>
+      <z-icon zType="file_download"></z-icon>
       <span class="ml-2">{{ 'PAC.ACTIONS.Download' | translate: {Default: 'Download'} }}</span>
     </button>
 
@@ -328,7 +328,7 @@
       <span>
         {{ 'PAC.MENU.STORY_LIST' | translate: {Default: "Story List"} }}
       </span>
-      <mat-icon fontSet="material-icons-round">arrow_right</mat-icon>
+      <z-icon zType="arrow_right"></z-icon>
     </button>
   </div>
 </ng-template>
@@ -336,39 +336,39 @@
 <ng-template #editMenu>
   <div cdkMenu class="p-2">
     <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="undo()">
-      <mat-icon fontSet="material-icons-outlined">undo</mat-icon>
+      <z-icon zType="undo"></z-icon>
       <span class="ml-2">{{ 'PAC.KEY_WORDS.Undo' | translate: {Default: "Undo"} }}</span>
     </button>
     <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="redo()">
-      <mat-icon fontSet="material-icons-outlined">redo</mat-icon>
+      <z-icon zType="redo"></z-icon>
       <span class="ml-2">{{ 'PAC.KEY_WORDS.Redo' | translate: {Default: "Redo"} }}</span>
     </button>
 
     <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="createStory()">
-      <mat-icon fontSet="material-icons-outlined">auto_stories</mat-icon>
+      <z-icon zType="auto_stories"></z-icon>
       <span class="ml-2">{{ 'PAC.ACTIONS.CREATE_STORY' | translate: {Default: "Create Story"} }}</span>
     </button>
     <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="createIndicator()">
-      <mat-icon fontSet="material-icons-outlined">trending_up</mat-icon>
+      <z-icon zType="trending_up"></z-icon>
       <span class="ml-2">{{ 'PAC.ACTIONS.CreateIndicator' | translate: {Default: "Create Indicator"} }}</span>
     </button>
 
     <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="reset()">
-      <mat-icon fontSet="material-icons-outlined">restart_alt</mat-icon>
+      <z-icon zType="restart_alt"></z-icon>
       <span class="ml-2">{{ 'PAC.MODEL.Reset' | translate: {Default: "Reset"} }}</span>
     </button>
   
       <!-- <button mat-menu-item>
-          <mat-icon fontSet="material-icons-outlined">functions</mat-icon>
+          <z-icon zType="functions"></z-icon>
           {{ 'PAC.ACTIONS.ADD_CALCULATED_MEMBER' | translate: {Default: "Add Calculated Member"} }}
       </button>
       <button mat-menu-item>
-          <mat-icon fontSet="material-icons-outlined">content_copy</mat-icon>
+          <z-icon zType="content_copy"></z-icon>
           {{ 'PAC.ACTIONS.COPY' | translate: {Default: "Copy"} }}
       </button>
   
       <button mat-menu-item>
-          <mat-icon fontSet="material-icons-outlined">low_priority</mat-icon>
+          <z-icon zType="low_priority"></z-icon>
           {{ 'PAC.ACTIONS.TOGGLE_CALCULATION_PRIORITIZATION_MODE' | translate: {Default: "Toggle Calculation Prioritization Mode"} }}
       </button> -->
   </div>
@@ -401,7 +401,7 @@
 <ng-template #storyMenu>
   <div cdkMenu class="p-2">
     <button cdkMenuItem class="px-2 py-1 rounded-lg" (click)="createStory()">
-      <mat-icon fontSet="material-icons-outlined">dashboard</mat-icon>
+      <z-icon zType="dashboard"></z-icon>
       <span class="ml-2">{{ 'PAC.ACTIONS.CREATE_STORY' | translate: {Default: "Create Story"} }}</span>
     </button>
 
@@ -428,7 +428,7 @@
 
   @if (isOlap$()) {
     <button cdkMenuItem [routerLink]="['./access']" routerLinkActive="active" class="px-2 py-1 rounded-lg">
-      <mat-icon fontSet="material-icons-outlined">manage_accounts</mat-icon>
+      <z-icon zType="manage_accounts"></z-icon>
       <span class="ml-2">{{ 'PAC.MODEL.AccessControl.Title' | translate: {Default: "Access Control"} }}</span>
     </button>
   }
@@ -475,7 +475,6 @@
     [pageSizeOptions]="[10, 20, 50, 100]"
   />
 </ng-template>
-
 
 <ng-template #publishMenu>
   <div cdkMenu class="cdk-menu__large rounded-xl">

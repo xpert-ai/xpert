@@ -2,12 +2,11 @@ import { FormsModule } from '@angular/forms'
 
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatChipsModule } from '@angular/material/chips'
-import { MatIconModule } from '@angular/material/icon'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { Meta, moduleMetadata } from '@storybook/angular'
 import { OcapCoreModule } from '../core.module'
 import { ButtonGroupDirective } from './button-group.directive'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 export default {
   title: 'Core/ButtonGroupDirective',
@@ -17,7 +16,7 @@ export default {
         FormsModule,
 
         OcapCoreModule,
-        MatIconModule,
+        ZardIconComponent,
         ZardButtonComponent,
         MatButtonToggleModule,
         MatChipsModule,
@@ -36,23 +35,23 @@ export const Primary = {
   
   <div >
   <div >
-    <mat-icon>share</mat-icon>
-    <mat-icon displayDensity="cosy">share</mat-icon>
-    <mat-icon displayDensity="compact">share</mat-icon>
+    <z-icon zType="share"></z-icon>
+    <z-icon zSize="default" zType="share"></z-icon>
+    <z-icon zSize="sm" zType="share"></z-icon>
   </div>
   
   <div>
     <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger">
-      <mat-icon>share</mat-icon>
+      <z-icon zType="share"></z-icon>
     </button>
     <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="acrylic">
-      <mat-icon>share</mat-icon>
+      <z-icon zType="share"></z-icon>
     </button>
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy">
-      <mat-icon>share</mat-icon>
+      <z-icon zType="share"></z-icon>
     </button>
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact">
-      <mat-icon>share</mat-icon>
+      <z-icon zType="share"></z-icon>
     </button>
   </div>
   
@@ -182,13 +181,13 @@ export const Primary = {
     <button z-button zType="outline" color="accent" [zLoading]="true">Accent</button>
   
     <button z-button zType="ghost" zSize="icon" zShape="circle" [zLoading]="true" color="primary">
-      <mat-icon>more_vert</mat-icon>
+      <z-icon zType="more_vert"></z-icon>
     </button>
     <button z-button zType="default" zSize="icon-lg" zShape="circle" [zLoading]="true" color="primary">
-      <mat-icon>delete</mat-icon>
+      <z-icon zType="delete"></z-icon>
     </button>
     <button z-button zType="default" zSize="icon-sm" zShape="circle" [zLoading]="true" color="primary">
-      <mat-icon>menu</mat-icon>
+      <z-icon zType="menu"></z-icon>
     </button>
   </div>
   

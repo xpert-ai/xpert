@@ -43,12 +43,12 @@
     height: 38px;
     min-height: 38px;
 
-    [z-button][data-icon-only] .mat-icon,
-    z-button[data-icon-only] .mat-icon {
+    [z-button][data-icon-only] .z-icon,
+    z-button[data-icon-only] .z-icon {
       margin-right: 0;
     }
   }
-  .mat-mdc-menu-content .mat-mdc-menu-item .mat-icon {
+  .mat-mdc-menu-content .mat-mdc-menu-item .z-icon {
     font-size: 20px;
   }
 }
@@ -61,8 +61,8 @@
     height: 40px;
     min-height: 40px;
 
-    [z-button][data-icon-only] .mat-icon,
-    z-button[data-icon-only] .mat-icon {
+    [z-button][data-icon-only] .z-icon,
+    z-button[data-icon-only] .z-icon {
       margin-right: 0;
     }
   }
@@ -118,7 +118,7 @@
       @apply bg-red-400 text-white;
     }
 
-    & + .mat-icon {
+    & + .z-icon {
       margin-right: 10px;
     }
 
@@ -133,12 +133,12 @@
     z-button {
       @apply w-full justify-start;
 
-      > .mat-icon:is(:first-child) {
+      > .z-icon:is(:first-child) {
         margin-right: 10px;
       }
     }
 
-    .mat-icon {
+    .z-icon {
       @apply text-text-secondary;
     }
   }

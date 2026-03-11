@@ -1,5 +1,4 @@
 @use 'sass:map';
-@use 'sass:color';
 @use '@angular/material' as mat;
 
 @mixin color($config-or-theme) {
@@ -8,20 +7,6 @@
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
   $accent: map.get($config, accent);
-}
-
-@mixin icon-cosy() {
-  line-height: 20px;
-  width: 20px;
-  height: 20px;
-  font-size: 20px;
-}
-
-@mixin icon-compact() {
-  line-height: 16px;
-  width: 16px;
-  height: 16px;
-  font-size: 16px;
 }
 
 @mixin density($config-or-theme) {
@@ -56,16 +41,6 @@
         margin-left: 2px;
         margin-right: 4px;
       }
-    }
-  }
-
-  // For mat icon
-  .mat-icon {
-    &.ngm-density__cosy {
-      @include icon-cosy();
-    }
-    &.ngm-density__compact {
-      @include icon-compact();
     }
   }
 

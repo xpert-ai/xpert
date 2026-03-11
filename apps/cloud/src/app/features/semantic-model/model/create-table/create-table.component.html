@@ -1,6 +1,6 @@
 <div class="ngm-theme-dark dark w-[400px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
   <div class="w-full flex justify-start items-center my-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+    <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-lg pointer-events-none">
       {{ 'PAC.MODEL.CREATE_TABLE.TITLE' | translate: {Default: 'Create table'} }}
     </span>
@@ -22,12 +22,12 @@
 
         <z-form-field class="col-span-2" appearance="fill" color="accent">
           <z-form-label>{{ 'PAC.MODEL.CREATE_TABLE.Type' | translate: {Default: 'Type'} }}</z-form-label>
-          <mat-select formControlName="type">
-            <mat-option value="csv">CSV</mat-option>
-            <mat-option value="json">JSON</mat-option>
-            <mat-option value="parquet">Parquet</mat-option>
-            <mat-option value="excel">Excel</mat-option>
-          </mat-select>
+          <ngm-select formControlName="type" [selectOptions]="[
+            { value: 'csv', label: 'CSV' },
+            { value: 'json', label: 'JSON' },
+            { value: 'parquet', label: 'Parquet' },
+            { value: 'excel', label: 'Excel' }
+          ]" />
         </z-form-field>
 
         <ng-container *ngIf="type === 'csv'">
@@ -136,7 +136,7 @@
         {{storageFile.originalName}}
 
         <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" (click)="removeStorageFile()">
-          <mat-icon>close</mat-icon> 
+          <z-icon zType="close"></z-icon> 
         </button>
       </div>
     </div>
@@ -151,12 +151,12 @@
           <ng-container *ngFor="let header of sheet.columns" [matColumnDef]="header.name">
             <th mat-header-cell *matHeaderCellDef>
               <div class="p-2 flex flex-col justify-start items-start">
-                <mat-select [(ngModel)]="header.type" class="ngm-select p-2" placeholder="{{ 'PAC.MODEL.CREATE_TABLE.Type' | translate: {Default: 'Type'} }}">
-                  <mat-option value="String">String</mat-option>
-                  <mat-option value="Number">Integer</mat-option>
-                  <mat-option value="Numeric">Numeric</mat-option>
-                  <mat-option value="Date">Date</mat-option>
-                </mat-select>
+                <ngm-select [(ngModel)]="header.type" class="ngm-select p-2" [selectOptions]="[
+                  { value: 'String', label: 'String' },
+                  { value: 'Number', label: 'Integer' },
+                  { value: 'Numeric', label: 'Numeric' },
+                  { value: 'Date', label: 'Date' }
+                ]" />
 
                 <input z-input [(ngModel)]="header.fieldName" class="ngm-input hover:bg-slate-100 dark:hover:bg-neutral-700" />
               </div>

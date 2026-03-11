@@ -5,23 +5,7 @@
       <z-form-label>
         {{ 'Ngm.Common.DisplayBehaviour' | translate: {Default: 'Display Behaviour'} }}
       </z-form-label>
-      <mat-select [formControl]="displayBehaviour">
-          <mat-option [value]="DISPLAY_BEHAVIOUR.descriptionOnly">
-            {{ 'Ngm.Common.DisplayBehaviour_Description' | translate: {Default: 'Description'} }}
-          </mat-option>
-          <mat-option [value]="DISPLAY_BEHAVIOUR.descriptionAndId">
-            {{ 'Ngm.Common.DisplayBehaviour_DescriptionID' | translate: {Default: 'Description ID'} }}
-          </mat-option>
-          <mat-option [value]="DISPLAY_BEHAVIOUR.idAndDescription">
-            {{ 'Ngm.Common.DisplayBehaviour_IDDescription' | translate: {Default: 'ID Description'} }}
-          </mat-option>
-          <mat-option [value]="DISPLAY_BEHAVIOUR.idOnly">
-            {{ 'Ngm.Common.DisplayBehaviour_IDOnly' | translate: {Default: 'ID Only'} }}
-          </mat-option>
-          <mat-option >
-            {{ 'Ngm.Common.DisplayBehaviour_Auto' | translate: {Default: 'Auto'} }}
-          </mat-option>
-        </mat-select>
+      <ngm-select [formControl]="displayBehaviour" [selectOptions]="displayBehaviourOptions" />
   </z-form-field>
 </div>
 

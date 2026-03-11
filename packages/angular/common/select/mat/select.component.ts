@@ -7,15 +7,13 @@ import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, Reac
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 
 import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { DisplayDensity, ISelectOption, OcapCoreModule, NgmFieldAppearance, NgmFieldColor } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { combineLatestWith, debounceTime, distinctUntilChanged, filter, map, startWith } from 'rxjs/operators'
 import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
 import { isEqual } from 'lodash-es'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use headless components instead
@@ -37,7 +35,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
       useExisting: forwardRef(() => NgmMatSelectComponent)
     }
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ScrollingModule, ...ZardFormImports, MatAutocompleteModule, MatCheckboxModule, MatProgressSpinnerModule, MatIconModule, ZardInputDirective, ZardButtonComponent, NgmDisplayBehaviourComponent, OcapCoreModule]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ScrollingModule, ...ZardFormImports, MatAutocompleteModule, MatCheckboxModule, MatProgressSpinnerModule, ZardIconComponent, ZardInputDirective, ZardButtonComponent, NgmDisplayBehaviourComponent, OcapCoreModule]
 })
 export class NgmMatSelectComponent implements OnInit, OnChanges, ControlValueAccessor {
   readonly #destroyRef = inject(DestroyRef)

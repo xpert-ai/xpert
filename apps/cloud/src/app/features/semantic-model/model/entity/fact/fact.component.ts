@@ -43,10 +43,10 @@ import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
 import { ModelEntityService } from '../entity.service'
 import { newDimensionFromColumn } from '../types'
-import { MatIconModule } from '@angular/material/icon'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
+import { ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -58,7 +58,7 @@ import { injectI18nService } from '@cloud/app/@shared/i18n'
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatIconModule,
+    ZardIconComponent,
     MatTooltipModule,
     MatCheckboxModule,
     NgmCommonModule,

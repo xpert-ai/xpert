@@ -19,9 +19,7 @@
                 <span class="value">{{headData.yoyValue }}</span>
                 <span class="unit">{{headData.yoyUnit }}</span>
 
-                <mat-icon fontSet="material-icons-round">
-                    {{ headData.yoyArrow === ArrowDirection.UP ? 'arrow_drop_up' : 'arrow_drop_down' }}
-                </mat-icon>
+                <z-icon [zType]="headData.yoyArrow === ArrowDirection.UP ? 'arrow_drop_up' : 'arrow_drop_down'"></z-icon>
             </div>
         </div>
     </ng-container>
@@ -43,9 +41,7 @@
                 }">
                 <span class="value">{{ indicator.yoyValue }}</span>
                 <span class="unit">{{ indicator.yoyUnit }}</span>
-                <mat-icon fontSet="material-icons-round">
-                    {{ indicator.yoyArrow === ArrowDirection.UP ? 'arrow_drop_up' : 'arrow_drop_down' }}
-                </mat-icon>
+                <z-icon [zType]="indicator.yoyArrow === ArrowDirection.UP ? 'arrow_drop_up' : 'arrow_drop_down'"></z-icon>
             </div>
         </div>
     </div>

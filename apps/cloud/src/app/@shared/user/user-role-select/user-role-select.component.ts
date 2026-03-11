@@ -6,8 +6,7 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
 
 import { MatChipsModule } from '@angular/material/chips'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatRadioModule } from '@angular/material/radio'
 import { UsersService } from '@metad/cloud/state'
@@ -17,11 +16,10 @@ import { TranslateModule } from '@ngx-translate/core'
 import { catchError, debounceTime, EMPTY, filter, of, switchMap, tap } from 'rxjs'
 import { IUser } from '../../../@core'
 import { userLabel, UserPipe } from '../../pipes'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ZardButtonComponent, MatAutocompleteModule, ...ZardFormImports, ZardInputDirective, MatChipsModule, MatIconModule, MatProgressSpinnerModule, MatRadioModule, TranslateModule, ButtonGroupDirective, NgmCommonModule, UserPipe],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ZardButtonComponent, MatAutocompleteModule, ...ZardFormImports, ZardInputDirective, MatChipsModule, ZardIconComponent, MatProgressSpinnerModule, MatRadioModule, TranslateModule, ButtonGroupDirective, NgmCommonModule, UserPipe],
   selector: 'pac-user-role-select',
   templateUrl: 'user-role-select.component.html',
   styleUrls: ['user-role-select.component.scss']

@@ -8,7 +8,7 @@
       routerLinkActive #rla1="routerLinkActive"
       [active]="rla1.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined">engineering</mat-icon>
+      <z-icon zType="engineering"></z-icon>
       {{ 'PAC.KEY_WORDS.Roles' | translate: {Default: "Roles"} }}
     </span>
 
@@ -16,13 +16,13 @@
       routerLinkActive #rla2="routerLinkActive"
       [active]="rla2.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined">construction</mat-icon>
+      <z-icon zType="construction"></z-icon>
       {{ 'PAC.KEY_WORDS.Toolsets' | translate: {Default: "Toolsets"} }}
     </span>
   </nav>
 </div>
 
-<mat-divider></mat-divider>
+<z-divider></z-divider>
   
 <z-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
   [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">

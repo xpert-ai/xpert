@@ -49,9 +49,9 @@ $sidebar-collapsed-width: 40px;
       line-height: 40px;
       color: mat.m2-get-color-from-palette($primary, 'darker-contrast');
 
-      .mat-divider-vertical {
+      .z-divider[data-orientation='vertical'] {
         height: 20px;
-        border-right-width: 2px;
+        border-left-width: 2px;
         margin: auto;
       }
 

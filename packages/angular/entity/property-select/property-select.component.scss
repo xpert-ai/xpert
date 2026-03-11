@@ -17,7 +17,7 @@
 }
 
 .mat-error {
-  color: var(--mat-form-field-error-text-color);
+  color: var(--destructive);
 }
 
 ::ng-deep {
@@ -25,19 +25,6 @@
     .mat-mdc-menu-item .mat-mdc-menu-item-text {
       display: flex;
       align-items: center;
-    }
-  }
-
-  .ngm-property-select__panel {
-    .mat-mdc-option.ngm-option__dimension,
-    .mat-mdc-option.ngm-option__hierarchy,
-    .mat-mdc-option.ngm-option__measure {
-      padding-left: 16px;
-    }
-
-    .ngm-option__hidden {
-      display: none;
-      visibility: hidden;
     }
   }
 }

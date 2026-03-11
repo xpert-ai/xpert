@@ -1,6 +1,6 @@
 <div class="ngm-theme-dark dark w-[400px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
     <div class="w-full flex justify-start items-center my-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-      <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+      <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
       <span class="text-lg pointer-events-none">
         {{ 'PAC.MODEL.UPLOAD.Title' | translate: {Default: 'Upload Data Files'} }}
       </span>
@@ -13,7 +13,7 @@
                     {{ file.file.name }}
                 </span>
                 <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" (click)="removeFile(i)">
-                  <mat-icon>close</mat-icon> 
+                  <z-icon zType="close"></z-icon> 
                 </button>
             </div>
         </mat-step>
@@ -140,13 +140,13 @@
                             <div cdkMenu class="cdk-menu__medium">
                               @if (i > 0) {
                                 <button cdkMenuItem (click)="moveLeft(sheet, i)">
-                                  <mat-icon>keyboard_arrow_left</mat-icon>
+                                  <z-icon zType="keyboard_arrow_left"></z-icon>
                                   <span>{{ 'PAC.MODEL.MoveLeft' | translate: {Default: 'Move Left'} }}</span>
                                 </button>
                               }
                               @if (i < sheet.columns.length - 1) {
                                 <button cdkMenuItem (click)="moveRight(sheet, i)">
-                                    <mat-icon>keyboard_arrow_right</mat-icon>
+                                    <z-icon zType="keyboard_arrow_right"></z-icon>
                                     <span>{{ 'PAC.MODEL.MoveRight' | translate: {Default: 'Move Right'} }}</span>
                                 </button>
                               }
@@ -179,7 +179,7 @@
                     }
                     @default {
                         <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="compact" (click)="remove(sheet)">
-                            <mat-icon fontSet="material-icons-outlined">delete</mat-icon>
+                            <z-icon zType="delete"></z-icon>
                         </button>
                     }
                   }

@@ -6,8 +6,7 @@ import { ChangeDetectionStrategy, Component, Inject, OnInit, TemplateRef, ViewCh
 import { FormsModule } from '@angular/forms'
 
 import { MAT_DIALOG_DATA } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatRadioModule } from '@angular/material/radio'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatSliderModule } from '@angular/material/slider'
@@ -19,11 +18,10 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NX_STORY_STORE, NxStoryService, NxStoryStore, StoryPoint, StoryWidget } from '@metad/story/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule, MatRadioModule, ...ZardFormImports, ZardInputDirective, ZardButtonComponent, MatIconModule, MatTooltipModule, MatSlideToggleModule, MatSliderModule, TranslateModule, NgmCommonModule],
+  imports: [CommonModule, FormsModule, DragDropModule, MatRadioModule, ...ZardFormImports, ZardInputDirective, ZardButtonComponent, ZardIconComponent, MatTooltipModule, MatSlideToggleModule, MatSliderModule, TranslateModule, NgmCommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-story-shares-dialog',
   templateUrl: 'shares.component.html',

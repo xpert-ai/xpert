@@ -4,7 +4,6 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR, FormControl, FormsModule, Reac
 
 import { MAT_DATE_FORMATS } from '@angular/material/core'
 import { MatDatepicker } from '@angular/material/datepicker'
-import { MatIconModule } from '@angular/material/icon'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatRadioModule } from '@angular/material/radio'
 import { DisplayDensity, NgmAppearance, NgmDSCoreService, NgmOcapCoreService, TIME_GRANULARITY_SEQUENCES } from '@metad/ocap-angular/core'
@@ -13,7 +12,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { getMonth, getYear, isDate, setMonth, setYear } from 'date-fns'
 import { filter } from 'rxjs/operators'
 import { NgmMemberDatepickerModule } from '../datepicker'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -23,7 +22,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     ReactiveFormsModule,
     TranslateModule,
     ZardButtonComponent,
-    MatIconModule,
+    ZardIconComponent,
     MatMenuModule,
     MatRadioModule,
     NgmMemberDatepickerModule,

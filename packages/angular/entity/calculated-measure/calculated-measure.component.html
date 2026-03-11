@@ -47,7 +47,7 @@
           <div class="w-full flex flex-col justify-start items-stretch p-4">
             <button z-button zType="ghost" displayDensity="cosy" ngmAppearance="dashed" (click)="openCreateParameter()">
               <div class="flex justify-center items-center">
-                <mat-icon fontSet="material-icons-round">add</mat-icon>
+                <z-icon zType="add"></z-icon>
                 {{ 'Ngm.Calculation.PARAMETERS' | translate: {Default: 'Parameters'} }}
               </div>
             </button>
@@ -64,7 +64,7 @@
                 <div class="flex justify-between items-center">
                   <ngm-entity-property class="flex-1" [property]="property"></ngm-entity-property>
                   <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-calculated-measure__parameter-edit" (click)="openCreateParameter(property)">
-                    <mat-icon fontSet="material-icons-round">edit</mat-icon>
+                    <z-icon zType="edit"></z-icon>
                   </button>
                 </div>
 

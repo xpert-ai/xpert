@@ -127,7 +127,7 @@
       --mdc-icon-button-state-layer-size: 32px;
       padding: 0;
 
-      .mat-icon {
+      .z-icon {
         @include mat.icon-density((
           density: -2,
         ));

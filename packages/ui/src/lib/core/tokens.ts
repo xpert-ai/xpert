@@ -1,23 +1,23 @@
 export const UI_TOKENS = {
   radius: {
-    sm: 'var(--ui-radius-sm)',
-    md: 'var(--ui-radius-md)',
-    lg: 'var(--ui-radius-lg)'
+    sm: 'calc(var(--radius) - 4px)',
+    md: 'calc(var(--radius) - 2px)',
+    lg: 'var(--radius)'
   },
   color: {
-    bg: 'rgb(var(--ui-bg))',
-    surface: 'rgb(var(--ui-surface))',
-    border: 'rgb(var(--ui-border))',
-    text: 'rgb(var(--ui-text))',
-    muted: 'rgb(var(--ui-muted))',
-    primary: 'rgb(var(--ui-primary))',
-    primaryForeground: 'rgb(var(--ui-primary-foreground))',
-    danger: 'rgb(var(--ui-danger))',
-    dangerForeground: 'rgb(var(--ui-danger-foreground))'
+    bg: 'var(--background)',
+    surface: 'var(--card)',
+    border: 'var(--border)',
+    text: 'var(--foreground)',
+    muted: 'var(--muted-foreground)',
+    primary: 'var(--primary)',
+    primaryForeground: 'var(--primary-foreground)',
+    danger: 'var(--destructive)',
+    dangerForeground: 'var(--destructive-foreground)'
   },
   shadow: {
-    sm: 'var(--ui-shadow-sm)',
-    md: 'var(--ui-shadow-md)'
+    sm: '0 20px 48px -28px rgb(15 23 42 / 0.18)',
+    md: '0 24px 56px -28px rgb(15 23 42 / 0.24)'
   }
 } as const
 

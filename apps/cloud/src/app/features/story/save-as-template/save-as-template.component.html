@@ -1,6 +1,6 @@
 <div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
   <div class="w-full flex justify-start items-center mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <mat-icon displayDensity="cosy" class="-ml-2 opacity-0 group-hover:opacity-80">drag_indicator</mat-icon>
+    <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-lg pointer-events-none">
       {{ 'Story.Template.SaveAsStoryTemplate' | translate: { Default: 'Save as story template' } }}
     </span>
@@ -68,7 +68,7 @@
       <div class="flex justify-center items-center">
         <button z-button zType="outline" ngmAppearance="dashed" displayDensity="cosy" color="accent" (click)="fileUpload.click()">
           <div class="flex justify-start items-center">
-            <mat-icon fontSet="material-icons-round">upload</mat-icon>
+            <z-icon zType="upload"></z-icon>
             <span *ngIf="!!imagePreview">
               {{ 'Story.Common.ReUpload' | translate: {Default: "Re-upload"} }}
             </span>
@@ -79,7 +79,7 @@
         </button>
         
         <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="imagePreview" displayDensity="cosy" ngmAppearance="danger" (click)="deletePreview()">
-          <mat-icon >delete_forever</mat-icon>
+          <z-icon  zType="delete_forever"></z-icon>
         </button>
       </div>
       

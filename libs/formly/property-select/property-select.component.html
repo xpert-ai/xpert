@@ -13,29 +13,29 @@
   (calculationChange)="onCalculationChange($event)"
 >
 
-  <mat-icon *ngIf="to?.sortable" ngmPrefix cdkDragHandle class="mr-2" displayDensity="compact">drag_indicator</mat-icon>
+  <z-icon *ngIf="to?.sortable" ngmPrefix cdkDragHandle class="mr-2" zSize="sm" zType="drag_indicator"></z-icon>
 
   <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="showChartAttributes && (isDimension$ | async) === true" ngmSuffix displayDensity="compact" [matMenuTriggerFor]="chartMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
-    <mat-icon fontSet="material-icons-outlined">analytics</mat-icon>
+    <z-icon zType="analytics"></z-icon>
   </button>
 
   <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="showMeasureStyle && (isMeasure$ | async) === true" ngmSuffix displayDensity="compact" [matMenuTriggerFor]="measureMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
-    <mat-icon fontSet="material-icons-outlined">adjust</mat-icon>
+    <z-icon zType="adjust"></z-icon>
   </button>
 
   <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="ngm-formly__remove" *ngIf="removable" displayDensity="compact" color="warn" (click)="$event.stopPropagation();$event.preventDefault();killMyself()">
-    <mat-icon>clear</mat-icon>
+    <z-icon zType="clear"></z-icon>
   </button>
 </ngm-property-select>
 
 <mat-menu #chartMenu="matMenu" class="ngm-formly ngm-density__compact">
   <button mat-menu-item disableRipple [matMenuTriggerFor]="roleMenu">
-    <mat-icon class="shrink-0" fontSet="material-icons-outlined">category</mat-icon>
+    <z-icon class="shrink-0" zType="category"></z-icon>
     <span>{{ 'FORMLY.PROPERTY_SELECT.Role' | translate: {Default: 'Role'} }}...</span>
   </button>
 
   <button mat-menu-item disableRipple (click)="editAttributes()">
-    <mat-icon class="shrink-0" fontSet="material-icons-outlined">edit_attributes</mat-icon>
+    <z-icon class="shrink-0" zType="edit_attributes"></z-icon>
     <span>{{ 'FORMLY.PROPERTY_SELECT.ChartAttributes' | translate: {Default: 'Chart Attributes'} }}...</span>
   </button>
 
@@ -54,34 +54,34 @@
 
 <mat-menu #measureMenu="matMenu" class="ngm-formly ngm-density__compact">
   <button mat-menu-item *ngIf="showMeasureRole" disableRipple [matMenuTriggerFor]="measureRoleMenu">
-    <mat-icon class="shrink-0" fontSet="material-icons-outlined">category</mat-icon>
+    <z-icon class="shrink-0" zType="category"></z-icon>
     <span>{{ 'FORMLY.PROPERTY_SELECT.Role' | translate: {Default: 'Role'} }}...</span>
   </button>
 
   <button mat-menu-item *ngIf="showMeasureShape" disableRipple [matMenuTriggerFor]="shapeMenu">
-    <mat-icon class="shrink-0" fontSet="material-icons-outlined">interests</mat-icon>
+    <z-icon class="shrink-0" zType="interests"></z-icon>
     <span>{{ 'FORMLY.PROPERTY_SELECT.Shape' | translate: {Default: 'Shape'} }}...</span>
   </button>
 
   <button mat-menu-item *ngIf="showColorPalette" disableRipple [matMenuTriggerFor]="colorMenu">
-    <mat-icon class="shrink-0" fontSet="material-icons-outlined">style</mat-icon>
+    <z-icon class="shrink-0" zType="style"></z-icon>
     <span>{{ 'FORMLY.PROPERTY_SELECT.Style' | translate: {Default: 'Style'} }}...</span>
   </button>
 
   <button mat-menu-item *ngIf="showMeasureReferenceLine" disableRipple (click)="openReferenceLine()">
-    <mat-icon class="shrink-0" >trending_flat</mat-icon>
+    <z-icon class="shrink-0"  zType="trending_flat"></z-icon>
     <span>{{ 'FORMLY.PROPERTY_SELECT.REFERENCE_LINE' | translate: {Default: 'Reference Line'} }}</span>
   </button>
 
   <button mat-menu-item *ngIf="showMeasureChartOptions" disableRipple (click)="openChartOptions()">
-    <mat-icon class="shrink-0" fontSet="material-icons-outlined">analytics</mat-icon>
+    <z-icon class="shrink-0" zType="analytics"></z-icon>
     <span>{{ 'FORMLY.PROPERTY_SELECT.ChartOptions' | translate: {Default: 'Chart Options'} }}</span>
   </button>
 
   <button mat-menu-item *ngIf="showMeasureGridBar" disableRipple (click)="$event.stopPropagation();">
     <mat-checkbox [(ngModel)]="bar">
       <div class="flex-1 flex items-center">
-        <mat-icon class="shrink-0" fontSet="material-icons-outlined">sort</mat-icon>
+        <z-icon class="shrink-0" zType="sort"></z-icon>
         <span>{{ 'FORMLY.PROPERTY_SELECT.BarChart' | translate: {Default: 'Bar Chart'} }}</span>
       </div>
     </mat-checkbox>
@@ -102,12 +102,12 @@
 
 <mat-menu #colorMenu="matMenu" class="ngm-formly ngm-density__compact">
   <button mat-menu-item *ngIf="showMeasurePalettePattern" disableRipple [matMenuTriggerFor]="patternMenu">
-    <mat-icon class="shrink-0" fontSet="material-icons-outlined">texture</mat-icon>
+    <z-icon class="shrink-0" zType="texture"></z-icon>
     <span>{{ 'FORMLY.PROPERTY_SELECT.Pattern' | translate: {Default: 'Pattern'} }}</span>
   </button>
 
   <button mat-menu-item disableRipple [matMenuTriggerFor]="paletteMenu">
-    <mat-icon class="shrink-0" fontSet="material-icons-outlined">palette</mat-icon>
+    <z-icon class="shrink-0" zType="palette"></z-icon>
     <span>{{ 'FORMLY.PROPERTY_SELECT.Palette' | translate: {Default: 'Palette'} }}</span>
   </button>
 
@@ -122,7 +122,7 @@
 
   <!-- <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
     <mat-checkbox [(ngModel)]="reverse">
-      <mat-icon>invert_colors</mat-icon>
+      <z-icon zType="invert_colors"></z-icon>
       {{ 'FORMLY.PROPERTY_SELECT.Invert' | translate: {Default: 'Invert'} }}
     </mat-checkbox>
   </button> -->

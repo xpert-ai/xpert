@@ -15,7 +15,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
     // Xpert AI Features
     {
       title: 'Chat',
-      matIcon: 'robot_2',
+      icon: 'robot_2',
       link: '/chat',
       pathMatch: 'prefix',
       data: {
@@ -26,7 +26,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
     },
     {
       title: 'Explore Xperts',
-      matIcon: 'explore',
+      icon: 'explore',
       link: '/explore',
       pathMatch: 'prefix',
       data: {
@@ -37,7 +37,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
     },
     {
       title: 'Xpert',
-      matIcon: 'engineering',
+      icon: 'engineering',
       link: '/xpert',
       pathMatch: 'prefix',
       data: {
@@ -50,7 +50,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
     // BI Features
     {
       title: 'Dashboard',
-      matIcon: 'leaderboard',
+      icon: 'leaderboard',
       link: '/dashboard',
       pathMatch: 'prefix',
       // home: true,
@@ -61,7 +61,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
       children: [
         {
           title: 'Today',
-          matIcon: 'today',
+          icon: 'today',
           link: '/dashboard',
           data: {
             translationKey: 'Today',
@@ -70,7 +70,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         {
           title: 'Catalog',
-          matIcon: 'subscriptions',
+          icon: 'subscriptions',
           link: '/dashboard/catalog',
           data: {
             translationKey: 'Catalog',
@@ -79,7 +79,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         {
           title: 'Trending',
-          matIcon: 'timeline',
+          icon: 'timeline',
           link: '/dashboard/trending',
           data: {
             translationKey: 'Trending',
@@ -90,7 +90,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
     },
     // {
     //   title: 'Data Factory',
-    //   matIcon: 'data_table',
+    //   icon: 'data_table',
     //   link: '/data',
     //   pathMatch: 'prefix',
     //   data: {
@@ -101,7 +101,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
     // },
     {
       title: 'Semantic Model',
-      matIcon: 'deployed_code',
+      icon: 'deployed_code',
       link: '/models',
       pathMatch: 'prefix',
       data: {
@@ -112,7 +112,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
     },
     {
       title: 'Project',
-      matIcon: 'dashboard',
+      icon: 'dashboard',
       link: '/project',
       pathMatch: 'prefix',
       data: {
@@ -123,7 +123,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
       children: [
         {
           title: 'Story',
-          matIcon: 'auto_stories',
+          icon: 'auto_stories',
           link: '/project',
           data: {
             translationKey: 'Story',
@@ -133,7 +133,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         {
           title: 'Indicators',
-          matIcon: 'trending_up',
+          icon: 'trending_up',
           link: '/project/indicators',
           data: {
             translationKey: 'Indicators',
@@ -145,7 +145,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
     },
     {
       title: 'Indicator Market',
-      matIcon: 'local_grocery_store',
+      icon: 'local_grocery_store',
       link: '/indicator/market',
       data: {
         translationKey: 'Indicator Market',
@@ -155,7 +155,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
     },
     {
       title: 'Indicator App',
-      matIcon: 'trending_up',
+      icon: 'trending_up',
       pathMatch: 'prefix',
       link: '/indicator-app',
       data: {
@@ -166,7 +166,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
     },
     {
       title: 'Settings',
-      matIcon: 'settings',
+      icon: 'settings',
       link: '/settings',
       admin: true,
       data: {
@@ -176,7 +176,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
       children: [
         {
           title: 'Account',
-          matIcon: 'account_circle',
+          icon: 'account_circle',
           link: '/settings/account',
           data: {
             translationKey: 'Account'
@@ -184,7 +184,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         {
           title: 'AI Copilot',
-          matIcon: 'psychology',
+          icon: 'psychology',
           link: '/settings/copilot',
           data: {
             translationKey: 'AI Copilot',
@@ -194,7 +194,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         // {
         //   title: 'Knowledgebase',
-        //   matIcon: 'school',
+        //   icon: 'school',
         //   link: '/settings/knowledgebase',
         //   data: {
         //     translationKey: 'Knowledgebase',
@@ -204,7 +204,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         // },
         {
           title: 'Data Sources',
-          matIcon: 'database',
+          icon: 'database',
           link: '/settings/data-sources',
           admin: true,
           data: {
@@ -215,7 +215,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         {
           title: 'Chat BI',
-          matIcon: 'try',
+          icon: 'try',
           link: '/settings/chatbi',
           data: {
             translationKey: 'Chat BI',
@@ -225,7 +225,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         {
           title: 'User',
-          matIcon: 'people',
+          icon: 'people',
           link: '/settings/users',
           data: {
             translationKey: 'User',
@@ -235,7 +235,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         {
           title: 'Roles',
-          matIcon: 'supervisor_account',
+          icon: 'supervisor_account',
           link: '/settings/roles',
           data: {
             translationKey: 'Role & Permission',
@@ -245,7 +245,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         {
           title: 'Business Area',
-          matIcon: 'workspaces',
+          icon: 'workspaces',
           link: '/settings/business-area',
           pathMatch: 'prefix',
           data: {
@@ -256,7 +256,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         {
           title: 'Certification',
-          matIcon: 'verified_user',
+          icon: 'verified_user',
           link: '/settings/certification',
           pathMatch: 'prefix',
           data: {
@@ -268,7 +268,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         {
           title: 'Integration',
-          matIcon: 'hub',
+          icon: 'hub',
           link: '/settings/integration',
           pathMatch: 'prefix',
           data: {
@@ -280,7 +280,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
 
         {
           title: 'Email Templates',
-          matIcon: 'email',
+          icon: 'email',
           link: '/settings/email-templates',
           data: {
             translationKey: 'Email Template',
@@ -290,7 +290,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         {
           title: 'Custom SMTP',
-          matIcon: 'alternate_email',
+          icon: 'alternate_email',
           link: '/settings/custom-smtp',
           data: {
             translationKey: 'Custom SMTP',
@@ -300,7 +300,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         {
           title: 'Features',
-          matIcon: 'widgets',
+          icon: 'widgets',
           link: '/settings/features',
           data: {
             translationKey: 'Feature',
@@ -309,7 +309,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         {
           title: 'Organizations',
-          matIcon: 'corporate_fare',
+          icon: 'corporate_fare',
           link: '/settings/organizations',
           data: {
             translationKey: 'Organization',
@@ -318,7 +318,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
         },
         {
           title: 'Plugins',
-          matIcon: 'extension',
+          icon: 'extension',
           link: '/settings/plugins',
           data: {
             translationKey: 'Plugins',
@@ -330,7 +330,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
           : [
               {
                 title: 'Tenant',
-                matIcon: 'storage',
+                icon: 'storage',
                 link: '/settings/tenant',
                 data: {
                   translationKey: 'Tenant',

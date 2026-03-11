@@ -5,10 +5,10 @@
       {{ 'PAC.MENU.MANUAL_REFRESH' | translate: {Default: "Manual Refresh"} }}
     </mat-slide-toggle>
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]=" 'PAC.MODEL.ENTITY.CALCULATION.Refresh' | translate: {Default: 'Refresh'} " (click)="refresh()">
-      <mat-icon fontSet="material-icons-outlined">refresh</mat-icon>
+      <z-icon zType="refresh"></z-icon>
     </button>
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]=" 'PAC.MODEL.ENTITY.CALCULATION.Pivot' | translate: {Default: 'Pivot'} " [color]="reverse?'accent':''" (click)="reverse=!reverse;refresh()">
-      <mat-icon fontSet="material-icons-outlined">pivot_table_chart</mat-icon>
+      <z-icon zType="pivot_table_chart"></z-icon>
     </button>
   </div>
 </div>
@@ -50,7 +50,7 @@
 
           <div class="flex justify-end items-center">
             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="$event.stopPropagation();$event.preventDefault();add('rows')">
-              <mat-icon>add</mat-icon>
+              <z-icon zType="add"></z-icon>
             </button>
           </div>
 
@@ -73,9 +73,9 @@
               (ngModelChange)="onRowChange($event, i)"
               cdkDrag
             >
-              <mat-icon ngmPrefix cdkDragHandle displayDensity="compact">drag_indicator</mat-icon>
+              <z-icon ngmPrefix cdkDragHandle zSize="sm" zType="drag_indicator"></z-icon>
               <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix ngmAppearance="danger" displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();removeRow(i)">
-                <mat-icon>clear</mat-icon>
+                <z-icon zType="clear"></z-icon>
               </button>
 
               <div class="property-modeling-custom-placeholder" *cdkDragPlaceholder></div>
@@ -94,7 +94,7 @@
           </mat-panel-title>
           <div class="flex justify-end items-center">
             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="$event.stopPropagation();$event.preventDefault();add('columns')">
-              <mat-icon>add</mat-icon>
+              <z-icon zType="add"></z-icon>
             </button>
           </div>
         </mat-expansion-panel-header>
@@ -115,9 +115,9 @@
               (ngModelChange)="onColumnChange($event, i)"
               cdkDrag
               >
-              <mat-icon ngmPrefix cdkDragHandle displayDensity="compact">drag_indicator</mat-icon>
+              <z-icon ngmPrefix cdkDragHandle zSize="sm" zType="drag_indicator"></z-icon>
               <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix ngmAppearance="danger" displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();removeColumn(i)">
-                <mat-icon>clear</mat-icon>
+                <z-icon zType="clear"></z-icon>
               </button>
               <div class="property-modeling-custom-placeholder" *cdkDragPlaceholder></div>
             </ngm-property-select>
@@ -136,7 +136,7 @@
           </mat-panel-title>
           <div class="flex justify-end items-center">
             <!-- <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="$event.stopPropagation();$event.preventDefault();newSlicer()">
-              <mat-icon>add</mat-icon>
+              <z-icon zType="add"></z-icon>
             </button> -->
           </div>
         </mat-expansion-panel-header>
@@ -157,7 +157,7 @@
               (ngModelChange)="onSlicerChange($event, i)"
               cdkDrag>
               <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix ngmAppearance="danger" displayDensity="compact" (click)="$event.stopPropagation();$event.preventDefault();removeSlicer(i)">
-                <mat-icon>clear</mat-icon>
+                <z-icon zType="clear"></z-icon>
               </button>
             </ngm-smart-filter>
           }

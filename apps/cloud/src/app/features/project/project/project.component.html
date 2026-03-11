@@ -8,7 +8,7 @@
         routerLinkActive #rla1="routerLinkActive" [routerLinkActiveOptions]="{exact: true}"  
         [class.active]="rla1.isActive"
       >
-        <mat-icon fontSet="material-icons-round" class="shrink-0">home</mat-icon>
+        <z-icon class="shrink-0" zType="home"></z-icon>
         <span class="">
           {{ 'PAC.Project.Home' | translate: {Default: 'Home'} }}
         </span>
@@ -19,8 +19,8 @@
           {{ 'PAC.Project.Bookmarks' | translate: {Default: 'Bookmarks'} }}
         </span>
         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="unfoldBookmarks=!unfoldBookmarks">
-          <mat-icon *ngIf="!unfoldBookmarks" fontSet="material-icons-outlined">chevron_right</mat-icon>
-          <mat-icon *ngIf="unfoldBookmarks" fontSet="material-icons-outlined">expand_more</mat-icon>
+          <z-icon *ngIf="!unfoldBookmarks" zType="chevron_right"></z-icon>
+          <z-icon *ngIf="unfoldBookmarks" zType="expand_more"></z-icon>
         </button>
       </div>
       <mat-list *ngIf="unfoldBookmarks" displayDensity="compact" class="pb-4" cdkDropList>
@@ -32,7 +32,7 @@
           [cdkDragData]="bookmark"
         >
           <div class="w-full flex items-center">
-            <mat-icon class="shrink-0 cursor-pointer opacity-0 group-hover:opacity-50">drag_indicator</mat-icon>
+            <z-icon class="shrink-0 cursor-pointer opacity-0 group-hover:opacity-50" zType="drag_indicator"></z-icon>
             <span class="font-notoColorEmoji">📖</span>
             <span [title]="bookmark.story.name" class="whitespace-nowrap text-ellipsis overflow-hidden ml-2">
               <a >{{bookmark.story.name}}</a>
@@ -40,7 +40,7 @@
 
             <span class="flex flex-1"></span>
             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="opacity-0 group-hover:opacity-50" matTooltip="{{ 'PAC.Project.RemoveBookmark' | translate: {Default: 'Remove Bookmark'} }}" matTooltipPosition="right" (click)="$event.stopPropagation();removeBookmark(bookmark)">
-              <mat-icon fontSet="material-icons-outlined">bookmark</mat-icon>
+              <z-icon zType="bookmark"></z-icon>
             </button>
           </div>
         </mat-list-item>
@@ -67,7 +67,7 @@
 
           @switch (node.raw.__type__) {
             @case('collection') {
-              <mat-icon displayDensity="cosy" class="text-slate-200 group-hover:text-slate-400">folder</mat-icon>
+              <z-icon zSize="default" class="text-slate-200 group-hover:text-slate-400" zType="folder"></z-icon>
               <span [title]="node.caption" class="whitespace-nowrap text-ellipsis overflow-hidden ml-2">
                 {{node.caption}}
               </span>
@@ -94,11 +94,9 @@
         <cdk-tree-node *cdkTreeNodeDef="let node; when: hasChild" cdkTreeNodePadding cdkTreeNodePaddingIndent="20px"
           class="flex items-center group cursor-pointer rounded-md">
           <button z-button zType="ghost" zSize="icon" zShape="circle" cdkTreeNodeToggle displayDensity="cosy" class="ml-2" [attr.aria-label]="'Toggle ' + node.caption" (click)="node.isExpanded = !node.isExpanded" [style.visibility]="node.expandable ? 'visible' : 'hidden'">
-            <mat-icon class="mat-icon-rtl-mirror">
-              {{treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'}}
-            </mat-icon>
+            <z-icon class="z-icon-rtl-mirror" [zType]="treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'"></z-icon>
           </button>
-          <mat-icon *ngIf="node.raw.__type__ === 'collection'" displayDensity="cosy" class="text-slate-200 group-hover:text-slate-400">folder</mat-icon>
+          <z-icon *ngIf="node.raw.__type__ === 'collection'" zSize="default" class="text-slate-200 group-hover:text-slate-400" zType="folder"></z-icon>
           <span [title]="node.caption" class="whitespace-nowrap text-ellipsis overflow-hidden ml-2">
             {{node.caption}}
           </span>
@@ -116,12 +114,12 @@
 
         <span class="flex flex-1"></span>
         <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="isOwner" displayDensity="cosy" matTooltip="{{ 'PAC.Project.AddModel' | translate: {Default: 'Add Model'} }}" matTooltipPosition="above" (click)="addModel()">
-          <mat-icon>add_link</mat-icon>
+          <z-icon zType="add_link"></z-icon>
         </button>
 
         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="modelsExpand=!modelsExpand">
-          <mat-icon *ngIf="!modelsExpand" fontSet="material-icons-outlined">chevron_right</mat-icon>
-          <mat-icon *ngIf="modelsExpand" fontSet="material-icons-outlined">expand_more</mat-icon>
+          <z-icon *ngIf="!modelsExpand" zType="chevron_right"></z-icon>
+          <z-icon *ngIf="modelsExpand" zType="expand_more"></z-icon>
         </button>
       </div>
 
@@ -141,7 +139,7 @@
   
             <span class="flex flex-1"></span>
             <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="mx-1 opacity-0 group-hover:opacity-80" matTooltip="{{ 'PAC.Project.RemoveModel' | translate: {Default: 'Remove Model'} }}" matTooltipPosition="right" (click)="$event.stopPropagation();removeModel(model)">
-              <mat-icon>delete</mat-icon>
+              <z-icon zType="delete"></z-icon>
             </button>
           </div>
         </mat-list-item>
@@ -152,7 +150,7 @@
         routerLinkActive #rla4="routerLinkActive" [routerLinkActiveOptions]="{exact: true}"
         [class.active]="rla4.isActive"
       >
-        <mat-icon fontSet="material-icons-outlined" class="shrink-0">trending_up</mat-icon>
+        <z-icon class="shrink-0" zType="trending_up"></z-icon>
         <span class="ml-2">
           {{ 'PAC.Project.Indicators' | translate: {Default: 'Indicators'} }}
         </span>
@@ -164,7 +162,7 @@
           routerLinkActive #rla5="routerLinkActive" [routerLinkActiveOptions]="{exact: true}"
           [class.active]="rla5.isActive"
         >
-          <mat-icon fontSet="material-icons-outlined" class="shrink-0">people</mat-icon>
+          <z-icon class="shrink-0" zType="people"></z-icon>
           <span class="ml-2">{{ 'PAC.Project.Members' | translate: {Default: 'Members'} }}</span>
         </div>
 
@@ -173,7 +171,7 @@
           routerLinkActive #rla6="routerLinkActive" [routerLinkActiveOptions]="{exact: true}"
           [class.active]="rla6.isActive"
         >
-          <mat-icon fontSet="material-icons-outlined" class="shrink-0">attach_file</mat-icon>
+          <z-icon class="shrink-0" zType="attach_file"></z-icon>
           <span class="ml-2">{{ 'PAC.Project.Files' | translate: {Default: 'Files'} }}</span>
         </div>
       }
@@ -209,16 +207,16 @@
 <ng-template #collectionMenu let-key="key" let-raw="raw">
   <div cdkMenu class="cdk-menu__large ngm-density__compact">
     <button cdkMenuItem *ngIf="raw?.id !== DefaultCollection.id" (click)="newCollection(key)">
-      <mat-icon fontSet="material-icons-outlined">create_new_folder</mat-icon>
+      <z-icon zType="create_new_folder"></z-icon>
       {{ 'PAC.Project.NewCollection' | translate: {Default: 'New Collection'} }}
     </button>
     <button cdkMenuItem (click)="newStory(key)">
-      <mat-icon fontSet="material-icons-outlined">collections</mat-icon>
+      <z-icon zType="collections"></z-icon>
       {{ 'PAC.Project.NewStory' | translate: {Default: 'New Story'} }}
     </button>
 
     <button cdkMenuItem *ngIf="raw?.id !== DefaultCollection.id" ngmAppearance="danger" (click)="deleteCollection(key)">
-      <mat-icon fontSet="material-icons-outlined">folder_delete</mat-icon>
+      <z-icon zType="folder_delete"></z-icon>
       {{ 'PAC.Project.RemoveCollection' | translate: {Default: 'Remove Collection'} }}
     </button>
   </div>

@@ -2,14 +2,13 @@ import { CommonModule } from '@angular/common'
 import { Component, Input, OnInit, forwardRef } from '@angular/core'
 import { ControlValueAccessor, FormControl, ReactiveFormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { MatChipInputEvent, MatChipsModule } from '@angular/material/chips'
-import { MatIconModule } from '@angular/material/icon'
 import { distinctUntilChanged } from 'rxjs'
 import { NgmFieldAppearance, NgmFieldColor } from "@metad/ocap-angular/core";
-import { ZardFormImports } from "@xpert-ai/headless-ui";
+import { ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MatChipsModule, ...ZardFormImports, MatIconModule, ReactiveFormsModule],
+  imports: [CommonModule, MatChipsModule, ...ZardFormImports, ZardIconComponent, ReactiveFormsModule],
   selector: 'pac-form-field-emails',
   templateUrl: 'emails.component.html',
   providers: [

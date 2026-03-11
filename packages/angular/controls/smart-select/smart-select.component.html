@@ -1,58 +1,8 @@
-<ngm-select 
+<ngm-mat-select 
   [label]="label$ | async"
   [placeholder]="placeholder$ | async"
   [displayDensity]="appearance?.displayDensity"
-  valueKey="key"
-  searchable
   virtualScroll
   [multiple]="multiple$ | async"
   [selectOptions]="selectOptions$ | async"
-></ngm-select>
-<!-- 
-
-<label *ngIf="appearance?.displayDensity === 'cosy' || appearance?.displayDensity === 'compact'">{{label$ | async}}</label>
-
-<z-form-field class="flex-1"
-  [appearance]="appearance?.appearance"
-  [floatLabel]="appearance?.floatLabel"
-  [color]="appearance?.color"
-  [displayDensity]="appearance?.displayDensity"
->
-  <z-form-label>{{label$ | async}}</z-form-label>
-  @if (multiple$ | async) {
-    <mat-select [placeholder]="placeholder$ | async"
-      [disabled]="disabled"
-      [ngModel]="memberValues$ | async"
-      (ngModelChange)="setSelectedValues($event)"
-      multiple
-    >
-      @for (option of selectOptions$ | async; track option.key) {
-        <mat-option [value]="option.key ?? option.value">
-          {{ option.caption || (option.key ?? option.value) }}
-        </mat-option>
-      }
-    </mat-select>
-  } @else {
-    <mat-select [placeholder]="placeholder$ | async"
-    [disabled]="disabled"
-    [ngModel]="memberValues$ | async"
-    (ngModelChange)="setSelectedValues($event)"
-  >
-    @for (option of selectOptions$ | async; track option.key) {
-      <mat-option [value]="option.key ?? option.value">
-        {{ option.caption || (option.key ?? option.value) }}
-      </mat-option>
-    }
-  </mat-select>
-  }
-
-  <div zFormSuffix class="flex items-center">
-    <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="(isInitial$ | async) === false" [disabled]="disabled" aria-label="Clear" ngmAppearance="danger" (click)="$event.stopPropagation();setMembers(null)">
-      <mat-icon>close</mat-icon>
-    </button>
-
-    <mat-spinner *ngIf="loading$ | async" color="primary" strokeWidth="1" diameter="20"></mat-spinner>
-
-    <ng-content></ng-content>
-  </div>
-</z-form-field> -->
+></ngm-mat-select>

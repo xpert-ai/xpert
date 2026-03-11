@@ -1,7 +1,7 @@
 <div class="w-full px-3 py-1 border-b border-gray-100 flex items-center justify-between dark:border-neutral-800">
   @if (isMobile()) {
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="close()">
-      <mat-icon>close</mat-icon>
+      <z-icon zType="close"></z-icon>
     </button>
   }
   <h3 class="font-semibold">
@@ -33,11 +33,11 @@
           </p>
 
           @if (option.expanded) {
-            <mat-icon class="cursor-pointer absolute top-4 right-2 rounded-full opacity-30 group-hover:opacity-100 hover:bg-neutral-100/50"
-              (click)="toggleExpanded(option)">expand_less</mat-icon>
+            <z-icon class="cursor-pointer absolute top-4 right-2 rounded-full opacity-30 group-hover:opacity-100 hover:bg-neutral-100/50"
+              (click)="toggleExpanded(option)" zType="expand_less"></z-icon>
           } @else {
-            <mat-icon class="cursor-pointer absolute top-4 right-2 rounded-full opacity-30 group-hover:opacity-100 hover:bg-neutral-100/50"
-              (click)="toggleExpanded(option)">expand_more</mat-icon>
+            <z-icon class="cursor-pointer absolute top-4 right-2 rounded-full opacity-30 group-hover:opacity-100 hover:bg-neutral-100/50"
+              (click)="toggleExpanded(option)" zType="expand_more"></z-icon>
           }
         </div>
 

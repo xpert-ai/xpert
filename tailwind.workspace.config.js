@@ -1,6 +1,9 @@
 const { join } = require('path')
 const tailwindThemeVarDefine = require('./tailwind.theme.vars')
 
+const withOpacity = (variable) =>
+  `color-mix(in oklab, var(${variable}) calc(<alpha-value> * 100%), transparent)`
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -28,8 +31,8 @@ module.exports = {
           900: '#263238'
         },
         primary: {
-          DEFAULT: 'rgb(var(--ui-primary) / <alpha-value>)',
-          foreground: 'rgb(var(--ui-primary-foreground) / <alpha-value>)',
+          DEFAULT: withOpacity('--primary'),
+          foreground: withOpacity('--primary-foreground'),
           25: '#f5f8ff',
           50: '#eff4ff',
           100: '#d1e0ff',
@@ -42,24 +45,34 @@ module.exports = {
           800: '#0040c1',
           900: '#00359e'
         },
-        background: 'rgb(var(--ui-bg) / <alpha-value>)',
-        foreground: 'rgb(var(--ui-text) / <alpha-value>)',
-        border: 'rgb(var(--ui-border) / <alpha-value>)',
-        input: 'rgb(var(--ui-border) / <alpha-value>)',
-        ring: 'rgb(var(--ui-ring) / <alpha-value>)',
+        background: withOpacity('--background'),
+        foreground: withOpacity('--foreground'),
+        card: {
+          DEFAULT: withOpacity('--card'),
+          foreground: withOpacity('--card-foreground')
+        },
+        popover: {
+          DEFAULT: withOpacity('--popover'),
+          foreground: withOpacity('--popover-foreground')
+        },
+        border: withOpacity('--border'),
+        input: withOpacity('--input'),
+        ring: withOpacity('--ring'),
         muted: {
-          DEFAULT: 'rgb(var(--ui-surface) / <alpha-value>)',
-          foreground: 'rgb(var(--ui-muted) / <alpha-value>)'
+          DEFAULT: withOpacity('--muted'),
+          foreground: withOpacity('--muted-foreground')
         },
         secondary: {
-          DEFAULT: 'rgb(var(--ui-surface) / <alpha-value>)',
-          foreground: 'rgb(var(--ui-text) / <alpha-value>)'
+          DEFAULT: withOpacity('--secondary'),
+          foreground: withOpacity('--secondary-foreground')
         },
         destructive: {
-          DEFAULT: 'rgb(var(--ui-danger) / <alpha-value>)',
-          foreground: 'rgb(var(--ui-danger-foreground) / <alpha-value>)'
+          DEFAULT: withOpacity('--destructive'),
+          foreground: withOpacity('--destructive-foreground')
         },
         accent: {
+          DEFAULT: withOpacity('--accent'),
+          foreground: withOpacity('--accent-foreground'),
           50: '#fff8e1',
           100: '#ffecb3',
           200: '#ffe082',
@@ -70,6 +83,16 @@ module.exports = {
           700: '#ffa000',
           800: '#ff8f00',
           900: '#ff6f00'
+        },
+        sidebar: {
+          DEFAULT: withOpacity('--sidebar'),
+          foreground: withOpacity('--sidebar-foreground'),
+          primary: withOpacity('--sidebar-primary'),
+          'primary-foreground': withOpacity('--sidebar-primary-foreground'),
+          accent: withOpacity('--sidebar-accent'),
+          'accent-foreground': withOpacity('--sidebar-accent-foreground'),
+          border: withOpacity('--sidebar-border'),
+          ring: withOpacity('--sidebar-ring')
         },
         ...tailwindThemeVarDefine
       },

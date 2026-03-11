@@ -64,7 +64,7 @@
                     </div>
                     
                     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeHierarchy(hierarchyGrant.hierarchy)">
-                        <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
+                        <z-icon zType="cancel"></z-icon>
                     </button>
                 </mat-panel-description>
             </mat-expansion-panel-header>
@@ -78,7 +78,7 @@
                         <div *ngIf="hierarchyGrant.topLevel" class="flex-1 flex justify-around items-center">
                             <ngm-display-behaviour style="flex: 1;" [option]="{value: hierarchyGrant.topLevel, label: hierarchyGrant.topLevelCaption}"></ngm-display-behaviour>
                             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="removeTopLevel(hierarchyGrant.hierarchy)">
-                                <mat-icon fontSet="material-icons-outlined">cancel</mat-icon></button>
+                                <z-icon zType="cancel"></z-icon></button>
                         </div>
                     </div>
                     <div class="pac-model-access__level pac-cdk-drop__list pac-cdk-drop__area flex-1 flex items-center h-8"
@@ -89,7 +89,7 @@
                         <div *ngIf="hierarchyGrant.bottomLevel" class="flex-1 flex justify-around items-center">
                             <ngm-display-behaviour [option]="{value: hierarchyGrant.bottomLevel, label: hierarchyGrant.bottomLevelCaption}" style="flex: 1;"></ngm-display-behaviour>
                             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="removeBottomLevel(hierarchyGrant.hierarchy)">
-                                <mat-icon fontSet="material-icons-outlined">cancel</mat-icon></button>
+                                <z-icon zType="cancel"></z-icon></button>
                         </div>
                     </div>
                 </div>
@@ -101,13 +101,13 @@
                     <div class="flex justify-between items-center p-2">
                         <div class="flex items-center">
                             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="clearMembers(hierarchyGrant.hierarchy)">
-                                <mat-icon fontSet="material-icons-outlined">clear_all</mat-icon>
+                                <z-icon zType="clear_all"></z-icon>
                             </button>
                             <span >{{ 'PAC.KEY_WORDS.Member' | translate: {Default: 'Member'} }}</span>
                         </div>
                         <span>{{ 'PAC.MODEL.AccessControl.Access' | translate: {Default: 'Access'} }}</span>
                     </div>
-                    <mat-divider></mat-divider>
+                    <z-divider></z-divider>
                     <mat-list role="list" class="pac-cdk-drop__list" displayDensity="compact"
                         cdkDropList
                         (cdkDropListDropped)="dropSortMember($event, hierarchyGrant)">
@@ -116,7 +116,7 @@
                             <div class="flex justify-between items-center">
                                 <div class="flex-1 flex justify-between items-center mr-4">
                                     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeMember(hierarchyGrant.hierarchy, memberGrant.member)">
-                                        <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
+                                        <z-icon zType="cancel"></z-icon>
                                     </button>
                                     <ngm-display-behaviour class="flex-1"
                                         [option]="{

@@ -14,13 +14,13 @@
 
     @if (isCalculationProperty()) {
       <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'Ngm.MeasureSelect.EditCalculationMeasure' | translate: {Default: 'Edit calculation measure'}" (click)="editCalculationMeasure()">
-        <mat-icon>functions</mat-icon>
+        <z-icon zType="functions"></z-icon>
       </button>
     }
 
     @if (calculationable()) {
       <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'Ngm.MeasureSelect.NewCalculationMeasure' | translate: {Default: 'New calculation measure'}" (click)="openCalculationMeasure()">
-        <mat-icon>add</mat-icon>
+        <z-icon zType="add"></z-icon>
       </button>
     }
   </div>

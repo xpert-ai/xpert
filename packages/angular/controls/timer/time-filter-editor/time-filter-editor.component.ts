@@ -4,12 +4,10 @@ import { ChangeDetectionStrategy, Component, HostBinding, Input, OnInit, inject 
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'
-import { MatDividerModule } from '@angular/material/divider'
+import { ZardButtonComponent, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatExpansionModule } from '@angular/material/expansion'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
-import { MatSelectModule } from '@angular/material/select'
-import { NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
+import { NgmSelectComponent } from '@metad/ocap-angular/common'
+import { ISelectOption, NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
   calcOffsetRange,
   DataSettings,
@@ -22,14 +20,13 @@ import {
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatest, map, Observable, shareReplay, startWith } from 'rxjs'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * 时间维度的 Filter 编辑界面
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DragDropModule, MatDialogModule, ...ZardFormImports, MatSelectModule, MatExpansionModule, MatIconModule, MatDividerModule, ZardInputDirective, ZardButtonComponent, OcapCoreModule],
+  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DragDropModule, MatDialogModule, ...ZardFormImports, MatExpansionModule, ZardIconComponent, ZardDividerComponent, ZardInputDirective, ZardButtonComponent, OcapCoreModule, NgmSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-time-filter-editor',
   templateUrl: './time-filter-editor.component.html',
@@ -79,6 +76,15 @@ export class NgmTimeFilterEditorComponent implements OnInit {
 
   public hierarchies$ = this.property$.pipe(
     map((property) => property?.hierarchies)
+  )
+  public readonly hierarchyOptions$ = this.hierarchies$.pipe(
+    map(
+      (hierarchies) =>
+        (hierarchies ?? []).map((hierarchy) => ({
+          value: hierarchy.name,
+          label: hierarchy.caption
+        })) as ISelectOption[]
+    )
   )
 
   forControl = false

@@ -80,7 +80,7 @@
         <button z-button zType="outline" (click)="navigateToConfig()">
           <div class="flex items-center">
               {{ 'Copilot.EnableCopilot' | translate: {Default: 'Enable Copilot'} }}
-              <mat-icon fontSet="material-icons-outlined" displayDensity="cosy">arrow_forward</mat-icon>
+              <z-icon zSize="default" zType="arrow_forward"></z-icon>
           </div>
         </button>
       </div>
@@ -99,10 +99,10 @@
         >
         <div class="flex justify-start items-center text-left min-w-[100px] max-w-[600px] overflow-hidden text-ellipsis">
           @if (conversations().length > 1) {
-            <mat-icon class="cursor-pointer mr-2 rounded-full opacity-10 group-hover:opacity-100 hover:bg-neutral-300 dark:hover:bg-neutral-600"
-              ngmAppearance="danger" displayDensity="cosy"
+            <z-icon class="cursor-pointer mr-2 rounded-full opacity-10 group-hover:opacity-100 hover:bg-neutral-300 dark:hover:bg-neutral-600"
+              ngmAppearance="danger" zSize="default"
               (click)="deleteConversation($event, item.key)"
-            >close</mat-icon>
+             zType="close"></z-icon>
           }
           <span class="flex-1 text-ellipsis overflow-hidden"
             [title]="item.name">{{item.name || ('PAC.ChatBI.Empty' | translate: {Default: 'Empty'}) }}</span>
@@ -112,7 +112,7 @@
     <hr />
 
     <button cdkMenuItem color="primary" (click)="newChat()">
-      <mat-icon>add_comment</mat-icon>
+      <z-icon zType="add_comment"></z-icon>
       {{ 'PAC.ChatBI.NewConversation' | translate: {Default: 'New Conversaton'} }}
      </button>
   </div>

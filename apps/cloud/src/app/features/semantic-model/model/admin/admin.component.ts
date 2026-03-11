@@ -5,7 +5,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialog } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
 import { ActivatedRoute, Router } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { injectConfirmDelete, NgmSearchComponent, NgmSpinComponent, NgmTableComponent } from '@metad/ocap-angular/common'
@@ -22,14 +21,14 @@ import {
 import { uniq } from 'lodash-es'
 import { BehaviorSubject, combineLatest, EMPTY, firstValueFrom, map, switchMap } from 'rxjs'
 import { ModelComponent } from '../model.component'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatIconModule,
+    ZardIconComponent,
     ZardButtonComponent,
     TranslateModule,
     UserProfileComponent,

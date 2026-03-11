@@ -28,9 +28,9 @@
             @if (!last) {
               <button z-button zType="ghost" zSize="icon" zShape="circle" class="inline-block" (click)="toggleNode(data)">
                 @if (data.expanded) {
-                  <mat-icon>expand_more</mat-icon>
+                  <z-icon zType="expand_more"></z-icon>
                 } @else {
-                  <mat-icon>keyboard_arrow_right</mat-icon>
+                  <z-icon zType="keyboard_arrow_right"></z-icon>
                 }
               </button>
             }

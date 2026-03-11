@@ -1,11 +1,11 @@
 <mat-toolbar displayDensity="compact" >
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="drawer.toggle()">
-        <mat-icon fontSet="material-icons-round">segment</mat-icon>
+        <z-icon zType="segment"></z-icon>
     </button>
     {{ 'PAC.MODEL.VirtualCube.VirtualCube' | translate: {Default: 'Virtual Cube'} }}:
     <span style="overflow: hidden;">{{ virtualCube$().caption }} ({{ virtualCube$().name }})</span>
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="editVirtualCube(virtualCube$())">
-        <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+        <z-icon zType="edit"></z-icon>
     </button>
 </mat-toolbar>
 
@@ -16,7 +16,7 @@
                 <span>{{ 'PAC.MODEL.VirtualCube.CubeUsages' | translate: {Default: "Cube Usages"} }}</span>
                 <span class="flex-1 flex"></span>
                 <button z-button zType="ghost" zSize="icon" zShape="circle" color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin" cdkDropList [cdkDropListEnterPredicate]="cubeRemovePredicate" (cdkDropListDropped)="removeCube($event.item.data.name)">
-                    <mat-icon color="warn" fontSet="material-icons-round">delete</mat-icon>
+                    <z-icon color="warn" zType="delete"></z-icon>
                 </button>
             </mat-toolbar>
 
@@ -90,7 +90,7 @@
                             <mat-slide-toggle [ngModel]="cube.ignoreUnrelatedDimensions"
                                 (change)="changeIgnoreUnrelatedDimensions($event, cube)">{{ 'PAC.MODEL.VirtualCube.IgnoreUnrelatedDimensions' | translate: {Default: 'Ignore Unrelated Dimensions'} }}</mat-slide-toggle>
                             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeCube(cube.cubeName)">
-                                <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
+                                <z-icon zType="cancel"></z-icon>
                             </button>
                         </div>
                     </mat-list-item>
@@ -130,7 +130,7 @@
                             <mat-slide-toggle [ngModel]="dimension.__shared__"
                                 (change)="changeDimensionShared($event, dimension.name)">{{ 'PAC.MODEL.VirtualCube.SharedDimension' | translate: {Default: 'Shared Dimension'} }}</mat-slide-toggle>
                             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeDimension(dimension.name)">
-                                <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
+                                <z-icon zType="cancel"></z-icon>
                             </button>
                         </div>
                     </mat-list-item>
@@ -167,7 +167,7 @@
                                 </ngm-display-behaviour>
                             </div>
                             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeMeasure(measure.name)">
-                                <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
+                                <z-icon zType="cancel"></z-icon>
                             </button>
                         </div>
                     </mat-list-item>
@@ -180,7 +180,7 @@
                     <mat-panel-description>
                     </mat-panel-description>
                     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'PAC.MODEL.VirtualCube.NewCalculatedMember' | translate: {Default: 'New Calculated Member'}" (click)="createCalculatedMember();$event.stopPropagation()">
-                        <mat-icon>add_circle_outline</mat-icon>
+                        <z-icon zType="add_circle_outline"></z-icon>
                     </button>
                 </mat-expansion-panel-header>
 
@@ -194,16 +194,16 @@
                                 }">
                             </ngm-display-behaviour>
                             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="pac-nav-tab__close" (click)="editCalculatedMember(measure)">
-                                <mat-icon fontSet="material-icons-outlined">edit</mat-icon>
+                                <z-icon zType="edit"></z-icon>
                             </button>
                             <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeCalculatedMember(measure.name)">
-                                <mat-icon fontSet="material-icons-outlined">cancel</mat-icon>
+                                <z-icon zType="cancel"></z-icon>
                             </button>
                         </div>
                     </mat-list-item>
                 </mat-list>
 
-                <mat-divider></mat-divider>
+                <z-divider></z-divider>
 
               @if (showCalculatedMember()) {
                 <form [formGroup]="calcMemberFormGroup" class="grid grid-cols-4 gap-2 mt-4">
@@ -218,11 +218,9 @@
 
                     <z-form-field class="col-span-1" appearance="fill" displayDensity="cosy">
                         <z-form-label>{{ 'PAC.KEY_WORDS.Dimension' | translate: {Default: 'Dimension'} }}</z-form-label>
-                        <mat-select formControlName="dimension" >
-                          <mat-option [value]="'Measures'">
-                            {{ 'Ngm.EntitySchema.Measures' | translate: {Default: 'Measures'} }}
-                          </mat-option>
-                        </mat-select>
+                        <ngm-select formControlName="dimension" [selectOptions]="[
+                          { value: 'Measures', label: ('Ngm.EntitySchema.Measures' | translate: {Default: 'Measures'}) }
+                        ]" />
                     </z-form-field>
                     <z-form-field class="col-span-1" appearance="fill" displayDensity="cosy">
                         <z-form-label>{{ 'PAC.KEY_WORDS.Unit' | translate: {Default: 'Unit'} }}</z-form-label>
@@ -234,7 +232,7 @@
                         <textarea z-input formControlName="formula" cdkTextareaAutosize></textarea>
 
                         <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix (click)="toggleFormula()">
-                            <mat-icon>code</mat-icon>
+                            <z-icon zType="code"></z-icon>
                         </button>
                     </z-form-field>
 

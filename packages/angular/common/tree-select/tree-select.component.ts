@@ -11,10 +11,8 @@ import { MatAutocompleteModule } from '@angular/material/autocomplete'
 
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatChipsModule } from '@angular/material/chips'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatSelectModule } from '@angular/material/select'
 import { MatTreeModule } from '@angular/material/tree'
 import { DensityDirective, OcapCoreModule, NgmFieldAppearance, NgmFieldColor, NgmFloatLabel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -37,7 +35,6 @@ import { NgmSearchComponent } from '../search/search.component'
 import { CommonModule } from '@angular/common'
 import { NgmDisplayBehaviourComponent } from '../display-behaviour'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use headless components instead
@@ -49,7 +46,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, NgmSearchComponent, ZardButtonComponent, MatIconModule, ...ZardFormImports, MatSelectModule, MatAutocompleteModule, ScrollingModule, MatCheckboxModule, MatProgressSpinnerModule, ZardInputDirective, MatChipsModule, MatTreeModule, TranslateModule, OcapCoreModule, NgmDisplayBehaviourComponent, DensityDirective],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, NgmSearchComponent, ZardButtonComponent, ZardIconComponent, ...ZardFormImports, MatAutocompleteModule, ScrollingModule, MatCheckboxModule, MatProgressSpinnerModule, ZardInputDirective, MatChipsModule, MatTreeModule, TranslateModule, OcapCoreModule, NgmDisplayBehaviourComponent, DensityDirective],
   selector: 'ngm-tree-select',
   templateUrl: 'tree-select.component.html',
   styleUrls: ['tree-select.component.scss'],
@@ -162,7 +159,7 @@ export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccesso
   cdkVirtualScrollViewPort: CdkVirtualScrollViewport
 
   get useAutocomplete() {
-    return this.autocomplete() || this.virtualScroll
+    return !this.treeViewer()
   }
 
   formControl = new FormControl<FlatTreeNode<any>[] | FlatTreeNode<any>>(null)

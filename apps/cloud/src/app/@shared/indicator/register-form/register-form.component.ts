@@ -15,24 +15,21 @@ import { ISemanticModel, ITag, registerModel, TagCategoryEnum } from 'apps/cloud
 import { isEqual } from 'lodash-es'
 import { BehaviorSubject, EMPTY, catchError, combineLatest, debounceTime, distinctUntilChanged, filter, map, shareReplay, startWith, switchMap, take, tap } from 'rxjs'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
-import { MatIconModule } from '@angular/material/icon'
 
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatRadioModule } from '@angular/material/radio'
 import { MatDatepickerModule } from '@angular/material/datepicker'
-import { ZardInputDirective, ZardFormImports } from '@xpert-ai/headless-ui'
-import { MatSelectModule } from '@angular/material/select'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatCheckboxModule } from '@angular/material/checkbox'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '../types'
 import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   selector: 'xp-indicator-register-form',
   templateUrl: 'register-form.component.html',
   styleUrls: ['register-form.component.scss'],
-  imports: [CommonModule, TranslateModule, FormsModule, ReactiveFormsModule, MatIconModule, ZardButtonComponent, MatTooltipModule, MatRadioModule, ...ZardFormImports, MatDatepickerModule, ZardInputDirective, MatSelectModule, MatCheckboxModule, NgmMatSelectComponent, NgmTreeSelectComponent, TagEditorComponent, NgmHierarchySelectComponent, NgmCalculatedMeasureComponent, NgmSelectionModule],
+  imports: [CommonModule, TranslateModule, FormsModule, ReactiveFormsModule, ZardIconComponent, ZardButtonComponent, MatTooltipModule, MatRadioModule, ...ZardFormImports, MatDatepickerModule, ZardInputDirective, MatCheckboxModule, NgmMatSelectComponent, NgmTreeSelectComponent, TagEditorComponent, NgmHierarchySelectComponent, NgmCalculatedMeasureComponent, NgmSelectionModule],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,

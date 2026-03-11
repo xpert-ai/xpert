@@ -9,7 +9,7 @@
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined" nxDensity="cosy">room_preferences</mat-icon>
+      <z-icon nxDensity="cosy" zType="room_preferences"></z-icon>
       {{ 'PAC.MENU.TENANT.SETTINGS' | translate: {Default: "Settings"} }}
     </span>
 
@@ -18,7 +18,7 @@
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla2.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined">sell</mat-icon>
+      <z-icon zType="sell"></z-icon>
       {{ 'PAC.KEY_WORDS.Tags' | translate: {Default: "Tags"} }}
     </span>
 
@@ -27,12 +27,12 @@
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla2.isActive"
     >
-      <mat-icon fontSet="material-icons-outlined" nxDensity="cosy">history_edu</mat-icon>
+      <z-icon nxDensity="cosy" zType="history_edu"></z-icon>
       {{ 'PAC.MENU.TENANT.DEMO' | translate: {Default: "Demo"} }}
     </span> -->
   </nav>
 </div>
-<mat-divider></mat-divider>
+<z-divider></z-divider>
 
 <z-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
   [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">

@@ -5,8 +5,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialogModule } from '@angular/material/dialog'
-import { MatIconModule } from '@angular/material/icon'
-import { ZardInputDirective, ZardFormImports, ZardTabsImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatSidenavModule } from '@angular/material/sidenav'
@@ -16,11 +15,10 @@ import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@me
 import { TranslateModule } from '@ngx-translate/core'
 import { AnalyticsFeatures, FeatureEnum, Store, routeAnimations } from '../../@core'
 import { AppService } from '../../app.service'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DragDropModule, RouterModule, ...ZardTabsImports, ...ZardFormImports, MatIconModule, ZardButtonComponent, MatMenuModule, MatDialogModule, ZardInputDirective, MatSidenavModule, MatListModule, TranslateModule, DensityDirective, ButtonGroupDirective, NgmCommonModule, AppearanceDirective],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DragDropModule, RouterModule, ...ZardTabsImports, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, MatMenuModule, MatDialogModule, ZardInputDirective, MatSidenavModule, MatListModule, TranslateModule, DensityDirective, ButtonGroupDirective, NgmCommonModule, AppearanceDirective],
   selector: 'pac-home',
   template: `
     <nav
