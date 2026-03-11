@@ -1,16 +1,16 @@
 {
   "name": "adapter",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "packages/adapter/src",
+  "sourceRoot": "legacies/adapter/src",
   "targets": {
     "build": {
       "executor": "@nx/rollup:rollup",
       "outputs": ["{options.outputPath}"],
       "options": {
-        "outputPath": "dist/packages/adapter",
-        "main": "packages/adapter/src/index.ts",
-        "tsConfig": "packages/adapter/tsconfig.lib.json",
-        "project": "packages/adapter/package.json",
+        "outputPath": "dist/legacies/adapter",
+        "main": "legacies/adapter/src/index.ts",
+        "tsConfig": "legacies/adapter/tsconfig.lib.json",
+        "project": "legacies/adapter/package.json",
         "assets": [
           {
             "glob": "README.md",
@@ -30,14 +30,14 @@
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["packages/adapter/**/*.ts", "packages/adapter/package.json"]
+        "lintFilePatterns": ["legacies/adapter/**/*.ts", "legacies/adapter/package.json"]
       }
     },
     "test": {
       "executor": "@nx/jest:jest",
-      "outputs": ["{workspaceRoot}/coverage/packages/adapter"],
+      "outputs": ["{workspaceRoot}/coverage/legacies/adapter"],
       "options": {
-        "jestConfig": "packages/adapter/jest.config.ts"
+        "jestConfig": "legacies/adapter/jest.config.ts"
       }
     }
   },

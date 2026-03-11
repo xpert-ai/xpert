@@ -60,7 +60,7 @@
     "localpack": "cross-env NODE_ENV=production NODE_OPTIONS=--max-old-space-size=12288 node tools/scripts/build.mjs",
     "seed:module": "cross-env NODE_ENV=development NODE_OPTIONS=--max_old_space_size=7000 pnpm ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json ./apps/api/src/seed-module.ts --name",
     "bootstrap": "pnpm install && pnpm nx build server && pnpm nx build plugin-sdk",
-    "b:docs": "concurrently \"pnpm -C ./packages/store docs\" \"pnpm -C ./packages/core docs\" \"pnpm -C ./packages/xmla docs\" \"pnpm -C ./packages/sql docs\" \"pnpm -C ./packages/echarts docs\" \"pnpm -C ./packages/duckdb docs\" \"pnpm -C ./packages/copilot docs\"",
+    "b:docs": "concurrently \"pnpm -C ./packages/store docs\" \"pnpm -C ./packages/core docs\" \"pnpm -C ./packages/xmla docs\" \"pnpm -C ./packages/sql docs\" \"pnpm -C ./packages/echarts docs\" \"pnpm -C ./packages/duckdb docs\" \"pnpm -C ./legacies/copilot docs\"",
     "b:stats": "pnpm nx build cloud --stats-json",
     "analyze": "webpack-bundle-analyzer dist/apps/cloud/stats.json",
     "show": "pnpm nx show project cloud --web",
