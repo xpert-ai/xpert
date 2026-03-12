@@ -1,4 +1,4 @@
-import { FileStorageProviderEnum, IScreenshot, IStorageFile } from '@metad/contracts'
+import { IScreenshot, IStorageFile } from '@metad/contracts'
 import {
 	BadRequestException,
 	Body,
@@ -91,7 +91,7 @@ export class StorageFileController {
 				encoding,
 				size,
 				mimetype,
-				storageProvider: provider.name.toUpperCase() as FileStorageProviderEnum,
+				storageProvider: `${provider.name}`.toUpperCase(),
 				recordedAt: new Date()
 			})
 		} catch (error) {

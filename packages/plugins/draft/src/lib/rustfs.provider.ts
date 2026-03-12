@@ -3,9 +3,9 @@ import { Injectable } from '@nestjs/common'
 import { S3CompatibleProvider } from './s3-compatible.provider'
 
 @Injectable()
-@FileStorageProvider('MINIO')
-export class MinioProvider extends S3CompatibleProvider {
-  readonly name = 'MINIO'
-  protected readonly configKey = 'minio' as const
+@FileStorageProvider('RUSTFS')
+export class RustFSProvider extends S3CompatibleProvider {
+  readonly name = 'RUSTFS'
+  protected readonly configKey = 'rustfs' as const
   protected override defaultForcePathStyle = true
 }

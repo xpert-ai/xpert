@@ -22,8 +22,8 @@ const plugin: XpertPlugin<z.infer<typeof ConfigSchema>> = {
       color: '#00d2e6'
     },
     displayName: 'Draft File Storage Providers',
-    description: 'Provide plugin-backed file storage providers for MinIO, S3, Wasabi and OSS',
-    keywords: ['plugins', 'file-storage', 'minio', 's3', 'wasabi', 'oss'],
+    description: 'Provide plugin-backed file storage providers for MinIO, RustFS, S3, Wasabi and OSS',
+    keywords: ['plugins', 'file-storage', 'minio', 'rustfs', 's3', 'wasabi', 'oss'],
     author: 'XpertAI Team'
   },
   config: {

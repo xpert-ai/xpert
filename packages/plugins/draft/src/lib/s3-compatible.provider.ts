@@ -1,4 +1,4 @@
-import { FileStorageOption, FileStorageProviderEnum, UploadedFile } from '@metad/contracts'
+import { FileStorageOption, UploadedFile } from '@metad/contracts'
 import { IFileStorageProvider, IPluginConfigResolver, PLUGIN_CONFIG_RESOLVER_TOKEN } from '@xpert-ai/plugin-sdk'
 import { Inject, Injectable, Optional } from '@nestjs/common'
 import { ConfigType } from '@nestjs/config'
@@ -19,11 +19,11 @@ type TS3CompatibleRuntimeConfig = Required<
 > &
   Omit<S3CompatibleProviderConfig, 'rootPath' | 'region' | 'forcePathStyle' | 'signedUrlExpires'>
 
-type TS3CompatibleSectionKey = 'minio' | 's3' | 'wasabi'
+type TS3CompatibleSectionKey = 'minio' | 'rustfs' | 's3' | 'wasabi'
 
 @Injectable()
 export abstract class S3CompatibleProvider implements IFileStorageProvider {
-  abstract readonly name: FileStorageProviderEnum | string
+  abstract readonly name: string
   protected abstract readonly configKey: TS3CompatibleSectionKey
   protected defaultForcePathStyle = false
 

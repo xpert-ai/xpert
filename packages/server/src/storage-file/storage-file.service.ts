@@ -15,7 +15,7 @@ export class StorageFileService extends TenantOrganizationAwareCrudService<Stora
 		super(fileRepository)
 	}
 
-	async createStorageFile(file: UploadedFile, storageProvider?: FileStorageProviderEnum | string) {
+	async createStorageFile(file: UploadedFile, storageProvider?: string) {
 		const { key, url, originalname, size, mimetype, encoding } = file
 		const decodedOriginalName = Buffer.from(originalname, 'latin1').toString('utf8')
 		const provider =
@@ -34,15 +34,12 @@ export class StorageFileService extends TenantOrganizationAwareCrudService<Stora
 		})
 	}
 
-	private normalizeStorageProvider(provider?: FileStorageProviderEnum | string) {
+	private normalizeStorageProvider(provider?: string) {
 		if (!provider) {
 			return undefined
 		}
 
-		const upper = `${provider}`.toUpperCase()
-		return Object.values(FileStorageProviderEnum).includes(upper as FileStorageProviderEnum)
-			? (upper as FileStorageProviderEnum)
-			: undefined
+		return `${provider}`.toUpperCase()
 	}
 
 	/**

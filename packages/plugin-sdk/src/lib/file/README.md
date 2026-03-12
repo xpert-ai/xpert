@@ -63,6 +63,7 @@ Create a storage provider when you need a new backend.
 Examples:
 
 - MinIO
+- RustFS
 - Cloudflare R2
 - Azure Blob Storage
 - another S3-compatible service

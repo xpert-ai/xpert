@@ -31,11 +31,11 @@ export class FileStorage {
 		return this
 	}
 
-	setProvider(providerName?: FileStorageProviderEnum | string) {
+	setProvider(providerName?: string) {
 		if (isEmpty(providerName)) {
 			const request = RequestContext.currentRequest()
 			if (request && isNotEmpty(request['tenantSettings'])) {
-				const provider = request['tenantSettings']['fileStorageProvider'] as FileStorageProviderEnum | string
+				const provider = request['tenantSettings']['fileStorageProvider'] as string
 				this.config.provider = this.normalizeConfiguredProvider(provider)
 			} else {
 				this.config.provider = this.normalizeConfiguredProvider(environment.fileSystem.name)
@@ -46,7 +46,7 @@ export class FileStorage {
 		return this
 	}
 
-	getProvider(providerName?: FileStorageProviderEnum | string) {
+	getProvider(providerName?: string) {
 		this.setProvider(providerName)
 		return this.getProviderInstance()
 	}
@@ -57,8 +57,7 @@ export class FileStorage {
 		if (provider) {
 			return provider.handler(this.config)
 		} else {
-			const provides = Object.values(FileStorageProviderEnum).join(', ')
-			throw new Error(`Provider "${this.config.provider}" is not valid. Provider must be ${provides}`)
+			throw new Error(`Provider "${this.config.provider}" is not registered`)
 		}
 	}
 
@@ -94,14 +93,11 @@ export class FileStorage {
 		this.providers = FileStorage.fallbackProviders
 	}
 
-	private normalizeConfiguredProvider(provider?: FileStorageProviderEnum | string) {
+	private normalizeConfiguredProvider(provider?: string) {
 		if (isEmpty(provider)) {
 			return FileStorageProviderEnum.LOCAL
 		}
 
-		const upper = `${provider}`.toUpperCase()
-		return Object.values(FileStorageProviderEnum).includes(upper as FileStorageProviderEnum)
-			? (upper as FileStorageProviderEnum)
-			: `${provider}`
+		return `${provider}`.toUpperCase()
 	}
 }

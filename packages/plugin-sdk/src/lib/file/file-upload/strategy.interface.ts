@@ -1,10 +1,4 @@
-import {
-  FileStorageProviderEnum,
-  IFileAssetDestination,
-  IFileAssetSource,
-  IStorageFile,
-  IUploadFileTarget
-} from '@metad/contracts'
+import { IFileAssetDestination, IFileAssetSource, IStorageFile, IUploadFileTarget } from '@metad/contracts'
 
 export type TFileUploadRequestContext = {
   tenantId?: string
@@ -27,7 +21,7 @@ export type TFileUploadContext = {
   metadata?: Record<string, any>
 }
 
-export type TStorageProviderType = FileStorageProviderEnum | string
+export type TStorageProviderType = string
 
 export interface IFileUploadTargetStrategy<TTarget extends IUploadFileTarget = IUploadFileTarget> {
   upload(

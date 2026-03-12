@@ -6,7 +6,7 @@ MinIO is no longer configured as a host built-in provider.
 
 It is delivered as part of the draft object-storage plugin package in `packages/plugins/draft`, and registered as an `IFileStorageProvider` under provider name `MINIO`.
 
-The same plugin package also registers `S3`, `WASABI`, and `OSS`.
+The same plugin package also registers `RUSTFS`, `S3`, `WASABI`, and `OSS`.
 
 That means MinIO now follows the same lifecycle as other installable plugins:
 
@@ -188,4 +188,4 @@ If the server talks to MinIO through an internal address such as `http://minio:9
 - MinIO configuration now lives under `config.minio`.
 - The provider is organization-installable and organization-configurable.
 - Configuration is encrypted at rest in `PluginInstance`.
-- `StorageFile.storageProvider` still uses the built-in enum model, so `MINIO` remains a recognized provider value.
+- `StorageFile.storageProvider` is persisted as a string, so plugin provider names such as `MINIO` do not need to be hardcoded in contracts.

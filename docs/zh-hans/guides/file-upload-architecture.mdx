@@ -61,14 +61,11 @@ Target 描述“文件要传到哪里”。
 2. `FileStorage` 负责解析具体 provider
 3. 最终由 `IFileStorageProvider` 完成字节读写
 
-宿主当前内建提供以下 provider：
+宿主当前只内建保留一个 provider：
 
 - `LOCAL`
-- `S3`
-- `OSS`
-- `WASABI`
 
-像 `MINIO` 这样的 provider 则可以通过插件方式接入。
+对象存储 provider，如 `MINIO`、`RUSTFS`、`S3`、`WASABI`、`OSS`，都通过插件方式接入。
 
 ### 3.5. `storage-file` 在哪里
 
@@ -188,8 +185,8 @@ curl -X POST http://localhost:3000/api/files/upload \
 
 这里的 provider 可以是：
 
-- 宿主内建 provider，如 `LOCAL`、`S3`、`OSS`、`WASABI`
-- 插件型 provider，如 `MINIO`
+- 宿主内建本地 provider `LOCAL`
+- 插件型 provider，如 `MINIO`、`RUSTFS`、`S3`、`WASABI`、`OSS`
 
 ### 上传到 volume
 
@@ -287,11 +284,12 @@ curl -X POST http://localhost:3000/api/files/upload \
 
 对象存储 provider 已经不再作为宿主内建能力存在。
 
-`S3`、`OSS`、`WASABI`、`MINIO` 现在都由 `@xpert-ai/plugin-draft` 这个 draft 插件统一注册。
+`MINIO`、`RUSTFS`、`S3`、`WASABI`、`OSS` 现在都由 `@xpert-ai/plugin-draft` 这个 draft 插件统一注册。
 
 插件配置当前按子属性拆分，方便后续独立拆成单独插件：
 
 - `minio`
+- `rustfs`
 - `s3`
 - `wasabi`
 - `oss`
@@ -299,6 +297,7 @@ curl -X POST http://localhost:3000/api/files/upload \
 插件仍然支持各 provider 自己的环境变量作为插件内部默认值，但它们已经不再属于宿主 `environment` 合同。
 
 详见专门文档：[MinIO 文件存储插件](/zh-hans/guides/minio-file-storage)
+另见：[RustFS 文件存储插件](/zh-hans/guides/rustfs-file-storage)
 
 ## 如何通过插件扩展
 

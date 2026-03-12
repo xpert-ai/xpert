@@ -42,7 +42,7 @@ export interface IFileAsset {
 export interface IUploadFileStorageTarget {
   kind: 'storage'
   strategy?: string
-  provider?: FileStorageProviderEnum | string
+  provider?: string
   providerOptions?: Record<string, any>
   directory?: string
   fileName?: string

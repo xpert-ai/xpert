@@ -1,7 +1,7 @@
-import { FileStorageOption, FileStorageProviderEnum, FileSystem, UploadedFile } from '@metad/contracts'
+import { FileStorageOption, FileSystem, UploadedFile } from '@metad/contracts'
 
 export interface IFileStorageProvider {
-  readonly name: FileStorageProviderEnum | string
+  readonly name: string
   readonly config?: FileSystem & Record<string, any>
 
   url(path: string): string

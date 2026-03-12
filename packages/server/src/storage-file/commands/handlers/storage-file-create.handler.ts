@@ -1,4 +1,4 @@
-import { FileStorageProviderEnum, IStorageFile } from '@metad/contracts'
+import { IStorageFile } from '@metad/contracts'
 import { BadRequestException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import * as fsp from 'fs/promises'
@@ -48,7 +48,7 @@ export class StorageFileCreateHandler implements ICommandHandler<StorageFileCrea
 				encoding,
 				size,
 				mimetype,
-				storageProvider: provider.name.toUpperCase() as FileStorageProviderEnum,
+				storageProvider: `${provider.name}`.toUpperCase(),
 				recordedAt: new Date()
 			})
 

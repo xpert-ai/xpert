@@ -1,4 +1,4 @@
-import { FileStorageProviderEnum, IFileAssetDestination, IUploadFileStorageTarget } from '@metad/contracts'
+import { IFileAssetDestination, IUploadFileStorageTarget } from '@metad/contracts'
 import {
 	IFileUploadTargetStrategy,
 	FileUploadTargetStrategy,
@@ -36,10 +36,6 @@ export class StorageTargetStrategy implements IFileUploadTargetStrategy<IUploadF
 		uploadedFile.url = uploadedFile.url || provider.url(uploadedFile.key)
 		uploadedFile.mimetype = source.mimeType
 
-		if (!storageProvider) {
-			throw new Error(`StorageFile persistence currently supports built-in providers only: ${provider.name}`)
-		}
-
 		const storageFile = await this.storageFileService.createStorageFile(uploadedFile, storageProvider)
 
 		return {
@@ -61,14 +57,11 @@ export class StorageTargetStrategy implements IFileUploadTargetStrategy<IUploadF
 		return `${prefix}-${Date.now()}-${randomBytes(3).toString('hex')}${extension}`
 	}
 
-	private normalizeProvider(provider?: FileStorageProviderEnum | string) {
+	private normalizeProvider(provider?: string) {
 		if (!provider) {
 			return undefined
 		}
-		const upper = `${provider}`.toUpperCase()
-		return Object.values(FileStorageProviderEnum).includes(upper as FileStorageProviderEnum)
-			? (upper as FileStorageProviderEnum)
-			: undefined
+		return `${provider}`.toUpperCase()
 	}
 
 	private normalizeRelativePath(...segments: Array<string | undefined>) {

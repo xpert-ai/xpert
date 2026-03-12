@@ -1,11 +1,11 @@
 import { StorageEngine } from 'multer'
-import { FileStorageOption, FileStorageProviderEnum, FileSystem, UploadedFile } from '@metad/contracts'
+import { FileStorageOption, FileSystem, UploadedFile } from '@metad/contracts'
 import { IFileStorageProvider } from '@xpert-ai/plugin-sdk'
 
 export abstract class Provider<T> implements IFileStorageProvider {
 	static instance: any
 	tenantId?: string
-	abstract name: FileStorageProviderEnum | string
+	abstract name: string
 	abstract config: FileSystem
 
 	constructor() {}

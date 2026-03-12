@@ -1,6 +1,6 @@
 export interface FileStorageOption {
   dest: string | CallableFunction
-  provider?: FileStorageProviderEnum | string
+  provider?: string
   prefix?: string
   filename?: string | CallableFunction
 }
@@ -11,11 +11,7 @@ export interface FileSystem {
 }
 
 export enum FileStorageProviderEnum {
-  LOCAL = 'LOCAL',
-  S3 = 'S3',
-  MINIO = 'MINIO',
-  WASABI = 'WASABI',
-  OSS = 'OSS' // 阿里云对象存储 OSS（Object Storage Service）
+  LOCAL = 'LOCAL'
 }
 
 export interface UploadedFile {

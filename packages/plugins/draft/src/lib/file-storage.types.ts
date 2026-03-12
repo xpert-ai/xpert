@@ -28,6 +28,7 @@ export const OssProviderConfigSchema = z.object({
 
 export const DraftFileStoragePluginConfigSchema = z.object({
   minio: S3CompatibleProviderConfigSchema.optional(),
+  rustfs: S3CompatibleProviderConfigSchema.optional(),
   s3: S3CompatibleProviderConfigSchema.optional(),
   wasabi: S3CompatibleProviderConfigSchema.optional(),
   oss: OssProviderConfigSchema.optional()
@@ -199,6 +200,10 @@ export const DraftFileStoragePluginConfigFormSchema: JsonSchemaObjectType = {
     minio: createS3CompatibleProviderFormSchema({
       en_US: 'MinIO',
       zh_Hans: 'MinIO'
+    }),
+    rustfs: createS3CompatibleProviderFormSchema({
+      en_US: 'RustFS',
+      zh_Hans: 'RustFS'
     }),
     s3: createS3CompatibleProviderFormSchema({
       en_US: 'Amazon S3',

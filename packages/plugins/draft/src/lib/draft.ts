@@ -4,6 +4,7 @@ import chalk from 'chalk'
 import { draftFileStoragePluginConfig } from './file-storage.config'
 import { MinioProvider } from './minio.provider'
 import { OSSProvider } from './oss.provider'
+import { RustFSProvider } from './rustfs.provider'
 import { S3Provider } from './s3.provider'
 import { WasabiProvider } from './wasabi.provider'
 
@@ -13,7 +14,7 @@ import { WasabiProvider } from './wasabi.provider'
    */
   imports: [ConfigModule.forFeature(draftFileStoragePluginConfig)],
 
-  providers: [MinioProvider, S3Provider, WasabiProvider, OSSProvider]
+  providers: [MinioProvider, RustFSProvider, S3Provider, WasabiProvider, OSSProvider]
 })
 export class DraftPluginsModule implements IOnPluginBootstrap, IOnPluginDestroy {
   // We disable by default additional logging for each event to avoid cluttering the logs

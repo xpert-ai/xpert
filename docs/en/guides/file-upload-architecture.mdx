@@ -61,14 +61,11 @@ Instead:
 2. `FileStorage` resolves the concrete provider
 3. the resolved `IFileStorageProvider` writes and reads bytes
 
-The host ships built-in providers for:
+The host keeps only one built-in provider:
 
 - `LOCAL`
-- `S3`
-- `OSS`
-- `WASABI`
 
-Additional providers, such as `MINIO`, can be added through plugins.
+Object-storage providers such as `MINIO`, `RUSTFS`, `S3`, `WASABI`, and `OSS` are loaded through plugins.
 
 ### 3.5. Where `storage-file` fits
 
@@ -188,8 +185,8 @@ Use a `storage` target:
 
 The provider can be either:
 
-- a built-in provider such as `LOCAL`, `S3`, `OSS`, or `WASABI`
-- a plugin-backed provider such as `MINIO`
+- the built-in local provider `LOCAL`
+- a plugin-backed provider such as `MINIO`, `RUSTFS`, `S3`, `WASABI`, or `OSS`
 
 ### Upload to volume
 
@@ -287,11 +284,12 @@ Examples:
 
 Object-storage providers are no longer host built-ins.
 
-`S3`, `OSS`, `WASABI`, and `MINIO` are now registered by the draft plugin package `@xpert-ai/plugin-draft`.
+`MINIO`, `RUSTFS`, `S3`, `WASABI`, and `OSS` are now registered by the draft plugin package `@xpert-ai/plugin-draft`.
 
 The plugin config is split by child properties so each provider can evolve independently later:
 
 - `minio`
+- `rustfs`
 - `s3`
 - `wasabi`
 - `oss`
@@ -299,6 +297,7 @@ The plugin config is split by child properties so each provider can evolve indep
 The plugin still supports provider-specific environment variables as plugin-local defaults, but they are no longer part of the host `environment` contract.
 
 See the dedicated guide: [MinIO File Storage Plugin](/en/guides/minio-file-storage)
+See also: [RustFS File Storage Plugin](/en/guides/rustfs-file-storage)
 
 ## How to extend with plugins
 
@@ -420,5 +419,5 @@ If a feature starts with "upload a file and then...", the first design question 
 
 ## Notes
 
-- `StorageFile.storageProvider` still persists provider values through the built-in enum model.
+- `StorageFile.storageProvider` now persists provider values as strings.
 - If a future provider must persist a custom provider name, the persistence field should be widened from enum to string in a follow-up change.

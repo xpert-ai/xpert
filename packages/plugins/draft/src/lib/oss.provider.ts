@@ -1,4 +1,4 @@
-import { FileStorageOption, FileStorageProviderEnum, UploadedFile } from '@metad/contracts'
+import { FileStorageOption, UploadedFile } from '@metad/contracts'
 import {
   FileStorageProvider,
   IFileStorageProvider,
@@ -18,9 +18,9 @@ import { OSSStorageEngine } from './oss.storage-engine'
 type TOssRuntimeConfig = Required<Pick<OssProviderConfig, 'rootPath'>> & Omit<OssProviderConfig, 'rootPath'>
 
 @Injectable()
-@FileStorageProvider(FileStorageProviderEnum.OSS)
+@FileStorageProvider('OSS')
 export class OSSProvider implements IFileStorageProvider {
-  readonly name = FileStorageProviderEnum.OSS
+  readonly name = 'OSS'
 
   constructor(
     @Optional()

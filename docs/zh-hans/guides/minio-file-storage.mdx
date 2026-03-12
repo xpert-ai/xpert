@@ -6,7 +6,7 @@ MinIO 现在不再作为宿主内建 provider 进行配置。
 
 它已经被做成 draft 对象存储插件包的一部分，当前实现位于 `packages/plugins/draft`，并以 `MINIO` 名称注册为一个 `IFileStorageProvider`。
 
-同一个插件包里也同时注册了 `S3`、`WASABI`、`OSS`。
+同一个插件包里也同时注册了 `RUSTFS`、`S3`、`WASABI`、`OSS`。
 
 这意味着 MinIO 现在遵循统一的插件生命周期：
 
@@ -188,4 +188,4 @@ FILE_PROVIDER=MINIO
 - MinIO 配置现在位于 `config.minio`
 - 该 provider 现在可以按组织安装和按组织配置
 - 配置会以加密形式存储在 `PluginInstance`
-- `StorageFile.storageProvider` 仍然沿用内建 enum 模型，因此 `MINIO` 依然是一个受支持的 provider 值
+- `StorageFile.storageProvider` 现在按字符串持久化，因此像 `MINIO` 这样的插件 provider 名称不需要再硬编码进 contracts

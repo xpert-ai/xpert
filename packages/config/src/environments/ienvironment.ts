@@ -29,7 +29,7 @@ export interface Env {
 }
 
 export interface FileSystem {
-  name: FileStorageProviderEnum
+  name: string
 }
 
 export interface IPACFeatures {
