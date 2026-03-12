@@ -5,7 +5,6 @@ import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 
 import { MatExpansionModule } from '@angular/material/expansion'
 import { ZardButtonComponent, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatListModule } from '@angular/material/list'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatSlideToggleChange, MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -36,7 +35,7 @@ import { ChecklistComponent } from '../../common'
   selector: 'xp-model-virtual-cube',
   templateUrl: 'virtual-cube.component.html',
   styleUrls: ['virtual-cube.component.scss'],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkMenuModule, MatTooltipModule, ZardButtonComponent, ZardDividerComponent, ZardIconComponent, MatSidenavModule, ...ZardFormImports, MatExpansionModule, MatListModule, MatSlideToggleModule, ZardInputDirective, TranslateModule, OcapCoreModule, NgmEntitySchemaComponent, ResizerModule, NgmCommonModule, NgmCalculatedMeasureComponent, ChecklistComponent, NgmSelectComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkMenuModule, MatTooltipModule, ZardButtonComponent, ZardDividerComponent, ZardIconComponent, MatSidenavModule, ...ZardFormImports, MatExpansionModule, MatSlideToggleModule, ZardInputDirective, TranslateModule, OcapCoreModule, NgmEntitySchemaComponent, ResizerModule, NgmCommonModule, NgmCalculatedMeasureComponent, ChecklistComponent, NgmSelectComponent],
   providers: [NgmDSCoreService, ModelStudioService]
 })
 export class ModelVirtualCubeComponent extends ModelDraftBaseComponent {

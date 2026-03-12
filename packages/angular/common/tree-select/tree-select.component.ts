@@ -3,18 +3,50 @@ import { SelectionModel } from '@angular/cdk/collections'
 import { COMMA, ENTER } from '@angular/cdk/keycodes'
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling'
 import { FlatTreeControl } from '@angular/cdk/tree'
-import { booleanAttribute, ChangeDetectionStrategy, Component, DestroyRef, ElementRef, forwardRef, inject, input, Input, model, OnChanges, output, SimpleChanges, ViewChild } from '@angular/core'
-import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule, ValidatorFn } from '@angular/forms'
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  ElementRef,
+  forwardRef,
+  inject,
+  input,
+  Input,
+  model,
+  OnChanges,
+  output,
+  SimpleChanges,
+  ViewChild
+} from '@angular/core'
+import {
+  ControlValueAccessor,
+  FormControl,
+  FormsModule,
+  NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
+  ValidatorFn
+} from '@angular/forms'
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { MatCheckboxChange } from '@angular/material/checkbox'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatChipsModule } from '@angular/material/chips'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent
+} from '@xpert-ai/headless-ui'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTreeModule } from '@angular/material/tree'
-import { DensityDirective, OcapCoreModule, NgmFieldAppearance, NgmFieldColor, NgmFloatLabel } from '@metad/ocap-angular/core'
+import {
+  DensityDirective,
+  OcapCoreModule,
+  NgmFieldAppearance,
+  NgmFieldColor,
+  NgmFloatLabel
+} from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
 import { DisplayDensity } from '@metad/ocap-angular/core'
@@ -29,7 +61,7 @@ import {
   filter,
   map,
   of,
-  startWith,
+  startWith
 } from 'rxjs'
 import { NgmSearchComponent } from '../search/search.component'
 import { CommonModule } from '@angular/common'
@@ -38,7 +70,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 
 /**
  * @deprecated use headless components instead
- * 
+ *
  * TreeSelect 组件分为三种展示模式:
  * 1. Select 形式, 树型选项列表以弹出列表的形式.
  * 2. Autocomplete 形式, 输入框可输入搜索条件进行过滤, 树型选项列表以下拉列表的形式展示.
@@ -46,7 +78,26 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, NgmSearchComponent, ZardButtonComponent, ZardIconComponent, ...ZardFormImports, MatAutocompleteModule, ScrollingModule, MatCheckboxModule, MatProgressSpinnerModule, ZardInputDirective, MatChipsModule, MatTreeModule, TranslateModule, OcapCoreModule, NgmDisplayBehaviourComponent, DensityDirective],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    NgmSearchComponent,
+    ZardButtonComponent,
+    ZardIconComponent,
+    ...ZardFormImports,
+    MatAutocompleteModule,
+    ScrollingModule,
+    ZardCheckboxComponent,
+    MatProgressSpinnerModule,
+    ZardInputDirective,
+    MatChipsModule,
+    MatTreeModule,
+    TranslateModule,
+    OcapCoreModule,
+    NgmDisplayBehaviourComponent,
+    DensityDirective
+  ],
   selector: 'ngm-tree-select',
   templateUrl: 'tree-select.component.html',
   styleUrls: ['tree-select.component.scss'],
@@ -68,11 +119,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
     }
   ]
 })
-export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccessor
-{
+export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccessor {
   readonly #destroyRef = inject(DestroyRef)
   _animationMode: 'NoopAnimations' | 'BrowserAnimations' = 'BrowserAnimations'
-  
+
   @Input() appearance: NgmFieldAppearance
   @Input() floatLabel: NgmFloatLabel
   @Input() displayBehaviour: DisplayBehaviour | string
@@ -120,7 +170,7 @@ export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccesso
   readonly searchable = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
-  
+
   readonly treeViewer = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
@@ -130,22 +180,22 @@ export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccesso
    */
   @Input()
   get autoActiveFirstOption(): boolean {
-    return this._autoActiveFirstOption;
+    return this._autoActiveFirstOption
   }
   set autoActiveFirstOption(value: BooleanInput) {
-    this._autoActiveFirstOption = coerceBooleanProperty(value);
+    this._autoActiveFirstOption = coerceBooleanProperty(value)
   }
-  private _autoActiveFirstOption: boolean;
+  private _autoActiveFirstOption: boolean
 
   /** Whether the active option should be selected as the user is navigating. */
   @Input()
   get autoSelectActiveOption(): boolean {
-    return this._autoSelectActiveOption;
+    return this._autoSelectActiveOption
   }
   set autoSelectActiveOption(value: BooleanInput) {
-    this._autoSelectActiveOption = coerceBooleanProperty(value);
+    this._autoSelectActiveOption = coerceBooleanProperty(value)
   }
-  private _autoSelectActiveOption: boolean;
+  private _autoSelectActiveOption: boolean
 
   readonly disabled = model<boolean>(false)
   readonly color = input<NgmFieldColor>()
@@ -217,9 +267,9 @@ export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccesso
   // Display selected option in only single select mode
   public readonly selectedOptions$ = this.formControl.valueChanges.pipe(
     startWith(this.formControl.value),
-    map((value) => value ? (Array.isArray(value) ? value : [value]) : null)
+    map((value) => (value ? (Array.isArray(value) ? value : [value]) : null))
   )
-  
+
   public readonly trigger$ = this.selectedOptions$.pipe(
     map((selectedOptions) => selectedOptions?.map(({ label, key }) => label || key) ?? this.placeholder)
   )
@@ -232,12 +282,12 @@ export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccesso
   ]).pipe(
     map(([event, event2, dataNodes]) => {
       const members = (this.multiple ? this.multipleSelection.selected : this.singleSelection.selected)?.map(
-        (key) => findTreeNode(dataNodes, key) ?? { key, label: '' } as TreeNodeInterface<unknown>
+        (key) => findTreeNode(dataNodes, key) ?? ({ key, label: '' } as TreeNodeInterface<unknown>)
       )
       this.restChips = this.maxTagCount ? members.splice(this.maxTagCount) : null
 
       return members
-    }),
+    })
   )
 
   allSelect = false
@@ -252,9 +302,7 @@ export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccesso
         value.map((item) => this.treeControl.dataNodes.find((node) => node.key === item.key) ?? item)
       )
     } else if (value) {
-      this.formControl.setValue(
-        this.treeControl.dataNodes.find((node) => node.key === value.key) ?? value
-      )
+      this.formControl.setValue(this.treeControl.dataNodes.find((node) => node.key === value.key) ?? value)
     }
   })
   // Update tree dataSource data when select options and search text changed
@@ -334,7 +382,7 @@ export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccesso
         this.virtualScrollItemSize = 48
       }
     }
-    
+
     if (validators) {
       this.formControl.setValidators(validators.currentValue)
     }
@@ -419,7 +467,7 @@ export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccesso
     this.autoControl.setValue(null)
   }
 
-  onCheckboxSelect(event: MatCheckboxChange, option: FlatTreeNode<any>) {
+  onCheckboxSelect(event: boolean, option: FlatTreeNode<any>) {
     if (this.multiple) {
       this.multipleSelection.toggle(option.key as string)
     } else {

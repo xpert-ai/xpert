@@ -8,22 +8,22 @@
 
   <ngm-search class="my-2" [formControl]="searchControl"></ngm-search>
 
-  <mat-nav-list class="ngm-nav-list flex-1">
-     <mat-list-item class="mb-2" [class.active]="activedLink === c_suggested" (click)="activeLink(c_suggested)">
+  <ul class="ngm-nav-list flex-1">
+     <li class="mb-2" [class.active]="activedLink === c_suggested" (click)="activeLink(c_suggested)">
       <div class="flex items-center">
         <z-icon  zType="star"></z-icon>
         <span > {{ 'Story.Common.Suggested' | translate: {Default: 'Suggested'} }} </span>
       </div>
-     </mat-list-item>
+     </li>
 
-     <mat-list-item [class.active]="activedLink === c_my"
+     <li [class.active]="activedLink === c_my"
       (click)="activeLink(c_my)">
       <div class="flex items-center">
         <z-icon></z-icon>
         <span > {{ 'Story.Common.My' | translate: {Default: 'My'} }} </span>
       </div>
-      </mat-list-item>
-  </mat-nav-list>
+      </li>
+  </ul>
 
 </div>
 

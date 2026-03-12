@@ -1,11 +1,23 @@
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { FlatTreeControl } from '@angular/cdk/tree'
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, ChangeDetectionStrategy, Component, computed, effect, EventEmitter, forwardRef, HostBinding, inject, input, Output, signal } from '@angular/core'
+import {
+  booleanAttribute,
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  EventEmitter,
+  forwardRef,
+  HostBinding,
+  inject,
+  input,
+  Output,
+  signal
+} from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
+import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
-import { MatCheckboxChange, MatCheckboxModule } from '@angular/material/checkbox'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -33,7 +45,7 @@ import { uniq } from 'lodash-es'
 import { combineLatestWith, debounceTime, distinctUntilChanged, map, startWith } from 'rxjs/operators'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { TreeControlOptions } from '../types'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 
 export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
   checked?: boolean
@@ -55,9 +67,10 @@ export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
   ],
   imports: [
     CommonModule,
+    FormsModule,
     ReactiveFormsModule,
     ZardIconComponent,
-    MatCheckboxModule,
+    ZardCheckboxComponent,
     MatProgressSpinnerModule,
     ZardButtonComponent,
     MatTooltipModule,
@@ -92,7 +105,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
   readonly _disabled = signal(false)
 
   @Output() loadingChanging = new EventEmitter<boolean>()
-  // @Output() change = new EventEmitter<MatCheckboxChange>()
+  // @Output() change = new EventEmitter<boolean>()
 
   onChange: (input: any) => void
 
@@ -106,7 +119,12 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
   treeControl: FlatTreeControl<TreeItemFlatNode<T>>
   treeFlattener: MatTreeFlattener<TreeNodeInterface<T>, TreeItemFlatNode<T>>
   dataSource: MatTreeFlatDataSource<TreeNodeInterface<T>, TreeItemFlatNode<T>>
-  readonly highlightKeyword = toSignal(this.searchControl.valueChanges.pipe(startWith(''), map((value) => value.replace(/\*/g, ''))))
+  readonly highlightKeyword = toSignal(
+    this.searchControl.valueChanges.pipe(
+      startWith(''),
+      map((value) => value.replace(/\*/g, ''))
+    )
+  )
 
   /** The selection for checklist */
   readonly memberKeys = signal<string[]>([])
@@ -205,7 +223,9 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
   // Subscribers
   private _membersSub = toObservable(this.treeNodes)
     .pipe(
-      combineLatestWith(this.searchControl.valueChanges.pipe(startWith(null), distinctUntilChanged(), debounceTime(300))),
+      combineLatestWith(
+        this.searchControl.valueChanges.pipe(startWith(null), distinctUntilChanged(), debounceTime(300))
+      ),
       map(([treeNodes, text]) => {
         text = text?.trim()
         if (text) {
@@ -241,9 +261,15 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
   private _loadingSub = this.smartFilterService.loading$.pipe(takeUntilDestroyed()).subscribe((loading) => {
     this.loadingChanging.emit(loading)
   })
-  private errorSub = this.smartFilterService.selectResult().pipe(map(({ error }) => error), takeUntilDestroyed()).subscribe((err) => {
-    this.error.set(err)
-  })
+  private errorSub = this.smartFilterService
+    .selectResult()
+    .pipe(
+      map(({ error }) => error),
+      takeUntilDestroyed()
+    )
+    .subscribe((err) => {
+      this.error.set(err)
+    })
 
   constructor(private smartFilterService: NgmSmartFilterService) {
     this.treeFlattener = new MatTreeFlattener(this.transformer, this.getLevel, this.isExpandable, this.getChildren)
@@ -430,10 +456,10 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
     this.memberKeys.update((members) => members.filter((item) => keys.indexOf(item) !== -1))
   }
 
-  itemSelectionToggle(node: TreeItemFlatNode<T>, event: MatCheckboxChange) {
+  itemSelectionToggle(node: TreeItemFlatNode<T>, event: boolean) {
     const member = node.raw.memberKey
     this.toggleMemberKey(member)
-    
+
     const level = this.treeControl.getLevel(node)
 
     if (!this.isSingleRange()) {
@@ -465,13 +491,15 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
   }
 
   memberTooltip(member: IDimensionMember) {
-    return DIMENSION_MEMBER_FIELDS.map(field => {
+    return DIMENSION_MEMBER_FIELDS.map((field) => {
       const value = member[field.key]
       if (value !== undefined && value !== null) {
         const displayValue = field.formatter ? field.formatter(value) : value
-        return `${this.translateService.instant('Ngm.EntitySchema.' + field.label, {Default: field.label})}: ${displayValue}`
+        return `${this.translateService.instant('Ngm.EntitySchema.' + field.label, { Default: field.label })}: ${displayValue}`
       }
       return null
-    }).filter(line => line !== null).join('\n')
+    })
+      .filter((line) => line !== null)
+      .join('\n')
   }
 }

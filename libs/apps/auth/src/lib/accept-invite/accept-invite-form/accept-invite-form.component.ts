@@ -2,14 +2,23 @@ import { CommonModule } from '@angular/common'
 import { Component, EventEmitter, Input, Output } from '@angular/core'
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { IInvite, ITag, ITenant, IUserRegistrationInput } from '@metad/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
 @Component({
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, ZardButtonComponent, ZardInputDirective, MatCheckboxModule, MatProgressSpinnerModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ...ZardFormImports,
+    ZardButtonComponent,
+    ZardInputDirective,
+    ZardCheckboxComponent,
+    MatProgressSpinnerModule
+  ],
   selector: 'pac-accept-invite-form',
   templateUrl: 'accept-invite-form.component.html',
   styleUrls: ['accept-invite-form.component.scss']

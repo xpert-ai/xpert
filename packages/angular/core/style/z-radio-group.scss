@@ -1,0 +1,16 @@
+@reference "../../../tailwind-workspace-reference.css";
+.ngm-radio-group__horizontal.z-radio-group {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+z-radio.ngm-radio-button__property {
+  @apply block w-60 max-w-full;
+
+  .z-radio__item {
+    @apply flex w-full;
+  }
+
+  .z-radio__label {
+    @apply flex-1 overflow-hidden;
+  }
+}

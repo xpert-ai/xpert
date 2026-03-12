@@ -1,16 +1,16 @@
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
+import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
-import { Component, TemplateRef, ViewChild, computed, inject } from '@angular/core'
+import { Component, TemplateRef, ViewChild, computed, inject, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { AbstractControl, FormControl, FormGroup, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms'
 
 import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatListModule } from '@angular/material/list'
 import { ActivatedRoute, Router } from '@angular/router'
 import { IModelRole } from '@metad/contracts'
 import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
 import { CommandDialogComponent, injectCopilotCommand } from '@metad/copilot-angular'
-import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
+import { buildListboxOptions, ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { cloneDeep } from '@metad/ocap-core'
 import { uuid } from 'apps/cloud/src/app/@core'
 import { NGXLogger } from 'ngx-logger'
@@ -223,13 +223,18 @@ export class AccessControlComponent extends TranslationBaseComponent {
     <div mat-dialog-content class="flex-1">
       <ngm-search class="m-2" [formControl]="search"></ngm-search>
 
-      <mat-selection-list [(ngModel)]="value" [multiple]="false" class="overflow-auto">
+      <ul
+        class="ngm-cdk-listbox overflow-auto"
+        cdkListbox
+        [cdkListboxValue]="value()"
+        (cdkListboxValueChange)="value.set([...$event.value])"
+      >
         @for (item of options(); track item.key) {
-        <mat-list-option [value]="item.key">
-          <ngm-display-behaviour [option]="item" [highlight]="search.value"></ngm-display-behaviour>
-        </mat-list-option>
+        <li class="ngm-cdk-option" [cdkOption]="item.value ?? item.key">
+          <ngm-display-behaviour [option]="toDisplayOption(item)" [highlight]="search.value"></ngm-display-behaviour>
+        </li>
         }
-      </mat-selection-list>
+      </ul>
     </div>
 
     <div mat-dialog-actions align="end">
@@ -243,9 +248,9 @@ export class AccessControlComponent extends TranslationBaseComponent {
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
+    CdkListboxModule,
     MatDialogModule,
     ZardButtonComponent,
-    MatListModule,
     NgmSearchComponent,
     NgmDisplayBehaviourComponent,
     ButtonGroupDirective
@@ -257,14 +262,27 @@ export class CubeSelectorComponent {
 
   readonly search = new FormControl('')
   readonly searchText = toSignal(this.search.valueChanges, { initialValue: '' })
+  readonly value = model<string[]>([])
   readonly options = computed(() => {
     const text = this.searchText()?.toLowerCase()
-    return text ? this.data.filter((item) => item.caption.includes(text)) : this.data
+    const options = (text ? this.data.filter((item) => item.caption?.toLowerCase().includes(text)) : this.data).map(
+      (item) => ({
+        ...item,
+        value: item.value ?? item.key
+      })
+    )
+    return buildListboxOptions(options, this.value())
   })
 
-  value = []
-
   onApply() {
-    this.#dialogRef.close(this.value)
+    this.#dialogRef.close(this.value())
+  }
+
+  toDisplayOption(item: { key?: string; value: unknown; label?: unknown }) {
+    return {
+      key: item.key ?? `${item.value ?? ''}`,
+      value: item.value,
+      caption: typeof item.label === 'string' ? item.label : `${item.value ?? ''}`
+    }
   }
 }

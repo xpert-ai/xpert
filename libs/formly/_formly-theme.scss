@@ -1,5 +1,3 @@
-
-
 @use 'sass:map';
 @use '@angular/material' as mat;
 @use './mat-table/table-theme' as table-theme;
@@ -30,10 +28,14 @@
   }
 
   @keyframes spin {
-    0% { transform: rotate(0deg); }
-    100% { transform: rotate(360deg); }
+    0% {
+      transform: rotate(0deg);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
   }
-  
+
   /* for angular formly components */
   formly-form {
     formly-wrapper-mat-form-field {
@@ -50,16 +52,16 @@
       flex: 1;
     }
   }
-  
+
   .mat-select-panel.ngm-formly__background-color-panel {
     display: grid;
     grid-template-columns: 1fr 1fr 1fr;
     grid-template-rows: 1fr 1fr 1fr;
     gap: 0px 0px;
     grid-template-areas:
-      ". . ."
-      ". . ."
-      ". . .";
+      '. . .'
+      '. . .'
+      '. . .';
 
     .mat-option {
       width: 6em;
@@ -86,13 +88,12 @@
 @mixin density($config-or-theme) {
   @include table-theme.density($config-or-theme);
 
-  formly-field-mat-radio {
-    .mat-radio-group {
+  ngm-formly-radio,
+  .ngm-formly-radio-field {
+    .ngm-formly-radio__group {
       display: flex;
       flex-wrap: wrap;
-      .mat-radio-button {
-        margin: 6px .5rem;
-      }
+      gap: 0.5rem 1rem;
     }
   }
 
@@ -119,28 +120,33 @@
   }
 
   .pac-formly-chart-type {
-    @include mat.icon-button-density((
-      density: -2,
-    ));
+    @include mat.icon-button-density(
+      (
+        density: -2
+      )
+    );
     [z-button][data-icon-only],
     z-button[data-icon-only] {
       --mdc-icon-button-state-layer-size: 32px;
       padding: 0;
 
       .z-icon {
-        @include mat.icon-density((
-          density: -2,
-        ));
+        @include mat.icon-density(
+          (
+            density: -2
+          )
+        );
       }
     }
   }
 
-  pac-formly-field-mat-checkbox {
-    .mat-mdc-checkbox {
-      @include mat.checkbox-density(-3);
+  ngm-formly-checkbox {
+    z-checkbox {
+      @apply text-sm;
     }
-    .mdc-checkbox__background {
-      @apply scale-90;
+
+    .z-checkbox__control {
+      @apply size-3.5;
     }
   }
 

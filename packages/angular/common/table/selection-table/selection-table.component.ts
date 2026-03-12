@@ -1,11 +1,26 @@
 import { coerceBooleanProperty } from '@angular/cdk/coercion'
 import { SelectionModel } from '@angular/cdk/collections'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, effect, forwardRef, input, Input, model, OnInit, TemplateRef, ViewChild } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  effect,
+  forwardRef,
+  input,
+  Input,
+  model,
+  OnInit,
+  TemplateRef,
+  ViewChild
+} from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent
+} from '@xpert-ai/headless-ui'
 import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator'
 import { MatSort, MatSortModule } from '@angular/material/sort'
 import { MatTableDataSource, MatTableModule } from '@angular/material/table'
@@ -35,7 +50,7 @@ export type SelectionTableColumn = {
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatCheckboxModule,
+    ZardCheckboxComponent,
     MatTableModule,
     MatPaginatorModule,
     ZardIconComponent,
@@ -56,7 +71,7 @@ export type SelectionTableColumn = {
 })
 export class NgmSelectionTableComponent implements OnInit, ControlValueAccessor {
   get = get
-  
+
   @Input() displayDensity: DisplayDensity | string = DisplayDensity.comfortable
   readonly data = input<Array<any>>()
   readonly key = input.required<string>()
@@ -94,9 +109,12 @@ export class NgmSelectionTableComponent implements OnInit, ControlValueAccessor 
   readonly searchText = model('')
 
   constructor() {
-    effect(() => {
-      this.dataSource.data = this.data() || []
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        this.dataSource.data = this.data() || []
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   /**

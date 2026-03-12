@@ -7,7 +7,6 @@ import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, Reac
 
 import { MatDialog } from '@angular/material/dialog'
 import { MatExpansionModule } from '@angular/material/expansion'
-import { MatListModule } from '@angular/material/list'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule, NgmHighlightDirective, ResizerModule } from '@metad/ocap-angular/common'
@@ -47,7 +46,6 @@ import { ZardButtonComponent, ZardIconComponent, ZardTabsImports } from '@xpert-
     ...ZardTabsImports,
     ZardIconComponent,
     ZardButtonComponent,
-    MatListModule,
     MatTooltipModule,
     MatExpansionModule,
     TranslateModule,

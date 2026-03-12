@@ -40,14 +40,14 @@ import { nonNullable } from '@metad/core'
 <div mat-dialog-content class="mat-dialog-content mat-typography w-96">
   <form [formGroup]="form" class="flex flex-col justify-start items-stretch">
 
-    <mat-radio-group formControlName="type" class="flex gap-2 my-4">
-      <mat-radio-button [value]="1">
+    <z-radio-group formControlName="type" class="flex gap-2 my-4">
+      <z-radio [value]="1">
       {{ 'PAC.Project.Inner' | translate: {Default: 'Inner'} }}
-      </mat-radio-button>
-      <mat-radio-button [value]="2">
+      </z-radio>
+      <z-radio [value]="2">
       {{ 'PAC.Project.Public' | translate: {Default: 'Public'} }}
-      </mat-radio-button>
-    </mat-radio-group>
+      </z-radio>
+    </z-radio-group>
 
     <div *ngIf="notAllPublic()" class="flex flex-col mb-2">
       <z-form-message zType="error">

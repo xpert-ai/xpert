@@ -38,9 +38,9 @@
             <mat-spinner zFormSuffix *ngIf="loading" diameter="20"></mat-spinner>
         </z-form-field>
 
-        <mat-radio-group *ngIf="data?.roles" [(ngModel)]="role" displayDensity="cosy">
-            <mat-radio-button *ngFor="let role of data.roles" [value]="role.value">{{role.label}}</mat-radio-button>
-        </mat-radio-group>
+        <z-radio-group *ngIf="data?.roles" [(ngModel)]="role" displayDensity="cosy">
+            <z-radio *ngFor="let role of data.roles" [value]="role.value">{{role.label}}</z-radio>
+        </z-radio-group>
     </div>
 </mat-dialog-content>
 

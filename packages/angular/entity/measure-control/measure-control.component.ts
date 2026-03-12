@@ -1,4 +1,5 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
+import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { Component, Input, forwardRef } from '@angular/core'
 import {
@@ -10,7 +11,6 @@ import {
   NG_VALUE_ACCESSOR,
   ReactiveFormsModule
 } from '@angular/forms'
-import { MatListModule, MatSelectionListChange } from '@angular/material/list'
 import { NgmPropertyComponent, NgmSelectComponent } from '@metad/ocap-angular/common'
 import {
   CalculationProperty,
@@ -29,7 +29,7 @@ import { ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, DragDropModule, ...ZardFormImports, MatListModule, NgmPropertyComponent, NgmSelectComponent],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, DragDropModule, CdkListboxModule, ...ZardFormImports, NgmPropertyComponent, NgmSelectComponent],
   selector: 'ngm-measure-control',
   templateUrl: './measure-control.component.html',
   styleUrl: './measure-control.component.scss',
@@ -136,9 +136,26 @@ export class NgmMeasureControlComponent implements ControlValueAccessor {
     this.onSelectionChange()
   }
 
-  onSelectionChange(event?: MatSelectionListChange) {
+  listboxMeasures() {
+    const measures = [...this.measures$.value]
+    this.selectedMeasures.forEach((name) => {
+      if (!measures.some((measure) => measure.name === name)) {
+        measures.push({
+          name,
+          caption: name
+        } as Property)
+      }
+    })
+    return measures
+  }
+
+  onSelectionChange(event?: ListboxValueChangeEvent<string>) {
+    if (event) {
+      this.selectedMeasures = [...event.value]
+    }
+
     this.measures.setValue(
-      this.measures$.value
+      this.listboxMeasures()
         .filter((property) => this.selectedMeasures.includes(property.name))
         .map((property) => ({
           key: property.name,

@@ -349,10 +349,9 @@
             {{ 'Story.Toolbar.PREFERENCES.PREFERENCES' | translate: {Default: "Preferences"} }}
         </button>
         <button cdkMenuItem [cdkMenuTriggerFor]="saveMenu">
-            <span matBadge="1" matBadgeOverlap="false" matBadgeColor="accent"
-                [matBadgeHidden]="isNotDirty$ | async" >
+            <z-badge zCount="1" zOverlap="false" [zHidden]="isNotDirty$ | async">
                 {{ 'Story.Toolbar.SAVE.SAVE' | translate: {Default: "Save"} }}
-            </span>
+            </z-badge>
         </button>
         <button cdkMenuItem [cdkMenuTriggerFor]="copyMenu">
             {{ 'Story.Toolbar.COPY.COPY' | translate: {Default: "Copy"} }}

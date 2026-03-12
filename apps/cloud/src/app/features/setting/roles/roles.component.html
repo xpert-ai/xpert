@@ -35,35 +35,41 @@
       <h3 class="px-4 p-2 text-lg font-medium">
         {{ 'PAC.MENU.Roles.General' | translate: {Default: 'General'} }}
       </h3>
-      <mat-list class="overflow-auto">
-        <mat-list-item *ngFor="let permission of permissionGroups.GENERAL" class="rounded-md">
-          <span class="flex-1">
-            {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: {Default: permission} }}
-          </span>
-          
-          <mat-slide-toggle [ngModel]="enabledPermissions[permission]"
-            (ngModelChange)="permissionChanged(permission, $event)">
-          </mat-slide-toggle>
-        </mat-list-item>
-       </mat-list>
+      <ul role="list" class="ngm-list overflow-auto">
+        @for (permission of permissionGroups.GENERAL; track permission) {
+          <li role="listitem" class="rounded-md px-3 py-2">
+            <div class="flex items-center gap-4">
+              <span class="flex-1">
+                {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: {Default: permission} }}
+              </span>
+              
+              <mat-slide-toggle [ngModel]="enabledPermissions[permission]"
+                (ngModelChange)="permissionChanged(permission, $event)">
+              </mat-slide-toggle>
+            </div>
+          </li>
+        }
+      </ul>
     </div>
     <div class="flex flex-col items-stretch rounded-2xl border border-solid border-gray-100">
       <h3 class="px-4 p-2 text-lg font-medium">
         {{ 'PAC.MENU.Roles.Administration' | translate: {Default: 'Administration'} }}
       </h3>
-      <mat-list>
+      <ul role="list" class="ngm-list">
         @for (permission of getAdministrationPermissions(); track permission) {
-          <mat-list-item [disabled]="isDisabledAdministrationPermissions()" class="rounded-md">
-            <span class="flex-1">
-              {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: {Default: permission} }}
-            </span>
-            <mat-slide-toggle [disabled]="isDisabledAdministrationPermissions()"
-              [ngModel]="enabledPermissions[permission]"
-              (ngModelChange)="permissionChanged(permission, $event)">
-            </mat-slide-toggle>
-          </mat-list-item>
+          <li role="listitem" class="rounded-md px-3 py-2" [class.pointer-events-none]="isDisabledAdministrationPermissions()" [class.opacity-60]="isDisabledAdministrationPermissions()">
+            <div class="flex items-center gap-4">
+              <span class="flex-1">
+                {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: {Default: permission} }}
+              </span>
+              <mat-slide-toggle [disabled]="isDisabledAdministrationPermissions()"
+                [ngModel]="enabledPermissions[permission]"
+                (ngModelChange)="permissionChanged(permission, $event)">
+              </mat-slide-toggle>
+            </div>
+          </li>
         }
-       </mat-list>
+      </ul>
     </div>
   </div>
 </div>

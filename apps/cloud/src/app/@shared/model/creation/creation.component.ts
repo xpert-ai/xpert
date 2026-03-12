@@ -3,10 +3,17 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, forwardRef, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { ControlValueAccessor, FormControl, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule, Validators } from '@angular/forms'
+import {
+  ControlValueAccessor,
+  FormControl,
+  FormGroup,
+  FormsModule,
+  NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms'
 
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { RouterModule } from '@angular/router'
 import { BusinessAreasService, DataSourceService, ISemanticModel } from '@metad/cloud/state'
@@ -25,7 +32,23 @@ import { IDataSource, getErrorMessage } from '../../../@core'
   selector: 'pac-model-creation',
   templateUrl: 'creation.component.html',
   styleUrls: ['creation.component.scss'],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, TranslateModule, DragDropModule, ...ZardFormImports, MatProgressBarModule, ZardButtonComponent, ZardInputDirective, MatCheckboxModule, DensityDirective, ButtonGroupDirective, NgmTreeSelectComponent, NgmSelectionTableComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    RouterModule,
+    TranslateModule,
+    DragDropModule,
+    ...ZardFormImports,
+    MatProgressBarModule,
+    ZardButtonComponent,
+    ZardInputDirective,
+    ZardCheckboxComponent,
+    DensityDirective,
+    ButtonGroupDirective,
+    NgmTreeSelectComponent,
+    NgmSelectionTableComponent
+  ],
   host: {
     class: 'pac-model-creation'
   },

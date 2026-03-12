@@ -1,39 +1,39 @@
-<ngm-search *ngIf="options?.searchable" class="ngm-member-table__search shrink-0 my-2"
-  [formControl]="searchControl">
+<ngm-search *ngIf="options?.searchable" class="ngm-member-table__search shrink-0 my-2" [formControl]="searchControl">
 </ngm-search>
 
-<cdk-virtual-scroll-viewport [tvsItemSize]="itemSize" >
+<cdk-virtual-scroll-viewport [tvsItemSize]="itemSize">
   <table mat-table [dataSource]="dataSource" [displayDensity]="appearance?.displayDensity">
-
     <!-- Checkbox Column -->
     <ng-container matColumnDef="select">
       <th mat-header-cell *matHeaderCellDef>
-        <mat-checkbox *ngIf="multiple$ | async" (change)="$event ? masterToggle() : null"
-                      [checked]="hasMember() && isAllSelected()"
-                      [indeterminate]="hasMember() && !isAllSelected()"
-                      >
-        </mat-checkbox>
+        <z-checkbox
+          *ngIf="multiple$ | async"
+          (checkChange)="$event ? masterToggle() : null"
+          [ngModel]="hasMember() && isAllSelected()"
+          [indeterminate]="hasMember() && !isAllSelected()"
+        >
+        </z-checkbox>
         <span *ngIf="(multiple$ | async) === false">
-          {{ 'Ngm.Common.Select' | translate: {Default: 'Select'} }}
+          {{ 'Ngm.Common.Select' | translate: { Default: 'Select' } }}
         </span>
       </th>
       <td mat-cell *matCellDef="let row">
-        <mat-checkbox (click)="$event.stopPropagation()"
-                      (change)="$event ? toggleMember(row) : null"
-                      [checked]="isSelected(row)"
-                     >
-        </mat-checkbox>
+        <z-checkbox
+          (click)="$event.stopPropagation()"
+          (checkChange)="$event ? toggleMember(row) : null"
+          [ngModel]="isSelected(row)"
+        >
+        </z-checkbox>
       </td>
     </ng-container>
 
     <ng-container [matColumnDef]="col.name" *ngFor="let col of columns$ | async">
-      <th mat-header-cell *matHeaderCellDef> {{col.caption || col.name}} </th>
-      <td mat-cell *matCellDef="let element"> {{element[col.name]}} </td>
+      <th mat-header-cell *matHeaderCellDef>{{ col.caption || col.name }}</th>
+      <td mat-cell *matCellDef="let element">{{ element[col.name] }}</td>
     </ng-container>
-  
+
     <tr mat-header-row *matHeaderRowDef="displayedColumns$ | async; sticky: options?.stickyHeader"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns$ | async;"
-      (click)="toggleMember(row)"></tr>
+    <tr mat-row *matRowDef="let row; columns: displayedColumns$ | async" (click)="toggleMember(row)"></tr>
   </table>
 </cdk-virtual-scroll-viewport>
 

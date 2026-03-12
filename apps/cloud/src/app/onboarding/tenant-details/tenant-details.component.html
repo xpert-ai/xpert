@@ -90,10 +90,10 @@
 
       <form [formGroup]="demoFormGroup" class="flex flex-col">
         <label>{{ 'PAC.Onboarding.SelectNetwork' | translate: {Default: 'Select Network'} }}</label>
-        <mat-radio-group formControlName="source" [disabled]="loading()">
-          <mat-radio-button [value]="OrganizationDemoNetworkEnum.github">GitHub</mat-radio-button>
-          <mat-radio-button [value]="OrganizationDemoNetworkEnum.aliyun">Aliyun OSS</mat-radio-button>
-        </mat-radio-group>
+        <z-radio-group formControlName="source" [disabled]="loading()">
+          <z-radio [value]="OrganizationDemoNetworkEnum.github">GitHub</z-radio>
+          <z-radio [value]="OrganizationDemoNetworkEnum.aliyun">Aliyun OSS</z-radio>
+        </z-radio-group>
       </form>
 
       <div class="flex justify-center items-center w-full h-24">
@@ -135,14 +135,16 @@
         </div>
         <form [formGroup]="dataSourceTypeFormGroup" class="w-full flex flex-col gap-4">
           <div class="max-h-80 w-full overflow-auto">
-            <mat-selection-list formControlName="type" disableRipple [multiple]="false" [compareWith]="compareTypeFn" >
-              <mat-list-option *ngFor="let item of filteredDataSourceTypes()" [value]="item" class="rounded-lg mb-1">
-                  <span>
-                      <img src="assets/images/db-logos/{{item.type}}.png" width="32" height="32" class="m-0 inline-block">
-                      {{item.name}}
+            <ul class="ngm-cdk-listbox" cdkListbox formControlName="type" [cdkListboxMultiple]="false" [cdkListboxCompareWith]="compareTypeFn">
+              @for (item of filteredDataSourceTypes(); track item.id) {
+                <li [cdkOption]="item" class="ngm-cdk-option rounded-lg mb-1 flex items-center gap-3">
+                  <span class="flex items-center gap-3">
+                    <img src="assets/images/db-logos/{{item.type}}.png" width="32" height="32" class="m-0 inline-block">
+                    {{item.name}}
                   </span>
-              </mat-list-option>
-            </mat-selection-list>
+                </li>
+              }
+            </ul>
           </div>
 
           @if (type) {

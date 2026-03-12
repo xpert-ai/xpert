@@ -32,36 +32,18 @@
     </ul>
   }
   @case(eCubeParameterEnum.Dimension) {
-    <!-- For now, use the simplified version: display dimension members in a flat format -->
-    @if (multiple) {
-      <mat-selection-list class="flex-1"
-        [multiple]="true"
-        [displayDensity]="appearance()?.displayDensity"
-        [compareWith]="compareWith"
-        [ngModel]="parameterValue()"
-        (ngModelChange)="updateParameterValue($event)"
-      >
-        @for (availableMember of availableMembers$ | async; track availableMember.key) {
-          <mat-list-option [value]="availableMember">
-            <ngm-display-behaviour [option]="availableMember" [displayBehaviour]="displayBehaviour()" />
-          </mat-list-option>
-        }
-      </mat-selection-list>
-    }@else {
-      <mat-selection-list class="flex-1"
-        [multiple]="false"
-        [displayDensity]="appearance()?.displayDensity"
-        [compareWith]="compareWith"
-        [ngModel]="parameterValue()"
-        (ngModelChange)="updateParameterValue($event)"
-      >
-        @for (availableMember of availableMembers$ | async; track availableMember.key) {
-          <mat-list-option [value]="availableMember">
-            <ngm-display-behaviour [option]="availableMember" [displayBehaviour]="displayBehaviour()" />
-          </mat-list-option>
-        }
-      </mat-selection-list>
-    }
+    <ul class="flex-1 ngm-cdk-listbox" cdkListbox
+      [cdkListboxMultiple]="multiple"
+      [cdkListboxCompareWith]="compareWith"
+      [cdkListboxValue]="selectedDimensionMembers()"
+      (cdkListboxValueChange)="updateParameterValue($event.value)"
+    >
+      @for (availableMember of listboxAvailableMembers(); track availableMember.key) {
+        <li class="ngm-cdk-option rounded-lg" [cdkOption]="availableMember">
+          <ngm-display-behaviour [option]="availableMember" [displayBehaviour]="displayBehaviour()" />
+        </li>
+      }
+    </ul>
   }
 }
 

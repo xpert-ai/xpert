@@ -12,11 +12,14 @@
 <div class="text-base my-4">
   {{ 'Ngm.Calculation.MeasureSelectOptions' | translate: {Default: 'Measure Select Options'} }}
 </div>
-<mat-selection-list displayDensity="cosy" cdkDropList (cdkDropListDropped)="drop($event)" class="ngm-cdk__drag-list"
-  [(ngModel)]="selectedMeasures"
-  (selectionChange)="onSelectionChange($event)">
-    <mat-list-option *ngFor="let measure of measures$ | async" [value]="measure.name"
+<ul class="ngm-cdk__drag-list ngm-cdk-listbox" cdkListbox cdkDropList [cdkListboxMultiple]="true"
+  [cdkListboxValue]="selectedMeasures"
+  (cdkListboxValueChange)="onSelectionChange($event)"
+  (cdkDropListDropped)="drop($event)">
+    @for (measure of listboxMeasures(); track measure.name) {
+    <li class="ngm-cdk-option rounded-lg" [cdkOption]="measure.name"
       cdkDrag cdkDragBoundary=".ngm-cdk__drag-list">
       <ngm-property [property]="measure" [displayBehaviour]="displayBehaviour.value" />
-    </mat-list-option>
-</mat-selection-list>
+    </li>
+    }
+</ul>

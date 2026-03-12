@@ -8,18 +8,21 @@
             <form [formGroup]="typeFormGroup">
                 <ng-template matStepLabel>Type Selection</ng-template>
 
-                <mat-selection-list formControlName="type" class="pac-connection-creation__type-selection" disableRipple [multiple]="false"
-                    (selectionChange)="stepper.next()">
-                    <mat-list-option *ngFor="let item of destinationTypes$ | async" [value]="item">
-                        <div fxLayout="row" fxLayoutAlign="space-between center" >
-                            <span>
-                                <img src="{{IMG_ROOT}}/{{item.type}}.png" width="32" height="32">
-                                {{item.name}}
-                            </span>
-                            <z-icon zType="navigate_next"></z-icon>
-                        </div>
-                    </mat-list-option>
-                </mat-selection-list>
+                <ul formControlName="type" class="pac-connection-creation__type-selection ngm-cdk-listbox" cdkListbox
+                    [cdkListboxMultiple]="false" [cdkListboxCompareWith]="compareWithType"
+                    (cdkListboxValueChange)="stepper.next()">
+                    @for (item of destinationTypesWithSelection$ | async; track item.type) {
+                        <li [cdkOption]="item" class="ngm-cdk-option">
+                            <div fxLayout="row" fxLayoutAlign="space-between center" >
+                                <span>
+                                    <img src="{{IMG_ROOT}}/{{item.type}}.png" width="32" height="32">
+                                    {{item.name}}
+                                </span>
+                                <z-icon zType="navigate_next"></z-icon>
+                            </div>
+                        </li>
+                    }
+                </ul>
             </form>
         </mat-step>
 

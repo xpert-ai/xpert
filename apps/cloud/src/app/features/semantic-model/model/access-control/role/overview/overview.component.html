@@ -46,13 +46,13 @@
         <ng-container matColumnDef="type">
             <th mat-header-cell *matHeaderCellDef> {{ 'PAC.KEY_WORDS.Type' | translate: {Default: 'Type'} }} </th>
             <td mat-cell *matCellDef="let element">
-                <mat-radio-group [ngModel]="element.type" disabled class="ngm-radio-group__horizontal" displayDensity="compact">
-                    <mat-radio-button >{{ 'PAC.MODEL.AccessControl.SingleRole' | translate: {Default: 'Single Role'} }}</mat-radio-button>
-                    <!-- <mat-radio-button [value]="RoleTypeEnum.single">Single</mat-radio-button> -->
-                    <mat-radio-button [value]="RoleTypeEnum.union">
+                <z-radio-group [ngModel]="element.type" disabled class="ngm-radio-group__horizontal" displayDensity="compact">
+                    <z-radio >{{ 'PAC.MODEL.AccessControl.SingleRole' | translate: {Default: 'Single Role'} }}</z-radio>
+                    <!-- <z-radio [value]="RoleTypeEnum.single">Single</z-radio> -->
+                    <z-radio [value]="RoleTypeEnum.union">
                         {{ 'PAC.MODEL.AccessControl.UnionRole' | translate: {Default: 'Union Role'} }}
-                    </mat-radio-button>
-                </mat-radio-group>
+                    </z-radio>
+                </z-radio-group>
             </td>
         </ng-container>
   

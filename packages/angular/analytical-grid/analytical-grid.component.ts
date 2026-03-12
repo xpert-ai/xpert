@@ -28,7 +28,7 @@ import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-i
 import { MatPaginator } from '@angular/material/paginator'
 import { MatSort, SortDirection } from '@angular/material/sort'
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
-import { csvDownload, DisplayDensity, NgmAppearance } from '@metad/ocap-angular/core'
+import { csvDownload, DisplayDensity, mergeSelectedValues, NgmAppearance } from '@metad/ocap-angular/core'
 import {
   AggregationRole,
   assign,
@@ -1186,10 +1186,13 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
           map(([members, text]) => {
             text = text?.trim().toLowerCase()
             if (text) {
-              return members.filter(({ key, caption }) => caption?.toLowerCase().includes(text.toLowerCase()))
+              members = members.filter(
+                ({ key, caption }) =>
+                  caption?.toLowerCase().includes(text.toLowerCase()) || key?.toLowerCase().includes(text.toLowerCase())
+              )
             }
 
-            return members
+            return mergeSelectedValues(members, column._selections ?? [])
           }),
           shareReplay(1)
         ),

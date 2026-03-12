@@ -12,12 +12,15 @@
             </button> -->
         </mat-toolbar>
 
-        <mat-list cdkDropList displayDensity="compact" class="flex-1 overflow-auto">
-            <mat-list-item *ngFor="let role of roles$ | async; let last = last"
-                class="rounded-lg cursor-pointer"
-                cdkDrag [cdkDragData]="role"
-            ><span class="whitespace-nowrap text-ellipsis overflow-hidden">{{ role.name }}</span></mat-list-item>
-        </mat-list>
+        <ul cdkDropList class="ngm-list flex-1 overflow-auto">
+          @for (role of roles$ | async; track role.id ?? role.name) {
+            <li
+              class="rounded-lg cursor-pointer px-3 py-2 hover:bg-hover-bg"
+              cdkDrag
+              [cdkDragData]="role"
+            ><span class="whitespace-nowrap text-ellipsis overflow-hidden">{{ role.name }}</span></li>
+          }
+        </ul>
       } @else {
         <mat-toolbar class="pac-sub-toolbar flex justify-between items-center gap-2" displayDensity="compact">
           <span>{{ 'PAC.MODEL.AccessControl.Cubes' | translate: {Default: "Cubes"} }}</span>

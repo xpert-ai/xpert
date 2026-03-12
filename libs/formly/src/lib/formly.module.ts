@@ -4,7 +4,7 @@ import { NgmFormlyAccordionModule } from '@metad/formly/accordion'
 import { NgmFormlyArrayModule } from '@metad/formly/array'
 import { PACFormlyButtonToggleModule } from '@metad/formly/button-toggle'
 import { PACFormlyChartTypeModule } from '@metad/formly/chart-type'
-import { NgmFormlyMatCheckboxModule } from '@metad/formly/checkbox'
+import { NgmFormlyCheckboxModule } from '@metad/formly/checkbox'
 import { PACFormlyCodeEditorModule } from '@metad/formly/code-editor'
 import { PACFormlyColorPickerModule } from '@metad/formly/color-picker'
 import { PACFormlyDesignerModule } from '@metad/formly/designer'
@@ -17,6 +17,7 @@ import { NgmFormlyMatToggleModule } from '@metad/formly/mat-toggle'
 import { PACFormlySelectModule } from '@metad/formly/select'
 import { PACFormlySemanticModelModule } from '@metad/formly/semantic-model'
 import { PACFormlyMatSlicersModule } from '@metad/formly/slicers'
+import { NgmFormlyRadioModule } from '@metad/formly/radio'
 import { FormlyMatSliderModule } from '@metad/formly/slider'
 import { PACFormlySortModule } from '@metad/formly/sort'
 import { PACFormlyTextAreaModule } from '@metad/formly/textarea'
@@ -40,7 +41,8 @@ import { HLFormlyTabsModule } from '@metad/formly/hl-tabs'
     PACFormlyTableModule,
     PACFormlyInputModule,
     PACFormlySelectModule,
-    NgmFormlyMatCheckboxModule,
+    NgmFormlyRadioModule,
+    NgmFormlyCheckboxModule,
     PACFormlyTextAreaModule,
     PACFormlySemanticModelModule,
     PACFormlySortModule,

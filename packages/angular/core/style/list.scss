@@ -25,4 +25,18 @@ ul.ngm-nav-list {
   li.active {
     @apply font-semibold bg-white/90 text-primary-500;
   }
+
+  li[aria-selected='true'] {
+    @apply font-semibold bg-white/90 text-primary-500;
+  }
+}
+
+ul.ngm-list {
+  li {
+    @apply rounded-lg;
+
+    &:hover {
+      @apply bg-black/5 dark:bg-white/5;
+    }
+  }
 }

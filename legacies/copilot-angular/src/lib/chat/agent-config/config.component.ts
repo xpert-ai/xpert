@@ -6,7 +6,7 @@ import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmCopilotEngineService } from '../../services'
-import { MatCheckboxModule } from '@angular/material/checkbox'
+import { ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use ChatKit instead
@@ -26,32 +26,30 @@ import { MatCheckboxModule } from '@angular/material/checkbox'
     MatTooltipModule,
 
     MatSliderModule,
-    MatCheckboxModule
+    ZardCheckboxComponent
   ]
 })
 export class CopilotAgentConfigComponent {
-
   readonly copilotEngine = input<NgmCopilotEngineService>()
 
   get recursionLimit() {
     return this.copilotEngine().agentConfig.recursionLimit
   }
   set recursionLimit(recursionLimit) {
-    this.copilotEngine().updateAgentConfig({recursionLimit})
+    this.copilotEngine().updateAgentConfig({ recursionLimit })
   }
 
   get interactive() {
     return this.copilotEngine().agentConfig.interactive
   }
   set interactive(interactive) {
-    this.copilotEngine().updateAgentConfig({interactive})
+    this.copilotEngine().updateAgentConfig({ interactive })
   }
 
   get verbose() {
     return this.copilotEngine().agentConfig.verbose
   }
   set verbose(verbose) {
-    this.copilotEngine().updateAgentConfig({verbose})
+    this.copilotEngine().updateAgentConfig({ verbose })
   }
-
 }

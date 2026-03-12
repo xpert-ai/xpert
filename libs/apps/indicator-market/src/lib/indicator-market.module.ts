@@ -7,11 +7,16 @@ import { MatBottomSheetModule } from '@angular/material/bottom-sheet'
 
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatCardModule } from '@angular/material/card'
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatRippleModule } from '@angular/material/core'
 import { MatDatepickerModule } from '@angular/material/datepicker'
-import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardDividerComponent,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent
+} from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatSliderModule } from '@angular/material/slider'
@@ -55,7 +60,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
     ZardDividerComponent,
     MatListModule,
     MatCardModule,
-    MatCheckboxModule,
+    ZardCheckboxComponent,
     ZardButtonComponent,
     ZardIconComponent,
     MatRippleModule,

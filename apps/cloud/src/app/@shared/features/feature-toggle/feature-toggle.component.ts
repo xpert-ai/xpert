@@ -1,10 +1,9 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, DestroyRef, effect, inject, signal } from '@angular/core'
+import { FormsModule } from '@angular/forms'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatExpansionModule } from '@angular/material/expansion'
-import { MatListModule } from '@angular/material/list'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { IFeature, IFeatureOrganization } from '@metad/contracts'
 import { TranslateModule } from '@ngx-translate/core'
@@ -12,7 +11,7 @@ import { derivedFrom } from 'ngxtension/derived-from'
 import { injectRouteData } from 'ngxtension/inject-route-data'
 import { of, pipe } from 'rxjs'
 import { map, switchMap, tap } from 'rxjs/operators'
-import { injectConfirm } from '@xpert-ai/headless-ui'
+import { injectConfirm, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 import { environment } from '../../../../environments/environment'
 import { FeatureService, FeatureStoreService, Store } from '../../../@core/services'
 import { injectI18nService } from '../../i18n'
@@ -21,11 +20,11 @@ import { injectI18nService } from '../../i18n'
   standalone: true,
   imports: [
     CommonModule,
+    FormsModule,
     TranslateModule,
     CdkMenuModule,
     MatExpansionModule,
-    MatListModule,
-    MatCheckboxModule,
+    ZardCheckboxComponent,
     MatProgressSpinnerModule
   ],
   providers: [FeatureStoreService],
@@ -104,15 +103,20 @@ export class FeatureToggleComponent {
   }
 
   featureChanged(isEnabled: boolean, feature: IFeature) {
-    this.confirm({
-      title: isEnabled ? this.translate.instant('PAC.Feature.EnableFeature', {Default: 'Enable feature'}) : this.translate.instant('PAC.Feature.DisableFeature', {Default: 'Disable feature'}),
-      information: this.translate.instant(
-        'PAC.Feature.Features.' +  feature.code + '.Name',
-        { Default: feature.name }) + ': ' + this.translate.instant(
-        'PAC.Feature.Features.' +  feature.code + '.Description',
-        { Default: feature.description }
-      )
-    }, this.emitFeatureToggle({ feature, isEnabled: !!isEnabled })).subscribe()
+    this.confirm(
+      {
+        title: isEnabled
+          ? this.translate.instant('PAC.Feature.EnableFeature', { Default: 'Enable feature' })
+          : this.translate.instant('PAC.Feature.DisableFeature', { Default: 'Disable feature' }),
+        information:
+          this.translate.instant('PAC.Feature.Features.' + feature.code + '.Name', { Default: feature.name }) +
+          ': ' +
+          this.translate.instant('PAC.Feature.Features.' + feature.code + '.Description', {
+            Default: feature.description
+          })
+      },
+      this.emitFeatureToggle({ feature, isEnabled: !!isEnabled })
+    ).subscribe()
   }
 
   emitFeatureToggle({ feature, isEnabled }: { feature: IFeature; isEnabled: boolean }) {

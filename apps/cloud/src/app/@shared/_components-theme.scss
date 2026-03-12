@@ -15,10 +15,8 @@
   @if $is-dark-theme {
     $fill-opacity: 0.05;
   }
-  $fill-background:
-    mat.m2-get-color-from-palette($foreground, base, $fill-opacity);
-  $fill-disabled-background:
-    mat.m2-get-color-from-palette($foreground, base, $fill-opacity);
+  $fill-background: mat.m2-get-color-from-palette($foreground, base, $fill-opacity);
+  $fill-disabled-background: mat.m2-get-color-from-palette($foreground, base, $fill-opacity);
 
   .mat-form-field-appearance-fill .mdc-text-field--filled:not(.mdc-text-field--disabled) {
     background-color: $fill-background;
@@ -31,42 +29,29 @@
   //   }
   // }
 
-  .mat-checkbox.ngm-density__compact {
+  .ngm-density__compact z-checkbox,
+  .ngm-density__compact .z-checkbox {
     font-size: 12px;
     line-height: 12px;
-    .mat-checkbox-inner-container {
+
+    .z-checkbox__control {
       height: 12px;
       width: 12px;
-      margin-right: 4px;
-    }
-    .mat-checkbox-ripple {
-      left: calc(50% - 15px);
-      top: calc(50% - 15px);
-      height: 30px;
-      width: 30px;
-    }
-    .mat-ripple-element {
-      height: 30px;
-      width: 30px;
     }
   }
-  .mat-checkbox.ngm-density__cosy {
+  .ngm-density__cosy z-checkbox,
+  .ngm-density__cosy .z-checkbox {
     font-size: 14px;
     line-height: 14px;
-    .mat-checkbox-inner-container {
+
+    .z-checkbox__control {
       height: 14px;
       width: 14px;
-      margin-right: 6px;
-    }
-    .mat-checkbox-ripple {
-      left: calc(50% - 15px);
-      top: calc(50% - 15px);
-      height: 30px;
-      width: 30px;
     }
   }
 
-  .mat-mdc-list.ngm-density__compact, .mat-mdc-list.ngm-density__cosy {
+  .mat-mdc-list.ngm-density__compact,
+  .mat-mdc-list.ngm-density__cosy {
     .mat-mdc-list-item.mat-mdc-list-item-with-avatar {
       height: unset;
     }
@@ -150,7 +135,8 @@
   }
 
   .mat-toolbar.ngm-density__compact {
-    &.mat-toolbar-row, &.mat-toolbar-single-row {
+    &.mat-toolbar-row,
+    &.mat-toolbar-single-row {
       height: 33px;
       padding: 0 6px;
       font-size: 1rem;
@@ -209,15 +195,21 @@
     display: block;
   }
 
-  .mat-radio-group.ngm-density__compact {
+  z-radio-group.ngm-density__compact,
+  z-radio-group[data-density='compact'] {
     --radio-size: 15px;
-    .mat-radio-container, .mat-radio-outer-circle, .mat-radio-inner-circle {
+    .z-radio__control {
       width: var(--radio-size);
       height: var(--radio-size);
     }
+    .z-radio__dot {
+      width: calc(var(--radio-size) / 2);
+      height: calc(var(--radio-size) / 2);
+    }
   }
 
-  .ngm-tree-table .mat-cell, .ngm-tree-table .mat-header-cell {
+  .ngm-tree-table .mat-cell,
+  .ngm-tree-table .mat-header-cell {
     white-space: nowrap;
     padding: 0 10px;
   }
@@ -252,69 +244,70 @@
       font-size: 2rem;
       text-align: center;
       transform: translate(-50%, -50%);
-      content: "" "🕛";
+      content: '' '🕛';
       animation: emoji-loader 1.2s steps(12) infinite forwards 0s;
     }
   }
 
   @keyframes emoji-loader {
     0% {
-      content: "🕐";
+      content: '🕐';
     }
     8.3% {
-      content: "🕑";
+      content: '🕑';
     }
     16.6% {
-      content: "🕒";
+      content: '🕒';
     }
     24.9% {
-      content: "🕓";
+      content: '🕓';
     }
     33.2% {
-      content: "🕔";
+      content: '🕔';
     }
     41.5% {
-      content: "🕕";
+      content: '🕕';
     }
     49.8% {
-      content: "🕖";
+      content: '🕖';
     }
     58.1% {
-      content: "🕗";
+      content: '🕗';
     }
     66.4% {
-      content: "🕘";
+      content: '🕘';
     }
     74.7% {
-      content: "🕙";
+      content: '🕙';
     }
     83.0% {
-      content: "🕚";
+      content: '🕚';
     }
     92.3% {
-      content: "🕛";
+      content: '🕛';
     }
     100% {
-      content: "🕐";
+      content: '🕐';
     }
   }
 
   .pac-copilot-chat {
     p {
-      margin: 0
+      margin: 0;
     }
 
     markdown {
       pre {
         @apply text-xs;
       }
-  
+
       table {
         border-collapse: collapse;
         width: 100%;
       }
-      
-      th, td {
+
+      th,
+      td {
         @apply border border-gray-300 text-left;
         padding: 4px 8px;
       }
@@ -340,10 +333,11 @@
         @apply bg-red-400 text-white;
       }
 
-      .mat-checkbox-layout {
+      z-checkbox {
         width: 100%;
-        .mat-checkbox-label {
-          flex: 1
+
+        .z-checkbox__label {
+          flex: 1;
         }
       }
     }

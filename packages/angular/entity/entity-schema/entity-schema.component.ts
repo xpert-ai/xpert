@@ -3,11 +3,26 @@ import { ScrollingModule } from '@angular/cdk/scrolling'
 import { FlatTreeControl } from '@angular/cdk/tree'
 import { A11yModule } from '@angular/cdk/a11y'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, HostBinding, Input, OnInit, booleanAttribute, effect, inject, input } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostBinding,
+  Input,
+  OnInit,
+  booleanAttribute,
+  effect,
+  inject,
+  input
+} from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
 
-import { MatCheckboxModule } from '@angular/material/checkbox'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent
+} from '@xpert-ai/headless-ui'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatTreeModule } from '@angular/material/tree'
@@ -20,7 +35,24 @@ import { EntityCapacity, EntitySchemaType } from './types'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, A11yModule, MatTreeModule, ...ZardFormImports, ZardInputDirective, ZardIconComponent, ZardButtonComponent, DragDropModule, ScrollingModule, TranslateModule, MatCheckboxModule, MatProgressSpinnerModule, MatTooltipModule, NgmCommonModule, OcapCoreModule],
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    A11yModule,
+    MatTreeModule,
+    ...ZardFormImports,
+    ZardInputDirective,
+    ZardIconComponent,
+    ZardButtonComponent,
+    DragDropModule,
+    ScrollingModule,
+    TranslateModule,
+    ZardCheckboxComponent,
+    MatProgressSpinnerModule,
+    MatTooltipModule,
+    NgmCommonModule,
+    OcapCoreModule
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-entity-schema',
   templateUrl: 'entity-schema.component.html',
@@ -30,15 +62,12 @@ export class NgmEntitySchemaComponent implements OnInit {
   EntitySchemaType = EntitySchemaType
   @HostBinding('class.ngm-entity-schema') _isEntitySchemaComponent = true
   private translateService = inject(TranslateService)
-  private _dsCoreService? = inject(NgmDSCoreService, {optional: true})
+  private _dsCoreService? = inject(NgmDSCoreService, { optional: true })
 
   @Input() dsCoreService: NgmDSCoreService
   @Input() appearance: NgmAppearance
   @Input() selectedHierarchy: string
-  @Input() capacities: EntityCapacity[] = [
-    EntityCapacity.Dimension,
-    EntityCapacity.Measure,
-  ]
+  @Input() capacities: EntityCapacity[] = [EntityCapacity.Dimension, EntityCapacity.Measure]
   readonly dragDisabled = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
@@ -58,15 +87,13 @@ export class NgmEntitySchemaComponent implements OnInit {
         const rootNode = new EntitySchemaFlatNode(
           {
             type: EntitySchemaType.Entity,
-            name: dataSettings.entitySet,
+            name: dataSettings.entitySet
             // caption: dataSettings.entitySet,
           },
           0,
           true
         )
-        this.dataSource.data = [
-          rootNode
-        ]
+        this.dataSource.data = [rootNode]
       }
     })
   }
@@ -76,7 +103,12 @@ export class NgmEntitySchemaComponent implements OnInit {
       this._dsCoreService = this.dsCoreService
     }
     this.treeControl = new FlatTreeControl<EntitySchemaFlatNode>(this.getLevel, this.isExpandable)
-    this.dataSource = new EntitySchemaDataSource(this.treeControl, this._dsCoreService, this.translateService, this.capacities)
+    this.dataSource = new EntitySchemaDataSource(
+      this.treeControl,
+      this._dsCoreService,
+      this.translateService,
+      this.capacities
+    )
 
     this.dataSource.data = []
   }
@@ -94,13 +126,15 @@ export class NgmEntitySchemaComponent implements OnInit {
   memberTooltip(node: EntitySchemaNode) {
     if (node?.type !== EntitySchemaType.Member) return null
     const member = (node.raw || node) as IDimensionMember
-    return DIMENSION_MEMBER_FIELDS.map(field => {
+    return DIMENSION_MEMBER_FIELDS.map((field) => {
       const value = member[field.key]
       if (value !== undefined && value !== null) {
         const displayValue = field.formatter ? field.formatter(value) : value
-        return `${this.translateService.instant('Ngm.EntitySchema.' + field.label, {Default: field.label})}: ${displayValue}`
+        return `${this.translateService.instant('Ngm.EntitySchema.' + field.label, { Default: field.label })}: ${displayValue}`
       }
       return null
-    }).filter(line => line !== null).join('\n')
+    })
+      .filter((line) => line !== null)
+      .join('\n')
   }
 }

@@ -6,8 +6,8 @@
 
 .mat-mdc-menu-panel {
   .mat-mdc-menu-item {
-    .mat-mdc-radio-button {
-      .mdc-label {
+    z-radio {
+      .z-radio__label {
         @apply whitespace-nowrap text-ellipsis;
       }
     }
@@ -76,8 +76,10 @@
       @apply w-full;
     }
 
-    .mat-mdc-radio-button {
-      .mat-radio-label-content {
+    z-radio {
+      @apply w-full;
+
+      .z-radio__label {
         flex: 1;
         overflow: hidden;
       }

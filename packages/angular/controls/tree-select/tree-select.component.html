@@ -38,15 +38,15 @@
   </div>
 </ngm-tree-select>
 
-<mat-radio-group [(ngModel)]="hierarchy">
+<z-radio-group [(ngModel)]="hierarchy">
   <mat-menu #hierarchiesMenu="matMenu" class="ngm-radio-menu">
     @for (property of hierarchies(); track property.name) {
       <button mat-menu-item disableRipple
         (click)="$event.stopPropagation();">
-        <mat-radio-button class="flex-1" [value]="property.name">
+        <z-radio class="flex-1" [value]="property.name">
           <ngm-property class="flex-1" hiddenIcon [property]="property" [displayBehaviour]="DisplayBehaviour.auto" />
-        </mat-radio-button>
+        </z-radio>
       </button>
     }
   </mat-menu>
-</mat-radio-group>
+</z-radio-group>

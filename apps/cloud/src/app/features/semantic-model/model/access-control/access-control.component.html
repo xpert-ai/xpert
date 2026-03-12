@@ -71,13 +71,13 @@
     <form [formGroup]="creatFormGroup" (ngSubmit)="onCreate()" class="flex flex-col justify-start items-stretch gap-4">
       <div class="flex justify-start items-center gap-4 my-4">
         <label>{{ 'PAC.MODEL.AccessControl.Type' | translate: {Default: 'Type'} }}:</label>
-        <mat-radio-group formControlName="type" class="ngm-radio-group__horizontal">
-          <mat-radio-button >
-            {{ 'PAC.MODEL.AccessControl.SingleRole' | translate: {Default: 'Single Role' } }}</mat-radio-button>
-          <mat-radio-button value="union">
+        <z-radio-group formControlName="type" class="ngm-radio-group__horizontal">
+          <z-radio >
+            {{ 'PAC.MODEL.AccessControl.SingleRole' | translate: {Default: 'Single Role' } }}</z-radio>
+          <z-radio value="union">
             {{ 'PAC.MODEL.AccessControl.UnionRole' | translate: {Default: 'Union Role' } }}
-          </mat-radio-button>
-        </mat-radio-group>
+          </z-radio>
+        </z-radio-group>
       </div>
 
       <z-form-field appearance="fill">

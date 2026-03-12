@@ -1,4 +1,5 @@
-<ngm-property-select class="max-w-full"
+<ngm-property-select
+  class="max-w-full"
   [label]="props?.label"
   [formControl]="_formControl"
   [editable]="true"
@@ -12,18 +13,52 @@
   displayDensity="compact"
   (calculationChange)="onCalculationChange($event)"
 >
-
   <z-icon *ngIf="to?.sortable" ngmPrefix cdkDragHandle class="mr-2" zSize="sm" zType="drag_indicator"></z-icon>
 
-  <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="showChartAttributes && (isDimension$ | async) === true" ngmSuffix displayDensity="compact" [matMenuTriggerFor]="chartMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
+  <button
+    z-button
+    zType="ghost"
+    zSize="icon"
+    zShape="circle"
+    *ngIf="showChartAttributes && (isDimension$ | async) === true"
+    ngmSuffix
+    displayDensity="compact"
+    [matMenuTriggerFor]="chartMenu"
+    #mt="matMenuTrigger"
+    [class.active]="mt.menuOpen"
+    (click)="$event.stopPropagation(); $event.preventDefault()"
+  >
     <z-icon zType="analytics"></z-icon>
   </button>
 
-  <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="showMeasureStyle && (isMeasure$ | async) === true" ngmSuffix displayDensity="compact" [matMenuTriggerFor]="measureMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
+  <button
+    z-button
+    zType="ghost"
+    zSize="icon"
+    zShape="circle"
+    *ngIf="showMeasureStyle && (isMeasure$ | async) === true"
+    ngmSuffix
+    displayDensity="compact"
+    [matMenuTriggerFor]="measureMenu"
+    #mt="matMenuTrigger"
+    [class.active]="mt.menuOpen"
+    (click)="$event.stopPropagation(); $event.preventDefault()"
+  >
     <z-icon zType="adjust"></z-icon>
   </button>
 
-  <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="ngm-formly__remove" *ngIf="removable" displayDensity="compact" color="warn" (click)="$event.stopPropagation();$event.preventDefault();killMyself()">
+  <button
+    z-button
+    zType="ghost"
+    zSize="icon"
+    zShape="circle"
+    ngmSuffix
+    class="ngm-formly__remove"
+    *ngIf="removable"
+    displayDensity="compact"
+    color="warn"
+    (click)="$event.stopPropagation(); $event.preventDefault(); killMyself()"
+  >
     <z-icon zType="clear"></z-icon>
   </button>
 </ngm-property-select>
@@ -31,158 +66,158 @@
 <mat-menu #chartMenu="matMenu" class="ngm-formly ngm-density__compact">
   <button mat-menu-item disableRipple [matMenuTriggerFor]="roleMenu">
     <z-icon class="shrink-0" zType="category"></z-icon>
-    <span>{{ 'FORMLY.PROPERTY_SELECT.Role' | translate: {Default: 'Role'} }}...</span>
+    <span>{{ 'FORMLY.PROPERTY_SELECT.Role' | translate: { Default: 'Role' } }}...</span>
   </button>
 
   <button mat-menu-item disableRipple (click)="editAttributes()">
     <z-icon class="shrink-0" zType="edit_attributes"></z-icon>
-    <span>{{ 'FORMLY.PROPERTY_SELECT.ChartAttributes' | translate: {Default: 'Chart Attributes'} }}...</span>
+    <span>{{ 'FORMLY.PROPERTY_SELECT.ChartAttributes' | translate: { Default: 'Chart Attributes' } }}...</span>
   </button>
-
 </mat-menu>
 
-<mat-radio-group [(ngModel)]="role">
+<z-radio-group [(ngModel)]="role">
   <mat-menu #roleMenu="matMenu" class="ngm-formly ngm-density__compact">
-    <button mat-menu-item disableRipple *ngFor="let role of DIMENSION_ROLES"
-      (click)="$event.stopPropagation();">
-      <mat-radio-button [value]="role.value">
-        {{ 'FORMLY.PROPERTY_SELECT.' + role.label | translate: {Default: role.label} }}
-      </mat-radio-button>
+    <button mat-menu-item disableRipple *ngFor="let role of DIMENSION_ROLES" (click)="$event.stopPropagation()">
+      <z-radio [value]="role.value">
+        {{ 'FORMLY.PROPERTY_SELECT.' + role.label | translate: { Default: role.label } }}
+      </z-radio>
     </button>
   </mat-menu>
-</mat-radio-group>
+</z-radio-group>
 
 <mat-menu #measureMenu="matMenu" class="ngm-formly ngm-density__compact">
   <button mat-menu-item *ngIf="showMeasureRole" disableRipple [matMenuTriggerFor]="measureRoleMenu">
     <z-icon class="shrink-0" zType="category"></z-icon>
-    <span>{{ 'FORMLY.PROPERTY_SELECT.Role' | translate: {Default: 'Role'} }}...</span>
+    <span>{{ 'FORMLY.PROPERTY_SELECT.Role' | translate: { Default: 'Role' } }}...</span>
   </button>
 
   <button mat-menu-item *ngIf="showMeasureShape" disableRipple [matMenuTriggerFor]="shapeMenu">
     <z-icon class="shrink-0" zType="interests"></z-icon>
-    <span>{{ 'FORMLY.PROPERTY_SELECT.Shape' | translate: {Default: 'Shape'} }}...</span>
+    <span>{{ 'FORMLY.PROPERTY_SELECT.Shape' | translate: { Default: 'Shape' } }}...</span>
   </button>
 
   <button mat-menu-item *ngIf="showColorPalette" disableRipple [matMenuTriggerFor]="colorMenu">
     <z-icon class="shrink-0" zType="style"></z-icon>
-    <span>{{ 'FORMLY.PROPERTY_SELECT.Style' | translate: {Default: 'Style'} }}...</span>
+    <span>{{ 'FORMLY.PROPERTY_SELECT.Style' | translate: { Default: 'Style' } }}...</span>
   </button>
 
   <button mat-menu-item *ngIf="showMeasureReferenceLine" disableRipple (click)="openReferenceLine()">
-    <z-icon class="shrink-0"  zType="trending_flat"></z-icon>
-    <span>{{ 'FORMLY.PROPERTY_SELECT.REFERENCE_LINE' | translate: {Default: 'Reference Line'} }}</span>
+    <z-icon class="shrink-0" zType="trending_flat"></z-icon>
+    <span>{{ 'FORMLY.PROPERTY_SELECT.REFERENCE_LINE' | translate: { Default: 'Reference Line' } }}</span>
   </button>
 
   <button mat-menu-item *ngIf="showMeasureChartOptions" disableRipple (click)="openChartOptions()">
     <z-icon class="shrink-0" zType="analytics"></z-icon>
-    <span>{{ 'FORMLY.PROPERTY_SELECT.ChartOptions' | translate: {Default: 'Chart Options'} }}</span>
+    <span>{{ 'FORMLY.PROPERTY_SELECT.ChartOptions' | translate: { Default: 'Chart Options' } }}</span>
   </button>
 
-  <button mat-menu-item *ngIf="showMeasureGridBar" disableRipple (click)="$event.stopPropagation();">
-    <mat-checkbox [(ngModel)]="bar">
+  <button mat-menu-item *ngIf="showMeasureGridBar" disableRipple (click)="$event.stopPropagation()">
+    <z-checkbox [(ngModel)]="bar">
       <div class="flex-1 flex items-center">
         <z-icon class="shrink-0" zType="sort"></z-icon>
-        <span>{{ 'FORMLY.PROPERTY_SELECT.BarChart' | translate: {Default: 'Bar Chart'} }}</span>
+        <span>{{ 'FORMLY.PROPERTY_SELECT.BarChart' | translate: { Default: 'Bar Chart' } }}</span>
       </div>
-    </mat-checkbox>
+    </z-checkbox>
   </button>
-  
 </mat-menu>
 
-<mat-radio-group [(ngModel)]="role">
+<z-radio-group [(ngModel)]="role">
   <mat-menu #measureRoleMenu="matMenu" class="ngm-formly ngm-density__compact">
-    <button mat-menu-item disableRipple *ngFor="let role of MEASURE_ROLES"
-      (click)="$event.stopPropagation();">
-      <mat-radio-button [value]="role.value">
-        {{ 'FORMLY.PROPERTY_SELECT.' + role.label | translate: {Default: role.label} }}
-      </mat-radio-button>
+    <button mat-menu-item disableRipple *ngFor="let role of MEASURE_ROLES" (click)="$event.stopPropagation()">
+      <z-radio [value]="role.value">
+        {{ 'FORMLY.PROPERTY_SELECT.' + role.label | translate: { Default: role.label } }}
+      </z-radio>
     </button>
   </mat-menu>
-</mat-radio-group>
+</z-radio-group>
 
 <mat-menu #colorMenu="matMenu" class="ngm-formly ngm-density__compact">
   <button mat-menu-item *ngIf="showMeasurePalettePattern" disableRipple [matMenuTriggerFor]="patternMenu">
     <z-icon class="shrink-0" zType="texture"></z-icon>
-    <span>{{ 'FORMLY.PROPERTY_SELECT.Pattern' | translate: {Default: 'Pattern'} }}</span>
+    <span>{{ 'FORMLY.PROPERTY_SELECT.Pattern' | translate: { Default: 'Pattern' } }}</span>
   </button>
 
   <button mat-menu-item disableRipple [matMenuTriggerFor]="paletteMenu">
     <z-icon class="shrink-0" zType="palette"></z-icon>
-    <span>{{ 'FORMLY.PROPERTY_SELECT.Palette' | translate: {Default: 'Palette'} }}</span>
+    <span>{{ 'FORMLY.PROPERTY_SELECT.Palette' | translate: { Default: 'Palette' } }}</span>
   </button>
 
-  <div mat-menu-item disableRipple class="mat-option-disabled h-16 pt-1" style="height: 4rem;" (click)="$event.stopPropagation()">
-    <ngm-colors class="w-60 mt-1" [label]=" 'FORMLY.PROPERTY_SELECT.Colors' | translate: {Default: 'Colors'} "
+  <div
+    mat-menu-item
+    disableRipple
+    class="mat-option-disabled h-16 pt-1"
+    style="height: 4rem"
+    (click)="$event.stopPropagation()"
+  >
+    <ngm-colors
+      class="w-60 mt-1"
+      [label]="'FORMLY.PROPERTY_SELECT.Colors' | translate: { Default: 'Colors' }"
       [options]="props.colors"
       [(ngModel)]="colors"
       (ngModelChange)="onColorsChange($event)"
-      (click)="$event.stopPropagation()">
+      (click)="$event.stopPropagation()"
+    >
     </ngm-colors>
   </div>
 
   <!-- <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
-    <mat-checkbox [(ngModel)]="reverse">
+    <z-checkbox [(ngModel)]="reverse">
       <z-icon zType="invert_colors"></z-icon>
       {{ 'FORMLY.PROPERTY_SELECT.Invert' | translate: {Default: 'Invert'} }}
-    </mat-checkbox>
+    </z-checkbox>
   </button> -->
 </mat-menu>
 
-<mat-radio-group [(ngModel)]="palette" displayDensity="cosy">
+<z-radio-group [(ngModel)]="palette" displayDensity="cosy">
   <mat-menu #paletteMenu="matMenu" class="ngm-formly ngm-density__compact">
-
     <ng-template matMenuContent>
-      <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
-        <mat-radio-button class="ngm-radio-button__property" [value]="null">
-          {{ 'FORMLY.PROPERTY_SELECT.None' | translate: {Default: 'None'} }}
-        </mat-radio-button>
+      <button mat-menu-item disableRipple (click)="$event.stopPropagation()">
+        <z-radio class="ngm-radio-button__property" [value]="null">
+          {{ 'FORMLY.PROPERTY_SELECT.None' | translate: { Default: 'None' } }}
+        </z-radio>
       </button>
-  
+
       <ng-container *ngFor="let group of interpolateGroups">
         <button mat-menu-item disableRipple disabled>
-          {{group.groupName}}
+          {{ group.groupName }}
         </button>
-  
-        <button mat-menu-item disableRipple *ngFor="let interpolate of group.values"
-          (click)="$event.stopPropagation();">
-          <mat-radio-button [value]="interpolate.name" class="ngm-radio-button__property flex-1 w-full">
+
+        <button mat-menu-item disableRipple *ngFor="let interpolate of group.values" (click)="$event.stopPropagation()">
+          <z-radio [value]="interpolate.name" class="ngm-radio-button__property flex-1 w-full">
             <ngm-chromatic-preview class="flex-1 w-full" [interpolate]="interpolate"></ngm-chromatic-preview>
-          </mat-radio-button>
+          </z-radio>
         </button>
       </ng-container>
     </ng-template>
-    
   </mat-menu>
-</mat-radio-group>
+</z-radio-group>
 
-<mat-radio-group [(ngModel)]="shapeType">
+<z-radio-group [(ngModel)]="shapeType">
   <mat-menu #shapeMenu="matMenu" class="ngm-formly ngm-density__compact">
-    <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
-      <mat-radio-button [value]="null">
-        {{ 'FORMLY.PROPERTY_SELECT.None' | translate: {Default: 'None'} }}
-      </mat-radio-button>
+    <button mat-menu-item disableRipple (click)="$event.stopPropagation()">
+      <z-radio [value]="null">
+        {{ 'FORMLY.PROPERTY_SELECT.None' | translate: { Default: 'None' } }}
+      </z-radio>
     </button>
-    <button mat-menu-item disableRipple *ngFor="let shape of SHAPE_TYPES"
-      (click)="$event.stopPropagation();">
-      <mat-radio-button [value]="shape.value">
-        {{ 'FORMLY.PROPERTY_SELECT.' + shape.label | translate: {Default: shape.label} }}
-      </mat-radio-button>
+    <button mat-menu-item disableRipple *ngFor="let shape of SHAPE_TYPES" (click)="$event.stopPropagation()">
+      <z-radio [value]="shape.value">
+        {{ 'FORMLY.PROPERTY_SELECT.' + shape.label | translate: { Default: shape.label } }}
+      </z-radio>
     </button>
   </mat-menu>
-</mat-radio-group>
+</z-radio-group>
 
-<mat-radio-group [(ngModel)]="pattern">
+<z-radio-group [(ngModel)]="pattern">
   <mat-menu #patternMenu="matMenu" class="ngm-formly ngm-density__compact">
-    <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
-      <mat-radio-button [value]="null">
-        {{ 'FORMLY.PROPERTY_SELECT.None' | translate: {Default: 'None'} }}
-      </mat-radio-button>
+    <button mat-menu-item disableRipple (click)="$event.stopPropagation()">
+      <z-radio [value]="null">
+        {{ 'FORMLY.PROPERTY_SELECT.None' | translate: { Default: 'None' } }}
+      </z-radio>
     </button>
-    <button mat-menu-item disableRipple *ngFor="let item of PATTERNS"
-      (click)="$event.stopPropagation();">
-      <mat-radio-button [value]="item.value">
-        {{item.label}}
-      </mat-radio-button>
+    <button mat-menu-item disableRipple *ngFor="let item of PATTERNS" (click)="$event.stopPropagation()">
+      <z-radio [value]="item.value">
+        {{ item.label }}
+      </z-radio>
     </button>
   </mat-menu>
-</mat-radio-group>
+</z-radio-group>

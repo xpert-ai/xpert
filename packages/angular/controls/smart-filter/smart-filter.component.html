@@ -6,55 +6,90 @@
   <div class="absolute left-0 max-w-[75%] overflow-hidden flex items-center px-1">
     <ng-content select="[ngmPrefix]"></ng-content>
     @if (slicerLabel()) {
-      <div class="inline-block text-sm px-1 truncate py-[0.5px] rounded-lg border-[0.5px] border-solid border-divider-deep">
-        {{slicerLabel()}}
+      <div
+        class="inline-block text-sm px-1 truncate py-[0.5px] rounded-lg border-[0.5px] border-solid border-divider-deep"
+      >
+        {{ slicerLabel() }}
       </div>
     } @else {
       @if (isNotInitial()) {
-        <ngm-tags class="overflow-hidden"
-          [tags]="chips$ | async"
-          [exclude]="slicerSignal()?.exclude"
-          color="blue"
-        />
+        <ngm-tags class="overflow-hidden" [tags]="chips$ | async" [exclude]="slicerSignal()?.exclude" color="blue" />
 
         @if (restChips().length) {
-          <span class="cursor-pointer shrink-0" [matTooltip]="restChips().join('; ')">
-            +{{restChips().length}}
-          </span>
+          <span class="cursor-pointer shrink-0" [matTooltip]="restChips().join('; ')"> +{{ restChips().length }} </span>
         }
       }
     }
 
     @if (slicerLabel() || isNotInitial()) {
-      <z-icon class="shrink-0 text-neutral-400 transition-colors hover:text-red-500"
+      <z-icon
+        class="shrink-0 text-neutral-400 transition-colors hover:text-red-500"
         [class.cursor-pointer]="!disabled$()"
         [class.cursor-not-allowed]="disabled$()"
-        (click)="disabled$() ? null : clearMembers()" zType="close"></z-icon>
+        (click)="disabled$() ? null : clearMembers()"
+        zType="close"
+      ></z-icon>
     }
   </div>
 
-  <input #search z-input class="ngm-input-element ngm-w-full"
+  <input
+    #search
+    z-input
+    class="ngm-input-element ngm-w-full"
     [class.ngm-input__searching]="!!searchHighlight"
     [placeholder]="placeholder$ | async"
     [formControl]="valueControl"
     [matAutocomplete]="auto"
-  >
+  />
   <div class="ngm-smart-filter__suffix flex items-center">
     @if (loading$ | async) {
-      <mat-spinner [color]="appearance()?.color" strokeWidth="1" diameter="20"/>
+      <mat-spinner [color]="appearance()?.color" strokeWidth="1" diameter="20" />
     }
 
     @if (hierarchies()?.length > 1) {
-      <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-actionable-opacity" displayDensity="compact" [disabled]="disabled$()" [cdkMenuTriggerFor]="hierarchiesMenu" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()" (click)="$event.stopPropagation();$event.preventDefault();">
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        class="ngm-actionable-opacity"
+        displayDensity="compact"
+        [zDisabled]="disabled$()"
+        [cdkMenuTriggerFor]="hierarchiesMenu"
+        #mt="cdkMenuTriggerFor"
+        [class.active]="mt.isOpen()"
+        (click)="$event.stopPropagation(); $event.preventDefault()"
+      >
         <z-icon zType="account_tree"></z-icon>
       </button>
     }
-    <button z-button zType="ghost" zSize="icon" zShape="circle" type="button" class="ngm-actionable-opacity" displayDensity="compact" [disabled]="disabled$()" (click)="$event.stopPropagation();$event.preventDefault();openValueHelp()">
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      type="button"
+      class="ngm-actionable-opacity"
+      displayDensity="compact"
+      [zDisabled]="disabled$()"
+      (click)="$event.stopPropagation(); $event.preventDefault(); openValueHelp()"
+    >
       <z-icon zType="help_outline"></z-icon>
     </button>
 
     @if (isCalendar()) {
-      <button z-button zType="ghost" zSize="icon" zShape="circle" type="button" class="ngm-actionable-opacity" displayDensity="compact" [disabled]="disabled$()" [cdkMenuTriggerFor]="calendarMenu" (click)="$event.stopPropagation();$event.preventDefault();">
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        type="button"
+        class="ngm-actionable-opacity"
+        displayDensity="compact"
+        [zDisabled]="disabled$()"
+        [cdkMenuTriggerFor]="calendarMenu"
+        (click)="$event.stopPropagation(); $event.preventDefault()"
+      >
         <i class="ri-time-line"></i>
       </button>
     }
@@ -62,55 +97,86 @@
   </div>
 </div>
 
-<mat-autocomplete #auto="matAutocomplete" class="ngm-tree-select__panel"
-  [class]="'ngm-autocomplete-panel ' + (multiple() ? 'multiple' : '') + ' ' + (_displayDensity() === 'compact' ? 'ngm-density__compact' : '') + ' ' + (_displayDensity()==='cosy' ? 'ngm-density__cosy' : '')"
+<mat-autocomplete
+  #auto="matAutocomplete"
+  class="ngm-tree-select__panel"
+  [class]="
+    'ngm-autocomplete-panel ' +
+    (multiple() ? 'multiple' : '') +
+    ' ' +
+    (_displayDensity() === 'compact' ? 'ngm-density__compact' : '') +
+    ' ' +
+    (_displayDensity() === 'cosy' ? 'ngm-density__cosy' : '')
+  "
   [autoActiveFirstOption]="options()?.autoActiveFirst"
   [displayWith]="displayWithCaption"
   (opened)="onAutocompleteOpened()"
-  (optionSelected)="selectMember($event)">
-  <cdk-virtual-scroll-viewport class="ngm-smart-filter__autocomplete-viewport ngm-tree-select__viewport" minBufferPx="200" maxBufferPx="400"
+  (optionSelected)="selectMember($event)"
+>
+  <cdk-virtual-scroll-viewport
+    class="ngm-smart-filter__autocomplete-viewport ngm-tree-select__viewport"
+    minBufferPx="200"
+    maxBufferPx="400"
     [itemSize]="virtualScrollItemSize"
   >
-    <mat-option *cdkVirtualFor="let option of selectOptions$ | async; trackBy: trackByKey" [value]="option"
+    <mat-option
+      *cdkVirtualFor="let option of selectOptions$ | async; trackBy: trackByKey"
+      [value]="option"
       [class.mat-selected]="isSelected(option)"
     >
-      <div class="flex-1 flex justify-start items-center" >
-        <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="_displayDensity()" [style.visibility]="!option.expandable ? 'hidden' : ''" [style.marginLeft.px]="option.level * treeNodePaddingIndent" (click)="$event.stopPropagation(); treeControl.toggle(option)">
-          <z-icon class="z-icon-rtl-mirror" [zType]="treeControl.isExpanded(option) ? 'expand_more' : 'chevron_right'"></z-icon>
+      <div class="flex-1 flex justify-start items-center">
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          [displayDensity]="_displayDensity()"
+          [style.visibility]="!option.expandable ? 'hidden' : ''"
+          [style.marginLeft.px]="option.level * treeNodePaddingIndent"
+          (click)="$event.stopPropagation(); treeControl.toggle(option)"
+        >
+          <z-icon
+            class="z-icon-rtl-mirror"
+            [zType]="treeControl.isExpanded(option) ? 'expand_more' : 'chevron_right'"
+          ></z-icon>
         </button>
 
         @if (multiple()) {
-          <mat-checkbox class="flex-1"
-            [checked]="isSelected(option)"
+          <z-checkbox
+            class="flex-1"
+            [ngModel]="isSelected(option)"
             (click)="$event.stopPropagation()"
-            (change)="onCheckboxChange($event, option)"
+            (checkChange)="onCheckboxChange($event, option)"
           >
-            <ngm-display-behaviour [option]="option"
+            <ngm-display-behaviour
+              [option]="option"
               [displayBehaviour]="displayBehaviour()"
-              [highlight]="searchHighlight">
+              [highlight]="searchHighlight"
+            >
             </ngm-display-behaviour>
-          </mat-checkbox>
+          </z-checkbox>
         } @else {
-          <ngm-display-behaviour class="flex-1"
+          <ngm-display-behaviour
+            class="flex-1"
             [option]="option"
             [displayBehaviour]="displayBehaviour()"
-            [highlight]="searchHighlight" />
+            [highlight]="searchHighlight"
+          />
         }
       </div>
-
     </mat-option>
   </cdk-virtual-scroll-viewport>
 </mat-autocomplete>
 
 <ng-template #hierarchiesMenu>
   <div cdkMenu class="cdk-menu__large ngm-density__compact">
-    <mat-radio-group [(ngModel)]="hierarchy">
+    <z-radio-group [(ngModel)]="hierarchy">
       @for (property of hierarchies(); track property.name) {
-        <mat-radio-button class="ngm-radio-button__property flex-1" [value]="property.name">
+        <z-radio class="ngm-radio-button__property flex-1" [value]="property.name">
           <ngm-property class="flex-1" hiddenIcon [property]="property" />
-        </mat-radio-button>
+        </z-radio>
       }
-    </mat-radio-group>
+    </z-radio-group>
   </div>
 </ng-template>
 
@@ -118,13 +184,12 @@
   <div cdkMenu class="cdk-menu__medium">
     <button cdkMenuItem (click)="openValueHelp()">
       <z-icon class="mr-1" zType="people_outline"></z-icon>
-      {{ 'Ngm.Selection.DimensionMembers' | translate: {Default: 'Dimension Members'} }}
+      {{ 'Ngm.Selection.DimensionMembers' | translate: { Default: 'Dimension Members' } }}
     </button>
-    
+
     @for (variable of dateVariables; track variable.id) {
-      <button cdkMenuItem class=""
-        (click)="openDynamicDateHelp(variable.dateRange)">
-        {{ 'DateVariable.' + variable.id | translate: {Default: variable.id} }}
+      <button cdkMenuItem class="" (click)="openDynamicDateHelp(variable.dateRange)">
+        {{ 'DateVariable.' + variable.id | translate: { Default: variable.id } }}
       </button>
     }
   </div>

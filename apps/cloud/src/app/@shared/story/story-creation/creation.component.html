@@ -73,16 +73,17 @@
         (click)="$event.stopPropagation()"
       />
   </div>
-  <mat-selection-list
-    class="flex-1 overflow-auto ngm-selection-list"
-    displayDensity="cosy"
+  <ul
+    class="flex-1 overflow-auto ngm-selection-list ngm-cdk-listbox"
+    cdkListbox
     [formControl]="modelsControl"
-    [compareWith]="compareWithModel"
+    [cdkListboxMultiple]="true"
+    [cdkListboxCompareWith]="compareWithModel"
   >
     @for (model of models(); track model.id) {
-      <mat-list-option [value]="model">
+      <li [cdkOption]="model" class="ngm-cdk-option rounded-lg">
         <span class="whitespace-nowrap text-ellipsis overflow-hidden">{{ model.name }}</span>
-      </mat-list-option>
+      </li>
     }
-  </mat-selection-list>
+  </ul>
 </div>

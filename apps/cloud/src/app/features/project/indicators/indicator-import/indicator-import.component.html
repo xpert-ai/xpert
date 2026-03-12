@@ -6,9 +6,9 @@
     </span>
   </div>
 
-  <mat-nav-list class="ngm-nav-list my-2 flex-1 space-y-1 overflow-auto">
+  <ul class="ngm-nav-list my-2 flex-1 space-y-1 overflow-auto">
     @for (indicator of indicators; track indicator; let i = $index) {
-      <mat-list-item class="flex group/item"
+      <li class="flex group/item"
         [class.active]="activedIndex() === i"
         (click)="activeLink(i, indicator)">
         <div class="flex justify-between items-center">
@@ -17,9 +17,9 @@
             ngmAppearance="danger"
             (click)="removeIndicator(i)" zType="close"></z-icon>
         </div>
-      </mat-list-item>
+      </li>
     }
-  </mat-nav-list>
+  </ul>
 
   <div class="flex justify-start">
     <div ngmButtonGroup>

@@ -1,13 +1,42 @@
 import { CdkDrag, CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop'
-import { AfterViewInit, ChangeDetectorRef, Component, DestroyRef, ViewChildren, computed, effect, inject, model, signal } from '@angular/core'
+import {
+  AfterViewInit,
+  ChangeDetectorRef,
+  Component,
+  DestroyRef,
+  ViewChildren,
+  computed,
+  effect,
+  inject,
+  model,
+  signal
+} from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute } from '@angular/router'
 import { nonNullable } from '@metad/core'
 import { NgmCommonModule, ResizerModule, SplitterModule, SplitterType } from '@metad/ocap-angular/common'
 import { debouncedSignal, OcapCoreModule } from '@metad/ocap-angular/core'
-import { EntityCapacity, EntitySchemaNode, EntitySchemaType, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
-import { C_MEASURES, Dimension, DisplayBehaviour, OrderDirection, PropertyLevel, QueryOptions, Table } from '@metad/ocap-core'
-import { C_MEASURES_ROW_COUNT, serializeMeasureName, serializeMemberCaption, serializeUniqueName } from '@metad/ocap-sql'
+import {
+  EntityCapacity,
+  EntitySchemaNode,
+  EntitySchemaType,
+  NgmEntitySchemaComponent
+} from '@metad/ocap-angular/entity'
+import {
+  C_MEASURES,
+  Dimension,
+  DisplayBehaviour,
+  OrderDirection,
+  PropertyLevel,
+  QueryOptions,
+  Table
+} from '@metad/ocap-core'
+import {
+  C_MEASURES_ROW_COUNT,
+  serializeMeasureName,
+  serializeMemberCaption,
+  serializeUniqueName
+} from '@metad/ocap-sql'
 import { NxSettingsPanelService } from '@metad/story/designer'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -15,7 +44,20 @@ import { NgmError, ToastrService, uuid } from 'apps/cloud/src/app/@core'
 import { isEqual } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, of } from 'rxjs'
-import { combineLatestWith, debounceTime, delayWhen, distinctUntilChanged, filter, first, map, shareReplay, startWith, switchMap, tap, withLatestFrom } from 'rxjs/operators'
+import {
+  combineLatestWith,
+  debounceTime,
+  delayWhen,
+  distinctUntilChanged,
+  filter,
+  first,
+  map,
+  shareReplay,
+  startWith,
+  switchMap,
+  tap,
+  withLatestFrom
+} from 'rxjs/operators'
 import { TablesJoinComponent } from '../../../tables-join'
 import { ModelComponent } from '../../model.component'
 import { SemanticModelService } from '../../model.service'
@@ -26,14 +68,12 @@ import { HierarchyTableComponent } from '../hierarchy-table/hierarchy-table.comp
 import { HierarchyTableDataType } from '../types'
 import { ModelHierarchyService } from './hierarchy.service'
 import { CommonModule } from '@angular/common'
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 
-import { MatListModule } from '@angular/material/list'
 import { MatToolbarModule } from '@angular/material/toolbar'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -49,12 +89,11 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     ContentLoaderModule,
     FormsModule,
-    MatCheckboxModule,
+    ZardCheckboxComponent,
     MatButtonToggleModule,
     MatTooltipModule,
     ZardIconComponent,
     ZardButtonComponent,
-    MatListModule,
     MatToolbarModule,
     OcapCoreModule,
     ResizerModule,
@@ -106,7 +145,11 @@ export class ModelHierarchyComponent implements AfterViewInit {
 
   public readonly columns$ = this.levels$.pipe(
     filter(nonNullable),
-    combineLatestWith(this.dimensionService.name$, this.hierarchyService.name$, toObservable(this.modelService.dialect)),
+    combineLatestWith(
+      this.dimensionService.name$,
+      this.hierarchyService.name$,
+      toObservable(this.modelService.dialect)
+    ),
     map(([levels, dimension, hierarchy, dialect]) => {
       const columns = []
       levels.forEach((level) => {
@@ -176,7 +219,7 @@ export class ModelHierarchyComponent implements AfterViewInit {
     const allLevelCaption = this.hierarchyService.allLevelCaption()
     const tableColumns = columns.map((column) => ({
       name: column.level,
-      caption: column.caption,
+      caption: column.caption
     }))
     if (hasAll) {
       return [
@@ -189,7 +232,7 @@ export class ModelHierarchyComponent implements AfterViewInit {
     }
     return tableColumns
   })
-  
+
   readonly treeData = computed(() => {
     const data = this.data()
     const hasAll = this.hierarchyService.hasAll()
@@ -226,30 +269,33 @@ export class ModelHierarchyComponent implements AfterViewInit {
   readonly limit = model<number>(1000)
   readonly #dLimit = debouncedSignal(this.limit, 300)
 
-  readonly queryOptions = computed(() => {
-    const levelColumns = this.levelColumns()
-    if (levelColumns) {
-      return {
-        rows: levelColumns,
-        columns: [
-          {
-            dimension: C_MEASURES,
-            measure: C_MEASURES_ROW_COUNT
+  readonly queryOptions = computed(
+    () => {
+      const levelColumns = this.levelColumns()
+      if (levelColumns) {
+        return {
+          rows: levelColumns,
+          columns: [
+            {
+              dimension: C_MEASURES,
+              measure: C_MEASURES_ROW_COUNT
+            }
+          ],
+          orderbys: [
+            ...levelColumns.map((column) => ({
+              by: column.level,
+              order: OrderDirection.ASC
+            }))
+          ],
+          paging: {
+            top: this.#dLimit()
           }
-        ],
-        orderbys: [
-          ...levelColumns.map((column) => ({
-            by: column.level,
-            order: OrderDirection.ASC
-          }))
-        ],
-        paging: {
-          top: this.#dLimit()
-        }
-      } as QueryOptions
-    }
-    return null
-  }, { equal: isEqual})
+        } as QueryOptions
+      }
+      return null
+    },
+    { equal: isEqual }
+  )
 
   readonly loading = signal(false)
   readonly query$ = toObservable(this.queryOptions).pipe(
@@ -267,7 +313,7 @@ export class ModelHierarchyComponent implements AfterViewInit {
             switchMap(() => this.refresh$),
             switchMap(() => {
               this.loading.set(true)
-              return entityService.selectQuery(queryOptions).pipe(tap(() => (this.loading.set(false))))
+              return entityService.selectQuery(queryOptions).pipe(tap(() => this.loading.set(false)))
             })
           )
         : of({
@@ -407,9 +453,7 @@ export class ModelHierarchyComponent implements AfterViewInit {
   }
 
   tableRemovePredicate(item: CdkDrag<EntitySchemaNode>) {
-    return (
-      item.dropContainer.id === CdkDragDropContainers.HierarchyTable && item.data.type === EntitySchemaType.Entity
-    )
+    return item.dropContainer.id === CdkDragDropContainers.HierarchyTable && item.data.type === EntitySchemaType.Entity
   }
 
   removeTable(event: CdkDragDrop<EntitySchemaNode[]>) {
@@ -421,7 +465,10 @@ export class ModelHierarchyComponent implements AfterViewInit {
   }
 }
 
-function arrayToTreeTable<T>(array: Array<T>, levels: {name: string; caption: string;}[]): HierarchyTableDataType<T>[] {
+function arrayToTreeTable<T>(
+  array: Array<T>,
+  levels: { name: string; caption: string }[]
+): HierarchyTableDataType<T>[] {
   const tree = []
   const map = new Map()
 

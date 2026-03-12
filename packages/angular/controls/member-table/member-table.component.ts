@@ -10,11 +10,10 @@ import {
   inject,
   Input,
   Output,
-  signal,
+  signal
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
-import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatCheckboxModule } from '@angular/material/checkbox'
+import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTableModule } from '@angular/material/table'
 import { NgmCommonModule, TableVirtualScrollDataSource } from '@metad/ocap-angular/common'
@@ -34,7 +33,7 @@ import { isEmpty, isEqual } from 'lodash-es'
 import { debounceTime, distinctUntilChanged, map, shareReplay } from 'rxjs/operators'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { ControlOptions } from '../types'
-import { ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardIconComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 
 export interface MemberTableOptions extends ControlOptions {
   label?: string
@@ -66,9 +65,10 @@ export interface MemberTableState {
   imports: [
     CommonModule,
     TranslateModule,
+    FormsModule,
     ReactiveFormsModule,
     ZardIconComponent,
-    MatCheckboxModule,
+    ZardCheckboxComponent,
     MatProgressSpinnerModule,
     MatTableModule,
     ScrollingModule,
@@ -148,13 +148,12 @@ export class NgmMemberTableComponent<T> implements ControlValueAccessor {
     .subscribe(() => {
       this.smartFilterService.refresh()
     })
-  private slicerSub = this.slicer$.pipe(distinctUntilChanged(isEqual), takeUntilDestroyed())
-    .subscribe((slicer) => {
-      this.onChange?.({
-        ...slicer,
-        dimension: this.dimension
-      })
+  private slicerSub = this.slicer$.pipe(distinctUntilChanged(isEqual), takeUntilDestroyed()).subscribe((slicer) => {
+    this.onChange?.({
+      ...slicer,
+      dimension: this.dimension
     })
+  })
   private resultSub = this.results$.pipe(takeUntilDestroyed()).subscribe((results) => {
     if (results.data) {
       this.dataSource.data = results.data as unknown as T[]
@@ -252,7 +251,7 @@ export class NgmMemberTableComponent<T> implements ControlValueAccessor {
         }
       })
     } else {
-      this.slicer.update((state) => ({...(state ?? {dimension: this.dimension}), members: state?.members ?? []}))
+      this.slicer.update((state) => ({ ...(state ?? { dimension: this.dimension }), members: state?.members ?? [] }))
       if (this.options?.selectionType === FilterSelectionType.Multiple) {
         this.slicer.update((state) => {
           const members = this.slicer().members
@@ -285,7 +284,7 @@ export class NgmMemberTableComponent<T> implements ControlValueAccessor {
               value: row[getPropertyHierarchy(this.dimension)],
               label: row[caption],
               caption: row[caption]
-            } as IMember)
+            }) as IMember
         )
       }
     })

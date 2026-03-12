@@ -10,7 +10,7 @@ import { LocalAgent, ServerAgent, ToastrService, convertConfigurationSchema, get
 import { environment } from '@cloud/environments/environment'
 import { CommonModule } from '@angular/common'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { MatListModule } from '@angular/material/list'
+import { CdkListboxModule } from '@angular/cdk/listbox'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 
 import { NgmInputComponent } from '@metad/ocap-angular/common'
@@ -31,7 +31,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     FormlyModule,
     FormsModule,
     ReactiveFormsModule,
-    MatListModule,
+    CdkListboxModule,
     ZardButtonComponent,
     MatSlideToggleModule,
     MatButtonToggleModule,
@@ -62,6 +62,7 @@ export class PACDataSourceCreationComponent implements OnInit {
   readonly loading = signal(false)
 
   readonly connectionTypes$ = this.typesService.types$.pipe(takeUntilDestroyed())
+  readonly connectionTypes = toSignal(this.connectionTypes$, { initialValue: null })
   public typeFormGroup = new FormGroup({
     type: new FormControl(null, [Validators.required])
   })
@@ -70,6 +71,19 @@ export class PACDataSourceCreationComponent implements OnInit {
   // }
 
   readonly dataSourceType = toSignal(this.typeFormGroup.valueChanges.pipe(map((value) => value?.type?.[0])))
+  readonly listboxConnectionTypes = computed(() => {
+    const types = this.connectionTypes() ?? []
+    const selectedTypes = this.typeFormGroup.value?.type ?? []
+    const options = [...types]
+
+    selectedTypes.forEach((item) => {
+      if (!options.some((type) => this.compareFn(type, item))) {
+        options.push(item)
+      }
+    })
+
+    return options
+  })
 
   formGroup = new FormGroup({
     name: new FormControl(null, [Validators.required]),

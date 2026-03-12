@@ -1,4 +1,6 @@
-<ngm-property-select class="max-w-full" displayDensity="compact"
+<ngm-property-select
+  class="max-w-full"
+  displayDensity="compact"
   [formControl]="formControl"
   [label]="label()"
   [editable]="true"
@@ -20,12 +22,12 @@
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
           <z-icon class="shrink-0" zSize="sm" zType="category"></z-icon>
-          <span>{{ 'Story.ChartProperty.Role' | translate: {Default: 'Role'} }}</span>
+          <span>{{ 'Story.ChartProperty.Role' | translate: { Default: 'Role' } }}</span>
         </label>
 
         <mat-button-toggle-group [(ngModel)]="role" ngmAppearance="hero" color="accent" class="self-start">
           <mat-button-toggle *ngFor="let role of DIMENSION_ROLES" [value]="role.value">
-            {{ 'Story.ChartProperty.' + role.label | translate: {Default: role.label} }}
+            {{ 'Story.ChartProperty.' + role.label | translate: { Default: role.label } }}
           </mat-button-toggle>
         </mat-button-toggle-group>
       </div>
@@ -33,7 +35,7 @@
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
           <z-icon class="shrink-0" zSize="sm" zType="analytics"></z-icon>
-          <span>{{ 'Story.ChartProperty.ChartOptions' | translate: {Default: 'Chart Options'} }}</span>
+          <span>{{ 'Story.ChartProperty.ChartOptions' | translate: { Default: 'Chart Options' } }}</span>
         </label>
 
         <ngm-chart-dimension-form class="w-full text-sm" [(ngModel)]="chartOptions" />
@@ -43,12 +45,12 @@
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
           <z-icon class="shrink-0" zSize="sm" zType="category"></z-icon>
-          <span>{{ 'Story.ChartProperty.Role' | translate: {Default: 'Role'} }}</span>
+          <span>{{ 'Story.ChartProperty.Role' | translate: { Default: 'Role' } }}</span>
         </label>
 
         <mat-button-toggle-group [(ngModel)]="role" ngmAppearance="hero" color="accent" class="self-start">
           <mat-button-toggle *ngFor="let role of MEASURE_ROLES" [value]="role.value">
-            {{ 'Story.ChartProperty.' + role.label | translate: {Default: role.label} }}
+            {{ 'Story.ChartProperty.' + role.label | translate: { Default: role.label } }}
           </mat-button-toggle>
         </mat-button-toggle-group>
       </div>
@@ -58,15 +60,15 @@
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
           <z-icon class="shrink-0" zSize="sm" zType="interests"></z-icon>
-          <span>{{ 'Story.ChartProperty.Shape' | translate: {Default: 'Shape'} }}...</span>
+          <span>{{ 'Story.ChartProperty.Shape' | translate: { Default: 'Shape' } }}...</span>
         </label>
 
         <mat-button-toggle-group [(ngModel)]="shapeType" ngmAppearance="hero" color="accent" class="self-start">
           <mat-button-toggle [value]="null">
-            {{ 'Story.ChartProperty.None' | translate: {Default: 'None'} }}
+            {{ 'Story.ChartProperty.None' | translate: { Default: 'None' } }}
           </mat-button-toggle>
           <mat-button-toggle *ngFor="let shape of SHAPE_TYPES" [value]="shape.value">
-            {{ 'Story.ChartProperty.' + shape.label | translate: {Default: shape.label} }}
+            {{ 'Story.ChartProperty.' + shape.label | translate: { Default: shape.label } }}
           </mat-button-toggle>
         </mat-button-toggle-group>
       </div>
@@ -75,15 +77,15 @@
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
           <z-icon class="shrink-0" zSize="sm" zType="texture"></z-icon>
-          <span>{{ 'Story.ChartProperty.Pattern' | translate: {Default: 'Pattern'} }}</span>
+          <span>{{ 'Story.ChartProperty.Pattern' | translate: { Default: 'Pattern' } }}</span>
         </label>
 
         <mat-button-toggle-group [(ngModel)]="pattern" ngmAppearance="hero" color="accent" class="self-start">
           <mat-button-toggle [value]="null">
-            {{ 'Story.ChartProperty.None' | translate: {Default: 'None'} }}
+            {{ 'Story.ChartProperty.None' | translate: { Default: 'None' } }}
           </mat-button-toggle>
           <mat-button-toggle *ngFor="let item of PATTERNS" [value]="item.value">
-            {{item.label}}
+            {{ item.label }}
           </mat-button-toggle>
         </mat-button-toggle-group>
       </div>
@@ -93,25 +95,34 @@
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
           <z-icon class="shrink-0" zSize="sm" zType="style"></z-icon>
-          <span>{{ 'Story.ChartProperty.Style' | translate: {Default: 'Style'} }}</span>
+          <span>{{ 'Story.ChartProperty.Style' | translate: { Default: 'Style' } }}</span>
         </label>
 
-        <button z-button zType="secondary" displayDensity="comfortable" class="ngm-chart-property__palette-trigger w-full" [matMenuTriggerFor]="paletteMenu">
+        <button
+          z-button
+          zType="secondary"
+          displayDensity="comfortable"
+          class="ngm-chart-property__palette-trigger w-full"
+          [matMenuTriggerFor]="paletteMenu"
+        >
           <div class="w-full flex items-center">
             <z-icon zType="palette"></z-icon>
-            <span>{{ 'Story.ChartProperty.Palette' | translate: {Default: 'Palette'} }}</span>
+            <span>{{ 'Story.ChartProperty.Palette' | translate: { Default: 'Palette' } }}</span>
             <span class="flex-1"></span>
-            
+
             <z-icon zType="arrow_right"></z-icon>
           </div>
         </button>
 
         <div class="flex justify-start items-center">
-          <ngm-colors class="flex-1" [label]=" 'Story.ChartProperty.Colors' | translate: {Default: 'Colors'} "
+          <ngm-colors
+            class="flex-1"
+            [label]="'Story.ChartProperty.Colors' | translate: { Default: 'Colors' }"
             [options]="colorPalettes"
             [(ngModel)]="colors"
             (ngModelChange)="onColorsChange($event)"
-            (click)="$event.stopPropagation()">
+            (click)="$event.stopPropagation()"
+          >
           </ngm-colors>
         </div>
       </div>
@@ -120,12 +131,12 @@
     <!-- For analytical grid @todo move to analytical grid module -->
     @if (showMeasureGridBar()) {
       <div class="ngm-chart-property__card">
-        <mat-checkbox [(ngModel)]="bar">
+        <z-checkbox [(ngModel)]="bar">
           <div class="flex-1 flex items-center">
             <z-icon class="shrink-0" zType="sort"></z-icon>
-            <span>{{ 'Story.ChartProperty.BarChart' | translate: {Default: 'Bar Chart'} }}</span>
+            <span>{{ 'Story.ChartProperty.BarChart' | translate: { Default: 'Bar Chart' } }}</span>
           </div>
-        </mat-checkbox>
+        </z-checkbox>
       </div>
     }
     <!-- End -->
@@ -133,7 +144,7 @@
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
           <z-icon class="shrink-0" zSize="sm" zType="trending_flat"></z-icon>
-          <span>{{ 'Story.ChartProperty.ReferenceLine' | translate: {Default: 'Reference Line'} }}</span>
+          <span>{{ 'Story.ChartProperty.ReferenceLine' | translate: { Default: 'Reference Line' } }}</span>
         </label>
 
         <ngm-reference-line class="w-full text-sm" [(ngModel)]="referenceLines"></ngm-reference-line>
@@ -144,39 +155,35 @@
       <div class="ngm-chart-property__card">
         <label class="ngm-chart-property__card-title flex justify-start items-center px-2 py-1">
           <z-icon class="shrink-0" zSize="sm" zType="analytics"></z-icon>
-          <span>{{ 'Story.ChartProperty.ChartOptions' | translate: {Default: 'Chart Options'} }}</span>
+          <span>{{ 'Story.ChartProperty.ChartOptions' | translate: { Default: 'Chart Options' } }}</span>
         </label>
 
-        <ngm-chart-measure-form class="w-full text-sm"
-          [(ngModel)]="chartOptions"
-          [chartType]="_chartType()"
-        />
+        <ngm-chart-measure-form class="w-full text-sm" [(ngModel)]="chartOptions" [chartType]="_chartType()" />
       </div>
     }
   </div>
 </ngm-property-select>
 
-<mat-radio-group [(ngModel)]="palette" displayDensity="cosy">
+<z-radio-group [(ngModel)]="palette" displayDensity="cosy">
   <mat-menu #paletteMenu="matMenu" class="ngm-density__compact">
     <ng-template matMenuContent>
-      <button mat-menu-item disableRipple (click)="$event.stopPropagation();">
-        <mat-radio-button class="ngm-radio-button__property" [value]="null">
-          {{ 'Story.ChartProperty.None' | translate: {Default: 'None'} }}
-        </mat-radio-button>
+      <button mat-menu-item disableRipple (click)="$event.stopPropagation()">
+        <z-radio class="ngm-radio-button__property" [value]="null">
+          {{ 'Story.ChartProperty.None' | translate: { Default: 'None' } }}
+        </z-radio>
       </button>
-  
+
       <ng-container *ngFor="let group of interpolateGroups">
         <button mat-menu-item disableRipple disabled>
-          {{group.groupName}}
+          {{ group.groupName }}
         </button>
-  
-        <button mat-menu-item disableRipple *ngFor="let interpolate of group.values"
-          (click)="$event.stopPropagation();">
-          <mat-radio-button [value]="interpolate.name" class="ngm-radio-button__property flex-1 w-full">
+
+        <button mat-menu-item disableRipple *ngFor="let interpolate of group.values" (click)="$event.stopPropagation()">
+          <z-radio [value]="interpolate.name" class="ngm-radio-button__property flex-1 w-full">
             <ngm-chromatic-preview class="flex-1 w-full" [interpolate]="interpolate"></ngm-chromatic-preview>
-          </mat-radio-button>
+          </z-radio>
         </button>
       </ng-container>
     </ng-template>
   </mat-menu>
-</mat-radio-group>
+</z-radio-group>

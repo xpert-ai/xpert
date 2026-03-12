@@ -1,24 +1,33 @@
-<div class="ngm-modal-sidenav ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto p-4 group">
-  <div class="w-full flex justify-start items-center my-2 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<div
+  class="ngm-modal-sidenav ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto p-4 group"
+>
+  <div
+    class="w-full flex justify-start items-center my-2 cursor-move"
+    cdkDrag
+    cdkDragRootElement=".cdk-overlay-pane"
+    cdkDragHandle
+  >
     <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-xl pointer-events-none">
       {{ 'PAC.MODEL.CREATE_ENTITY.CREATE_ENTITY' | translate: { Default: 'Create Entity' } }}
     </span>
   </div>
 
-  <form class="flex-1 flex flex-col justify-start items-stretch"
-    [formGroup]="formGroup"
-    (ngSubmit)="onSubmit($event)"
-  >
-
+  <form class="flex-1 flex flex-col justify-start items-stretch" [formGroup]="formGroup" (ngSubmit)="onSubmit($event)">
     <div class="mx-2 my-4">
       <label for="entityType" class="mr-2">
         {{ 'PAC.MODEL.CREATE_ENTITY.TYPE' | translate: { Default: 'Type' } }}
       </label>
-      <mat-button-toggle-group name="entityType" formControlName="type" ngmAppearance="outline" color="accent" displayDensity="compact">
+      <mat-button-toggle-group
+        name="entityType"
+        formControlName="type"
+        ngmAppearance="outline"
+        color="accent"
+        displayDensity="compact"
+      >
         @for (type of types(); track type) {
           <mat-button-toggle [value]="type">
-            {{ ('PAC.MODEL.CREATE_ENTITY.' + type) | translate: { Default: type } }}
+            {{ 'PAC.MODEL.CREATE_ENTITY.' + type | translate: { Default: type } }}
           </mat-button-toggle>
         }
       </mat-button-toggle-group>
@@ -26,9 +35,9 @@
 
     <z-form-field appearance="fill" color="accent">
       <z-form-label>{{ 'PAC.MODEL.CREATE_ENTITY.NAME' | translate: { Default: 'Name' } }}</z-form-label>
-      <input z-input formControlName="name"/>
+      <input z-input formControlName="name" />
       @if (name.invalid) {
-        <z-form-message zType="error">{{getErrorMessage() | translate}}</z-form-message>
+        <z-form-message zType="error">{{ getErrorMessage() | translate }}</z-form-message>
       }
     </z-form-field>
 
@@ -39,22 +48,26 @@
 
     @if (expression) {
       <code>
-        {{expression}}
+        {{ expression }}
       </code>
     }
 
     @if (!expression && !hiddenTable && type.value !== SemanticModelEntityType.VirtualCube) {
       <z-form-field appearance="fill" color="accent">
         <z-form-label>{{ 'PAC.MODEL.CREATE_ENTITY.TABLE' | translate: { Default: 'Table' } }}</z-form-label>
-        <input [placeholder]=" 'PAC.MODEL.CREATE_ENTITY.PICK_ONE_TABLE' | translate: { Default: 'pick one table' } "
-              aria-label="Table"
-              z-input
-              [matAutocomplete]="auto"
-              formControlName="table"
-              >
+        <input
+          [placeholder]="'PAC.MODEL.CREATE_ENTITY.PICK_ONE_TABLE' | translate: { Default: 'pick one table' }"
+          aria-label="Table"
+          z-input
+          [matAutocomplete]="auto"
+          formControlName="table"
+        />
         <mat-autocomplete #auto="matAutocomplete" displayDensity="compact" class="ngm-density__compact">
           <mat-option *ngFor="let option of filteredTables | async" [value]="option.name">
-            <ngm-display-behaviour [option]="{value: option.name, label: option.label}" displayBehaviour="descriptionAndId"></ngm-display-behaviour>
+            <ngm-display-behaviour
+              [option]="{ value: option.name, label: option.label }"
+              displayBehaviour="descriptionAndId"
+            ></ngm-display-behaviour>
           </mat-option>
         </mat-autocomplete>
       </z-form-field>
@@ -62,12 +75,17 @@
 
     @if (type.value === SemanticModelEntityType.DIMENSION && factFields()?.length) {
       <z-form-field appearance="fill" color="accent">
-        <z-form-label>{{ 'PAC.MODEL.CREATE_ENTITY.ForeignKeyOfFact' | translate: { Default: 'Foreign key of fact table' } }}</z-form-label>
-        <input [placeholder]=" 'PAC.MODEL.CREATE_ENTITY.PickForeignKeyField' | translate: { Default: 'Pick foreign key field' } "
-               z-input
-               [matAutocomplete]="auto"
-               formControlName="foreignKey"
-               >
+        <z-form-label>{{
+          'PAC.MODEL.CREATE_ENTITY.ForeignKeyOfFact' | translate: { Default: 'Foreign key of fact table' }
+        }}</z-form-label>
+        <input
+          [placeholder]="
+            'PAC.MODEL.CREATE_ENTITY.PickForeignKeyField' | translate: { Default: 'Pick foreign key field' }
+          "
+          z-input
+          [matAutocomplete]="auto"
+          formControlName="foreignKey"
+        />
         <mat-autocomplete #auto="matAutocomplete" displayDensity="compact" class="ngm-density__compact">
           @for (option of factFields(); track option.value) {
             <mat-option [value]="option.value">
@@ -86,25 +104,29 @@
       <button z-button zType="secondary" (click)="cancel()">
         {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
-      <button z-button zType="default" color="accent" [disabled]="formGroup.invalid" (click)="apply()">
+      <button z-button zType="default" color="accent" [zDisabled]="formGroup.invalid" (click)="apply()">
         {{ 'PAC.ACTIONS.APPLY' | translate: { Default: 'Apply' } }}
       </button>
     </div>
   </div>
-  
 </div>
 
 <div class="min-w-[400px] relative flex flex-col">
   <div class="flex justify-start items-center gap-2 p-2">
     <div class="relative w-[160px]">
-      <i class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"></i>
-      <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
-        [placeholder]="'PAC.MODEL.Search' | translate: {Default: 'Search'}"
+      <i
+        class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"
+      ></i>
+      <input
+        class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
+        [placeholder]="'PAC.MODEL.Search' | translate: { Default: 'Search' }"
         [(ngModel)]="searchTerm"
-      >
+      />
       @if (searchTerm()) {
-        <i class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder hover:text-text-primary"
-          (click)="searchTerm.set('')"></i>
+        <i
+          class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder hover:text-text-primary"
+          (click)="searchTerm.set('')"
+        ></i>
       }
     </div>
     <button type="button" class="btn btn-secondary btn-medium" (click)="clearSelection()">
@@ -112,7 +134,7 @@
     </button>
   </div>
   @switch (type.value) {
-    @case(SemanticModelEntityType.CUBE) {
+    @case (SemanticModelEntityType.CUBE) {
       <div class="p-4 flex gap-4">
         <div class="flex-1">
           {{ 'PAC.MODEL.CREATE_ENTITY.Field' | translate: { Default: 'Field' } }}
@@ -123,22 +145,27 @@
         <div class="w-10 overflow-hidden text-ellipsis">
           {{ 'PAC.MODEL.CREATE_ENTITY.Dimension' | translate: { Default: 'Dimension' } }}
         </div>
-        <div class="" style="width: 150px;">
+        <div class="" style="width: 150px">
           {{ 'PAC.MODEL.CREATE_ENTITY.AssociatedDimension' | translate: { Default: 'Associated' } }}
         </div>
       </div>
-      <mat-list role="list" class="block overflow-auto">
+      <ul role="list" class="ngm-list block overflow-auto">
         @for (column of filteredColumns(); track column.name) {
-          <mat-list-item role="listitem" class="group rounded-lg">
+          <li role="listitem" class="group rounded-lg">
             <div class="flex items-center">
-              <ngm-display-behaviour class="flex-1 ml-4 overflow-hidden" [option]="{key: column.name, caption: column.caption}" displayBehaviour="descriptionAndId" [highlight]="searchTerm()" />
+              <ngm-display-behaviour
+                class="flex-1 ml-4 overflow-hidden"
+                [option]="{ key: column.name, caption: column.caption }"
+                displayBehaviour="descriptionAndId"
+                [highlight]="searchTerm()"
+              />
               <div class="mx-4 w-10 shrink-0 flex justify-center">
-                <mat-checkbox [(ngModel)]="column.isMeasure" (ngModelChange)="toggleMeasure($event, column)"/>
+                <z-checkbox [(ngModel)]="column.isMeasure" (ngModelChange)="toggleMeasure($event, column)" />
               </div>
               <div class="mx-4 w-10 shrink-0 flex justify-center">
-                <mat-checkbox [(ngModel)]="column.isDimension" (ngModelChange)="toggleDimension($event, column)"/>
+                <z-checkbox [(ngModel)]="column.isDimension" (ngModelChange)="toggleDimension($event, column)" />
               </div>
-              <div style="width: 140px;" class="shrink-0">
+              <div style="width: 140px" class="shrink-0">
                 @if (!column.isMeasure) {
                   <z-select
                     class="ngm-density__compact p-1"
@@ -151,23 +178,30 @@
                     </z-select-item>
                     @for (dimension of sharedDimensions(); track dimension.name) {
                       <z-select-item [zValue]="dimension.name">
-                        <ngm-display-behaviour class="flex-1" [option]="{key: dimension.name, caption: dimension.caption}" />
+                        <ngm-display-behaviour
+                          class="flex-1"
+                          [option]="{ key: dimension.name, caption: dimension.caption }"
+                        />
                       </z-select-item>
                     }
                   </z-select>
                 }
               </div>
             </div>
-          </mat-list-item>
+          </li>
         }
-      </mat-list>
+      </ul>
       @if (modelType === MODEL_TYPE.XMLA) {
         <div class="flex-1 w-full flex justify-center items-center gap-1">
           <i class="ri-information-2-line text-lg"></i>
-          {{ 'PAC.MODEL.XmlaSyncInfo' | translate: {Default: 'Dimensions and measures are automatically synchronized after creation'} }}
+          {{
+            'PAC.MODEL.XmlaSyncInfo'
+              | translate: { Default: 'Dimensions and measures are automatically synchronized after creation' }
+          }}
         </div>
       }
-    } @case(SemanticModelEntityType.DIMENSION) {
+    }
+    @case (SemanticModelEntityType.DIMENSION) {
       <div class="p-4 flex gap-4">
         <span class="w-12 text-center">
           {{ 'PAC.MODEL.CREATE_ENTITY.PrimaryKey' | translate: { Default: 'Key' } }}
@@ -175,7 +209,7 @@
         <span class="w-12">
           {{ 'PAC.MODEL.CREATE_ENTITY.Visible' | translate: { Default: 'Visible' } }}
         </span>
-  
+
         <span class="flex-1">
           {{ 'PAC.MODEL.CREATE_ENTITY.Caption' | translate: { Default: 'Caption' } }}
         </span>
@@ -184,41 +218,65 @@
         </span>
       </div>
       <div class="overflow-auto">
-        <mat-list role="list" cdkDropList (cdkDropListDropped)="drop($event)">
+        <ul role="list" class="ngm-list" cdkDropList (cdkDropListDropped)="drop($event)">
           @for (column of filteredColumns(); track column.name; let i = $index) {
-            <mat-list-item cdkDrag cdkDragLockAxis="y"
-              role="listitem" class="group rounded-lg">
+            <li cdkDrag cdkDragLockAxis="y" role="listitem" class="group rounded-lg">
               <div class="w-full h-full flex items-center">
-                <div class="flex justify-center items-center w-12 h-full group-hover:opacity-100"
-                  [class.opacity-0]="column.name !== primaryKey()">
-                  <input id="default-radio-{{i}}" type="radio" class="w-5 h-5 cursor-pointer text-orange-600 bg-gray-100 border-gray-300 dark:focus:ring-orange-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600 outline-none"
-                    [checked]="column.name === primaryKey()"
-                    (change)="primaryKey.set($event ? column.name : null)"
-                  >
-                  <label for="default-radio-{{i}}" class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300"></label>
+                <div
+                  class="flex justify-center items-center w-12 h-full group-hover:opacity-100"
+                  [class.opacity-0]="column.name !== primaryKey()"
+                >
+                  <input
+                    id="default-radio-{{ i }}"
+                    type="radio"
+                    class="w-5 h-5 cursor-pointer text-orange-600 bg-gray-100 border-gray-300 dark:focus:ring-orange-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600 outline-none"
+                    [ngModel]="column.name === primaryKey()"
+                    (checkChange)="primaryKey.set($event ? column.name : null)"
+                  />
+                  <label
+                    for="default-radio-{{ i }}"
+                    class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300"
+                  ></label>
                 </div>
-          
-                <z-icon class="ml-6 cursor-pointer group-hover:opacity-100" [class.opacity-0]="!column.visible"
-                  (click)="column.visible=!column.visible"
-                 [zType]="column.visible ? 'visibility' : 'visibility_off'"></z-icon>
-                <ngm-display-behaviour class="flex-1 ml-8 overflow-hidden" [option]="{key: column.name, caption: column.caption}"
+
+                <z-icon
+                  class="ml-6 cursor-pointer group-hover:opacity-100"
+                  [class.opacity-0]="!column.visible"
+                  (click)="column.visible = !column.visible"
+                  [zType]="column.visible ? 'visibility' : 'visibility_off'"
+                ></z-icon>
+                <ngm-display-behaviour
+                  class="flex-1 ml-8 overflow-hidden"
+                  [option]="{ key: column.name, caption: column.caption }"
                   [highlight]="searchTerm()"
                   displayBehaviour="descriptionAndId"
                 />
               </div>
-            </mat-list-item>
+            </li>
           }
-        </mat-list>
+        </ul>
       </div>
-    } @case(SemanticModelEntityType.VirtualCube) {
+    }
+    @case (SemanticModelEntityType.VirtualCube) {
       <div class="px-4 overflow-auto">
-        <mat-selection-list [compareWith]="compareWithCube" [(ngModel)]="cubes">
-          @for (cube of cubes$ | async; track cube.name) {
-            <mat-list-option class="rounded-lg" [value]="cube">
-              <ngm-display-behaviour class="flex-1" [option]="{key: cube.name, caption: cube.caption}" displayBehaviour="descriptionAndId" />
-            </mat-list-option>
+        <ul
+          class="ngm-cdk-listbox"
+          cdkListbox
+          [cdkListboxMultiple]="true"
+          [cdkListboxCompareWith]="compareWithCube"
+          [cdkListboxValue]="cubes"
+          (cdkListboxValueChange)="cubes = [...$event.value]"
+        >
+          @for (cube of listboxCubes(); track cube.name) {
+            <li class="ngm-cdk-option rounded-lg" [cdkOption]="cube">
+              <ngm-display-behaviour
+                class="flex-1"
+                [option]="{ key: cube.name, caption: cube.caption }"
+                displayBehaviour="descriptionAndId"
+              />
+            </li>
           }
-        </mat-selection-list>
+        </ul>
       </div>
     }
   }

@@ -1,7 +1,15 @@
 import { CommonModule } from '@angular/common'
 import { Component, Input, computed, effect, forwardRef, inject, input, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { ControlValueAccessor, FormControl, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule, Validators } from '@angular/forms'
+import {
+  ControlValueAccessor,
+  FormControl,
+  FormGroup,
+  FormsModule,
+  NG_VALUE_ACCESSOR,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { BusinessAreasService, NgmSemanticModel } from '@metad/cloud/state'
 import { CommandDialogComponent } from '@metad/copilot-angular'
@@ -11,21 +19,47 @@ import { DensityDirective, ISelectOption, NgmDSCoreService, NgmFieldAppearance }
 import { NgmCalculatedMeasureComponent } from '@metad/ocap-angular/entity'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { ISlicer, Indicator, IndicatorType, Syntax, getEntityDimensions, getEntityMeasures, isEntityType, isSemanticCalendar } from '@metad/ocap-core'
+import {
+  ISlicer,
+  Indicator,
+  IndicatorType,
+  Syntax,
+  getEntityDimensions,
+  getEntityMeasures,
+  isEntityType,
+  isSemanticCalendar
+} from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ISemanticModel, ITag, registerModel, TagCategoryEnum } from 'apps/cloud/src/app/@core'
 import { isEqual } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
-import { BehaviorSubject, EMPTY, catchError, combineLatest, debounceTime, distinctUntilChanged, filter, map, shareReplay, startWith, switchMap, tap } from 'rxjs'
+import {
+  BehaviorSubject,
+  EMPTY,
+  catchError,
+  combineLatest,
+  debounceTime,
+  distinctUntilChanged,
+  filter,
+  map,
+  shareReplay,
+  startWith,
+  switchMap,
+  tap
+} from 'rxjs'
 import { ProjectService } from '../../project.service'
 import { injectIndicatorFormulaCommand } from '../../copilot'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
 
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatRadioModule } from '@angular/material/radio'
 import { MatDatepickerModule } from '@angular/material/datepicker'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatCheckboxModule } from '@angular/material/checkbox'
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent
+} from '@xpert-ai/headless-ui'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '@cloud/app/@shared/indicator/'
 
 /**
@@ -36,7 +70,26 @@ import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '@cloud/app/@shar
   selector: 'pac-indicator-register-form',
   templateUrl: 'register-form.component.html',
   styleUrls: ['register-form.component.scss'],
-  imports: [CommonModule, TranslateModule, FormsModule, ReactiveFormsModule, ZardIconComponent, ZardButtonComponent, MatTooltipModule, MatRadioModule, ...ZardFormImports, MatDatepickerModule, ZardInputDirective, MatCheckboxModule, DensityDirective, NgmMatSelectComponent, NgmTreeSelectComponent, TagEditorComponent, NgmHierarchySelectComponent, NgmCalculatedMeasureComponent, NgmSelectionModule],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    FormsModule,
+    ReactiveFormsModule,
+    ZardIconComponent,
+    ZardButtonComponent,
+    MatTooltipModule,
+    ...ZardFormImports,
+    MatDatepickerModule,
+    ZardInputDirective,
+    ZardCheckboxComponent,
+    DensityDirective,
+    NgmMatSelectComponent,
+    NgmTreeSelectComponent,
+    TagEditorComponent,
+    NgmHierarchySelectComponent,
+    NgmCalculatedMeasureComponent,
+    NgmSelectionModule
+  ],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
@@ -179,7 +232,9 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
   public readonly measures$ = this.entityType$.pipe(
     map(getEntityMeasures),
     // filter myself
-    map((measures) => measures.filter((item) => item.name !== this.indicator().code && item.name !== this.indicator().name)),
+    map((measures) =>
+      measures.filter((item) => item.name !== this.indicator().code && item.name !== this.indicator().name)
+    ),
     map((items) => items.map((item) => ({ key: item.name, caption: item.caption })))
   )
   public readonly dimensions$ = this.entityType$.pipe(
@@ -235,7 +290,12 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
         const indicator = this.indicator()
         const semanticModel = this.semanticModel()
         if (semanticModel && indicator) {
-          const _indicator = {...indicator, visible: false, name: indicator.name?.trim() || '', code: indicator.code?.trim() || ''}
+          const _indicator = {
+            ...indicator,
+            visible: false,
+            name: indicator.name?.trim() || '',
+            code: indicator.code?.trim() || ''
+          }
           const indicators = [...semanticModel.indicators]
           const index = indicators.findIndex((item) => item.id === _indicator.id)
           if (index >= 0) {
@@ -257,7 +317,7 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
         }
       },
       { allowSignalWrites: true }
-    )      
+    )
   }
 
   writeValue(obj: any): void {

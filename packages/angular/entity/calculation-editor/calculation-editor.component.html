@@ -34,28 +34,28 @@
 
     <div class="flex-1 flex flex-col">
       <label id="ngm-radio-group__label my-2">{{ 'Ngm.Calculation.TYPE' | translate: {Default: "Type"} }}</label>
-      <mat-radio-group color="accent"
+      <z-radio-group color="accent"
         class="flex flex-col justify-start items-stretch mb-4"
         [formControl]="calculationType">
-        <mat-radio-button [value]="CALCULATION_TYPE.Calculated" class="p-2 rounded-lg hover:bg-white/20">
+        <z-radio [value]="CALCULATION_TYPE.Calculated" class="p-2 rounded-lg hover:bg-white/20">
           {{ 'Ngm.Calculation.CALCULATED_MEASURE' | translate: {Default: "Calculated Measure"} }}
-        </mat-radio-button>
-        <mat-radio-button [value]="CALCULATION_TYPE.Restricted" [disabled]="entitySyntax()!==SYNTAX.MDX" class="p-2 rounded-lg hover:bg-white/20">
+        </z-radio>
+        <z-radio [value]="CALCULATION_TYPE.Restricted" [disabled]="entitySyntax()!==SYNTAX.MDX" class="p-2 rounded-lg hover:bg-white/20">
           {{ 'Ngm.Calculation.RESTRICTED_MEASURE' | translate: {Default: "Restricted Measure"} }}
-        </mat-radio-button>
-        <mat-radio-button [value]="CALCULATION_TYPE.Variance" [disabled]="entitySyntax()!==SYNTAX.MDX" class="p-2 rounded-lg hover:bg-white/20">
+        </z-radio>
+        <z-radio [value]="CALCULATION_TYPE.Variance" [disabled]="entitySyntax()!==SYNTAX.MDX" class="p-2 rounded-lg hover:bg-white/20">
           {{ 'Ngm.Calculation.VARIANCE_MEASURE' | translate: {Default: "Variance Measure"} }}
-        </mat-radio-button>
-        <mat-radio-button [value]="CALCULATION_TYPE.Aggregation" [disabled]="entitySyntax()!==SYNTAX.MDX" class="p-2 rounded-lg hover:bg-white/20">
+        </z-radio>
+        <z-radio [value]="CALCULATION_TYPE.Aggregation" [disabled]="entitySyntax()!==SYNTAX.MDX" class="p-2 rounded-lg hover:bg-white/20">
           {{ 'Ngm.Calculation.ConditionalAggregation' | translate: {Default: "Conditional Aggregation"} }}
-        </mat-radio-button>
-        <mat-radio-button [value]="CALCULATION_TYPE.D2Measure" disabled class="p-2 rounded-lg hover:bg-white/20">
+        </z-radio>
+        <z-radio [value]="CALCULATION_TYPE.D2Measure" disabled class="p-2 rounded-lg hover:bg-white/20">
           {{ 'Ngm.Calculation.DIMENSION_TO_MEASURE' | translate: {Default: "Dimension to Measure"} }}
-        </mat-radio-button>
-        <mat-radio-button [value]="CALCULATION_TYPE.MeasureControl" class="p-2 rounded-lg hover:bg-white/20">
+        </z-radio>
+        <z-radio [value]="CALCULATION_TYPE.MeasureControl" class="p-2 rounded-lg hover:bg-white/20">
           {{ 'Ngm.Calculation.MEASURE_CONTROL' | translate: {Default: "Measure Control"} }}
-        </mat-radio-button>
-      </mat-radio-group>
+        </z-radio>
+      </z-radio-group>
       @if (calculationType.value === CALCULATION_TYPE.Calculated) {
         <div>
           <z-form-field class="w-full" appearance="fill" color="accent">

@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatCheckboxModule } from '@angular/material/checkbox'
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -17,7 +16,8 @@ import {
   ZardComboboxComponent,
   ZardIconComponent,
   ZardInputDirective,
-  provideZardIconAssets
+  provideZardIconAssets,
+  ZardCheckboxComponent
 } from '@xpert-ai/headless-ui'
 import { PACFormlyChartTypeComponent } from './chart-type.component'
 import { CHART_ICON_ASSETS } from './types'
@@ -35,7 +35,7 @@ import { CHART_ICON_ASSETS } from './types'
     MatMenuModule,
     MatDialogModule,
     ZardInputDirective,
-    MatCheckboxModule,
+    ZardCheckboxComponent,
     MatTooltipModule,
     MatButtonToggleModule,
     MonacoEditorModule,

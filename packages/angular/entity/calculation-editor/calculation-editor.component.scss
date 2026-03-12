@@ -7,8 +7,10 @@
   overflow: hidden;
   max-height: 90vh;
 
-  .mat-mdc-radio-group {
-    --mdc-radio-state-layer-size: 28px;
+  .z-radio-group {
+    .z-radio__item {
+      min-height: 28px;
+    }
   }
 }
 

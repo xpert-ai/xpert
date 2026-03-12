@@ -21,7 +21,6 @@ import { CubeEventType } from '../types'
 import { CubeVariableFormComponent } from '@cloud/app/@shared/model'
 
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { MatListModule } from '@angular/material/list'
 import { SQLTableSchema } from '@metad/ocap-sql'
 import { CreateEntityDialogRetType, ModelCreateEntityComponent, toDimension } from '../../create-entity/create-entity.component'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
@@ -50,7 +49,6 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     ZardButtonComponent,
     MatTooltipModule,
     ZardIconComponent,
-    MatListModule,
     NgmCommonModule,
     CdkMenuModule,
 

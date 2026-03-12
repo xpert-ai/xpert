@@ -1,76 +1,93 @@
-<div class="ngm-theme-dark dark w-[400px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
+<div
+  class="ngm-theme-dark dark w-[400px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group"
+>
   <div class="w-full flex justify-start items-center my-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-lg pointer-events-none">
-      {{ 'PAC.MODEL.CREATE_TABLE.TITLE' | translate: {Default: 'Create table'} }}
+      {{ 'PAC.MODEL.CREATE_TABLE.TITLE' | translate: { Default: 'Create table' } }}
     </span>
   </div>
 
   <mat-horizontal-stepper linear #stepper orientation="vertical" (selectionChange)="onStepChange($event)">
     <mat-step [stepControl]="form" errorMessage="File is required.">
-
       <ng-template matStepLabel>
-        {{ 'PAC.MODEL.CREATE_TABLE.AddFile' | translate: {Default: "Add File"} }}
+        {{ 'PAC.MODEL.CREATE_TABLE.AddFile' | translate: { Default: 'Add File' } }}
       </ng-template>
 
       <form [formGroup]="form" class="grid grid-cols-2 gap-x-4">
         <z-form-field class="col-span-2" appearance="fill" color="accent">
-          <z-form-label>{{ 'PAC.MODEL.CREATE_TABLE.Name' | translate: {Default: 'Name'} }}</z-form-label>
+          <z-form-label>{{ 'PAC.MODEL.CREATE_TABLE.Name' | translate: { Default: 'Name' } }}</z-form-label>
           <input z-input formControlName="name" />
-          <z-form-message zType="error" *ngIf="name.invalid">{{getErrorMessage()}}</z-form-message>
+          <z-form-message zType="error" *ngIf="name.invalid">{{ getErrorMessage() }}</z-form-message>
         </z-form-field>
 
         <z-form-field class="col-span-2" appearance="fill" color="accent">
-          <z-form-label>{{ 'PAC.MODEL.CREATE_TABLE.Type' | translate: {Default: 'Type'} }}</z-form-label>
-          <ngm-select formControlName="type" [selectOptions]="[
-            { value: 'csv', label: 'CSV' },
-            { value: 'json', label: 'JSON' },
-            { value: 'parquet', label: 'Parquet' },
-            { value: 'excel', label: 'Excel' }
-          ]" />
+          <z-form-label>{{ 'PAC.MODEL.CREATE_TABLE.Type' | translate: { Default: 'Type' } }}</z-form-label>
+          <ngm-select
+            formControlName="type"
+            [selectOptions]="[
+              { value: 'csv', label: 'CSV' },
+              { value: 'json', label: 'JSON' },
+              { value: 'parquet', label: 'Parquet' },
+              { value: 'excel', label: 'Excel' }
+            ]"
+          />
         </z-form-field>
 
         <ng-container *ngIf="type === 'csv'">
           <div class="flex items-center">
-            <mat-checkbox formControlName="header" >{{ 'PAC.MODEL.CREATE_TABLE.HasHeader' | translate: {Default: 'Has Header'} }}</mat-checkbox>
+            <z-checkbox formControlName="header">{{
+              'PAC.MODEL.CREATE_TABLE.HasHeader' | translate: { Default: 'Has Header' }
+            }}</z-checkbox>
           </div>
 
           <z-form-field *ngIf="type === 'csv'" appearance="fill" color="accent">
-            <z-form-label>{{ 'PAC.MODEL.CREATE_TABLE.Delimiter' | translate: {Default: 'Delimiter'} }}</z-form-label>
-            <input z-input formControlName="delimiter" [placeholder]=" 'PAC.MODEL.CREATE_TABLE.DefaultDelimiter' | translate: {Default: 'Default: ,'} "/>
+            <z-form-label>{{ 'PAC.MODEL.CREATE_TABLE.Delimiter' | translate: { Default: 'Delimiter' } }}</z-form-label>
+            <input
+              z-input
+              formControlName="delimiter"
+              [placeholder]="'PAC.MODEL.CREATE_TABLE.DefaultDelimiter' | translate: { Default: 'Default: ,' }"
+            />
           </z-form-field>
         </ng-container>
-    
+
         <z-form-field appearance="fill" color="accent" class="col-span-2">
-          <z-form-label>{{ 'PAC.MODEL.CREATE_TABLE.Url' | translate: {Default: 'Url'} }}</z-form-label>
+          <z-form-label>{{ 'PAC.MODEL.CREATE_TABLE.Url' | translate: { Default: 'Url' } }}</z-form-label>
           <input z-input formControlName="sourceUrl" />
         </z-form-field>
-    
       </form>
     </mat-step>
 
     <mat-step>
       <ng-template matStepLabel>
-        {{ 'PAC.MODEL.CREATE_TABLE.DataPreview' | translate: {Default: "Data Preview"} }}
+        {{ 'PAC.MODEL.CREATE_TABLE.DataPreview' | translate: { Default: 'Data Preview' } }}
       </ng-template>
 
-      <div *ngIf="error" class="ngm-card-error" style="position: relative;">
+      <div *ngIf="error" class="ngm-card-error" style="position: relative">
         <span class="title-icon font-notoColorEmoji">🐞</span>
         <span>
           {{ error }}
         </span>
       </div>
 
-      <mat-nav-list cdkTrapFocus cdkTrapFocusAutoCapture>
-        <mat-list-item *ngFor="let sheet of sheets$ | async" [class.active]="activeLink === sheet.name"
-          (click)="activeSheet(sheet)">
-          <span class="w-full p-2 ">
-            <input z-input [(ngModel)]="sheet.tableName" class="w-full "
-              [placeholder]=" 'PAC.MODEL.CREATE_TABLE.InputTableName' | translate: {Default: 'Input Table Name'} "
-              (keydown)="onKeyup($event)"/>
-          </span>
-        </mat-list-item>
-      </mat-nav-list>
+      <ul cdkTrapFocus cdkTrapFocusAutoCapture class="ngm-nav-list">
+        @for (sheet of sheets$ | async; track sheet.name) {
+          <li
+            [class.active]="activeLink === sheet.name"
+            (click)="activeSheet(sheet)"
+          >
+            <span class="block w-full p-2">
+              <input
+                z-input
+                [(ngModel)]="sheet.tableName"
+                class="w-full"
+                [placeholder]="'PAC.MODEL.CREATE_TABLE.InputTableName' | translate: { Default: 'Input Table Name' }"
+                (keydown)="onKeyup($event)"
+              />
+            </span>
+          </li>
+        }
+      </ul>
     </mat-step>
   </mat-horizontal-stepper>
 
@@ -78,14 +95,25 @@
 
   <div class="flex justify-start items-center">
     <div ngmButtonGroup>
-      <button z-button zType="default" color="accent" cdkFocusInitial [disabled]="stepper.selected?.stepControl?.invalid || error" (click)="onAppy()">
+      <button
+        z-button
+        zType="default"
+        color="accent"
+        cdkFocusInitial
+        [zDisabled]="stepper.selected?.stepControl?.invalid || error"
+        (click)="onAppy()"
+      >
         {{ 'COMPONENTS.COMMON.APPLY' | translate: { Default: 'Apply' } }}
       </button>
-      <button *ngIf="stepper.selectedIndex < 1 && type !== 'parquet' " z-button zType="default" color="accent"
-        [disabled]="stepper.selected?.stepControl?.invalid"
+      <button
+        *ngIf="stepper.selectedIndex < 1 && type !== 'parquet'"
+        z-button
+        zType="default"
+        color="accent"
+        [zDisabled]="stepper.selected?.stepControl?.invalid"
         (click)="stepper.next()"
       >
-        {{ 'PAC.ACTIONS.NEXT' | translate: {Default: "Next"} }}
+        {{ 'PAC.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
       </button>
 
       <button z-button zType="ghost" mat-dialog-close>
@@ -96,79 +124,113 @@
 </div>
 
 <div class="flex flex-col overflow-hidden relative">
-  <mat-progress-bar *ngIf="isLoading" mode="determinate" [value]="progress" color="accent" class="absolute w-full top-0 left-0" style="position: absolute;"></mat-progress-bar>
+  <mat-progress-bar
+    *ngIf="isLoading"
+    mode="determinate"
+    [value]="progress"
+    color="accent"
+    class="absolute w-full top-0 left-0"
+    style="position: absolute"
+  ></mat-progress-bar>
 
-  <div *ngIf="stepper.selectedIndex === 0" class="relative w-[600px] flex-1 flex m-4 border-2 border-gray-300 border-dashed rounded-lg 
-    bg-gray-50 dark:border-neutral-600 dark:bg-neutral-800"
-    ngmDnd (fileDropped)="onFileDropped($event)"
+  <div
+    *ngIf="stepper.selectedIndex === 0"
+    class="relative w-[600px] flex-1 flex m-4 border-2 border-gray-300 border-dashed rounded-lg bg-gray-50 dark:border-neutral-600 dark:bg-neutral-800"
+    ngmDnd
+    (fileDropped)="onFileDropped($event)"
   >
-    <input type="file" #fileDropRef id="fileDropRef" multiple class="invisible"
-      (change)="fileBrowseHandler($event.target)"
-      (click)="fileDropRef.value=null;"/>
+    <input
+      type="file"
+      #fileDropRef
+      id="fileDropRef"
+      multiple
+      class="invisible"
+      (checkChange)="fileBrowseHandler($event.target)"
+      (click)="fileDropRef.value = null"
+    />
     <div class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center">
       <svg width="100" height="100">
-        <circle cx="50" cy="50" r="40" fill="#80808050"/>
-        <rect x="25" y="48" width="50" height="4" fill="white"/>
-        <rect x="48" y="25" width="4" height="50" fill="white"/>
+        <circle cx="50" cy="50" r="40" fill="#80808050" />
+        <rect x="25" y="48" width="50" height="4" fill="white" />
+        <rect x="48" y="25" width="4" height="50" fill="white" />
       </svg>
 
       <p class="mb-2 text-sm text-gray-500 dark:text-gray-400">
-        {{ 'PAC.MODEL.CREATE_TABLE.DragandDropFile' | translate: {Default: 'Drag and drop to add file'} }}
+        {{ 'PAC.MODEL.CREATE_TABLE.DragandDropFile' | translate: { Default: 'Drag and drop to add file' } }}
       </p>
       <h3 class="text-sm text-gray-500 dark:text-gray-400">
-        {{ 'PAC.MODEL.CREATE_TABLE.Or' | translate: {Default: 'or'} }}
+        {{ 'PAC.MODEL.CREATE_TABLE.Or' | translate: { Default: 'or' } }}
       </h3>
-      
-	    <label for="fileDropRef" class="block text-sm text-slate-500
-        py-2 px-4
-        rounded-full border-0 font-semibold
-        bg-gray-100
-        hover:bg-bluegray-200
-        dark:bg-neutral-700 dark:text-neutral-200"
-        >
+
+      <label
+        for="fileDropRef"
+        class="block text-sm text-slate-500 py-2 px-4 rounded-full border-0 font-semibold bg-gray-100 hover:bg-bluegray-200 dark:bg-neutral-700 dark:text-neutral-200"
+      >
         <span class="sr-only">Choose a file</span>
         <span>
-          {{ 'PAC.MODEL.CREATE_TABLE.BrowseForFile' | translate: {Default: 'Browse for file'} }}
+          {{ 'PAC.MODEL.CREATE_TABLE.BrowseForFile' | translate: { Default: 'Browse for file' } }}
         </span>
       </label>
 
       <div *ngIf="storageFile" class="flex justify-end items-center">
-        {{storageFile.originalName}}
+        {{ storageFile.originalName }}
 
-        <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" (click)="removeStorageFile()">
-          <z-icon zType="close"></z-icon> 
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          ngmAppearance="danger"
+          displayDensity="cosy"
+          (click)="removeStorageFile()"
+        >
+          <z-icon zType="close"></z-icon>
         </button>
       </div>
     </div>
-    
   </div>
 
   <div *ngIf="stepper.selectedIndex === 1" class="flex min-w-[400px] overflow-hidden h-full">
-    <mat-progress-spinner *ngIf="isLoading" strokeWidth="2" color="accent" diameter="50" [value]="progress" class="ngm-card__loading" style="margin: auto;"></mat-progress-spinner>
+    <mat-progress-spinner
+      *ngIf="isLoading"
+      strokeWidth="2"
+      color="accent"
+      diameter="50"
+      [value]="progress"
+      class="ngm-card__loading"
+      style="margin: auto"
+    ></mat-progress-spinner>
     <div *ngFor="let sheet of activedSheets" class="flex w-full">
       <div class="w-full overflow-auto" displayDensity="compact">
         <table mat-table [dataSource]="sheet.preview" class="mat-elevation-z">
           <ng-container *ngFor="let header of sheet.columns" [matColumnDef]="header.name">
             <th mat-header-cell *matHeaderCellDef>
               <div class="p-2 flex flex-col justify-start items-start">
-                <ngm-select [(ngModel)]="header.type" class="ngm-select p-2" [selectOptions]="[
-                  { value: 'String', label: 'String' },
-                  { value: 'Number', label: 'Integer' },
-                  { value: 'Numeric', label: 'Numeric' },
-                  { value: 'Date', label: 'Date' }
-                ]" />
+                <ngm-select
+                  [(ngModel)]="header.type"
+                  class="ngm-select p-2"
+                  [selectOptions]="[
+                    { value: 'String', label: 'String' },
+                    { value: 'Number', label: 'Integer' },
+                    { value: 'Numeric', label: 'Numeric' },
+                    { value: 'Date', label: 'Date' }
+                  ]"
+                />
 
-                <input z-input [(ngModel)]="header.fieldName" class="ngm-input hover:bg-slate-100 dark:hover:bg-neutral-700" />
+                <input
+                  z-input
+                  [(ngModel)]="header.fieldName"
+                  class="ngm-input hover:bg-slate-100 dark:hover:bg-neutral-700"
+                />
               </div>
             </th>
-            <td mat-cell *matCellDef="let element"> {{element[header.name]}} </td>
+            <td mat-cell *matCellDef="let element">{{ element[header.name] }}</td>
           </ng-container>
-  
+
           <tr mat-header-row *matHeaderRowDef="sheet.displayedColumns; sticky: true" class="bg-gray-100"></tr>
-          <tr mat-row *matRowDef="let row; columns: sheet.displayedColumns;"></tr>
+          <tr mat-row *matRowDef="let row; columns: sheet.displayedColumns"></tr>
         </table>
       </div>
     </div>
-    
   </div>
 </div>

@@ -1,4 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
+import { CdkListboxModule } from '@angular/cdk/listbox'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, OnInit, inject, model, signal } from '@angular/core'
@@ -6,18 +7,16 @@ import { toObservable } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatListModule } from '@angular/material/list'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatRadioModule } from '@angular/material/radio'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
+import { ButtonGroupDirective, ISelectOption, mergeSelectedValues } from '@metad/ocap-angular/core'
 import { DSCoreService, nonNullable } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { catchError, combineLatestWith, distinctUntilChanged, filter, map, of, startWith, switchMap, tap } from 'rxjs'
 import { EntitySelectResultType } from '../types'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 export type EntitySelectDataType = {
   dataSources: ISelectOption<string>[]
@@ -38,11 +37,11 @@ export type EntitySelectDataType = {
     DragDropModule,
     TranslateModule,
     ScrollingModule,
+    CdkListboxModule,
     ZardButtonComponent,
+    ...ZardFormImports,
     MatDialogModule,
     ZardIconComponent,
-    MatRadioModule,
-    MatListModule,
     MatProgressSpinnerModule,
     MatTooltipModule,
 
@@ -102,13 +101,18 @@ export class NgmEntityDialogComponent implements OnInit {
           map((text) => text.trim().toLowerCase())
         )
       ),
-      map(([entities, text]) =>
-        text
+      map(([entities, text]) => {
+        const filteredEntities = text
           ? entities.filter(
               (item) => item.caption?.toLowerCase().includes(text) || item.key?.toLowerCase().includes(text)
             )
-          : entities
-      )
+          : [...entities]
+        const selectedEntities = (this.entities() ?? []).map((key) => {
+          return entities.find((item) => item.key === key) ?? ({ key, caption: key, value: { name: key } } as ISelectOption)
+        })
+
+        return mergeSelectedValues(filteredEntities, selectedEntities, (a, b) => a?.key === b?.key)
+      })
     )
     .subscribe((entities) => this.entitiesList.set(entities))
 
