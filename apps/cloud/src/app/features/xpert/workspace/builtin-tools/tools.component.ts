@@ -102,10 +102,19 @@ export class XpertWorkspaceBuiltinToolsComponent {
   })
 
   readonly #builtinToolProviders = derivedAsync(() => this.toolsetService.getProviders())
+  readonly #implementedBuiltinProviderNames = computed(
+    () =>
+      new Set(
+        this.#builtinToolProviders()
+          ?.filter((provider) => !provider.not_implemented)
+          .map((provider) => provider.name)
+      )
+  )
 
   readonly builtinToolProviders = computed(() => {
     const searchText = this.searchText()?.toLowerCase()
     return this.#builtinToolProviders()
+      ?.filter((provider) => !provider.not_implemented)
       ?.filter((provider) => {
         if (this.tags()?.length) {
           return this.tags().some((tag) => provider.tags?.some((_) => _ === tag.name))
@@ -132,9 +141,12 @@ export class XpertWorkspaceBuiltinToolsComponent {
       )
   })
 
-  readonly builtinToolsets = computed(() =>
-    this.toolsets()?.filter((_) => _.category === XpertToolsetCategoryEnum.BUILTIN)
-  )
+  readonly builtinToolsets = computed(() => {
+    const implementedProviderNames = this.#implementedBuiltinProviderNames()
+    return this.toolsets()?.filter(
+      (toolset) => toolset.category === XpertToolsetCategoryEnum.BUILTIN && implementedProviderNames.has(toolset.type)
+    )
+  })
 
   constructor() {
     //
