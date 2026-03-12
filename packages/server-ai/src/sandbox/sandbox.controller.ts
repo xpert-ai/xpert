@@ -1,6 +1,13 @@
 import { keepAlive, takeUntilClose } from '@metad/server-common'
 import { environment } from '@metad/server-config'
-import { GetDefaultTenantQuery, Public, RequestContext, TransformInterceptor } from '@metad/server-core'
+import {
+	GetDefaultTenantQuery,
+	Public,
+	RequestContext,
+	TransformInterceptor,
+	UploadFileCommand,
+	getFileAssetDestination
+} from '@metad/server-core'
 import {
 	Body,
 	Controller,
@@ -38,7 +45,7 @@ export class SandboxController {
 		private readonly i18n: I18nService,
 		private readonly commandBus: CommandBus,
 		private readonly queryBus: QueryBus,
-		private readonly conversationService: ChatConversationService,
+		private readonly conversationService: ChatConversationService
 	) {}
 
 	@Public()
@@ -122,13 +129,28 @@ export class SandboxController {
 			projectId: conversation.projectId
 		})
 
-		const targetFolder = path || ''
-		const filePath = join(targetFolder, file.originalname)
-		const url = await client.putFile(join(workspace, targetFolder), {
-			...file,
-			originalname: Buffer.from(file.originalname, 'latin1').toString('utf8')
-		})
-		return { url, filePath }
+		const asset = await this.commandBus.execute(
+			new UploadFileCommand({
+				source: {
+					kind: 'multipart',
+					file
+				},
+				targets: [
+					{
+						kind: 'sandbox',
+						mode: 'mounted_workspace',
+						workspacePath: client.getVolumePath(workspace),
+						workspaceUrl: client.getPublicUrl(workspace),
+						folder: path || ''
+					}
+				]
+			})
+		)
+		const destination = getFileAssetDestination(asset, 'sandbox')
+		if (!destination || destination.status !== 'success') {
+			throw new ForbiddenException(destination?.error || 'Failed to upload sandbox file')
+		}
+		return { url: destination.url, filePath: destination.path }
 	}
 
 	@Header('content-type', 'text/event-stream')
@@ -155,7 +177,7 @@ export class SandboxController {
 			tenantId: RequestContext.currentTenantId(),
 			userId,
 			projectId,
-			conversationId,
+			conversationId
 		})
 
 		return sandbox.shell

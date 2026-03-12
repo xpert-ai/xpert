@@ -29,6 +29,8 @@
                 "group": "Guides",
                 "pages": [
                   "en/guides/plugin",
+                  "en/guides/file-upload-architecture",
+                  "en/guides/minio-file-storage",
                   "en/guides/agent-middleware",
                   "en/guides/handoff",
                   "en/guides/icon-schema",
@@ -66,6 +68,8 @@
                 "group": "指南",
                 "pages": [
                   "zh-hans/guides/plugin",
+                  "zh-hans/guides/file-upload-architecture",
+                  "zh-hans/guides/minio-file-storage",
                   "zh-hans/guides/agent-middleware",
                   "zh-hans/guides/handoff",
                   "zh-hans/guides/icon-schema",

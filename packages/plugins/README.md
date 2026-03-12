@@ -1,26 +1,39 @@
 # Plugins
 
-How to generate a new plugin library, replace `my-plugin` with your plugin name and import path:
+How to generate a new plugin library, replacing `my-plugin` with your plugin name and import path:
 
 ```bash
 npx nx g @nx/js:lib packages/plugins/my-plugin --importPath=@xpert-ai/plugin-my-plugin --unitTestRunner=jest --publishable --bundler=rollup --linter=eslint
 ```
 
-- Add the corresponding build command `yarn nx build my-plugin` to `build:plugins` in *package.json*.
-- Add the corresponding build command `yarn nx build my-plugin` to `build:plugins` in *./.deploy/api/package.json*.
+## Build wiring
 
-- Add external dependencies in plugin's *project.json*:
+- Add `yarn nx build my-plugin` to `build:plugins` in the root `package.json`.
+- Add the same build command to the deployment package manifest if that environment builds plugins separately.
+
+## External dependencies
+
+Add external dependencies in the plugin's `project.json`:
 
 ```json
 "external": [
-    "@nestjs/common",
-    "@nestjs/core",
-    "@nestjs/microservices",
-    "kafkajs",
-    "amqplib",
-    "mqtt",
-    "nats"
+  "@nestjs/common",
+  "@nestjs/core"
 ]
 ```
 
-- Add *index.cjs* for plugin for local run.
+Add more entries for any runtime dependencies that must stay external.
+
+## Local runtime entry
+
+Add `index.cjs` for local plugin loading when needed.
+
+## Plugin configuration
+
+If your plugin needs installation-time or post-install configuration:
+
+1. define `config.schema` for validation
+2. optionally define `config.formSchema` for the frontend form
+3. read config through the host `PluginConfigResolver`
+
+When `config.formSchema` is present, the Installed Plugins page can render a `Configure` dialog automatically with `JSONSchemaFormComponent`.

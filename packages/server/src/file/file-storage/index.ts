@@ -1,0 +1,5 @@
+export * from './file-storage'
+export * from './file-storage.module'
+export * from './file-storage-registry.bridge'
+export * from './uploaded-file-storage'
+export * from './providers/index'

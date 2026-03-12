@@ -15,6 +15,8 @@ import {
 	Public,
 	RequestContext,
 	TransformInterceptor,
+	UploadFileCommand,
+	getFileAssetDestination,
 	UserPublicDTO
 } from '@metad/server-core'
 import {
@@ -211,18 +213,26 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	@Post(':id/file/upload')
 	@UseInterceptors(FileInterceptor('file'))
 	async uploadFile(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
-		const client = new VolumeClient({
-			tenantId: RequestContext.currentTenantId(),
-			userId: RequestContext.currentUserId(),
-			catalog: 'projects',
-			projectId: id
-		})
-
-		const url = await client.putFile('/', {
-			...file,
-			originalname: Buffer.from(file.originalname, 'latin1').toString('utf8')
-		})
-		return { url }
+		const asset = await this.commandBus.execute(
+			new UploadFileCommand({
+				source: {
+					kind: 'multipart',
+					file
+				},
+				targets: [
+					{
+						kind: 'volume',
+						catalog: 'projects',
+						projectId: id
+					}
+				]
+			})
+		)
+		const destination = getFileAssetDestination(asset, 'volume')
+		if (!destination || destination.status !== 'success') {
+			throw new BadRequestException(destination?.error || 'Failed to upload project file')
+		}
+		return { url: destination.url }
 	}
 
 	/**
@@ -269,23 +279,20 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	@UseGuards(XpertProjectGuard)
 	@Get(':id/vcs')
 	async getVCS(@Param('id') id: string): Promise<IXpertProjectVCS> {
-		const integration = await this.service.findOne(id, {relations: ['vcs']})
+		const integration = await this.service.findOne(id, { relations: ['vcs'] })
 		return integration.vcs
 	}
 
 	@UseGuards(XpertProjectGuard)
 	@Put(':id/vcs')
-	async updateVCS(
-		@Param('id') id: string,
-		@Body() entity: Partial<IXpertProjectVCS>
-	): Promise<IXpertProjectVCS> {
+	async updateVCS(@Param('id') id: string, @Body() entity: Partial<IXpertProjectVCS>): Promise<IXpertProjectVCS> {
 		return this.service.updateVCS(id, entity)
 	}
 
 	@Public()
 	@Get(':id/github-installation')
-	async GithubInstallation(@Param('id') id: string, @Res() res: Response,) {
-		const project = await this.service.findOne(id, {relations: ['vcs']})
+	async GithubInstallation(@Param('id') id: string, @Res() res: Response) {
+		const project = await this.service.findOne(id, { relations: ['vcs'] })
 		if (!project.vcs?.auth) {
 			throw new BadRequestException('User is not authorized to access this resource')
 		}
@@ -298,7 +305,7 @@ export class XpertProjectController extends CrudController<XpertProject> {
 	@UseGuards(XpertProjectGuard)
 	@Get(':id/github-installations')
 	async getGithubInstallations(@Param('id') id: string) {
-		const project = await this.service.findOne(id, {relations: ['vcs']})
+		const project = await this.service.findOne(id, { relations: ['vcs'] })
 		if (!project.vcs?.auth) {
 			throw new BadRequestException('User is not authorized to access this resource')
 		}

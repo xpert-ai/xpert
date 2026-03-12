@@ -17,12 +17,7 @@ import { IntegrationGithubModule } from '../integration-github'
 @Module({
 	imports: [
 		RouterModule.register([{ path: '/xpert-project', module: XpertProjectModule }]),
-		TypeOrmModule.forFeature([
-			XpertProject,
-			XpertProjectTask,
-			XpertProjectTaskStep,
-			XpertProjectTaskLog,
-		]),
+		TypeOrmModule.forFeature([XpertProject, XpertProjectTask, XpertProjectTaskStep, XpertProjectTaskLog]),
 		TenantModule,
 		CqrsModule,
 		IntegrationModule,
