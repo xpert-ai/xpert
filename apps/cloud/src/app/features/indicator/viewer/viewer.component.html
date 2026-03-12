@@ -48,7 +48,7 @@
 </nav>
 
 <div *ngIf="indicator() as indicator" class="flex-1 px-8 py-4 flex flex-col gap-4 overflow-auto">
-  <mat-card class="p-4 flex gap-4 text-lg">
+  <z-card class="p-4 flex gap-4 text-lg">
     <div class="flex gap-4 text-lg">
       <div class="text-right">{{ 'PAC.INDICATOR.REGISTER.NAME' | translate }}:</div>
       <div class="font-bold">
@@ -62,16 +62,16 @@
         <span class="font-mono">{{ indicator.code }}</span>
       </div>
     </div>
-  </mat-card>
+  </z-card>
 
-  <mat-card class="">
-    <mat-card-header>
-      <mat-card-title>{{
+  <z-card>
+    <z-card-header>
+      <z-card-title>{{
         'PAC.INDICATOR.VIEWER.BASIC_INFORMATION' | translate: { Default: 'Basic information' }
-      }}</mat-card-title>
-    </mat-card-header>
+      }}</z-card-title>
+    </z-card-header>
 
-    <mat-card-content>
+    <z-card-content>
       <div class="flex-1 grid grid-cols-4 gap-4">
         <div class="text-right">{{ 'PAC.INDICATOR.REGISTER.BUSINESS_AREA' | translate }}:</div>
         <div class="col-span-3">
@@ -135,17 +135,17 @@
           {{ indicator.business }}
         </div>
       </div>
-    </mat-card-content>
-  </mat-card>
+    </z-card-content>
+  </z-card>
 
-  <mat-card class="">
-    <mat-card-header>
-      <mat-card-title>{{
+  <z-card>
+    <z-card-header>
+      <z-card-title>{{
         'PAC.INDICATOR.VIEWER.MODEL_INFORMATION' | translate: { Default: 'Model information' }
-      }}</mat-card-title>
-    </mat-card-header>
+      }}</z-card-title>
+    </z-card-header>
 
-    <mat-card-content>
+    <z-card-content>
       <div class="flex-1 grid grid-cols-4 gap-4">
         <div class="text-right">{{ 'PAC.INDICATOR.REGISTER.MODEL' | translate }}:</div>
         <div class="col-span-3">
@@ -190,6 +190,6 @@
           <ngm-slicers [slicers]="indicator.options?.filters" [limit]="5"></ngm-slicers>
         </div>
       </div>
-    </mat-card-content>
-  </mat-card>
+    </z-card-content>
+  </z-card>
 </div>

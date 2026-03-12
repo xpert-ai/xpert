@@ -3,13 +3,13 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { NgModule } from '@angular/core'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatCardModule } from '@angular/material/card'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatNativeDateModule, MatRippleModule } from '@angular/material/core'
 import { MatDialogModule } from '@angular/material/dialog'
 import {
   ZardBadgeComponent,
   ZardButtonComponent,
+  ZardCardImports,
   ZardDividerComponent,
   ZardFormImports,
   ZardIconComponent,
@@ -46,10 +46,10 @@ const MATERIAL_MODULES = [
   MatButtonToggleModule,
   ...ZardFormImports,
   ...ZardTabsImports,
+  ...ZardCardImports,
   MatStepperModule,
   MatSnackBarModule,
   ZardInputDirective,
-  MatCardModule,
   MatSlideToggleModule,
   MatProgressBarModule,
   MatSidenavModule,

@@ -10,11 +10,6 @@
   $accent: map.get($config, accent);
 
   .pac-widget-accounting-statement {
-
-    .mat-card-header-text {
-      color: mat.m2-get-color-from-palette($foreground, secondary-text);
-    }
-
     .mat-table {
       background: transparent;
 

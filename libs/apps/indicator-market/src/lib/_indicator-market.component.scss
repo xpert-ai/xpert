@@ -11,7 +11,7 @@ $background-color: #090909;
 }
 
 .reverse-semantic-color {
-  .mat-card {
+  [data-slot='card'] {
     .Trend-Up {
       color: $trend-down;
     }

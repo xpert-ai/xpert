@@ -5,28 +5,28 @@
   </span>
 </div>
 
-<mat-card>
-  <mat-card-header>
+<z-card class="rounded-xl shadow-sm border-[0.5px] border-solid border-gray-200">
+  <z-card-header>
     <div class="flex items-center gap-2">
       <z-icon zSize="default" zType="settings"></z-icon>
       <span>{{ 'PAC.BUSINESS_AREA.BASIC' | translate: {Default: "Basic Info"} }}</span>
     </div>
-  </mat-card-header>
+  </z-card-header>
 
-  <mat-card-content>
+  <z-card-content>
     <pac-area-info-form />
-  </mat-card-content>
-</mat-card>
+  </z-card-content>
+</z-card>
 
-<mat-card>
-  <mat-card-header>
+<z-card class="rounded-xl shadow-sm border-[0.5px] border-solid border-gray-200">
+  <z-card-header>
     <div class="flex items-center gap-2">
       <z-icon zSize="default" zType="group_add"></z-icon>
       <span>{{ 'PAC.MENU.USERS' | translate: {Default: "Users"} }}</span>
     </div>
-  </mat-card-header>
+  </z-card-header>
 
-  <mat-card-content>
+  <z-card-content>
     <pac-area-users></pac-area-users>
-  </mat-card-content>
-</mat-card>
+  </z-card-content>
+</z-card>

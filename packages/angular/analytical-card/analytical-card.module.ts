@@ -3,7 +3,6 @@ import { NgModule } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatCardModule } from '@angular/material/card'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSelectionModule } from '@metad/ocap-angular/selection'
@@ -14,14 +13,14 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgxEchartsModule } from 'ngx-echarts'
 import { AnalyticalCardComponent } from './analytical-card.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardCardImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   imports: [
     CommonModule,
     FormsModule,
     CdkMenuModule,
-    MatCardModule,
+    ...ZardCardImports,
     ZardButtonComponent,
     ZardIconComponent,
     MatProgressSpinnerModule,

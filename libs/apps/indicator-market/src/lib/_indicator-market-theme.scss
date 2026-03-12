@@ -25,10 +25,6 @@
       padding: 0;
       height: var(--ngm-indicator-app-bottom-sheet-height);
       max-height: var(--ngm-indicator-app-bottom-sheet-height);
-
-      .mat-card {
-        box-shadow: unset;
-      }
     }
   }
 
@@ -38,26 +34,6 @@
   }
 
   .pac-indicator-detail {
-    .mat-mdc-card {
-      .mat-mdc-card-header-text {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        align-items: flex-start;
-        overflow: hidden;
-        white-space: nowrap;
-        text-overflow: ellipsis;
-
-        .mat-mdc-card-title {
-          @apply text-lg font-bold overflow-hidden text-ellipsis max-w-full;
-        }
-
-        .mat-mdc-card-subtitle {
-          @apply text-base overflow-hidden text-ellipsis max-w-full mb-2;
-        }
-      }
-    }
-
     .ngm-analytical-card {
       .ngm-card-header {
         white-space: nowrap;
@@ -80,20 +56,6 @@ $density-cosy: 12px;
         padding: 0 $density-cosy;
       }
     }
-
-    pac-indicator-detail {
-      .mat-mdc-card {
-        .mat-mdc-card-header-text {
-          .mat-mdc-card-title {
-            margin: 0;
-          }
-          .mat-mdc-card-subtitle {
-            margin: 0;
-          }
-        }
-      }
-    }
-
     .pac-indicator-market__infinite-container {
       .mat-mdc-list-item {
         --mdc-list-list-item-one-line-container-height: 70px;
@@ -109,13 +71,6 @@ $density-cosy: 12px;
     }
   }
 
-  pac-indicator-detail {
-    .mat-mdc-card {
-      .mat-mdc-card-header-text {
-        margin: 0;
-      }
-    }
-  }
 }
 
 @mixin theme($theme) {

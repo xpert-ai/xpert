@@ -6,12 +6,12 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatBottomSheetModule } from '@angular/material/bottom-sheet'
 
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatCardModule } from '@angular/material/card'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatRippleModule } from '@angular/material/core'
 import { MatDatepickerModule } from '@angular/material/datepicker'
 import {
   ZardButtonComponent,
+  ZardCardImports,
   ZardDividerComponent,
   ZardIconComponent,
   ZardInputDirective,
@@ -59,7 +59,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
     CdkMenuModule,
     ZardDividerComponent,
     MatListModule,
-    MatCardModule,
+    ...ZardCardImports,
     ZardCheckboxComponent,
     ZardButtonComponent,
     ZardIconComponent,

@@ -130,12 +130,12 @@
                   (backdropClick)="column.isFilterOpen = false"
                 >
                   @if (subscribeColumnMembers(column) | async; as members) {
-                    <mat-card class="ngm-analytical-grid__filtering-card" [displayDensity]="appearance?.displayDensity">
-                      <mat-card-title class="text-lg p-2">
+                    <z-card class="ngm-analytical-grid__filtering-card" [displayDensity]="appearance?.displayDensity">
+                      <z-card-title class="p-2" [ngClass]="appearance?.displayDensity === 'cosy' ? 'text-base' : 'text-lg'">
                         <ngm-display-behaviour
                           [option]="{ value: column.name, label: column.caption }"
                         ></ngm-display-behaviour>
-                      </mat-card-title>
+                      </z-card-title>
                       <div class="flex flex-col justify-start items-stretch gap-1 px-2">
                         <div>{{ 'Ngm.AnalyticalGrid.SORT' | translate: { Default: 'SORT' } }}</div>
                         <div class="flex justify-between items-center">
@@ -266,7 +266,7 @@
                           </button>
                         </div>
                       </div>
-                    </mat-card>
+                    </z-card>
                   }
                 </ng-template>
               </th>

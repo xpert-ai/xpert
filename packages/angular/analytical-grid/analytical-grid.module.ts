@@ -5,9 +5,9 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MatCardModule } from '@angular/material/card'
 import {
   ZardButtonComponent,
+  ZardCardImports,
   ZardDividerComponent,
   ZardFormImports,
   ZardIconComponent,
@@ -43,7 +43,7 @@ import { AnalyticalGridComponent } from './analytical-grid.component'
     MatTooltipModule,
     MatSortModule,
     OverlayModule,
-    MatCardModule,
+    ...ZardCardImports,
     CdkListboxModule,
     ...ZardFormImports,
     ZardInputDirective,
