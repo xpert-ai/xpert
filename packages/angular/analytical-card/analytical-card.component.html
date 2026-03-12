@@ -6,20 +6,20 @@
 
       <ng-content></ng-content>
     @if (chartSettings()?.chartTypes?.length) {
-      <mat-button-toggle-group displayDensity="compact" ngmAppearance="color" color="primary"
+      <z-toggle-group displayDensity="compact" ngmAppearance="color" color="primary"
         [(ngModel)]="chartType"  
       >
         @if (_dataSettings()?.chartAnnotation?.chartType) {
-          <mat-button-toggle [value]="_dataSettings().chartAnnotation.chartType">
+          <z-toggle-group-item [value]="_dataSettings().chartAnnotation.chartType">
             {{ _dataSettings().chartAnnotation.chartType.name || _dataSettings().chartAnnotation.chartType.type }}
-          </mat-button-toggle>
+          </z-toggle-group-item>
         }
         @for (chartType of chartSettings().chartTypes; track $index) {
-          <mat-button-toggle [value]="chartType">
+          <z-toggle-group-item [value]="chartType">
             {{ chartType?.name || chartType?.type }}
-          </mat-button-toggle>
+          </z-toggle-group-item>
         }
-      </mat-button-toggle-group>
+      </z-toggle-group>
     }
     </div>
 

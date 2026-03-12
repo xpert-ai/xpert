@@ -2,7 +2,6 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -17,7 +16,9 @@ import {
   ZardIconComponent,
   ZardInputDirective,
   provideZardIconAssets,
-  ZardCheckboxComponent
+  ZardCheckboxComponent,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent
 } from '@xpert-ai/headless-ui'
 import { PACFormlyChartTypeComponent } from './chart-type.component'
 import { CHART_ICON_ASSETS } from './types'
@@ -37,7 +38,8 @@ import { CHART_ICON_ASSETS } from './types'
     ZardInputDirective,
     ZardCheckboxComponent,
     MatTooltipModule,
-    MatButtonToggleModule,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent,
     MonacoEditorModule,
     TranslateModule,
     ButtonGroupDirective,

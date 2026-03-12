@@ -18,21 +18,20 @@
     </label>
 
     <div class="w-2/3 flex justify-start items-center">
-        <mat-button-toggle-group ngmAppearance="outline" displayDensity="compact" color="accent"
-            [(ngModel)]="textAlign">
-            <mat-button-toggle value="left">
+        <z-toggle-group ngmAppearance="outline" displayDensity="compact" color="accent" [(ngModel)]="textAlign">
+            <z-toggle-group-item value="left">
                 <z-icon zSize="sm" zType="format_align_left"></z-icon>
-            </mat-button-toggle>
-            <mat-button-toggle value="center">
+            </z-toggle-group-item>
+            <z-toggle-group-item value="center">
                 <z-icon zSize="sm" zType="format_align_center"></z-icon>
-            </mat-button-toggle>
-            <mat-button-toggle value="right">
+            </z-toggle-group-item>
+            <z-toggle-group-item value="right">
                 <z-icon zSize="sm" zType="format_align_right"></z-icon>
-            </mat-button-toggle>
-            <mat-button-toggle value="justify">
+            </z-toggle-group-item>
+            <z-toggle-group-item value="justify">
                 <z-icon zSize="sm" zType="format_align_justify"></z-icon>
-            </mat-button-toggle>
-        </mat-button-toggle-group>
+            </z-toggle-group-item>
+        </z-toggle-group>
     </div>
     
 </div>

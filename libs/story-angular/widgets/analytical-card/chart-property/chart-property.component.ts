@@ -2,8 +2,6 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, forwardRef, inject, input, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatMenuModule } from '@angular/material/menu'
 import { NgmColorsComponent } from '@metad/components/form-field'
 import {
@@ -47,7 +45,6 @@ import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardCheckboxCo
     ...ZardFormImports,
     MatMenuModule,
     ZardCheckboxComponent,
-    MatButtonToggleModule,
     TranslateModule,
 
     NxDesignerModule,

@@ -2,7 +2,6 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { NgModule } from '@angular/core'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatNativeDateModule, MatRippleModule } from '@angular/material/core'
 import { MatDialogModule } from '@angular/material/dialog'
@@ -43,7 +42,6 @@ const MATERIAL_MODULES = [
   MatDialogModule,
   MatToolbarModule,
   ZardButtonComponent,
-  MatButtonToggleModule,
   ...ZardFormImports,
   ...ZardTabsImports,
   ...ZardCardImports,

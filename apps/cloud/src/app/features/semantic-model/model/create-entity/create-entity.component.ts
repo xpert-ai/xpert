@@ -20,8 +20,6 @@ import { uuid } from '@cloud/app/@core'
 import { debouncedSignal, ISelectOption } from '@metad/ocap-angular/core'
 import { CommonModule } from '@angular/common'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import {
   ZardButtonComponent,
   ZardFormImports,
@@ -93,7 +91,6 @@ export type CreateEntityDialogRetType = {
     ReactiveFormsModule,
     ZardIconComponent,
     ZardButtonComponent,
-    MatButtonToggleModule,
     ...ZardFormImports,
     ZardInputDirective,
     ...ZardSelectImports,

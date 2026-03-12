@@ -7,6 +7,7 @@ import {
   ZardFormSuffixDirective,
 } from './form.component';
 import { ZardRadioComponent, ZardRadioGroupComponent } from '../radio';
+import { ZardToggleGroupComponent, ZardToggleGroupItemComponent } from '../toggle-group';
 
 export const ZardFormImports = [
   ZardFormFieldComponent,
@@ -17,4 +18,6 @@ export const ZardFormImports = [
   ZardFormSuffixDirective,
   ZardRadioComponent,
   ZardRadioGroupComponent,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent,
 ] as const;

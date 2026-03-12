@@ -18,7 +18,7 @@
       <label for="entityType" class="mr-2">
         {{ 'PAC.MODEL.CREATE_ENTITY.TYPE' | translate: { Default: 'Type' } }}
       </label>
-      <mat-button-toggle-group
+      <z-toggle-group
         name="entityType"
         formControlName="type"
         ngmAppearance="outline"
@@ -26,11 +26,11 @@
         displayDensity="compact"
       >
         @for (type of types(); track type) {
-          <mat-button-toggle [value]="type">
+          <z-toggle-group-item [value]="type">
             {{ 'PAC.MODEL.CREATE_ENTITY.' + type | translate: { Default: type } }}
-          </mat-button-toggle>
+          </z-toggle-group-item>
         }
-      </mat-button-toggle-group>
+      </z-toggle-group>
     </div>
 
     <z-form-field appearance="fill" color="accent">

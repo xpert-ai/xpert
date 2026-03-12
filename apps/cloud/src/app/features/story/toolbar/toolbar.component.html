@@ -317,17 +317,17 @@
     </div>
 
     <div class="w-full flex justify-center items-center">
-        <mat-button-toggle-group ngmAppearance="outline" displayDensity="compact" color="accent"
+        <z-toggle-group ngmAppearance="outline" displayDensity="compact" color="accent"
             [ngModel]="orientation"
             (ngModelChange)="toggleOrientation($event)"
         >
-            <mat-button-toggle [value]="DeviceOrientation.landscape">
+            <z-toggle-group-item [value]="DeviceOrientation.landscape">
                 <z-icon zSize="sm" zType="stay_primary_landscape"></z-icon>
-            </mat-button-toggle>
-            <mat-button-toggle [value]="DeviceOrientation.portrait">
+            </z-toggle-group-item>
+            <z-toggle-group-item [value]="DeviceOrientation.portrait">
                 <z-icon zSize="sm" zType="stay_primary_portrait"></z-icon>
-            </mat-button-toggle>
-        </mat-button-toggle-group>
+            </z-toggle-group-item>
+        </z-toggle-group>
     </div>
 
     <ng-container *ngIf="emulatedDevice?.isFold">

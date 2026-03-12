@@ -230,17 +230,17 @@
   </label>
 
   <div class="w-2/3 flex justify-start items-center">
-    <mat-button-toggle-group
+    <z-toggle-group
       name="borderStyle"
       [formControl]="borderStyle"
       ngmAppearance="outline"
       displayDensity="compact"
       color="accent"
     >
-      <mat-button-toggle value="solid"> solid </mat-button-toggle>
-      <mat-button-toggle value="dashed"> dashed </mat-button-toggle>
-      <mat-button-toggle value="dotted"> dotted </mat-button-toggle>
-    </mat-button-toggle-group>
+      <z-toggle-group-item value="solid"> solid </z-toggle-group-item>
+      <z-toggle-group-item value="dashed"> dashed </z-toggle-group-item>
+      <z-toggle-group-item value="dotted"> dotted </z-toggle-group-item>
+    </z-toggle-group>
   </div>
 </div>
 

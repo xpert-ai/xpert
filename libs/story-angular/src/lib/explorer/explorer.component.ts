@@ -3,9 +3,14 @@ import { CommonModule } from '@angular/common'
 import { Component, ElementRef, EventEmitter, HostBinding, Input, Output, TemplateRef, ViewChild, computed, effect, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardDividerComponent,
+  ZardIconComponent,
+  ZardTabsImports,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent
+} from '@xpert-ai/headless-ui'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { nonBlank } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
@@ -62,10 +67,11 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
     TranslateModule,
     CdkListboxModule,
     ZardButtonComponent,
-    MatButtonToggleModule,
     ZardDividerComponent,
     MatTooltipModule,
     ZardIconComponent,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent,
     ...ZardTabsImports,
     DragDropModule,
     OcapCoreModule,

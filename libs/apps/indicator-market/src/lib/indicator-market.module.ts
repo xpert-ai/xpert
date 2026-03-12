@@ -4,8 +4,6 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatBottomSheetModule } from '@angular/material/bottom-sheet'
-
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatRippleModule } from '@angular/material/core'
 import { MatDatepickerModule } from '@angular/material/datepicker'
@@ -15,7 +13,9 @@ import {
   ZardDividerComponent,
   ZardIconComponent,
   ZardInputDirective,
-  ZardCheckboxComponent
+  ZardCheckboxComponent,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent
 } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
@@ -66,12 +66,13 @@ import { MatTooltipModule } from '@angular/material/tooltip'
     MatRippleModule,
     MatMenuModule,
     MatBottomSheetModule,
-    MatButtonToggleModule,
     MatDatepickerModule,
     MatSliderModule,
     MatChipsModule,
     ZardInputDirective,
     MatTooltipModule,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent,
     MarkdownModule,
     AppearanceDirective,
     ReversePipe,

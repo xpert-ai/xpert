@@ -5,15 +5,15 @@
 
   <div>
     <label>{{ 'PAC.MODEL.AccessControl.DefaultAccess' | translate: {Default: 'Default Access'} }}: </label>
-    <mat-button-toggle-group name="access" displayDensity="compact" ngmAppearance="outline" color="accent"
+    <z-toggle-group name="access" displayDensity="compact" ngmAppearance="outline" color="accent"
       [ngModel]="schemaGrantAccess$ | async"
       (change)="changeAccess($event)"
       (click)="$event.stopPropagation()">
-      <mat-button-toggle [value]="Access.all">{{ 'PAC.MODEL.AccessControl.Access_all' | translate: {Default: 'All'} }}</mat-button-toggle>
-      <mat-button-toggle [value]="Access.all_dimensions">{{ 'PAC.MODEL.AccessControl.Access_all_dimensions' | translate: {Default: 'All Dimensions'} }}</mat-button-toggle>
-      <!-- <mat-button-toggle [value]="Access.custom">{{ 'PAC.MODEL.AccessControl.Access_custom' | translate: {Default: 'Custom'} }}</mat-button-toggle> -->
-      <mat-button-toggle [value]="Access.none">{{ 'PAC.MODEL.AccessControl.Access_none' | translate: {Default: 'None'} }}</mat-button-toggle>
-    </mat-button-toggle-group>
+      <z-toggle-group-item [value]="Access.all">{{ 'PAC.MODEL.AccessControl.Access_all' | translate: {Default: 'All'} }}</z-toggle-group-item>
+      <z-toggle-group-item [value]="Access.all_dimensions">{{ 'PAC.MODEL.AccessControl.Access_all_dimensions' | translate: {Default: 'All Dimensions'} }}</z-toggle-group-item>
+      <!-- <z-toggle-group-item [value]="Access.custom">{{ 'PAC.MODEL.AccessControl.Access_custom' | translate: {Default: 'Custom'} }}</z-toggle-group-item> -->
+      <z-toggle-group-item [value]="Access.none">{{ 'PAC.MODEL.AccessControl.Access_none' | translate: {Default: 'None'} }}</z-toggle-group-item>
+    </z-toggle-group>
   </div>
 </ng-container>
 

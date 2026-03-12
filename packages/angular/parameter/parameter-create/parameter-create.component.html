@@ -78,17 +78,17 @@
     <div class="flex flex-col justify-start items-start gap-8 p-4">
       <div class="flex flex-col justify-start items-start gap-2">
         <label>{{ 'Ngm.Property.ValueType' | translate: { Default: 'Value Type' } }}</label>
-        <mat-button-toggle-group
+        <z-toggle-group
           displayDensity="compact"
           ngmAppearance="outline"
           color="accent"
           [formControl]="dataType"
         >
-          <mat-button-toggle disableRipple value="number">Number</mat-button-toggle>
-          <mat-button-toggle disableRipple value="string">String</mat-button-toggle>
-          <mat-button-toggle disableRipple value="boolean">Boolean</mat-button-toggle>
-          <mat-button-toggle disableRipple value="date">Date</mat-button-toggle>
-        </mat-button-toggle-group>
+          <z-toggle-group-item value="number">Number</z-toggle-group-item>
+          <z-toggle-group-item value="string">String</z-toggle-group-item>
+          <z-toggle-group-item value="boolean">Boolean</z-toggle-group-item>
+          <z-toggle-group-item value="date">Date</z-toggle-group-item>
+        </z-toggle-group>
       </div>
 
       <ngm-input

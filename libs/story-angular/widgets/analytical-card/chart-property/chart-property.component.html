@@ -25,11 +25,11 @@
           <span>{{ 'Story.ChartProperty.Role' | translate: { Default: 'Role' } }}</span>
         </label>
 
-        <mat-button-toggle-group [(ngModel)]="role" ngmAppearance="hero" color="accent" class="self-start">
-          <mat-button-toggle *ngFor="let role of DIMENSION_ROLES" [value]="role.value">
+        <z-toggle-group [(ngModel)]="role" ngmAppearance="hero" color="accent" class="self-start max-w-full flex-wrap">
+          <z-toggle-group-item *ngFor="let role of DIMENSION_ROLES" [value]="role.value">
             {{ 'Story.ChartProperty.' + role.label | translate: { Default: role.label } }}
-          </mat-button-toggle>
-        </mat-button-toggle-group>
+          </z-toggle-group-item>
+        </z-toggle-group>
       </div>
 
       <div class="ngm-chart-property__card">
@@ -48,11 +48,11 @@
           <span>{{ 'Story.ChartProperty.Role' | translate: { Default: 'Role' } }}</span>
         </label>
 
-        <mat-button-toggle-group [(ngModel)]="role" ngmAppearance="hero" color="accent" class="self-start">
-          <mat-button-toggle *ngFor="let role of MEASURE_ROLES" [value]="role.value">
+        <z-toggle-group [(ngModel)]="role" ngmAppearance="hero" color="accent" class="self-start max-w-full flex-wrap">
+          <z-toggle-group-item *ngFor="let role of MEASURE_ROLES" [value]="role.value">
             {{ 'Story.ChartProperty.' + role.label | translate: { Default: role.label } }}
-          </mat-button-toggle>
-        </mat-button-toggle-group>
+          </z-toggle-group-item>
+        </z-toggle-group>
       </div>
     }
 
@@ -63,14 +63,14 @@
           <span>{{ 'Story.ChartProperty.Shape' | translate: { Default: 'Shape' } }}...</span>
         </label>
 
-        <mat-button-toggle-group [(ngModel)]="shapeType" ngmAppearance="hero" color="accent" class="self-start">
-          <mat-button-toggle [value]="null">
+        <z-toggle-group [(ngModel)]="shapeType" ngmAppearance="hero" color="accent" class="self-start max-w-full flex-wrap">
+          <z-toggle-group-item [value]="null">
             {{ 'Story.ChartProperty.None' | translate: { Default: 'None' } }}
-          </mat-button-toggle>
-          <mat-button-toggle *ngFor="let shape of SHAPE_TYPES" [value]="shape.value">
+          </z-toggle-group-item>
+          <z-toggle-group-item *ngFor="let shape of SHAPE_TYPES" [value]="shape.value">
             {{ 'Story.ChartProperty.' + shape.label | translate: { Default: shape.label } }}
-          </mat-button-toggle>
-        </mat-button-toggle-group>
+          </z-toggle-group-item>
+        </z-toggle-group>
       </div>
     }
     @if (showMeasurePalettePattern()) {
@@ -80,14 +80,14 @@
           <span>{{ 'Story.ChartProperty.Pattern' | translate: { Default: 'Pattern' } }}</span>
         </label>
 
-        <mat-button-toggle-group [(ngModel)]="pattern" ngmAppearance="hero" color="accent" class="self-start">
-          <mat-button-toggle [value]="null">
+        <z-toggle-group [(ngModel)]="pattern" ngmAppearance="hero" color="accent" class="self-start max-w-full flex-wrap">
+          <z-toggle-group-item [value]="null">
             {{ 'Story.ChartProperty.None' | translate: { Default: 'None' } }}
-          </mat-button-toggle>
-          <mat-button-toggle *ngFor="let item of PATTERNS" [value]="item.value">
+          </z-toggle-group-item>
+          <z-toggle-group-item *ngFor="let item of PATTERNS" [value]="item.value">
             {{ item.label }}
-          </mat-button-toggle>
-        </mat-button-toggle-group>
+          </z-toggle-group-item>
+        </z-toggle-group>
       </div>
     }
 

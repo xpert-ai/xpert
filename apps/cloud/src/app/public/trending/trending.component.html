@@ -27,14 +27,14 @@
       <div>
         {{ 'PAC.KEY_WORDS.SortBy' | translate: {Default: 'Sort By'} }}:
       </div>
-      <mat-button-toggle-group [(ngModel)]="orderType" ngmAppearance="outline" color="accent" >
-        <mat-button-toggle value="visits">
+      <z-toggle-group [(ngModel)]="orderType" ngmAppearance="outline" color="accent">
+        <z-toggle-group-item value="visits">
           {{ 'PAC.KEY_WORDS.Visits' | translate: {Default: 'Visits'} }}
-        </mat-button-toggle>
-        <mat-button-toggle value="update">
+        </z-toggle-group-item>
+        <z-toggle-group-item value="update">
           {{ 'PAC.KEY_WORDS.UpdatedDate' | translate: {Default: 'Updated Date'} }}
-        </mat-button-toggle>
-      </mat-button-toggle-group>
+        </z-toggle-group-item>
+      </z-toggle-group>
       <ngm-search [formControl]="searchControl"></ngm-search>
     </div>
   </div>

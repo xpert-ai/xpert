@@ -38,29 +38,29 @@
                         <span class="whitespace-nowrap hidden md:inline-block">
                             {{ 'PAC.MODEL.AccessControl.RollupPolicy' | translate: {Default: 'Rollup Policy'} }}:
                         </span>
-                        <mat-button-toggle-group name="rollupPolicy" displayDensity="compact" ngmAppearance="color" color="primary"
+                        <z-toggle-group name="rollupPolicy" displayDensity="compact" ngmAppearance="color" color="primary"
                             [disabled]="hierarchyGrant.access===Access.none"
                             [ngModel]="hierarchyGrant.rollupPolicy"
                             (change)="changeRollupPolicy($event, hierarchyGrant.hierarchy)"
                             (click)="$event.stopPropagation()">
-                            <mat-button-toggle [value]="RollupPolicy.full">{{ 'PAC.MODEL.AccessControl.RollupPolicy_full' | translate: {Default: 'Full'} }}</mat-button-toggle>
-                            <mat-button-toggle [value]="RollupPolicy.partial">{{ 'PAC.MODEL.AccessControl.RollupPolicy_partial' | translate: {Default: 'Partial'} }}</mat-button-toggle>
-                            <mat-button-toggle [value]="RollupPolicy.hidden">{{ 'PAC.MODEL.AccessControl.RollupPolicy_hidden' | translate: {Default: 'Hidden'} }}</mat-button-toggle>
-                        </mat-button-toggle-group>
+                            <z-toggle-group-item [value]="RollupPolicy.full">{{ 'PAC.MODEL.AccessControl.RollupPolicy_full' | translate: {Default: 'Full'} }}</z-toggle-group-item>
+                            <z-toggle-group-item [value]="RollupPolicy.partial">{{ 'PAC.MODEL.AccessControl.RollupPolicy_partial' | translate: {Default: 'Partial'} }}</z-toggle-group-item>
+                            <z-toggle-group-item [value]="RollupPolicy.hidden">{{ 'PAC.MODEL.AccessControl.RollupPolicy_hidden' | translate: {Default: 'Hidden'} }}</z-toggle-group-item>
+                        </z-toggle-group>
                     </div>
 
                     <div class="flex justify-end items-center gap-2">
                         <span class="whitespace-nowrap hidden md:inline-block">
                             {{ 'PAC.MODEL.AccessControl.DefaultAccess' | translate: {Default: 'Default Access'} }}:
                         </span>
-                        <mat-button-toggle-group name="access" displayDensity="compact" ngmAppearance="color" color="primary"
+                        <z-toggle-group name="access" displayDensity="compact" ngmAppearance="color" color="primary"
                             [ngModel]="hierarchyGrant.access"
                             (change)="changeHierarchyAccess($event, hierarchyGrant.hierarchy)"
                             (click)="$event.stopPropagation()">
-                            <mat-button-toggle [value]="Access.all">{{ 'PAC.MODEL.AccessControl.Access_all' | translate: {Default: 'All'} }}</mat-button-toggle>
-                            <mat-button-toggle [value]="Access.custom">{{ 'PAC.MODEL.AccessControl.Access_custom' | translate: {Default: 'Custom'} }}</mat-button-toggle>
-                            <mat-button-toggle [value]="Access.none">{{ 'PAC.MODEL.AccessControl.Access_none' | translate: {Default: 'None'} }}</mat-button-toggle>
-                        </mat-button-toggle-group>
+                            <z-toggle-group-item [value]="Access.all">{{ 'PAC.MODEL.AccessControl.Access_all' | translate: {Default: 'All'} }}</z-toggle-group-item>
+                            <z-toggle-group-item [value]="Access.custom">{{ 'PAC.MODEL.AccessControl.Access_custom' | translate: {Default: 'Custom'} }}</z-toggle-group-item>
+                            <z-toggle-group-item [value]="Access.none">{{ 'PAC.MODEL.AccessControl.Access_none' | translate: {Default: 'None'} }}</z-toggle-group-item>
+                        </z-toggle-group>
                     </div>
                     
                     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeHierarchy(hierarchyGrant.hierarchy)">

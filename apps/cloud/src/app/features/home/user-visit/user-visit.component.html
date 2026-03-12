@@ -1,15 +1,13 @@
 <div class="p-2">
   <span class="font-notoColorEmoji">📖</span>{{ 'PAC.MENU.HOME.StoryRanking' | translate: {Default: "Story Ranking"} }}
-  <mat-button-toggle-group displayDensity="compact" ngmAppearance="outline" color="primary"
-    [(ngModel)]="type"
-    >
-    <mat-button-toggle value="all">
+  <z-toggle-group displayDensity="compact" ngmAppearance="outline" color="primary" [(ngModel)]="type">
+    <z-toggle-group-item value="all">
       {{ 'PAC.MENU.HOME.All' | translate: {Default: "All"} }}
-    </mat-button-toggle>
-    <mat-button-toggle value="my">
+    </z-toggle-group-item>
+    <z-toggle-group-item value="my">
       {{ 'PAC.MENU.HOME.My' | translate: {Default: "My"} }}
-    </mat-button-toggle>
-  </mat-button-toggle-group>
+    </z-toggle-group-item>
+  </z-toggle-group>
 </div>
 <div class="px-2 flex">
   <span class="flex-1 basis-3/5"></span>

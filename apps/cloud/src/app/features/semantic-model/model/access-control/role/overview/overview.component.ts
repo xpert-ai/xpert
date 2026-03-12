@@ -1,7 +1,6 @@
 import { CdkDragDrop } from '@angular/cdk/drag-drop'
 import { Component, inject } from '@angular/core'
 import { FormControl } from '@angular/forms'
-import { MatButtonToggleChange } from '@angular/material/button-toggle'
 import { IModelRole, IUser, MDX, RoleTypeEnum } from 'apps/cloud/src/app/@core'
 import { combineLatestWith, debounceTime, map, startWith, withLatestFrom } from 'rxjs/operators'
 import { AccessControlStateService } from '../../access-control.service'
@@ -10,6 +9,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 import { Dialog } from '@angular/cdk/dialog'
+import type { ZardToggleGroupChange } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: false,
@@ -69,9 +69,9 @@ export class RoleOverviewComponent {
       })
   }
 
-  changeAccess(event: MatButtonToggleChange) {
+  changeAccess(event: ZardToggleGroupChange) {
     this.roleState.updateSchemaGrant({
-      access: event.value
+      access: event.value as MDX.Access
     })
   }
 
