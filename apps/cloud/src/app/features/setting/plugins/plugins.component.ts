@@ -214,7 +214,7 @@ export class PluginsComponent {
       next: () => {
         this.removing.set('')
         this.plugins.update((plugins) => plugins.filter((item) => item.name !== plugin.name))
-        this.#refreshStrategyCaches()
+        this.refreshStrategyCaches()
       },
       error: () => {
         this.removing.set('')
@@ -260,7 +260,7 @@ export class PluginsComponent {
           this.npmInstalling.set(false)
           dialogRef.close()
           this.#plugins.reload()
-          this.#refreshStrategyCaches()
+          this.refreshStrategyCaches()
         },
         error: (err) => {
           this.npmInstallError.set(getErrorMessage(err))
@@ -272,7 +272,7 @@ export class PluginsComponent {
   /**
    * Refresh all strategy caches after plugin install/uninstall
    */
-  #refreshStrategyCaches() {
+  refreshStrategyCaches() {
     this.#agentService.refresh()
     this.#knowledgebaseService.refresh()
     this.#toolsetService.refresh()
