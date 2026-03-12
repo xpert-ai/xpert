@@ -5,7 +5,14 @@ import { Component, computed, inject, model, signal, TemplateRef, viewChild } fr
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { getErrorMessage, injectHelpWebsite, routeAnimations } from '@cloud/app/@core'
+import {
+  getErrorMessage,
+  injectHelpWebsite,
+  routeAnimations,
+  KnowledgebaseService,
+  XpertAgentService,
+  XpertToolsetService
+} from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { injectPluginAPI } from '@metad/cloud/state'
@@ -46,6 +53,9 @@ export class PluginsComponent {
   readonly i18nService = inject(I18nService)
   readonly pluginAPI = injectPluginAPI()
   readonly confirmDelete = injectConfirmDelete()
+  readonly #agentService = inject(XpertAgentService)
+  readonly #knowledgebaseService = inject(KnowledgebaseService)
+  readonly #toolsetService = inject(XpertToolsetService)
   readonly npmInstallDialog = viewChild('npmInstallDialog', { read: TemplateRef })
 
   readonly category = linkedModel({
@@ -204,6 +214,7 @@ export class PluginsComponent {
       next: () => {
         this.removing.set('')
         this.plugins.update((plugins) => plugins.filter((item) => item.name !== plugin.name))
+        this.#refreshStrategyCaches()
       },
       error: () => {
         this.removing.set('')
@@ -249,11 +260,21 @@ export class PluginsComponent {
           this.npmInstalling.set(false)
           dialogRef.close()
           this.#plugins.reload()
+          this.#refreshStrategyCaches()
         },
         error: (err) => {
           this.npmInstallError.set(getErrorMessage(err))
           this.npmInstalling.set(false)
         }
       })
+  }
+
+  /**
+   * Refresh all strategy caches after plugin install/uninstall
+   */
+  #refreshStrategyCaches() {
+    this.#agentService.refresh()
+    this.#knowledgebaseService.refresh()
+    this.#toolsetService.refresh()
   }
 }
