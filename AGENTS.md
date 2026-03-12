@@ -21,7 +21,7 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - Services live in `apps/cloud/src/app/@core/services`; export them via the barrel.
 - New settings pages belong under `apps/cloud/src/app/features/setting/**`, use standalone components and lazy routing files exporting `routes`.
 - Use signals/models for state, prefer `getAllInOrg` patterns for org-scoped data.
-- Styling: Tailwind utility classes in templates; SCSS only for minimal host tweaks.
+- Styling: Tailwind utility classes in templates; Do not add any new SCSS stylesheets. For all new features, new components, and new pages, use CSS by default.
 - Use translate for text in html.
 - Support light/dark modes via Tailwind CSS classes.
 
