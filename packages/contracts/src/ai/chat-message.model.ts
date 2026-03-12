@@ -2,7 +2,7 @@ import { MessageType } from '@langchain/core/messages'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IChatConversation } from './chat.model'
 import { LongTermMemoryTypeEnum } from './xpert.model'
-import { XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
+import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
 import { JSONValue } from '../core.model'
 import { IStorageFile } from '../storage-file.model'
 import { TChatMessageStep, TMessageContent, TMessageContentReasoning } from '@xpert-ai/chatkit-types'
@@ -54,6 +54,7 @@ export interface IChatMessage
   conversationId?: string | null
 
   executionId?: string
+  execution?: IXpertAgentExecution
 }
 
 /**

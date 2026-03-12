@@ -7,11 +7,13 @@ import {
   IChatConversation,
   IChatMessageFeedback,
   IXpertAgentExecution,
+  TThreadContextUsageEvent,
   TMessageComponentStep,
   TMessageContentComponent,
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { combineLatest, of, switchMap } from 'rxjs'
+import { upsertThreadContextUsage } from '../../../../@shared/chat/context/thread-context-usage'
 
 @Injectable()
 export class XpertExecutionService {
@@ -34,14 +36,15 @@ export class XpertExecutionService {
   })
 
   readonly #agentExecutions = signal<Record<string, IXpertAgentExecution[]>>({})
+  readonly contextUsageByAgentKey = signal<Record<string, TThreadContextUsageEvent>>({})
 
   readonly executions = computed<Record<string, IXpertAgentExecution[]>>(() => {
-      const agentExecutions = {}
-      Object.values(this.#agentExecutions() ?? {}).forEach((executions) => {
-        expandExecutions(executions, agentExecutions)
-      })
-      return agentExecutions
+    const agentExecutions = {}
+    Object.values(this.#agentExecutions() ?? {}).forEach((executions) => {
+      expandExecutions(executions, agentExecutions)
     })
+    return agentExecutions
+  })
 
   readonly agentExecutions = computed<Record<string, IXpertAgentExecution[]>>(() => {
     const agentExecutions = {}
@@ -55,7 +58,9 @@ export class XpertExecutionService {
         })
         if (execution.agentKey) {
           agentExecutions[execution.agentKey] ??= []
-          agentExecutions[execution.agentKey] = agentExecutions[execution.agentKey].filter((_) => _.id !== execution.id).concat(execution)
+          agentExecutions[execution.agentKey] = agentExecutions[execution.agentKey]
+            .filter((_) => _.id !== execution.id)
+            .concat(execution)
         }
       })
     })
@@ -156,6 +161,10 @@ export class XpertExecutionService {
     this.#messages.set([])
   }
 
+  setContextUsage(event: TThreadContextUsageEvent) {
+    this.contextUsageByAgentKey.update((state) => upsertThreadContextUsage(state, event))
+  }
+
   markError(error: string) {
     this.#agentExecutions.update((state) => {
       return Object.keys(state).reduce((acc, key) => {
@@ -175,6 +184,7 @@ export class XpertExecutionService {
 
   clear() {
     this.#agentExecutions.set({})
+    this.contextUsageByAgentKey.set({})
   }
 }
 

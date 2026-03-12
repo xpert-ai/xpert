@@ -1,16 +1,25 @@
 <div class="relative z-40 flex flex-col items-center w-full pb-3 sm:pb-4">
   <form class="bottom-0 w-full text-base flex flex-col gap-2 items-center justify-center relative z-10">
     <div class="flex flex-row gap-2 justify-center w-full relative">
-      <input id="dropzone-file" #fileDropRef class="hidden" [accept]="attachment_accept()" multiple type="file" name="files"
+      <input
+        id="dropzone-file"
+        #fileDropRef
+        class="hidden"
+        [accept]="attachment_accept()"
+        multiple
+        type="file"
+        name="files"
         (change)="fileBrowseHandler($event.target)"
-        (click)="fileDropRef.value=null;"/>
+        (click)="fileDropRef.value = null"
+      />
       <div
-        class="query-bar group bg-components-card-bg duration-100 relative w-full shadow-sm sm:shadow-md rounded-[28px] border border-zinc-100 overflow-hidden 
-          hover:border-zinc-200 hover:bg-input-background-hover focus-within:border-zinc-300
-          hover:focus-within:border-zinc-300 pb-12 px-2 @[480px]/input:px-3"
+        class="query-bar group bg-components-card-bg duration-100 relative w-full shadow-sm sm:shadow-md rounded-[28px] border border-zinc-100 overflow-hidden hover:border-zinc-200 hover:bg-input-background-hover focus-within:border-zinc-300 hover:focus-within:border-zinc-300 pb-12 px-2 @[480px]/input:px-3"
       >
         @if (attachments()?.length) {
-          <chat-attachments class="w-full pt-2" editable [(attachments)]="attachments" 
+          <chat-attachments
+            class="w-full pt-2"
+            editable
+            [(attachments)]="attachments"
             (onCreated)="onAttachCreated($event)"
           />
         }
@@ -18,10 +27,12 @@
         <div class="relative z-10">
           @if (!isComposing() && !prompt()) {
             <span class="absolute px-2 py-5 text-text-secondary pointer-events-none">
-              {{ 'PAC.Chat.HowCanHelp' | translate: {Default: 'How can Xpert help?'} }}
+              {{ 'PAC.Chat.HowCanHelp' | translate: { Default: 'How can Xpert help?' } }}
             </span>
           }
-          <textarea matInput #userInput
+          <textarea
+            matInput
+            #userInput
             dir="auto"
             aria-label="Ask Xpert anything"
             class="w-full px-2 @[480px]/input:px-3 mt-2 pt-3 mb-5 bg-transparent focus:outline-none text-text-primary align-bottom resize-none overflow-auto"
@@ -35,20 +46,27 @@
             (compositionend)="onCompositionEnd($event)"
           ></textarea>
 
-          <div class="absolute left-0 bottom-0 w-full h-full z-10 p-2 overflow-hidden bg-white"
+          <div
+            class="absolute left-0 bottom-0 w-full h-full z-10 p-2 overflow-hidden bg-white"
             [ngClass]="{
-              'hidden': !speeching(),
-              'block': speeching()
+              hidden: !speeching(),
+              block: speeching()
             }"
-          ><canvas #waveCanvas class="absolute left-0 top-0 w-full h-full z-0"></canvas>
+          >
+            <canvas #waveCanvas class="absolute left-0 top-0 w-full h-full z-0"></canvas>
             @if (isConverting()) {
-              <div class="flex items-center">{{'PAC.Xpert.ConvertingSpeechToText' | translate: {Default: 'Converting speech to text'} }}...</div>
+              <div class="flex items-center">
+                {{ 'PAC.Xpert.ConvertingSpeechToText' | translate: { Default: 'Converting speech to text' } }}...
+              </div>
             }
           </div>
         </div>
-        <div class="flex gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-3 max-w-full">
+        <div
+          class="flex gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-3 max-w-full"
+        >
           @if (attachment_enabled()) {
-            <button #attachTrigger
+            <button
+              #attachTrigger
               class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 h-9 rounded-full py-2 relative px-2 transition-all duration-150 bg-transparent border w-9 aspect-square border-toggle-border text-secondary hover:text-primary hover:bg-toggle-hover"
               type="button"
               aria-label="Attach"
@@ -60,7 +78,7 @@
                   originY: 'top',
                   overlayX: 'center',
                   overlayY: 'bottom',
-                  offsetY: -6,
+                  offsetY: -6
                 }
               ]"
             >
@@ -70,49 +88,88 @@
 
           <div class="flex grow gap-1.5 max-w-full" style="transform: none; opacity: 1">
             <div class="grow flex gap-1.5 max-w-full">
-              <button class="btn-canvas inline-flex gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-text-primary h-9 rounded-full px-3.5 py-2 border border-toggle-border overflow-hidden items-center justify-center bg-transparent transition-all hover:bg-lime-50/50"
+              <button
+                class="btn-canvas inline-flex gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-text-primary h-9 rounded-full px-3.5 py-2 border border-toggle-border overflow-hidden items-center justify-center bg-transparent transition-all hover:bg-lime-50/50"
                 [class.active]="canvasOpened()"
                 type="button"
                 tabindex="0"
-                [matTooltip]="canvasOpened() ? ('PAC.Chat.CloseCanvas' | translate: {Default: 'Close Canvas'})
-                  : ('PAC.Chat.OpenCanvas' | translate: {Default: 'Open Canvas'})"
+                [matTooltip]="
+                  canvasOpened()
+                    ? ('PAC.Chat.CloseCanvas' | translate: { Default: 'Close Canvas' })
+                    : ('PAC.Chat.OpenCanvas' | translate: { Default: 'Open Canvas' })
+                "
                 matTooltipPosition="above"
                 (click)="toggleCanvas()"
               >
-                <svg class="shrink-0 w-4 h-4" xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3"/>
-                  <path d="M8 21h8"/>
-                  <path d="M12 17v4"/>
-                  <path d="m17 8 5-5"/>
-                  <path d="M17 3h5v5"/>
+                <svg
+                  class="shrink-0 w-4 h-4"
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  stroke-width="2"
+                  stroke-linecap="round"
+                  stroke-linejoin="round"
+                >
+                  <path d="M13 3H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2h16a2 2 0 0 0 2-2v-3" />
+                  <path d="M8 21h8" />
+                  <path d="M12 17v4" />
+                  <path d="m17 8 5-5" />
+                  <path d="M17 3h5v5" />
                 </svg>
-                <span>{{'PAC.Chat.Canvas' | translate: {Default: 'Canvas'} }}</span>
+                <span>{{ 'PAC.Chat.Canvas' | translate: { Default: 'Canvas' } }}</span>
               </button>
             </div>
           </div>
-          <div class="ml-auto flex flex-row items-end gap-1">
+          <div class="ml-auto flex flex-row items-end gap-2">
+            @if (showContextUsage()) {
+              <button
+                type="button"
+                class="context-usage-trigger mb-1 inline-flex h-7 w-7 items-center justify-center rounded-full overflow-hidden text-slate-500 transition-colors hover:text-slate-700 dark:text-slate-300 dark:hover:text-slate-100"
+                [matTooltip]="contextUsageTooltip()"
+                matTooltipClass="context-usage-tooltip"
+                matTooltipPosition="above"
+                [matTooltipDisabled]="!contextUsageTooltip()"
+                aria-label="Context window usage"
+              >
+                <span class="context-usage-ring" [ngStyle]="contextUsageRingStyle()">
+                  <span class="context-usage-ring__inner">
+                    <span class="context-usage-ring__label">{{ contextUsagePercent() }}</span>
+                  </span>
+                </span>
+              </button>
+            }
+
             @if (speechToText_enabled()) {
               <div class="flex items-center px-2 z-10">
                 <div class="grow">
-                  @if (isRecording())  {
-                    <span>{{'PAC.Xpert.Speaking' | translate: {Default: 'Speaking'} }}...</span>
+                  @if (isRecording()) {
+                    <span>{{ 'PAC.Xpert.Speaking' | translate: { Default: 'Speaking' } }}...</span>
                   } @else if (isConverting()) {
-                    <span>{{'PAC.Xpert.Converting' | translate: {Default: 'Converting'} }}...</span>
+                    <span>{{ 'PAC.Xpert.Converting' | translate: { Default: 'Converting' } }}...</span>
                   }
                 </div>
                 @if (speeching()) {
-                  <button type="button" class="action-btn action-btn-l w-10 h-10 flex justify-center items-center rounded-full text-lg"
-                    (click)="stopRecording()">
+                  <button
+                    type="button"
+                    class="action-btn action-btn-l w-10 h-10 flex justify-center items-center rounded-full text-lg"
+                    (click)="stopRecording()"
+                  >
                     <i class="ri-stop-circle-line text-primary-500"></i>
                   </button>
                 }
                 @if (isRecording()) {
                   <div>
-                    {{recordTimes() * 1000 | date:'mm:ss'}}
+                    {{ recordTimes() * 1000 | date: 'mm:ss' }}
                   </div>
                 } @else if (!isConverting()) {
-                  <button type="button" class="action-btn action-btn-l w-10 h-10 flex justify-center items-center rounded-full text-lg"
-                    (click)="startRecording()">
+                  <button
+                    type="button"
+                    class="action-btn action-btn-l w-10 h-10 flex justify-center items-center rounded-full text-lg"
+                    (click)="startRecording()"
+                  >
                     <i class="ri-mic-ai-fill text-lg"></i>
                   </button>
                 }
@@ -120,22 +177,37 @@
             }
 
             @if (answering()) {
-              <button type="button" class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 text-white bg-black dark:bg-white dark:text-black
-                transition-transform origin-center enabled:hover:scale-110"
-                (click)="stopGenerating()">
-                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none" viewBox="0 0 24 24" class="icon-lg">
+              <button
+                type="button"
+                class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 text-white bg-black dark:bg-white dark:text-black transition-transform origin-center enabled:hover:scale-110"
+                (click)="stopGenerating()"
+              >
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  width="24"
+                  height="24"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  class="icon-lg"
+                >
                   <rect width="10" height="10" x="7" y="7" fill="currentColor" rx="1.25"></rect>
                 </svg>
               </button>
             } @else {
-              <button type="button" class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1
-                  bg-black disabled:opacity-10 disabled:text-gray-400 enabled:bg-black text-white dark:border-white dark:bg-white bottom-1.5 transition-transform
-                  origin-center enabled:hover:scale-110"
+              <button
+                type="button"
+                class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 bg-black disabled:opacity-10 disabled:text-gray-400 enabled:bg-black text-white dark:border-white dark:bg-white bottom-1.5 transition-transform origin-center enabled:hover:scale-110"
                 [disabled]="!prompt() || disabled()"
                 (click)="send()"
               >
                 <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-white dark:text-black">
-                  <path d="M7 11L12 6L17 11M12 18V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                  <path
+                    d="M7 11L12 6L17 11M12 18V7"
+                    stroke="currentColor"
+                    stroke-width="2"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  ></path>
                 </svg>
               </button>
             }
@@ -145,23 +217,23 @@
     </div>
   </form>
 
-  <copilot-enable-model class="absolute top-0 left-0 w-full h-full justify-center items-center z-10 rounded-3xl overflow-hidden backdrop-blur-md bg-white/2 hidden"
+  <copilot-enable-model
+    class="absolute top-0 left-0 w-full h-full justify-center items-center z-10 rounded-3xl overflow-hidden backdrop-blur-md bg-white/2 hidden"
     [enableModel]="!xpert()"
   />
 </div>
-
 
 <ng-template #attachMenu>
   <div cdkMenu class="cdk-menu__large">
     <div cdkMenuItem (click)="fileDropRef.click()">
       <i class="ri-folder-line text-lg mr-2"></i>
-      <div class="text-sm font-medium">{{ 'PAC.XProject.UploadAFile' | translate: {Default: 'Upload a file'} }}</div>
+      <div class="text-sm font-medium">{{ 'PAC.XProject.UploadAFile' | translate: { Default: 'Upload a file' } }}</div>
     </div>
 
     @if (recentAttachments()?.length) {
-      <div cdkMenuItem [cdkMenuTriggerFor]="recentMenu" >
+      <div cdkMenuItem [cdkMenuTriggerFor]="recentMenu">
         <i class="ri-file-history-line text-lg mr-2"></i>
-        <div class="grow text-sm font-medium">{{ 'PAC.XProject.Recent' | translate: {Default: 'Recent'} }}</div>
+        <div class="grow text-sm font-medium">{{ 'PAC.XProject.Recent' | translate: { Default: 'Recent' } }}</div>
         <i class="ri-arrow-right-s-line"></i>
       </div>
     }
@@ -175,10 +247,15 @@
         <pac-file-icon [fileType]="file.originalName | fileType" />
         <div class="flex-1 text-left max-w-sm truncate">
           <div class="text-base truncate">{{ file.originalName }}</div>
-          <div class="text-xs font-mono text-secondary">{{ file.size/1024 | number:'0.0-0' }}KB · {{ file.createdAt | relative }}</div>
+          <div class="text-xs font-mono text-secondary">
+            {{ file.size / 1024 | number: '0.0-0' }}KB · {{ file.createdAt | relative }}
+          </div>
         </div>
-        <button type="button" class="btn btn-secondary btn-sm flex justify-center items-center rounded-full w-6 h-6 hover:text-text-destructive hover:border-text-destructive"
-           (click)="onAttachDeleted(file.id)">
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm flex justify-center items-center rounded-full w-6 h-6 hover:text-text-destructive hover:border-text-destructive"
+          (click)="onAttachDeleted(file.id)"
+        >
           <i class="ri-close-line"></i>
         </button>
       </div>

@@ -62,6 +62,7 @@ import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 import { ChatAttachmentsComponent } from '../attachments/attachments.component'
 import { ChatHumanMessageComponent } from './human-message/message.component'
 import { XpertAgentOperationComponent } from '../../agent'
+import { isThreadContextUsageEvent } from '../context/thread-context-usage'
 
 @Component({
   standalone: true,
@@ -420,6 +421,9 @@ export class ChatConversationPreviewComponent {
                     break
                   }
                   case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
+                    if (isThreadContextUsageEvent(event.data)) {
+                      break
+                    }
                     this.currentMessage.update((state) => ({
                       ...state,
                       events: [...(state.events ?? []), event.data]
