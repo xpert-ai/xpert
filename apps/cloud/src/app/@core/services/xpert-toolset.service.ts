@@ -1,7 +1,7 @@
 import { inject, Injectable, Signal } from '@angular/core'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { BehaviorSubject, catchError, map, of, shareReplay, startWith } from 'rxjs'
+import { BehaviorSubject, catchError, map, of, shareReplay, startWith, switchMap } from 'rxjs'
 import { API_XPERT_TOOLSET } from '../constants/app.constants'
 import {
   ApiProviderSchemaType,
@@ -27,14 +27,22 @@ export class XpertToolsetService extends XpertWorkspaceBaseCrudService<IXpertToo
   readonly baseUrl = injectApiBaseUrl()
   readonly fetchEventSource = injectFetchEventSource()
 
-  readonly #refresh = new BehaviorSubject<void>(null)
+  readonly #refresh$ = new BehaviorSubject<void>(null)
 
-  readonly builtinToolProviders$ = this.getProviders().pipe(
+  readonly builtinToolProviders$ = this.#refresh$.pipe(
+    switchMap(() => this.getProviders()),
     shareReplay(1),
   )
 
   constructor() {
     super(API_XPERT_TOOLSET)
+  }
+
+  /**
+   * Refresh cached provider data (e.g., after plugin install/uninstall)
+   */
+  refresh() {
+    this.#refresh$.next()
   }
 
   parserOpenAPISchema(schema: string) {
