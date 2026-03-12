@@ -102,7 +102,6 @@ import {
 	createSummarizeAgent,
 	translate,
 	stateVariable,
-	identifyAgent,
 	createParameters,
 	TGraphTool,
 	TSubAgent,
@@ -117,6 +116,7 @@ import { CreateSummarizeTitleAgentCommand } from '../summarize-title.command'
 import { XpertCollaborator } from '../../../shared/agent/xpert'
 import { AgenticWorkflowTypes } from '../../types'
 import { createThreadContextUsageEventHook } from '../../hooks/context-usage.hook'
+import { parseXmlString } from './types'
 
 @CommandHandler(XpertAgentSubgraphCommand)
 export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubgraphCommand> {
