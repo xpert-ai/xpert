@@ -146,8 +146,10 @@
         <div class="my-2">
           <div class="flex justify-end">
             <div *ngIf="item.permissionRefuses">
-              <z-icon color="warn" [matBadge]="item.permissionRefuses"
-                [matTooltip]="'PAC.INDICATOR.PermissionRefused' | translate: {Default: 'Permission Refused'}" zType="block"></z-icon>
+              <z-badge [zCount]="item.permissionRefuses" zCountClass="bg-destructive text-white">
+                <z-icon color="warn"
+                  [matTooltip]="'PAC.INDICATOR.PermissionRefused' | translate: {Default: 'Permission Refused'}" zType="block"></z-icon>
+              </z-badge>
             </div>
     
             <div *ngIf="item.permissionApproved">

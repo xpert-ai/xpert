@@ -85,6 +85,7 @@ import { ControlOptions, NgmValueHelpComponent } from '@metad/ocap-angular/contr
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CommonModule } from '@angular/common'
 import {
+  ZardBadgeComponent,
   ZardButtonComponent,
   ZardComboboxComponent,
   ZardComboboxGroup,
@@ -98,7 +99,6 @@ import {
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 
 import { MatMenuModule } from '@angular/material/menu'
-import { MatBadgeModule } from '@angular/material/badge'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -127,6 +127,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     ReactiveFormsModule,
     CdkMenuModule,
     ...ZardFormImports,
+    ZardBadgeComponent,
     ZardInputDirective,
     ZardComboboxComponent,
     ZardIconComponent,
@@ -135,7 +136,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     ZardDividerComponent,
     CdkListboxModule,
     ZardCheckboxComponent,
-    MatBadgeModule,
     MatProgressSpinnerModule,
     TranslateModule,
     NgmCommonModule,

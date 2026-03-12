@@ -254,22 +254,18 @@
 
       <button cdkMenuItem disableRipple (click)="selectMembers($event)">
         <z-icon class="shrink-0 mr-1" zType="people_outline"></z-icon>
-        <span
-          [matBadgeHidden]="!members?.length"
-          [matBadge]="members?.length"
-          matBadgeColor="accent"
-          matBadgeOverlap="false"
-          [class.line-through.decoration-pink-500]="exclude"
-        >
-          {{ 'Ngm.Property.MEMBERS' | translate: { Default: 'Members' } }}
-        </span>
+        <z-badge [zCount]="members?.length" [zHidden]="!members?.length" zOverlap="false">
+          <span [class.line-through.decoration-pink-500]="exclude">
+            {{ 'Ngm.Property.MEMBERS' | translate: { Default: 'Members' } }}
+          </span>
+        </z-badge>
       </button>
 
       <button cdkMenuItem [cdkMenuTriggerFor]="memberMenu">
         <z-icon class="shrink-0 mr-1" zType="alternate_email"></z-icon>
-        <span [matBadge]="parameter ? 1 : null" matBadgeColor="accent" matBadgeOverlap="false">
+        <z-badge [zCount]="parameter ? 1 : null" zOverlap="false">
           {{ 'Ngm.Property.PARAMETER' | translate: { Default: 'Parameter' } }}
-        </span>
+        </z-badge>
       </button>
       @if (showAttributes()) {
         <button cdkMenuItem disableRipple [cdkMenuTriggerFor]="propertiesMenu">
