@@ -7,21 +7,15 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { NgmCommonModule, NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
 import { ISelectOption, filterSearch } from '@metad/ocap-angular/core'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
-import {
-  CalculationProperty,
-  DisplayBehaviour,
-  ParameterProperty,
-  getEntityCalculations
-} from '@metad/ocap-core'
+import { CalculationProperty, DisplayBehaviour, ParameterProperty, getEntityCalculations } from '@metad/ocap-core'
 import { NxStoryService } from '@metad/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, combineLatestWith, firstValueFrom, map, of, shareReplay, switchMap, tap } from 'rxjs'
@@ -39,7 +33,7 @@ import { BehaviorSubject, combineLatestWith, firstValueFrom, map, of, shareRepla
     ZardDividerComponent,
     MatMenuModule,
     MatProgressBarModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     ScrollingModule,
     NgmCommonModule
@@ -145,7 +139,7 @@ export class StoryCalculationsComponent {
       )
     ),
     combineLatestWith(toObservable(this.entitySearch)),
-    map(([cubes, text]) => filterSearch(cubes, text) as ISelectOption<{ dataSource: string; modelId: string }>[] )
+    map(([cubes, text]) => filterSearch(cubes, text) as ISelectOption<{ dataSource: string; modelId: string }>[])
   )
 
   readonly property = signal<CalculationProperty>(null)
@@ -216,8 +210,7 @@ export class StoryCalculationsComponent {
           name: name
         }
       })
-      .closed
-      .subscribe((result) => {
+      .closed.subscribe((result) => {
         if (result) {
           // 参数创建成功
           console.log(result)

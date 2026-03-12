@@ -3,7 +3,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import {
   AiModelTypeEnum,
   getErrorMessage,
@@ -21,6 +20,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { EMPTY, pipe } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -30,7 +30,7 @@ import { combineLatestWith, debounceTime, map, startWith, switchMap, tap } from 
     ReactiveFormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     NgmSearchComponent,
     EmojiAvatarComponent
@@ -115,7 +115,7 @@ export class ProjectInstallXpertComponent {
 
   importXpert() {
     this.error.set('')
-    if (this.bindedXpert())  {
+    if (this.bindedXpert()) {
       this.createdXpert.set(this.bindedXpert())
       return
     }

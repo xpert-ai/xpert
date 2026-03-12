@@ -1,14 +1,19 @@
-<div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
+<div
+  class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group"
+>
   <div class="w-full flex justify-start items-center my-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-lg pointer-events-none">
-      {{ 'Story.Common.Calculations' | translate: { Default: 'Calculations' } }} & {{ 'Story.Common.Parameters' | translate: { Default: 'Parameters' } }}
+      {{ 'Story.Common.Calculations' | translate: { Default: 'Calculations' } }} &
+      {{ 'Story.Common.Parameters' | translate: { Default: 'Parameters' } }}
     </span>
   </div>
-    
+
   <ul class="ngm-nav-list flex-1 overflow-auto" role="list">
     @for (entity of entities(); track entity.key) {
-      <li role="listitem" class="mt-2 flex cursor-pointer rounded-l-xl overflow-hidden px-3 py-2"
+      <li
+        role="listitem"
+        class="mt-2 flex cursor-pointer rounded-l-xl overflow-hidden px-3 py-2"
         [class.active]="activeLink()?.dataSource === entity.value.dataSource && activeLink()?.entity === entity.key"
         (click)="activeEntity(entity.value.dataSource, entity.key)"
       >
@@ -25,7 +30,15 @@
     </div>
 
     <div>
-      <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'PAC.Story.AddCube' | translate: { Default: 'Add Cube' }" matTooltipPosition="above" [matMenuTriggerFor]="contextMenu">
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        [zTooltip]="'PAC.Story.AddCube' | translate: { Default: 'Add Cube' }"
+        zPosition="top"
+        [matMenuTriggerFor]="contextMenu"
+      >
         <z-icon zType="playlist_add"></z-icon>
       </button>
     </div>
@@ -36,22 +49,49 @@
   <div *ngIf="activeLink" class="flex-1 flex flex-col justify-start items-stretch overflow-x-hidden overflow-y-auto">
     <div class="flex justify-between items-center">
       <label class="text-lg p-2"> {{ 'Story.Common.Parameters' | translate: { Default: 'Parameters' } }} </label>
-      <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-60" [matTooltip]="'PAC.Story.CreateParameter' | translate: { Default: 'Create Parameter' }" matTooltipPosition="above" [disabled]="!dataSettings()" (click)="openCreateParameter()">
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        class="opacity-60"
+        [zTooltip]="'PAC.Story.CreateParameter' | translate: { Default: 'Create Parameter' }"
+        zPosition="top"
+        [disabled]="!dataSettings()"
+        (click)="openCreateParameter()"
+      >
         <z-icon zType="add_circle_outline"></z-icon>
       </button>
     </div>
-    
+
     <ul class="ml-4 divide-y dark:divide-neutral-800" role="list">
       @for (parameter of parameters(); track parameter.name) {
         <li role="listitem" class="py-2">
           <div class="group flex items-center">
-            <ngm-display-behaviour class="flex-1" [option]="{key: parameter.name, caption: parameter.caption}" />
+            <ngm-display-behaviour class="flex-1" [option]="{ key: parameter.name, caption: parameter.caption }" />
 
-            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="opacity-0 group-hover:opacity-90" (click)="openCreateParameter(parameter.name)">
-                <z-icon zType="edit"></z-icon>
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              zShape="circle"
+              displayDensity="cosy"
+              class="opacity-0 group-hover:opacity-90"
+              (click)="openCreateParameter(parameter.name)"
+            >
+              <z-icon zType="edit"></z-icon>
             </button>
-            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="opacity-0 group-hover:opacity-90" (click)="removeParameter(parameter.name)">
-                <z-icon zType="close"></z-icon>
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              zShape="circle"
+              displayDensity="cosy"
+              ngmAppearance="danger"
+              class="opacity-0 group-hover:opacity-90"
+              (click)="removeParameter(parameter.name)"
+            >
+              <z-icon zType="close"></z-icon>
             </button>
           </div>
         </li>
@@ -61,25 +101,61 @@
     <div class="flex justify-between items-center">
       <label class="text-lg p-2"> {{ 'Story.Common.Calculations' | translate: { Default: 'Calculations' } }} </label>
       <div class="flex items-center gap-1">
-        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-copilot-command-button ngm-toolbar__action" [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " (click)="aiCreateCalculation()">
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          displayDensity="cosy"
+          class="ngm-copilot-command-button ngm-toolbar__action"
+          [zTooltip]="'Copilot.GenerateWithAI' | translate: { Default: 'Generate with AI' }"
+          (click)="aiCreateCalculation()"
+        >
           <z-icon zType="auto_fix_high"></z-icon>
         </button>
-        <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-60" [matTooltip]="'PAC.Story.CreateCalculationMeasure' | translate: { Default: 'Create Calculation Measure' }" matTooltipPosition="above" [disabled]="!dataSettings()" (click)="openCreateCalculation()">
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          class="opacity-60"
+          [zTooltip]="'PAC.Story.CreateCalculationMeasure' | translate: { Default: 'Create Calculation Measure' }"
+          zPosition="top"
+          [disabled]="!dataSettings()"
+          (click)="openCreateCalculation()"
+        >
           <z-icon zType="add_circle_outline"></z-icon>
         </button>
       </div>
     </div>
-    
+
     <ul class="ml-4 divide-y dark:divide-neutral-800" role="list">
       @for (calculation of calculations(); track calculation.name) {
         <li role="listitem" class="py-2">
           <div class="group flex items-center">
-            <ngm-display-behaviour class="flex-1" [option]="{key: calculation.name, caption: calculation.caption}" />
-            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="opacity-0 group-hover:opacity-90" (click)="openEditCalculation(calculation)">
-                <z-icon zType="edit"></z-icon>
+            <ngm-display-behaviour class="flex-1" [option]="{ key: calculation.name, caption: calculation.caption }" />
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              zShape="circle"
+              displayDensity="cosy"
+              class="opacity-0 group-hover:opacity-90"
+              (click)="openEditCalculation(calculation)"
+            >
+              <z-icon zType="edit"></z-icon>
             </button>
-            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="opacity-0 group-hover:opacity-90" (click)="removeCalculation(calculation)">
-                <z-icon zType="close"></z-icon>
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              zShape="circle"
+              displayDensity="cosy"
+              ngmAppearance="danger"
+              class="opacity-0 group-hover:opacity-90"
+              (click)="removeCalculation(calculation)"
+            >
+              <z-icon zType="close"></z-icon>
             </button>
           </div>
         </li>
@@ -92,22 +168,25 @@
 
 <mat-menu #contextMenu="matMenu" class="ngm-menu__copilot-context-popper ngm-density__compact">
   <ng-template matMenuContent>
-      <ngm-search class="m-2 mb-0" (click)="$event.stopPropagation()" [(ngModel)]="entitySearch" />
+    <ngm-search class="m-2 mb-0" (click)="$event.stopPropagation()" [(ngModel)]="entitySearch" />
     @if (loadingCubes$ | async) {
-      <mat-progress-bar mode="query" role="progressbar"
-          color="accent"
-          class="top-0 left-0 w-full" 
-          style="position: absolute; height: 2px;"/>
+      <mat-progress-bar
+        mode="query"
+        role="progressbar"
+        color="accent"
+        class="top-0 left-0 w-full"
+        style="position: absolute; height: 2px"
+      />
     } @else if (cubes$ | async) {
-      <cdk-virtual-scroll-viewport minBufferPx="200" maxBufferPx="400"
-          [style.height.px]="240" [itemSize]="30"
-      >
-          <button mat-menu-item *cdkVirtualFor="let item of cubes$ | async; trackBy: trackByKey"
-            (click)="addCube(item)"
-          >
-              <ngm-display-behaviour class="flex-1" [option]="item" [displayBehaviour]="DisplayBehaviour.descriptionAndId"
-                  [highlight]="entitySearch()" />
-          </button>
+      <cdk-virtual-scroll-viewport minBufferPx="200" maxBufferPx="400" [style.height.px]="240" [itemSize]="30">
+        <button mat-menu-item *cdkVirtualFor="let item of cubes$ | async; trackBy: trackByKey" (click)="addCube(item)">
+          <ngm-display-behaviour
+            class="flex-1"
+            [option]="item"
+            [displayBehaviour]="DisplayBehaviour.descriptionAndId"
+            [highlight]="entitySearch()"
+          />
+        </button>
       </cdk-virtual-scroll-viewport>
     }
   </ng-template>

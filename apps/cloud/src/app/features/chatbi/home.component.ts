@@ -12,7 +12,6 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltip, MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { CopilotChatMessage } from '@metad/copilot'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
@@ -31,6 +30,7 @@ import { injectInsightCommand } from './copilot'
 import { ChatbiModelsComponent } from './models/models.component'
 import { QuestionAnswer } from './types'
 import { StoryExplorerComponent } from '@metad/story'
+import { ZardTooltipDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use ChatBI toolset.
@@ -45,7 +45,7 @@ import { StoryExplorerComponent } from '@metad/story'
     DragDropModule,
     RouterModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSelectComponent,
     ChatbiModelsComponent,
     ChatbiChatComponent,
@@ -70,7 +70,7 @@ export class ChatbiHomeComponent {
   readonly logger = inject(NGXLogger)
   readonly conversationId = injectQueryParams('id')
 
-  readonly modelTooltip = viewChild('mTooltip', { read: MatTooltip })
+  readonly modelTooltip = viewChild<ZardTooltipDirective>('mTooltip')
 
   get modelId() {
     return this.chatbiService.modelId()
@@ -168,7 +168,7 @@ export class ChatbiHomeComponent {
 
     effect(() => {
       if (!this.chatbiService.modelId() && this.models()?.length) {
-        this.modelTooltip().show()
+        this.modelTooltip()?.open()
       }
     })
   }

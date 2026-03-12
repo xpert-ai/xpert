@@ -1,12 +1,18 @@
-import { CdkMenu, CdkMenuGroup, CdkMenuItem, CdkMenuItemCheckbox, CdkMenuItemRadio, CdkMenuTrigger } from '@angular/cdk/menu'
+import {
+  CdkMenu,
+  CdkMenuGroup,
+  CdkMenuItem,
+  CdkMenuItemCheckbox,
+  CdkMenuItemRadio,
+  CdkMenuTrigger
+} from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocomplete, MatAutocompleteModule } from '@angular/material/autocomplete'
 
-import { ZardButtonComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatTooltipModule } from '@angular/material/tooltip'
+import { ZardButtonComponent, ZardIconComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { Router, RouterModule } from '@angular/router'
 import { NgmCopilotEngineService, NgmCopilotService } from '@metad/copilot-angular'
 import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
@@ -27,7 +33,7 @@ import { CHATBI_COMMAND_NAME } from '../copilot/'
     RouterModule,
     TranslateModule,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardButtonComponent,
     MatAutocompleteModule,
     ZardInputDirective,
@@ -120,7 +126,7 @@ export class ChatbiInputComponent {
       this.#logger.error(err)
       this.chatbiService.updateAiMessage({
         status: 'error',
-        error: err?.message || 'Unknown error',
+        error: err?.message || 'Unknown error'
       })
     } finally {
       this.answering.set(false)

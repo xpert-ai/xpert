@@ -2,7 +2,6 @@ import { Component, computed, effect, HostListener, inject, model, signal } from
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { injectConfirmDelete, NgmCommonModule } from '@metad/ocap-angular/common'
 import { effectAction, linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -27,8 +26,7 @@ import {
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'xpert-knowledge-document-chunk',
@@ -39,7 +37,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     CdkMenuModule,
     ZardButtonComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardIconComponent,
     WaIntersectionObserver,
     NgmCommonModule,
@@ -51,7 +49,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 })
 export class KnowledgeDocumentChunkComponent {
   STANDARD_METADATA_FIELDS = STANDARD_METADATA_FIELDS
-  
+
   readonly knowledgeDocumentService = inject(KnowledgeDocumentService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
@@ -240,29 +238,31 @@ export class KnowledgeDocumentChunkComponent {
 
   enableChunk(chunk: IKnowledgeDocumentChunk, event: boolean) {
     this.loading.set(true)
-    this.knowledgeDocumentService.updateChunk(this.documentId(), chunk.id, { metadata: { enabled: event } as IDocChunkMetadata }).subscribe({
-      next: () => {
-        this.loading.set(false)
-        this.#chunks.update((chunks) => {
-          return chunks.map((_) => {
-            if (_.id === chunk.id) {
-              return {
-                ..._,
-                metadata: {
-                  ..._.metadata,
-                  enabled: event
+    this.knowledgeDocumentService
+      .updateChunk(this.documentId(), chunk.id, { metadata: { enabled: event } as IDocChunkMetadata })
+      .subscribe({
+        next: () => {
+          this.loading.set(false)
+          this.#chunks.update((chunks) => {
+            return chunks.map((_) => {
+              if (_.id === chunk.id) {
+                return {
+                  ..._,
+                  metadata: {
+                    ..._.metadata,
+                    enabled: event
+                  }
                 }
               }
-            }
-            return _
+              return _
+            })
           })
-        })
-      },
-      error: (error) => {
-        this.loading.set(false)
-        this.#toastr.error(getErrorMessage(error))
-      }
-    })
+        },
+        error: (error) => {
+          this.loading.set(false)
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
   }
 
   addChunk() {
@@ -270,19 +270,21 @@ export class KnowledgeDocumentChunkComponent {
   }
 
   deleteChunk(chunk: IKnowledgeDocumentChunk) {
-    this.confirmDelete({
+    this.confirmDelete(
+      {
         value: chunk.id,
         information: chunk.pageContent.substring(0, 100)
-      }, this.knowledgeDocumentService.deleteChunk(this.documentId(), chunk.id))
-      .subscribe({
-        next: () => {
-          this.#chunks.update((items) => items.filter((item) => item.id !== chunk.id))
-          this.total.update((total) => total - 1)
-        },
-        error: (error) => {
-          this.#toastr.error(getErrorMessage(error))
-        }
-      })
+      },
+      this.knowledgeDocumentService.deleteChunk(this.documentId(), chunk.id)
+    ).subscribe({
+      next: () => {
+        this.#chunks.update((items) => items.filter((item) => item.id !== chunk.id))
+        this.total.update((total) => total - 1)
+      },
+      error: (error) => {
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
   }
 
   updateDoc(entity: Partial<IKnowledgeDocument>) {
@@ -310,7 +312,7 @@ export class KnowledgeDocumentChunkComponent {
 
   // Metadata options
   toggleShowMetadata() {
-    this.showMetadata.update((state) => !state) 
+    this.showMetadata.update((state) => !state)
   }
 
   toggleEditMetadata() {
@@ -326,17 +328,19 @@ export class KnowledgeDocumentChunkComponent {
 
   saveMetadata() {
     this.loading.set(true)
-    this.knowledgeDocumentService.update(this.document().id, {
-      metadata: this.metadata()
-    }).subscribe({
-      next: () => {
-        this.loading.set(false)
-        this.editMetadata.set(false)
-      },
-      error: (error) => {
-        this.loading.set(false)
-        this.#toastr.error(getErrorMessage(error))
-      }
-    })
+    this.knowledgeDocumentService
+      .update(this.document().id, {
+        metadata: this.metadata()
+      })
+      .subscribe({
+        next: () => {
+          this.loading.set(false)
+          this.editMetadata.set(false)
+        },
+        error: (error) => {
+          this.loading.set(false)
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
   }
 }

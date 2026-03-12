@@ -6,7 +6,7 @@
         editable
         small
         class="shrink-0 mr-2 overflow-hidden rounded-lg shadow-sm"
-        [matTooltip]="xpertAgent().key"
+        [zTooltip]="xpertAgent().key"
         (avatarChange)="updateAvatar($event)"
       />
       <div class="flex flex-col items-start min-w-0 flex-1">
@@ -24,8 +24,8 @@
       <div class="shrink-0 flex items-center">
         <div
           class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-base-content hover:bg-hover-bg"
-          [matTooltip]="'PAC.Xpert.RunThisAgent' | translate: { Default: 'Run this agent' }"
-          matTooltipPosition="above"
+          [zTooltip]="'PAC.Xpert.RunThisAgent' | translate: { Default: 'Run this agent' }"
+          zPosition="top"
           (click)="openExecution()"
         >
           <svg
@@ -44,8 +44,8 @@
 
         <div
           class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-base-content hover:bg-hover-bg"
-          [matTooltip]="'PAC.Xpert.ShowDiagram' | translate: { Default: 'Show diagram' }"
-          matTooltipPosition="above"
+          [zTooltip]="'PAC.Xpert.ShowDiagram' | translate: { Default: 'Show diagram' }"
+          zPosition="top"
           #mt1="cdkMenuTriggerFor"
           [cdkMenuTriggerFor]="diagramMenu"
           [cdkMenuTriggerData]="{ trigger: mt1 }"
@@ -55,8 +55,8 @@
 
         <div
           class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-base-content hover:bg-hover-bg"
-          [matTooltip]="'PAC.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
-          matTooltipPosition="above"
+          [zTooltip]="'PAC.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
+          zPosition="top"
           (click)="moveToNode()"
         >
           <i class="ri-crosshair-line"></i>
@@ -66,8 +66,8 @@
           [href]="helpWebsite() + '/docs/ai/'"
           target="_blank"
           class="flex items-center justify-center mr-1 w-6 h-6"
-          [matTooltip]="'PAC.Xpert.HelpDocumentation' | translate: { Default: 'Help Documentation' }"
-          matTooltipPosition="above"
+          [zTooltip]="'PAC.Xpert.HelpDocumentation' | translate: { Default: 'Help Documentation' }"
+          zPosition="top"
         >
           <svg
             viewBox="0 0 24 24"
@@ -133,10 +133,10 @@
         [ngModel]="name()"
         (ngModelChange)="onNameChange($event)"
         (blur)="onBlur()"
-        [matTooltip]="
+        [zTooltip]="
           'PAC.Xpert.NameExistedOrInvalid' | translate: { Default: 'Name existed or invalid, use a-zA-Z0-9 _-' }
         "
-        [matTooltipDisabled]="!nameError()"
+        [zDisabled]="!nameError()"
         [placeholder]="('PAC.Xpert.NameDefaultUseKey' | translate: { Default: 'Name, default use ' }) + key()"
       />
       <div
@@ -184,11 +184,11 @@
           </div>
           <i
             class="ri-question-line opacity-50 hover:opacity-90"
-            [matTooltip]="
+            [zTooltip]="
               'PAC.Xpert.AgentMemoryTip'
                 | translate: { Default: 'Agent short-term memory, inserting message history into the conversation' }
             "
-            matTooltipPosition="above"
+            zPosition="top"
           ></i>
         </div>
 
@@ -313,11 +313,11 @@
             [ngModel]="isSensitive()"
             (ngModelChange)="updateSensitive($event)"
             labelPosition="before"
-            [matTooltip]="
+            [zTooltip]="
               'PAC.Xpert.SensitiveAgentTip'
                 | translate: { Default: 'Sensitive agents require user confirmation before execution' }
             "
-            matTooltipPosition="left"
+            zPosition="left"
             zSize="sm"
           />
         </div>
@@ -330,11 +330,11 @@
             [ngModel]="isEnd()"
             (ngModelChange)="updateEnd($event)"
             labelPosition="before"
-            [matTooltip]="
+            [zTooltip]="
               'PAC.Xpert.EndAgentTip'
                 | translate: { Default: 'The terminal agent, the conversation ends after agent completion' }
             "
-            matTooltipPosition="left"
+            zPosition="left"
             zSize="sm"
           />
         </div>
@@ -347,10 +347,10 @@
           class="flex"
           [(ngModel)]="disableOutput"
           labelPosition="before"
-          [matTooltip]="
+          [zTooltip]="
             'PAC.Xpert.DisableOutputTip' | translate: { Default: 'Disable returning the agent\'s output to the user' }
           "
-          matTooltipPosition="left"
+          zPosition="left"
           zSize="sm"
         />
       </div>
@@ -363,7 +363,7 @@
           [ngModel]="parallelToolCalls()"
           (ngModelChange)="updateParallelToolCalls($event)"
           labelPosition="before"
-          [matTooltip]="
+          [zTooltip]="
             'PAC.Xpert.ParallelToolCallsTip'
               | translate
                 : {
@@ -371,7 +371,7 @@
                       'Whether to enable the parallel calling capability of the tool, which works for some models like OpenAI'
                   }
           "
-          matTooltipPosition="left"
+          zPosition="left"
           zSize="sm"
         />
       </div>
@@ -411,10 +411,10 @@
             {{ 'PAC.Xpert.StopAfterAttempt' | translate: { Default: 'Stop After Attempt' } }}
             <i
               class="ri-information-line opacity-20 hover:opacity-100"
-              [matTooltip]="
+              [zTooltip]="
                 'PAC.Xpert.StopAfterAttemptTip' | translate: { Default: 'How many times to try before stopping' }
               "
-              matTooltipPosition="above"
+              zPosition="top"
             ></i>
           </div>
 
@@ -451,11 +451,11 @@
           labelPosition="before"
           [ngModel]="fallbackEnabled()"
           (ngModelChange)="updateFallback({ enabled: $event })"
-          [matTooltip]="
+          [zTooltip]="
             'PAC.Xpert.FallbackModelTip'
               | translate: { Default: 'This fallback model is used when the agent model fails' }
           "
-          matTooltipPosition="above"
+          zPosition="top"
           zSize="sm"
         />
       </div>
@@ -593,8 +593,8 @@
       cdkMenuItem
       class="danger disabled:opacity-80"
       [disabled]="isPrimaryAgent()"
-      [matTooltip]="'PAC.Xpert.CanntRemovePrimaryAgent' | translate: { Default: 'Cannot remove the primary Agent' }"
-      matTooltipPosition="left"
+      [zTooltip]="'PAC.Xpert.CanntRemovePrimaryAgent' | translate: { Default: 'Cannot remove the primary Agent' }"
+      zPosition="left"
       (click)="remove()"
     >
       {{ 'PAC.Xpert.Remove' | translate: { Default: 'Remove' } }}

@@ -1,7 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { CodeEditorCardComponent } from '@cloud/app/@shared/editors'
 import { attrModel, linkedModel } from '@metad/core'
@@ -16,6 +15,7 @@ import {
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-template',
@@ -25,7 +25,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     CdkMenuModule,
     StateVariableSelectComponent,

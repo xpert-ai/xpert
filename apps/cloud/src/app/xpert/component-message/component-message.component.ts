@@ -4,7 +4,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { ChatToolCallChunkComponent } from '@cloud/app/@shared/chat'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
@@ -25,6 +24,7 @@ import { ChatComponentMemoriesComponent } from './memories/memories.component'
 import { ChatComponentScheduleTasksComponent } from './schedule-tasks/tasks.component'
 import { ChatComponentMessageTasksComponent } from './tasks/tasks.component'
 import { ChatService } from '../chat.service'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  * A component that uniformly displays different types of component messages.
@@ -42,7 +42,7 @@ import { ChatService } from '../chat.service'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
 
     ChatComponentMessageTasksComponent,
     ChatComponentScheduleTasksComponent,

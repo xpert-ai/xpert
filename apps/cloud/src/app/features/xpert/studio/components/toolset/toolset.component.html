@@ -1,66 +1,100 @@
 <div fNodeInput [fInputId]="node().key" fInputConnectableSide="top" class="top absolute"></div>
 
 @if (status() === 'template') {
-  <i class="ri-spam-2-line absolute right-3 top-3 text-xl leading-5 text-orange-500" 
-    [matTooltip]="'PAC.Xpert.NeedReconfigure' | translate: {Default: 'Need to reconfigure'}"
+  <i
+    class="ri-spam-2-line absolute right-3 top-3 text-xl leading-5 text-orange-500"
+    [zTooltip]="'PAC.Xpert.NeedReconfigure' | translate: { Default: 'Need to reconfigure' }"
   ></i>
 }
 
 <div class="relative max-w-full flex justify-start items-center px-3 pt-3 pb-2">
   <emoji-avatar [avatar]="toolset().avatar" small class="shrink-0 mr-2 rounded-lg overflow-hidden shadow-sm" />
   @if (isSandbox() || needSandbox()) {
-    <div class="absolute left-7 bottom-1 flex justify-center items-center w-5 h-5 rounded-md shadow-sm bg-white"
-      [matTooltip]="'PAC.Xpert.SandboxToolsetTip' | translate: {Default: 'Tools that to be run in a sandbox'}">
+    <div
+      class="absolute left-7 bottom-1 flex justify-center items-center w-5 h-5 rounded-md shadow-sm bg-white"
+      [zTooltip]="'PAC.Xpert.SandboxToolsetTip' | translate: { Default: 'Tools that to be run in a sandbox' }"
+    >
       <i class="ri-instance-line text-green-700"></i>
     </div>
   }
 
   @if (needSandbox()) {
-    <div class="absolute left-7 bottom-1 flex justify-center items-center w-5 h-5 rounded-md shadow-sm bg-white"
-      [matTooltip]="'PAC.Xpert.NeedSandboxToolsetTip' | translate: {Default: 'For security reasons, please upgrade to the pro version to run this toolset safely in a sandbox'}">
+    <div
+      class="absolute left-7 bottom-1 flex justify-center items-center w-5 h-5 rounded-md shadow-sm bg-white"
+      [zTooltip]="
+        'PAC.Xpert.NeedSandboxToolsetTip'
+          | translate
+            : {
+                Default:
+                  'For security reasons, please upgrade to the pro version to run this toolset safely in a sandbox'
+              }
+      "
+    >
       <i class="ri-alarm-warning-fill mb-0.5 text-orange-500"></i>
     </div>
   }
 
   <div class="truncate">
-    {{toolset().name}}
+    {{ toolset().name }}
   </div>
 </div>
 
-<div class="max-w-full max-h-14 px-4 text-text-tertiary font-body text-sm text-left line-clamp-2"
-  [title]="toolset().description">{{toolset().description}}</div>
+<div
+  class="max-w-full max-h-14 px-4 text-text-tertiary font-body text-sm text-left line-clamp-2"
+  [title]="toolset().description"
+>
+  {{ toolset().description }}
+</div>
 
-<div class="w-full flex flex-col justify-start items-stretch p-2 gap-1 max-h-48 overflow-y-auto"
+<div
+  class="w-full flex flex-col justify-start items-stretch p-2 gap-1 max-h-48 overflow-y-auto"
   [class.max-h-48]="!expandTools()"
   (wheel)="$event.stopPropagation()"
 >
   @for (item of tools(); track item.tool.id) {
-    <div class="relative flex flex-col px-2 py-1.5 rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
-      [matTooltip]="item.tool.description"
-      matTooltipPosition="after"
+    <div
+      class="relative flex flex-col px-2 py-1.5 rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
+      [zTooltip]="item.tool.description"
+      zPosition="right"
     >
       <div class="flex items-center gap-1 px-1 text-left">
         @if (isSensitive(item.tool.name)) {
-          <i class="ri-shield-keyhole-line shrink-0 text-lg leading-4 text-text-warning"
-            [matTooltip]="'PAC.Xpert.SensitiveToolsTip' | translate: {Default: 'Sensitive tools require user confirmation before execution'}"
-            matTooltipPosition="above"></i>
+          <i
+            class="ri-shield-keyhole-line shrink-0 text-lg leading-4 text-text-warning"
+            [zTooltip]="
+              'PAC.Xpert.SensitiveToolsTip'
+                | translate: { Default: 'Sensitive tools require user confirmation before execution' }
+            "
+            zPosition="top"
+          ></i>
         }
         <span class="truncate whitespace-nowrap" [title]="item.tool.description || item.tool.name">
-          {{item.label | i18n}}
+          {{ item.label | i18n }}
         </span>
         <span class="flex-1"></span>
-        <div class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50">
-          {{item.tool.name}}
+        <div
+          class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50"
+        >
+          {{ item.tool.name }}
         </div>
         @if (hasMemory(item.tool.name)) {
-          <i class="ri-brain-fill shrink-0 text-lg leading-4 text-text-secondary"
-            [matTooltip]="'PAC.Xpert.ToolMemoryTip' | translate: {Default: 'Tool memory, storing tool results in agent state variables'}"
-            matTooltipPosition="above"></i>
+          <i
+            class="ri-brain-fill shrink-0 text-lg leading-4 text-text-secondary"
+            [zTooltip]="
+              'PAC.Xpert.ToolMemoryTip'
+                | translate: { Default: 'Tool memory, storing tool results in agent state variables' }
+            "
+            zPosition="top"
+          ></i>
         }
         @if (isEnd(item.tool.name)) {
-          <i class="ri-stop-circle-line shrink-0 text-lg leading-4 text-text-secondary"
-            [matTooltip]="'PAC.Xpert.EndTool' | translate: {Default: 'Terminal tool, the run of chat ends when tool completed'}"
-            matTooltipPosition="above"></i>
+          <i
+            class="ri-stop-circle-line shrink-0 text-lg leading-4 text-text-secondary"
+            [zTooltip]="
+              'PAC.Xpert.EndTool' | translate: { Default: 'Terminal tool, the run of chat ends when tool completed' }
+            "
+            zPosition="top"
+          ></i>
         }
       </div>
 
@@ -72,28 +106,31 @@
                 <ngm-spin class="shrink-0 scale-90 origin-center" small />
               }
               @case ('fail') {
-                <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
-                  [matTooltip]="execution.error"
-                  matTooltipPosition="above"
+                <div
+                  class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-red-500 border-red-600 shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+                  [zTooltip]="execution.error"
+                  zPosition="top"
                 ></div>
               }
               @case ('success') {
-                <div class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
+                <div
+                  class="w-2 h-2 shrink-0 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)]"
                   [floatUi]="popperContent"
                   [appendTo]="'body'"
                   [showTrigger]="eNgxFloatUiTriggers.hover"
                   hideOnClickOutside
                   [hideOnScroll]="true"
                   [hideTimeout]="200"
-                >
-                </div>
+                ></div>
               }
             }
 
             <float-ui-content #popperContent>
               <div class="text-sm text-left w-96 max-h-80 overflow-auto">
-                <div class="px-2 py-1 font-semibold">{{ 'PAC.KEY_WORDS.Input' | translate: {Default: 'Input'} }}:</div>
-                <ngx-json-viewer [json]="execution.input" class="font-mono whitespace-pre-wrap"/>
+                <div class="px-2 py-1 font-semibold">
+                  {{ 'PAC.KEY_WORDS.Input' | translate: { Default: 'Input' } }}:
+                </div>
+                <ngx-json-viewer [json]="execution.input" class="font-mono whitespace-pre-wrap" />
               </div>
             </float-ui-content>
           </div>
@@ -103,17 +140,21 @@
   }
 
   @if (availableTools() && !atLeastOne()) {
-    <div class="flex items-center gap-1 px-2 py-0.5 border-[0.5px] border-solid border-text-destructive rounded-lg text-sm text-text-destructive">
+    <div
+      class="flex items-center gap-1 px-2 py-0.5 border-[0.5px] border-solid border-text-destructive rounded-lg text-sm text-text-destructive"
+    >
       <i class="ri-spam-2-line text-lg"></i>
-      {{'PAC.Xpert.AtLeastOneTool' | translate: {Default: 'Enable at least one tool'} }}</div>
+      {{ 'PAC.Xpert.AtLeastOneTool' | translate: { Default: 'Enable at least one tool' } }}
+    </div>
   }
 </div>
 
 @if (tools()?.length > 5) {
   <div class="absolute bottom-0 w-full flex justify-center">
-    <div class="w-5 h-5 flex justify-center items-center rounded-md hover:bg-hover-bg cursor-pointer
-      opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary hover:text-text-primary"
-      (click)="toggleExpandTools($event)">
+    <div
+      class="w-5 h-5 flex justify-center items-center rounded-md hover:bg-hover-bg cursor-pointer opacity-0 group-hover:opacity-100 transition-opacity text-text-secondary hover:text-text-primary"
+      (click)="toggleExpandTools($event)"
+    >
       @if (expandTools()) {
         <i class="ri-skip-up-line text-sm"></i>
       } @else {

@@ -14,7 +14,6 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { convertQueryResultColumns, linkedModel } from '@metad/core'
@@ -46,6 +45,7 @@ import { ModelEntityService } from '../entity.service'
 import { getDropProperty } from '../types'
 import { animate, style, transition, trigger } from '@angular/animations'
 import { typeOfObj } from '@cloud/app/@shared/model/types'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -61,7 +61,7 @@ import { typeOfObj } from '@cloud/app/@shared/model/types'
     FormsModule,
     TranslateModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ContentLoaderModule,
     NgmTableComponent,
     NgmEntityModule,
@@ -76,7 +76,7 @@ import { typeOfObj } from '@cloud/app/@shared/model/types'
       transition(':enter', [
         style({ transform: 'rotate(90deg)', opacity: 0 }),
         animate('100ms ease-out', style({ transform: 'rotate(0deg)', opacity: 1 }))
-      ]),
+      ])
     ])
   ]
 })
@@ -84,9 +84,7 @@ export class ModelEntityCalculationComponent {
   DisplayDensity = DisplayDensity
   Syntax = Syntax
   ModelType = MODEL_TYPE
-  propertyCapacities = [
-    PropertyCapacity.Dimension,
-  ]
+  propertyCapacities = [PropertyCapacity.Dimension]
 
   readonly appService = inject(AppService)
   readonly modelService = inject(SemanticModelService)

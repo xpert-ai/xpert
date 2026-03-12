@@ -3,15 +3,13 @@ import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, effect, inject,
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { DisplayDensity, OcapCoreModule } from '@metad/ocap-angular/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isString } from 'lodash-es'
 import { EMPTY, Observable, catchError, startWith } from 'rxjs'
-import { ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardFormImports, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 const isNonNullable = <T>(value: T | null | undefined): value is T => value !== null && value !== undefined
 
 /**
@@ -29,11 +27,23 @@ const isNonNullable = <T>(value: T | null | undefined): value is T => value !== 
   host: {
     class: 'pac-formly-select'
   },
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ...ZardFormImports, ZardIconComponent, MatTooltipModule, MatProgressSpinnerModule, FormlyModule, TranslateModule, OcapCoreModule, NgmSelectComponent]
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    ...ZardFormImports,
+    ZardIconComponent,
+    ...ZardTooltipImports,
+    MatProgressSpinnerModule,
+    FormlyModule,
+    TranslateModule,
+    OcapCoreModule,
+    NgmSelectComponent
+  ]
 })
 export class PACFormlySelectComponent extends FieldType implements OnInit {
   DisplayDensity = DisplayDensity
-  
+
   readonly #translate = inject(TranslateService)
   readonly #destroyRef = inject(DestroyRef)
 
@@ -50,7 +60,11 @@ export class PACFormlySelectComponent extends FieldType implements OnInit {
       const error = isSignal(this.props.error) ? this.props.error() : null
       if (isString(error)) {
         this.error.set(error)
-      } else if (isNonNullable(this.value()) && isNonNullable(this.selectOptions()) && !this.selectOptions().find((option) => option[this.props?.valueKey ?? 'value'] === this.value())) {
+      } else if (
+        isNonNullable(this.value()) &&
+        isNonNullable(this.selectOptions()) &&
+        !this.selectOptions().find((option) => option[this.props?.valueKey ?? 'value'] === this.value())
+      ) {
         this.error.set(
           this.#translate.instant('FORMLY.COMMON.NotFoundValue', { Default: 'Not found value: ' }) + this.value()
         )

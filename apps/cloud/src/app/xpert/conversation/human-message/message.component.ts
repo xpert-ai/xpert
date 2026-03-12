@@ -2,14 +2,13 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { ListHeightStaggerAnimation } from '@metad/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatAttachmentsComponent } from '@cloud/app/@shared/chat'
 import { TCopilotChatMessage } from '../../types'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -20,7 +19,7 @@ import { TCopilotChatMessage } from '../../types'
     RouterModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmCommonModule,
     ChatAttachmentsComponent
   ],
@@ -31,12 +30,11 @@ import { TCopilotChatMessage } from '../../types'
   animations: [ListHeightStaggerAnimation]
 })
 export class ChatHumanMessageComponent {
-
   // Inputs
   readonly message = input<TCopilotChatMessage>()
 
   // States
-  readonly attachments = computed(() => this.message()?.attachments?.map((storageFile) => ({storageFile})))
+  readonly attachments = computed(() => this.message()?.attachments?.map((storageFile) => ({ storageFile })))
 
   constructor() {
     effect(() => {

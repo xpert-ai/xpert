@@ -1,27 +1,41 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import {Dialog, DialogRef, DIALOG_DATA} from '@angular/cdk/dialog';
+import { Dialog, DialogRef, DIALOG_DATA } from '@angular/cdk/dialog'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { getErrorMessage, IAiProviderEntity, ICopilot, injectAiProviders, injectCopilotProviderService, injectHelpWebsite, ToastrService } from '../../../@core'
+import {
+  getErrorMessage,
+  IAiProviderEntity,
+  ICopilot,
+  injectAiProviders,
+  injectCopilotProviderService,
+  injectHelpWebsite,
+  ToastrService
+} from '../../../@core'
 import { CopilotAiProviderAuthComponent } from '../provider-authorization/authorization.component'
-import { MatTooltipModule } from '@angular/material/tooltip'
-
 @Component({
   standalone: true,
   selector: 'copilot-ai-providers-dialog',
   templateUrl: './providers.component.html',
   styleUrls: ['./providers.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, TranslateModule, DragDropModule, ZardInputDirective, MatTooltipModule, NgmI18nPipe]
+  imports: [
+    CommonModule,
+    FormsModule,
+    TranslateModule,
+    DragDropModule,
+    ZardInputDirective,
+    ...ZardTooltipImports,
+    NgmI18nPipe
+  ]
 })
 export class CopilotAiProvidersComponent {
   readonly #dialogRef = inject(DialogRef)
   readonly #dialog = inject(Dialog)
-  readonly #data = inject<{copilot: ICopilot}>(DIALOG_DATA)
+  readonly #data = inject<{ copilot: ICopilot }>(DIALOG_DATA)
   readonly #translate = inject(TranslateService)
   readonly #toastr = inject(ToastrService)
   readonly #copilotProviderService = injectCopilotProviderService()
@@ -34,7 +48,7 @@ export class CopilotAiProvidersComponent {
 
   constructor() {
     effect(() => {
-        // console.log(this.aiProviders())
+      // console.log(this.aiProviders())
     })
   }
 
@@ -42,42 +56,43 @@ export class CopilotAiProvidersComponent {
     this.#dialogRef.close()
   }
 
-  apply() {
-  }
+  apply() {}
 
   openSetup(provider: IAiProviderEntity) {
-    this.#dialog.open(CopilotAiProviderAuthComponent, {
-      data: {
-        provider: provider,
-        copilot: this.copilot()
-      }
-    }).closed.subscribe({
-      next: (copilotProvider) => {
-        if (copilotProvider) {
-          this.#dialogRef.close(copilotProvider)
+    this.#dialog
+      .open(CopilotAiProviderAuthComponent, {
+        data: {
+          provider: provider,
+          copilot: this.copilot()
         }
-      },
-      error: (err) => {
-        
-      }
-    })
+      })
+      .closed.subscribe({
+        next: (copilotProvider) => {
+          if (copilotProvider) {
+            this.#dialogRef.close(copilotProvider)
+          }
+        },
+        error: (err) => {}
+      })
   }
 
   addProvider(provider: IAiProviderEntity) {
     this.loading.set(true)
-    this.#copilotProviderService.create({
-      copilotId: this.copilot().id,
-      providerName: provider.provider,
-    }).subscribe({
-      next: (copilotProvider) => {
-        this.loading.set(false)
-        this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully' })
-        this.#dialogRef.close(copilotProvider)
-      },
-      error: (err) => {
-        this.loading.set(false)
-        this.#toastr.error(getErrorMessage(err))
-      }
-    })
+    this.#copilotProviderService
+      .create({
+        copilotId: this.copilot().id,
+        providerName: provider.provider
+      })
+      .subscribe({
+        next: (copilotProvider) => {
+          this.loading.set(false)
+          this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created successfully' })
+          this.#dialogRef.close(copilotProvider)
+        },
+        error: (err) => {
+          this.loading.set(false)
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
   }
 }

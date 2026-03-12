@@ -15,7 +15,8 @@ import {
   ZardDividerComponent,
   ZardIconComponent,
   ZardInputDirective,
-  ZardCheckboxComponent
+  ZardCheckboxComponent,
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
@@ -38,8 +39,6 @@ import { PACIndicatorDirective } from './shared/indicator.directive'
 import { ReplaceNullWithTextPipe } from './shared/replace-null-with-text.pipe'
 import { AppSparkLineDirective } from './shared/sparkline.directive'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { MatTooltipModule } from '@angular/material/tooltip'
-
 @NgModule({
   declarations: [
     AppSparkLineDirective,
@@ -71,7 +70,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
     MatSliderModule,
     MatChipsModule,
     ZardInputDirective,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MarkdownModule,
     AppearanceDirective,
     ReversePipe,

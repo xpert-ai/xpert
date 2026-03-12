@@ -1,12 +1,11 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { NgmCopilotChatComponent } from '../chat/chat.component'
 import { CopilotGlobalService } from './global.service'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  * @deprecated use ChatKit instead
  */
@@ -22,7 +21,7 @@ import { CopilotGlobalService } from './global.service'
     ReactiveFormsModule,
     TranslateModule,
     NgxFloatUiModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
 
     NgmCopilotChatComponent
   ],
@@ -33,6 +32,6 @@ import { CopilotGlobalService } from './global.service'
 export class CopilotGlobalComponent {
   eNgxFloatUiPlacements = NgxFloatUiPlacements
   eNgxFloatUiTriggers = NgxFloatUiTriggers
-  
+
   public copilotGlobalService = inject(CopilotGlobalService)
 }

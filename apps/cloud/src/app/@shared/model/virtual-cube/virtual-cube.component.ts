@@ -9,11 +9,11 @@ import {
   ZardDividerComponent,
   ZardFormImports,
   ZardIconComponent,
-  ZardInputDirective
+  ZardInputDirective,
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import type { ZardSwitchChange } from '@xpert-ai/headless-ui'
 import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { injectToastr } from '@cloud/app/@core'
 import { TMessageContentVirtualCube } from '@metad/contracts'
 import { NgmCommonModule, NgmSelectComponent, ResizerModule } from '@metad/ocap-angular/common'
@@ -53,7 +53,7 @@ import { ChecklistComponent } from '../../common'
     FormsModule,
     ReactiveFormsModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardButtonComponent,
     ZardDividerComponent,
     ZardIconComponent,

@@ -43,10 +43,8 @@ import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
 import { ModelEntityService } from '../entity.service'
 import { newDimensionFromColumn } from '../types'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { ZardIconComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
-
+import { ZardIconComponent, ZardCheckboxComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.Default,
@@ -58,7 +56,7 @@ import { ZardIconComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
     FormsModule,
     TranslateModule,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardCheckboxComponent,
     NgmCommonModule,
     NgmEntityPropertyComponent

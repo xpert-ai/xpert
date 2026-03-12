@@ -2,15 +2,13 @@ import { Dialog, DialogModule } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, input, model } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { routeAnimations } from '@metad/core'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IBuiltinTool, IXpertToolset, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { XpertToolTestDialogComponent } from '../../tool-test'
 import { XpertToolBuiltinParametersComponent } from '../parameters/parameters.component'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -19,7 +17,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     ReactiveFormsModule,
     TranslateModule,
     DialogModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmI18nPipe,
     NgmDensityDirective,
     XpertToolBuiltinParametersComponent,

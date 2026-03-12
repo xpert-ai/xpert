@@ -3,7 +3,6 @@ import { Component, inject, LOCALE_ID, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { MatDialog } from '@angular/material/dialog'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
@@ -21,8 +20,7 @@ import {
   OrderTypeEnum,
   ToastrService
 } from '../../../../@core'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-settings-copilot-users',
@@ -33,7 +31,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     RouterModule,
     TranslateModule,
     FormsModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardIconComponent,
     ZardButtonComponent,
     WaIntersectionObserver,

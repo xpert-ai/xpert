@@ -3,7 +3,6 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
@@ -26,6 +25,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { EMPTY, map, switchMap } from 'rxjs'
 import { ChatProjectMembersComponent } from '../members/members.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'chat-project-manage',
@@ -35,7 +35,7 @@ import { ChatProjectMembersComponent } from '../members/members.component'
     FormsModule,
     DragDropModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     CopilotModelSelectComponent,
     NgmSpinComponent,
     ChatProjectMembersComponent,
@@ -155,7 +155,7 @@ export class ChatProjectManageComponent {
       return
     }
     this.loading.set(true)
-    this.projectsService.updateVCS(this.projectId(), {integrationId: this.integrationId()}).subscribe({
+    this.projectsService.updateVCS(this.projectId(), { integrationId: this.integrationId() }).subscribe({
       next: () => {
         this.loading.set(false)
         openLogin()

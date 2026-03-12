@@ -2,9 +2,17 @@ import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal, ViewContainerRef } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  signal,
+  ViewContainerRef
+} from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
 import { XpertOcapService } from '@cloud/app/xpert/ocap.service'
@@ -15,7 +23,7 @@ import { DataSettings, IndicatorTagEnum, IndicatorType, TimeGranularity } from '
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { combineLatest, map, of } from 'rxjs'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -26,10 +34,10 @@ import { combineLatest, map, of } from 'rxjs'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
 
     NgmIndicatorComponent,
-    NgmIndicatorExplorerComponent,
+    NgmIndicatorExplorerComponent
   ],
   selector: 'chat-component-indicators',
   templateUrl: './indicators.component.html',
@@ -46,7 +54,9 @@ export class ChatComponentIndicatorsComponent {
 
   // Inputs
   readonly indicators =
-    input<Array<Pick<DataSettings, 'dataSource'> & Pick<DataSettings, 'entitySet'> & { id: string; indicatorCode: string }>>()
+    input<
+      Array<Pick<DataSettings, 'dataSource'> & Pick<DataSettings, 'entitySet'> & { id: string; indicatorCode: string }>
+    >()
 
   // States
   // Collect dataSources of indicators
@@ -137,17 +147,19 @@ export class ChatComponentIndicatorsComponent {
   }
 
   editIndicator(id: string) {
-    this.#dialog.open<IIndicator>(XpIndicatorFormComponent, {
-      viewContainerRef: this.viewContainerRef,
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet',
-      data: {
-        id
-      }
-    }).closed.subscribe((result) => {
-      if (result) {
-        this.xpertOcapService.refreshModel(result.modelId, true)
-      }
-    })
+    this.#dialog
+      .open<IIndicator>(XpIndicatorFormComponent, {
+        viewContainerRef: this.viewContainerRef,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: {
+          id
+        }
+      })
+      .closed.subscribe((result) => {
+        if (result) {
+          this.xpertOcapService.refreshModel(result.modelId, true)
+        }
+      })
   }
 }

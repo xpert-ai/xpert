@@ -3,13 +3,12 @@ import { CommonModule } from '@angular/common'
 import { Component, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { attrModel, linkedModel, OverlayAnimations } from '@metad/core'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-features-summary',
   standalone: true,
@@ -19,7 +18,7 @@ import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
     CdkMenuModule,
     TranslateModule,
     MatSliderModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmDensityDirective,
 
     CopilotPromptEditorComponent
@@ -56,7 +55,7 @@ export class XpertStudioFeaturesSummaryComponent {
       this.summarize.update((state) => {
         return {
           ...(state ?? {}),
-          maxMessages: value,
+          maxMessages: value
           // retainMessages: Math.min(state?.retainMessages, value) +value - (state?.maxMessages ?? 100)
         }
       })

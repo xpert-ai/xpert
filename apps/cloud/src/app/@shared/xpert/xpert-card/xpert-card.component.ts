@@ -1,7 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, effect, inject, input, output } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -9,14 +8,14 @@ import { DateRelativePipe, injectHelpWebsite, IXpert, XpertTypeEnum } from '../.
 import { EmojiAvatarComponent } from '../../avatar'
 import { UserPipe } from '../../pipes'
 import { TagComponent } from '../../tag'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmHighlightDirective,
     EmojiAvatarComponent,
     TagComponent,

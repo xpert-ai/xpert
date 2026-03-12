@@ -1,172 +1,235 @@
 <div class="pac-home__content" waIntersectionObserver waIntersectionThreshold="0.5">
-    <div class="pac-home__body flex flex-col px-2 md:px-8 mt-4 mx-auto max-w-5xl lg:max-w-6xl">
+  <div class="pac-home__body flex flex-col px-2 md:px-8 mt-4 mx-auto max-w-5xl lg:max-w-6xl">
+    <h2 class="text-lg">
+      {{ 'PAC.MENU.HOME.HELLO' | translate: { Default: 'Hello' } }}
+      <span class="font-semibold">
+        {{ user$ | async | createdBy }}
+      </span>
+      !
+    </h2>
 
-        <h2 class="text-lg">{{ 'PAC.MENU.HOME.HELLO' | translate: {Default: "Hello"} }} 
-            <span class="font-semibold">
-                {{user$ | async | createdBy}}
-            </span>
-            !
-        </h2>
-
-        <!-- *ngIf="AbilityActions.Manage | able:'Story'"  -->
-        <div class="pac-home__quick-guide flex flex-wrap justify-start items-center"
-            [class.pac-dashboard__created-demo]="createdDemo()"
-        >
-          @if (demoPermission()) {
-            <div class="step">
-              @if (creatingDemo()) {
-                <div class="complete mr-4 emoji-loader w-8 h-12" style="position: relative;"></div>
+    <!-- *ngIf="AbilityActions.Manage | able:'Story'"  -->
+    <div
+      class="pac-home__quick-guide flex flex-wrap justify-start items-center"
+      [class.pac-dashboard__created-demo]="createdDemo()"
+    >
+      @if (demoPermission()) {
+        <div class="step">
+          @if (creatingDemo()) {
+            <div class="complete mr-4 emoji-loader w-8 h-12" style="position: relative"></div>
+          } @else {
+            <div class="complete mr-4">
+              @if (quickGuides().sample.complete) {
+                <span>🟢</span>
               } @else {
-                <div class="complete mr-4">
-                  @if (quickGuides().sample.complete) {
-                    <span>🟢</span>
-                  } @else {
-                    <span>🔘</span>
-                  }
-                </div>
+                <span>🔘</span>
               }
-                
-                <span class="guide" >
-                  @if (creatingDemo()) {
-                    <span class="ml-4">
-                        {{ 'PAC.MENU.HOME.GeneratingSamples' | translate: {Default: 'Generating Samples'} }}...
-                    </span>
-                  } @else {
-                    <a class="cursor-pointer" (click)="createOrgDemo()">
-                      @if (quickGuides().sample.complete) {
-                        <span>{{ 'PAC.MENU.HOME.RegenerateSamples' | translate: {Default: 'Regenerate Samples'} }}</span>
-                      } @else {
-                        <span>{{ 'PAC.MENU.HOME.GenerateSamples' | translate: {Default: 'Generate Samples'} }}</span>
-                      }
-                    </a>
-                  }
-                </span>
             </div>
           }
 
-          @if (quickGuides().model.complete) {
-            <div class="step">
-                <span class="complete mr-4">🟢</span>
-                <span class="guide">
-                    <a routerLink="/models" class="hover:underline">
-                        <span class="text-lg font-bold italic">{{quickGuides().model.quantity}}</span>
-                        {{ 'PAC.KEY_WORDS.SemanticModels' | translate: {
-                            Default: 'Semantic Models' } }}
-                    </a>
-                </span>
-            </div>
-          } @else {
-            <div class="step">
-                <span class="complete mr-4">🔘</span>
-                <span class="guide">
-                    <a routerLink="/models">
-                        {{ 'PAC.MENU.HOME.CreateYourFirstSemanticModel' | translate: {Default: 'Create your first semantic model'} }}
-                    </a>
-                </span>
-            </div>
-          }
-
-          @if (quickGuides().story.complete) {
-            <div class="step" >
-                <span class="complete mr-4">🟢</span>
-                <span class="guide">
-                    <a routerLink="/project" class="hover:underline">
-                        <span class="text-lg font-bold italic">{{quickGuides().story.quantity}}</span>
-                        {{ 'PAC.KEY_WORDS.Stories' | translate: { Default: 'Stories' } }}
-                    </a>
-                </span>
-            </div>
-          } @else {
-            <div class="step" >
-                <span class="complete mr-4">🔘</span>
-                <span class="guide">
-                    <a routerLink="/project">
-                        {{ 'PAC.MENU.HOME.CreateYourFirstStory' | translate: {Default: 'Create your first story'} }}
-                    </a>
-                </span>
-            </div>
-          }
-            
-          @if (quickGuides().indicator.complete) {
-            <div class="step" >
-                <span class="complete mr-4">🟢</span>
-                <span class="guide">
-                    <a routerLink="/project/indicators" class="hover:underline">
-                        <span class="text-lg font-bold italic">{{quickGuides().indicator.quantity}}</span>
-                        {{ 'PAC.KEY_WORDS.Indicators' | translate: { Default: 'Indicators' } }}
-                    </a>
-                </span>
-            </div>
-          } @else {
-            <div class="step" >
-                <span class="complete mr-4">🔘</span>
-                <span class="guide">
-                    <a routerLink="/project/indicator">
-                        {{ 'PAC.MENU.HOME.CreateYourFirstIndicator' | translate: {Default: 'Create your first indicator'} }}
-                    </a>
-                </span>
-            </div>
-          }
-        </div>
-
-        <div class="flex justify-between items-center self-stretch">
-            <div>
-                <input z-input class="pac-home__date-picker outline-none bg-transparent"
-                    [matDatepicker]="picker" [formControl]="dateControl"
-                    (click)="picker.open()">
-                <mat-datepicker #picker></mat-datepicker>
-            </div>
-
-            <div class="flex items-center gap-2">
-              @if (editable()) {
-                <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'PAC.KEY_WORDS.RestoreLayout' |translate: {Default: 'Restore layout'}" (click)="restore()">
-                    <z-icon zType="restart_alt"></z-icon>
-                </button>
-                @if (dirty()) {
-                    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'PAC.KEY_WORDS.Undo' |translate: {Default: 'Undo'}" (click)="undoEdit()">
-                        <z-icon zType="undo"></z-icon>
-                    </button>
+          <span class="guide">
+            @if (creatingDemo()) {
+              <span class="ml-4">
+                {{ 'PAC.MENU.HOME.GeneratingSamples' | translate: { Default: 'Generating Samples' } }}...
+              </span>
+            } @else {
+              <a class="cursor-pointer" (click)="createOrgDemo()">
+                @if (quickGuides().sample.complete) {
+                  <span>{{ 'PAC.MENU.HOME.RegenerateSamples' | translate: { Default: 'Regenerate Samples' } }}</span>
+                } @else {
+                  <span>{{ 'PAC.MENU.HOME.GenerateSamples' | translate: { Default: 'Generate Samples' } }}</span>
                 }
-                <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'PAC.KEY_WORDS.Commit' |translate: {Default: 'Commit'}" (click)="commitEdit()">
-                    <z-icon zType="done"></z-icon>
-                </button>
-              } @else {
-                <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'PAC.KEY_WORDS.Edit' |translate: {Default: 'Edit'}" (click)="toggleEdit()">
-                    <z-icon zType="edit"></z-icon>
-                </button>
-              }
-            </div>
+              </a>
+            }
+          </span>
         </div>
+      }
 
-        <gridster class="" [options]="options" [ngClass]="{editable: editable()}">
-          @for (feed of feeds(); track feed.id; let i = $index) {
-            <gridster-item [item]="feed.options.position" class="pac-home__gridster-item"
-                (itemChange)="onGridsterItemChange($event, feed)">
-              @if (feed.type ==='StoryWidget') {
-                <pac-story-widget-feed [id]="feed.entityId"/>
-              }
-              @if (feed.type === 'Recents') {
-                <pac-feed-recents class="pac-home__my-recent pac-home__widget"/>
-              }
-              @if (feed.type ==='UserVisits') {
-                <pac-feed-user-visit class="pac-home__widget"/>
-              }
+      @if (quickGuides().model.complete) {
+        <div class="step">
+          <span class="complete mr-4">🟢</span>
+          <span class="guide">
+            <a routerLink="/models" class="hover:underline">
+              <span class="text-lg font-bold italic">{{ quickGuides().model.quantity }}</span>
+              {{
+                'PAC.KEY_WORDS.SemanticModels'
+                  | translate
+                    : {
+                        Default: 'Semantic Models'
+                      }
+              }}
+            </a>
+          </span>
+        </div>
+      } @else {
+        <div class="step">
+          <span class="complete mr-4">🔘</span>
+          <span class="guide">
+            <a routerLink="/models">
+              {{
+                'PAC.MENU.HOME.CreateYourFirstSemanticModel'
+                  | translate: { Default: 'Create your first semantic model' }
+              }}
+            </a>
+          </span>
+        </div>
+      }
 
-                <div class="pac-home__widget-actions">
-                  @if (editable()) {
-                    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="pac-home__widget-remove" (click)="$event.preventDefault();$event.stopPropagation();removeWidget(feed)">
-                        <z-icon zType="close"></z-icon>
-                    </button>
-                  }
-                  @if (feed.type ==='StoryWidget') {
-                    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [routerLink]="['/story', feed.options.storyId]" [queryParams]="{pageKey: feed.options.pageKey, widgetKey: feed.options.widgetKey}">
-                        <z-icon zType="launch"></z-icon>
-                    </button>
-                  }
-                </div>
-            </gridster-item>
-          }
-        </gridster>
+      @if (quickGuides().story.complete) {
+        <div class="step">
+          <span class="complete mr-4">🟢</span>
+          <span class="guide">
+            <a routerLink="/project" class="hover:underline">
+              <span class="text-lg font-bold italic">{{ quickGuides().story.quantity }}</span>
+              {{ 'PAC.KEY_WORDS.Stories' | translate: { Default: 'Stories' } }}
+            </a>
+          </span>
+        </div>
+      } @else {
+        <div class="step">
+          <span class="complete mr-4">🔘</span>
+          <span class="guide">
+            <a routerLink="/project">
+              {{ 'PAC.MENU.HOME.CreateYourFirstStory' | translate: { Default: 'Create your first story' } }}
+            </a>
+          </span>
+        </div>
+      }
+
+      @if (quickGuides().indicator.complete) {
+        <div class="step">
+          <span class="complete mr-4">🟢</span>
+          <span class="guide">
+            <a routerLink="/project/indicators" class="hover:underline">
+              <span class="text-lg font-bold italic">{{ quickGuides().indicator.quantity }}</span>
+              {{ 'PAC.KEY_WORDS.Indicators' | translate: { Default: 'Indicators' } }}
+            </a>
+          </span>
+        </div>
+      } @else {
+        <div class="step">
+          <span class="complete mr-4">🔘</span>
+          <span class="guide">
+            <a routerLink="/project/indicator">
+              {{ 'PAC.MENU.HOME.CreateYourFirstIndicator' | translate: { Default: 'Create your first indicator' } }}
+            </a>
+          </span>
+        </div>
+      }
     </div>
 
+    <div class="flex justify-between items-center self-stretch">
+      <div>
+        <input
+          z-input
+          class="pac-home__date-picker outline-none bg-transparent"
+          [matDatepicker]="picker"
+          [formControl]="dateControl"
+          (click)="picker.open()"
+        />
+        <mat-datepicker #picker></mat-datepicker>
+      </div>
+
+      <div class="flex items-center gap-2">
+        @if (editable()) {
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            displayDensity="cosy"
+            [zTooltip]="'PAC.KEY_WORDS.RestoreLayout' | translate: { Default: 'Restore layout' }"
+            (click)="restore()"
+          >
+            <z-icon zType="restart_alt"></z-icon>
+          </button>
+          @if (dirty()) {
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              zShape="circle"
+              displayDensity="cosy"
+              [zTooltip]="'PAC.KEY_WORDS.Undo' | translate: { Default: 'Undo' }"
+              (click)="undoEdit()"
+            >
+              <z-icon zType="undo"></z-icon>
+            </button>
+          }
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            displayDensity="cosy"
+            [zTooltip]="'PAC.KEY_WORDS.Commit' | translate: { Default: 'Commit' }"
+            (click)="commitEdit()"
+          >
+            <z-icon zType="done"></z-icon>
+          </button>
+        } @else {
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            displayDensity="cosy"
+            [zTooltip]="'PAC.KEY_WORDS.Edit' | translate: { Default: 'Edit' }"
+            (click)="toggleEdit()"
+          >
+            <z-icon zType="edit"></z-icon>
+          </button>
+        }
+      </div>
+    </div>
+
+    <gridster class="" [options]="options" [ngClass]="{ editable: editable() }">
+      @for (feed of feeds(); track feed.id; let i = $index) {
+        <gridster-item
+          [item]="feed.options.position"
+          class="pac-home__gridster-item"
+          (itemChange)="onGridsterItemChange($event, feed)"
+        >
+          @if (feed.type === 'StoryWidget') {
+            <pac-story-widget-feed [id]="feed.entityId" />
+          }
+          @if (feed.type === 'Recents') {
+            <pac-feed-recents class="pac-home__my-recent pac-home__widget" />
+          }
+          @if (feed.type === 'UserVisits') {
+            <pac-feed-user-visit class="pac-home__widget" />
+          }
+
+          <div class="pac-home__widget-actions">
+            @if (editable()) {
+              <button
+                z-button
+                zType="ghost"
+                zSize="icon"
+                zShape="circle"
+                displayDensity="cosy"
+                class="pac-home__widget-remove"
+                (click)="$event.preventDefault(); $event.stopPropagation(); removeWidget(feed)"
+              >
+                <z-icon zType="close"></z-icon>
+              </button>
+            }
+            @if (feed.type === 'StoryWidget') {
+              <button
+                z-button
+                zType="ghost"
+                zSize="icon"
+                zShape="circle"
+                displayDensity="cosy"
+                [routerLink]="['/story', feed.options.storyId]"
+                [queryParams]="{ pageKey: feed.options.pageKey, widgetKey: feed.options.widgetKey }"
+              >
+                <z-icon zType="launch"></z-icon>
+              </button>
+            }
+          </div>
+        </gridster-item>
+      }
+    </gridster>
+  </div>
 </div>

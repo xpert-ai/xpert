@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -19,8 +18,7 @@ import { XpertRemoteSelectComponent } from '../../form-fields'
 import { TWorkflowVarGroup } from '../../../@core'
 import { JsonSchemaWidgetOutletComponent } from './json-schema-widget-outlet.component'
 import { JsonSchemaWidgetStrategyRegistry } from './json-schema-widget-registry.service'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  *
  */
@@ -30,7 +28,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmI18nPipe,
     NgmSelectComponent,
     XpertVariableInputComponent,

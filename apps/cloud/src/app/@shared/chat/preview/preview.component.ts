@@ -16,7 +16,6 @@ import {
   viewChild
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   appendMessageContent,
@@ -62,6 +61,7 @@ import { XpertPreviewAiMessageComponent } from './ai-message/message.component'
 import { ChatAttachmentsComponent } from '../attachments/attachments.component'
 import { ChatHumanMessageComponent } from './human-message/message.component'
 import { XpertAgentOperationComponent } from '../../agent'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -71,7 +71,7 @@ import { XpertAgentOperationComponent } from '../../agent'
     CdkMenuModule,
     TranslateModule,
     TextFieldModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MarkdownModule,
     EmojiAvatarComponent,
     XpertParametersCardComponent,

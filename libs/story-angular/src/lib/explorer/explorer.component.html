@@ -1,28 +1,31 @@
 <div class="relative w-full h-64 shrink-0 flex justify-start items-stretch p-1" ngmResizer [resizerHeight]="230">
-    <!-- <div class="flex flex-col justify-start">
+  <!-- <div class="flex flex-col justify-start">
         <button z-button zType="outline" color="primary" (click)="back()">{{ 'Story.Common.Back' | translate: {Default: 'Back'} }}</button>
     </div> -->
-  <button type="button" class="absolute right-2 top-2 btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
-    (click)="back()">
+  <button
+    type="button"
+    class="absolute right-2 top-2 btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+    (click)="back()"
+  >
     <i class="ri-close-line"></i>
-  </button>  
+  </button>
 
   <div class="flex-1 h-full flex justify-start items-stretch gap-2 p-1 overflow-hidden hover:overflow-auto">
-
     <div class="surface shrink-0 w-64 h-full flex flex-col justify-start items-stretch rounded-xl overflow-hidden">
       <div class="shrink-0 px-2 pt-2 flex flex-wrap items-center">
-        {{ 'Story.Common.Measures' | translate: {Default: 'Measures'} }}
+        {{ 'Story.Common.Measures' | translate: { Default: 'Measures' } }}
       </div>
 
       <div class="flex-1 px-2 overflow-auto" displayDensity="compact">
         <ngm-search [formControl]="measureSearch"></ngm-search>
-        <ul id="ngm-story-explorer__drop-list-measures" role="list" class="w-full"
-          cdkDropList
-          [cdkDropListData]="[]">
+        <ul id="ngm-story-explorer__drop-list-measures" role="list" class="w-full" cdkDropList [cdkDropListData]="[]">
           @for (item of measureList(); track item.name) {
-            <li role="listitem" class="flex items-center justify-start p-1 rounded-md cursor-pointer hover:bg-black/5 dark:hover:bg-neutral-100/10"
+            <li
+              role="listitem"
+              class="flex items-center justify-start p-1 rounded-md cursor-pointer hover:bg-black/5 dark:hover:bg-neutral-100/10"
               cdkDrag
-              [cdkDragData]="item">
+              [cdkDragData]="item"
+            >
               <i class="ri-draggable mr-1 inline-block"></i>
               <ngm-entity-property [property]="item" [highlight]="measureSearch.value"></ngm-entity-property>
             </li>
@@ -31,28 +34,40 @@
       </div>
     </div>
 
-    <div class="h-full flex gap-2" id="ngm-story-explorer__drop-list-dimensions"
-      cdkDropList cdkDropListOrientation="horizontal"
+    <div
+      class="h-full flex gap-2"
+      id="ngm-story-explorer__drop-list-dimensions"
+      cdkDropList
+      cdkDropListOrientation="horizontal"
       [cdkDropListData]="dimensions()"
-      (cdkDropListDropped)="moveDimension($event)">
+      (cdkDropListDropped)="moveDimension($event)"
+    >
       @for (dim of dimensions(); track dim.dimension?.dimension) {
-        <div class="surface shrink-0 w-64 h-full flex flex-col justify-start items-stretch rounded-xl overflow-hidden"
+        <div
+          class="surface shrink-0 w-64 h-full flex flex-col justify-start items-stretch rounded-xl overflow-hidden"
           cdkDrag
           [cdkDragData]="dim"
         >
           <div class="shrink-0 p-1 flex flex-wrap items-center gap-1">
             @for (item of dim.hierarchies; track item.name) {
-              <div class="tag text-sm block font-bold leading-sm px-2 py-1 rounded-lg cursor-pointer
-                overflow-hidden text-ellipsis whitespace-nowrap"
+              <div
+                class="tag text-sm block font-bold leading-sm px-2 py-1 rounded-lg cursor-pointer overflow-hidden text-ellipsis whitespace-nowrap"
                 [class.selected]="item.hierarchy === (dim.dimension.hierarchy ?? dim.dimension.dimension)"
                 [class.slicered]="slicers()[item.dimension]?.members?.length"
-                (click)="toggleHierarchy(dim.dimension.dimension, item.hierarchy === dim.dimension.hierarchy ? null : item.hierarchy)"
-                >
-                <span>{{item.caption || item.hierarchy}}</span>
+                (click)="
+                  toggleHierarchy(
+                    dim.dimension.dimension,
+                    item.hierarchy === dim.dimension.hierarchy ? null : item.hierarchy
+                  )
+                "
+              >
+                <span>{{ item.caption || item.hierarchy }}</span>
               </div>
             }
           </div>
-          <ngm-member-tree class="flex-1 overflow-auto" displayDensity="compact"
+          <ngm-member-tree
+            class="flex-1 overflow-auto"
+            displayDensity="compact"
             [dataSettings]="data.dataSettings"
             [dimension]="dim.dimension"
             [options]="{
@@ -67,214 +82,259 @@
       }
     </div>
 
-    <div class="add-dimension w-96 h-full shrink-0 flex justify-start items-center rounded-xl cursor-pointer" (click)="openDimensions()">
+    <div
+      class="add-dimension w-96 h-full shrink-0 flex justify-start items-center rounded-xl cursor-pointer"
+      (click)="openDimensions()"
+    >
       <div>
-          <svg width="100" height="100">
-              <circle cx="50" cy="50" r="40" class="fill-bluegray-100 group-hover:fill-bluegray-200 group-focus:fill-bluegray-200
-                  dark:fill-gray-800"/>
-              <rect x="25" y="48" width="50" height="4" fill="white"/>
-              <rect x="48" y="25" width="4" height="50" fill="white"/>
-          </svg>
+        <svg width="100" height="100">
+          <circle
+            cx="50"
+            cy="50"
+            r="40"
+            class="fill-bluegray-100 group-hover:fill-bluegray-200 group-focus:fill-bluegray-200 dark:fill-gray-800"
+          />
+          <rect x="25" y="48" width="50" height="4" fill="white" />
+          <rect x="48" y="25" width="4" height="50" fill="white" />
+        </svg>
       </div>
       <div class="flex flex-col justify-center items-start">
-          <div>{{'Story.Explorer.ShowDimensions' | translate: {Default: 'Show Dimensions'} }}</div>
-          <div class="text-sm">{{'Story.Explorer.BringMoreDimensions' | translate: {Default: 'Bring in more dimensions from your dataset and start exploring'} }}.</div>
+        <div>{{ 'Story.Explorer.ShowDimensions' | translate: { Default: 'Show Dimensions' } }}</div>
+        <div class="text-sm">
+          {{
+            'Story.Explorer.BringMoreDimensions'
+              | translate: { Default: 'Bring in more dimensions from your dataset and start exploring' }
+          }}.
+        </div>
       </div>
     </div>
   </div>
 
-  <div ngmResizerBar resizerBarPosition="bottom"
-    cdkDrag
-    cdkDragLockAxis="y"
-  ></div>
+  <div ngmResizerBar resizerBarPosition="bottom" cdkDrag cdkDragLockAxis="y"></div>
 </div>
 
-<div class="w-full flex-col-reverse flex-1 p-2 flex justify-start items-stretch gap-2 overflow-y-auto overflow-x-hidden
-  lg:flex-row lg:overflow-hidden">
-    <div ngmResizer class="relative w-full lg:w-[360px]">
-        <div ngmResizerBar resizerBarPosition="right" class="z-10"
-            cdkDrag
-            cdkDragLockAxis="x"
-        ></div>
-        @switch (visualPanel) {
-          @case ('options') {
-            <div class="surface h-full rounded-xl flex flex-col justify-start items-stretch overflow-hidden" >
-                <z-tab-group class="overflow-hidden" fitInkBarToContent preserveContent>
-                    <z-tab [label]="'Story.Explorer.Data' | translate: {Default: 'Data'} ">
-                        <div class="font-bold px-2 py-1 mt-2">{{ 'Story.Explorer.Dimensions' | translate: {Default: 'Dimensions'} }}</div>
-                        <div class="pac-cdk-drop__list min-h-28 w-full flex flex-col justify-start items-stretch overflow-auto gap-1 p-2"
-                            id="ngm-story-explorer__drop-list-rows"
-                            cdkDropList
-                            [cdkDropListData]="rows()"
-                            (cdkDropListDropped)="dropRow($event)"
-                            [cdkDropListEnterPredicate]="dropRowPredicate">
-                          @for (row of rows(); track i; let i = $index) {
-                            <ngm-chart-property class="w-full group"
-                                removable
-                                [capacities]="dimensionCapacities()"
-                                [dataSettings]="dataSettings()"
-                                [entityType]="entityType()"
-                                [ngModel]="row"
-                                (ngModelChange)="onRowChange($event, i)"
+<div
+  class="w-full flex-col-reverse flex-1 p-2 flex justify-start items-stretch gap-2 overflow-y-auto overflow-x-hidden lg:flex-row lg:overflow-hidden"
+>
+  <div ngmResizer class="relative w-full lg:w-[360px]">
+    <div ngmResizerBar resizerBarPosition="right" class="z-10" cdkDrag cdkDragLockAxis="x"></div>
+    @switch (visualPanel) {
+      @case ('options') {
+        <div class="surface h-full rounded-xl flex flex-col justify-start items-stretch overflow-hidden">
+          <z-tab-group class="overflow-hidden" fitInkBarToContent preserveContent>
+            <z-tab [label]="'Story.Explorer.Data' | translate: { Default: 'Data' }">
+              <div class="font-bold px-2 py-1 mt-2">
+                {{ 'Story.Explorer.Dimensions' | translate: { Default: 'Dimensions' } }}
+              </div>
+              <div
+                class="pac-cdk-drop__list min-h-28 w-full flex flex-col justify-start items-stretch overflow-auto gap-1 p-2"
+                id="ngm-story-explorer__drop-list-rows"
+                cdkDropList
+                [cdkDropListData]="rows()"
+                (cdkDropListDropped)="dropRow($event)"
+                [cdkDropListEnterPredicate]="dropRowPredicate"
+              >
+                @for (row of rows(); track i; let i = $index) {
+                  <ngm-chart-property
+                    class="w-full group"
+                    removable
+                    [capacities]="dimensionCapacities()"
+                    [dataSettings]="dataSettings()"
+                    [entityType]="entityType()"
+                    [ngModel]="row"
+                    (ngModelChange)="onRowChange($event, i)"
+                    cdkDrag
+                    [cdkDragData]="row"
+                  >
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon"
+                      zShape="circle"
+                      ngmSuffix
+                      class="opacity-0 group-hover:opacity-100 transition-opacity"
+                      displayDensity="compact"
+                      ngmAppearance="danger"
+                      color="warn"
+                      (click)="$event.stopPropagation(); $event.preventDefault(); removeRow(i)"
+                    >
+                      <z-icon zType="clear"></z-icon>
+                    </button>
+                  </ngm-chart-property>
+                }
+              </div>
 
-                                cdkDrag
-                                [cdkDragData]="row"
-                            >
-                                <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="opacity-0 group-hover:opacity-100 transition-opacity" displayDensity="compact" ngmAppearance="danger" color="warn" (click)="$event.stopPropagation();$event.preventDefault();removeRow(i)">
-                                  <z-icon zType="clear"></z-icon>
-                                </button>
-                            </ngm-chart-property>
-                          }
-                        </div>
+              <div class="font-bold px-2 py-1 mt-2">
+                {{ 'Story.Explorer.Measures' | translate: { Default: 'Measures' } }}
+              </div>
+              <div
+                class="pac-cdk-drop__list min-h-28 w-full flex flex-col justify-start items-stretch overflow-auto gap-1 p-2"
+                id="ngm-story-explorer__drop-list-columns"
+                cdkDropList
+                [cdkDropListData]="columns()"
+                (cdkDropListDropped)="dropColumn($event)"
+                [cdkDropListEnterPredicate]="dropColumnPredicate"
+              >
+                @for (item of columns(); track i; let i = $index) {
+                  <ngm-chart-property
+                    class="w-full group"
+                    removable
+                    [capacities]="measureCapacities()"
+                    [dataSettings]="dataSettings()"
+                    [entityType]="entityType()"
+                    [chartType]="chartType()"
+                    [ngModel]="item"
+                    (ngModelChange)="onColumnChange($event, i)"
+                    cdkDrag
+                    [cdkDragData]="item"
+                  >
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon"
+                      zShape="circle"
+                      ngmSuffix
+                      class="opacity-0 group-hover:opacity-100 transition-opacity"
+                      displayDensity="compact"
+                      ngmAppearance="danger"
+                      color="warn"
+                      (click)="$event.stopPropagation(); $event.preventDefault(); removeColumn(i)"
+                    >
+                      <z-icon zType="clear"></z-icon>
+                    </button>
+                  </ngm-chart-property>
+                }
+              </div>
+            </z-tab>
+            <z-tab [label]="'Story.Explorer.Display' | translate: { Default: 'Display' }">
+              @switch (component().component) {
+                @case (ComponentType.AnalyticalCard) {
+                  <ngm-chart-settings
+                    class="w-full text-sm"
+                    displayDensity="compact"
+                    [(ngModel)]="chartSettings"
+                    [chartType]="chartType()"
+                  />
 
-                        <div class="font-bold px-2 py-1 mt-2">{{ 'Story.Explorer.Measures' | translate: {Default: 'Measures'} }}</div>
-                        <div class="pac-cdk-drop__list min-h-28 w-full flex flex-col justify-start items-stretch overflow-auto gap-1 p-2"
-                            id="ngm-story-explorer__drop-list-columns"
-                            cdkDropList
-                            [cdkDropListData]="columns()"
-                            (cdkDropListDropped)="dropColumn($event)"
-                            [cdkDropListEnterPredicate]="dropColumnPredicate">
-                          @for (item of columns(); track i; let i = $index) {
-                            <ngm-chart-property class="w-full group"
-                                removable
-                                [capacities]="measureCapacities()"
-                                [dataSettings]="dataSettings()"
-                                [entityType]="entityType()"
-                                [chartType]="chartType()"
-                                [ngModel]="item"
-                                (ngModelChange)="onColumnChange($event, i)"
-
-                                cdkDrag
-                                [cdkDragData]="item"
-                            >
-                                <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="opacity-0 group-hover:opacity-100 transition-opacity" displayDensity="compact" ngmAppearance="danger" color="warn" (click)="$event.stopPropagation();$event.preventDefault();removeColumn(i)">
-                                  <z-icon zType="clear"></z-icon>
-                                </button>
-                            </ngm-chart-property>
-                          }
-                        </div>
-                    </z-tab>
-                    <z-tab [label]="'Story.Explorer.Display' | translate: {Default: 'Display'} ">
-                      @switch (component().component) {
-                        @case (ComponentType.AnalyticalCard) {
-                          <ngm-chart-settings class="w-full text-sm" displayDensity="compact"
-                              [(ngModel)]="chartSettings"
-                              [chartType]="chartType()"
-                            />
-
-                          <ngm-chart-type-form class="text-sm" displayDensity="compact" [(ngModel)]="chartTypeChartOptions"
-                            [chartType]="chartType()" />
-                        }
-                        @case (ComponentType.AnalyticalGrid) {
-                          <ngm-grid-settings class="w-full text-sm" displayDensity="compact"
-                            [(ngModel)]="gridSettings"
-                          />
-                        }
-                      }
-                    </z-tab>
-                </z-tab-group>
-            </div>
-          }
-          @case ('visual') {
-            <div class="surface h-full rounded-xl flex flex-col justify-start items-stretch overflow-auto">
-              @for (group of charts; track group.label) {
-                <div>
-                    <div class="text-sm p-2">
-                        {{'Story.Chart.' + group.label | translate: {Default: group.label} }}
-                    </div>
-                    <div class="grid grid-cols-4 gap-2">
-                      @for (chart of group.charts; track chart.label) {
-                        <button class="ngm-story-explorer__chart m-2 flex flex-col justify-center items-center rounded-lg overflow-hidden
-                            ring-offset-2 ring-offset-transparent ring-2 ring-transparent hover:ring-violet-300 focus:ring-violet-500"
-                            [matTooltip]="'Story.Chart.' + chart.label | translate: {Default: chart.label}"
-                            matTooltipPosition="above"
-                            draggable="true"
-                            [class.selected]="component().label === chart.label"
-                            (click)="createWidget({
-                                label: chart.label,
-                                component: ComponentType.AnalyticalCard,
-                                dataSettings: {
-                                    chartAnnotation: chart.value
-                                }
-                            })"
-                        >
-                            <img [src]="'/assets/icons/charts/' + chart.icon" class="w-12 h-12" alt="{{chart.label}}"
-                                [ngStyle]="{
-                                    transform: chart.rotate ? 'rotate(90deg)' : 'none'
-                                }"
-                            >
-                            <div class="text-xs">{{ 'Story.Chart.' + chart.label | translate: {Default: chart.label} }}</div>
-                        </button>
-                      }
-                    </div>
-                </div>
+                  <ngm-chart-type-form
+                    class="text-sm"
+                    displayDensity="compact"
+                    [(ngModel)]="chartTypeChartOptions"
+                    [chartType]="chartType()"
+                  />
+                }
+                @case (ComponentType.AnalyticalGrid) {
+                  <ngm-grid-settings class="w-full text-sm" displayDensity="compact" [(ngModel)]="gridSettings" />
+                }
               }
+            </z-tab>
+          </z-tab-group>
+        </div>
+      }
+      @case ('visual') {
+        <div class="surface h-full rounded-xl flex flex-col justify-start items-stretch overflow-auto">
+          @for (group of charts; track group.label) {
+            <div>
+              <div class="text-sm p-2">
+                {{ 'Story.Chart.' + group.label | translate: { Default: group.label } }}
+              </div>
+              <div class="grid grid-cols-4 gap-2">
+                @for (chart of group.charts; track chart.label) {
+                  <button
+                    class="ngm-story-explorer__chart m-2 flex flex-col justify-center items-center rounded-lg overflow-hidden ring-offset-2 ring-offset-transparent ring-2 ring-transparent hover:ring-violet-300 focus:ring-violet-500"
+                    [zTooltip]="'Story.Chart.' + chart.label | translate: { Default: chart.label }"
+                    zPosition="top"
+                    draggable="true"
+                    [class.selected]="component().label === chart.label"
+                    (click)="
+                      createWidget({
+                        label: chart.label,
+                        component: ComponentType.AnalyticalCard,
+                        dataSettings: {
+                          chartAnnotation: chart.value
+                        }
+                      })
+                    "
+                  >
+                    <img
+                      [src]="'/assets/icons/charts/' + chart.icon"
+                      class="w-12 h-12"
+                      alt="{{ chart.label }}"
+                      [ngStyle]="{
+                        transform: chart.rotate ? 'rotate(90deg)' : 'none'
+                      }"
+                    />
+                    <div class="text-xs">{{ 'Story.Chart.' + chart.label | translate: { Default: chart.label } }}</div>
+                  </button>
+                }
+              </div>
             </div>
           }
+        </div>
+      }
+    }
+  </div>
+  <div
+    class="surface flex-1 min-h-[600px] rounded-xl flex flex-col justify-center items-center overflow-hidden lg:max-h-full lg:min-h-full"
+  >
+    <div class="flex-1 w-full overflow-hidden">
+      @switch (view) {
+        @case ('chart') {
+          <ngm-analytical-card
+            class="w-full h-full group"
+            [title]="chartTitle()"
+            [dataSettings]="dataSettingsChart()"
+            [chartOptions]="chartSettings.chartOptions"
+            [chartSettings]="chartSettings.chartSettings"
+            (explain)="setExplains($event)"
+          >
+          </ngm-analytical-card>
         }
+        @case ('table') {
+          <ngm-analytical-grid
+            class="w-full h-full group overflow-auto"
+            [title]="chartTitle()"
+            [dataSettings]="dataSettingsGrid()"
+            [appearance]="{
+              displayDensity: DisplayDensity.compact
+            }"
+            [options]="gridSettings.options"
+            (explain)="setExplains($event)"
+          ></ngm-analytical-grid>
+        }
+      }
     </div>
-    <div class="surface flex-1 min-h-[600px] rounded-xl flex flex-col justify-center items-center overflow-hidden
-      lg:max-h-full lg:min-h-full">
-        <div class="flex-1 w-full overflow-hidden">
-          @switch (view) {
-            @case ('chart') {
-              <ngm-analytical-card class="w-full h-full group"
-                [title]="chartTitle()"
-                [dataSettings]="dataSettingsChart()"
-                [chartOptions]="chartSettings.chartOptions"
-                [chartSettings]="chartSettings.chartSettings"
-                (explain)="setExplains($event)"
-                >
-              </ngm-analytical-card>
-            }
-            @case ('table') {
-              <ngm-analytical-grid class="w-full h-full group overflow-auto"
-                [title]="chartTitle()"
-                [dataSettings]="dataSettingsGrid()"
-                [appearance]="{
-                  displayDensity: DisplayDensity.compact
-                }"
-                [options]="gridSettings.options"
-                (explain)="setExplains($event)"
-              ></ngm-analytical-grid>
-            }
-          }
-        </div>
-        <z-divider class="w-full"></z-divider>
-        <div class="w-full flex justify-between items-center p-2">
-            <mat-button-toggle-group displayDensity="cosy" ngmAppearance="hero" color="accent"
-                [(ngModel)]="visualPanel"
-            >
-                <mat-button-toggle *ngIf="component().component === ComponentType.AnalyticalCard" value="visual">
-                    {{ 'Story.Explorer.Visual' | translate: {Default: 'Visual'} }}
-                </mat-button-toggle>
-                <mat-button-toggle value="options">
-                    <z-icon zSize="sm" zType="settings"></z-icon>
-                </mat-button-toggle>
-            </mat-button-toggle-group>
+    <z-divider class="w-full"></z-divider>
+    <div class="w-full flex justify-between items-center p-2">
+      <mat-button-toggle-group displayDensity="cosy" ngmAppearance="hero" color="accent" [(ngModel)]="visualPanel">
+        <mat-button-toggle *ngIf="component().component === ComponentType.AnalyticalCard" value="visual">
+          {{ 'Story.Explorer.Visual' | translate: { Default: 'Visual' } }}
+        </mat-button-toggle>
+        <mat-button-toggle value="options">
+          <z-icon zSize="sm" zType="settings"></z-icon>
+        </mat-button-toggle>
+      </mat-button-toggle-group>
 
-            <mat-button-toggle-group displayDensity="cosy" ngmAppearance="hero" color="accent"
-                [(ngModel)]="view"
-            >
-                <mat-button-toggle value="table">
-                    {{ 'Story.Explorer.Table' | translate: {Default: 'Table'} }}
-                </mat-button-toggle>
-                <mat-button-toggle *ngIf="component().component === ComponentType.AnalyticalCard" value="chart">
-                    {{ 'Story.Explorer.Chart' | translate: {Default: 'Chart'} }}
-                </mat-button-toggle>
-            </mat-button-toggle-group>
+      <mat-button-toggle-group displayDensity="cosy" ngmAppearance="hero" color="accent" [(ngModel)]="view">
+        <mat-button-toggle value="table">
+          {{ 'Story.Explorer.Table' | translate: { Default: 'Table' } }}
+        </mat-button-toggle>
+        <mat-button-toggle *ngIf="component().component === ComponentType.AnalyticalCard" value="chart">
+          {{ 'Story.Explorer.Chart' | translate: { Default: 'Chart' } }}
+        </mat-button-toggle>
+      </mat-button-toggle-group>
 
-            <div ngmButtonGroup>
-                <button z-button zType="ghost" (click)="openExplain()">
-                    <z-icon zType="code"></z-icon>
-                    {{ 'Story.Widget.Explain' | translate: {Default: "Explain"} }}
-                </button>
-                <button z-button zType="default" color="primary" (click)="close()">
-                    {{ 'Story.Common.Apply' | translate: {Default: 'Apply'} }}
-                </button>
-            </div>
-        </div>
+      <div ngmButtonGroup>
+        <button z-button zType="ghost" (click)="openExplain()">
+          <z-icon zType="code"></z-icon>
+          {{ 'Story.Widget.Explain' | translate: { Default: 'Explain' } }}
+        </button>
+        <button z-button zType="default" color="primary" (click)="close()">
+          {{ 'Story.Common.Apply' | translate: { Default: 'Apply' } }}
+        </button>
+      </div>
     </div>
+  </div>
 </div>
 
 <ng-template #addDimensionsTempl>
@@ -284,9 +344,11 @@
         {{ 'Story.Explorer.AddDimensions' | translate: { Default: 'Add dimensions' } }}
       </h4>
     </header>
-  
+
     <div class="w-96 overflow-auto border-b border-dashed border-divider-regular">
-      <ul [ngModel]="_dimensionsCache()" (ngModelChange)="addDimensionToCache($event)"
+      <ul
+        [ngModel]="_dimensionsCache()"
+        (ngModelChange)="addDimensionToCache($event)"
         cdkListbox
         cdkListboxMultiple
         cdkDropList
@@ -294,26 +356,28 @@
         (cdkDropListDropped)="moveDimension($event)"
       >
         @for (property of dimensionList(); track property.name) {
-          <li class="px-4 py-2 rounded-md cursor-pointer hover:bg-hover-bg"
+          <li
+            class="px-4 py-2 rounded-md cursor-pointer hover:bg-hover-bg"
             #option="cdkOption"
             [cdkOption]="property.name"
             cdkDrag
-            [cdkDragData]="property">
+            [cdkDragData]="property"
+          >
             @if (option.isSelected()) {
               <i class="ri-check-line text-lg text-text-success"></i>
             }
-            {{property.caption || property.name}}
-        </li>
+            {{ property.caption || property.name }}
+          </li>
         }
       </ul>
     </div>
-  
+
     <div class="flex justify-end mt-2">
       <div ngmButtonGroup>
         <button z-button zType="ghost" (click)="closeDimensions()">
           {{ 'Story.Common.Cancel' | translate: { Default: 'Cancel' } }}
         </button>
-  
+
         <button z-button zType="default" color="accent" (click)="addDimensions()">
           {{ 'Story.Common.Confirm' | translate: { Default: 'Confirm' } }}
         </button>

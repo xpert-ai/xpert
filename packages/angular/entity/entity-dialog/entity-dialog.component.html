@@ -1,48 +1,63 @@
-<div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
-    <div class="w-full flex justify-start items-center my-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-        <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
-        <span class="text-lg pointer-events-none">{{ 'Ngm.Entity.SelectEntities' | translate: {Default: 'Select Entities'} }}</span>
-    </div>
+<div
+  class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group"
+>
+  <div class="w-full flex justify-start items-center my-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
+    <span class="text-lg pointer-events-none">{{
+      'Ngm.Entity.SelectEntities' | translate: { Default: 'Select Entities' }
+    }}</span>
+  </div>
 
-    <div class="flex-1 flex flex-col">
-      <label class="text-lg p-2">{{ 'Ngm.Entity.SemanticModel' | translate: {Default: 'Semantic Model'} }}</label>
-      <z-radio-group class="flex flex-col" [(ngModel)]="modelKey">
-        @for (item of data.dataSources; track item.key) {
-          <z-radio [value]="item.key">{{item.caption}}</z-radio>
-        }
-      </z-radio-group>
-    </div>
+  <div class="flex-1 flex flex-col">
+    <label class="text-lg p-2">{{ 'Ngm.Entity.SemanticModel' | translate: { Default: 'Semantic Model' } }}</label>
+    <z-radio-group class="flex flex-col" [(ngModel)]="modelKey">
+      @for (item of data.dataSources; track item.key) {
+        <z-radio [value]="item.key">{{ item.caption }}</z-radio>
+      }
+    </z-radio-group>
+  </div>
 
-    <div class="flex justify-between">
-      <div ngmButtonGroup>
-        <button z-button zType="default" color="accent" cdkFocusInitial (click)="onApply()">
-          {{ 'Ngm.Common.Apply' | translate: {Default: "Apply"} }}
-        </button>
-        <button z-button zType="ghost" mat-dialog-close>
-          {{ 'Ngm.Common.Cancel' | translate: {Default: "Cancel"} }}
-        </button>
-      </div>
+  <div class="flex justify-between">
+    <div ngmButtonGroup>
+      <button z-button zType="default" color="accent" cdkFocusInitial (click)="onApply()">
+        {{ 'Ngm.Common.Apply' | translate: { Default: 'Apply' } }}
+      </button>
+      <button z-button zType="ghost" mat-dialog-close>
+        {{ 'Ngm.Common.Cancel' | translate: { Default: 'Cancel' } }}
+      </button>
     </div>
+  </div>
 </div>
-  
+
 <div class="w-[500px] h-[50vh] relative flex flex-col justify-start items-stretch">
-    <label class="text-lg p-2">{{ 'Ngm.Entity.Cube' | translate: {Default: 'Cube'} }}</label>
-    <ngm-search class="m-2" [formControl]="search"></ngm-search>
+  <label class="text-lg p-2">{{ 'Ngm.Entity.Cube' | translate: { Default: 'Cube' } }}</label>
+  <ngm-search class="m-2" [formControl]="search"></ngm-search>
   @if (loading()) {
     <div class="absolute w-full h-full top-0 left-0 flex justify-center items-center z-10">
       <mat-spinner mode="indeterminate" diameter="30" class="m-2"></mat-spinner>
     </div>
   }
 
-  <cdk-virtual-scroll-viewport class="flex-1 h-full overflow-hidden hover:overflow-y-auto"
-    itemSize="30" minBufferPx="360" maxBufferPx="1000">
+  <cdk-virtual-scroll-viewport
+    class="flex-1 h-full overflow-hidden hover:overflow-y-auto"
+    itemSize="30"
+    minBufferPx="360"
+    maxBufferPx="1000"
+  >
     <ul cdkListbox [(ngModel)]="entities" [cdkListboxMultiple]="false" class="ngm-cdk-listbox overflow-auto">
-      <li *cdkVirtualFor="let entity of entitiesList(); trackBy: trackByKey" class="ngm-cdk-option flex items-center gap-2 rounded-lg" [cdkOption]="entity.key">
+      <li
+        *cdkVirtualFor="let entity of entitiesList(); trackBy: trackByKey"
+        class="ngm-cdk-option flex items-center gap-2 rounded-lg"
+        [cdkOption]="entity.key"
+      >
         @if ($any(entity.value).annotated) {
-          <z-icon class="shrink-0 opacity-60" zSize="lg"
-            [matTooltip]="'Ngm.Entity.AnnotatedCube' | translate: {Default: 'Annotated Cube'}"
-            matTooltipPosition="before"
-           zType="tips_and_updates"></z-icon>
+          <z-icon
+            class="shrink-0 opacity-60"
+            zSize="lg"
+            [zTooltip]="'Ngm.Entity.AnnotatedCube' | translate: { Default: 'Annotated Cube' }"
+            zPosition="left"
+            zType="tips_and_updates"
+          ></z-icon>
         }
         <ngm-display-behaviour [option]="entity" [highlight]="search.value" />
       </li>

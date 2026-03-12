@@ -4,7 +4,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { OverlayAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -22,6 +21,7 @@ import {
 import { EmojiAvatarComponent } from '../../../../@shared/avatar'
 import { XpertDevelopAppComponent, XpertDevelopEmbeddedComponent } from '../develop'
 import { XpertComponent } from '../xpert.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -33,9 +33,9 @@ import { XpertComponent } from '../xpert.component'
     RouterModule,
     CdkMenuModule,
     EmojiAvatarComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
-    QRCodeComponent,
+    QRCodeComponent
   ],
   selector: 'xpert-app',
   templateUrl: './app.component.html',

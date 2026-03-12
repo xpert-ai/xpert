@@ -3,7 +3,6 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
@@ -34,6 +33,7 @@ import { of } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
 import { ProjectInstallToolsetComponent } from './toolset/toolset.component'
 import { ProjectInstallXpertComponent } from './xpert/xpert.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -43,7 +43,7 @@ import { ProjectInstallXpertComponent } from './xpert/xpert.component'
     DragDropModule,
     TranslateModule,
     RouterModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     EmojiAvatarComponent,
     NgmSpinComponent,
     NgmSelectComponent,
@@ -54,7 +54,7 @@ import { ProjectInstallXpertComponent } from './xpert/xpert.component'
   selector: 'xpert-project-install',
   templateUrl: 'install.component.html',
   styleUrl: 'install.component.scss',
-  changeDetection: ChangeDetectionStrategy.OnPush,
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertProjectInstallComponent {
   eModelType = AiModelTypeEnum
@@ -73,7 +73,9 @@ export class XpertProjectInstallComponent {
   readonly #workspaceRs = myRxResource({
     request: () => this.#refreshWS(),
     loader: ({ request }) => {
-      return this.workspaceService.getAllMy({order: {updatedAt: OrderTypeEnum.DESC}}).pipe(map(({ items }) => items))
+      return this.workspaceService
+        .getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } })
+        .pipe(map(({ items }) => items))
     }
   })
   readonly workspaceOptions = computed(() => {
@@ -144,25 +146,23 @@ export class XpertProjectInstallComponent {
     this.#loading.set(true)
     if (this.createdProject()) {
       const entity = {
-          name: this.name(),
-          avatar: this.avatar(),
-          workspaceId: this.workspaceId(),
-          settings: this.project()?.settings,
-          copilotModel: this.project()?.copilotModel
+        name: this.name(),
+        avatar: this.avatar(),
+        workspaceId: this.workspaceId(),
+        settings: this.project()?.settings,
+        copilotModel: this.project()?.copilotModel
+      }
+      this.projectService.update(this.createdProject().id, entity).subscribe({
+        next: (project) => {
+          this.#loading.set(false)
+          this.createdProject.update((p) => ({ ...p, ...entity }))
+          this.#toastr.success('PAC.XProject.ProjectUpdated', { Default: 'Project updated successfully' })
+        },
+        error: (err) => {
+          this.#loading.set(false)
+          this.#toastr.error(getErrorMessage(err))
         }
-      this.projectService
-        .update(this.createdProject().id, entity)
-        .subscribe({
-          next: (project) => {
-            this.#loading.set(false)
-            this.createdProject.update((p) => ({ ...p, ...entity}))
-            this.#toastr.success('PAC.XProject.ProjectUpdated', {Default: 'Project updated successfully'})
-          },
-          error: (err) => {
-            this.#loading.set(false)
-            this.#toastr.error(getErrorMessage(err))
-          }
-        })
+      })
     } else {
       this.projectService
         .create({
@@ -176,7 +176,7 @@ export class XpertProjectInstallComponent {
           next: (project) => {
             this.#loading.set(false)
             this.createdProject.set(project)
-            this.#toastr.success('PAC.XProject.ProjectCreated', {Default: 'Project created successfully'})
+            this.#toastr.success('PAC.XProject.ProjectCreated', { Default: 'Project created successfully' })
           },
           error: (err) => {
             this.#loading.set(false)
@@ -184,7 +184,6 @@ export class XpertProjectInstallComponent {
           }
         })
     }
-    
   }
 
   createdXpert(draft: TXpertTeamDraft, xpert: IXpert) {

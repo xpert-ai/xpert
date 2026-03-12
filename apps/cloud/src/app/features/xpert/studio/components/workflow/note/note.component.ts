@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { EFResizeHandleType, FFlowModule } from '@foblex/flow'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -12,6 +11,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { MarkdownModule } from 'ngx-markdown'
 import { XpertStudioApiService } from '../../../domain'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-node-note',
@@ -19,7 +19,7 @@ import { XpertStudioApiService } from '../../../domain'
   styleUrls: ['./note.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, MarkdownModule],
+  imports: [FFlowModule, ...ZardTooltipImports, TranslateModule, MarkdownModule]
 })
 export class XpertWorkflowNodeNoteComponent {
   protected readonly eResizeHandleType = EFResizeHandleType

@@ -5,7 +5,6 @@ import { FormsModule } from '@angular/forms'
 
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatSliderModule } from '@angular/material/slider'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgFilterPipeModule } from '@metad/core'
 import { ButtonGroupDirective, DensityDirective, NgmDSCacheService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
@@ -15,8 +14,7 @@ import { environment } from 'apps/cloud/src/environments/environment'
 import { Observable, of } from 'rxjs'
 import { AbstractAgent, LocalAgent, ServerSocketAgent, Store, ToastrService } from '../../@core'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ZardButtonComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-tune',
@@ -31,7 +29,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardTabsImports } from '@xpert-
     TranslateModule,
     CdkMenuModule,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardButtonComponent,
     ...ZardTabsImports,
     MatSliderModule,
@@ -49,7 +47,7 @@ export class TuneComponent {
   readonly localAgent? = inject(LocalAgent, { optional: true })
   readonly wasmAgentService = inject(WasmAgentService)
   readonly serverAgent? = inject(ServerSocketAgent, { optional: true })
-  readonly cacheService = inject(NgmDSCacheService, {optional: true})
+  readonly cacheService = inject(NgmDSCacheService, { optional: true })
   readonly store = inject(Store)
 
   get cacheLevel() {

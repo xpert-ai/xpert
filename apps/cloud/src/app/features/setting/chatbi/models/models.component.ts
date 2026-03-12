@@ -4,11 +4,15 @@ import { Component, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 
-import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-import { MatTooltipModule } from '@angular/material/tooltip'
+import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
-import { CdkConfirmDeleteComponent, NgmSearchComponent, NgmTableComponent, TableColumn } from '@metad/ocap-angular/common'
+import {
+  CdkConfirmDeleteComponent,
+  NgmSearchComponent,
+  NgmTableComponent,
+  TableColumn
+} from '@metad/ocap-angular/common'
 import { AppearanceDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
@@ -28,7 +32,7 @@ import { ChatBIModelService, ToastrService, getErrorMessage, routeAnimations } f
     ReactiveFormsModule,
     ZardButtonComponent,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardDividerComponent,
     AppearanceDirective,
     NgmTableComponent,
@@ -70,11 +74,7 @@ export class ChatBIModelsComponent extends TranslationBaseComponent {
           const modelName = item.model?.name?.toLowerCase() || ''
           const entityCaption = item.entityCaption?.toLowerCase() || ''
           const entityDescription = item.entityDescription?.toLowerCase() || ''
-          return (
-            modelName.includes(search) ||
-            entityCaption.includes(search) ||
-            entityDescription.includes(search)
-          )
+          return modelName.includes(search) || entityCaption.includes(search) || entityDescription.includes(search)
         })
       }),
       tap(() => this.loading.set(false))

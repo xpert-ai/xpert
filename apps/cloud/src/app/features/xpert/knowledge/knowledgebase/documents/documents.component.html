@@ -94,8 +94,8 @@
     <button
       type="button"
       class="btn btn-primary btn-large flex justify-center items-center gap-2"
-      [matTooltip]="'PAC.Knowledgebase.NewDocuments' | translate: { Default: 'New Documents' }"
-      matTooltipPosition="before"
+      [zTooltip]="'PAC.Knowledgebase.NewDocuments' | translate: { Default: 'New Documents' }"
+      zPosition="left"
       [cdkMenuTriggerFor]="docMenu"
     >
       <i class="ri-folder-shared-fill"></i>
@@ -224,8 +224,8 @@
                   @case (eKBDocumentStatusEnum.ERROR) {
                     <ngm-tags
                       class="text-sm"
-                      [matTooltip]="element.processMsg"
-                      matTooltipPosition="left"
+                      [zTooltip]="element.processMsg"
+                      zPosition="left"
                       [tags]="[{ caption: 'PAC.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }]"
                       color="red"
                     />
@@ -358,14 +358,14 @@
     <div
       cdkMenuItem
       [cdkMenuItemDisabled]="!hasPipeline()"
-      [matTooltip]="
+      [zTooltip]="
         hasPipeline()
           ? ('PAC.Knowledgebase.AddDocumentFromPipeline'
             | translate: { Default: 'Use pipelines to create documents and convert them' })
           : ('PAC.Knowledgebase.CreatePipelineFirst'
             | translate: { Default: 'Create and publish a knowledge pipeline first.' })
       "
-      matTooltipPosition="left"
+      zPosition="left"
       [class.opacity-50]="!hasPipeline()"
       [class.!cursor-pointer]="!hasPipeline()"
       (click)="hasPipeline() && createFromPipeline()"
@@ -377,11 +377,11 @@
     </div>
     <div
       cdkMenuItem
-      [matTooltip]="
+      [zTooltip]="
         'PAC.Knowledgebase.AddDocumentFixedConfig'
           | translate: { Default: 'Add a new document and convert it with a fixed configuration.' }
       "
-      matTooltipPosition="left"
+      zPosition="left"
       (click)="uploadDocuments()"
     >
       <i class="ri-folder-shared-fill mr-1 text-xl text-text-success"></i>

@@ -5,7 +5,6 @@ import { Component, computed, effect, HostListener, inject, model, signal } from
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatExpansionModule, MatExpansionPanel } from '@angular/material/expansion'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { injectOrganizationId } from '@metad/cloud/state'
 import { AiProviderRole, ICopilot } from '@metad/contracts'
 import { CapitalizePipe, DisappearAnimations } from '@metad/core'
@@ -18,8 +17,7 @@ import { capitalize } from 'lodash-es'
 import { map, Observable, switchMap } from 'rxjs'
 import { PACCopilotService } from '../../../services'
 import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-settings-copilot-basic',
@@ -32,7 +30,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     ReactiveFormsModule,
     CdkMenuModule,
     MatExpansionModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmDensityDirective,
     NgmSpinComponent,
     NgmI18nPipe,

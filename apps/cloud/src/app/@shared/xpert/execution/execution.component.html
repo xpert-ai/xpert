@@ -2,26 +2,40 @@
 
 <div class="flex flex-col rounded-xl min-h-[40px] max-h-52 w-full overflow-hidden text-sm bg-gray-100">
   <div class="flex justify-between items-center p-2">
-    <span class="uppercase">{{ 'PAC.Xpert.Input' | translate: {Default: 'Input'} }}</span>
+    <span class="uppercase">{{ 'PAC.Xpert.Input' | translate: { Default: 'Input' } }}</span>
 
-    <copy #copy [content]="execution().inputs"
-      [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
-      matTooltipPosition="above" />
+    <copy
+      #copy
+      [content]="execution().inputs"
+      [zTooltip]="
+        copy.copied()
+          ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
+          : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+      "
+      zPosition="top"
+    />
   </div>
 
-  <div class="px-4 pb-2 whitespace-pre overflow-auto">{{ (execution().inputs ?? undefined) | json }}</div>
+  <div class="px-4 pb-2 whitespace-pre overflow-auto">{{ execution().inputs ?? undefined | json }}</div>
 </div>
 
 @if (execution().outputs) {
   <div class="flex flex-col rounded-xl min-h-[40px] max-h-52 w-full text-sm overflow-hidden bg-gray-100">
     <div class="flex justify-between items-center p-2">
-      <span class="uppercase">{{ 'PAC.Xpert.Output' | translate: {Default: 'Output'} }}</span>
-  
-      <copy #copy [content]="execution().outputs"
-        [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
-        matTooltipPosition="above" />
+      <span class="uppercase">{{ 'PAC.Xpert.Output' | translate: { Default: 'Output' } }}</span>
+
+      <copy
+        #copy
+        [content]="execution().outputs"
+        [zTooltip]="
+          copy.copied()
+            ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
+            : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+        "
+        zPosition="top"
+      />
     </div>
-    
+
     <div class="px-4 pb-2 whitespace-pre overflow-auto">{{ execution().outputs | json }}</div>
   </div>
 }
@@ -29,41 +43,53 @@
 <div class="border-b border-solid border-divider-regular my-2"></div>
 
 <div class="relative">
-  <div class="h-6 leading-6 text-gray-500 text-sm font-medium">{{ 'PAC.Xpert.Metadata' | translate: {Default: 'Metadata'} }}</div>
+  <div class="h-6 leading-6 text-gray-500 text-sm font-medium">
+    {{ 'PAC.Xpert.Metadata' | translate: { Default: 'Metadata' } }}
+  </div>
   <div class="py-1">
     <div class="flex">
-      <div class="shrink-0 w-[104px] px-2 py-[5px] text-gray-500 text-sm leading-[18px] truncate">{{ 'PAC.Xpert.Status' | translate: {Default: 'Status'} }}</div>
+      <div class="shrink-0 w-[104px] px-2 py-[5px] text-gray-500 text-sm leading-[18px] truncate">
+        {{ 'PAC.Xpert.Status' | translate: { Default: 'Status' } }}
+      </div>
       <div class="grow px-2 py-[5px] text-gray-900 text-sm leading-[18px]">
-        <span class="uppercase">{{execution().status}}</span>
+        <span class="uppercase">{{ execution().status }}</span>
       </div>
     </div>
     <div class="flex">
-      <div class="shrink-0 w-[104px] px-2 py-[5px] text-gray-500 text-sm leading-[18px] truncate">{{ 'PAC.Xpert.Executor' | translate: {Default: 'Executor'} }}</div>
+      <div class="shrink-0 w-[104px] px-2 py-[5px] text-gray-500 text-sm leading-[18px] truncate">
+        {{ 'PAC.Xpert.Executor' | translate: { Default: 'Executor' } }}
+      </div>
       <div class="grow px-2 py-[5px] text-gray-900 text-sm leading-[18px]">
         <span>{{ execution().createdBy | user }}</span>
       </div>
     </div>
     <div class="flex">
-      <div class="shrink-0 w-[104px] px-2 py-[5px] text-gray-500 text-sm leading-[18px] truncate">{{ 'PAC.Xpert.StartTime' | translate: {Default: 'Start Time'} }}</div>
-      <div class="grow px-2 py-[5px] text-gray-900 text-sm leading-[18px]">
-        <span>{{ execution().createdAt | relative}}</span>
+      <div class="shrink-0 w-[104px] px-2 py-[5px] text-gray-500 text-sm leading-[18px] truncate">
+        {{ 'PAC.Xpert.StartTime' | translate: { Default: 'Start Time' } }}
       </div>
-    </div>
-    <div class="flex">
-      <div class="shrink-0 w-[104px] px-2 py-[5px] text-gray-500 text-sm leading-[18px] truncate">{{ 'PAC.Xpert.ElapsedTime' | translate: {Default: 'Elapsed Time'} }}</div>
       <div class="grow px-2 py-[5px] text-gray-900 text-sm leading-[18px]">
-        <span>{{ execution().elapsedTime / 1000 | number: '0.0-3'}}s</span>
-      </div>
-    </div>
-    <div class="flex">
-      <div class="shrink-0 w-[104px] px-2 py-[5px] text-gray-500 text-sm leading-[18px] truncate">{{ 'PAC.Xpert.TotalTokens' | translate: {Default: 'Total Tokens'} }}</div>
-      <div class="grow px-2 py-[5px] text-gray-900 text-sm leading-[18px]">
-        <span>{{ execution().tokens }} {{ 'PAC.Xpert.Tokens' | translate: {Default: 'Tokens'} }}</span>
+        <span>{{ execution().createdAt | relative }}</span>
       </div>
     </div>
     <div class="flex">
       <div class="shrink-0 w-[104px] px-2 py-[5px] text-gray-500 text-sm leading-[18px] truncate">
-        {{ 'PAC.Xpert.AIProvider' | translate: {Default: 'AI Provider'} }}
+        {{ 'PAC.Xpert.ElapsedTime' | translate: { Default: 'Elapsed Time' } }}
+      </div>
+      <div class="grow px-2 py-[5px] text-gray-900 text-sm leading-[18px]">
+        <span>{{ execution().elapsedTime / 1000 | number: '0.0-3' }}s</span>
+      </div>
+    </div>
+    <div class="flex">
+      <div class="shrink-0 w-[104px] px-2 py-[5px] text-gray-500 text-sm leading-[18px] truncate">
+        {{ 'PAC.Xpert.TotalTokens' | translate: { Default: 'Total Tokens' } }}
+      </div>
+      <div class="grow px-2 py-[5px] text-gray-900 text-sm leading-[18px]">
+        <span>{{ execution().tokens }} {{ 'PAC.Xpert.Tokens' | translate: { Default: 'Tokens' } }}</span>
+      </div>
+    </div>
+    <div class="flex">
+      <div class="shrink-0 w-[104px] px-2 py-[5px] text-gray-500 text-sm leading-[18px] truncate">
+        {{ 'PAC.Xpert.AIProvider' | translate: { Default: 'AI Provider' } }}
       </div>
       <div class="grow px-2 py-[5px] text-gray-900 text-sm leading-[18px]">
         <span>{{ execution().metadata?.provider || '' }}</span>
@@ -71,7 +97,7 @@
     </div>
     <div class="flex">
       <div class="shrink-0 w-[104px] px-2 py-[5px] text-gray-500 text-sm leading-[18px] truncate">
-        {{ 'PAC.Xpert.AIModel' | translate: {Default: 'AI Model'} }}
+        {{ 'PAC.Xpert.AIModel' | translate: { Default: 'AI Model' } }}
       </div>
       <div class="grow px-2 py-[5px] text-gray-900 text-sm leading-[18px]">
         <span>{{ execution().metadata?.model || '' }}</span>

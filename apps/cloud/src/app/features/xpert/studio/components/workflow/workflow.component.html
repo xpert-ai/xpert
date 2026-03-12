@@ -1,37 +1,43 @@
 @if (!NoInputs.includes(type())) {
-  <div fNodeInput [fInputId]="node().key + '/edge'" fInputConnectableSide="left" [fInputMultiple]="true" class="left absolute"></div>
+  <div
+    fNodeInput
+    [fInputId]="node().key + '/edge'"
+    fInputConnectableSide="left"
+    [fInputMultiple]="true"
+    class="left absolute"
+  ></div>
 }
 
 @if (!fullCustomNodeTypes.includes(type())) {
   <div class="relative flex items-center px-3 pt-3 pb-2 rounded-t-2xl">
-    @switch(type()) {
+    @switch (type()) {
       @case (eWorkflowNodeTypeEnum.TRIGGER) {
         @if (provider()?.icon; as icon) {
-          <xp-icon [icon]="icon" size="18" class="w-6 h-6 shrink-0 mr-2" 
-            [matTooltip]="key()"
-            matTooltipPosition="above" />
+          <xp-icon [icon]="icon" size="18" class="w-6 h-6 shrink-0 mr-2" [zTooltip]="key()" zPosition="top" />
         } @else {
-          <div class="w-6 h-6 shrink-0 mr-2 flex items-center justify-center border-[0.5px] border-white/2 text-white bg-fuchsia-500
-            rounded-lg shadow-sm">
+          <div
+            class="w-6 h-6 shrink-0 mr-2 flex items-center justify-center border-[0.5px] border-white/2 text-white bg-fuchsia-500 rounded-lg shadow-sm"
+          >
             <i class="ri-message-3-fill"></i>
           </div>
         }
       }
       @default {
-        <xpert-workflow-icon [type]="type()" class="w-6 h-6 shrink-0 mr-2" 
-          [matTooltip]="key()"
-          matTooltipPosition="above"
-        />
+        <xpert-workflow-icon [type]="type()" class="w-6 h-6 shrink-0 mr-2" [zTooltip]="key()" zPosition="top" />
       }
     }
-    <div [title]="title()" class="grow mr-1 font-semibold text-sm uppercase text-text-primary truncate flex items-center">
-      <div>{{title()}}</div>
+    <div
+      [title]="title()"
+      class="grow mr-1 font-semibold text-sm uppercase text-text-primary truncate flex items-center"
+    >
+      <div>{{ title() }}</div>
     </div>
 
     @if (isStart()) {
-      <div class="absolute left-2 top-1 w-[1.1rem] h-[1.1rem] rounded-[5px] flex justify-center items-center bg-gray-100 shadow-md"
-        [matTooltip]="'PAC.Xpert.StartNodeTip' | translate: {Default: 'Start node, agent pre-processing logic entry'}"
-        matTooltipPosition="above"
+      <div
+        class="absolute left-2 top-1 w-[1.1rem] h-[1.1rem] rounded-[5px] flex justify-center items-center bg-gray-100 shadow-md"
+        [zTooltip]="'PAC.Xpert.StartNodeTip' | translate: { Default: 'Start node, agent pre-processing logic entry' }"
+        zPosition="top"
       >
         <i class="ri-run-line text-primary-500"></i>
       </div>
@@ -39,10 +45,9 @@
   </div>
 }
 
-@switch(type()) {
+@switch (type()) {
   @case (eWorkflowNodeTypeEnum.START) {
-    <xp-xpert-workflow-node-start class="px-3" [node]="node()" [entity]="entity()"
-      [menu]="menu()" />
+    <xp-xpert-workflow-node-start class="px-3" [node]="node()" [entity]="entity()" [menu]="menu()" />
   }
   @case (eWorkflowNodeTypeEnum.TRIGGER) {
     <xpert-workflow-node-trigger class="px-3" [node]="node()" [entity]="entity()" />
@@ -77,7 +82,7 @@
   @case (eWorkflowNodeTypeEnum.JSON_PARSE) {
     <xp-workflow-node-json-parse class="px-3" [node]="node()" [entity]="entity()" />
   }
-   @case (eWorkflowNodeTypeEnum.JSON_STRINGIFY) {
+  @case (eWorkflowNodeTypeEnum.JSON_STRINGIFY) {
     <xp-workflow-node-json-stringify class="px-3" [node]="node()" [entity]="entity()" />
   }
   @case (eWorkflowNodeTypeEnum.HTTP) {
@@ -138,15 +143,14 @@
     <xp-workflow-node-db-sql class="px-3" [node]="node()" [entity]="entity()" />
   }
   @default {
-    <div>Unimplement type ({{type()}})</div>
+    <div>Unimplement type ({{ type() }})</div>
   }
 }
 
 @if (!fullCustomNodeTypes.includes(type())) {
   @if (description()) {
-    <div class="px-3 pt-1 text-left text-xs text-text-tertiary line-clamp-3"
-      [title]="description()">
-      {{description()}}
+    <div class="px-3 pt-1 text-left text-xs text-text-tertiary line-clamp-3" [title]="description()">
+      {{ description() }}
     </div>
   }
 }

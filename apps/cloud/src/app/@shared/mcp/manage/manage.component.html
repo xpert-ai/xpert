@@ -219,7 +219,7 @@
             <div class="px-2 space-y-4 max-h-60 overflow-y-auto">
               @for (parameter of tool.schema?.parameters; track parameter.name) {
                 <div class="flex justify-start items-start">
-                  <z-switch [matTooltip]="'PAC.Xpert.IsVisible' | translate: {Default: 'Is visible'}"
+                  <z-switch [zTooltip]="'PAC.Xpert.IsVisible' | translate: {Default: 'Is visible'}"
  [ngModel]="parameter.visible" 
  (ngModelChange)="updateParameter(parameter.name, {visible: $event})" zSize="sm"/>
   

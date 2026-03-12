@@ -2,9 +2,9 @@
   <div class="flex justify-between items-center">
     <div class="flex items-center h-6">
       @if (label()) {
-        {{label() | i18n}}
+        {{ label() | i18n }}
       } @else {
-        <div class="">{{'PAC.Copilot.Models' | translate: {Default: 'Models'} }}</div>
+        <div class="">{{ 'PAC.Copilot.Models' | translate: { Default: 'Models' } }}</div>
       }
 
       @if (required()) {
@@ -15,98 +15,162 @@
   </div>
 }
 
-<div class="container group/container flex items-center px-1 h-8 rounded-lg border border-gray-100 hover:border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:border-zinc-600">
-  <div class="flex-1 relative flex items-center rounded-md px-1 overflow-hidden"
+<div
+  class="container group/container flex items-center px-1 h-8 rounded-lg border border-gray-100 hover:border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:border-zinc-600"
+>
+  <div
+    class="flex-1 relative flex items-center rounded-md px-1 overflow-hidden"
     #menuTrigger
     #mt="cdkMenuTriggerFor"
     [cdkMenuTriggerFor]="readonly() ? null : modelsMenu"
-    [cdkMenuTriggerData]="{mt: mt}"
+    [cdkMenuTriggerData]="{ mt: mt }"
   >
     @if (inheritModel()) {
       @if (isInherit()) {
-        <i class="ri-skip-up-line mx-1" [matTooltip]="'PAC.Copilot.Inherited' | translate: {Default: 'Inherited'}"></i>
-      } @else if(!readonly()) {
-        <button class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable text-text-tertiary hover:text-red-500"
-          [matTooltip]="'PAC.Copilot.DelCopilotModelUseInherit' | translate: {Default: 'Delete current configuration, and use the inherited configuration if possible'}"
-          (click)="$event.stopPropagation(); delete()">
+        <i class="ri-skip-up-line mx-1" [zTooltip]="'PAC.Copilot.Inherited' | translate: { Default: 'Inherited' }"></i>
+      } @else if (!readonly()) {
+        <button
+          class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable text-text-tertiary hover:text-red-500"
+          [zTooltip]="
+            'PAC.Copilot.DelCopilotModelUseInherit'
+              | translate: { Default: 'Delete current configuration, and use the inherited configuration if possible' }
+          "
+          (click)="$event.stopPropagation(); delete()"
+        >
           <i class="ri-close-line"></i>
         </button>
       }
-    } @else if(!isInherit() && !readonly()) {
-      <button class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable text-text-tertiary hover:text-red-500"
-        (click)="$event.stopPropagation(); delete()">
+    } @else if (!isInherit() && !readonly()) {
+      <button
+        class="w-6 h-6 rounded-lg hover:bg-hover-bg cursor-pointer pressable text-text-tertiary hover:text-red-500"
+        (click)="$event.stopPropagation(); delete()"
+      >
         <i class="ri-close-line"></i>
       </button>
     }
     @if (selectedCopilotWithModels(); as copilot) {
       @if (copilot.providerWithModels.icon_small) {
-        <img [src]="copilot.providerWithModels.icon_small | i18n" class="w-4 h-4 mx-1.5">
+        <img [src]="copilot.providerWithModels.icon_small | i18n" class="w-4 h-4 mx-1.5" />
       }
-      
+
       <div class="flex items-center truncate text-[13px] font-medium mr-1.5">
-        <div class="truncate" [title]="_copilotModel()?.model">{{_copilotModel()?.model}}</div>
+        <div class="truncate" [title]="_copilotModel()?.model">{{ _copilotModel()?.model }}</div>
         @if (selectedAiModel(); as model) {
           @switch (model.model_type) {
             @case (eModelType.LLM) {
-              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1">
-                {{'PAC.Copilot.Chat' | translate: {Default: 'Chat'} }}
+              <div
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1"
+              >
+                {{ 'PAC.Copilot.Chat' | translate: { Default: 'Chat' } }}
               </div>
             }
             @case (eModelType.RERANK) {
-              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1">
+              <div
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1"
+              >
                 <i class="ri-sort-number-asc"></i>
               </div>
             }
             @case (eModelType.TEXT_EMBEDDING) {
-              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1">
+              <div
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1"
+              >
                 <i class="ri-text-block"></i>
               </div>
             }
             @case (eModelType.SPEECH2TEXT) {
-              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1">
+              <div
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1"
+              >
                 <i class="ri-speech-to-text-line"></i>
               </div>
             }
             @case (eModelType.TTS) {
-              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1">
+              <div
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1"
+              >
                 <i class="ri-text-to-speech-line"></i>
               </div>
             }
             @default {}
           }
-          @if (model.features?.includes(eModelFeature.TOOL_CALL) || model.features?.includes(eModelFeature.MULTI_TOOL_CALL)) {
-            <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60">
+          @if (
+            model.features?.includes(eModelFeature.TOOL_CALL) || model.features?.includes(eModelFeature.MULTI_TOOL_CALL)
+          ) {
+            <div
+              class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60"
+            >
               <i class="ri-hammer-fill"></i>
             </div>
           }
           @if (model.features?.includes(eModelFeature.VISION)) {
-            <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60">
+            <div
+              class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60"
+            >
               <i class="ri-eye-fill"></i>
             </div>
           }
         }
-        <div class="inline-block cursor-help">
-        </div>
+        <div class="inline-block cursor-help"></div>
       </div>
     } @else if (__copilotModel()) {
       <div class="truncate text-sm text-text-warning" [title]="__copilotModel().model">
-        {{'PAC.Copilot.ChooseRightCopilot' | translate: {Default: 'Please choose right copilot'} }}
+        {{ 'PAC.Copilot.ChooseRightCopilot' | translate: { Default: 'Please choose right copilot' } }}
         @if (__copilotModel().model) {
-          <span>{{__copilotModel().modelType + '/' + __copilotModel().model}}</span>
+          <span>{{ __copilotModel().modelType + '/' + __copilotModel().model }}</span>
         }
       </div>
     } @else {
       <div class="mr-1.5 flex items-center justify-center w-4 h-4 rounded-[5px] border border-dashed border-black/5">
-        <svg width="16" height="17" viewBox="0 0 16 17" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-gray-400">
-          <g id="cube-outline"><g id="Solid"><path d="M8.26865 1.29003C8.09143 1.25358 7.90866 1.25358 7.73144 1.29003C7.52659 1.33216 7.3435 1.43471 7.19794 1.51624L7.15826 1.53841L6.17628 2.08395C5.85443 2.26276 5.73846 2.66863 5.91727 2.99049C6.09608 3.31234 6.50195 3.4283 6.82381 3.24949L7.80579 2.70395C7.90681 2.64782 7.95839 2.61946 7.99686 2.60091L8.00004 2.59938L8.00323 2.60091C8.0417 2.61946 8.09327 2.64782 8.1943 2.70395L9.17628 3.24949C9.49814 3.4283 9.90401 3.31234 10.0828 2.99048C10.2616 2.66863 10.1457 2.26276 9.82381 2.08395L8.84183 1.53841L8.80215 1.51624C8.65659 1.43471 8.4735 1.33216 8.26865 1.29003Z" fill="currentColor"></path><path d="M12.8238 3.75062C12.5019 3.57181 12.0961 3.68777 11.9173 4.00963C11.7385 4.33148 11.8544 4.73735 12.1763 4.91616L12.6272 5.16668L12.1763 5.41719C11.8545 5.596 11.7385 6.00186 11.9173 6.32372C12.0961 6.64558 12.502 6.76154 12.8238 6.58273L13.3334 6.29966V6.83339C13.3334 7.20158 13.6319 7.50006 14 7.50006C14.3682 7.50006 14.6667 7.20158 14.6667 6.83339V5.79435L14.6668 5.74627C14.6673 5.62441 14.6678 5.48084 14.6452 5.33482C14.6869 5.17472 14.6696 4.99892 14.5829 4.84286C14.4904 4.6764 14.3371 4.56501 14.1662 4.52099C14.0496 4.43038 13.9239 4.36116 13.8173 4.3024L13.7752 4.27915L12.8238 3.75062Z" fill="currentColor"></path><path d="M3.8238 4.91616C4.14566 4.73735 4.26162 4.33148 4.08281 4.00963C3.90401 3.68777 3.49814 3.57181 3.17628 3.75062L2.22493 4.27915L2.18284 4.3024C2.07615 4.36116 1.95045 4.4304 1.83382 4.52102C1.66295 4.56506 1.50977 4.67643 1.41731 4.84286C1.33065 4.99886 1.31323 5.17459 1.35493 5.33464C1.33229 5.48072 1.33281 5.62436 1.33326 5.74627L1.33338 5.79435V6.83339C1.33338 7.20158 1.63185 7.50006 2.00004 7.50006C2.36823 7.50006 2.66671 7.20158 2.66671 6.83339V6.29961L3.17632 6.58273C3.49817 6.76154 3.90404 6.64558 4.08285 6.32372C4.26166 6.00186 4.1457 5.596 3.82384 5.41719L3.3729 5.16666L3.8238 4.91616Z" fill="currentColor"></path><path d="M2.66671 10.1667C2.66671 9.79853 2.36823 9.50006 2.00004 9.50006C1.63185 9.50006 1.33338 9.79853 1.33338 10.1667V11.2058L1.33326 11.2538C1.33262 11.4298 1.33181 11.6509 1.40069 11.8594C1.46024 12.0397 1.55759 12.2051 1.68622 12.3447C1.835 12.5061 2.02873 12.6128 2.18281 12.6977L2.22493 12.721L3.17628 13.2495C3.49814 13.4283 3.90401 13.3123 4.08281 12.9905C4.26162 12.6686 4.14566 12.2628 3.8238 12.084L2.87245 11.5554C2.76582 11.4962 2.71137 11.4656 2.67318 11.4413L2.66995 11.4392L2.66971 11.4354C2.66699 11.3902 2.66671 11.3277 2.66671 11.2058V10.1667Z" fill="currentColor"></path><path d="M14.6667 10.1667C14.6667 9.79853 14.3682 9.50006 14 9.50006C13.6319 9.50006 13.3334 9.79853 13.3334 10.1667V11.2058C13.3334 11.3277 13.3331 11.3902 13.3304 11.4354L13.3301 11.4392L13.3269 11.4413C13.2887 11.4656 13.2343 11.4962 13.1276 11.5554L12.1763 12.084C11.8544 12.2628 11.7385 12.6686 11.9173 12.9905C12.0961 13.3123 12.5019 13.4283 12.8238 13.2495L13.7752 12.721L13.8172 12.6977C13.9713 12.6128 14.1651 12.5061 14.3139 12.3447C14.4425 12.2051 14.5398 12.0397 14.5994 11.8594C14.6683 11.6509 14.6675 11.4298 14.6668 11.2538L14.6667 11.2058V10.1667Z" fill="currentColor"></path><path d="M6.82381 13.7506C6.50195 13.5718 6.09608 13.6878 5.91727 14.0096C5.73846 14.3315 5.85443 14.7374 6.17628 14.9162L7.15826 15.4617L7.19793 15.4839C7.29819 15.54 7.41625 15.6061 7.54696 15.6556C7.66589 15.7659 7.82512 15.8333 8.00008 15.8333C8.17507 15.8333 8.33431 15.7659 8.45324 15.6556C8.58391 15.6061 8.70193 15.54 8.80215 15.4839L8.84183 15.4617L9.82381 14.9162C10.1457 14.7374 10.2616 14.3315 10.0828 14.0096C9.90401 13.6878 9.49814 13.5718 9.17628 13.7506L8.66675 14.0337V13.5C8.66675 13.1318 8.36827 12.8333 8.00008 12.8333C7.63189 12.8333 7.33341 13.1318 7.33341 13.5V14.0337L6.82381 13.7506Z" fill="currentColor"></path><path d="M6.82384 7.08385C6.50199 6.90505 6.09612 7.02101 5.91731 7.34286C5.7385 7.66472 5.85446 8.07059 6.17632 8.2494L7.33341 8.89223V10.1666C7.33341 10.5348 7.63189 10.8333 8.00008 10.8333C8.36827 10.8333 8.66675 10.5348 8.66675 10.1666V8.89223L9.82384 8.2494C10.1457 8.07059 10.2617 7.66472 10.0829 7.34286C9.90404 7.02101 9.49817 6.90505 9.17632 7.08385L8.00008 7.73732L6.82384 7.08385Z" fill="currentColor"></path></g>
+        <svg
+          width="16"
+          height="17"
+          viewBox="0 0 16 17"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+          class="w-3 h-3 text-gray-400"
+        >
+          <g id="cube-outline">
+            <g id="Solid">
+              <path
+                d="M8.26865 1.29003C8.09143 1.25358 7.90866 1.25358 7.73144 1.29003C7.52659 1.33216 7.3435 1.43471 7.19794 1.51624L7.15826 1.53841L6.17628 2.08395C5.85443 2.26276 5.73846 2.66863 5.91727 2.99049C6.09608 3.31234 6.50195 3.4283 6.82381 3.24949L7.80579 2.70395C7.90681 2.64782 7.95839 2.61946 7.99686 2.60091L8.00004 2.59938L8.00323 2.60091C8.0417 2.61946 8.09327 2.64782 8.1943 2.70395L9.17628 3.24949C9.49814 3.4283 9.90401 3.31234 10.0828 2.99048C10.2616 2.66863 10.1457 2.26276 9.82381 2.08395L8.84183 1.53841L8.80215 1.51624C8.65659 1.43471 8.4735 1.33216 8.26865 1.29003Z"
+                fill="currentColor"
+              ></path>
+              <path
+                d="M12.8238 3.75062C12.5019 3.57181 12.0961 3.68777 11.9173 4.00963C11.7385 4.33148 11.8544 4.73735 12.1763 4.91616L12.6272 5.16668L12.1763 5.41719C11.8545 5.596 11.7385 6.00186 11.9173 6.32372C12.0961 6.64558 12.502 6.76154 12.8238 6.58273L13.3334 6.29966V6.83339C13.3334 7.20158 13.6319 7.50006 14 7.50006C14.3682 7.50006 14.6667 7.20158 14.6667 6.83339V5.79435L14.6668 5.74627C14.6673 5.62441 14.6678 5.48084 14.6452 5.33482C14.6869 5.17472 14.6696 4.99892 14.5829 4.84286C14.4904 4.6764 14.3371 4.56501 14.1662 4.52099C14.0496 4.43038 13.9239 4.36116 13.8173 4.3024L13.7752 4.27915L12.8238 3.75062Z"
+                fill="currentColor"
+              ></path>
+              <path
+                d="M3.8238 4.91616C4.14566 4.73735 4.26162 4.33148 4.08281 4.00963C3.90401 3.68777 3.49814 3.57181 3.17628 3.75062L2.22493 4.27915L2.18284 4.3024C2.07615 4.36116 1.95045 4.4304 1.83382 4.52102C1.66295 4.56506 1.50977 4.67643 1.41731 4.84286C1.33065 4.99886 1.31323 5.17459 1.35493 5.33464C1.33229 5.48072 1.33281 5.62436 1.33326 5.74627L1.33338 5.79435V6.83339C1.33338 7.20158 1.63185 7.50006 2.00004 7.50006C2.36823 7.50006 2.66671 7.20158 2.66671 6.83339V6.29961L3.17632 6.58273C3.49817 6.76154 3.90404 6.64558 4.08285 6.32372C4.26166 6.00186 4.1457 5.596 3.82384 5.41719L3.3729 5.16666L3.8238 4.91616Z"
+                fill="currentColor"
+              ></path>
+              <path
+                d="M2.66671 10.1667C2.66671 9.79853 2.36823 9.50006 2.00004 9.50006C1.63185 9.50006 1.33338 9.79853 1.33338 10.1667V11.2058L1.33326 11.2538C1.33262 11.4298 1.33181 11.6509 1.40069 11.8594C1.46024 12.0397 1.55759 12.2051 1.68622 12.3447C1.835 12.5061 2.02873 12.6128 2.18281 12.6977L2.22493 12.721L3.17628 13.2495C3.49814 13.4283 3.90401 13.3123 4.08281 12.9905C4.26162 12.6686 4.14566 12.2628 3.8238 12.084L2.87245 11.5554C2.76582 11.4962 2.71137 11.4656 2.67318 11.4413L2.66995 11.4392L2.66971 11.4354C2.66699 11.3902 2.66671 11.3277 2.66671 11.2058V10.1667Z"
+                fill="currentColor"
+              ></path>
+              <path
+                d="M14.6667 10.1667C14.6667 9.79853 14.3682 9.50006 14 9.50006C13.6319 9.50006 13.3334 9.79853 13.3334 10.1667V11.2058C13.3334 11.3277 13.3331 11.3902 13.3304 11.4354L13.3301 11.4392L13.3269 11.4413C13.2887 11.4656 13.2343 11.4962 13.1276 11.5554L12.1763 12.084C11.8544 12.2628 11.7385 12.6686 11.9173 12.9905C12.0961 13.3123 12.5019 13.4283 12.8238 13.2495L13.7752 12.721L13.8172 12.6977C13.9713 12.6128 14.1651 12.5061 14.3139 12.3447C14.4425 12.2051 14.5398 12.0397 14.5994 11.8594C14.6683 11.6509 14.6675 11.4298 14.6668 11.2538L14.6667 11.2058V10.1667Z"
+                fill="currentColor"
+              ></path>
+              <path
+                d="M6.82381 13.7506C6.50195 13.5718 6.09608 13.6878 5.91727 14.0096C5.73846 14.3315 5.85443 14.7374 6.17628 14.9162L7.15826 15.4617L7.19793 15.4839C7.29819 15.54 7.41625 15.6061 7.54696 15.6556C7.66589 15.7659 7.82512 15.8333 8.00008 15.8333C8.17507 15.8333 8.33431 15.7659 8.45324 15.6556C8.58391 15.6061 8.70193 15.54 8.80215 15.4839L8.84183 15.4617L9.82381 14.9162C10.1457 14.7374 10.2616 14.3315 10.0828 14.0096C9.90401 13.6878 9.49814 13.5718 9.17628 13.7506L8.66675 14.0337V13.5C8.66675 13.1318 8.36827 12.8333 8.00008 12.8333C7.63189 12.8333 7.33341 13.1318 7.33341 13.5V14.0337L6.82381 13.7506Z"
+                fill="currentColor"
+              ></path>
+              <path
+                d="M6.82384 7.08385C6.50199 6.90505 6.09612 7.02101 5.91731 7.34286C5.7385 7.66472 5.85446 8.07059 6.17632 8.2494L7.33341 8.89223V10.1666C7.33341 10.5348 7.63189 10.8333 8.00008 10.8333C8.36827 10.8333 8.66675 10.5348 8.66675 10.1666V8.89223L9.82384 8.2494C10.1457 8.07059 10.2617 7.66472 10.0829 7.34286C9.90404 7.02101 9.49817 6.90505 9.17632 7.08385L8.00008 7.73732L6.82384 7.08385Z"
+                fill="currentColor"
+              ></path>
+            </g>
           </g>
         </svg>
       </div>
-      <div class="text-text-secondary group-hover/container:text-text-primary">{{'PAC.Copilot.SelectModel' | translate: {Default: 'Select model'} }}</div>
+      <div class="text-text-secondary group-hover/container:text-text-primary">
+        {{ 'PAC.Copilot.SelectModel' | translate: { Default: 'Select model' } }}
+      </div>
     }
-    
-  @if (!readonly()) {
-    <svg
+
+    @if (!readonly()) {
+      <svg
         viewBox="0 0 24 24"
         xmlns="http://www.w3.org/2000/svg"
         width="24"
@@ -117,16 +181,17 @@
         <path
           d="M11.9999 13.1714L16.9497 8.22168L18.3639 9.63589L11.9999 15.9999L5.63599 9.63589L7.0502 8.22168L11.9999 13.1714Z"
         ></path>
-    </svg>
-  }
+      </svg>
+    }
   </div>
 
   @if (!readonly()) {
-    <div class="cursor-pointer p-1 rounded-lg border border-transparent hover:bg-black/5 hover:border-slate-200"
+    <div
+      class="cursor-pointer p-1 rounded-lg border border-transparent hover:bg-black/5 hover:border-slate-200"
       #menuTrigger="cdkMenuTriggerFor"
       [cdkMenuTriggerFor]="parametersMenu"
       [class.active]="menuTrigger.isOpen()"
-      >
+    >
       <svg
         width="24"
         height="24"
@@ -148,26 +213,44 @@
 </div>
 
 <ng-template #parametersMenu>
-  <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu copilot-model-parameters-menu w-[400px] max-h-[480px] overflow-y-auto px-6 py-4 rounded-2xl">
+  <div
+    #menu="cdkMenu"
+    cdkMenu
+    class="ngm-cdk-menu copilot-model-parameters-menu w-[400px] max-h-[480px] overflow-y-auto px-6 py-4 rounded-2xl"
+  >
     <div class="flex items-center justify-between mb-2">
-      <div class="font-semibold text-lg text-gray-900">{{'PAC.Copilot.Parameters' | translate: {Default: 'Parameters'} }}</div>
+      <div class="font-semibold text-lg text-gray-900">
+        {{ 'PAC.Copilot.Parameters' | translate: { Default: 'Parameters' } }}
+      </div>
     </div>
     @for (parameter of modelParameterRules(); track parameter.name) {
       <div class="flex items-center justify-between">
         <div class="flex-1 mr-4">
           <div class="w-full shrink-0 flex items-center">
-            <div class="mr-0.5 text-[13px] font-medium text-gray-700 truncate" [title]="parameter.label | i18n">{{parameter.label | i18n}}</div>
-            <div class="mr-1 w-4 h-4 shrink-0" [matTooltip]="parameter.help | i18n" matTooltipPosition="before">
-              <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="remixicon text-text-quaternary hover:text-text-tertiary w-full h-full">
-                <path d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20ZM11 15H13V17H11V15ZM13 13.3551V14H11V12.5C11 11.9477 11.4477 11.5 12 11.5C12.8284 11.5 13.5 10.8284 13.5 10C13.5 9.17157 12.8284 8.5 12 8.5C11.2723 8.5 10.6656 9.01823 10.5288 9.70577L8.56731 9.31346C8.88637 7.70919 10.302 6.5 12 6.5C13.933 6.5 15.5 8.067 15.5 10C15.5 11.5855 14.4457 12.9248 13 13.3551Z"></path>
+            <div class="mr-0.5 text-[13px] font-medium text-gray-700 truncate" [title]="parameter.label | i18n">
+              {{ parameter.label | i18n }}
+            </div>
+            <div class="mr-1 w-4 h-4 shrink-0" [zTooltip]="parameter.help | i18n" zPosition="left">
+              <svg
+                viewBox="0 0 24 24"
+                xmlns="http://www.w3.org/2000/svg"
+                width="24"
+                height="24"
+                fill="currentColor"
+                class="remixicon text-text-quaternary hover:text-text-tertiary w-full h-full"
+              >
+                <path
+                  d="M12 22C6.47715 22 2 17.5228 2 12C2 6.47715 6.47715 2 12 2C17.5228 2 22 6.47715 22 12C22 17.5228 17.5228 22 12 22ZM12 20C16.4183 20 20 16.4183 20 12C20 7.58172 16.4183 4 12 4C7.58172 4 4 7.58172 4 12C4 16.4183 7.58172 20 12 20ZM11 15H13V17H11V15ZM13 13.3551V14H11V12.5C11 11.9477 11.4477 11.5 12 11.5C12.8284 11.5 13.5 10.8284 13.5 10C13.5 9.17157 12.8284 8.5 12 8.5C11.2723 8.5 10.6656 9.01823 10.5288 9.70577L8.56731 9.31346C8.88637 7.70919 10.302 6.5 12 6.5C13.933 6.5 15.5 8.067 15.5 10C15.5 11.5855 14.4457 12.9248 13 13.3551Z"
+                ></path>
               </svg>
             </div>
           </div>
         </div>
 
-        <copilot-model-parameter-input [parameter]="parameter"
+        <copilot-model-parameter-input
+          [parameter]="parameter"
           [ngModel]="getParameter(parameter.name)"
-          [ngModelOptions]="{standalone: true}"
+          [ngModelOptions]="{ standalone: true }"
           (ngModelChange)="updateParameter(parameter.name, $event)"
         />
       </div>
@@ -180,78 +263,107 @@
     <div class="px-1 py-2 sticky top-0 w-full bg-components-card-bg border-b border-solid border-divider-regular z-10">
       <div class="w-full relative">
         <i class="ri-search-2-line absolute left-1.5 top-1"></i>
-        <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular pl-[26px]" 
-          [placeholder]="'PAC.KEY_WORDS.SearchTerm' | translate: {Default: 'Search term'}" tabindex="0"
+        <input
+          class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular pl-[26px]"
+          [placeholder]="'PAC.KEY_WORDS.SearchTerm' | translate: { Default: 'Search term' }"
+          tabindex="0"
           [(ngModel)]="searchTerm"
-          [ngModelOptions]="{standalone: true}"
-        >
+          [ngModelOptions]="{ standalone: true }"
+        />
       </div>
     </div>
 
     <div class="pr-2">
       @for (copilot of searchedModels(); track copilot.id) {
         <div class="text-base px-4 my-4 font-semibold flex justify-start items-center">
-          <span >{{copilot.providerWithModels?.label | i18n }}</span>
+          <span>{{ copilot.providerWithModels?.label | i18n }}</span>
           <span class="mx-1">•</span>
           <div>
             @if (copilot.name) {
-              <span>{{copilot.name}}</span>
+              <span>{{ copilot.name }}</span>
             } @else {
-              <span class="uppercase">{{ ('PAC.Copilot.Role_' + copilot.role) | translate: {Default: copilot.role} }}</span>
+              <span class="uppercase">{{
+                'PAC.Copilot.Role_' + copilot.role | translate: { Default: copilot.role }
+              }}</span>
             }
           </div>
         </div>
         @for (item of copilot.providerWithModels?.models; track item.model) {
-          <button type="button" class="w-full flex justify-start items-center gap-1 px-4 py-2 rounded-xl cursor-pointer 
-            enabled:hover:bg-neutral-100/50 hover:text-primary-500 disabled:cursor-not-allowed"
-            [ngClass]="(copilot.id === copilotId() && model() === item.model && modelType() === item.model_type) ? 'bg-neutral-100/50 text-primary-600 font-semibold' : ''"
+          <button
+            type="button"
+            class="w-full flex justify-start items-center gap-1 px-4 py-2 rounded-xl cursor-pointer enabled:hover:bg-neutral-100/50 hover:text-primary-500 disabled:cursor-not-allowed"
+            [ngClass]="
+              copilot.id === copilotId() && model() === item.model && modelType() === item.model_type
+                ? 'bg-neutral-100/50 text-primary-600 font-semibold'
+                : ''
+            "
             [class.opacity-60]="item.deprecated"
-            [matTooltip]="item.deprecated ? ('PAC.Copilot.Deprecated' | translate: {Default: 'Deprecated'}) : ''"
-            matTooltipPosition="before"
+            [zTooltip]="item.deprecated ? ('PAC.Copilot.Deprecated' | translate: { Default: 'Deprecated' }) : ''"
+            zPosition="left"
             [disabled]="item.deprecated"
-            (click)="setModel(copilot, item);mt.close()"
+            (click)="setModel(copilot, item); mt.close()"
           >
-          @if (copilot.providerWithModels.icon_small) {
-            <img [src]="(copilot.providerWithModels.icon_small | i18n)" class="w-4 h-4 inline-block">
-          }
-            <span class="truncate" [title]="item.model"
+            @if (copilot.providerWithModels.icon_small) {
+              <img [src]="copilot.providerWithModels.icon_small | i18n" class="w-4 h-4 inline-block" />
+            }
+            <span
+              class="truncate"
+              [title]="item.model"
               [ngmHighlight]="searchTerm()"
               [content]="item.model"
-              customClasses="text-primary-600">{{item.model}}</span>
+              customClasses="text-primary-600"
+              >{{ item.model }}</span
+            >
             @switch (item.model_type) {
               @case (eModelType.LLM) {
-                <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60">
-                  {{'PAC.Copilot.Chat' | translate: {Default: 'Chat'} }}
+                <div
+                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60"
+                >
+                  {{ 'PAC.Copilot.Chat' | translate: { Default: 'Chat' } }}
                 </div>
               }
               @case (eModelType.RERANK) {
-                <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60">
+                <div
+                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60"
+                >
                   <i class="ri-sort-number-asc"></i>
                 </div>
               }
               @case (eModelType.TEXT_EMBEDDING) {
-                <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60">
+                <div
+                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60"
+                >
                   <i class="ri-text-block"></i>
                 </div>
               }
               @case (eModelType.SPEECH2TEXT) {
-                <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60">
+                <div
+                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60"
+                >
                   <i class="ri-speech-to-text-line"></i>
                 </div>
               }
               @case (eModelType.TTS) {
-                <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60">
+                <div
+                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60"
+                >
                   <i class="ri-text-to-speech-line"></i>
                 </div>
               }
             }
-            @if (item.features?.includes(eModelFeature.TOOL_CALL) || item.features?.includes(eModelFeature.MULTI_TOOL_CALL)) {
-              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60">
+            @if (
+              item.features?.includes(eModelFeature.TOOL_CALL) || item.features?.includes(eModelFeature.MULTI_TOOL_CALL)
+            ) {
+              <div
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60"
+              >
                 <i class="ri-hammer-fill"></i>
               </div>
             }
             @if (item.features?.includes(eModelFeature.VISION)) {
-              <div class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60">
+              <div
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60"
+              >
                 <i class="ri-eye-fill"></i>
               </div>
             }
@@ -260,9 +372,12 @@
       }
     </div>
 
-    <a href="/settings/copilot/basic" target="_blank" class="sticky group bottom-0 flex cursor-pointer items-center rounded-b-lg border-t border-divider-subtle bg-components-panel-bg px-4 py-2 
-      text-text-accent z-10">
-      <span class="system-xs-medium">{{'PAC.Copilot.ModelConfig' | translate: {Default: 'Model config'} }}</span>
+    <a
+      href="/settings/copilot/basic"
+      target="_blank"
+      class="sticky group bottom-0 flex cursor-pointer items-center rounded-b-lg border-t border-divider-subtle bg-components-panel-bg px-4 py-2 text-text-accent z-10"
+    >
+      <span class="system-xs-medium">{{ 'PAC.Copilot.ModelConfig' | translate: { Default: 'Model config' } }}</span>
       <i class="ri-external-link-line inline-block group-hover:translate-x-1 transition-transform"></i>
     </a>
   </div>

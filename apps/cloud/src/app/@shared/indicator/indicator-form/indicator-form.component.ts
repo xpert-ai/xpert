@@ -1,11 +1,33 @@
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, ElementRef, HostListener, inject, input, model, output, signal, viewChild } from '@angular/core'
+import {
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  HostListener,
+  inject,
+  input,
+  model,
+  output,
+  signal,
+  viewChild
+} from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
 import { getErrorMessage, injectToastr, ProjectAPIService } from '@cloud/app/@core'
-import { convertIndicatorResult, ICertification, IIndicator, IndicatorsService, IndicatorStatusEnum, ISemanticModel, Store, TIndicatorDraft, TMessageContentIndicator } from '@metad/cloud/state'
+import {
+  convertIndicatorResult,
+  ICertification,
+  IIndicator,
+  IndicatorsService,
+  IndicatorStatusEnum,
+  ISemanticModel,
+  Store,
+  TIndicatorDraft,
+  TMessageContentIndicator
+} from '@metad/cloud/state'
 import { saveAsYaml } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
 import { injectConfirmDelete, NgmResizableDirective, NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -27,15 +49,13 @@ import {
 import { ExplainComponent } from '@metad/story/story'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { of } from 'rxjs'
 import { injectI18nService } from '../../i18n'
 import { XpIndicatorRegisterFormComponent } from '../register-form/register-form.component'
 import { exportIndicator } from '../types'
 import { ChecklistComponent } from '../../common'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'xp-indicator-form',
@@ -48,7 +68,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ZardButtonComponent,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     AnalyticalCardModule,
     NgmResizableDirective,
@@ -68,8 +88,13 @@ export class XpIndicatorFormComponent {
   readonly dsCoreService = inject(NgmDSCoreService)
   readonly confirmDelete = injectConfirmDelete()
   readonly #dialog = inject(Dialog)
-  readonly #dialogRef = inject(DialogRef, {optional: true})
-  readonly #dialogData = inject<{id: string; projectId?: string; models?: ISemanticModel[]; certifications?: ICertification[] }>(DIALOG_DATA, {optional: true})
+  readonly #dialogRef = inject(DialogRef, { optional: true })
+  readonly #dialogData = inject<{
+    id: string
+    projectId?: string
+    models?: ISemanticModel[]
+    certifications?: ICertification[]
+  }>(DIALOG_DATA, { optional: true })
 
   // Inputs
   readonly data = input<Partial<TMessageContentIndicator>>()
@@ -86,8 +111,7 @@ export class XpIndicatorFormComponent {
   readonly #indicator = myRxResource({
     request: () => this.id(),
     loader: ({ request }) => {
-      return request ? this.indicatorAPI.getById(request) : of({
-      } as IIndicator)
+      return request ? this.indicatorAPI.getById(request) : of({} as IIndicator)
     }
   })
   readonly loading = signal(false)
@@ -104,7 +128,7 @@ export class XpIndicatorFormComponent {
   })
   readonly draft = linkedModel({
     initialValue: null,
-    compute: () => this.indicator()?.draft ?? this.indicator() as TIndicatorDraft,
+    compute: () => this.indicator()?.draft ?? (this.indicator() as TIndicatorDraft),
     update: (value) => {
       //
     }
@@ -237,10 +261,7 @@ export class XpIndicatorFormComponent {
             ]
           },
           selectionVariant: {
-            selectOptions: [
-              timeSlicer,
-              ...(indicator.code ? [] : (indicator.options?.filters ?? []))
-            ]
+            selectOptions: [timeSlicer, ...(indicator.code ? [] : (indicator.options?.filters ?? []))]
           }
         } as DataSettings & { error?: string })
       : null
@@ -289,32 +310,42 @@ export class XpIndicatorFormComponent {
 
   // states
   readonly certifications = computed(
-    () => (this.#dialogData?.certifications ?? this.project()?.certifications)?.map((item) => ({ value: item.id, label: item.name })) ?? []
+    () =>
+      (this.#dialogData?.certifications ?? this.project()?.certifications)?.map((item) => ({
+        value: item.id,
+        label: item.name
+      })) ?? []
   )
   readonly models = computed(() => this.#dialogData?.models ?? this.project()?.models)
 
   readonly explains = signal<any[]>([])
 
   constructor() {
-    effect(() => {
-      const indicator = this.indicator()
-      const draft = this.draft()
-      if (indicator && this.dataSource()) {
-        // this.dataSource().updateOptions((options) => {
-        //   return {
-        //     ...options,
-        //     isDraftIndicators: uniq([...(options.isDraftIndicators ?? []), indicator.code]),
-        //   }
-        // })
-        this.dataSource().upsertIndicator(convertIndicatorResult(draft ? {...indicator, ...draft} : indicator))
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        const indicator = this.indicator()
+        const draft = this.draft()
+        if (indicator && this.dataSource()) {
+          // this.dataSource().updateOptions((options) => {
+          //   return {
+          //     ...options,
+          //     isDraftIndicators: uniq([...(options.isDraftIndicators ?? []), indicator.code]),
+          //   }
+          // })
+          this.dataSource().upsertIndicator(convertIndicatorResult(draft ? { ...indicator, ...draft } : indicator))
+        }
+      },
+      { allowSignalWrites: true }
+    )
 
-    effect(() => {
-      if (this.draft()) {
-        this.draftForm.set({...this.draft()})
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (this.draft()) {
+          this.draftForm.set({ ...this.draft() })
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   isDirty(): boolean {
@@ -346,7 +377,7 @@ export class XpIndicatorFormComponent {
               ...state,
               ...this.draftForm(),
               draft: null,
-              status: IndicatorStatusEnum.RELEASED,
+              status: IndicatorStatusEnum.RELEASED
             }
           })
         },
@@ -360,15 +391,17 @@ export class XpIndicatorFormComponent {
 
   onSave() {
     this.saving.set(true)
-    const upsertObservable = this.indicator().id ? this.indicatorAPI.updateDraft(this.indicator().id, {
-      ...this.draft(),
-      ...this.draftForm()
-    }) : this.indicatorAPI.create({
-      projectId: this.#dialogData?.projectId,
-      name: this.draftForm().name,
-      code: this.draftForm().code,
-      draft: this.draftForm()
-    })
+    const upsertObservable = this.indicator().id
+      ? this.indicatorAPI.updateDraft(this.indicator().id, {
+          ...this.draft(),
+          ...this.draftForm()
+        })
+      : this.indicatorAPI.create({
+          projectId: this.#dialogData?.projectId,
+          name: this.draftForm().name,
+          code: this.draftForm().code,
+          draft: this.draftForm()
+        })
     upsertObservable.subscribe({
       next: (indicator) => {
         this.saving.set(false)
@@ -393,12 +426,18 @@ export class XpIndicatorFormComponent {
   }
 
   delete() {
-    this.confirmDelete({
-      value: this.indicator().name,
-      information: '',
-    }, this.indicatorAPI.delete(this.indicator().id)).subscribe({
+    this.confirmDelete(
+      {
+        value: this.indicator().name,
+        information: ''
+      },
+      this.indicatorAPI.delete(this.indicator().id)
+    ).subscribe({
       next: () => {
-        this.toastrService.success('PAC.INDICATOR.DeleteIndicatorSuccessfuly', { name: this.indicator().name, Default: 'Delete indicator successful' })
+        this.toastrService.success('PAC.INDICATOR.DeleteIndicatorSuccessfuly', {
+          name: this.indicator().name,
+          Default: 'Delete indicator successful'
+        })
         this.close.emit()
         if (this.#dialogRef) {
           this.#dialogRef.close(this.indicator())
@@ -460,11 +499,11 @@ export class XpIndicatorFormComponent {
           draft: {
             ...(draft ?? {}),
             name: `${draft?.name} - ${this.translateService.instant('PAC.ACTIONS.Copy', { Default: 'Copy' })}`,
-            code: `${draft?.code}_copy`,
+            code: `${draft?.code}_copy`
           }
         }
       })
       this.loading.set(false)
-    }, 300);
+    }, 300)
   }
 }

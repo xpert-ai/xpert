@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { HttpClient } from '@angular/common/http'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { CopyComponent } from '@cloud/app/@shared/common'
 import { FileEditorComponent } from '@cloud/app/@shared/files'
 import { TChatMessageStep, TFile } from '@metad/contracts'
@@ -12,14 +11,14 @@ import { MarkdownModule } from 'ngx-markdown'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
 import { XpertHomeService } from '../../home.service'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MarkdownModule,
     SafePipe,
     CopyComponent,

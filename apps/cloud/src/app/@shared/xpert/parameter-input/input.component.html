@@ -1,52 +1,64 @@
 @for (item of attributes(); track i; let i = $index) {
-  <div class="flex items-center gap-0.5 bg-gray-100 rounded-lg p-1 border-[0.5px] border-solid border-transparent z-10"
+  <div
+    class="flex items-center gap-0.5 bg-gray-100 rounded-lg p-1 border-[0.5px] border-solid border-transparent z-10"
     [style.margin-left.px]="(item.path.length - 1) * 10"
     [class.!border-orange-500]="!item.param.name"
-    [matTooltip]="(item.param.title || item.param.description) | i18n"
-    matTooltipPosition="before"
+    [zTooltip]="item.param.title || item.param.description | i18n"
+    zPosition="left"
   >
-    <xpert-parameter-icon [type]="item.param.type"/>
-    <input maxlength="30"
-      class="h-7 text-sm block w-full rounded-md border-0 px-1 py-1.5 text-gray-900  placeholder:text-gray-400 focus:outline-none
-            bg-transparent hover:bg-white focus:bg-white"
+    <xpert-parameter-icon [type]="item.param.type" />
+    <input
+      maxlength="30"
+      class="h-7 text-sm block w-full rounded-md border-0 px-1 py-1.5 text-gray-900 placeholder:text-gray-400 focus:outline-none bg-transparent hover:bg-white focus:bg-white"
       type="text"
-      [placeholder]="'PAC.Xpert.EnterName' | translate: {Default: 'Enter name'}"
+      [placeholder]="'PAC.Xpert.EnterName' | translate: { Default: 'Enter name' }"
       [ngModel]="item.param.name"
-      (ngModelChange)="updateAttr(item, {name: $event})"
-    >
+      (ngModelChange)="updateAttr(item, { name: $event })"
+    />
     @if (item.param.type === eXpertParameterTypeEnum.OBJECT || item.param.type === eXpertParameterTypeEnum.ARRAY) {
-      <div class="w-6 h-6 shrink-0 pressable cursor-pointer rounded-lg flex justify-center items-center hover:bg-hover-bg"
-        (click)="addAttr(item)">
+      <div
+        class="w-6 h-6 shrink-0 pressable cursor-pointer rounded-lg flex justify-center items-center hover:bg-hover-bg"
+        (click)="addAttr(item)"
+      >
         <i class="ri-add-circle-line"></i>
       </div>
     }
-    <div tabindex="0" class="p-1 rounded-md hover:bg-black/5 w-6 h-6 shrink-0 flex justify-center items-center cursor-pointer opacity-30 group-hover/item:opacity-100"
+    <div
+      tabindex="0"
+      class="p-1 rounded-md hover:bg-black/5 w-6 h-6 shrink-0 flex justify-center items-center cursor-pointer opacity-30 group-hover/item:opacity-100"
       #parammt="cdkMenuTriggerFor"
       [cdkMenuTriggerFor]="paramConfigMenu"
     >
       <i class="ri-settings-4-line"></i>
     </div>
-    <button type="button" class="action-btn action-btn-l w-7 h-7 danger flex-shrink-0 group flex justify-center items-center rounded-lg overflow-hidden"
-      (click)="deleteParameter(item)">
+    <button
+      type="button"
+      class="action-btn action-btn-l w-7 h-7 danger flex-shrink-0 group flex justify-center items-center rounded-lg overflow-hidden"
+      (click)="deleteParameter(item)"
+    >
       <i class="ri-delete-bin-line"></i>
     </button>
   </div>
   @if (item.isNewLevel) {
-    <div class="flex justify-center w-5 absolute z-0"
+    <div
+      class="flex justify-center w-5 absolute z-0"
       [style.left.px]="(item.path.length - 1) * 10"
       [style.top.px]="item.path.length * 28"
       [style.bottom.px]="0"
-      >
+    >
       <div class="w-[1px] h-full mx-0 bg-divider-subtle"></div>
     </div>
   }
 
   <ng-template #paramConfigMenu>
-    <div class="parameter-config-menu p-4 rounded-xl border-[0.5px] border-solid border-divider-deep shadow-lg bg-components-card-bg overflow-auto">
+    <div
+      class="parameter-config-menu p-4 rounded-xl border-[0.5px] border-solid border-divider-deep shadow-lg bg-components-card-bg overflow-auto"
+    >
       <div class="w-full flex justify-between items-center">
-        <h3 class="text-xl font-semibold leading-6">{{ 'PAC.Xpert.EditParameter' | translate: {Default: 'Edit parameter'} }}</h3>
-        <button type="button" class="btn rounded-xl justify-center w-8 h-8"
-          (click)="parammt.close()">
+        <h3 class="text-xl font-semibold leading-6">
+          {{ 'PAC.Xpert.EditParameter' | translate: { Default: 'Edit parameter' } }}
+        </h3>
+        <button type="button" class="btn rounded-xl justify-center w-8 h-8" (click)="parammt.close()">
           <i class="ri-close-line"></i>
         </button>
       </div>

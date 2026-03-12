@@ -175,7 +175,7 @@
               <z-badge [zCount]="item.permissionRefuses" zCountClass="bg-destructive text-white">
                 <z-icon
                   color="warn"
-                  [matTooltip]="'PAC.INDICATOR.PermissionRefused' | translate: { Default: 'Permission Refused' }"
+                  [zTooltip]="'PAC.INDICATOR.PermissionRefused' | translate: { Default: 'Permission Refused' }"
                   zType="block"
                 ></z-icon>
               </z-badge>
@@ -184,7 +184,7 @@
             <div *ngIf="item.permissionApproved">
               <z-icon
                 class="text-green-600"
-                [matTooltip]="'PAC.INDICATOR.PermissionApproved' | translate: { Default: 'Permission Approved' }"
+                [zTooltip]="'PAC.INDICATOR.PermissionApproved' | translate: { Default: 'Permission Approved' }"
                 zType="task_alt"
               ></z-icon>
             </div>
@@ -192,7 +192,7 @@
             <div *ngIf="item.permissionRequests">
               <z-icon
                 color="accent"
-                [matTooltip]="'PAC.INDICATOR.PermissionRequested' | translate: { Default: 'Permission Requested' }"
+                [zTooltip]="'PAC.INDICATOR.PermissionRequested' | translate: { Default: 'Permission Requested' }"
                 zType="pending"
               ></z-icon>
             </div>

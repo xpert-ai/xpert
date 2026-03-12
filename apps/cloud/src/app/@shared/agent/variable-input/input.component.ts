@@ -15,7 +15,6 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { linkedModel } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -25,6 +24,7 @@ import { of } from 'rxjs'
 import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../variable-panel/variable.component'
 import { StateVariableSelectComponent } from '../state-variable-select/select.component'
 import { TWorkflowVarGroup } from '../../../@core/types'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -33,7 +33,7 @@ import { TWorkflowVarGroup } from '../../../@core/types'
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     StateVariableSelectComponent,
     XpertVariablePanelComponent
   ],
@@ -77,19 +77,22 @@ export class XpertVariableInputComponent {
   })
 
   readonly #variables = myRxResource({
-    request: () => this.variables() ? null : this.varOptions(),
-    loader: ({request}) => {
+    request: () => (this.variables() ? null : this.varOptions()),
+    loader: ({ request }) => {
       return request ? this.xpertAPI.getNodeVariables(request) : of(null)
     }
   })
   readonly loading = computed(() => this.#variables.status() === 'loading')
 
   constructor() {
-    effect(() => {
-      if (this.#variables.value()) {
-        this.variables.set(this.#variables.value())
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (this.#variables.value()) {
+          this.variables.set(this.#variables.value())
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   update(index: number, value: string) {

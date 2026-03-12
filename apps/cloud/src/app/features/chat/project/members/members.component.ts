@@ -2,7 +2,6 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, input, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { nonNullable } from '@metad/copilot'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectUser, IUser, IXpertProject, XpertProjectService } from 'apps/cloud/src/app/@core'
@@ -10,11 +9,11 @@ import { UserPipe } from 'apps/cloud/src/app/@shared/pipes'
 import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 import { uniqBy } from 'lodash-es'
 import { EMPTY, filter, switchMap } from 'rxjs'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'chat-project-members',
   standalone: true,
-  imports: [CommonModule, UserPipe, TranslateModule, MatTooltipModule, UserProfileInlineComponent],
+  imports: [CommonModule, UserPipe, TranslateModule, ...ZardTooltipImports, UserProfileInlineComponent],
   templateUrl: './members.component.html',
   styleUrl: './members.component.scss'
 })
@@ -40,7 +39,7 @@ export class ChatProjectMembersComponent {
       switchMap((id) => this.projectsService.getMembers(id))
     )
     .subscribe((members) => this.members.set(members))
-  
+
   // constructor() {
   //   effect(() => {
   //     console.log(this.owner())

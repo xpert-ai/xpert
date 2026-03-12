@@ -70,11 +70,13 @@ import { ModelHierarchyService } from './hierarchy.service'
 import { CommonModule } from '@angular/common'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-
 import { MatToolbarModule } from '@angular/material/toolbar'
-import { ZardButtonComponent, ZardIconComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
-
+import {
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardCheckboxComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-model-hierarchy',
@@ -91,7 +93,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardCheckboxComponent } from '@
     FormsModule,
     ZardCheckboxComponent,
     MatButtonToggleModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardIconComponent,
     ZardButtonComponent,
     MatToolbarModule,

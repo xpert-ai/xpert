@@ -24,15 +24,14 @@ import {
 import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { MatTooltipModule } from '@angular/material/tooltip'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     RouterModule,
     WaIntersectionObserver,
@@ -77,14 +76,17 @@ export class SemancticModelCacheComponent {
   readonly preview = signal<ISemanticModelCache>(null)
 
   constructor() {
-    effect(() => {
-      const timeRange = this.timeRange()
-      const language = this.language()
-      this.caches.set([])
-      this.currentPage.set(0)
-      this.done.set(false)
-      this.loadLogs({ language, timeRange, currentPage: 0 })
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        const timeRange = this.timeRange()
+        const language = this.language()
+        this.caches.set([])
+        this.currentPage.set(0)
+        this.done.set(false)
+        this.loadLogs({ language, timeRange, currentPage: 0 })
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   loadLogs = effectAction((origin$: Observable<{ language: string; timeRange: string[]; currentPage: number }>) => {
@@ -92,19 +94,19 @@ export class SemancticModelCacheComponent {
       delayWhen(() => this.modelId$.pipe(filter((id) => !!id))),
       switchMap(({ language, timeRange, currentPage }) => {
         this.loading.set(true)
-        return this.semanticModelAPI.getCaches(
-          this.modelComponent.model.id,
-          {
-            where: { language: language || undefined },
-            relations: ['createdBy'],
-            order: { updatedAt: OrderTypeEnum.DESC },
-            take: this.pageSize,
-            skip: currentPage * this.pageSize
-          },
-          timeRange
-        ).pipe(
-          map(({ items, total }) => ({ items, total, currentPage }))
-        )
+        return this.semanticModelAPI
+          .getCaches(
+            this.modelComponent.model.id,
+            {
+              where: { language: language || undefined },
+              relations: ['createdBy'],
+              order: { updatedAt: OrderTypeEnum.DESC },
+              take: this.pageSize,
+              skip: currentPage * this.pageSize
+            },
+            timeRange
+          )
+          .pipe(map(({ items, total }) => ({ items, total, currentPage })))
       }),
       tap({
         next: ({ items, total, currentPage }) => {
@@ -143,11 +145,11 @@ export class SemancticModelCacheComponent {
       next: () => {
         this.caches.set([])
         this.loading.set(false)
-        this.#toastr.success('PAC.MODEL.ClearServerCache', {Default: 'Clear server cache successfully'})
+        this.#toastr.success('PAC.MODEL.ClearServerCache', { Default: 'Clear server cache successfully' })
       },
       error: (err) => {
         this.loading.set(false)
-        this.#toastr.error('PAC.MODEL.ClearServerCache', getErrorMessage(err), {Default: 'Clear server cache failed'})
+        this.#toastr.error('PAC.MODEL.ClearServerCache', getErrorMessage(err), { Default: 'Clear server cache failed' })
       }
     })
   }

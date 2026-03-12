@@ -7,7 +7,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, signal, ViewContainerRef } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { provideECharts } from '@cloud/app/@core/providers/echarts'
 import { provideOcap } from '@cloud/app/@core/providers/ocap'
@@ -33,6 +32,7 @@ import { ChatConversationsComponent } from '../conversations/conversations.compo
 import { XpertHomeService } from '../home.service'
 import { XpertOcapService } from '../ocap.service'
 import { XpertChatAppComponent } from '../xpert/xpert.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -48,7 +48,7 @@ import { XpertChatAppComponent } from '../xpert/xpert.component'
     RouterModule,
     TranslateModule,
     WaIntersectionObserver,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     OrganizationSelectorComponent,
     HeaderUserComponent,
     XpertChatAppComponent

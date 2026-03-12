@@ -1,15 +1,21 @@
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { agentLabel, agentUniqueName, AiModelTypeEnum, NodeEntity, TXpertTeamNode, WorkflowNodeTypeEnum } from 'apps/cloud/src/app/@core'
+import {
+  agentLabel,
+  agentUniqueName,
+  AiModelTypeEnum,
+  NodeEntity,
+  TXpertTeamNode,
+  WorkflowNodeTypeEnum
+} from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertNodeErrorHandlingComponent } from '../error-handling/error.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-node-agent',
   templateUrl: './agent.component.html',
@@ -18,13 +24,13 @@ import { XpertNodeErrorHandlingComponent } from '../error-handling/error.compone
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FFlowModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     PlusSvgComponent,
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     XpertNodeErrorHandlingComponent
-  ],
+  ]
 })
 export class XpertStudioNodeAgentComponent {
   eModelType = AiModelTypeEnum
@@ -41,7 +47,9 @@ export class XpertStudioNodeAgentComponent {
   readonly xpertAgent = computed(() => this.node().entity)
   readonly key = computed(() => this.node().key)
   readonly isStart = computed(() => !this.isRoot() && this.startNodes()?.includes(this.key()))
-  readonly parentNode = computed(() => this.studioService.viewModel().nodes.find((_) => _.key === this.node()?.parentId))
+  readonly parentNode = computed(() =>
+    this.studioService.viewModel().nodes.find((_) => _.key === this.node()?.parentId)
+  )
 
   readonly toolsets = computed(() => this.xpertAgent()?.toolsets)
 
@@ -61,7 +69,9 @@ export class XpertStudioNodeAgentComponent {
   readonly agentLabel = computed(() => agentLabel(this.xpertAgent()))
   readonly isSensitive = computed(() => this.agentConfig()?.interruptBefore?.includes(this.agentUniqueName()))
   readonly isEnd = computed(() => this.agentConfig()?.endNodes?.includes(this.agentUniqueName()))
-  readonly isDisableOutput = computed(() => this.agentConfig()?.mute?.some((_) => _.length === 1 && _[0] === this.key()))
+  readonly isDisableOutput = computed(() =>
+    this.agentConfig()?.mute?.some((_) => _.length === 1 && _[0] === this.key())
+  )
   // Options
   readonly options = computed(() => this.xpertAgent()?.options)
   readonly retry = computed(() => this.options()?.retry)
@@ -74,19 +84,24 @@ export class XpertStudioNodeAgentComponent {
   readonly nodeParentId = computed(() => this.node()?.parentId)
   readonly canBeConnectedInputs = computed(() =>
     this.nodes()
-      .filter((_) => this.nodeParentId() ? _.parentId === this.nodeParentId() : !_.parentId)
-      .filter((_) => !(_.type === 'workflow' && ![
-          WorkflowNodeTypeEnum.AGENT_TOOL,
-          WorkflowNodeTypeEnum.TASK,
-          WorkflowNodeTypeEnum.MIDDLEWARE,
-          WorkflowNodeTypeEnum.SKILL,
-        ].includes((<NodeEntity<'workflow'>>_.entity).type))
+      .filter((_) => (this.nodeParentId() ? _.parentId === this.nodeParentId() : !_.parentId))
+      .filter(
+        (_) =>
+          !(
+            _.type === 'workflow' &&
+            ![
+              WorkflowNodeTypeEnum.AGENT_TOOL,
+              WorkflowNodeTypeEnum.TASK,
+              WorkflowNodeTypeEnum.MIDDLEWARE,
+              WorkflowNodeTypeEnum.SKILL
+            ].includes((<NodeEntity<'workflow'>>_.entity).type)
+          )
       )
       .map((_) => _.key)
   )
   readonly canBeConnectedWorkflow = computed(() =>
     this.nodes()
-      .filter((_) => this.nodeParentId() ? _.parentId === this.nodeParentId() : !_.parentId)
+      .filter((_) => (this.nodeParentId() ? _.parentId === this.nodeParentId() : !_.parentId))
       .filter((_) => _.type === 'agent' || _.type === 'workflow')
       .map((_) => _.key + '/edge')
   )

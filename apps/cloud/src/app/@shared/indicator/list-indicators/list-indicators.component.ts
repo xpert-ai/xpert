@@ -2,7 +2,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { DateRelativePipe, getErrorMessage, injectToastr } from '@cloud/app/@core'
 import { EmbeddingStatusEnum, IndicatorsService, IndicatorStatusEnum } from '@metad/cloud/state'
 import { IfAnimation } from '@metad/core'
@@ -12,7 +11,7 @@ import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { XpIndicatorFormComponent } from '../indicator-form/indicator-form.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'xp-list-indicators',
@@ -23,7 +22,7 @@ import { XpIndicatorFormComponent } from '../indicator-form/indicator-form.compo
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     WaIntersectionObserver,
     NgmSpinComponent,
     DateRelativePipe,

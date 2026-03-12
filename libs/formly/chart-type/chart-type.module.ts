@@ -5,7 +5,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule, ResizerModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
@@ -17,7 +16,8 @@ import {
   ZardIconComponent,
   ZardInputDirective,
   provideZardIconAssets,
-  ZardCheckboxComponent
+  ZardCheckboxComponent,
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { PACFormlyChartTypeComponent } from './chart-type.component'
 import { CHART_ICON_ASSETS } from './types'
@@ -36,7 +36,7 @@ import { CHART_ICON_ASSETS } from './types'
     MatDialogModule,
     ZardInputDirective,
     ZardCheckboxComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MatButtonToggleModule,
     MonacoEditorModule,
     TranslateModule,

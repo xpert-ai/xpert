@@ -1,6 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -11,7 +10,7 @@ import {
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { XpertWorkflowIconComponent } from '@cloud/app/@shared/workflow'
-import { IconComponent } from "@cloud/app/@shared/avatar"
+import { IconComponent } from '@cloud/app/@shared/avatar'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
@@ -48,6 +47,7 @@ import { XpertWorkflowNodeSkillComponent } from './skill/skill.component'
 import { XpertWorkflowNodeMiddlewareComponent } from './middleware/middleware.component'
 import { XpertWorkflowNodeStartComponent } from './start/start.component'
 import { XpertStudioContextMenuComponent } from '../context-menu/context-menu.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-studio-node-workflow',
@@ -58,7 +58,7 @@ import { XpertStudioContextMenuComponent } from '../context-menu/context-menu.co
   imports: [
     FFlowModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     XpertWorkflowIconComponent,
     XpertWorkflowNodeStartComponent,
@@ -94,9 +94,9 @@ import { XpertStudioContextMenuComponent } from '../context-menu/context-menu.co
     XpertWorkflowNodeMiddlewareComponent,
     XpertWorkflowNodeSkillComponent,
     IconComponent
-],
+  ],
   host: {
-    '[class]': 'type()',
+    '[class]': 'type()'
   }
 })
 export class XpertStudioNodeWorkflowComponent {
@@ -128,16 +128,16 @@ export class XpertStudioNodeWorkflowComponent {
     WorkflowNodeTypeEnum.TRIGGER,
     WorkflowNodeTypeEnum.TASK,
     WorkflowNodeTypeEnum.AGENT_TOOL,
-    WorkflowNodeTypeEnum.MIDDLEWARE,
-  ]
-
-  readonly fullCustomNodeTypes = [
     WorkflowNodeTypeEnum.MIDDLEWARE
   ]
 
+  readonly fullCustomNodeTypes = [WorkflowNodeTypeEnum.MIDDLEWARE]
+
   // Workflow providers
   readonly triggerProviders = this.apiService.triggerProviders
-  readonly triggerEntity = computed(() => this.entity()?.type === WorkflowNodeTypeEnum.TRIGGER ? this.entity() as IWFNTrigger : null)
+  readonly triggerEntity = computed(() =>
+    this.entity()?.type === WorkflowNodeTypeEnum.TRIGGER ? (this.entity() as IWFNTrigger) : null
+  )
   readonly from = computed(() => this.triggerEntity()?.from)
   readonly provider = computed(() => this.triggerProviders()?.find((item) => item.name === this.from()))
 }

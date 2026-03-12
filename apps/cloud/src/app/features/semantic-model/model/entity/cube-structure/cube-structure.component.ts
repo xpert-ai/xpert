@@ -1,34 +1,78 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkDrag, CdkDragDrop, CdkDropList } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, ChangeDetectorRef, Component, EventEmitter, Output, ViewChildren, ViewContainerRef, booleanAttribute, computed, effect, inject, input, model } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  ChangeDetectorRef,
+  Component,
+  EventEmitter,
+  Output,
+  ViewChildren,
+  ViewContainerRef,
+  booleanAttribute,
+  computed,
+  effect,
+  inject,
+  input,
+  model
+} from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { CommandDialogComponent } from '@metad/copilot-angular'
-import { CdkConfirmDeleteComponent, injectConfirmOptions, NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
+import {
+  CdkConfirmDeleteComponent,
+  injectConfirmOptions,
+  NgmCommonModule,
+  SplitterType
+} from '@metad/ocap-angular/common'
 import { NgmCalculationEditorComponent, NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
-import { AggregationRole, CalculatedMember, CalculatedProperty, CalculationProperty, CalculationType, DimensionUsage, ParameterProperty, PropertyMeasure, Syntax, VariableProperty, getEntityDimensions, getEntityMeasures, getEntityVariables, isEntityType, isVisible } from '@metad/ocap-core'
+import {
+  AggregationRole,
+  CalculatedMember,
+  CalculatedProperty,
+  CalculationProperty,
+  CalculationType,
+  DimensionUsage,
+  ParameterProperty,
+  PropertyMeasure,
+  Syntax,
+  VariableProperty,
+  getEntityDimensions,
+  getEntityMeasures,
+  getEntityVariables,
+  isEntityType,
+  isVisible
+} from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { DeepPartial, injectToastr, uuid } from '@cloud/app/@core'
 import { NGXLogger } from 'ngx-logger'
 import { combineLatest, combineLatestWith, filter, map, switchMap, withLatestFrom } from 'rxjs'
 import { SemanticModelService } from '../../model.service'
-import { CdkDragDropContainers, MODEL_TYPE, ModelDesignerType, ModelDimensionState, SemanticModelEntity, SemanticModelEntityType } from '../../types'
+import {
+  CdkDragDropContainers,
+  MODEL_TYPE,
+  ModelDesignerType,
+  ModelDimensionState,
+  SemanticModelEntity,
+  SemanticModelEntityType
+} from '../../types'
 import { InlineDimensionComponent, UsageDimensionComponent } from '../dimension'
 import { ModelEntityService } from '../entity.service'
 import { CubeEventType } from '../types'
 import { CubeVariableFormComponent } from '@cloud/app/@shared/model'
 
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { SQLTableSchema } from '@metad/ocap-sql'
-import { CreateEntityDialogRetType, ModelCreateEntityComponent, toDimension } from '../../create-entity/create-entity.component'
+import {
+  CreateEntityDialogRetType,
+  ModelCreateEntityComponent,
+  toDimension
+} from '../../create-entity/create-entity.component'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
 import { ModelEntityComponent } from '../entity.component'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  * Display and edit the field list of the multidimensional analysis model
  *
@@ -47,14 +91,14 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     FormsModule,
     TranslateModule,
     ZardButtonComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardIconComponent,
     NgmCommonModule,
     CdkMenuModule,
 
     InlineDimensionComponent,
     UsageDimensionComponent,
-    NgmEntityPropertyComponent,
+    NgmEntityPropertyComponent
   ]
 })
 export class ModelCubeStructureComponent {
@@ -310,8 +354,8 @@ export class ModelCubeStructureComponent {
 
   duplicateMeasure(member: PropertyMeasure) {
     const newKey = uuid()
-    this.entityService.duplicateMeasure({id: member.__id__, newKey})
-    this.onSelect(ModelDesignerType.measure, {__id__: newKey})
+    this.entityService.duplicateMeasure({ id: member.__id__, newKey })
+    this.onSelect(ModelDesignerType.measure, { __id__: newKey })
   }
 
   onAddCalculatedMember(event) {
@@ -326,8 +370,8 @@ export class ModelCubeStructureComponent {
 
   duplicateCalculatedMember(member: Partial<CalculatedMember>) {
     const newKey = uuid()
-    this.entityService.duplicateCalculatedMeasure({id: member.__id__, newKey})
-    this.onCalculatedMemberEdit({__id__: newKey})
+    this.entityService.duplicateCalculatedMeasure({ id: member.__id__, newKey })
+    this.onCalculatedMemberEdit({ __id__: newKey })
   }
 
   onDeleteCalculatedMember(event: Event, member: Partial<CalculatedMember>) {
@@ -361,10 +405,16 @@ export class ModelCubeStructureComponent {
   }
 
   measureEnterPredicate(item: CdkDrag<SemanticModelEntity>) {
-    return item.dropContainer.id === CdkDragDropContainers.FactTableMeasures || item.dropContainer.id === CdkDragDropContainers.FactTableDimensions
+    return (
+      item.dropContainer.id === CdkDragDropContainers.FactTableMeasures ||
+      item.dropContainer.id === CdkDragDropContainers.FactTableDimensions
+    )
   }
   calculatedEnterPredicate(item: CdkDrag<SemanticModelEntity>) {
-    return item.dropContainer.id === CdkDragDropContainers.FactTableMeasures || item.dropContainer.id === CdkDragDropContainers.FactTableDimensions
+    return (
+      item.dropContainer.id === CdkDragDropContainers.FactTableMeasures ||
+      item.dropContainer.id === CdkDragDropContainers.FactTableDimensions
+    )
   }
   calculationEnterPredicate(item: CdkDrag<SemanticModelEntity>) {
     return false
@@ -435,7 +485,11 @@ export class ModelCubeStructureComponent {
       event.previousContainer.id === CdkDragDropContainers.FactTableMeasures ||
       event.previousContainer.id === CdkDragDropContainers.FactTableDimensions
     ) {
-      this.entityService.newMeasure({ index: event.currentIndex, column: event.item.data.name, caption: event.item.data.caption })
+      this.entityService.newMeasure({
+        index: event.currentIndex,
+        column: event.item.data.name,
+        caption: event.item.data.caption
+      })
     }
   }
 
@@ -476,69 +530,65 @@ export class ModelCubeStructureComponent {
   }
 
   openVariableAttributes(variable: VariableProperty) {
-    this.#dialog.open(CubeVariableFormComponent, {
-      data: {
-        variable,
-        dataSettings: this.dataSettings()
-      }
-    }).closed.subscribe({
-      next: (result) => {
-        if (result) {
-          this.entityService.updateCubeProperty({
-            id: variable.__id__,
-            type: ModelDesignerType.variable,
-            model: result
-          })
+    this.#dialog
+      .open(CubeVariableFormComponent, {
+        data: {
+          variable,
+          dataSettings: this.dataSettings()
         }
-      }
-    })
+      })
+      .closed.subscribe({
+        next: (result) => {
+          if (result) {
+            this.entityService.updateCubeProperty({
+              id: variable.__id__,
+              type: ModelDesignerType.variable,
+              model: result
+            })
+          }
+        }
+      })
   }
 
   onDeleteVariable(event: Event, variable: VariableProperty) {
-    this.#dialog.open(CdkConfirmDeleteComponent, {
-      data: {
-        value: variable.name
-      }
-    }).closed.subscribe({
-      next: (confirm) => {
-        if (confirm) {
-          this.entityService.deleteCubeProperty({id: variable.__id__, type: ModelDesignerType.variable})
+    this.#dialog
+      .open(CdkConfirmDeleteComponent, {
+        data: {
+          value: variable.name
         }
-      }
-    })
+      })
+      .closed.subscribe({
+        next: (confirm) => {
+          if (confirm) {
+            this.entityService.deleteCubeProperty({ id: variable.__id__, type: ModelDesignerType.variable })
+          }
+        }
+      })
   }
 
   createDimensionByTable(index: number, table: SQLTableSchema) {
     const factFields = this.factFields()
     this.#dialog
-      .open<CreateEntityDialogRetType>(
-        ModelCreateEntityComponent,
-        {
-          viewContainerRef: this.#vcr,
-          data: { 
-            model: { 
-              name: '',
-              table: table.name,
-              caption: table.label 
-            }, 
-            entitySets: [
-              table
-            ], 
-            modelType: MODEL_TYPE.OLAP,
-            type: SemanticModelEntityType.DIMENSION,
-            types: [
-              SemanticModelEntityType.DIMENSION,
-            ],
-            factFields
+      .open<CreateEntityDialogRetType>(ModelCreateEntityComponent, {
+        viewContainerRef: this.#vcr,
+        data: {
+          model: {
+            name: '',
+            table: table.name,
+            caption: table.label
           },
-          backdropClass: 'xp-overlay-share-sheet',
-          panelClass: 'xp-overlay-pane-share-sheet',
-        }
-      )
-      .closed
-      .subscribe({
+          entitySets: [table],
+          modelType: MODEL_TYPE.OLAP,
+          type: SemanticModelEntityType.DIMENSION,
+          types: [SemanticModelEntityType.DIMENSION],
+          factFields
+        },
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet'
+      })
+      .closed.subscribe({
         next: (value) => {
-          this.entityService.insertDimension({index, dimension: toDimension(value)})
+          this.entityService.insertDimension({ index, dimension: toDimension(value) })
           this.emitEvent({ type: 'dimension-created' })
         }
       })
@@ -546,19 +596,21 @@ export class ModelCubeStructureComponent {
 
   createDimensionUsageByDim(index: number, dimState: ModelDimensionState) {
     const factFields = this.factFields()
-    this.confirmOptions<{foreignKey: string}>({
-      information: this.i18n.translate('PAC.MODEL.CREATE_ENTITY.SelectForeignKeyForDimension', {Default: 'Select the corresponding fact table foreign key for the associated dimension'}),
+    this.confirmOptions<{ foreignKey: string }>({
+      information: this.i18n.translate('PAC.MODEL.CREATE_ENTITY.SelectForeignKeyForDimension', {
+        Default: 'Select the corresponding fact table foreign key for the associated dimension'
+      }),
       formFields: [
         {
           key: 'foreignKey',
           type: 'select',
           props: {
-            label: this.i18n.translate('PAC.MODEL.CREATE_ENTITY.FactForeignKey', {Default: 'Foreign key of fact'}),
+            label: this.i18n.translate('PAC.MODEL.CREATE_ENTITY.FactForeignKey', { Default: 'Foreign key of fact' }),
             required: true,
             options: factFields,
             searchable: true
           }
-        },
+        }
       ]
     }).subscribe((value) => {
       if (value) {
@@ -577,44 +629,44 @@ export class ModelCubeStructureComponent {
   }
 
   onEditCalculation(member?: Partial<CalculationProperty>) {
-     this.#dialog.open<CalculationProperty>(
-        NgmCalculationEditorComponent,
-        {
-          viewContainerRef: this.#vcr,
-          backdropClass: 'xp-overlay-share-sheet',
-          panelClass: 'xp-overlay-pane-share-sheet',
-          data: {
-            dataSettings: this.dataSettings(),
-            entityType: this.entityType(),
-            syntax: Syntax.MDX,
-            value: member
+    this.#dialog
+      .open<CalculationProperty>(NgmCalculationEditorComponent, {
+        viewContainerRef: this.#vcr,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: {
+          dataSettings: this.dataSettings(),
+          entityType: this.entityType(),
+          syntax: Syntax.MDX,
+          value: member
+        }
+      })
+      .closed.subscribe({
+        next: (value) => {
+          if (value) {
+            this.calculations.update((state) => {
+              const calculations = [...(state ?? [])]
+              const index = calculations.findIndex((item) => item.__id__ === value.__id__)
+              if (index > -1) {
+                calculations[index] = { ...value }
+              } else {
+                calculations.push({ ...value })
+              }
+              return calculations
+            })
           }
-        }).closed.subscribe({
-          next: (value) => {
-            if (value) {
-              this.calculations.update((state) => {
-                const calculations = [...(state ?? [])]
-                const index = calculations.findIndex((item) => item.__id__ === value.__id__)
-                if (index > -1) {
-                  calculations[index] = {...value}
-                } else {
-                  calculations.push({...value})
-                }
-                return calculations
-              })
-            }
-          }
-        })
+        }
+      })
   }
 
   duplicateCalculation(member: CalculationProperty) {
     const newKey = uuid()
     const newMember = {
-          ...member,
-          __id__: newKey,
-          name: `${member.name} Copy`,
-          caption: `${member.caption || member.name} Copy`
-        }
+      ...member,
+      __id__: newKey,
+      name: `${member.name} Copy`,
+      caption: `${member.caption || member.name} Copy`
+    }
     this.calculations.update((calculations) => {
       calculations = [...calculations]
       const index = calculations.findIndex((item) => item.__id__ === member.__id__)
@@ -653,11 +705,11 @@ export class ModelCubeStructureComponent {
   duplicateParameter(member: ParameterProperty) {
     const newKey = uuid()
     const newMember = {
-          ...member,
-          __id__: newKey,
-          name: `${member.name} Copy`,
-          caption: `${member.caption || member.name} Copy`
-        }
+      ...member,
+      __id__: newKey,
+      name: `${member.name} Copy`,
+      caption: `${member.caption || member.name} Copy`
+    }
     this.parameters.update((state) => {
       const parameters = [...state]
       const index = parameters.findIndex((item) => item.__id__ === member.__id__)

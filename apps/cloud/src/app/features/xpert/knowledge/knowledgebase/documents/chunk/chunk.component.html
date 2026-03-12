@@ -92,8 +92,8 @@
       <i
         class="ri-eye-fill cursor-pointer ml-2 text-text-tertiary hover:text-text-primary"
         [class.!text-primary-500]="preview()"
-        [matTooltip]="'PAC.KEY_WORDS.Preview' | translate: { Default: 'Preview' }"
-        matTooltipPosition="above"
+        [zTooltip]="'PAC.KEY_WORDS.Preview' | translate: { Default: 'Preview' }"
+        zPosition="top"
         (click)="toggleAllPreview()"
       ></i>
 

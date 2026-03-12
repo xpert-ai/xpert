@@ -2,7 +2,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import {
   getErrorMessage,
   IKnowledgebase,
@@ -20,6 +19,7 @@ import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { Subscription } from 'rxjs'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -31,7 +31,7 @@ import { Subscription } from 'rxjs'
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ContentLoaderModule,
     XpertParametersFormComponent,
     KnowledgeChunkComponent
@@ -77,11 +77,14 @@ export class KnowledgeDocumentPipelineSettingsComponent {
   readonly taskError = computed(() => this.task()?.error)
 
   constructor() {
-    effect(() => {
-      if (!this.previewDocName() && this.documents()?.length) {
-        this.previewDocName.set(this.documents()[0].name)
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (!this.previewDocName() && this.documents()?.length) {
+          this.previewDocName.set(this.documents()[0].name)
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   previewChunks() {

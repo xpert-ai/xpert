@@ -1,45 +1,46 @@
-<div class="w-full relative overflow-auto flex-1"
-  waIntersectionObserver
-  waIntersectionThreshold="0.5">
+<div class="w-full relative overflow-auto flex-1" waIntersectionObserver waIntersectionThreshold="0.5">
   <table class="table-fixed w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
     <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
       <tr>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-48 truncate">
-          {{ 'PAC.KEY_WORDS.Organization' | translate: {Default: 'Organization'} }}
+          {{ 'PAC.KEY_WORDS.Organization' | translate: { Default: 'Organization' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-48 truncate">
-          {{ 'PAC.KEY_WORDS.Provider' | translate: {Default: 'Provider'} }}
+          {{ 'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-48">
-          {{ 'PAC.Copilot.Model' | translate: {Default: 'Model'} }}
+          {{ 'PAC.Copilot.Model' | translate: { Default: 'Model' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-32">
-          {{ 'PAC.KEY_WORDS.TokenUsed' | translate: {Default: 'Token Used'} }}
+          {{ 'PAC.KEY_WORDS.TokenUsed' | translate: { Default: 'Token Used' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-32">
-          {{ 'PAC.KEY_WORDS.TokenLimit' | translate: {Default: 'Token Limit'} }}
+          {{ 'PAC.KEY_WORDS.TokenLimit' | translate: { Default: 'Token Limit' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-[180px]">
-          {{ 'PAC.KEY_WORDS.TokenTotalUsed' | translate: {Default: 'Token Total Used'} }}
+          {{ 'PAC.KEY_WORDS.TokenTotalUsed' | translate: { Default: 'Token Total Used' } }}
         </th>
 
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-[180px]">
-          {{ 'PAC.Copilot.PriceUsed' | translate: {Default: 'Price Used'} }}
+          {{ 'PAC.Copilot.PriceUsed' | translate: { Default: 'Price Used' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-[180px]">
-          {{ 'PAC.Copilot.PriceLimit' | translate: {Default: 'Price Limit'} }}
+          {{ 'PAC.Copilot.PriceLimit' | translate: { Default: 'Price Limit' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-[180px]">
-          {{ 'PAC.Copilot.PriceTotalUsed' | translate: {Default: 'Price Total Used'} }}
+          {{ 'PAC.Copilot.PriceTotalUsed' | translate: { Default: 'Price Total Used' } }}
         </th>
 
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-32">
-          {{ 'PAC.KEY_WORDS.Currency' | translate: {Default: 'Currency'} }}
+          {{ 'PAC.KEY_WORDS.Currency' | translate: { Default: 'Currency' } }}
         </th>
         <th scope="col" class="sticky top-0 whitespace-nowrap z-10 bg-gray-50 p-3 w-[180px]">
-          {{ 'PAC.Copilot.LastUsed' | translate: {Default: 'Last Used'} }}
+          {{ 'PAC.Copilot.LastUsed' | translate: { Default: 'Last Used' } }}
         </th>
-        <th scope="col" class="sticky top-0 right-0 whitespace-nowrap z-10 border-l border-solid border-divider-regular bg-gray-50 p-3 w-[240px]">
+        <th
+          scope="col"
+          class="sticky top-0 right-0 whitespace-nowrap z-10 border-l border-solid border-divider-regular bg-gray-50 p-3 w-[240px]"
+        >
           {{ 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
         </th>
       </tr>
@@ -50,35 +51,66 @@
           <td class="px-4 py-2">
             @if (item.organization) {
               <div class="flex justify-start items-center overflow-hidden text-ellipsis">
-                <pac-org-avatar [organization]="item.organization" class="shrink-0 w-6 h-6 rounded-full overflow-hidden block mr-2" />
-                <span class="whitespace-nowrap" [title]="item.organization.name">{{item.organization.name}}</span>
+                <pac-org-avatar
+                  [organization]="item.organization"
+                  class="shrink-0 w-6 h-6 rounded-full overflow-hidden block mr-2"
+                />
+                <span class="whitespace-nowrap" [title]="item.organization.name">{{ item.organization.name }}</span>
               </div>
             }
           </td>
           <td class="px-4 py-2">{{ item.provider }}</td>
           <td class="px-4 py-2">{{ item.model }}</td>
-          <td class="px-4 py-2">{{ item.tokenUsed | number:'0.0-0' }}</td>
-          <td class="px-4 py-2">{{ item.tokenLimit | number:'0.0-0' }}</td>
-          <td class="px-4 py-2">{{ item.tokenTotalUsed | number:'0.0-0' }}</td>
+          <td class="px-4 py-2">{{ item.tokenUsed | number: '0.0-0' }}</td>
+          <td class="px-4 py-2">{{ item.tokenLimit | number: '0.0-0' }}</td>
+          <td class="px-4 py-2">{{ item.tokenTotalUsed | number: '0.0-0' }}</td>
 
-          <td class="px-4 py-2">{{ item.priceUsed | number:'0.0-7' }}</td>
-          <td class="px-4 py-2">{{ item.priceLimit | number:'0.0-7' }}</td>
-          <td class="px-4 py-2">{{ item.priceTotalUsed | number:'0.0-7' }}</td>
+          <td class="px-4 py-2">{{ item.priceUsed | number: '0.0-7' }}</td>
+          <td class="px-4 py-2">{{ item.priceLimit | number: '0.0-7' }}</td>
+          <td class="px-4 py-2">{{ item.priceTotalUsed | number: '0.0-7' }}</td>
 
           <td class="px-4 py-2">{{ item.currency }}</td>
           <td class="px-4 py-2">{{ item.updatedAt | relative }}</td>
           <td class="px-4 py-2 sticky right-0 border-l border-solid border-divider-regular bg-gray-50">
             <div class="flex items-center gap-2" displayDensity="compact">
               @if (editId() === item.id) {
-                <ngm-input type="number" simple [placeholder]="'PAC.Copilot.TokenLimit' | translate: {Default: 'Token Limit'}"
-                  [disabled]="loading()" [(ngModel)]="tokenLimit" />
-                <ngm-input type="number" simple [placeholder]="'PAC.Copilot.PriceLimit' | translate: {Default: 'Price Limit'}"
-                  [disabled]="loading()" [(ngModel)]="priceLimit" />
-                <button z-button zType="ghost" zSize="icon" zShape="circle" class="text-gray-400" [disabled]="loading()" [matTooltip]="'PAC.ChatBI.Save' | translate: {Default: 'Save'}" (click)="save(item.id)">
+                <ngm-input
+                  type="number"
+                  simple
+                  [placeholder]="'PAC.Copilot.TokenLimit' | translate: { Default: 'Token Limit' }"
+                  [disabled]="loading()"
+                  [(ngModel)]="tokenLimit"
+                />
+                <ngm-input
+                  type="number"
+                  simple
+                  [placeholder]="'PAC.Copilot.PriceLimit' | translate: { Default: 'Price Limit' }"
+                  [disabled]="loading()"
+                  [(ngModel)]="priceLimit"
+                />
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  class="text-gray-400"
+                  [disabled]="loading()"
+                  [zTooltip]="'PAC.ChatBI.Save' | translate: { Default: 'Save' }"
+                  (click)="save(item.id)"
+                >
                   <z-icon zType="save"></z-icon>
                 </button>
               } @else {
-                <button z-button zType="ghost" zSize="icon" zShape="circle" class="text-gray-400" [disabled]="loading()" [matTooltip]="'PAC.ChatBI.RenewTokenLimit' | translate: {Default: 'Renew token limit'}" (click)="renewToken(item.id)">
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  class="text-gray-400"
+                  [disabled]="loading()"
+                  [zTooltip]="'PAC.ChatBI.RenewTokenLimit' | translate: { Default: 'Renew token limit' }"
+                  (click)="renewToken(item.id)"
+                >
                   <z-icon zType="autorenew"></z-icon>
                 </button>
               }
@@ -96,7 +128,9 @@
   }
 
   @if (!done()) {
-    <button (waIntersectionObservee)="onIntersection()" class="w-full flex justify-center p-2 cursor-pointer hover:bg-gray-100"
+    <button
+      (waIntersectionObservee)="onIntersection()"
+      class="w-full flex justify-center p-2 cursor-pointer hover:bg-gray-100"
       [disabled]="loading()"
       (click)="onIntersection()"
     >

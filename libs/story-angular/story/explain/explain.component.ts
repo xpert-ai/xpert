@@ -11,9 +11,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -22,7 +20,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     DragDropModule,
     ZardIconComponent,
     ZardButtonComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmTableComponent,
     NgmPrismHighlightComponent,
     OcapCoreModule,

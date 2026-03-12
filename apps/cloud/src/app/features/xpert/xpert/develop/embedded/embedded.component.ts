@@ -3,19 +3,26 @@ import { CommonModule } from '@angular/common'
 import { Clipboard } from '@angular/cdk/clipboard'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { IXpert } from '@metad/contracts'
 import { routeAnimations } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectToastr } from 'apps/cloud/src/app/@core'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 export type EmbeddedType = 'iframe' | 'scripts' | 'chromeplugin'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, RouterModule, MatTooltipModule, NgmI18nPipe],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    RouterModule,
+    ...ZardTooltipImports,
+    NgmI18nPipe
+  ],
   selector: 'xpert-develop-embedded',
   templateUrl: './embedded.component.html',
   styleUrl: 'embedded.component.scss',
@@ -23,8 +30,7 @@ export type EmbeddedType = 'iframe' | 'scripts' | 'chromeplugin'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertDevelopEmbeddedComponent {
-
-  readonly #data = inject<{xpert: IXpert}>(DIALOG_DATA)
+  readonly #data = inject<{ xpert: IXpert }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
   readonly #clipboard = inject(Clipboard)
   readonly #toastr = injectToastr()
@@ -42,7 +48,7 @@ export class XpertDevelopEmbeddedComponent {
       value: 'chromeplugin',
       image: 'chromeplugin-option.svg'
     }
-  ] as {value: EmbeddedType; image: string}[]
+  ] as { value: EmbeddedType; image: string }[]
 
   readonly selectedType = signal<EmbeddedType>('iframe')
   readonly xpert = signal(this.#data.xpert)
@@ -51,7 +57,7 @@ export class XpertDevelopEmbeddedComponent {
 
   readonly app = computed(() => {
     const type = this.selectedType()
-    switch(type) {
+    switch (type) {
       case 'iframe': {
         return {
           code: `<iframe

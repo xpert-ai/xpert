@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { attrModel, linkedModel } from '@metad/ocap-angular/core'
@@ -12,10 +11,11 @@ import {
   IWorkflowNode,
   KnowledgebaseService,
   KnowledgeStructureEnum,
-  ModelFeature,
+  ModelFeature
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-knowledge-base',
@@ -26,7 +26,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   imports: [
     FormsModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     StateVariableSelectComponent,
     CopilotModelSelectComponent

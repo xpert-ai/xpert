@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -8,14 +7,21 @@ import { NgxFloatUiModule } from 'ngx-float-ui'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { WorkflowBaseNodeComponent } from '../workflow-base.component'
 import { isEqual } from 'lodash-es'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workflow-node-skill',
   templateUrl: './skill.component.html',
   styleUrls: ['./skill.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, NgxFloatUiModule, NgmSpinComponent, NgxJsonViewerModule]
+  imports: [
+    FFlowModule,
+    ...ZardTooltipImports,
+    TranslateModule,
+    NgxFloatUiModule,
+    NgmSpinComponent,
+    NgxJsonViewerModule
+  ]
 })
 export class XpertWorkflowNodeSkillComponent extends WorkflowBaseNodeComponent {
   // States

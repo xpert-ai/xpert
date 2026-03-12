@@ -1,91 +1,139 @@
 <ngm-splitter [type]="1" class="flex-1 grow h-full">
   <ngm-splitter-pane class="flex flex-col justify-end items-stretch z-[101]">
     <div class="pac-sub-toolbar pac-toolbar__editor p-2 flex justify-start items-center gap-2">
-      <button z-button zType="default" color="primary" displayDensity="compact" matTooltip=" {{ 'PAC.KEY_WORDS.ShortcutKey' | translate: {Default: 'Shortcut Key'} }}: F8" [disabled]="!statement" (click)="run()">
+      <button
+        z-button
+        zType="default"
+        color="primary"
+        displayDensity="compact"
+        zTooltip=" {{ 'PAC.KEY_WORDS.ShortcutKey' | translate: { Default: 'Shortcut Key' } }}: F8"
+        [disabled]="!statement"
+        (click)="run()"
+      >
         <z-icon zType="arrow_right"></z-icon>
         @if (textSelection()?.text) {
           <span>
-            {{ 'PAC.MENU.RUN_BY_SELECTION' | translate: {Default: "Run By Selection"} }}
+            {{ 'PAC.MENU.RUN_BY_SELECTION' | translate: { Default: 'Run By Selection' } }}
           </span>
         } @else {
           <span>
-            {{ 'PAC.MENU.RUN' | translate: {Default: "Run"} }}
+            {{ 'PAC.MENU.RUN' | translate: { Default: 'Run' } }}
           </span>
         }
       </button>
 
       <span class="flex-1"></span>
-            
-      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" matTooltip="🔍{{ 'PAC.KEY_WORDS.Search' | translate: {Default: 'Search'} }}" (click)="triggerFind()">
+
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="compact"
+        zTooltip="🔍{{ 'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' } }}"
+        (click)="triggerFind()"
+      >
         <z-icon zType="search"></z-icon>
       </button>
-      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" matTooltip="⛔{{ 'PAC.KEY_WORDS.Clear' | translate: {Default: 'Clear'} }}" (click)="triggerClear()">
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="compact"
+        zTooltip="⛔{{ 'PAC.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}"
+        (click)="triggerClear()"
+      >
         <z-icon zType="playlist_remove"></z-icon>
       </button>
-        
+
       @if (!useMDX()) {
-        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" matTooltip="📦{{ 'PAC.KEY_WORDS.Compact' | translate: {Default: 'Compact'} }}" (click)="triggerCompress()">
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          displayDensity="compact"
+          zTooltip="📦{{ 'PAC.KEY_WORDS.Compact' | translate: { Default: 'Compact' } }}"
+          (click)="triggerCompress()"
+        >
           <z-icon zType="folder_zip"></z-icon>
         </button>
       }
-      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" matTooltip="💡{{ 'PAC.KEY_WORDS.Format' | translate: {Default: 'Format'} }}" (click)="triggerFormat()">
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="compact"
+        zTooltip="💡{{ 'PAC.KEY_WORDS.Format' | translate: { Default: 'Format' } }}"
+        (click)="triggerFormat()"
+      >
         <z-icon zType="format_indent_increase"></z-icon>
       </button>
-      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small ml-2"
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-secondary btn-small ml-2"
         [class.active]="schemaOpen()"
-        [matTooltip]="'PAC.MODEL.OpenCubeSchema' | translate: {Default: 'Open cube schema'}"
-        matTooltipPosition="above"
-        (click)="toggleSchema()">
+        [zTooltip]="'PAC.MODEL.OpenCubeSchema' | translate: { Default: 'Open cube schema' }"
+        zPosition="top"
+        (click)="toggleSchema()"
+      >
         <i class="ri-node-tree mr-1"></i>
         @if (!schemaOpen()) {
           <span class="hidden lg:inline-block">
-            {{ 'PAC.MODEL.CubeSchema' | translate: {Default: 'Cube schema'} }}
+            {{ 'PAC.MODEL.CubeSchema' | translate: { Default: 'Cube schema' } }}
           </span>
         }
       </button>
     </div>
 
     @if (useMDX()) {
-      <ngm-mdx-editor #editor class="pac-cdk-drop__list pac-cdk-drop__area flex-1 w-full h-full"
-        [theme]="themeName()"    
+      <ngm-mdx-editor
+        #editor
+        class="pac-cdk-drop__list pac-cdk-drop__area flex-1 w-full h-full"
+        [theme]="themeName()"
         [entityType]="entityType()"
         [ngModel]="statement()"
         (ngModelChange)="onStatementChange($event)"
         (selectionChange)="onSelectionChange($event)"
         (keyDown)="onEditorKeyDown($event)"
-
         cdkDropList
         [cdkDropListData]="entities"
         (cdkDropListDropped)="drop($event)"
       />
     } @else {
-      <ngm-sql-editor #editor class="pac-cdk-drop__list pac-cdk-drop__area flex-1 w-full h-full"
-        [theme]="themeName()"    
+      <ngm-sql-editor
+        #editor
+        class="pac-cdk-drop__list pac-cdk-drop__area flex-1 w-full h-full"
+        [theme]="themeName()"
         [entityType]="entityType()"
         [entitySets]="tables()"
         [ngModel]="statement()"
         (ngModelChange)="onStatementChange($event)"
         (selectionChange)="onSelectionChange($event)"
         (keyDown)="onEditorKeyDown($event)"
-
         cdkDropList
         [cdkDropListData]="entities"
         (cdkDropListDropped)="drop($event)"
       />
     }
   </ngm-splitter-pane>
-  <ngm-splitter-pane size='15rem' class="relative flex flex-col justify-start items-stretch"
+  <ngm-splitter-pane
+    size="15rem"
+    class="relative flex flex-col justify-start items-stretch"
     [collapsed]="!showQueryResult()"
   >
     @if (_error()) {
       <div class="pac-result h-full w-full absolute top-0 left-0">
         <div class="bug font-notoColorEmoji">🐞</div>
         <div class="description">
-          {{_error()}}
+          {{ _error() }}
         </div>
       </div>
     } @else {
-      <ngm-table class="pac-model-ql-lab__result pac-cdk-drop__list pac-cdk-drop__area striped flex-1 h-full"
+      <ngm-table
+        class="pac-model-ql-lab__result pac-cdk-drop__list pac-cdk-drop__area striped flex-1 h-full"
         [columns]="columns"
         [data]="data"
         [paging]="true"
@@ -97,10 +145,12 @@
 
     @if (loading$ | async) {
       <div class="emoji-loader h-full w-full absolute top-0 left-0"></div>
-      <div class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center z-[101] bg-gray-500/10 backdrop-blur-lg">
-        <div class="emoji-loader" style="position: relative; height: 80px;"></div>
+      <div
+        class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center z-[101] bg-gray-500/10 backdrop-blur-lg"
+      >
+        <div class="emoji-loader" style="position: relative; height: 80px"></div>
         <button z-button zType="outline" (click)="cancelQuery()">
-          {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
+          {{ 'PAC.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
         </button>
       </div>
     }
@@ -108,55 +158,75 @@
 </ngm-splitter>
 
 @if (schemaOpen()) {
-  <div class="pac-model-query-schema relative shrink-0 w-[400px] flex flex-col border-divider-deep overflow-hidden z-[102] bg-components-card-bg"
+  <div
+    class="pac-model-query-schema relative shrink-0 w-[400px] flex flex-col border-divider-deep overflow-hidden z-[102] bg-components-card-bg"
     [class.pin]="schemaPin()"
-    [@leanRightEaseIn]="{value: schemaOpen(), params: { timing: schemaPin() ? '0ms' : '100ms' }}"
-    ngmResizable [directions]="['left']"
+    [@leanRightEaseIn]="{ value: schemaOpen(), params: { timing: schemaPin() ? '0ms' : '100ms' } }"
+    ngmResizable
+    [directions]="['left']"
   >
     <div class="flex justify-between items-center gap-1 p-2">
       @if (!schemaPin()) {
-        <button #dragHandler="cdkDrag" type="button" icon class="w-7 h-7 cursor-pointer" cdkDrag cdkDragRootElement=".pac-model-query-schema" cdkDragHandle
-          [cdkDragDisabled]="schemaPin()">
+        <button
+          #dragHandler="cdkDrag"
+          type="button"
+          icon
+          class="w-7 h-7 cursor-pointer"
+          cdkDrag
+          cdkDragRootElement=".pac-model-query-schema"
+          cdkDragHandle
+          [cdkDragDisabled]="schemaPin()"
+        >
           <i class="ri-draggable"></i>
         </button>
       }
       <div class="grow text-lg font-semibold">
-        {{ 'PAC.MODEL.CubeSchema' | translate: {Default: 'Cube schema'} }}
+        {{ 'PAC.MODEL.CubeSchema' | translate: { Default: 'Cube schema' } }}
       </div>
-      <button type="button" class="btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
-        [matTooltip]="'PAC.MODEL.SwitchSchemaDisplayMode' | translate: {Default: 'Switch Schema Display Mode'}"
-        matTooltipPosition="above"
-        (click)="switchDisplay()">
+      <button
+        type="button"
+        class="btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+        [zTooltip]="'PAC.MODEL.SwitchSchemaDisplayMode' | translate: { Default: 'Switch Schema Display Mode' }"
+        zPosition="top"
+        (click)="switchDisplay()"
+      >
         <i class="ri-switch-line"></i>
       </button>
-      <button type="button" class="btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
-        [matTooltip]="'PAC.MODEL.PinToSide' | translate: {Default: 'Pin to Side'}"
-        matTooltipPosition="above"
-        (click)="togglePin()">
+      <button
+        type="button"
+        class="btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+        [zTooltip]="'PAC.MODEL.PinToSide' | translate: { Default: 'Pin to Side' }"
+        zPosition="top"
+        (click)="togglePin()"
+      >
         @if (schemaPin()) {
           <i class="ri-unpin-line"></i>
         } @else {
           <i class="ri-pushpin-2-line"></i>
         }
       </button>
-      <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
-        (click)="schemaOpen.set(false)">
+      <button
+        type="button"
+        class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+        (click)="schemaOpen.set(false)"
+      >
         <i class="ri-close-line"></i>
       </button>
     </div>
-    <ngm-entity-schema class="flex-1 max-w-full w-full overflow-auto"
+    <ngm-entity-schema
+      class="flex-1 max-w-full w-full overflow-auto"
       [id]="eCdkDragDropContainers.CubeSchema"
       cdkDropList
       [cdkDropListData]="[]"
       [displayBehaviour]="displayBehaviour()"
       [dataSettings]="dataSettings()"
       [capacities]="[
-                  eEntityCapacity.Dimension,
-                  eEntityCapacity.Measure,
-                  eEntityCapacity.Calculation,
-                  eEntityCapacity.Indicator,
-                  eEntityCapacity.Parameter
-              ]"
+        eEntityCapacity.Dimension,
+        eEntityCapacity.Measure,
+        eEntityCapacity.Calculation,
+        eEntityCapacity.Indicator,
+        eEntityCapacity.Parameter
+      ]"
     />
   </div>
 }

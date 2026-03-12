@@ -31,7 +31,7 @@
       <mat-panel-title>
         @if (primary(); as copilot) {
           @if (copilot.modelProvider?.provider && !expansion.expanded) {
-            <div class="flex" [matTooltip]="copilot.id" matTooltipPosition="before">
+            <div class="flex" [zTooltip]="copilot.id" zPosition="left">
               @if (copilot.modelProvider.provider.icon_large) {
                 <img
                   alt="provider-icon"
@@ -59,8 +59,8 @@
       <mat-panel-description class="flex-1">
         <z-switch
           labelPosition="before"
-          [matTooltip]="'PAC.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
-          matTooltipPosition="above"
+          [zTooltip]="'PAC.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
+          zPosition="top"
           [checked]="primary()?.enabled"
           (change)="onToggle(null, eAiProviderRole.Primary, primary()?.enabled, expansion)"
           (click)="$event.stopPropagation()"
@@ -77,7 +77,7 @@
     <mat-expansion-panel #expansion hideToggle class="mat-elevation-z" [disabled]="!copilot.enabled">
       <mat-expansion-panel-header>
         <mat-panel-title>
-          <div [matTooltip]="copilot.id" matTooltipPosition="before" class="flex">
+          <div [zTooltip]="copilot.id" zPosition="left" class="flex">
             @if (copilot.modelProvider?.provider && !expansion.expanded) {
               @if (copilot.modelProvider.provider.icon_large) {
                 <img
@@ -134,8 +134,8 @@
         <mat-panel-description class="flex-1">
           <z-switch
             labelPosition="before"
-            [matTooltip]="'PAC.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
-            matTooltipPosition="above"
+            [zTooltip]="'PAC.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
+            zPosition="top"
             [checked]="copilot.enabled"
             (change)="onToggle(copilot, null, copilot.enabled, expansion)"
             (click)="$event.stopPropagation()"
@@ -146,8 +146,8 @@
             <button
               type="button"
               class="btn pressable danger rounded-full w-6 h-6 p-0 justify-center ml-2"
-              [matTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
-              matTooltipPosition="above"
+              [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+              zPosition="top"
               (click)="deleteCopilot(copilot)"
             >
               <i class="ri-close-line"></i>

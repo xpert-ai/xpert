@@ -2,7 +2,6 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { environment } from '@cloud/environments/environment'
 import { EntriesPipe, linkedModel } from '@metad/core'
 import { NgmAutoScrollBottomDirective, NgmTimerDirective } from '@metad/ocap-angular/common'
@@ -28,8 +27,7 @@ import {
 import { CodeEditorComponent } from '../../editors'
 import { MCPToolsComponent } from '../tools/tools.component'
 import { XpertEnvVarInputComponent } from '../../environment'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'mcp-server-form',
@@ -42,7 +40,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     CdkListboxModule,
     CodeEditorComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MCPToolsComponent,
     EntriesPipe,
     XpertEnvVarInputComponent,

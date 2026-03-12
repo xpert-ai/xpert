@@ -14,10 +14,9 @@ import {
   signal,
   output,
   DestroyRef,
-  viewChild,
+  viewChild
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { DisappearBL, IfAnimation, SlideUpDownAnimation } from '@metad/core'
 import { isNil } from '@metad/ocap-core'
@@ -35,6 +34,7 @@ import { ChatService } from '../chat.service'
 import { XpertHomeService } from '../home.service'
 import { ChatConversationComponent } from '../conversation/conversation.component'
 import { debounceTime, fromEvent } from 'rxjs'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -47,7 +47,7 @@ import { debounceTime, fromEvent } from 'rxjs'
     CdkListboxModule,
     CdkMenuModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     EmojiAvatarComponent,
     XpertParametersCardComponent,
     ChatInputComponent,
@@ -59,7 +59,7 @@ import { debounceTime, fromEvent } from 'rxjs'
   templateUrl: './xpert.component.html',
   styleUrl: 'xpert.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  animations: [IfAnimation, DisappearBL, SlideUpDownAnimation],
+  animations: [IfAnimation, DisappearBL, SlideUpDownAnimation]
 })
 export class XpertChatAppComponent {
   readonly #store = inject(Store)
@@ -75,7 +75,7 @@ export class XpertChatAppComponent {
   readonly openHistories = output()
 
   // Children
-  readonly convComponent = viewChild('conversation', {read: ChatConversationComponent})
+  readonly convComponent = viewChild('conversation', { read: ChatConversationComponent })
 
   // States
   readonly userSignal = toSignal(this.#store.user$)
@@ -97,9 +97,11 @@ export class XpertChatAppComponent {
   })
 
   readonly primaryAgent = computed(() => this.xpert()?.agent)
-  readonly parameters = computed(() => this.xpert()?.agentConfig?.parameters ?? (
-    this.primaryAgent()?.options?.hidden ? null : this.primaryAgent()?.parameters
-  ))
+  readonly parameters = computed(
+    () =>
+      this.xpert()?.agentConfig?.parameters ??
+      (this.primaryAgent()?.options?.hidden ? null : this.primaryAgent()?.parameters)
+  )
   readonly parametersValue = model<Record<string, unknown>>()
 
   readonly parameterInvalid = computed(() => {
@@ -112,25 +114,28 @@ export class XpertChatAppComponent {
   readonly isBottom = signal(true)
 
   readonly greeting = computed(() => {
-    const now = new Date();
-    const hours = now.getHours();
-    let greeting = 'Good';
+    const now = new Date()
+    const hours = now.getHours()
+    let greeting = 'Good'
 
     if (hours >= 5 && hours < 12) {
-      greeting = "Good morning";
+      greeting = 'Good morning'
     } else if (hours >= 12 && hours < 18) {
-      greeting = "Good afternoon";
+      greeting = 'Good afternoon'
     } else if (hours >= 18 && hours < 22) {
-      greeting = "Good evening";
+      greeting = 'Good evening'
     }
 
-    return greeting;
+    return greeting
   })
 
   constructor() {
-    effect(() => {
-      this.chatService.xpert.set(this.xpert())
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        this.chatService.xpert.set(this.xpert())
+      },
+      { allowSignalWrites: true }
+    )
 
     effect(
       () => {
@@ -152,7 +157,8 @@ export class XpertChatAppComponent {
       { allowSignalWrites: true }
     )
 
-    effect(() => {
+    effect(
+      () => {
         const conv = this.chatService.conversation()
         if (conv?.id) {
           const xpertId = conv.xpertId ?? ''
@@ -237,12 +243,11 @@ export class XpertChatAppComponent {
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
     if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
-      event.preventDefault(); // Prevent the default action
-      this.openConversations(); // Execute the openConversations method
+      event.preventDefault() // Prevent the default action
+      this.openConversations() // Execute the openConversations method
     } else if ((event.metaKey || event.ctrlKey) && event.key === 'j') {
-      event.preventDefault(); // Prevent the default action
-      this.newXpertConv(); // Execute the newXpertConv method
+      event.preventDefault() // Prevent the default action
+      this.newXpertConv() // Execute the newXpertConv method
     }
   }
-
 }

@@ -10,7 +10,6 @@ import {
   signal,
   viewChild
 } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
@@ -41,8 +40,7 @@ import { XpertStudioConfigureToolComponent } from '../openapi/'
 import { XpertToolsetToolTestComponent } from '../tool-test/'
 import { XpertConfigureToolComponent } from './types'
 import { MCPServerFormComponent } from 'apps/cloud/src/app/@shared/mcp'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -50,7 +48,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     NgmI18nPipe,
     NgmDensityDirective,

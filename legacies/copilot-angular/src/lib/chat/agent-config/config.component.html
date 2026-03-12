@@ -4,7 +4,7 @@
 
 <label class="pt-4"
   >{{ 'Copilot.RecursionLimit' | translate: { Default: 'Recursion Limit' } }}:
-  <span class="font-notoColorEmoji" matTooltip="Maximum number of loop calls" matTooltipPosition="above">💡</span>
+  <span class="font-notoColorEmoji" zTooltip="Maximum number of loop calls" zPosition="top">💡</span>
 </label>
 <mat-slider color="accent" min="1" max="100" step="1" value="20" discrete>
   <input matSliderThumb [(ngModel)]="recursionLimit" />

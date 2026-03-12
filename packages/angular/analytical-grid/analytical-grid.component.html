@@ -13,8 +13,8 @@
       @if (!options()?.hideDataDownload) {
         <button
           class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary bg-transparent hover:bg-hover-bg"
-          [matTooltip]="'Ngm.AnalyticalGrid.DataDownload' | translate: { Default: 'Data Download' }"
-          matTooltipPosition="above"
+          [zTooltip]="'Ngm.AnalyticalGrid.DataDownload' | translate: { Default: 'Data Download' }"
+          zPosition="top"
           (click)="downloadData()"
         >
           <i class="ri-download-2-line"></i>
@@ -28,8 +28,8 @@
         [cdkMenuTriggerData]="{ trigger: mt }"
         #mt="cdkMenuTriggerFor"
         [class.active]="mt.isOpen()"
-        [matTooltip]="'Story.Common.Slicers' | translate: { Default: 'Slicers' }"
-        matTooltipPosition="above"
+        [zTooltip]="'Story.Common.Slicers' | translate: { Default: 'Slicers' }"
+        zPosition="top"
       >
         <i class="ri-filter-line"></i>
         @if (slicers?.length) {
@@ -47,8 +47,8 @@
       } @else {
         <button
           class="btn pressable flex justify-center items-center w-7 h-7 rounded-full border-0 text-text-secondary hover:text-text-primary bg-transparent hover:bg-hover-bg"
-          [matTooltip]="'Ngm.AnalyticalCard.Refresh' | translate: { Default: 'Refresh' }"
-          matTooltipPosition="above"
+          [zTooltip]="'Ngm.AnalyticalCard.Refresh' | translate: { Default: 'Refresh' }"
+          zPosition="top"
           (click)="refresh(true)"
         >
           <i class="ri-refresh-line"></i>

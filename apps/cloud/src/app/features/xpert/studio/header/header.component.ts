@@ -5,7 +5,6 @@ import { Component, computed, effect, HostListener, inject, model, signal, ViewC
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { attrModel, OverlayAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -41,6 +40,7 @@ import { XpertExecutionService } from '../services/execution.service'
 import { XpertStudioComponent } from '../studio.component'
 import { XpertPublishVersionComponent } from './publish/publish.component'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-studio-header',
@@ -49,7 +49,7 @@ import { ChecklistComponent } from '@cloud/app/@shared/common'
     CommonModule,
     FormsModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MatSliderModule,
     TranslateModule,
     NgmSpinComponent,
@@ -126,7 +126,12 @@ export class XpertStudioHeaderComponent {
   readonly conversations$ = this.xpertId$.pipe(
     combineLatestWith(this.refreshConv$),
     tap(() => this.loadingConv.set(true)),
-    switchMap(([id]) => this.chatConversationService.findAllByXpert(id, { where: {from: {$in: ['debugger', 'knowledge']}}, order: { updatedAt: OrderTypeEnum.DESC } })),
+    switchMap(([id]) =>
+      this.chatConversationService.findAllByXpert(id, {
+        where: { from: { $in: ['debugger', 'knowledge'] } },
+        order: { updatedAt: OrderTypeEnum.DESC }
+      })
+    ),
     map(({ items }) => items),
     tap(() => this.loadingConv.set(false)),
     shareReplay(1)
@@ -186,15 +191,17 @@ export class XpertStudioHeaderComponent {
   }
 
   export(isDraft = false) {
-    this.#dialog.open(XpertExportDslComponent, {
-      data: {
-        xpertId: this.xpert().id,
-        slug: this.xpert().slug,
-        isDraft
-      }
-    }).closed.subscribe({
-      next: () => {}
-    })
+    this.#dialog
+      .open(XpertExportDslComponent, {
+        data: {
+          xpertId: this.xpert().id,
+          slug: this.xpert().slug,
+          isDraft
+        }
+      })
+      .closed.subscribe({
+        next: () => {}
+      })
   }
 
   publishToIntegration() {

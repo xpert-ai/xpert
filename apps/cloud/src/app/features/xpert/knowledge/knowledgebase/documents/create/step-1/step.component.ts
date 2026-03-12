@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { SafePipe } from '@metad/core'
 import { NgmCheckboxComponent } from '@metad/ocap-angular/common'
@@ -25,7 +24,7 @@ import {
   ParameterTypeEnum,
   StorageFileService,
   ToastrService,
-  TRagWebOptions,
+  TRagWebOptions
 } from '../../../../../../../@core'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../../documents.component'
@@ -35,6 +34,7 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 import { isNil, uniq } from 'lodash-es'
 import { KnowledgeFilePreviewComponent, KnowledgeLocalFileComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { KnowledgeFileSystemComponent } from '../file-system/file-system.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -47,7 +47,7 @@ import { KnowledgeFileSystemComponent } from '../file-system/file-system.compone
     TranslateModule,
     CdkMenuModule,
     CdkListboxModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MatProgressBarModule,
     ContentLoaderModule,
     NgmI18nPipe,
@@ -80,7 +80,7 @@ export class KnowledgeDocumentCreateStep1Component {
   readonly files = this.createComponent.files
 
   // Children
-  readonly fileSystemForm = viewChild('fileSystemForm', {read: JSONSchemaFormComponent})
+  readonly fileSystemForm = viewChild('fileSystemForm', { read: JSONSchemaFormComponent })
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
 
@@ -158,24 +158,30 @@ export class KnowledgeDocumentCreateStep1Component {
   readonly webParams = computed(() => {
     // Params value or default values
     const parametersValue = this.parametersValue()
-    return this.webOptionSchema()?.options?.filter((option) => {
-      if (option.when) {
-        return Object.keys(option.when).every((key) => {
-          const value = parametersValue?.[key]
-          return option.when[key].includes(value)
-        })
-      }
-      return true
-    }).map((option) => ({...option, span: option.type === ParameterTypeEnum.BOOLEAN ? 2 : 1}))
+    return this.webOptionSchema()
+      ?.options?.filter((option) => {
+        if (option.when) {
+          return Object.keys(option.when).every((key) => {
+            const value = parametersValue?.[key]
+            return option.when[key].includes(value)
+          })
+        }
+        return true
+      })
+      .map((option) => ({ ...option, span: option.type === ParameterTypeEnum.BOOLEAN ? 2 : 1 }))
   })
 
   readonly integrationProvider = computed(() => this.webOptionSchema()?.integrationProvider)
   readonly integrations = derivedAsync(() => {
-    return this.integrationProvider() ? this.integrationService.getAllInOrg({
-      where: {
-        provider: this.integrationProvider(),
-      }
-    }).pipe(map(({items}) => items)) : of(null)
+    return this.integrationProvider()
+      ? this.integrationService
+          .getAllInOrg({
+            where: {
+              provider: this.integrationProvider()
+            }
+          })
+          .pipe(map(({ items }) => items))
+      : of(null)
   })
 
   readonly integration = this.createComponent.integration
@@ -185,13 +191,16 @@ export class KnowledgeDocumentCreateStep1Component {
   /**
    * Actual value or default value
    */
-  readonly parametersValue = computed(() => this.webOptions()?.params
-    ?? this.webOptionSchema()?.options?.reduce((params, curr) => {
-      if (!isNil(curr.default)) {
-        params[curr.name] = curr.default
-      }
-      return params
-    }, {}))
+  readonly parametersValue = computed(
+    () =>
+      this.webOptions()?.params ??
+      this.webOptionSchema()?.options?.reduce((params, curr) => {
+        if (!isNil(curr.default)) {
+          params[curr.name] = curr.default
+        }
+        return params
+      }, {})
+  )
   readonly loadingWeb = signal(false)
 
   readonly webResult = this.createComponent.webResult
@@ -202,22 +211,28 @@ export class KnowledgeDocumentCreateStep1Component {
 
   // Available
   readonly nextStepAvailable = computed(() => {
-    return this.sourceType()[0] === KDocumentSourceType.LocalFile 
-      ? this.files()?.length > 0 
-      : this.sourceType()[0] === KDocumentSourceType.WebCrawl 
-        ? this.webDocs()?.length > 0 
-        : this.sourceType()[0] === KDocumentSourceType.FileSystem ? !this.fileSystemForm()?.invalid : false
+    return this.sourceType()[0] === KDocumentSourceType.LocalFile
+      ? this.files()?.length > 0
+      : this.sourceType()[0] === KDocumentSourceType.WebCrawl
+        ? this.webDocs()?.length > 0
+        : this.sourceType()[0] === KDocumentSourceType.FileSystem
+          ? !this.fileSystemForm()?.invalid
+          : false
   })
 
   // File system
-   readonly documentSourceStrategies = computed(() => this.createComponent.documentSourceStrategies()?.map((strategy) => ({
-    value: strategy.meta.name,
-    label: strategy.meta.label,
-    description: strategy.meta.description,
-    icon: strategy.meta.icon
-  })))
+  readonly documentSourceStrategies = computed(() =>
+    this.createComponent.documentSourceStrategies()?.map((strategy) => ({
+      value: strategy.meta.name,
+      label: strategy.meta.label,
+      description: strategy.meta.description,
+      icon: strategy.meta.icon
+    }))
+  )
 
-  readonly fileSystemStrategy = computed(() => this.createComponent.documentSourceStrategies()?.find((strategy) => strategy.meta.name === 'file-system'))
+  readonly fileSystemStrategy = computed(() =>
+    this.createComponent.documentSourceStrategies()?.find((strategy) => strategy.meta.name === 'file-system')
+  )
 
   constructor() {
     effect(() => {
@@ -254,13 +269,14 @@ export class KnowledgeDocumentCreateStep1Component {
   }
 
   updateWebUrl(value: string) {
-    this.webOptions.update((state) => ({...(state ?? {}), url: value}))
+    this.webOptions.update((state) => ({ ...(state ?? {}), url: value }))
   }
 
   loadRagWebPages() {
     this.webError.set(null)
     this.loadingWeb.set(true)
-    this.knowledgeDocumentAPI.loadRagWebPages(this.webTypes()[0].value, this.webOptions(), this.integration())
+    this.knowledgeDocumentAPI
+      .loadRagWebPages(this.webTypes()[0].value, this.webOptions(), this.integration())
       .subscribe({
         next: (result) => {
           this.loadingWeb.set(false)

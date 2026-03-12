@@ -13,7 +13,6 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { KnowledgeLocalFileComponent } from '@cloud/app/@shared/knowledge'
 import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
 import { NgmCheckboxComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -36,6 +35,7 @@ import { nonNullable } from '@metad/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { SelectionModel } from '@angular/cdk/collections'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-source-test',
@@ -47,7 +47,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
     CommonModule,
     FormsModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     NgmSpinComponent,
     XpertParametersFormComponent,
@@ -85,7 +85,11 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
   readonly integrationId = attrModel(this.source, 'integrationId')
   readonly parameters = attrModel(this.source, 'parameters')
   readonly config = attrModel(this.source, 'config')
-  readonly acceptedFileTypes = computed(() => this.config()?.fileExtensions?.filter(Boolean).map((ext) => `.${ext}`))
+  readonly acceptedFileTypes = computed(() =>
+    this.config()
+      ?.fileExtensions?.filter(Boolean)
+      .map((ext) => `.${ext}`)
+  )
   readonly parameterValue = model<Record<string, unknown>>()
 
   readonly pristineXpert = this.studioService.team
@@ -114,7 +118,7 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
   // Files model
   readonly files = model<KnowledgeFileUploader[]>([])
   readonly selectedFile = model<KnowledgeFileUploader | null>(null)
-  
+
   readonly successMessage = signal<string>(null)
 
   run() {
@@ -138,7 +142,7 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
           knowledgebaseId: this.knowledgebase()?.id
         },
         [channelName(this.key())]: {
-          ...(this.parameterValue() ?? {}),
+          ...(this.parameterValue() ?? {})
         }
       })
       .subscribe({
@@ -158,31 +162,34 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
 
   createFilesTask() {
     this.testing.set(true)
-    this.knowledgebaseAPI.createTask(
-      this.knowledgebaseId(),
-      omitBlank({
-        context: {
-          documents: this.files()
-                  .map((file) => file.document())
-                  .filter(nonNullable).map((file) => ({
-                    ...file,
-                    status: KBDocumentStatusEnum.WAITING,
-                  }))
+    this.knowledgebaseAPI
+      .createTask(
+        this.knowledgebaseId(),
+        omitBlank({
+          context: {
+            documents: this.files()
+              .map((file) => file.document())
+              .filter(nonNullable)
+              .map((file) => ({
+                ...file,
+                status: KBDocumentStatusEnum.WAITING
+              }))
+          }
+        })
+      )
+      .subscribe({
+        next: (task) => {
+          this.testing.set(false)
+          this.taskId.set(task.id)
+          this.setDocumentIds(task.context?.documents?.map((doc) => doc.id) ?? [])
+          this.successMessage.set(null)
+        },
+        error: (err) => {
+          this.testing.set(false)
+          console.error(err)
+          this._toastr.danger(getErrorMessage(err))
         }
       })
-    ).subscribe({
-      next: (task) => {
-        this.testing.set(false)
-        this.taskId.set(task.id)
-        this.setDocumentIds(task.context?.documents?.map((doc) => doc.id) ?? [])
-        this.successMessage.set(null)
-      },
-      error: (err) => {
-        this.testing.set(false)
-        console.error(err)
-        this._toastr.danger(getErrorMessage(err))
-      }
-    })
   }
 
   start() {
@@ -199,9 +206,11 @@ export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent
       .subscribe({
         next: (task) => {
           // console.log(task)
-          this.successMessage.set(this.i18nService.instant('PAC.Pipeline.SourceTestSuccessMessage', {
-            Default: `Added to background task, please check the message detailed log in chat history.`
-          }))
+          this.successMessage.set(
+            this.i18nService.instant('PAC.Pipeline.SourceTestSuccessMessage', {
+              Default: `Added to background task, please check the message detailed log in chat history.`
+            })
+          )
         },
         error: (err) => {
           this._toastr.error(getErrorMessage(err))

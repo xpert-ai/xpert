@@ -15,7 +15,6 @@ import {
 } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { nonNullable, stringifyMessageContent } from '@metad/copilot'
 import { ListHeightStaggerAnimation } from '@metad/core'
@@ -45,6 +44,7 @@ import { ChatThoughtComponent } from '../thought/thought.component'
 import { TCopilotChatMessage } from '../types'
 import { ChatMessageContentComponent } from './content/content.component'
 import { ChatMessageAvatarComponent } from './avatar/avatar.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -58,14 +58,14 @@ import { ChatMessageAvatarComponent } from './avatar/avatar.component'
     TranslateModule,
     CdkMenuModule,
     MarkdownModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmCommonModule,
     EmojiAvatarComponent,
     ChatMessageExecutionComponent,
     CopyComponent,
     ChatMessageContentComponent,
     ChatThoughtComponent,
-    ChatMessageAvatarComponent,
+    ChatMessageAvatarComponent
   ],
   selector: 'pac-ai-message',
   templateUrl: './ai-message.component.html',
@@ -74,7 +74,7 @@ import { ChatMessageAvatarComponent } from './avatar/avatar.component'
   animations: [ListHeightStaggerAnimation],
   providers: [SynthesizeService, TtsStreamPlayerService],
   host: {
-    '[class.busy]': 'busy()',
+    '[class.busy]': 'busy()'
   }
 })
 export class ChatAiMessageComponent {
@@ -105,7 +105,9 @@ export class ChatAiMessageComponent {
   readonly feedbacks = this.chatService.feedbacks
   readonly executionId = computed(() => this.message()?.executionId)
   readonly status = computed(() => this.message()?.status)
-  readonly busy = computed(() => this.chatService.answering() && ['thinking', 'reasoning', 'answering'].includes(this.status()))
+  readonly busy = computed(
+    () => this.chatService.answering() && ['thinking', 'reasoning', 'answering'].includes(this.status())
+  )
   readonly answering = computed(() => this.chatService.answering() && ['thinking', 'answering'].includes(this.status()))
   readonly canRetry = computed(() => !!this.message()?.id && !this.chatService.answering())
   readonly feedbackReady = computed(() => {
@@ -204,7 +206,7 @@ export class ChatAiMessageComponent {
   }
 
   updateCollapse(id: string, status: boolean) {
-    this.collapseMessages.update((state) => ({...state, [id]: status}))
+    this.collapseMessages.update((state) => ({ ...state, [id]: status }))
   }
 
   onCopy(copyButton) {
@@ -296,8 +298,7 @@ export class ChatAiMessageComponent {
     this.chatService.chat({
       retry: true,
       command: {
-        resume: {
-        }
+        resume: {}
       },
       messageId: this.message().id
     })

@@ -20,7 +20,6 @@ import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, Reac
 
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayDensity, NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -45,8 +44,12 @@ import { uniq } from 'lodash-es'
 import { combineLatestWith, debounceTime, distinctUntilChanged, map, startWith } from 'rxjs/operators'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { TreeControlOptions } from '../types'
-import { ZardButtonComponent, ZardIconComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
-
+import {
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardCheckboxComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
   checked?: boolean
 }
@@ -73,7 +76,7 @@ export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
     ZardCheckboxComponent,
     MatProgressSpinnerModule,
     ZardButtonComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ScrollingModule,
     OcapCoreModule,
     NgmCommonModule,

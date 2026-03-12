@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
 import { myRxResource } from '@metad/ocap-angular/core'
@@ -12,6 +11,7 @@ import {
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { WorkflowBaseNodeComponent } from '../workflow-base.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xp-workflow-node-db-insert',
@@ -19,7 +19,7 @@ import { WorkflowBaseNodeComponent } from '../workflow-base.component'
   styleUrls: ['./db-insert.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent],
+  imports: [CommonModule, FFlowModule, ...ZardTooltipImports, TranslateModule, PlusSvgComponent],
   host: {
     tabindex: '-1'
   }

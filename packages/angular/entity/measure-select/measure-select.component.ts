@@ -4,7 +4,6 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialog } from '@angular/material/dialog'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSelectModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService, NgmOcapCoreService } from '@metad/ocap-angular/core'
 import {
@@ -21,8 +20,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { orderBy } from 'lodash-es'
 import { distinctUntilChanged, filter, map, switchMap } from 'rxjs'
 import { NgmEntityPropertyComponent } from '../property/property.component'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -31,7 +29,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     ZardButtonComponent,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSelectModule,
     NgmEntityPropertyComponent
   ],

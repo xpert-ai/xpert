@@ -4,7 +4,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { OverlayAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -16,7 +15,7 @@ import { XpertAPIComponent } from '../api/api.component'
 import { XpertAppComponent } from '../app/app.component'
 import { XpertComponent } from '../xpert.component'
 import { XpertStatisticsComponent } from './statistics/statistics.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -26,7 +25,7 @@ import { XpertStatisticsComponent } from './statistics/statistics.component'
     TranslateModule,
     RouterModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     NgmTooltipDirective,
     InDevelopmentComponent,

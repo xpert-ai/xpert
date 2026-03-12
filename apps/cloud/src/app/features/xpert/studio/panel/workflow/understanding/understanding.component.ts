@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
@@ -19,6 +18,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-understanding',
@@ -28,7 +28,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     NgmI18nPipe,
     JSONSchemaFormComponent,
@@ -71,6 +71,10 @@ export class XpertWorkflowUnderstandingComponent extends XpertWorkflowBaseCompon
   readonly understandingConfigSchema = computed(() => this.understandingStrategy()?.configSchema || null)
   readonly understandingConfig = attrModel(this.understanding, 'config')
 
-  readonly knowledgebaseNode = computed(() => this.nodes().find((node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.KNOWLEDGE_BASE)?.entity as IWFNKnowledgeBase)
-  readonly kbVisionModel = computed(() => this.knowledgebaseNode()?.visionModel);
+  readonly knowledgebaseNode = computed(
+    () =>
+      this.nodes().find((node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.KNOWLEDGE_BASE)
+        ?.entity as IWFNKnowledgeBase
+  )
+  readonly kbVisionModel = computed(() => this.knowledgebaseNode()?.visionModel)
 }

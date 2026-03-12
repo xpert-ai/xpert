@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import {
   getErrorMessage,
@@ -29,6 +28,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { BehaviorSubject, EMPTY, map, startWith, switchMap } from 'rxjs'
 import { ChatProjectHomeComponent } from '../home/home.component'
 import { ChatProjectComponent } from '../project.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  *
@@ -42,7 +42,7 @@ import { ChatProjectComponent } from '../project.component'
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ContentLoaderModule,
     DynamicGridDirective,
     KnowledgebaseCardComponent
@@ -75,7 +75,7 @@ export class ChatProjectKnowledgesComponent {
   readonly loading = signal(false)
 
   // knowledgebases in workspace
-  readonly #knowledgebases = derivedAsync<{loading?: boolean; items?: IKnowledgebase[]}>(() => {
+  readonly #knowledgebases = derivedAsync<{ loading?: boolean; items?: IKnowledgebase[] }>(() => {
     const where = {}
     const workspaceId = this.workspaceId()
     if (!workspaceId) return EMPTY
@@ -89,7 +89,7 @@ export class ChatProjectKnowledgesComponent {
           }
         })
       ),
-      startWith({loading: true})
+      startWith({ loading: true })
     )
   })
 
@@ -99,7 +99,8 @@ export class ChatProjectKnowledgesComponent {
   readonly wsKnowledgebases = computed(() => {
     const searchText = this.searchText()?.toLowerCase()
     const result = this.#knowledgebases()
-    return result?.items?.filter((knowledgebase) =>
+    return result?.items
+      ?.filter((knowledgebase) =>
         searchText
           ? knowledgebase.name.toLowerCase().includes(searchText) ||
             knowledgebase.description?.toLowerCase().includes(searchText)

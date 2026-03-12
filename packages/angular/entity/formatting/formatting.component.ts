@@ -3,13 +3,11 @@ import { Component, OnInit, inject } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule, NgmSelectModule } from '@metad/ocap-angular/common'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmEntityPropertyComponent } from '../property/property.component'
-import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -18,7 +16,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent } from '@xp
     TranslateModule,
     ZardButtonComponent,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MatDialogModule,
     NgmCommonModule,
     NgmSelectModule,

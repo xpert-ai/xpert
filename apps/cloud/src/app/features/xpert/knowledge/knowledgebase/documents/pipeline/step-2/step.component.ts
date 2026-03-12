@@ -2,7 +2,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject } from 'rxjs'
@@ -18,6 +17,7 @@ import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentPipelineComponent } from '../pipeline.component'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { KnowledgeDocumentPipelineSettingsComponent } from '../settings/settings.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -30,7 +30,7 @@ import { KnowledgeDocumentPipelineSettingsComponent } from '../settings/settings
     CdkMenuModule,
     FormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ContentLoaderModule,
     KnowledgeDocumentPipelineSettingsComponent
   ]
@@ -47,7 +47,7 @@ export class KnowledgeDocumentPipelineStep2Component {
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
   readonly pipeline = this.pipelineComponent.pipeline
-  
+
   readonly selectedSource = this.pipelineComponent.selectedSource
   readonly taskId = this.pipelineComponent.taskId
   readonly documentIds = this.pipelineComponent.documentIds
@@ -56,9 +56,7 @@ export class KnowledgeDocumentPipelineStep2Component {
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
   readonly loading = signal(false)
-  
 
-  
   readonly parametersValue = model<Partial<Record<string, unknown>>>({})
 
   previousStep() {

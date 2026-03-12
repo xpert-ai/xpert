@@ -3,19 +3,19 @@
     <thead class="text-base text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
       <tr>
         <th scope="col" class="px-4 py-2">
-          {{ 'PAC.KEY_WORDS.IsDefault' | translate: {Default: 'Is Default'} }}
+          {{ 'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Is Default' } }}
         </th>
         <th scope="col" class="px-4 py-2">
-          {{ 'PAC.KEY_WORDS.Logo' | translate: {Default: 'Logo'} }}
+          {{ 'PAC.KEY_WORDS.Logo' | translate: { Default: 'Logo' } }}
         </th>
         <th scope="col" class="px-4 py-2">
-          {{ 'PAC.KEY_WORDS.NAME' | translate: {Default: 'Name'} }}
+          {{ 'PAC.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}
         </th>
         <th scope="col" class="px-4 py-2">
-          {{ 'PAC.KEY_WORDS.CURRENCY' | translate: {Default: 'Currency'} }}
+          {{ 'PAC.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' } }}
         </th>
         <th scope="col" class="px-4 py-2">
-          {{ 'PAC.KEY_WORDS.TimeZone' | translate: {Default: 'TimeZone'} }}
+          {{ 'PAC.KEY_WORDS.TimeZone' | translate: { Default: 'TimeZone' } }}
         </th>
         <th scope="col" class="px-4 py-2">
           {{ 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
@@ -27,7 +27,10 @@
         <tr class="group bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-neutral-50">
           <th scope="row" class="px-4 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
             @if (row.isDefault) {
-              <i class="ri-shield-star-line text-lg text-gray-500" [matTooltip]="'PAC.KEY_WORDS.IsDefault' | translate: {Default: 'Is Default'}"></i>
+              <i
+                class="ri-shield-star-line text-lg text-gray-500"
+                [zTooltip]="'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Is Default' }"
+              ></i>
             }
           </th>
           <td class="px-4 py-2">
@@ -44,13 +47,19 @@
           </td>
           <td class="px-4 py-2">
             <div class="flex items-center gap-2 opacity-0 group-hover:opacity-100">
-              <button type="button" class="btn action-btn w-7 h-7 rounded-lg flex justify-center items-center"
-                (click)="editOrganization(row.id)">
+              <button
+                type="button"
+                class="btn action-btn w-7 h-7 rounded-lg flex justify-center items-center"
+                (click)="editOrganization(row.id)"
+              >
                 <i class="ri-edit-box-line"></i>
               </button>
-          
-              <button type="button" class="btn action-btn danger w-7 h-7 rounded-lg flex justify-center items-center"
-                (click)="deleteOrganization(row.id)">
+
+              <button
+                type="button"
+                class="btn action-btn danger w-7 h-7 rounded-lg flex justify-center items-center"
+                (click)="deleteOrganization(row.id)"
+              >
                 <i class="ri-delete-bin-2-line"></i>
               </button>
             </div>

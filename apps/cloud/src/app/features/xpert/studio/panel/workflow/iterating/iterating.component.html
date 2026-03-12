@@ -184,11 +184,11 @@
         </div>
         <i
           class="ri-question-line ml-1 text-text-quaternary hover:text-text-tertiary"
-          [matTooltip]="
+          [zTooltip]="
             'PAC.Xpert.ParallelizationTooltip'
               | translate: { Default: 'In parallel mode, tasks in an iteration support parallel execution' }
           "
-          matTooltipPosition="above"
+          zPosition="top"
         ></i>
       </div>
       <div class="flex"></div>
@@ -207,7 +207,7 @@
         </div>
         <i
           class="ri-question-line ml-1 text-text-quaternary hover:text-text-tertiary"
-          [matTooltip]="
+          [zTooltip]="
             'PAC.Xpert.MaximumParallelTooltip'
               | translate
                 : {
@@ -215,7 +215,7 @@
                       'The maximum number of parallel tasks is used to control the number of tasks executed simultaneously in a single iteration.'
                   }
           "
-          matTooltipPosition="above"
+          zPosition="top"
         ></i>
       </div>
       <div class="flex"></div>

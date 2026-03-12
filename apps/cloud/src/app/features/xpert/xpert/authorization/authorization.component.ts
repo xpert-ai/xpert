@@ -3,17 +3,23 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { getErrorMessage, injectToastr, injectUser, injectWorkspaceService, injectXpertAPI, IUser } from 'apps/cloud/src/app/@core'
+import {
+  getErrorMessage,
+  injectToastr,
+  injectUser,
+  injectWorkspaceService,
+  injectXpertAPI,
+  IUser
+} from 'apps/cloud/src/app/@core'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { switchMap, tap } from 'rxjs/operators'
 import { XpertComponent } from '../xpert.component'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 import { Dialog } from '@angular/cdk/dialog'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'xpert-authorization',
@@ -27,7 +33,7 @@ import { Dialog } from '@angular/cdk/dialog'
     TranslateModule,
     CdkMenuModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     UserProfileInlineComponent
   ]
@@ -58,18 +64,17 @@ export class XpertAuthorizationComponent {
 
   readonly members = computed(() => {
     return [
-      ...(this.workspaceMembers() ?? []).map((u) => ({type: 'workspace', user: u})),
-      ...(this.#managers() ?? []).map((u) => ({type: 'manager', user: u})),
+      ...(this.workspaceMembers() ?? []).map((u) => ({ type: 'workspace', user: u })),
+      ...(this.#managers() ?? []).map((u) => ({ type: 'manager', user: u }))
     ]
   })
 
   openAddUser() {
     this.#dialog
-      .open<{users: IUser[]}>(UserRoleSelectComponent, {
+      .open<{ users: IUser[] }>(UserRoleSelectComponent, {
         data: {}
       })
-      .closed
-      .pipe(switchMap((result) => (result ? this.addManagers(result.users) : EMPTY)))
+      .closed.pipe(switchMap((result) => (result ? this.addManagers(result.users) : EMPTY)))
       .subscribe()
   }
 
@@ -79,20 +84,22 @@ export class XpertAuthorizationComponent {
     this.#managers.update((state) => {
       return [...state, ...newMembers]
     })
-    return this.xpertService.updateXpertManagers(
-      this.xpertComponent.xpertId(),
-      this.#managers().map((u) => u.id)
-    ).pipe(
-      tap({
-        next: () => {
-          this.loading.set(false)
-        },
-        error: (err) => {
-          this.loading.set(false)
-          this.#toastr.error(getErrorMessage(err))
-        }
-      })
-    )
+    return this.xpertService
+      .updateXpertManagers(
+        this.xpertComponent.xpertId(),
+        this.#managers().map((u) => u.id)
+      )
+      .pipe(
+        tap({
+          next: () => {
+            this.loading.set(false)
+          },
+          error: (err) => {
+            this.loading.set(false)
+            this.#toastr.error(getErrorMessage(err))
+          }
+        })
+      )
   }
 
   removeManager(u: IUser) {

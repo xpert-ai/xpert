@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router } from '@angular/router'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
@@ -26,13 +25,14 @@ import {
   StorageFileService,
   TDocumentWebOptions,
   ToastrService,
-  TRagWebResult,
+  TRagWebResult
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../documents.component'
 import { KnowledgeDocumentCreateStep1Component } from './step-1/step.component'
 import { KnowledgeDocumentCreateStep2Component } from './step-2/step.component'
 import { KnowledgeDocumentCreateStep3Component } from '../step-3/step.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -45,7 +45,7 @@ import { KnowledgeDocumentCreateStep3Component } from '../step-3/step.component'
     TranslateModule,
     CdkMenuModule,
     CdkListboxModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MatProgressBarModule,
     WaIntersectionObserver,
 
@@ -76,12 +76,14 @@ export class KnowledgeDocumentCreateComponent {
   readonly step = signal(0)
 
   // Step 1
-  readonly sourceType = model<Array<DocumentSourceProviderCategoryEnum | DocumentTypeEnum>>([KDocumentSourceType.LocalFile])
+  readonly sourceType = model<Array<DocumentSourceProviderCategoryEnum | DocumentTypeEnum>>([
+    KDocumentSourceType.LocalFile
+  ])
   readonly sourceConfig = model<any>(null)
 
   // readonly fileList = signal<TFileItem[]>([])
   readonly files = model<KnowledgeFileUploader[]>([])
-  
+
   readonly webTypes = model<TSelectOption<KDocumentWebTypeEnum>[]>([])
   readonly integration = model<IIntegration>(null)
   readonly webOptions = model<TDocumentWebOptions>(null)

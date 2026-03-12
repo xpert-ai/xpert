@@ -15,11 +15,11 @@
 
           <i
             class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
-            [matTooltip]="
+            [zTooltip]="
               'PAC.Knowledgebase.TransformerSettingsDesc'
                 | translate: { Default: 'Configure the document transformer to extract the file content.' }
             "
-            matTooltipPosition="above"
+            zPosition="top"
           ></i>
         </div>
 
@@ -134,10 +134,8 @@
           </span>
           <i
             class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
-            [matTooltip]="
-              'PAC.Knowledgebase.ChunkSettingsDesc' | translate: { Default: 'Configure text chunking mode.' }
-            "
-            matTooltipPosition="above"
+            [zTooltip]="'PAC.Knowledgebase.ChunkSettingsDesc' | translate: { Default: 'Configure text chunking mode.' }"
+            zPosition="top"
           ></i>
         </div>
 
@@ -228,12 +226,12 @@
 
           <i
             class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
-            [matTooltip]="
+            [zTooltip]="
               'PAC.Knowledgebase.ImageUnderstandingDesc'
                 | translate
                   : { Default: 'Extract text and metadata from images using OCR and image recognition technologies.' }
             "
-            matTooltipPosition="above"
+            zPosition="top"
           ></i>
         </div>
 
@@ -368,11 +366,11 @@
           </span>
           <i
             class="ri-information-2-line ml-2 text-text-tertiary hover:text-text-primary"
-            [matTooltip]="
+            [zTooltip]="
               'PAC.Knowledgebase.TextPreprocessingRulesDesc'
                 | translate: { Default: 'Configure text processing rules.' }
             "
-            matTooltipPosition="above"
+            zPosition="top"
           ></i>
         </div>
       </div>
@@ -460,8 +458,8 @@
           <i
             class="ri-eye-fill cursor-pointer ml-2 text-text-tertiary hover:text-text-primary"
             [class.!text-primary-500]="preview()"
-            [matTooltip]="'PAC.KEY_WORDS.Preview' | translate: { Default: 'Preview' }"
-            matTooltipPosition="above"
+            [zTooltip]="'PAC.KEY_WORDS.Preview' | translate: { Default: 'Preview' }"
+            zPosition="top"
             (click)="toggleAllPreview()"
           ></i>
         </div>

@@ -8,10 +8,10 @@ import {
   ZardDividerComponent,
   ZardFormImports,
   ZardIconComponent,
-  ZardInputDirective
+  ZardInputDirective,
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 
@@ -25,7 +25,7 @@ import { TranslateModule } from '@ngx-translate/core'
     ZardIconComponent,
     MatListModule,
     ZardDividerComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ...ZardFormImports,
     ZardInputDirective,
     TranslateModule,

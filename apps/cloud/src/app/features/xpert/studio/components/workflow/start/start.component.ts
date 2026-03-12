@@ -8,16 +8,23 @@ import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { WorkflowBaseNodeComponent } from '../workflow-base.component'
 import { XpertStudioContextMenuComponent } from '../../context-menu/context-menu.component'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xp-xpert-workflow-node-start',
   templateUrl: './start.component.html',
   styleUrls: ['./start.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, FFlowModule, CdkMenuModule, TranslateModule, MatTooltipModule, PlusSvgComponent]
+  imports: [
+    CommonModule,
+    FormsModule,
+    FFlowModule,
+    CdkMenuModule,
+    TranslateModule,
+    ...ZardTooltipImports,
+    PlusSvgComponent
+  ]
 })
 export class XpertWorkflowNodeStartComponent extends WorkflowBaseNodeComponent {
   readonly elementRef = inject(ElementRef)

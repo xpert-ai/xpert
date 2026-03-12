@@ -3,7 +3,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { attrModel, write } from '@metad/core'
 import { linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
@@ -13,7 +12,7 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { TXpertParameter, XpertParameterTypeEnum } from '../../../@core'
 import { XpertParameterFormComponent } from '../parameter-edit-form/form.component'
 import { XpertParameterIconComponent } from '../parameter-icon/icon.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 type TXpertParameterAttr = {
   path: string[]
   param: TXpertParameter
@@ -31,7 +30,7 @@ type TXpertParameterAttr = {
     FormsModule,
     CdkMenuModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmI18nPipe,
     XpertParameterIconComponent,
     XpertParameterFormComponent

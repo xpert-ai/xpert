@@ -1,7 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { attrModel, linkedModel } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -16,6 +15,7 @@ import {
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-subflow',
@@ -23,7 +23,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   styleUrls: ['./subflow.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, MatTooltipModule, TranslateModule, CdkMenuModule, StateVariableSelectComponent],
+  imports: [FormsModule, ...ZardTooltipImports, TranslateModule, CdkMenuModule, StateVariableSelectComponent],
   host: {
     tabindex: '-1'
   }
@@ -57,9 +57,18 @@ export class XpertWorkflowSubflowComponent extends XpertWorkflowBaseComponent {
 
   readonly draft = this.studioService.viewModel
 
-  readonly subAgentKey = computed(() => this.draft()?.connections.find((_) => _.type === 'agent' && _.from === this.subflow()?.key)?.to)
-  readonly subXpertKey = computed(() => this.draft()?.connections.find((_) => _.type === 'xpert' && _.from === this.subflow()?.key)?.to)
-  readonly subXpert = computed(() => this.draft()?.nodes.find((_) => _.type === 'xpert' && _.key === this.subXpertKey()) as TXpertTeamNode & {type: 'xpert'})
+  readonly subAgentKey = computed(
+    () => this.draft()?.connections.find((_) => _.type === 'agent' && _.from === this.subflow()?.key)?.to
+  )
+  readonly subXpertKey = computed(
+    () => this.draft()?.connections.find((_) => _.type === 'xpert' && _.from === this.subflow()?.key)?.to
+  )
+  readonly subXpert = computed(
+    () =>
+      this.draft()?.nodes.find((_) => _.type === 'xpert' && _.key === this.subXpertKey()) as TXpertTeamNode & {
+        type: 'xpert'
+      }
+  )
   readonly subXpertAgentKey = computed(() => this.subXpert()?.entity.agent?.key)
 
   readonly subVarInputOptions = computed<TXpertVariablesOptions>(() => {
@@ -106,7 +115,7 @@ export class XpertWorkflowSubflowComponent extends XpertWorkflowBaseComponent {
       if (index > -1) {
         params[index] = {
           ...params[index],
-          name: newName,
+          name: newName
         }
       }
       return [...params]

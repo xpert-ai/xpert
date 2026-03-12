@@ -21,10 +21,10 @@ import {
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
-  ZardCheckboxComponent
+  ZardCheckboxComponent,
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatTreeModule } from '@angular/material/tree'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
@@ -49,7 +49,7 @@ import { EntityCapacity, EntitySchemaType } from './types'
     TranslateModule,
     ZardCheckboxComponent,
     MatProgressSpinnerModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmCommonModule,
     OcapCoreModule
   ],

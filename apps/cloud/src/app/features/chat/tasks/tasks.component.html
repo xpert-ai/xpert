@@ -1,5 +1,7 @@
-<div class="max-w-[50rem] px-2 pt-16 @sm:pt-18 mx-auto w-full flex flex-col h-full items-center pb-4"
-  style="mask-image: linear-gradient(black 85%, transparent 100%);">
+<div
+  class="max-w-[50rem] px-2 pt-16 @sm:pt-18 mx-auto w-full flex flex-col h-full items-center pb-4"
+  style="mask-image: linear-gradient(black 85%, transparent 100%)"
+>
   <div class="w-full py-4 flex justify-between items-center">
     <div>
       <div class="text-2xl font-semibold">{{ 'PAC.Xpert.Task' | translate: { Default: 'Task' } }}</div>
@@ -35,9 +37,13 @@
   </div>
 </div>
 
-<div class="relative h-full flex-shrink-0 max-w-[40%] xl:max-w-none transition-all duration-300 ease-in-out"
-  [style]="openedTask() ? { 'width': '550px' } : { 'width': '0px' }">
-  <div class="absolute start-0 top-0 bottom-0 w-2 cursor-col-resize border-l border-input-border hover:bg-hover-bg z-50"></div>
+<div
+  class="relative h-full flex-shrink-0 max-w-[40%] xl:max-w-none transition-all duration-300 ease-in-out"
+  [style]="openedTask() ? { width: '550px' } : { width: '0px' }"
+>
+  <div
+    class="absolute start-0 top-0 bottom-0 w-2 cursor-col-resize border-l border-input-border hover:bg-hover-bg z-50"
+  ></div>
 
   @if (openedTask(); as task) {
     <div class="h-full p-0">
@@ -52,8 +58,8 @@
                 class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-base leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-text-secondary hover:bg-button-ghost-hover disabled:hover:bg-transparent border border-transparent h-10 w-10 rounded-xl hover:text-text-primary"
                 type="button"
                 aria-label="Archive"
-                [matTooltip]="'PAC.Xpert.Archive' | translate: {Default: 'Archive'}"
-                matTooltipPosition="above"
+                [zTooltip]="'PAC.Xpert.Archive' | translate: { Default: 'Archive' }"
+                zPosition="top"
                 (click)="archiveTask(task)"
               >
                 <i class="ri-archive-line text-lg"></i>
@@ -72,7 +78,7 @@
         <div class="flex gap-4">
           <div class="grow flex flex-col p-3 rounded-2xl border bg-components-card-bg gap-1">
             <h1 class="font-medium text-fg-secondary flex items-center gap-1">
-              {{ 'PAC.Xpert.Schedule' | translate: {Default: 'Schedule'} }}
+              {{ 'PAC.Xpert.Schedule' | translate: { Default: 'Schedule' } }}
             </h1>
             <h1 class="text-sm text-fg-primary flex items-center gap-1">
               <i class="ri-repeat-2-line"></i>
@@ -90,8 +96,13 @@
         <div
           class="w-full flex flex-col p-3 rounded-2xl border bg-components-card-bg gap-1 shrink-0 overflow-auto h-full max-h-[20vh]"
         >
-          <h1 class="font-medium text-fg-secondary">{{ 'PAC.Xpert.Instruction' | translate: {Default: 'Instruction'} }}</h1>
-          <p class="flex items-center gap-1 text-sm font-body whitespace-normal break-all text-text-secondary line-clamp-3" [title]="task.prompt">
+          <h1 class="font-medium text-fg-secondary">
+            {{ 'PAC.Xpert.Instruction' | translate: { Default: 'Instruction' } }}
+          </h1>
+          <p
+            class="flex items-center gap-1 text-sm font-body whitespace-normal break-all text-text-secondary line-clamp-3"
+            [title]="task.prompt"
+          >
             {{ task.prompt }}
           </p>
         </div>
@@ -103,7 +114,7 @@
               (click)="editTask(task)"
             >
               <i class="ri-pencil-line"></i>
-              <p class="">{{ 'PAC.ACTIONS.Edit' | translate: {Default: 'Edit'} }}</p>
+              <p class="">{{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}</p>
             </button>
             @if (task.status === eXpertTaskStatus.SCHEDULED) {
               <button
@@ -112,7 +123,7 @@
                 (click)="pauseTask(task)"
               >
                 <i class="ri-pause-circle-line"></i>
-                <p class="">{{ 'PAC.ACTIONS.Pause' | translate: {Default: 'Pause'} }}</p>
+                <p class="">{{ 'PAC.ACTIONS.Pause' | translate: { Default: 'Pause' } }}</p>
               </button>
             } @else {
               <button
@@ -121,7 +132,7 @@
                 (click)="scheduleTask(task)"
               >
                 <i class="ri-calendar-check-line"></i>
-                <p class="">{{ 'PAC.Xpert.Schedule' | translate: {Default: 'Schedule'} }}</p>
+                <p class="">{{ 'PAC.Xpert.Schedule' | translate: { Default: 'Schedule' } }}</p>
               </button>
             }
             <button
@@ -130,50 +141,62 @@
               (click)="runTask(task)"
             >
               <i class="ri-play-circle-line"></i>
-              <p class="">{{ 'PAC.ACTIONS.Test' | translate: {Default: 'Test'} }}</p>
+              <p class="">{{ 'PAC.ACTIONS.Test' | translate: { Default: 'Test' } }}</p>
             </button>
           </div>
         }
         <div class="flex justify-between w-full items-center pt-4 px-1.5">
           <div class="flex items-center gap-1.5 h-8">
-            <h1 class="text-lg font-semibold">{{ 'PAC.Xpert.History' | translate: {Default: 'History'} }}</h1>
+            <h1 class="text-lg font-semibold">{{ 'PAC.Xpert.History' | translate: { Default: 'History' } }}</h1>
           </div>
           <div class="flex items-center gap-2">
             @if (historyConversations(); as conversations) {
-              <p class="text-sm text-fg-secondary">{{conversations.length}} {{ 'PAC.Xpert.Record' | translate: {Default: 'record'} }}</p>
+              <p class="text-sm text-fg-secondary">
+                {{ conversations.length }} {{ 'PAC.Xpert.Record' | translate: { Default: 'record' } }}
+              </p>
             }
           </div>
         </div>
 
-        <div class="h-full w-full flex flex-col pb-4 relative no-scrollbar overflow-auto" style="mask-image: linear-gradient(black 85%, transparent 100%);">
-          <div class="relative no-scrollbar" style="opacity: 1; transform: none;">
+        <div
+          class="h-full w-full flex flex-col pb-4 relative no-scrollbar overflow-auto"
+          style="mask-image: linear-gradient(black 85%, transparent 100%)"
+        >
+          <div class="relative no-scrollbar" style="opacity: 1; transform: none">
             @for (history of historyConversations(); track history.id) {
-              <button class="items-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 select-none text-fg-primary hover:bg-button-ghost-hover disabled:hover:bg-transparent border border-transparent h-10 px-3.5 text-sm w-full flex justify-between rounded-2xl relative py-8" type="button"
-                [routerLink]="['/chat', 'c', history.id]">
+              <button
+                class="items-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 select-none text-fg-primary hover:bg-button-ghost-hover disabled:hover:bg-transparent border border-transparent h-10 px-3.5 text-sm w-full flex justify-between rounded-2xl relative py-8"
+                type="button"
+                [routerLink]="['/chat', 'c', history.id]"
+              >
                 <div class="flex gap-3">
                   <div class="w-[30px] h-[30px] m-0 p-0">
                     @if (history.status === 'busy') {
                       <ngm-spin class="w-[30px] h-[30px] bg-components-card-bg rounded-full" />
                     } @else {
-                      <div class="relative flex w-[30px] h-[30px] bg-components-card-bg rounded-full pl-[1px] m-0 items-center justify-center border-border-l1 border">
+                      <div
+                        class="relative flex w-[30px] h-[30px] bg-components-card-bg rounded-full pl-[1px] m-0 items-center justify-center border-border-l1 border"
+                      >
                         <i class="ri-chat-3-line"></i>
                       </div>
                     }
                   </div>
                   <div class="flex flex-col w-full items-start text-wrap text-start">
                     @if (history.status === 'error') {
-                      <p class="text-sm text-text-destructive">{{history.error}}</p>
+                      <p class="text-sm text-text-destructive">{{ history.error }}</p>
                     } @else {
-                      <p class="text-sm text-fg-primary font-medium">{{history.title}}</p>
+                      <p class="text-sm text-fg-primary font-medium">{{ history.title }}</p>
                     }
-                    <p class="text-xs text-fg-secondary font-mono">{{history.createdAt | relative }}</p>
+                    <p class="text-xs text-fg-secondary font-mono">{{ history.createdAt | relative }}</p>
                   </div>
                 </div>
               </button>
             } @empty {
               <div class="items-center flex justify-center self-stretch">
                 <div style="opacity: 1">
-                  <h1 class="text-fg-secondary font-semibold text-lg">{{'PAC.Xpert.NoRecordsYet' | translate: {Default: 'No records yet'} }}</h1>
+                  <h1 class="text-fg-secondary font-semibold text-lg">
+                    {{ 'PAC.Xpert.NoRecordsYet' | translate: { Default: 'No records yet' } }}
+                  </h1>
                 </div>
               </div>
             }
@@ -194,39 +217,46 @@
 
 <ng-template #taskTempl let-task="task">
   <div class="task flex border-b border-solid border-neutral-200">
-    <div class="flex-1 flex items-center cursor-pointer -mx-3 px-4 py-2 rounded-3xl text-sm hover:bg-neutral-50"
+    <div
+      class="flex-1 flex items-center cursor-pointer -mx-3 px-4 py-2 rounded-3xl text-sm hover:bg-neutral-50"
       [class.bg-neutral-50]="taskId() === task.id"
       [class.deleted]="!!task.deletedAt"
       (click)="openTask(task)"
     >
       <div class="flex-1 flex justify-start items-center gap-1 overflow-hidden">
-        <emoji-avatar [avatar]="task.xpert?.avatar" xs class="overflow-hidden rounded-lg shadow-sm"
-          [matTooltip]="task.xpert?.title || task.xpert?.name"
-          matTooltipPosition="above"
+        <emoji-avatar
+          [avatar]="task.xpert?.avatar"
+          xs
+          class="overflow-hidden rounded-lg shadow-sm"
+          [zTooltip]="task.xpert?.title || task.xpert?.name"
+          zPosition="top"
         />
         @if (task.status === eXpertTaskStatus.PAUSED) {
           <i class="ri-pause-circle-fill text-xl text-text-secondary"></i>
         } @else if (task.status === eXpertTaskStatus.SCHEDULED) {
           <i class="ri-calendar-schedule-line mr-2 text-xl text-text-secondary"></i>
         }
-        <div class="font-medium truncate">{{task.name}}</div>
+        <div class="font-medium truncate">{{ task.name }}</div>
 
-        <span class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300"
-          [matTooltip]="'PAC.Chat.TaskSuccessCount' | translate: {Default: 'Number of successful task executions'}"
-          matTooltipPosition="above"
+        <span
+          class="bg-green-100 text-green-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-green-900 dark:text-green-300"
+          [zTooltip]="'PAC.Chat.TaskSuccessCount' | translate: { Default: 'Number of successful task executions' }"
+          zPosition="top"
         >
-          {{task.successCount}}
+          {{ task.successCount }}
         </span>
         @if (task.errorCount) {
-          <span class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-red-900 dark:text-red-300"
-            [matTooltip]="'PAC.Chat.TaskFailureCount' | translate: {Default: 'Number of task execution failures'}"
-            matTooltipPosition="above">
-            {{task.errorCount}}
+          <span
+            class="bg-red-100 text-red-800 text-xs font-medium me-2 px-2.5 py-0.5 rounded-full dark:bg-red-900 dark:text-red-300"
+            [zTooltip]="'PAC.Chat.TaskFailureCount' | translate: { Default: 'Number of task execution failures' }"
+            zPosition="top"
+          >
+            {{ task.errorCount }}
           </span>
         }
       </div>
-      
-      <div class="text-text-secondary truncate">{{task.scheduleDescription}}</div>
+
+      <div class="text-text-secondary truncate">{{ task.scheduleDescription }}</div>
     </div>
   </div>
 </ng-template>
@@ -248,5 +278,5 @@
       <i class="ri-list-check-3 text-lg mr-1"></i>
       {{ 'PAC.Xpert.ViewAllTasks' | translate: { Default: 'View all tasks' } }}
     </div>
-  </div>  
+  </div>
 </ng-template>

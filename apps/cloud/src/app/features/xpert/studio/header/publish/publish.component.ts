@@ -3,7 +3,6 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { nonBlank, SlideUpAnimation } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -12,8 +11,7 @@ import { Observable, of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { XpertService } from '../../../xpert/xpert.service'
-import { injectConfirm, ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { injectConfirm, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -22,7 +20,7 @@ import { injectConfirm, ZardSwitchComponent } from '@xpert-ai/headless-ui'
     ReactiveFormsModule,
     DragDropModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     NgmSelectComponent,
     ZardSwitchComponent

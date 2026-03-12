@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ChatConversationService,
@@ -19,6 +18,7 @@ import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { processEvents } from '../agent-execution/execution.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -26,7 +26,7 @@ import { processEvents } from '../agent-execution/execution.component'
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MarkdownModule,
     ChatConversationPreviewComponent
   ],
@@ -59,9 +59,10 @@ export class XpertStudioPreviewComponent {
   readonly envriments = signal(false)
 
   readonly xpert = this.studioComponent.xpert
-  readonly parameters = computed(() => 
-    this.apiService.xpert().agentConfig?.parameters ||
-    (this.apiService.primaryAgent()?.options?.hidden ? null : this.apiService.primaryAgent()?.parameters)
+  readonly parameters = computed(
+    () =>
+      this.apiService.xpert().agentConfig?.parameters ||
+      (this.apiService.primaryAgent()?.options?.hidden ? null : this.apiService.primaryAgent()?.parameters)
   )
   readonly environmentId = this.apiService.environmentId
 
@@ -84,15 +85,18 @@ export class XpertStudioPreviewComponent {
       { allowSignalWrites: true }
     )
 
-    effect(() => {
-      if (this.messages()) {
-        const messages = [...this.messages()]
-        if (this.currentMessage()) {
-          messages.push(this.currentMessage())
+    effect(
+      () => {
+        if (this.messages()) {
+          const messages = [...this.messages()]
+          if (this.currentMessage()) {
+            messages.push(this.currentMessage())
+          }
+          this.executionService.setMessages(messages)
         }
-        this.executionService.setMessages(messages)
-      }
-    }, { allowSignalWrites: true })
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   onChatEvent(event) {

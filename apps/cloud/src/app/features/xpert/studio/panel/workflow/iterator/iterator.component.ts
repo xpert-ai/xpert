@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import {
   genXpertStartKey,
   getVariableSchema,
@@ -23,8 +22,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-workflow-iterator',
   templateUrl: './iterator.component.html',
@@ -33,7 +31,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     MatSliderModule,
     NgmDensityDirective,

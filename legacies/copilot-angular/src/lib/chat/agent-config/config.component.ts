@@ -3,11 +3,9 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmCopilotEngineService } from '../../services'
-import { ZardCheckboxComponent } from '@xpert-ai/headless-ui'
-
+import { ZardCheckboxComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  * @deprecated use ChatKit instead
  */
@@ -23,7 +21,7 @@ import { ZardCheckboxComponent } from '@xpert-ai/headless-ui'
     ReactiveFormsModule,
     TranslateModule,
     ClipboardModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
 
     MatSliderModule,
     ZardCheckboxComponent

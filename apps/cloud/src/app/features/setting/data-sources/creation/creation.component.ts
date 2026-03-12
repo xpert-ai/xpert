@@ -22,11 +22,9 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 import { NgmInputComponent } from '@metad/ocap-angular/common'
 import { FormlyModule } from '@ngx-formly/core'
 import { MatButtonToggleModule } from '@angular/material/button-toggle'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { ZardButtonComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -39,7 +37,7 @@ import { ZardButtonComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
     CdkListboxModule,
     ZardButtonComponent,
     MatButtonToggleModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ContentLoaderModule,
     NgmInputComponent,
     ButtonGroupDirective,

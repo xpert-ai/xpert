@@ -23,7 +23,6 @@ import {
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Dialog } from '@angular/cdk/dialog'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { effectAction } from '@metad/ocap-angular/core'
 import { switchMap, tap } from 'rxjs/operators'
@@ -32,6 +31,7 @@ import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { agentLabel, TWorkflowVarGroup } from '../../../@core'
 import { CopilotPromptGeneratorComponent } from '../prompt-generator/generator.component'
 import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../../agent/variable-panel/variable.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 declare var monaco: any
 
@@ -47,7 +47,7 @@ declare var monaco: any
     FormsModule,
     TranslateModule,
     MonacoEditorModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     XpertVariablePanelComponent
   ],
   host: {
@@ -56,7 +56,7 @@ declare var monaco: any
 })
 export class CopilotPromptEditorComponent {
   agentLabel = agentLabel
-  
+
   readonly #clipboard = inject(Clipboard)
   readonly #dialog = inject(Dialog)
   readonly #vcr = inject(ViewContainerRef)
@@ -89,7 +89,7 @@ export class CopilotPromptEditorComponent {
   @ViewChild('suggestionsTemplate', { static: true }) suggestionsTemplate!: TemplateRef<any>
   // readonly suggestionsMenu = viewChild('suggestions', {read: ElementRef})
   overlayRef: OverlayRef | null = null
-  
+
   // States
   readonly variables = model<TWorkflowVarGroup[]>()
   readonly promptLength = computed(() => this.prompt()?.length)
@@ -129,19 +129,18 @@ export class CopilotPromptEditorComponent {
   }
 
   toggleWrap() {
-    this._defaultOptions.update((state) => ({...state, wordWrap: !state.wordWrap}))
+    this._defaultOptions.update((state) => ({ ...state, wordWrap: !state.wordWrap }))
   }
 
   generate() {
     this.#dialog
-      .open<{instruction: string}>(CopilotPromptGeneratorComponent, {
+      .open<{ instruction: string }>(CopilotPromptGeneratorComponent, {
         panelClass: 'large',
         data: {
           instruction: this.prompt()
         }
       })
-      .closed
-      .subscribe({
+      .closed.subscribe({
         next: (result) => {
           if (result?.instruction) {
             this.prompt.set(result.instruction)
@@ -167,37 +166,37 @@ export class CopilotPromptEditorComponent {
 
   setVariable(variable: string) {
     // Get the current cursor position
-    const position = this.getPosition();
+    const position = this.getPosition()
 
     // Get the content of the current line
-    const lineContent = this.#editor().getModel().getLineContent(position.lineNumber);
+    const lineContent = this.#editor().getModel().getLineContent(position.lineNumber)
 
     // Checks if the character before the cursor is { or {{
-    const beforeCursor = lineContent.substring(0, position.column - 1);
+    const beforeCursor = lineContent.substring(0, position.column - 1)
     const regex = /{{?$/
-    const match = beforeCursor.match(regex);
+    const match = beforeCursor.match(regex)
 
     // If it matches, replace { or {{ and also release after } or }}
-    const afterCursor = lineContent.substring(position.column - 1);
-    const endRegex = /^}}?/;
-    const endMatch = afterCursor.match(endRegex);
+    const afterCursor = lineContent.substring(position.column - 1)
+    const endRegex = /^}}?/
+    const endMatch = afterCursor.match(endRegex)
 
     // If it matches, replace { or {{
     const range = new monaco.Range(
       position.lineNumber,
-      match ? (position.column - match[0].length) : position.column,
+      match ? position.column - match[0].length : position.column,
       position.lineNumber,
-      endMatch ? (position.column + endMatch[0].length) : position.column
-    );
+      endMatch ? position.column + endMatch[0].length : position.column
+    )
     const text = `{{${variable}}}`
 
     const operation = {
       range: range,
       text: text
-    };
+    }
 
     // Performing Edit Operations
-    this.#editor().executeEdits("insert-string", [operation])
+    this.#editor().executeEdits('insert-string', [operation])
     this.#editor().focus()
     this.hideSuggestions()
   }
@@ -231,14 +230,16 @@ export class CopilotPromptEditorComponent {
     this.deleted.emit()
   }
 
-  copy = effectAction((origin$) => origin$.pipe(
+  copy = effectAction((origin$) =>
+    origin$.pipe(
       tap(() => {
         this.#clipboard.copy(this.prompt())
         this.copied.set(true)
       }),
       switchMap(() => timer(3000)),
       tap(() => this.copied.set(false))
-    ))
+    )
+  )
 
   // Editor
   onInit(editor: any) {
@@ -249,7 +250,7 @@ export class CopilotPromptEditorComponent {
         if (change.text === '{' || change.text === '{}') {
           this.showSuggestions()
         }
-      });
+      })
     })
   }
 
@@ -262,25 +263,25 @@ export class CopilotPromptEditorComponent {
   }
 
   getCursorPagePosition() {
-    const editor = this.#editor();
+    const editor = this.#editor()
     // Get the cursor position
-    const position = editor.getPosition();
-    
+    const position = editor.getPosition()
+
     // Get the cursor coordinates within the editor content
-    const cursorCoords = editor.getScrolledVisiblePosition(position);
-    
+    const cursorCoords = editor.getScrolledVisiblePosition(position)
+
     // Get the editor DOM element and content container
-    const editorDom = editor.getDomNode();
-    const viewLines = editorDom.querySelector('.view-lines');
-    
+    const editorDom = editor.getDomNode()
+    const viewLines = editorDom.querySelector('.view-lines')
+
     // Check if viewLines exists
-    const rect = viewLines ? viewLines.getBoundingClientRect() : editorDom.getBoundingClientRect();
-    
+    const rect = viewLines ? viewLines.getBoundingClientRect() : editorDom.getBoundingClientRect()
+
     // Calculate the absolute coordinates of the cursor on the page
-    const cursorX = rect.left + cursorCoords.left;
-    const cursorY = rect.top + cursorCoords.top;
-    
-    return { x: cursorX, y: cursorY };
+    const cursorX = rect.left + cursorCoords.left
+    const cursorY = rect.top + cursorCoords.top
+
+    return { x: cursorX, y: cursorY }
   }
 
   onMouseDown(event: MouseEvent): void {
@@ -312,5 +313,4 @@ export class CopilotPromptEditorComponent {
     this.hideSuggestions()
     this.#editor()?.focus()
   }
-
 }

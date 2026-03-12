@@ -1,17 +1,15 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import {
-  IWFNProcessor,
-} from 'apps/cloud/src/app/@core'
+import { IWFNProcessor } from 'apps/cloud/src/app/@core'
 import { KnowledgebaseService } from '@cloud/app/@core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { CommonModule } from '@angular/common'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { WorkflowBaseNodeComponent } from '../workflow-base.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-node-processor',
@@ -22,7 +20,7 @@ import { WorkflowBaseNodeComponent } from '../workflow-base.component'
   imports: [
     CommonModule,
     FFlowModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     PlusSvgComponent,
     NgmI18nPipe,
@@ -45,7 +43,7 @@ export class XpertWorkflowNodeProcessorComponent extends WorkflowBaseNodeCompone
   readonly processorProvider = computed(() => {
     const providerName = this.provider()
     if (providerName && this.processorProviders()) {
-      return this.processorProviders().find(p => p.meta.name === providerName)
+      return this.processorProviders().find((p) => p.meta.name === providerName)
     }
     return null
   })

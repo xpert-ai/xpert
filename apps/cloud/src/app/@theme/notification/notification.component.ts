@@ -5,13 +5,11 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
 import { MatMenuModule } from '@angular/material/menu'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { DensityDirective, NgmAgentService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { TranslateModule } from '@ngx-translate/core'
 import { merge } from 'rxjs'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-notification',
@@ -26,7 +24,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     CdkMenuModule,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardButtonComponent,
     MatMenuModule,
     DensityDirective

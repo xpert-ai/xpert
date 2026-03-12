@@ -2,13 +2,12 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule, DecimalPipe } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input, LOCALE_ID } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { EChartsOption } from 'echarts'
 import { maxBy } from 'lodash-es'
 import { NgxEchartsDirective } from 'ngx-echarts'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -18,7 +17,7 @@ import { NgxEchartsDirective } from 'ngx-echarts'
     TranslateModule,
     RouterModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgxEchartsDirective
   ],
   selector: 'pac-statistics-chart',
@@ -29,8 +28,8 @@ import { NgxEchartsDirective } from 'ngx-echarts'
 export class StatisticsChartComponent {
   readonly locale = inject(LOCALE_ID)
   readonly num = new DecimalPipe(this.locale)
-  
-  readonly data = input<{ date: string; count?: number; token?: number; }[]>()
+
+  readonly data = input<{ date: string; count?: number; token?: number }[]>()
   readonly measureLabel = input<string>()
   readonly measure = input<string>('count')
   readonly unit = input<string>('')
@@ -53,12 +52,12 @@ export class StatisticsChartComponent {
         },
         xAxis: {
           type: 'category',
-          data: items.map(({ date }) => date ? new Date(date).toLocaleDateString().slice(0, 10) : 'N/A')
+          data: items.map(({ date }) => (date ? new Date(date).toLocaleDateString().slice(0, 10) : 'N/A'))
         },
         yAxis: {
           type: 'value',
           axisLabel: {
-            show: true,
+            show: true
           }
         },
         tooltip: {
@@ -93,7 +92,7 @@ export class StatisticsChartComponent {
                 ],
                 global: false
               }
-            },
+            }
           }
         ],
         visualMap: [

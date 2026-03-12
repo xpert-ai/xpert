@@ -27,7 +27,7 @@
             <div class="mr-1">{{ 'PAC.KEY_WORDS.Parameters' | translate: { Default: 'Parameters' } }}</div>
             <div
               class="p-[1px] w-4 h-4 shrink-0"
-              [matTooltip]="
+              [zTooltip]="
                 'PAC.Xpert.ParametersInfo'
                   | translate
                     : {
@@ -35,7 +35,7 @@
                           'The parameters will be a form for users to fill in before the dialogue, and the form content filled in by the user will replace the variables in the prompt string.'
                       }
               "
-              matTooltipPosition="above"
+              zPosition="top"
             >
               <svg
                 viewBox="0 0 24 24"

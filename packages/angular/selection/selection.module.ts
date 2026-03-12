@@ -11,10 +11,10 @@ import {
   ZardDividerComponent,
   ZardIconComponent,
   ZardInputDirective,
-  ZardSwitchComponent
+  ZardSwitchComponent,
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
 import { ButtonGroupDirective, OcapCoreModule } from '@metad/ocap-angular/core'
@@ -38,7 +38,7 @@ import { SlicersComponent } from './slicers/slicers.component'
     ZardButtonComponent,
     ZardInputDirective,
     MatChipsModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardDividerComponent,
     MatMenuModule,
     TranslateModule,

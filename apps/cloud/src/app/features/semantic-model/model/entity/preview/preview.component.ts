@@ -35,14 +35,12 @@ import { CdkDragDropContainers } from '../../types'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { getErrorMessage } from '@cloud/app/@core'
 
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatExpansionModule } from '@angular/material/expansion'
 import { Dialog } from '@angular/cdk/dialog'
 import { ExplainComponent } from '@metad/story/story'
 import { NgmPresentationComponent } from '@metad/ocap-angular/selection'
 import { NgmParameterComponent } from '@metad/ocap-angular/parameter'
-import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -60,7 +58,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent } from '@xp
     DragDropModule,
     ZardIconComponent,
     ZardButtonComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MatExpansionModule,
     NgmCommonModule,
     AnalyticalGridModule,

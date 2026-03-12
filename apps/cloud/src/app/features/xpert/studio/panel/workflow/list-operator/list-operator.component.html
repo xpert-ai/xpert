@@ -13,8 +13,8 @@
 
       <z-switch
         [(ngModel)]="filterByEnabled"
-        [matTooltip]="'PAC.Xpert.EnableFilterBy' | translate: { Default: 'Enable Filter By' }"
-        matTooltipPosition="above"
+        [zTooltip]="'PAC.Xpert.EnableFilterBy' | translate: { Default: 'Enable Filter By' }"
+        zPosition="top"
       />
     </div>
     @if (filterByEnabled()) {
@@ -46,8 +46,8 @@
 
       <z-switch
         [(ngModel)]="extractByEnabled"
-        [matTooltip]="'PAC.Xpert.EnableExtractTheNItem' | translate: { Default: 'Enable Extract The Nth Item' }"
-        matTooltipPosition="above"
+        [zTooltip]="'PAC.Xpert.EnableExtractTheNItem' | translate: { Default: 'Enable Extract The Nth Item' }"
+        zPosition="top"
       />
     </div>
     @if (extractByEnabled()) {
@@ -80,8 +80,8 @@
 
       <z-switch
         [(ngModel)]="topNEnabled"
-        [matTooltip]="'PAC.Xpert.EnableTopN' | translate: { Default: 'Enable Top N' }"
-        matTooltipPosition="above"
+        [zTooltip]="'PAC.Xpert.EnableTopN' | translate: { Default: 'Enable Top N' }"
+        zPosition="top"
       />
     </div>
     @if (topNEnabled()) {
@@ -114,8 +114,8 @@
 
       <z-switch
         [(ngModel)]="sortByEnabled"
-        [matTooltip]="'PAC.Xpert.EnableSortBy' | translate: { Default: 'Enable Sort By' }"
-        matTooltipPosition="above"
+        [zTooltip]="'PAC.Xpert.EnableSortBy' | translate: { Default: 'Enable Sort By' }"
+        zPosition="top"
       />
     </div>
     @if (sortByEnabled()) {
@@ -137,8 +137,8 @@
         <ngm-checkbox
           class="shrink-0"
           [(ngModel)]="sortByDescending"
-          [matTooltip]="'PAC.Xpert.SortDescending' | translate: { Default: 'Sort Descending' }"
-          matTooltipPosition="above"
+          [zTooltip]="'PAC.Xpert.SortDescending' | translate: { Default: 'Sort Descending' }"
+          zPosition="top"
         >
           @if (sortByDescending()) {
             <i class="ri-sort-desc"></i>

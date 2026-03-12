@@ -3,8 +3,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatTooltipModule } from '@angular/material/tooltip'
+import { ZardFormImports, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { isNil } from '@metad/copilot'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -34,7 +33,7 @@ import { NgmSelectComponent } from '../../common'
     TranslateModule,
     CdkMenuModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardInputDirective,
     ...ZardFormImports,
     NgmDensityDirective,

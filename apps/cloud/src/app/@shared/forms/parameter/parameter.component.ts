@@ -1,14 +1,13 @@
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCheckboxComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { ParameterTypeEnum, TParameter } from '../../../@core/types'
 import { NgmSelectComponent } from '../../common'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  */
 @Component({
@@ -17,7 +16,7 @@ import { NgmSelectComponent } from '../../common'
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmI18nPipe,
     NgmSelectComponent,
     NgmCheckboxComponent

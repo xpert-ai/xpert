@@ -13,7 +13,7 @@
 
       <i
         class="ri-question-line mr-4 shrink-0 text-text-quaternary hover:text-text-tertiary"
-        [matTooltip]="
+        [zTooltip]="
           'PAC.Xpert.AfterSecondsTooltip'
             | translate
               : {
@@ -21,7 +21,7 @@
                     'The number of seconds after the conversation ends to summarize, if there is no continuation of the conversation'
                 }
         "
-        matTooltipPosition="above"
+        zPosition="top"
       ></i>
 
       <mat-slider class="grow" min="0" max="100" step="1" showTickMarks discrete [displayWith]="formatLabel">

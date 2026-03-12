@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common'
 import { Component, effect, inject, input, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatTreeFlatDataSource, MatTreeFlattener, MatTreeModule } from '@angular/material/tree'
 import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
 import {
@@ -23,8 +22,7 @@ import { ModelDesignerType } from '../../../types'
 import { ModelEntityService } from '../../entity.service'
 import { mapDimensionToTreeItemNode, TreeItemFlatNode, TreeItemNode } from '../types'
 import { ModelEntityComponent } from '../../entity.component'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-usage-dimension',
@@ -41,7 +39,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     MatTreeModule,
     ZardButtonComponent,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmEntityPropertyComponent
   ]
 })

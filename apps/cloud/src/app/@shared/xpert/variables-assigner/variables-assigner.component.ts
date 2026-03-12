@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -13,19 +12,14 @@ import {
   VariableOperations
 } from '../../../@core/types'
 import { TXpertVariablesOptions, XpertMemoryAssignerComponent } from '../../agent'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  *
  */
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    FormsModule,
-    TranslateModule,
-    MatTooltipModule,
-    XpertMemoryAssignerComponent
-  ],
+  imports: [CommonModule, FormsModule, TranslateModule, ...ZardTooltipImports, XpertMemoryAssignerComponent],
   selector: 'xpert-variables-assigner',
   templateUrl: 'variables-assigner.component.html',
   styleUrls: ['variables-assigner.component.scss']

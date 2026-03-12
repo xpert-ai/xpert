@@ -1,6 +1,16 @@
 import { CdkDragDrop, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, HostBinding, OnInit, computed, effect, inject, model, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  HostBinding,
+  OnInit,
+  computed,
+  effect,
+  inject,
+  model,
+  signal
+} from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, NavigationEnd, Router, RouterModule, UrlSegment } from '@angular/router'
@@ -16,7 +26,6 @@ import { isNil, negate } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom, of } from 'rxjs'
 import { debounceTime, distinctUntilChanged, filter, map, pairwise, startWith, switchMap } from 'rxjs/operators'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { AggregationRole, isEntitySet, markdownModelCube, PropertyAttributes } from '@metad/ocap-core'
 import { NgmOcapCoreService } from '@metad/ocap-angular/core'
@@ -28,8 +37,7 @@ import { ModelEntityService } from './entity.service'
 import { ModelCubeFactComponent } from './fact/fact.component'
 import { SemanticModelService } from '../model.service'
 import { ModelComponent } from '../model.component'
-import { ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
-
+import { ZardIconComponent, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-model-entity',
@@ -44,7 +52,7 @@ import { ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     CdkMenuModule,
     CopyComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardIconComponent,
     MatSidenavModule,
     ...ZardTabsImports,
@@ -78,7 +86,7 @@ export class ModelEntityComponent implements OnInit {
   readonly detailsOpen = model(false)
   // Cube structure opened state
   readonly drawerOpened = model(true)
-  readonly modelSideMenuOpened= this.#model.sideMenuOpened
+  readonly modelSideMenuOpened = this.#model.sideMenuOpened
 
   public readonly entityId$ = this.route.paramMap.pipe(
     startWith(this.route.snapshot.paramMap),
@@ -108,11 +116,13 @@ export class ModelEntityComponent implements OnInit {
   readonly openedCalculation = signal<string>(null)
 
   // states
-  readonly llmContext = computed(() => markdownModelCube({
-    modelId: this.#model.model.id,
-    dataSource: this.#model.model.id,
-    cube: this.entityType()
-  }))
+  readonly llmContext = computed(() =>
+    markdownModelCube({
+      modelId: this.#model.model.id,
+      dataSource: this.#model.model.id,
+      cube: this.entityType()
+    })
+  )
 
   /**
   |--------------------------------------------------------------------------
@@ -135,9 +145,9 @@ export class ModelEntityComponent implements OnInit {
           const parameters = state ? [...state] : []
           const index = parameters.findIndex((p) => p.__id__ === parameter.__id__)
           if (index > -1) {
-            parameters[index] = {...parameter}
+            parameters[index] = { ...parameter }
           } else {
-            parameters.push({...parameter})
+            parameters.push({ ...parameter })
           }
           return parameters
         })
@@ -145,7 +155,7 @@ export class ModelEntityComponent implements OnInit {
         // @todo
       }
     })
-  
+
   private entitySub = this.entityId$.pipe(takeUntilDestroyed()).subscribe((id) => {
     this.entityService.init(id)
     this.modelService.setCrrentEntity(id)
@@ -162,24 +172,32 @@ export class ModelEntityComponent implements OnInit {
         if (!prev || !isEntitySet(prev)) {
           this.#toastr.success(this.i18n()?.CubeCorrect || 'Cube correct!')
         }
-      } else if(curr) {
-        this.#toastr.danger(curr, '', {}, {
-          duration: 5 * 1000, // 5s
-          horizontalPosition: 'center',
-          verticalPosition: 'bottom'
-        })
+      } else if (curr) {
+        this.#toastr.danger(
+          curr,
+          '',
+          {},
+          {
+            duration: 5 * 1000, // 5s
+            horizontalPosition: 'center',
+            verticalPosition: 'bottom'
+          }
+        )
       }
     })
-  
+
   constructor() {
     /**
      * When selected property first time to open the attributes panel
      */
-    effect(() => {
-      if (this.entityService.selectedProperty()) {
-        this.detailsOpen.set(true)
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (this.entityService.selectedProperty()) {
+          this.detailsOpen.set(true)
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   ngOnInit() {

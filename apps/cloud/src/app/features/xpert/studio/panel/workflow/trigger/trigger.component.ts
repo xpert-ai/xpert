@@ -2,7 +2,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { XpertParametersEditComponent } from '@cloud/app/@shared/xpert'
 import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -21,6 +20,7 @@ import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-trigger',
@@ -32,7 +32,7 @@ import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
     CommonModule,
     FormsModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     JSONSchemaFormComponent,
     XpertParametersEditComponent

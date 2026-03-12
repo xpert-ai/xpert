@@ -13,8 +13,8 @@
     <div
       class="bg-zinc-50 hover:bg-zinc-100 relative flex h-9 cursor-pointer items-center rounded-lg border border-dashed border-divider-deep px-1 text-sm text-text-placeholder"
       [cdkMenuTriggerFor]="toolsetMenu"
-      [matTooltip]="toolsetDetail()?.description"
-      matTooltipPosition="left"
+      [zTooltip]="toolsetDetail()?.description"
+      zPosition="left"
     >
       @if (toolsetDetail(); as toolset) {
         <emoji-avatar [avatar]="toolset.avatar" xs class="shrink-0 mr-2 overflow-hidden rounded-lg scale-95" />
@@ -53,8 +53,8 @@
       #toolMenuTrigger
       [cdkMenuTriggerFor]="toolsMenu"
       [ariaDisabled]="!toolsetDetail()"
-      [matTooltip]="tool()?.description"
-      matTooltipPosition="left"
+      [zTooltip]="tool()?.description"
+      zPosition="left"
     >
       @if (tool(); as tool) {
         <div class="flex items-center whitespace-nowrap" [title]="tool.description || tool.name">
@@ -125,8 +125,8 @@
       class="flex"
       [(ngModel)]="omitBlankValues"
       labelPosition="before"
-      [matTooltip]="'PAC.Xpert.OmitBlankValuesTip' | translate: { Default: 'Omit blank values in parameters' }"
-      matTooltipPosition="left"
+      [zTooltip]="'PAC.Xpert.OmitBlankValuesTip' | translate: { Default: 'Omit blank values in parameters' }"
+      zPosition="left"
       zSize="sm"
     />
   </div>

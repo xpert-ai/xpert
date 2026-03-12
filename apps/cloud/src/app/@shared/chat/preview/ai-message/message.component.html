@@ -1,26 +1,36 @@
 @if (reasoning(); as reasoning) {
   <div class="relative group/reasoning w-full max-h-90 px-1 border-l-2 border-solid border-gray-200 overflow-auto">
     <div class="flex justify-between items-center">
-      <div class="flex items-center cursor-pointer pressable rounded-md px-1 text-gray-500 hover:bg-hover-bg"
-        (click)="expandReason.set(!expandReason())">
+      <div
+        class="flex items-center cursor-pointer pressable rounded-md px-1 text-gray-500 hover:bg-hover-bg"
+        (click)="expandReason.set(!expandReason())"
+      >
         @if (expandReason()) {
           <i class="ri-arrow-down-s-line"></i>
         } @else {
           <i class="ri-arrow-right-s-line"></i>
         }
         <div class="mr-1 leading-[18px] text-sm font-semibold uppercase">
-          {{ 'PAC.Chat.Reasoning' | translate: {Default: 'Reasoning'} }}
+          {{ 'PAC.Chat.Reasoning' | translate: { Default: 'Reasoning' } }}
         </div>
       </div>
 
-      <copy2 #copy class="opacity-30 group-hover/reasoning:opacity-100"
+      <copy2
+        #copy
+        class="opacity-30 group-hover/reasoning:opacity-100"
         [content]="reasoningText()"
-        [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
-        matTooltipPosition="above" />
+        [zTooltip]="
+          copy.copied()
+            ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
+            : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+        "
+        zPosition="top"
+      />
     </div>
     @if (expandReason()) {
       @for (item of reasoning; track item.id) {
-        <markdown class="ngm-copilot-markdown text-xs font-body text-zinc-500"
+        <markdown
+          class="ngm-copilot-markdown text-xs font-body text-zinc-500"
           lineNumbers
           [start]="5"
           [data]="item.text"
@@ -31,9 +41,10 @@
 }
 
 @for (chunk of contents(); track $index) {
-  @switch(chunk.type) {
+  @switch (chunk.type) {
     @case ('text') {
-      <markdown class="ngm-copilot-markdown text-sm"
+      <markdown
+        class="ngm-copilot-markdown text-sm"
         [disableSanitizer]="true"
         lineNumbers
         [start]="5"
@@ -47,17 +58,26 @@
         <div class="group rounded-lg flex flex-col items-stretch max-h-48 hover:bg-gray-50 transition-all">
           <div class="flex justify-between items-center text-base p-2">
             <div>
-              <span class="font-semibold shrink-0">{{'PAC.Xpert.Component' | translate: {Default: 'Component'} }}</span>
-              <i class="ri-information-2-line ml-1 text-text-secondary hover:text-text-primary"
-                [matTooltip]="'PAC.Chat.DisplayOnlyData' | translate: {Default: 'Only display component data'}"
-                matTooltipPosition="above"
+              <span class="font-semibold shrink-0">{{
+                'PAC.Xpert.Component' | translate: { Default: 'Component' }
+              }}</span>
+              <i
+                class="ri-information-2-line ml-1 text-text-secondary hover:text-text-primary"
+                [zTooltip]="'PAC.Chat.DisplayOnlyData' | translate: { Default: 'Only display component data' }"
+                zPosition="top"
               ></i>
             </div>
 
-            <copy2 #copy class="opacity-30 group-hover:opacity-100"
+            <copy2
+              #copy
+              class="opacity-30 group-hover:opacity-100"
               [content]="chunk"
-              [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
-              matTooltipPosition="above"
+              [zTooltip]="
+                copy.copied()
+                  ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
+                  : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+              "
+              zPosition="top"
             />
           </div>
           <div class="flex-1 px-3 text-sm rounded-lg whitespace-normal overflow-auto">
@@ -67,16 +87,18 @@
       }
     }
     @default {
-      <div class="p-4 font-semibold text-text-destructive">Unsupport chunk type: {{chunk.type}}</div>
+      <div class="p-4 font-semibold text-text-destructive">Unsupport chunk type: {{ chunk.type }}</div>
     }
   }
 }
 
 @if (thirdPartyMessage()) {
   <div class="group rounded-lg flex flex-col items-stretch max-h-48 hover:bg-gray-50 transition-all">
-    <div class="text-base font-semibold shrink-0 p-2">{{'PAC.Xpert.ThirdPartyMessage' | translate: {Default: 'Third-party platform message'} }}</div>
+    <div class="text-base font-semibold shrink-0 p-2">
+      {{ 'PAC.Xpert.ThirdPartyMessage' | translate: { Default: 'Third-party platform message' } }}
+    </div>
     <div class="flex-1 text-sm rounded-lg whitespace-normal overflow-auto">
-      <p class="px-4 pb-4">{{thirdPartyMessage() | json}}</p>
+      <p class="px-4 pb-4">{{ thirdPartyMessage() | json }}</p>
     </div>
   </div>
 }

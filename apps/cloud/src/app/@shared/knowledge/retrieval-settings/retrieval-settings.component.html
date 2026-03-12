@@ -51,7 +51,7 @@
               }}</span>
               <div
                 class="h-3.5 w-3.5 shrink-0 p-[1px] flex items-center text-text-tertiary hover:text-text-primary"
-                [matTooltip]="
+                [zTooltip]="
                   'PAC.Knowledgebase.RerankModelInfo'
                     | translate
                       : {
@@ -59,7 +59,7 @@
                             'Rerank model will reorder the candidate document list based on the semantic match with user query, improving the results of semantic ranking.'
                         }
                 "
-                matTooltipPosition="above"
+                zPosition="top"
               >
                 <i class="ri-information-2-line"></i>
               </div>
@@ -98,7 +98,7 @@
               <z-switch
                 class="inline-flex ml-1"
                 [(ngModel)]="useScore"
-                [matTooltip]="
+                [zTooltip]="
                   'PAC.Knowledgebase.SimilarityThresholdInfo'
                     | translate
                       : {
@@ -106,7 +106,7 @@
                             'If the similarity between the query and the chunk is less than this threshold, the chunk will be filtered out.'
                         }
                 "
-                matTooltipPosition="above"
+                zPosition="top"
               />
             </ngm-slider-input>
           </div>

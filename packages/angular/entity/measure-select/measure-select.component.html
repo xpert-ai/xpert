@@ -1,9 +1,12 @@
-<ngm-select class="flex-1" searchable valueKey="key"
+<ngm-select
+  class="flex-1"
+  searchable
+  valueKey="key"
   [label]="label()"
   [placeholder]="placeholder()"
   [formControl]="formControl"
   [selectOptions]="measureOptions()"
-  [ngClass]="{'ngm-select-error': error()}"
+  [ngClass]="{ 'ngm-select-error': error() }"
 >
   <ng-template ngmOptionContent let-property="value" let-highlight="highlight">
     <ngm-entity-property class="flex-1" [property]="property" [highlight]="highlight" />
@@ -13,19 +16,33 @@
     <ng-content select="ngmSuffix"></ng-content>
 
     @if (isCalculationProperty()) {
-      <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'Ngm.MeasureSelect.EditCalculationMeasure' | translate: {Default: 'Edit calculation measure'}" (click)="editCalculationMeasure()">
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        [zTooltip]="'Ngm.MeasureSelect.EditCalculationMeasure' | translate: { Default: 'Edit calculation measure' }"
+        (click)="editCalculationMeasure()"
+      >
         <z-icon zType="functions"></z-icon>
       </button>
     }
 
     @if (calculationable()) {
-      <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]="'Ngm.MeasureSelect.NewCalculationMeasure' | translate: {Default: 'New calculation measure'}" (click)="openCalculationMeasure()">
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        [zTooltip]="'Ngm.MeasureSelect.NewCalculationMeasure' | translate: { Default: 'New calculation measure' }"
+        (click)="openCalculationMeasure()"
+      >
         <z-icon zType="add"></z-icon>
       </button>
     }
   </div>
 
   <div ngmError>
-    {{error()}}
+    {{ error() }}
   </div>
 </ngm-select>

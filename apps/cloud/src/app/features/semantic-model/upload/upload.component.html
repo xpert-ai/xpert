@@ -38,11 +38,7 @@
 
       <ul cdkTrapFocus cdkTrapFocusAutoCapture class="ngm-nav-list">
         @for (sheet of sheets$ | async; track sheet.name) {
-          <li
-            class="mt-1"
-            [class.active]="activeLink === sheet.name"
-            (click)="activeSheet(sheet)"
-          >
+          <li class="mt-1" [class.active]="activeLink === sheet.name" (click)="activeSheet(sheet)">
             <ngm-input
               [label]="'PAC.KEY_WORDS.TableName' | translate: { Default: 'Table Name' }"
               [(ngModel)]="sheet.name"
@@ -149,8 +145,8 @@
                     <div class="flex justify-start items-center gap-2">
                       <z-checkbox
                         [(ngModel)]="header.isKey"
-                        [matTooltip]="'PAC.KEY_WORDS.PrimaryKey' | translate: { Default: 'Primary Key' }"
-                        matTooltipPosition="above"
+                        [zTooltip]="'PAC.KEY_WORDS.PrimaryKey' | translate: { Default: 'Primary Key' }"
+                        zPosition="top"
                       />
                       <select [(ngModel)]="header.type" class="ngm-select">
                         <option value="String">String</option>
@@ -206,53 +202,50 @@
     @case (2) {
       <ul role="list" class="ngm-list">
         @for (sheet of sheets; track sheet.name) {
-        <li
-          role="listitem"
-          class="hover:bg-slate-500/10 text-ellipsis overflow-hidden"
-        >
-          <div class="flex items-center justify-start px-3 py-2">
-            @switch (sheet.status) {
-              @case ('uploading') {
-                <span class="mr-2">
-                  {{ timer$ | async }}
+          <li role="listitem" class="hover:bg-slate-500/10 text-ellipsis overflow-hidden">
+            <div class="flex items-center justify-start px-3 py-2">
+              @switch (sheet.status) {
+                @case ('uploading') {
+                  <span class="mr-2">
+                    {{ timer$ | async }}
+                  </span>
+                }
+                @case ('done') {
+                  <span class="mr-2">✅</span>
+                }
+                @case ('error') {
+                  <span class="mr-2">❌</span>
+                }
+                @default {
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    zShape="circle"
+                    ngmAppearance="danger"
+                    displayDensity="compact"
+                    (click)="remove(sheet)"
+                  >
+                    <z-icon zType="delete"></z-icon>
+                  </button>
+                }
+              }
+
+              <span class="pac-upload-table__upload-name whitespace-nowrap">{{ sheet.name }}:</span>
+
+              @if (sheet.status === 'error') {
+                <span class="whitespace-nowrap overflow-hidden text-ellipsis opacity-60" [zTooltip]="sheet.info">{{
+                  sheet.info
+                }}</span>
+              } @else if (sheet.status === 'done') {
+                <span class="opacity-60">
+                  {{ 'PAC.MODEL.UPLOAD.Uploaded' | translate: { Default: 'Uploaded' } }}
+                  {{ sheet.data.length }}
+                  {{ 'PAC.MODEL.UPLOAD.Records' | translate: { Default: 'Records' } }}
                 </span>
               }
-              @case ('done') {
-                <span class="mr-2">✅</span>
-              }
-              @case ('error') {
-                <span class="mr-2">❌</span>
-              }
-              @default {
-                <button
-                  z-button
-                  zType="ghost"
-                  zSize="icon"
-                  zShape="circle"
-                  ngmAppearance="danger"
-                  displayDensity="compact"
-                  (click)="remove(sheet)"
-                >
-                  <z-icon zType="delete"></z-icon>
-                </button>
-              }
-            }
-
-            <span class="pac-upload-table__upload-name whitespace-nowrap">{{ sheet.name }}:</span>
-
-            @if (sheet.status === 'error') {
-              <span class="whitespace-nowrap overflow-hidden text-ellipsis opacity-60" [matTooltip]="sheet.info">{{
-                sheet.info
-              }}</span>
-            } @else if (sheet.status === 'done') {
-              <span class="opacity-60">
-                {{ 'PAC.MODEL.UPLOAD.Uploaded' | translate: { Default: 'Uploaded' } }}
-                {{ sheet.data.length }}
-                {{ 'PAC.MODEL.UPLOAD.Records' | translate: { Default: 'Records' } }}
-              </span>
-            }
-          </div>
-        </li>
+            </div>
+          </li>
         }
       </ul>
     }

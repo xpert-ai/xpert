@@ -6,7 +6,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
 import { NgmHighlightDirective, NgmSearchComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -17,7 +16,7 @@ import { debounceTime, map, startWith } from 'rxjs'
 import { EmojiAvatarComponent } from '../../../../../@shared/avatar'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-toolset-menu',
   templateUrl: './toolset.component.html',
@@ -32,7 +31,7 @@ import { XpertStudioComponent } from '../../studio.component'
     CdkMenuModule,
     CdkListboxModule,
     OverlayModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
 
     NgmSearchComponent,
     NgmHighlightDirective,

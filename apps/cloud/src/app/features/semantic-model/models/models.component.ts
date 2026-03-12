@@ -7,7 +7,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup } from '@angular/forms'
 
 import { MatDialog } from '@angular/material/dialog'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import { ModelCreationComponent } from '@cloud/app/@shared/model'
 import { DataSourceService, IBusinessArea, SemanticModelServerService } from '@metad/cloud/state'
@@ -41,8 +40,7 @@ import { CreatedByPipe } from '../../../@shared/pipes'
 import { AppService } from '../../../app.service'
 import { exportSemanticModel } from '../types'
 import { BusinessAreaSelectComponent } from '@cloud/app/@shared/business-area'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -50,7 +48,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     NgxPermissionsModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardButtonComponent,
     ZardIconComponent,
     RouterModule,
@@ -111,7 +109,7 @@ export class ModelsComponent implements AfterViewInit {
       this.loading.set(true)
       return component === 'my' ? this.modelsAPI.getMyModelsByAreaTree() : this.modelsAPI.getModelsByAreaTree()
     }),
-    tap(() => (this.loading.set(false))),
+    tap(() => this.loading.set(false)),
     takeUntilDestroyed(),
     shareReplay(1)
   )
@@ -345,28 +343,31 @@ export class ModelsComponent implements AfterViewInit {
   }
 
   moveToBusinessArea(model: ISemanticModel) {
-    this.#dialog.open<IBusinessArea>(BusinessAreaSelectComponent, {
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet',
-      data: {
-      }
-    }).closed.subscribe((area) => {
-      if (area) {
-        this.loading.set(true)
-        this.modelsAPI.updateModel(model.id, {
-          businessAreaId: area.id
-        }).subscribe({
-          next: () => {
-            this.loading.set(false)
-            this.#toastr.success('PAC.MODEL.ModelUpdateBusinessArea', { Default: 'Model business area updated' })
-            this.refresh$.next()
-          },
-          error: (err) => {
-            this.loading.set(false)
-            this.#toastr.error(getErrorMessage(err))
-          }
-        })
-      }
-    })
+    this.#dialog
+      .open<IBusinessArea>(BusinessAreaSelectComponent, {
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: {}
+      })
+      .closed.subscribe((area) => {
+        if (area) {
+          this.loading.set(true)
+          this.modelsAPI
+            .updateModel(model.id, {
+              businessAreaId: area.id
+            })
+            .subscribe({
+              next: () => {
+                this.loading.set(false)
+                this.#toastr.success('PAC.MODEL.ModelUpdateBusinessArea', { Default: 'Model business area updated' })
+                this.refresh$.next()
+              },
+              error: (err) => {
+                this.loading.set(false)
+                this.#toastr.error(getErrorMessage(err))
+              }
+            })
+        }
+      })
   }
 }

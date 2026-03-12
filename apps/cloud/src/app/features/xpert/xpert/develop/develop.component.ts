@@ -2,17 +2,9 @@
 // import { Dialog } from '@angular/cdk/dialog'
 // import { CommonModule } from '@angular/common'
 // import {
-//   afterNextRender,
-//   AfterRenderPhase,
-//   ChangeDetectionStrategy,
-//   Component,
-//   ElementRef,
-//   inject,
-//   signal,
-//   viewChild
+//   afterNextRender, //   AfterRenderPhase, //   ChangeDetectionStrategy, //   Component, //   ElementRef, //   inject, //   signal, //   viewChild
 // } from '@angular/core'
 // import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-// import { MatTooltipModule } from '@angular/material/tooltip'
 // import { RouterModule } from '@angular/router'
 // import { TranslateModule } from '@ngx-translate/core'
 // import { injectApiBaseUrl, injectHelpWebsite, routeAnimations } from '../../../../@core'
@@ -22,7 +14,7 @@
 
 // @Component({
 //   standalone: true,
-//   imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, RouterModule, MatTooltipModule],
+//   imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, RouterModule, ...ZardTooltipImports],
 //   selector: 'xpert-develop',
 //   templateUrl: './develop.component.html',
 //   styleUrl: 'develop.component.scss',
@@ -60,7 +52,7 @@
 //             domNode: this.swaggerUIContainer().nativeElement
 //           })
 //         })
-   
+
 //       },
 //       { phase: AfterRenderPhase.Write }
 //     )

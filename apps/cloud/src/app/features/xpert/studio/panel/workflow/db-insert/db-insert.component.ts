@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { attrModel, linkedModel, myRxResource } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { AiModelTypeEnum, IWFNDBInsert, IXpertTable, ModelFeature, injectXpertTableAPI } from 'apps/cloud/src/app/@core'
@@ -10,7 +9,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { WorkspaceSelectDatabaseComponent } from '@cloud/app/@shared/workspace'
 import { TXpertTableColumn } from '@metad/contracts'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 type InsertColumns = NonNullable<IWFNDBInsert['columns']>
 type InsertColumnConfig = InsertColumns[keyof InsertColumns]
 
@@ -20,7 +19,7 @@ type InsertColumnConfig = InsertColumns[keyof InsertColumns]
   styleUrls: ['./db-insert.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, MatTooltipModule, TranslateModule, StateVariableSelectComponent]
+  imports: [CommonModule, FormsModule, ...ZardTooltipImports, TranslateModule, StateVariableSelectComponent]
 })
 export class XpertWorkflowPanelDBInsertComponent extends XpertWorkflowBaseComponent {
   eModelType = AiModelTypeEnum
@@ -96,17 +95,19 @@ export class XpertWorkflowPanelDBInsertComponent extends XpertWorkflowBaseCompon
   }
 
   addDBTable() {
-    this.dialog.open<IXpertTable>(WorkspaceSelectDatabaseComponent, {
-      data: {
-        workspaceId: this.workspaceId()
-      }
-    }).closed.subscribe((dbTable: IXpertTable) => {
-      if (dbTable) {
-        this.tableId.set(dbTable.id)
-        this.columns.set(null)
-        this.dbColumnsExpand.set(true)
-      }
-    })
+    this.dialog
+      .open<IXpertTable>(WorkspaceSelectDatabaseComponent, {
+        data: {
+          workspaceId: this.workspaceId()
+        }
+      })
+      .closed.subscribe((dbTable: IXpertTable) => {
+        if (dbTable) {
+          this.tableId.set(dbTable.id)
+          this.columns.set(null)
+          this.dbColumnsExpand.set(true)
+        }
+      })
   }
 
   addDBColumn(columnName?: string) {

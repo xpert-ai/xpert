@@ -1,4 +1,5 @@
-<ngm-analytical-card class="w-full h-full group"
+<ngm-analytical-card
+  class="w-full h-full group"
   [appearance]="styling?.appearance"
   [title]="title"
   [dataSettings]="__dataSettings$ | async"
@@ -15,27 +16,47 @@
         <z-icon zType="push_pin"></z-icon>
       </button>
     }
-    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-menu-trigger opacity-20 group-hover:opacity-100 duration-200" [color]="(hasSlicers$ | async) ? 'accent':''" [matMenuTriggerFor]="filtersMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" [matTooltip]="'Story.Common.Slicers' | translate: {Default: 'Slicers'}" matTooltipPosition="above">
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      displayDensity="cosy"
+      class="ngm-menu-trigger opacity-20 group-hover:opacity-100 duration-200"
+      [color]="(hasSlicers$ | async) ? 'accent' : ''"
+      [matMenuTriggerFor]="filtersMenu"
+      #mt="matMenuTrigger"
+      [class.active]="mt.menuOpen"
+      [zTooltip]="'Story.Common.Slicers' | translate: { Default: 'Slicers' }"
+      zPosition="top"
+    >
       <z-icon zType="filter_alt"></z-icon>
     </button>
   </div>
 </ngm-analytical-card>
 
-<div *ngIf="editable && (placeholder$ | async)" class="ngm-story-widget__placeholder absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center">
+<div
+  *ngIf="editable && (placeholder$ | async)"
+  class="ngm-story-widget__placeholder absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center"
+>
   @if (chartAnnotation) {
-    <pac-analytical-chart-placeholder class="w-full h-full"
-      [chartAnnotation]="chartAnnotation"
-    />
+    <pac-analytical-chart-placeholder class="w-full h-full" [chartAnnotation]="chartAnnotation" />
   } @else {
     <pac-placeholder-add />
-    <span class="ngm-story-widget__placeholder-title">{{ 'Story.Widgets.AnalyticalCard.Title' | translate: {Default: 'Analytical Card'} }}</span>
+    <span class="ngm-story-widget__placeholder-title">{{
+      'Story.Widgets.AnalyticalCard.Title' | translate: { Default: 'Analytical Card' }
+    }}</span>
   }
 </div>
 
 <mat-menu #filtersMenu="matMenu" class="pac-widget__slicer-menu">
-  <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: {Default: "Slicers"} }}</div>
+  <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: { Default: 'Slicers' } }}</div>
 
-  <ngm-slicers class="overflow-hidden" inline editable [slicers]="selectOptions$ | async"
+  <ngm-slicers
+    class="overflow-hidden"
+    inline
+    editable
+    [slicers]="selectOptions$ | async"
     [dataSettings]="dataSettings$ | async"
     [limit]="5"
     [capacities]="[SlicersCapacity.CombinationSlicer, SlicersCapacity.AdvancedSlicer, SlicersCapacity.Variable]"
