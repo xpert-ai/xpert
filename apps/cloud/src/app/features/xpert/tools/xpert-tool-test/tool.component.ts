@@ -3,15 +3,21 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, model, out
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialogModule } from '@angular/material/dialog'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { IfAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { IXpertTool, ToastrService, TWorkflowVarGroup, XpertToolService, XpertToolsetService } from 'apps/cloud/src/app/@core'
+import {
+  IXpertTool,
+  ToastrService,
+  TWorkflowVarGroup,
+  XpertToolService,
+  XpertToolsetService
+} from 'apps/cloud/src/app/@core'
 import { Observable, of, shareReplay, switchMap, tap } from 'rxjs'
 import { XpertToolsetToolTestComponent } from '../tool-test'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -22,11 +28,11 @@ import { XpertToolsetToolTestComponent } from '../tool-test'
     TranslateModule,
     MatDialogModule,
     MatTooltipModule,
-    MatSlideToggleModule,
     NgmI18nPipe,
     NgmDensityDirective,
     NgmSpinComponent,
-    XpertToolsetToolTestComponent
+    XpertToolsetToolTestComponent,
+    ZardSwitchComponent
   ],
   selector: 'xpert-tool-test',
   templateUrl: './tool.component.html',

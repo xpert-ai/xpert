@@ -1,11 +1,14 @@
 @if (quotaCopilots()?.length) {
   <div class="text-lg px-2 py-2">
-    {{ 'PAC.Copilot.FreeQuota' | translate: {Default: 'Free Quota'} }}
+    {{ 'PAC.Copilot.FreeQuota' | translate: { Default: 'Free Quota' } }}
   </div>
 
   @for (copilot of quotaCopilots(); track copilot.id) {
-    <copilot-provider @disappear1 readonly class="shadow-sm mb-2 rounded-xl border-[0.5px] border-black/5"
-      [providerId]="copilot.modelProvider.id" 
+    <copilot-provider
+      @disappear1
+      readonly
+      class="shadow-sm mb-2 rounded-xl border-[0.5px] border-black/5"
+      [providerId]="copilot.modelProvider.id"
       [usage]="copilot.usage"
     />
   }
@@ -13,43 +16,60 @@
 
 @if (quotaCopilots()?.length) {
   <div class="text-lg px-2 py-4">
-    {{ 'PAC.Copilot.CustomCopilots' | translate: {Default: 'Custom Copilots'} }}
+    {{ 'PAC.Copilot.CustomCopilots' | translate: { Default: 'Custom Copilots' } }}
   </div>
 }
-<mat-accordion >
-  <mat-expansion-panel #expansion hideToggle class="mat-elevation-z" [disabled]="!primary()?.enabled" [expanded]="!!primary()?.enabled">
+<mat-accordion>
+  <mat-expansion-panel
+    #expansion
+    hideToggle
+    class="mat-elevation-z"
+    [disabled]="!primary()?.enabled"
+    [expanded]="!!primary()?.enabled"
+  >
     <mat-expansion-panel-header>
       <mat-panel-title>
         @if (primary(); as copilot) {
           @if (copilot.modelProvider?.provider && !expansion.expanded) {
             <div class="flex" [matTooltip]="copilot.id" matTooltipPosition="before">
               @if (copilot.modelProvider.provider.icon_large) {
-                <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="copilot.modelProvider.provider.icon_large | i18n">
+                <img
+                  alt="provider-icon"
+                  class="w-auto h-6 ml-2"
+                  [src]="copilot.modelProvider.provider.icon_large | i18n"
+                />
               } @else {
                 @if (copilot.modelProvider.provider.icon_small) {
-                  <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="copilot.modelProvider.provider.icon_small | i18n">
+                  <img
+                    alt="provider-icon"
+                    class="w-auto h-6 ml-2"
+                    [src]="copilot.modelProvider.provider.icon_small | i18n"
+                  />
                 }
-                <span class="ml-2">{{copilot.modelProvider.provider.label | i18n}}</span>
+                <span class="ml-2">{{ copilot.modelProvider.provider.label | i18n }}</span>
               }
             </div>
           }
         }
         <div class="ml-2">
-          {{'PAC.KEY_WORDS.Primary' | translate: {Default: 'Primary'} }}
-          {{'PAC.KEY_WORDS.Provider' | translate: {Default: 'Provider'} }}
+          {{ 'PAC.KEY_WORDS.Primary' | translate: { Default: 'Primary' } }}
+          {{ 'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
         </div>
       </mat-panel-title>
       <mat-panel-description class="flex-1">
-        <mat-slide-toggle labelPosition="before" ngm-density small
-          [matTooltip]="'PAC.Copilot.EnableCopilot' | translate: {Default: 'Enable Copilot'}"
+        <z-switch
+          labelPosition="before"
+          [matTooltip]="'PAC.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
           matTooltipPosition="above"
           [checked]="primary()?.enabled"
           (change)="onToggle(null, eAiProviderRole.Primary, primary()?.enabled, expansion)"
-          (click)="$event.stopPropagation();">
-        </mat-slide-toggle>
+          (click)="$event.stopPropagation()"
+          zSize="sm"
+        >
+        </z-switch>
       </mat-panel-description>
     </mat-expansion-panel-header>
-    
+
     <pac-copilot-form [copilot]="primary()" />
   </mat-expansion-panel>
 
@@ -60,71 +80,90 @@
           <div [matTooltip]="copilot.id" matTooltipPosition="before" class="flex">
             @if (copilot.modelProvider?.provider && !expansion.expanded) {
               @if (copilot.modelProvider.provider.icon_large) {
-                <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="copilot.modelProvider.provider.icon_large | i18n">
+                <img
+                  alt="provider-icon"
+                  class="w-auto h-6 ml-2"
+                  [src]="copilot.modelProvider.provider.icon_large | i18n"
+                />
               } @else {
                 @if (copilot.modelProvider.provider.icon_small) {
-                  <img alt="provider-icon" class="w-auto h-6 ml-2" [src]="copilot.modelProvider.provider.icon_small | i18n">
+                  <img
+                    alt="provider-icon"
+                    class="w-auto h-6 ml-2"
+                    [src]="copilot.modelProvider.provider.icon_small | i18n"
+                  />
                 }
-                <span class="ml-2">{{copilot.modelProvider.provider.label | i18n}}</span>
+                <span class="ml-2">{{ copilot.modelProvider.provider.label | i18n }}</span>
               }
             }
           </div>
 
           <div class="flex justify-start items-center ml-2">
             @if (editingId() === copilot.id) {
-              <input class="flex-1 bg-transparent focus-visible:outline-none bg-white" cdkFocusInitial
+              <input
+                class="flex-1 bg-transparent focus-visible:outline-none bg-white"
+                cdkFocusInitial
                 type="text"
                 [(ngModel)]="name"
                 (click)="$event.stopPropagation()"
               />
-              <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-full"
+              <button
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-full"
                 type="button"
                 (click)="$event.stopPropagation(); saveCopilotName(copilot)"
               >
                 <i class="ri-check-line text-lg"></i>
               </button>
             } @else {
-              <div [ngClass]="expansion.expanded ? 'cursor-text' : ''"
-                (click)="expansion.expanded ? editName($event, copilot) : null">
+              <div
+                [ngClass]="expansion.expanded ? 'cursor-text' : ''"
+                (click)="expansion.expanded ? editName($event, copilot) : null"
+              >
                 @if (copilot.name) {
                   {{ copilot.name }}
                 } @else {
-                  {{'PAC.KEY_WORDS.' + (copilot.role | capitalize) | translate: { Default: (copilot.role | capitalize) } }}
-                  {{'PAC.KEY_WORDS.Provider' | translate: {Default: 'Provider'} }}
+                  {{
+                    'PAC.KEY_WORDS.' + (copilot.role | capitalize) | translate: { Default: (copilot.role | capitalize) }
+                  }}
+                  {{ 'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
                 }
               </div>
             }
           </div>
         </mat-panel-title>
         <mat-panel-description class="flex-1">
-          <mat-slide-toggle labelPosition="before" ngm-density small 
-            [matTooltip]="'PAC.Copilot.EnableCopilot' | translate: {Default: 'Enable Copilot'}"
+          <z-switch
+            labelPosition="before"
+            [matTooltip]="'PAC.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
             matTooltipPosition="above"
             [checked]="copilot.enabled"
             (change)="onToggle(copilot, null, copilot.enabled, expansion)"
-            (click)="$event.stopPropagation();">
-          </mat-slide-toggle>
+            (click)="$event.stopPropagation()"
+            zSize="sm"
+          >
+          </z-switch>
           @if (!copilot.enabled) {
-            <button type="button" class="btn pressable danger rounded-full w-6 h-6 p-0 justify-center ml-2"
-              [matTooltip]="'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'}"
+            <button
+              type="button"
+              class="btn pressable danger rounded-full w-6 h-6 p-0 justify-center ml-2"
+              [matTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
               matTooltipPosition="above"
-              (click)="deleteCopilot(copilot)">
+              (click)="deleteCopilot(copilot)"
+            >
               <i class="ri-close-line"></i>
             </button>
           }
         </mat-panel-description>
       </mat-expansion-panel-header>
-      
+
       <pac-copilot-form [copilot]="copilot" />
     </mat-expansion-panel>
   }
 </mat-accordion>
 
 <div class="flex justify-end mt-2">
-  <button type="button" class="btn btn-primary btn-large pressable"
-    [cdkMenuTriggerFor]="addMenu"
-  >
-    <i class="ri-apps-2-add-line"></i> {{ 'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }}
+  <button type="button" class="btn btn-primary btn-large pressable" [cdkMenuTriggerFor]="addMenu">
+    <i class="ri-apps-2-add-line"></i> {{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}
   </button>
 </div>
 
@@ -132,7 +171,7 @@
   <div cdkMenu class="cdk-menu__large w-[200px] divide-y-2 p-2">
     @for (provider of providers(); track provider.value) {
       <div cdkMenuItem (click)="addProvider(provider.value)">
-        {{ 'PAC.KEY_WORDS.' + provider.label | translate: {Default: provider.label } }}
+        {{ 'PAC.KEY_WORDS.' + provider.label | translate: { Default: provider.label } }}
       </div>
     }
   </div>

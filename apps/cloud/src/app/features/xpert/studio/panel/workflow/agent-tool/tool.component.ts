@@ -4,7 +4,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { XpertOutputVariablesEditComponent } from '@cloud/app/@shared/xpert'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
@@ -22,6 +21,7 @@ import {
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-agent-tool',
@@ -35,10 +35,10 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
     ClipboardModule,
     CdkMenuModule,
     MatTooltipModule,
-    MatSlideToggleModule,
     TranslateModule,
     NgmDensityDirective,
     XpertOutputVariablesEditComponent,
+    ZardSwitchComponent
   ]
 })
 export class XpertWorkflowAgentToolComponent extends XpertWorkflowBaseComponent {

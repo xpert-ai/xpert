@@ -1,14 +1,18 @@
-import { CommonModule } from '@angular/common';
-import { NgModule } from '@angular/core';
-import { FormsModule, ReactiveFormsModule } from '@angular/forms';
+import { CommonModule } from '@angular/common'
+import { NgModule } from '@angular/core'
+import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-import { MatExpansionModule } from '@angular/material/expansion';
-import { MatSlideToggleModule } from '@angular/material/slide-toggle';
-import { FormlyModule } from '@ngx-formly/core';
-import { NgmDensityDirective } from '@metad/ocap-angular/core';
-import { TranslateModule } from '@ngx-translate/core';
-import { NgmFormlyAccordionComponent } from './accordion-wrapper.component';
+import {
+  ZardButtonComponent,
+  ZardDividerComponent,
+  ZardIconComponent,
+  ZardSwitchComponent
+} from '@xpert-ai/headless-ui'
+import { MatExpansionModule } from '@angular/material/expansion'
+import { FormlyModule } from '@ngx-formly/core'
+import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
+import { NgmFormlyAccordionComponent } from './accordion-wrapper.component'
 
 @NgModule({
   declarations: [NgmFormlyAccordionComponent],
@@ -20,24 +24,24 @@ import { NgmFormlyAccordionComponent } from './accordion-wrapper.component';
     ZardIconComponent,
     ZardButtonComponent,
     ZardDividerComponent,
-    MatSlideToggleModule,
+    ZardSwitchComponent,
     MatExpansionModule,
     NgmDensityDirective,
     FormlyModule.forChild({
       types: [
         {
           name: 'accordion',
-          component: NgmFormlyAccordionComponent,
-        },
+          component: NgmFormlyAccordionComponent
+        }
       ],
       wrappers: [
         {
           name: 'accordion',
-          component: NgmFormlyAccordionComponent,
-        },
-      ],
-    }),
+          component: NgmFormlyAccordionComponent
+        }
+      ]
+    })
   ],
-  exports: [NgmFormlyAccordionComponent],
+  exports: [NgmFormlyAccordionComponent]
 })
 export class NgmFormlyAccordionModule {}

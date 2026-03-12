@@ -22,7 +22,6 @@ import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatSnackBarModule } from '@angular/material/snack-bar'
 import { MatStepperModule } from '@angular/material/stepper'
@@ -50,7 +49,6 @@ const MATERIAL_MODULES = [
   MatSnackBarModule,
   ZardInputDirective,
   MatCardModule,
-  MatSlideToggleModule,
   MatProgressBarModule,
   MatSidenavModule,
   ZardCheckboxComponent,

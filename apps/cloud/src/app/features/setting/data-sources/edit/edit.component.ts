@@ -1,11 +1,20 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, HostBinding, inject, Inject, Optional, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  HostBinding,
+  inject,
+  Inject,
+  Optional,
+  signal
+} from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { environment } from '@cloud/environments/environment'
 import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@metad/cloud/state'
@@ -30,7 +39,22 @@ import {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DragDropModule, ZardInputDirective, ...ZardFormImports, MatTooltipModule, ZardButtonComponent, MatSlideToggleModule, FormlyModule, ContentLoaderModule, ButtonGroupDirective, NgmDensityDirective, NgmInputComponent, NgmRadioSelectComponent],
+  imports: [
+    CommonModule,
+    TranslateModule,
+    ReactiveFormsModule,
+    DragDropModule,
+    ZardInputDirective,
+    ...ZardFormImports,
+    MatTooltipModule,
+    ZardButtonComponent,
+    FormlyModule,
+    ContentLoaderModule,
+    ButtonGroupDirective,
+    NgmDensityDirective,
+    NgmInputComponent,
+    NgmRadioSelectComponent
+  ],
   selector: 'pac-data-source-edit',
   templateUrl: 'edit.component.html',
   styleUrls: ['edit.component.scss'],
@@ -51,7 +75,7 @@ export class PACDataSourceEditComponent {
   formGroup = new FormGroup({
     name: new FormControl(),
     useLocalAgent: new FormControl(),
-    authType: new FormControl<AuthenticationEnum>(null),
+    authType: new FormControl<AuthenticationEnum>(null)
   })
   readonly optionsFormGroup = new FormGroup({})
   get nameCtrl() {

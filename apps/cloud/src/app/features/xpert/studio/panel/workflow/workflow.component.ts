@@ -2,7 +2,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { attrModel, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
@@ -57,6 +56,7 @@ import { XpertWorkflowPanelJSONParseComponent } from './json-parse/json-parse.co
 import { XpertWorkflowMiddlewareComponent } from './middleware/middleware.component'
 import { XpertWorkflowStartComponent } from './start/start.component'
 import { XpertStudioPanelWorkflowIteratorComponent } from './iterator/iterator.component'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-studio-panel-workflow',
@@ -68,7 +68,6 @@ import { XpertStudioPanelWorkflowIteratorComponent } from './iterator/iterator.c
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatSlideToggleModule,
     MatTooltipModule,
     TextFieldModule,
     NgmDensityDirective,
@@ -111,8 +110,9 @@ import { XpertStudioPanelWorkflowIteratorComponent } from './iterator/iterator.c
     XpertWorkflowPanelJSONStringifyComponent,
     XpertWorkflowPanelJSONParseComponent,
     XpertWorkflowMiddlewareComponent,
+    ZardSwitchComponent
   ],
-  animations: [IfAnimation,]
+  animations: [IfAnimation]
 })
 export class XpertStudioPanelWorkflowComponent {
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
@@ -129,12 +129,12 @@ export class XpertStudioPanelWorkflowComponent {
 
   // States
   readonly wfNode = linkedModel({
-      initialValue: null,
-      compute: () => this.node().entity as IWorkflowNode,
-      update: (value) => {
-        this.studioService.updateWorkflowNode(this.key(), () => value)
-      }
-    })
+    initialValue: null,
+    compute: () => this.node().entity as IWorkflowNode,
+    update: (value) => {
+      this.studioService.updateWorkflowNode(this.key(), () => value)
+    }
+  })
   readonly xpert = this.xpertStudioComponent.xpert
   readonly xpertId = computed(() => this.xpert()?.id)
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
@@ -151,7 +151,9 @@ export class XpertStudioPanelWorkflowComponent {
 
   // Workflow providers
   readonly triggerProviders = this.studioService.triggerProviders
-  readonly triggerEntity = computed(() => this.wfNode()?.type === WorkflowNodeTypeEnum.TRIGGER ? this.wfNode() as IWFNTrigger : null)
+  readonly triggerEntity = computed(() =>
+    this.wfNode()?.type === WorkflowNodeTypeEnum.TRIGGER ? (this.wfNode() as IWFNTrigger) : null
+  )
   readonly from = computed(() => this.triggerEntity()?.from)
   readonly provider = computed(() => this.triggerProviders()?.find((item) => item.name === this.from()))
 

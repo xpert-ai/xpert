@@ -2,7 +2,7 @@
   @for (credential of credentialSchemas(); track credential) {
     <div class="">
       <div class="flex items-center py-2 text-sm text-gray-900">
-        {{credential.label | i18n}}
+        {{ credential.label | i18n }}
         @if (credential.required) {
           <span class="ml-1 text-red-500">*</span>
         }
@@ -31,7 +31,8 @@
           </div>
         }
         @case ('select') {
-          <ngm-select class=""
+          <ngm-select
+            class=""
             [placeholder]="credential.placeholder | i18n"
             [selectOptions]="credential.options"
             [ngModel]="credentials()[credential.variable]"
@@ -39,17 +40,20 @@
           />
         }
         @case ('radio') {
-          <z-radio-group [ngModel]="credentials()[credential.variable]"
-              (ngModelChange)="updateValue(credential.variable, $event)">
+          <z-radio-group
+            [ngModel]="credentials()[credential.variable]"
+            (ngModelChange)="updateValue(credential.variable, $event)"
+          >
             @for (option of credential.options; track option) {
-              <z-radio [value]="option.value">{{option.label | i18n}}</z-radio>
+              <z-radio [value]="option.value">{{ option.label | i18n }}</z-radio>
             }
           </z-radio-group>
         }
         @case (eParameterType.BOOLEAN) {
-          <mat-slide-toggle [ngModel]="credentials()[credential.variable]"
-              (ngModelChange)="updateValue(credential.variable, $event)"
-            ngm-density="xs"
+          <z-switch
+            [ngModel]="credentials()[credential.variable]"
+            (ngModelChange)="updateValue(credential.variable, $event)"
+            zSize="sm"
           />
         }
       }

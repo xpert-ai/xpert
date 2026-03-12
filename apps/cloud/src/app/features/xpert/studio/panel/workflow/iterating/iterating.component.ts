@@ -17,13 +17,13 @@ import {
 } from '@cloud/app/@core'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { attrModel, linkedModel } from '@metad/core'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-studio-panel-workflow-iterating',
@@ -36,10 +36,10 @@ import { attrModel, linkedModel } from '@metad/core'
     MatTooltipModule,
     TranslateModule,
     MatSliderModule,
-    NgmSlideToggleComponent,
     NgmDensityDirective,
     NgmSelectComponent,
-    StateVariableSelectComponent
+    StateVariableSelectComponent,
+    ZardSwitchComponent
   ],
   host: {
     tabindex: '-1'
@@ -75,7 +75,7 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
   readonly parallel = computed(() => this.iteratingEntity()?.parallel)
   readonly maximum = computed(() => this.iteratingEntity()?.maximum)
   readonly errorMode = computed(() => this.iteratingEntity()?.errorMode)
-  
+
   readonly inputParams = attrModel(this.iterating, 'inputParams')
   readonly outputParams = attrModel(this.iterating, 'outputParams')
 
@@ -113,10 +113,24 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
 
   // readonly variables = model<TWorkflowVarGroup[]>()
   readonly inputVariableItem = computed(() => getVariableSchema(this.variables(), this.inputVariable()).variable?.item)
-  readonly restInputParams = computed(() => this.inputParams()?.filter((p) => p.name !== IteratingIndexParameterName && p.name !== IteratingItemParameterName && !this.inputVariableItem()?.some((_) => _.name === p.name)))
+  readonly restInputParams = computed(() =>
+    this.inputParams()?.filter(
+      (p) =>
+        p.name !== IteratingIndexParameterName &&
+        p.name !== IteratingItemParameterName &&
+        !this.inputVariableItem()?.some((_) => _.name === p.name)
+    )
+  )
 
-  readonly subXpertKey = computed(() => this.draft()?.connections.find((_) => _.type === 'xpert' && _.from === this.iteratingEntity()?.key)?.to)
-  readonly subXpert = computed(() => this.draft()?.nodes.find((_) => _.type === 'xpert' && _.key === this.subXpertKey()) as TXpertTeamNode & {type: 'xpert'})
+  readonly subXpertKey = computed(
+    () => this.draft()?.connections.find((_) => _.type === 'xpert' && _.from === this.iteratingEntity()?.key)?.to
+  )
+  readonly subXpert = computed(
+    () =>
+      this.draft()?.nodes.find((_) => _.type === 'xpert' && _.key === this.subXpertKey()) as TXpertTeamNode & {
+        type: 'xpert'
+      }
+  )
   readonly subXpertAgentKey = computed(() => this.subXpert()?.entity.agent?.key)
 
   readonly subVarOptions = computed<TXpertVariablesOptions>(() => {
@@ -128,7 +142,7 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
       connections: this.connections()
     }
   })
-  
+
   // System variables
   readonly SYSTEM_VARIABLES = [IteratingIndexParameterName, IteratingItemParameterName]
 
@@ -150,7 +164,7 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
   }
 
   addInput() {
-    this.inputParams.update((params) => [...(params ?? []), {name: null, variable: ''}])
+    this.inputParams.update((params) => [...(params ?? []), { name: null, variable: '' }])
   }
 
   getInputParam(name: string) {
@@ -183,7 +197,7 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
       if (index > -1) {
         params[index] = {
           ...params[index],
-          name: newName,
+          name: newName
         }
       }
       return [...params]
@@ -197,14 +211,14 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
   }
 
   addOutput() {
-    this.outputParams.update((params) => [...(params ?? []), {name: '', variable: ''}])
+    this.outputParams.update((params) => [...(params ?? []), { name: '', variable: '' }])
   }
 
   updateOutput(index: number, name: string, value: string) {
     this.outputParams.update((state) => {
       state[index] = {
         ...state[index],
-        [name]: value,
+        [name]: value
       }
       return [...state]
     })

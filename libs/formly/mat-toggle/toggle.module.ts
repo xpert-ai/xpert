@@ -1,9 +1,8 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 import { NgmFormlyToggleComponent } from './toggle.type'
 
 @NgModule({
@@ -11,8 +10,7 @@ import { NgmFormlyToggleComponent } from './toggle.type'
   imports: [
     CommonModule,
     ReactiveFormsModule,
-    MatSlideToggleModule,
-    NgmDensityDirective,
+    ZardSwitchComponent,
     FormlyModule.forChild({
       types: [
         {

@@ -12,7 +12,6 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -31,6 +30,7 @@ import {
 import { isNil, omit } from 'lodash-es'
 import { Observable, Subscription } from 'rxjs'
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -40,10 +40,10 @@ import { JsonSchema7ObjectType } from 'zod-to-json-schema'
     ReactiveFormsModule,
     TranslateModule,
     MatTooltipModule,
-    MatSlideToggleModule,
     NgmDensityDirective,
     NgmSpinComponent,
-    XpToolParametersFormComponent
+    XpToolParametersFormComponent,
+    ZardSwitchComponent
   ],
   selector: 'xpert-toolset-tool-test',
   templateUrl: './tool.component.html',
@@ -83,8 +83,10 @@ export class XpertToolsetToolTestComponent {
     const parameters = this.schema()?.parameters ?? this.tool()?.provider?.parameters
     return parameters?.filter((_) => isNil(_.visible) || _.visible || this.visibleAll())
   })
-  
-  readonly invalid = computed(() => this.parameterList()?.some((param) => param.required && isNil(this.parameters()?.[param.name])))
+
+  readonly invalid = computed(() =>
+    this.parameterList()?.some((param) => param.required && isNil(this.parameters()?.[param.name]))
+  )
   readonly testResult = signal(null)
 
   readonly loading = signal(false)
@@ -122,22 +124,22 @@ export class XpertToolsetToolTestComponent {
           parameters: this.parameters()
         })
     this.#testSubscription = request$.subscribe({
-        next: (result) => {
-          this.loading.set(false)
-          if (result == null) {
-            this.testResult.set(null)
-          } else if (typeof result === 'string') {
-            this.testResult.set(result)
-          } else {
-            this.testResult.set(JSON.stringify(result, null, 2))
-          }
-        },
-        error: (error) => {
-          this.#toastr.error(getErrorMessage(error))
-          this.loading.set(false)
-          this.testResult.set(JSON.stringify(getErrorMessage(error), null, 4))
+      next: (result) => {
+        this.loading.set(false)
+        if (result == null) {
+          this.testResult.set(null)
+        } else if (typeof result === 'string') {
+          this.testResult.set(result)
+        } else {
+          this.testResult.set(JSON.stringify(result, null, 2))
         }
-      })
+      },
+      error: (error) => {
+        this.#toastr.error(getErrorMessage(error))
+        this.loading.set(false)
+        this.testResult.set(JSON.stringify(getErrorMessage(error), null, 4))
+      }
+    })
   }
 
   stopTestTool() {

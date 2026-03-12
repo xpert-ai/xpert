@@ -2,7 +2,6 @@ import { Dialog, DialogModule } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, input, model } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { routeAnimations } from '@metad/core'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -10,6 +9,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { IBuiltinTool, IXpertToolset, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { XpertToolTestDialogComponent } from '../../tool-test'
 import { XpertToolBuiltinParametersComponent } from '../parameters/parameters.component'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -20,10 +20,10 @@ import { XpertToolBuiltinParametersComponent } from '../parameters/parameters.co
     TranslateModule,
     DialogModule,
     MatTooltipModule,
-    MatSlideToggleModule,
     NgmI18nPipe,
     NgmDensityDirective,
-    XpertToolBuiltinParametersComponent
+    XpertToolBuiltinParametersComponent,
+    ZardSwitchComponent
   ],
   selector: 'xpert-tool-builtin-tool',
   templateUrl: './tool.component.html',

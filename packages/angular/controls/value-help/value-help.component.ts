@@ -1,5 +1,15 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, Inject, Input, OnInit, Optional, computed, inject, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Inject,
+  Input,
+  OnInit,
+  Optional,
+  computed,
+  inject,
+  signal
+} from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
@@ -7,9 +17,14 @@ import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/materia
 import { ZardButtonComponent, ZardDividerComponent, ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { NgmCommonModule, NgmResizableDirective, NgmSelectComponent } from '@metad/ocap-angular/common'
-import { DisplayDensity, NgmAppearance, NgmDSCoreService, OcapCoreModule, NgmFieldAppearance } from '@metad/ocap-angular/core'
+import {
+  DisplayDensity,
+  NgmAppearance,
+  NgmDSCoreService,
+  OcapCoreModule,
+  NgmFieldAppearance
+} from '@metad/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -39,7 +54,24 @@ import { ControlOptions, TreeControlOptions } from '../types'
   host: {
     class: 'ngm-value-help'
   },
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, CdkMenuModule, MatDialogModule, ZardIconComponent, MatSlideToggleModule, ZardDividerComponent, ...ZardFormImports, ZardButtonComponent, NgmCommonModule, OcapCoreModule, NgmMemberListComponent, NgmMemberTreeComponent, NgmResizableDirective, NgmSelectComponent]
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    CdkMenuModule,
+    MatDialogModule,
+    ZardIconComponent,
+    ZardDividerComponent,
+    ...ZardFormImports,
+    ZardButtonComponent,
+    NgmCommonModule,
+    OcapCoreModule,
+    NgmMemberListComponent,
+    NgmMemberTreeComponent,
+    NgmResizableDirective,
+    NgmSelectComponent
+  ]
 })
 export class NgmValueHelpComponent implements OnInit {
   DISPLAY_BEHAVIOUR = DisplayBehaviour
@@ -59,12 +91,12 @@ export class NgmValueHelpComponent implements OnInit {
 
   private dsCoreService? = inject(NgmDSCoreService, { optional: true })
   readonly #data = inject<{
-      dsCoreService: NgmDSCoreService
-      dataSettings: DataSettings
-      dimension: Dimension
-      options: ControlOptions
-      slicer: ISlicer
-    }>(DIALOG_DATA, { optional: true })
+    dsCoreService: NgmDSCoreService
+    dataSettings: DataSettings
+    dimension: Dimension
+    options: ControlOptions
+    slicer: ISlicer
+  }>(DIALOG_DATA, { optional: true })
   readonly #dialogRef = inject(DialogRef, { optional: true })
 
   @Input() get dataSettings(): DataSettings {
@@ -273,7 +305,7 @@ export class NgmValueHelpComponent implements OnInit {
 
   addMember() {
     const members = this.slicer.members ? [...this.slicer.members] : []
-    const member: IMember = {key: null, operator: this.memberForm.value.operator,}
+    const member: IMember = { key: null, operator: this.memberForm.value.operator }
     if (this.memberForm.value.type === 'Caption') {
       member.caption = this.memberForm.value.value
     } else if (this.memberForm.value.type === 'UniqueName') {
@@ -284,14 +316,14 @@ export class NgmValueHelpComponent implements OnInit {
       ...this.slicer,
       members
     }
-    this.memberForm.reset({type: 'Caption', operator: FilterOperator.Contains, value: ''})
+    this.memberForm.reset({ type: 'Caption', operator: FilterOperator.Contains, value: '' })
   }
 
   close() {
     const result = {
       ...this.slicer,
       dimension: {
-        ...this.dimension,
+        ...this.dimension
         // Default to descriptionOnly
         // displayBehaviour: this.dimension.displayBehaviour ?? DisplayBehaviour.descriptionOnly
       }
@@ -304,5 +336,4 @@ export class NgmValueHelpComponent implements OnInit {
       this.#dialogRef.close(result)
     }
   }
-
 }

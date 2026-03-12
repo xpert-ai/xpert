@@ -5,7 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { environment } from '@cloud/environments/environment'
 import { EntriesPipe, linkedModel } from '@metad/core'
-import { NgmAutoScrollBottomDirective, NgmSlideToggleComponent, NgmTimerDirective } from '@metad/ocap-angular/common'
+import { NgmAutoScrollBottomDirective, NgmTimerDirective } from '@metad/ocap-angular/common'
 import { attrModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
@@ -28,6 +28,7 @@ import {
 import { CodeEditorComponent } from '../../editors'
 import { MCPToolsComponent } from '../tools/tools.component'
 import { XpertEnvVarInputComponent } from '../../environment'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -44,10 +45,10 @@ import { XpertEnvVarInputComponent } from '../../environment'
     MatTooltipModule,
     MCPToolsComponent,
     EntriesPipe,
-    NgmSlideToggleComponent,
     XpertEnvVarInputComponent,
     NgmAutoScrollBottomDirective,
-    NgmTimerDirective
+    NgmTimerDirective,
+    ZardSwitchComponent
   ],
   hostDirectives: [NgxControlValueAccessor]
 })
@@ -72,7 +73,7 @@ export class MCPServerFormComponent {
   readonly type = attrModel(this.value$, 'type')
   readonly types = linkedModel({
     initialValue: [MCPServerType.SSE],
-    compute: () => this.type() ? [this.type()] : [MCPServerType.SSE],
+    compute: () => (this.type() ? [this.type()] : [MCPServerType.SSE]),
     update: (types) => {
       this.type.set(types?.[0] ?? MCPServerType.SSE)
     }
@@ -91,13 +92,13 @@ export class MCPServerFormComponent {
       this.value$.update((state) => ({ ...(state ?? {}), toolNamePrefix }))
     }
   })
- 
+
   readonly args = attrModel(this.value$, 'args')
   readonly reconnect = attrModel(this.value$, 'reconnect')
   readonly reconnectEnabled = attrModel(this.reconnect, 'enabled')
   readonly maxAttempts = attrModel(this.reconnect, 'maxAttempts')
   readonly delayMs = attrModel(this.reconnect, 'delayMs')
-  
+
   readonly initScripts = linkedModel({
     initialValue: null,
     compute: () => this.value$()?.initScripts || '',
@@ -169,20 +170,22 @@ export class MCPServerFormComponent {
   readonly variables = computed(() => {
     const environment = this.environment()
     if (environment) {
-      return [{
-        group: {
-          name: 'env',
-          description: {
-            en_US: 'Environment',
-            zh_Hans: '环境变量'
-          }
-        },
-        variables: environment.variables?.map((_) => ({
-          name: _.name,
-          type: _.type === 'secret' ? XpertParameterTypeEnum.SECRET : XpertParameterTypeEnum.STRING,
-          title: _.name,
-        }))
-      } as TWorkflowVarGroup]
+      return [
+        {
+          group: {
+            name: 'env',
+            description: {
+              en_US: 'Environment',
+              zh_Hans: '环境变量'
+            }
+          },
+          variables: environment.variables?.map((_) => ({
+            name: _.name,
+            type: _.type === 'secret' ? XpertParameterTypeEnum.SECRET : XpertParameterTypeEnum.STRING,
+            title: _.name
+          }))
+        } as TWorkflowVarGroup
+      ]
     }
     return null
   })
@@ -309,7 +312,7 @@ if __name__ == "__main__":
               this.logs.set(result.data.logs)
               this.stopTime.set(new Date())
             }
-          } catch(err) {}
+          } catch (err) {}
         }
       },
       error: (err) => {

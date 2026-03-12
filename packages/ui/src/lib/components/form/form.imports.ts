@@ -4,9 +4,10 @@ import {
   ZardFormLabelComponent,
   ZardFormMessageComponent,
   ZardFormPrefixDirective,
-  ZardFormSuffixDirective,
-} from './form.component';
-import { ZardRadioComponent, ZardRadioGroupComponent } from '../radio';
+  ZardFormSuffixDirective
+} from './form.component'
+import { ZardRadioComponent, ZardRadioGroupComponent } from '../radio'
+import { ZardSwitchComponent } from '../switch'
 
 export const ZardFormImports = [
   ZardFormFieldComponent,
@@ -17,4 +18,5 @@ export const ZardFormImports = [
   ZardFormSuffixDirective,
   ZardRadioComponent,
   ZardRadioGroupComponent,
-] as const;
+  ZardSwitchComponent
+] as const

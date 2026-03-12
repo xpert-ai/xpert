@@ -22,7 +22,6 @@ import {
   XpertAPIService,
   XpertToolService
 } from 'apps/cloud/src/app/@core'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { catchError, of } from 'rxjs'
 import { XpertMCPManageComponent } from '@cloud/app/@shared/mcp'
@@ -35,6 +34,7 @@ import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-tool',
@@ -48,14 +48,14 @@ import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
     ClipboardModule,
     CdkMenuModule,
     MatTooltipModule,
-    MatSlideToggleModule,
     TranslateModule,
     NgmDensityDirective,
     NgmI18nPipe,
     EmojiAvatarComponent,
     XpertStudioToolsetMenuComponent,
     XpertWorkflowErrorHandlingComponent,
-    XpToolParametersFormComponent
+    XpToolParametersFormComponent,
+    ZardSwitchComponent
   ]
 })
 export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
@@ -116,13 +116,13 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
     if (tool) {
       return {
         ...tool,
-        label: getToolLabel(tool),
+        label: getToolLabel(tool)
       }
     }
     return null
   })
   readonly schema = computed(() => this.tool()?.schema as JsonSchema7ObjectType)
-  readonly paramsSample = signal<{loading?: boolean; value?: any}>({})
+  readonly paramsSample = signal<{ loading?: boolean; value?: any }>({})
 
   readonly xpertCopilotModel = computed(() => this.xpert()?.copilotModel)
 
@@ -130,11 +130,14 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
 
   constructor() {
     super()
-    effect(() => {
-      if (this.tool()) {
-        this.paramsSample.set({ loading: false, value: null })
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (this.tool()) {
+          this.paramsSample.set({ loading: false, value: null })
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   toggleOutput() {
@@ -167,24 +170,24 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
   createMCPTool() {
     let toolset: Partial<IXpertToolset> = null
     this.#dialog
-      .open<{toolset: IXpertToolset}>(XpertMCPManageComponent, {
+      .open<{ toolset: IXpertToolset }>(XpertMCPManageComponent, {
         backdropClass: 'backdrop-blur-lg-white',
         disableClose: true,
         data: {
           workspaceId: this.workspaceId(),
-          toolset,
+          toolset
         }
       })
       .closed.subscribe({
-        next: ({toolset}) => {
+        next: ({ toolset }) => {
           if (toolset) {
             this.toolsetId.set(toolset.id)
             this.studioService.refreshToolsets$.next()
           }
         }
       })
-    }
-  
+  }
+
   /**
    * @deprecated
    */
@@ -193,7 +196,7 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
       if (this.paramsSample().value) {
         const value = this.paramsSample().value
         this.#clipboard.copy(JSON.stringify(value, null, 2))
-        this._toastr.success('PAC.Xpert.Copied', { Default: 'Copied'})
+        this._toastr.success('PAC.Xpert.Copied', { Default: 'Copied' })
         return
       }
       this.paramsSample.update((state) => ({ ...state, loading: true }))
@@ -201,11 +204,11 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
         next: (value) => {
           this.paramsSample.update((state) => ({ loading: false, value }))
           this.#clipboard.copy(JSON.stringify(value, null, 2))
-          this._toastr.success('PAC.Xpert.Copied', { Default: 'Copied'})
+          this._toastr.success('PAC.Xpert.Copied', { Default: 'Copied' })
         },
         error: (error) => {
           this.paramsSample.update((state) => ({ loading: false, value: null }))
-          this._toastr.error(getErrorMessage(error)) 
+          this._toastr.error(getErrorMessage(error))
         }
       })
     }

@@ -97,10 +97,12 @@
 
 .pac-formly-mat-toggle {
   display: flex;
-  .mat-slide-toggle {
+  z-switch,
+  .z-switch {
     flex: 1;
   }
-  .mat-slide-toggle-label-before .mat-slide-toggle-label {
+  z-switch[data-label-position='before'],
+  .z-switch[data-label-position='before'] {
     justify-content: space-between;
   }
 }

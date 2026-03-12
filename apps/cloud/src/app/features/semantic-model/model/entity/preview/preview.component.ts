@@ -9,7 +9,21 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
 import { DisplayDensity, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
 import { NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
-import { C_MEASURES, DataSettings, Dimension, FilterOperator, getEntityVariables, getEntityParameters, isEntitySet, ISlicer, Measure, PresentationVariant, Syntax, AggregationRole, ParameterProperty } from '@metad/ocap-core'
+import {
+  C_MEASURES,
+  DataSettings,
+  Dimension,
+  FilterOperator,
+  getEntityVariables,
+  getEntityParameters,
+  isEntitySet,
+  ISlicer,
+  Measure,
+  PresentationVariant,
+  Syntax,
+  AggregationRole,
+  ParameterProperty
+} from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { differenceBy, isEmpty } from 'lodash-es'
@@ -25,10 +39,9 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatExpansionModule } from '@angular/material/expansion'
 import { Dialog } from '@angular/cdk/dialog'
 import { ExplainComponent } from '@metad/story/story'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { NgmPresentationComponent } from '@metad/ocap-angular/selection'
 import { NgmParameterComponent } from '@metad/ocap-angular/parameter'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -49,15 +62,14 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     ZardButtonComponent,
     MatTooltipModule,
     MatExpansionModule,
-    MatSlideToggleModule,
-
     NgmCommonModule,
     AnalyticalGridModule,
     NgmControlsModule,
     NgmEntityModule,
     NgmDensityDirective,
     NgmPresentationComponent,
-    NgmParameterComponent
+    NgmParameterComponent,
+    ZardSwitchComponent
   ]
 })
 export class ModelEntityPreviewComponent {
@@ -92,9 +104,7 @@ export class ModelEntityPreviewComponent {
   set columns(value) {
     this.columns$.next(value)
   }
-  readonly columns$ = new BehaviorSubject<Array<Dimension | Measure>>([
-    ...(this.entityService.preview?.columns ?? [])
-  ])
+  readonly columns$ = new BehaviorSubject<Array<Dimension | Measure>>([...(this.entityService.preview?.columns ?? [])])
 
   get slicers() {
     return this.slicers$.value
@@ -172,64 +182,76 @@ export class ModelEntityPreviewComponent {
     maxItems: 1000
   })
 
-  readonly analyticsDataSettings = computed(() => ({
-    ...this.dataSettings(),
-    analytics: this.analytics(),
-    selectionVariant: {
-      selectOptions: this.analytics()?.slicers,
-    },
-    presentationVariant: this.presentationVariant()
-  } as DataSettings))
+  readonly analyticsDataSettings = computed(
+    () =>
+      ({
+        ...this.dataSettings(),
+        analytics: this.analytics(),
+        selectionVariant: {
+          selectOptions: this.analytics()?.slicers
+        },
+        presentationVariant: this.presentationVariant()
+      }) as DataSettings
+  )
 
   readonly #entityType = derivedAsync(() => {
     const cubeName = this.cubeName()
-    return cubeName ? this.modelService.dataSource$.pipe(
-      filter(nonNullable),
-      switchMap((dataSource) => dataSource.selectEntitySet(cubeName)),
-      map((result) => isEntitySet(result) ? {entityType: result.entityType} : {error: getErrorMessage(result)})
-    ) : of(null)
+    return cubeName
+      ? this.modelService.dataSource$.pipe(
+          filter(nonNullable),
+          switchMap((dataSource) => dataSource.selectEntitySet(cubeName)),
+          map((result) =>
+            isEntitySet(result) ? { entityType: result.entityType } : { error: getErrorMessage(result) }
+          )
+        )
+      : of(null)
   })
-  
+
   readonly entityType = computed(() => this.#entityType()?.entityType)
   readonly entityError = computed(() => this.#entityType()?.error)
 
   readonly variableList = computed(() => getEntityVariables(this.entityType()))
-  readonly parameters = computed(() => getEntityParameters(this.entityType()).filter(({role}) => role !== AggregationRole.variable))
+  readonly parameters = computed(() =>
+    getEntityParameters(this.entityType()).filter(({ role }) => role !== AggregationRole.variable)
+  )
 
   readonly explains = signal<any[]>([])
 
   constructor() {
-    effect(() => {
-      this.variableList().forEach((variable) => {
-        if (!this.variables[variable.name]?.members?.length && variable.defaultLow) {
-          const members = [
-            {
-              key: variable.defaultLow,
-              caption: variable.defaultLowCaption
-            }
-          ]
+    effect(
+      () => {
+        this.variableList().forEach((variable) => {
+          if (!this.variables[variable.name]?.members?.length && variable.defaultLow) {
+            const members = [
+              {
+                key: variable.defaultLow,
+                caption: variable.defaultLowCaption
+              }
+            ]
 
-          if (variable.defaultHigh) {
-            members.push({
-              key: variable.defaultHigh,
-              caption: variable.defaultHighCaption
-            })
-          }
-          this.variables.update((state) => ({
-            ...state,
-            [variable.name]: {
-              dimension: {
-                dimension: variable.referenceDimension,
-                hierarchy: variable.referenceHierarchy,
-                parameter: variable.name
-              },
-              members,
-              operator: variable.defaultHigh ? FilterOperator.BT : null
+            if (variable.defaultHigh) {
+              members.push({
+                key: variable.defaultHigh,
+                caption: variable.defaultHighCaption
+              })
             }
-          }))
-        }
-      })
-    }, { allowSignalWrites: true })
+            this.variables.update((state) => ({
+              ...state,
+              [variable.name]: {
+                dimension: {
+                  dimension: variable.referenceDimension,
+                  hierarchy: variable.referenceHierarchy,
+                  parameter: variable.name
+                },
+                members,
+                operator: variable.defaultHigh ? FilterOperator.BT : null
+              }
+            }))
+          }
+        })
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   onVariable(name: string, event: ISlicer | null) {

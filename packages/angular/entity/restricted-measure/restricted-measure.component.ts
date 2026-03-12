@@ -14,7 +14,6 @@ import {
   AbstractControl,
   ValidationErrors
 } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import {
@@ -33,6 +32,7 @@ import { BehaviorSubject, map } from 'rxjs'
 import { PropertyCapacity } from '../types'
 import { NgmMeasureSelectComponent } from '../measure-select/measure-select.component'
 import { NgmPropertyArrayComponent } from '../property-array/property-array.component'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -56,11 +56,11 @@ import { NgmPropertyArrayComponent } from '../property-array/property-array.comp
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatSlideToggleModule,
     MatTooltipModule,
     OcapCoreModule,
     NgmMeasureSelectComponent,
-    NgmPropertyArrayComponent
+    NgmPropertyArrayComponent,
+    ZardSwitchComponent
   ]
 })
 export class NgmRestrictedMeasureComponent implements OnInit, ControlValueAccessor, Validator {
@@ -91,8 +91,8 @@ export class NgmRestrictedMeasureComponent implements OnInit, ControlValueAccess
     map((measures) => sortBy(measures, 'calculationType').reverse())
   )
 
-  filterMeasure: (measure: PropertyMeasure) => boolean = (measure) => isNil(this.formGroup?.value?.name) ? true :
-    measure.name !== this.formGroup.value.name
+  filterMeasure: (measure: PropertyMeasure) => boolean = (measure) =>
+    isNil(this.formGroup?.value?.name) ? true : measure.name !== this.formGroup.value.name
 
   private _onChange: any
 

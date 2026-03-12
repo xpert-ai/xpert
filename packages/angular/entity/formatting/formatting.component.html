@@ -6,9 +6,9 @@
 
 <mat-dialog-content class="mat-typography">
   <form [formGroup]="formGroup" class="flex flex-col justify-start items-stretch gap-2">
-    <mat-slide-toggle formControlName="shortNumber">
+    <z-switch formControlName="shortNumber">
       {{ 'Ngm.Entity.ShortNumber' | translate: { Default: 'Short Number' } }}
-    </mat-slide-toggle>
+    </z-switch>
 
     <ngm-slider-input
       [label]="'Ngm.Entity.Decimals' | translate: { Default: 'Decimals' }"

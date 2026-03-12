@@ -268,7 +268,7 @@
     <div class="text-semibold mb-1 flex h-6 justify-between items-center gap-1 text-text-secondary">
       <div class="truncate">{{ 'PAC.MCP.Reconnect' | translate: { Default: 'Reconnect' } }}</div>
 
-      <ngm-slide-toggle [(ngModel)]="reconnectEnabled" />
+      <z-switch [(ngModel)]="reconnectEnabled" />
     </div>
 
     @if (reconnectEnabled()) {

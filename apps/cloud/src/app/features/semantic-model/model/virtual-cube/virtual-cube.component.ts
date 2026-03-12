@@ -4,7 +4,6 @@ import { Component, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, Validators } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
-import { MatSlideToggleChange } from '@angular/material/slide-toggle'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { ActivatedRoute } from '@angular/router'
 import { calcEntityTypePrompt, nonBlank } from '@metad/core'
@@ -12,11 +11,20 @@ import { NgmCommonModule, NgmSelectComponent, ResizerModule } from '@metad/ocap-
 import { injectCopilotCommand } from '@metad/copilot-angular'
 import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import { EntityCapacity, NgmCalculatedMeasureComponent, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
-import { AggregationRole, C_MEASURES, CalculatedMember, CubeUsage, Syntax, VirtualCube, VirtualCubeDimension } from '@metad/ocap-core'
+import {
+  AggregationRole,
+  C_MEASURES,
+  CalculatedMember,
+  CubeUsage,
+  Syntax,
+  VirtualCube,
+  VirtualCubeDimension
+} from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { NgmNotificationComponent } from 'apps/cloud/src/app/@theme'
 import { NGXLogger } from 'ngx-logger'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
+import type { ZardSwitchChange } from '@xpert-ai/headless-ui'
 import { SemanticModelService } from '../model.service'
 import { CdkDragDropContainers, SemanticModelEntityType } from '../types'
 import { VirtualCubeStateService } from './virtual-cube.service'
@@ -171,7 +179,6 @@ ${calcEntityTypePrompt(this.entityType())}
       //     this.#logger.debug(`Copilot command 'formula' params: formula is`, formula, `unit is`, unit)
       //     this.calcMemberFormGroup.patchValue({ formula, unit })
       //     this.showCalculatedMember.set(true)
-
       //     return `✅`
       //   }
       // })
@@ -223,7 +230,7 @@ ${calcEntityTypePrompt(this.entityType())}
 
   selectCube(cube) {}
 
-  changeIgnoreUnrelatedDimensions(event: MatSlideToggleChange, cube: CubeUsage) {
+  changeIgnoreUnrelatedDimensions(event: ZardSwitchChange, cube: CubeUsage) {
     this.virtualCubeState.updateCube({
       cubeName: cube.cubeName,
       ignoreUnrelatedDimensions: event.checked
@@ -246,7 +253,7 @@ ${calcEntityTypePrompt(this.entityType())}
     }
   }
 
-  changeDimensionShared(event: MatSlideToggleChange, name: string) {
+  changeDimensionShared(event: ZardSwitchChange, name: string) {
     this.virtualCubeState.updateDimension({
       name,
       __shared__: event.checked

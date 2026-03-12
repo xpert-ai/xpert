@@ -8,8 +8,8 @@ import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
 import { XpertStudioFeaturesComponent } from '../features.component'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-studio-features-title',
@@ -20,9 +20,9 @@ import { NgmDensityDirective } from '@metad/ocap-angular/core'
     CdkMenuModule,
     TranslateModule,
     MatTooltipModule,
-    MatSlideToggleModule,
     NgmDensityDirective,
     CopilotPromptEditorComponent,
+    ZardSwitchComponent
   ],
   templateUrl: './title.component.html',
   styleUrl: './title.component.scss',
@@ -37,7 +37,7 @@ export class XpertStudioFeaturesTitleComponent {
   // Inputs
   readonly view = this.featuresComponent.view
   readonly toggleView = this.featuresComponent.toggleView
-  
+
   readonly agentConfig = linkedModel({
     initialValue: null,
     compute: () => this.xpert()?.agentConfig,
@@ -55,5 +55,4 @@ export class XpertStudioFeaturesTitleComponent {
     }
   })
   readonly instruction = attrModel(this.summarizeTitle, 'instruction')
-
 }

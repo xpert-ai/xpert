@@ -20,7 +20,6 @@ import { NgmDrawerContainerComponent } from './drawer'
 import { NgmObjectNumberComponent } from './object-number/object-number.component'
 import { NgmSpinComponent } from './spin/spin.component'
 import { NgmCheckboxComponent } from './checkbox/checkbox.component'
-import { NgmSlideToggleComponent } from './slide-toggle/slide-toggle.component'
 import { NgmStepperComponent } from './stepper/stepper.component'
 import { NgmCopyComponent } from './copy/copy.component'
 import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.component'
@@ -56,7 +55,6 @@ import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.componen
     NgmObjectNumberComponent,
     NgmSpinComponent,
     NgmCheckboxComponent,
-    NgmSlideToggleComponent,
     NgmStepperComponent,
     NgmCopyComponent,
     NgmProgressSpinnerComponent,
@@ -90,7 +88,6 @@ import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.componen
     NgmObjectNumberComponent,
     NgmSpinComponent,
     NgmCheckboxComponent,
-    NgmSlideToggleComponent,
     NgmStepperComponent,
     NgmCopyComponent,
     NgmProgressSpinnerComponent,
