@@ -2,7 +2,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
 import { LongTermMemoryTypeEnum, TLongTermMemory, TLongTermMemoryConfig } from '@metad/contracts'
 import { IfAnimations, OverlayAnimations } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -12,7 +11,7 @@ import { injectTranslate } from 'apps/cloud/src/app/@core'
 import { InDevelopmentComponent } from 'apps/cloud/src/app/@theme'
 import { NgmTooltipDirective } from '@metad/ocap-angular/core'
 import { isNil } from '@metad/copilot'
-import { ZardCheckboxComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardCheckboxComponent, ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-features-memory',
   standalone: true,
@@ -21,7 +20,7 @@ import { ZardCheckboxComponent, ZardTooltipImports } from '@xpert-ai/headless-ui
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatSliderModule,
+    ZardSliderComponent,
     ...ZardTooltipImports,
     ZardCheckboxComponent,
 

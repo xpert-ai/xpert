@@ -23,7 +23,7 @@ export const sliderVariants = cva(
 export type SliderVariants = VariantProps<typeof sliderVariants>;
 
 export const sliderTrackVariants = cva(
-  'flex bg-muted relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5',
+  'bg-muted relative grow overflow-hidden rounded-full data-[orientation=horizontal]:h-1.5 data-[orientation=horizontal]:w-full data-[orientation=vertical]:h-full data-[orientation=vertical]:w-1.5',
   {
     variants: {
       zOrientation: {
@@ -57,12 +57,16 @@ export const sliderRangeVariants = cva(
 export type SliderRangeVariants = VariantProps<typeof sliderRangeVariants>;
 
 export const sliderThumbVariants = cva(
-  'border-primary bg-background ring-ring/50 block size-4 shrink-0 rounded-full border shadow-sm transition-[color,box-shadow] focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50',
+  'border-primary bg-background ring-ring/50 absolute block size-4 shrink-0 rounded-full border shadow-sm transition-[color,box-shadow] focus-visible:ring-4 focus-visible:outline-hidden disabled:pointer-events-none disabled:opacity-50',
   {
     variants: {
       disabled: {
         true: '',
         false: 'hover:ring-4',
+      },
+      active: {
+        true: 'ring-4',
+        false: '',
       },
     },
   },
@@ -70,11 +74,25 @@ export const sliderThumbVariants = cva(
 
 export type SliderThumbVariants = VariantProps<typeof sliderThumbVariants>;
 
+export const sliderTickVariants = cva('bg-border absolute rounded-full', {
+  variants: {
+    zOrientation: {
+      horizontal: 'top-1/2 h-1.5 w-px -translate-x-1/2 -translate-y-1/2',
+      vertical: 'left-1/2 h-px w-1.5 -translate-x-1/2 translate-y-1/2',
+    },
+  },
+  defaultVariants: {
+    zOrientation: 'horizontal',
+  },
+});
+
+export type SliderTickVariants = VariantProps<typeof sliderTickVariants>;
+
 export const sliderOrientationVariants = cva('absolute', {
   variants: {
     zOrientation: {
-      horizontal: 'translate-x-[-50%]',
-      vertical: 'translate-y-[50%]',
+      horizontal: 'top-1/2 -translate-x-1/2 -translate-y-1/2',
+      vertical: 'left-1/2 translate-y-1/2 -translate-x-1/2',
     },
   },
   defaultVariants: {
@@ -83,3 +101,20 @@ export const sliderOrientationVariants = cva('absolute', {
 });
 
 export type SliderOrientationVariants = VariantProps<typeof sliderOrientationVariants>;
+
+export const sliderLabelVariants = cva(
+  'bg-foreground text-background pointer-events-none absolute inline-flex min-w-8 justify-center rounded-md px-1.5 py-0.5 text-[10px] font-medium shadow-sm',
+  {
+    variants: {
+      zOrientation: {
+        horizontal: 'bottom-full left-1/2 mb-2 -translate-x-1/2',
+        vertical: 'left-full top-1/2 ml-2 -translate-y-1/2',
+      },
+    },
+    defaultVariants: {
+      zOrientation: 'horizontal',
+    },
+  },
+);
+
+export type SliderLabelVariants = VariantProps<typeof sliderLabelVariants>;

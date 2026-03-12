@@ -69,16 +69,16 @@ import {
 } from 'apps/cloud/src/app/@shared/xpert'
 import { isEqual, uniq } from 'lodash-es'
 import { XpertStudioComponent } from '../../studio.component'
-import { myRxResource, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { attrModel, linkedModel, nonNullable, OverlayAnimations } from '@metad/core'
-import { MatSliderModule } from '@angular/material/slider'
 import { XpertWorkflowErrorHandlingComponent } from 'apps/cloud/src/app/@shared/workflow'
 import { ATTACHMENT_DEFAULT_VARIABLE } from '../../types'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { XpertStudioPanelMiddlewareSectionComponent } from './middleware-section/middleware.component'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardSliderComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import type { ZardSliderValue } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-agent',
   templateUrl: './agent.component.html',
@@ -91,11 +91,10 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     FormsModule,
     TranslateModule,
     ...ZardTooltipImports,
-    MatSliderModule,
+    ZardSliderComponent,
     DateRelativePipe,
 
     NgmI18nPipe,
-    NgmDensityDirective,
     NgmSpinComponent,
     EmojiAvatarComponent,
     StateVariableSelectComponent,
@@ -595,6 +594,10 @@ export class XpertStudioPanelAgentComponent {
     this.updateOptions({ retry: { ...retry, ...value } })
   }
 
+  updateRetryStopAfterAttempt(value: ZardSliderValue) {
+    this.updateRetry({ stopAfterAttempt: this.sliderValue(value) })
+  }
+
   updateFallback(value: Partial<TXpertAgentOptions['fallback']>) {
     const fallback = this.fallback() ?? {}
     this.updateOptions({ fallback: { ...fallback, ...value } })
@@ -607,5 +610,9 @@ export class XpertStudioPanelAgentComponent {
 
   moveToNode() {
     this.xpertStudioComponent.centerGroupOrNode(this.key())
+  }
+
+  private sliderValue(value: ZardSliderValue) {
+    return typeof value === 'number' ? value : value[0]
   }
 }

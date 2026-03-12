@@ -2,13 +2,11 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
 import { attrModel, linkedModel, OverlayAnimations } from '@metad/core'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { CopilotPromptEditorComponent } from '../../../../../@shared/copilot'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardSliderComponent, type ZardSliderValue, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-features-summary',
   standalone: true,
@@ -17,10 +15,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatSliderModule,
+    ZardSliderComponent,
     ...ZardTooltipImports,
-    NgmDensityDirective,
-
     CopilotPromptEditorComponent
   ],
   templateUrl: './summary.component.html',
@@ -72,4 +68,10 @@ export class XpertStudioFeaturesSummaryComponent {
       }))
     }
   })
+
+  updateRange(value: ZardSliderValue) {
+    const [summarizeMessages, maxMessages] = value as readonly [number, number]
+    this.summarizeMessages.set(summarizeMessages)
+    this.maxMessages.set(maxMessages)
+  }
 }

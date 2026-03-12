@@ -22,9 +22,14 @@
 
   <div class="w-full flex flex-col justify-start items-stretch">
     <label>{{ 'PAC.Copilot.TokenLimitPerUser' | translate: {Default: 'Token Limit/User'} }}: {{tokenBalance | number}}</label>
-    <mat-slider min="0" max="10000000" step="10000" discrete [displayWith]="formatBalanceLabel">
-      <input matSliderThumb formControlName="tokenBalance">
-    </mat-slider>
+    <z-slider
+      min="0"
+      max="10000000"
+      step="10000"
+      [showValueLabel]="true"
+      [formatValue]="formatBalanceLabel"
+      formControlName="tokenBalance"
+    ></z-slider>
   </div>
 
   <div class="self-stretch flex justify-start items-center gap-2 mt-4">

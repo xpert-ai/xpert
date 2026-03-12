@@ -1,6 +1,5 @@
 import { Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
 import {
   injectToastr,
   IWFNCode,
@@ -19,7 +18,8 @@ import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardSliderComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import type { ZardSliderValue } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-workflow-code',
   templateUrl: './code.component.html',
@@ -29,11 +29,11 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     FormsModule,
     ...ZardTooltipImports,
     TranslateModule,
-    MatSliderModule,
     XpertWorkflowCodeEditorComponent,
     NgmSelectComponent,
     XpertWorkflowErrorHandlingComponent,
     StateVariableSelectComponent,
+    ZardSliderComponent,
     ZardSwitchComponent
   ],
   host: {
@@ -195,5 +195,17 @@ export class XpertStudioPanelWorkflowCodeComponent extends XpertWorkflowBaseComp
   updateRetry(value: Partial<IWFNCode['retry']>) {
     const retry = this.retry() ?? {}
     this.updateEntity('retry', { ...retry, ...value })
+  }
+
+  updateRetryStopAfterAttempt(value: ZardSliderValue) {
+    this.updateRetry({ stopAfterAttempt: this.sliderValue(value) })
+  }
+
+  updateRetryIntervalValue(value: ZardSliderValue) {
+    this.updateRetry({ retryInterval: this.sliderValue(value) })
+  }
+
+  private sliderValue(value: ZardSliderValue) {
+    return typeof value === 'number' ? value : value[0]
   }
 }

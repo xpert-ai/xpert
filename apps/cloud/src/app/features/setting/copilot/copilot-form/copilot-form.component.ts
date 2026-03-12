@@ -4,7 +4,6 @@ import { booleanAttribute, Component, computed, effect, inject, input, model, si
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MatSliderModule } from '@angular/material/slider'
 import { AiModelTypeEnum, AiProviderRole, ICopilot } from '@metad/contracts'
 import { AiProvider } from '@metad/copilot'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -24,7 +23,7 @@ import {
   ToastrService
 } from '../../../../@core'
 import { PACCopilotService } from '../../../services'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardSliderComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -36,7 +35,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
-    MatSliderModule,
+    ZardSliderComponent,
     ZardButtonComponent,
     NgmSpinComponent,
     CopilotProviderComponent,

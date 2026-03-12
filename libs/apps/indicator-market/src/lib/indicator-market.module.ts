@@ -16,11 +16,11 @@ import {
   ZardIconComponent,
   ZardInputDirective,
   ZardCheckboxComponent,
+  ZardSliderComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatSliderModule } from '@angular/material/slider'
 import { FavoritesService, IndicatorsService } from '@metad/cloud/state'
 import { ReversePipe } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
@@ -67,9 +67,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     MatBottomSheetModule,
     MatButtonToggleModule,
     MatDatepickerModule,
-    MatSliderModule,
     MatChipsModule,
     ZardInputDirective,
+    ZardSliderComponent,
     ...ZardTooltipImports,
     MarkdownModule,
     AppearanceDirective,

@@ -22,9 +22,9 @@ import {
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
+  ZardSliderComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { MatSliderModule } from '@angular/material/slider'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser'
 import { AccessEnum, ISemanticModel, Visibility } from '@metad/contracts'
@@ -43,8 +43,8 @@ import { firstValueFrom } from 'rxjs'
     ZardInputDirective,
     ZardButtonComponent,
     ZardIconComponent,
+    ZardSliderComponent,
     ...ZardTooltipImports,
-    MatSliderModule,
     TranslateModule,
     NgmCommonModule
   ],

@@ -23,7 +23,6 @@ import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatSliderModule } from '@angular/material/slider'
 import { MatSnackBarModule } from '@angular/material/snack-bar'
 import { MatStepperModule } from '@angular/material/stepper'
 import { MatTableModule } from '@angular/material/table'
@@ -59,7 +58,6 @@ const MATERIAL_MODULES = [
   MatRippleModule,
   MatTreeModule,
   ZardBadgeComponent,
-  MatSliderModule,
   MatTableModule,
   MatProgressSpinnerModule,
   MatDatepickerModule,

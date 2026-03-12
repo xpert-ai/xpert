@@ -3,7 +3,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
 import { RouterModule } from '@angular/router'
 import {
   ChatConversationService,
@@ -25,7 +24,8 @@ import { ChatCanvasIframeComponent } from '../iframe/iframe.component'
 import { ChatCanvasTerminalComponent } from '../terminal/terminal.component'
 import { ChatCanvasKnowledgesComponent } from '../knowledges/knowledges.component'
 import { ChatCanvasWebTerminalComponent } from '../web-terminal/terminal.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import type { ZardSliderValue } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -35,7 +35,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     RouterModule,
     CdkMenuModule,
     TranslateModule,
-    MatSliderModule,
+    ZardSliderComponent,
     ...ZardTooltipImports,
     FileTypePipe,
     FileEditorComponent,
@@ -133,6 +133,10 @@ export class ChatCanvasComputerComponent {
     this.stepIndex.set(index)
   }
 
+  updateStepIndexFromSlider(value: ZardSliderValue) {
+    this.updateStepIndex(this.sliderValue(value))
+  }
+
   prevStep() {
     this.stepIndex.update((state) => --state)
   }
@@ -156,5 +160,9 @@ export class ChatCanvasComputerComponent {
         conversationId: this.homeService.conversation().id
       }
     })
+  }
+
+  private sliderValue(value: ZardSliderValue) {
+    return typeof value === 'number' ? value : value[0]
   }
 }

@@ -2,14 +2,13 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
 import { Attachment_Type_Options, TXpertAttachment, TXpertAttachmentType } from '@cloud/app/@core/types'
 import { attrModel, OverlayAnimations } from '@metad/core'
 import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { linkedXpertFeaturesModel } from '../types'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-features-attachment',
   standalone: true,
@@ -19,7 +18,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
-    MatSliderModule,
+    ZardSliderComponent,
     NgmI18nPipe
   ],
   templateUrl: './attachment.component.html',

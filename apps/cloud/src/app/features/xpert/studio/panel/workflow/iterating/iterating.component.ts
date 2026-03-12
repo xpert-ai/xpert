@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
 import {
   getVariableSchema,
   injectToastr,
@@ -16,13 +15,14 @@ import {
 } from '@cloud/app/@core'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { NgmDensityDirective, TSelectOption } from '@metad/ocap-angular/core'
+import { TSelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { attrModel, linkedModel } from '@metad/core'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardSliderComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import type { ZardSliderValue } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-workflow-iterating',
   templateUrl: './iterating.component.html',
@@ -33,10 +33,9 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     FormsModule,
     ...ZardTooltipImports,
     TranslateModule,
-    MatSliderModule,
-    NgmDensityDirective,
     NgmSelectComponent,
     StateVariableSelectComponent,
+    ZardSliderComponent,
     ZardSwitchComponent
   ],
   host: {
@@ -161,6 +160,10 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
     })
   }
 
+  updateMaximum(value: ZardSliderValue) {
+    this.updateEntity('maximum', this.sliderValue(value))
+  }
+
   addInput() {
     this.inputParams.update((params) => [...(params ?? []), { name: null, variable: '' }])
   }
@@ -238,5 +241,9 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
     this.outputParams.update((params) => {
       return params?.filter((_) => _.name !== name)
     })
+  }
+
+  private sliderValue(value: ZardSliderValue) {
+    return typeof value === 'number' ? value : value[0]
   }
 }

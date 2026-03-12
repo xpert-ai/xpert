@@ -398,9 +398,16 @@
                 <i class="ri-skip-forward-line"></i>
               </button>
             </div>
-            <mat-slider class="flex-1" min="0" [max]="stepMessageLength() - 1" step="1" showTickMarks discrete>
-              <input matSliderThumb [ngModel]="stepIndex()" (dragEnd)="updateStepIndex($event.value)" />
-            </mat-slider>
+            <z-slider
+              class="flex-1"
+              min="0"
+              [max]="stepMessageLength() - 1"
+              step="1"
+              [showTickMarks]="true"
+              [showValueLabel]="true"
+              [ngModel]="stepIndex()"
+              (changeEnd)="updateStepIndexFromSlider($event)"
+            ></z-slider>
           </div>
         }
       </div>

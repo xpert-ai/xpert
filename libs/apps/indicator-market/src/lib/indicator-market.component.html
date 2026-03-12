@@ -108,14 +108,16 @@
     <z-divider></z-divider>
 
     <label>{{ 'IndicatorApp.LookbackPeriods' | translate: {Default: 'Lookback Periods'} }}</label>
-    <mat-slider class="w-full" discrete color="accent"
+    <z-slider class="w-full"
       step="1"
       min="0"
       [max]="lookbackLimit()"
+      [showValueLabel]="true"
       (click)="$event.stopPropagation()"
+      [ngModel]="lookBack()"
+      (ngModelChange)="onLookback($event)"
     >
-      <input matSliderThumb [ngModel]="lookBack()" (valueChange)="onLookback($event)">
-    </mat-slider>
+    </z-slider>
 
     <z-divider></z-divider>
 

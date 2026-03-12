@@ -154,9 +154,16 @@
         </div>
 
         <div class="flex items-center grow">
-          <mat-slider class="w-full" ngm-density="small" [max]="10" [min]="1" [step]="1" showTickMarks discrete>
-            <input matSliderThumb [ngModel]="maximum()" (dragEnd)="updateEntity('maximum', $event.value)" />
-          </mat-slider>
+          <z-slider
+            class="w-full"
+            [max]="10"
+            [min]="1"
+            [step]="1"
+            [showTickMarks]="true"
+            [showValueLabel]="true"
+            [ngModel]="maximum()"
+            (changeEnd)="updateMaximum($event)"
+          ></z-slider>
         </div>
       </div>
     </div>

@@ -1,9 +1,15 @@
 @if (parameter(); as parameter) {
   @switch (parameter.type) {
     @case (eParameterType.FLOAT) {
-      <mat-slider class="w-[200px]" ngm-density small [min]="parameter.min" [max]="parameter.max" [step]="0.1" discrete>
-        <input matSliderThumb [value]="value$()" (dragEnd)="updateValue($event.value)" />
-      </mat-slider>
+      <z-slider
+        class="w-[200px]"
+        [min]="parameter.min"
+        [max]="parameter.max"
+        [step]="0.1"
+        [showValueLabel]="true"
+        [value]="value$()"
+        (changeEnd)="updateValue($event)"
+      ></z-slider>
 
       <input
         z-input
@@ -17,9 +23,14 @@
       />
     }
     @case (eParameterType.INT) {
-      <mat-slider class="w-[200px]" ngm-density small [min]="parameter.min" [max]="parameter.max" discrete>
-        <input matSliderThumb [value]="value$()" (dragEnd)="updateValue($event.value)" />
-      </mat-slider>
+      <z-slider
+        class="w-[200px]"
+        [min]="parameter.min"
+        [max]="parameter.max"
+        [showValueLabel]="true"
+        [value]="value$()"
+        (changeEnd)="updateValue($event)"
+      ></z-slider>
 
       <input
         z-input

@@ -36,9 +36,7 @@
               }}
             </span>
           </label>
-          <mat-slider color="accent" thumbLabel step="10" min="0" [max]="60 * 24 * 2" discrete>
-            <input matSliderThumb [(ngModel)]="expires" />
-          </mat-slider>
+          <z-slider step="10" min="0" [max]="60 * 24 * 2" [showValueLabel]="true" [(ngModel)]="expires"></z-slider>
         </ng-container>
       </ng-container>
     </div>

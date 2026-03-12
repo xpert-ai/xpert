@@ -24,7 +24,6 @@ import { FormsModule } from '@angular/forms'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { omit } from 'lodash-es'
 import { Router } from '@angular/router'
-import { MatSliderModule } from '@angular/material/slider'
 import { KnowledgeRecallParamsComponent, XpertKnowledgeCaseFormComponent } from 'apps/cloud/src/app/@shared/knowledge'
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
@@ -45,7 +44,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     CdkMenuModule,
     ...ZardTooltipImports,
-    MatSliderModule,
     CapitalizePipe,
     NgmSelectPanelComponent,
     CloseSvgComponent,
