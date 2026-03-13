@@ -2,7 +2,7 @@ import { BehaviorSubject, combineLatest, merge, Observable, of, ReplaySubject, S
 import { map } from 'rxjs/operators';
 import { MatTableDataSource } from '@angular/material/table';
 import { MatSort, Sort } from '@angular/material/sort';
-import { MatPaginator, PageEvent } from '@angular/material/paginator';
+import { type ZardPageEvent, type ZardPaginatorLike } from '@xpert-ai/headless-ui';
 
 export class TableVirtualScrollDataSource<T> extends MatTableDataSource<T> {
   public dataToRender$: Subject<T[]>;
@@ -12,7 +12,7 @@ export class TableVirtualScrollDataSource<T> extends MatTableDataSource<T> {
   override _updateChangeSubscription() {
     this.initStreams();
     const _sort: MatSort | null = this['_sort'];
-    const _paginator: MatPaginator | null = this['_paginator'];
+    const _paginator: ZardPaginatorLike | null = this['_paginator'];
     const _internalPageChanges: Subject<void> = this['_internalPageChanges'];
     const _filter: BehaviorSubject<string> = this['_filter'];
     const _renderData: BehaviorSubject<T[]> = this['_renderData'];
@@ -20,12 +20,12 @@ export class TableVirtualScrollDataSource<T> extends MatTableDataSource<T> {
     const sortChange: Observable<Sort | null | void> = _sort ?
       merge(_sort.sortChange, _sort.initialized) as Observable<Sort | void> :
       of(null);
-    const pageChange: Observable<PageEvent | null | void> = _paginator ?
+    const pageChange: Observable<ZardPageEvent | null | void> = _paginator ?
       merge(
         _paginator.page,
         _internalPageChanges,
         _paginator.initialized
-      ) as Observable<PageEvent | void> :
+      ) as Observable<ZardPageEvent | void> :
       of(null);
     const dataStream: Observable<T[]> = this['_data'];
     const filteredData = combineLatest([dataStream, _filter])

@@ -190,34 +190,37 @@
                           displayDensity="cosy"
                           class="ngm-menu-trigger"
                           [color]="answer.slicers ? 'accent' : ''"
-                          [matMenuTriggerFor]="filtersMenu"
-                          #mt="matMenuTrigger"
+                          z-menu
+                          [zMenuTriggerFor]="filtersMenu"
+                          #mt="zMenuTrigger"
                           [class.active]="mt.menuOpen"
                         >
                           <z-icon zType="filter_alt"></z-icon>
                         </button>
                       </ngm-analytical-card>
 
-                      <mat-menu #filtersMenu="matMenu" class="pac-widget__slicer-menu">
-                        <div class="text-base font-semibold">
+                      <ng-template #filtersMenu>
+                        <div z-menu-content class="pac-widget__slicer-menu">
+                          <div class="text-base font-semibold">
                           {{ 'PAC.ChatBI.Slicers' | translate: { Default: 'Slicers' } }}
+                          </div>
+                          <ngm-slicers
+                            class="overflow-hidden"
+                            inline
+                            editable
+                            [slicers]="answer.slicers"
+                            [dataSettings]="answer.dataSettings"
+                            [limit]="5"
+                            [capacities]="[
+                              SlicersCapacity.Variable,
+                              SlicersCapacity.CombinationSlicer,
+                              SlicersCapacity.AdvancedSlicer
+                            ]"
+                            (valueChange)="updateSlicers($event)"
+                            (click)="$event.stopPropagation()"
+                          />
                         </div>
-                        <ngm-slicers
-                          class="overflow-hidden"
-                          inline
-                          editable
-                          [slicers]="answer.slicers"
-                          [dataSettings]="answer.dataSettings"
-                          [limit]="5"
-                          [capacities]="[
-                            SlicersCapacity.Variable,
-                            SlicersCapacity.CombinationSlicer,
-                            SlicersCapacity.AdvancedSlicer
-                          ]"
-                          (valueChange)="updateSlicers($event)"
-                          (click)="$event.stopPropagation()"
-                        />
-                      </mat-menu>
+                      </ng-template>
                     }
                     @case ('kpi') {
                       <pac-widget-kpi

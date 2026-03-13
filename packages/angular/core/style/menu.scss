@@ -1,30 +1,32 @@
 @reference "../../../tailwind-workspace-reference.css";
-.mat-mdc-menu-panel.ngm-menu-card {
+.cdk-menu.ngm-menu-card,
+[z-menu-content].ngm-menu-card {
   overflow: hidden;
   max-height: 80vh;
 }
 
-.mat-mdc-menu-panel {
-  .mat-mdc-menu-item {
-    z-radio {
-      .z-radio__label {
-        @apply whitespace-nowrap text-ellipsis;
-      }
+.cdk-menu,
+[z-menu-content] {
+  .cdk-menu-item.active,
+  [z-menu-item].active {
+    color: var(--ngm-color-primary);
+    @apply font-bold bg-black/5 dark:bg-white/10;
+  }
+
+  z-radio {
+    @apply w-full;
+
+    .z-radio__label {
+      @apply flex-1 overflow-hidden whitespace-nowrap text-ellipsis;
     }
   }
 }
 
-.mat-mdc-menu-panel .mat-mdc-menu-content {
-  .mat-mdc-menu-item.active {
-    color: var(--ngm-color-primary);
-    @apply font-bold bg-black/5 dark:bg-white/10;
-  }
-}
-
 /** active status color for menu trigger icon button */
-.mat-mdc-menu-trigger[z-button][data-icon-only].active,
-.mat-mdc-menu-trigger z-button[data-icon-only].active,
-.mat-mdc-menu-trigger[data-icon-only].active {
+[z-menu][z-button][data-icon-only].active,
+[z-menu].active[data-icon-only],
+button[z-menu].active,
+[z-menu][data-state='open'][data-icon-only] {
   @apply bg-black/5 dark:bg-white/10;
   opacity: 1;
 }
@@ -33,12 +35,10 @@
   @apply outline-none;
 }
 
-.mat-mdc-menu-panel.ngm-density__compact {
-  --mat-menu-item-icon-size: 20px;
-  --mdc-radio-state-layer-size: 30px;
-  --mat-menu-item-label-text-size: 1rem;
-  --mat-menu-item-spacing: 1rem;
-  .mat-mdc-menu-item {
+.cdk-menu.ngm-density__compact,
+[z-menu-content].ngm-density__compact {
+  .cdk-menu-item,
+  [z-menu-item] {
     line-height: 38px;
     height: 38px;
     min-height: 38px;
@@ -47,16 +47,17 @@
     z-button[data-icon-only] .z-icon {
       margin-right: 0;
     }
-  }
-  .mat-mdc-menu-content .mat-mdc-menu-item .z-icon {
-    font-size: 20px;
+
+    .z-icon {
+      font-size: 20px;
+    }
   }
 }
 
-.mat-mdc-menu-panel.ngm-density__cosy {
-  --mat-menu-item-label-text-size: 14px;
-  --mat-menu-item-spacing: 1rem;
-  .mat-mdc-menu-item {
+.cdk-menu.ngm-density__cosy,
+[z-menu-content].ngm-density__cosy {
+  .cdk-menu-item,
+  [z-menu-item] {
     line-height: 40px;
     height: 40px;
     min-height: 40px;
@@ -64,25 +65,6 @@
     [z-button][data-icon-only] .z-icon,
     z-button[data-icon-only] .z-icon {
       margin-right: 0;
-    }
-  }
-}
-
-/** flex 1 for radio button content in menu panel */
-.mat-mdc-menu-panel {
-  .mat-mdc-menu-item {
-
-    .mat-mdc-menu-item-text {
-      @apply w-full;
-    }
-
-    z-radio {
-      @apply w-full;
-
-      .z-radio__label {
-        flex: 1;
-        overflow: hidden;
-      }
     }
   }
 }

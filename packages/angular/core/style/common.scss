@@ -9,7 +9,8 @@
 /**
  * For radio buttons in menu.
  */
-.ngm-radio-menu.mat-mdc-menu-panel {
+.ngm-radio-menu[z-menu-content],
+.ngm-radio-menu.cdk-menu {
   .mdc-form-field {
     width: 100%;
   }

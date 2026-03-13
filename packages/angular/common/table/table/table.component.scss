@@ -40,10 +40,6 @@
     .cdk-cell.mat-mdc-table-sticky {
       @apply bg-components-panel-bg;
     }
-
-    .mat-mdc-paginator-page-size-label {
-      @apply hidden;
-    }
   }
 }
 
@@ -57,8 +53,4 @@
   &.number {
     text-align: right;
   }
-}
-
-.mat-mdc-paginator {
-  border-top: 1px solid var(--mat-table-row-item-outline-color);
 }

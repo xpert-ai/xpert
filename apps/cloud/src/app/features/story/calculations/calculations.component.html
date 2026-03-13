@@ -37,7 +37,8 @@
         zShape="circle"
         [zTooltip]="'PAC.Story.AddCube' | translate: { Default: 'Add Cube' }"
         zPosition="top"
-        [matMenuTriggerFor]="contextMenu"
+        z-menu
+        [zMenuTriggerFor]="contextMenu"
       >
         <z-icon zType="playlist_add"></z-icon>
       </button>
@@ -166,20 +167,25 @@
 
 <router-outlet #o="outlet"></router-outlet>
 
-<mat-menu #contextMenu="matMenu" class="ngm-menu__copilot-context-popper ngm-density__compact">
-  <ng-template matMenuContent>
+<ng-template #contextMenu>
+  <div z-menu-content class="ngm-menu__copilot-context-popper ngm-density__compact relative p-0">
     <ngm-search class="m-2 mb-0" (click)="$event.stopPropagation()" [(ngModel)]="entitySearch" />
     @if (loadingCubes$ | async) {
       <mat-progress-bar
         mode="query"
         role="progressbar"
         color="accent"
-        class="top-0 left-0 w-full"
-        style="position: absolute; height: 2px"
+        class="absolute left-0 top-0 h-[2px] w-full"
       />
     } @else if (cubes$ | async) {
       <cdk-virtual-scroll-viewport minBufferPx="200" maxBufferPx="400" [style.height.px]="240" [itemSize]="30">
-        <button mat-menu-item *cdkVirtualFor="let item of cubes$ | async; trackBy: trackByKey" (click)="addCube(item)">
+        <button
+          type="button"
+          z-menu-item
+          class="h-[30px] min-h-[30px] w-full rounded-none px-3 py-1"
+          *cdkVirtualFor="let item of cubes$ | async; trackBy: trackByKey"
+          (click)="addCube(item)"
+        >
           <ngm-display-behaviour
             class="flex-1"
             [option]="item"
@@ -189,5 +195,5 @@
         </button>
       </cdk-virtual-scroll-viewport>
     }
-  </ng-template>
-</mat-menu>
+  </div>
+</ng-template>

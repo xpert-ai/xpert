@@ -1,7 +1,6 @@
 import { provideHttpClient } from '@angular/common/http'
 
 import { MatChipsModule } from '@angular/material/chips'
-import { MatMenuModule } from '@angular/material/menu'
 import { provideAnimations } from '@angular/platform-browser/animations'
 import { NgmSearchComponent } from '@metad/ocap-angular/common'
 import { provideTranslate } from '@metad/ocap-angular/mock'
@@ -9,7 +8,7 @@ import { StoryObj, applicationConfig, moduleMetadata } from '@storybook/angular'
 import { OcapCoreModule } from '../core.module'
 import { DensityDirective } from './displayDensity'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardIconComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardCheckboxComponent, ZardIconComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
 
 export default {
   title: 'Core/DisplayDensity',
@@ -26,7 +25,7 @@ export default {
         ZardButtonComponent,
         MatChipsModule,
         ZardCheckboxComponent,
-        MatMenuModule,
+        ...ZardMenuImports,
         DensityDirective,
         NgmSearchComponent
       ],
@@ -134,53 +133,59 @@ export const Menu: Story = {
     template: `
 <div class="flex flex-col">
   <label>Comfortable</label>
-  <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="comfortable" class="pac-model__nav-action" [matMenuTriggerFor]="menu1" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault()">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="comfortable" class="pac-model__nav-action" z-menu [zMenuTriggerFor]="menu1" #mt="zMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault()">
     <z-icon zType="more_vert"></z-icon>
   </button>
 
-  <mat-menu #menu1="matMenu" class="ngm-density__comfortable">
-    <button mat-menu-item>
+  <ng-template #menu1>
+    <div z-menu-content class="ngm-density__comfortable">
+    <button type="button" z-menu-item>
         <z-icon zType="stars"></z-icon>
         <span>{{ 'PAC.MODEL.SaveAsDefaultCube' | translate: {Default: "Save as Default Cube"} }}</span>
     </button>
-    <button mat-menu-item class="ngm-appearance-danger">
+    <button type="button" z-menu-item class="ngm-appearance-danger">
         <z-icon zType="delete_forever"></z-icon>
         <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
     </button>
-  </mat-menu>
+    </div>
+  </ng-template>
 
   <label>Cosy</label>
-  <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="pac-model__nav-action" [matMenuTriggerFor]="menu2" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault()">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="pac-model__nav-action" z-menu [zMenuTriggerFor]="menu2" #mt="zMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault()">
     <z-icon zType="more_vert"></z-icon>
   </button>
 
-  <mat-menu #menu2="matMenu" class="ngm-density__cosy">
-    <button mat-menu-item>
+  <ng-template #menu2>
+    <div z-menu-content class="ngm-density__cosy">
+    <button type="button" z-menu-item>
         <z-icon zType="stars"></z-icon>
         <span>{{ 'PAC.MODEL.SaveAsDefaultCube' | translate: {Default: "Save as Default Cube"} }}</span>
     </button>
-    <button mat-menu-item class="ngm-appearance-danger">
+    <button type="button" z-menu-item class="ngm-appearance-danger">
         <z-icon zType="delete_forever"></z-icon>
         <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
     </button>
-  </mat-menu>
+    </div>
+  </ng-template>
 
   <label>Compact</label>
 
-  <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="pac-model__nav-action" [matMenuTriggerFor]="menu3" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault()">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" class="pac-model__nav-action" z-menu [zMenuTriggerFor]="menu3" #mt="zMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault()">
     <z-icon zType="more_vert"></z-icon>
   </button>
 
-  <mat-menu #menu3="matMenu" class="ngm-density__compact">
-    <button mat-menu-item>
+  <ng-template #menu3>
+    <div z-menu-content class="ngm-density__compact">
+    <button type="button" z-menu-item>
         <z-icon zType="stars"></z-icon>
         <span>{{ 'PAC.MODEL.SaveAsDefaultCube' | translate: {Default: "Save as Default Cube"} }}</span>
     </button>
-    <button mat-menu-item class="ngm-appearance-danger">
+    <button type="button" z-menu-item class="ngm-appearance-danger">
         <z-icon zType="delete_forever"></z-icon>
         <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
     </button>
-  </mat-menu>
+    </div>
+  </ng-template>
 </div>
     `
   })

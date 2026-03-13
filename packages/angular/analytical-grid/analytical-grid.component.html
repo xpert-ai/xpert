@@ -514,8 +514,10 @@
 </div>
 
 @if (options()?.paging) {
-  <mat-paginator
+  <z-paginator
+    class="px-2 py-1"
     [displayDensity]="appearance?.displayDensity"
+    [hidePageSizeLabel]="true"
     [pageSize]="options()?.pageSize"
     [pageSizeOptions]="[20, 50, 100]"
     showFirstLastButtons

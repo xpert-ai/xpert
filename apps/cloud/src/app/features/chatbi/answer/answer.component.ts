@@ -21,9 +21,9 @@ import {
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
+  ZardMenuImports,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { MatMenuModule } from '@angular/material/menu'
 import { Router, RouterModule } from '@angular/router'
 import { CopilotChatMessage, JSONValue, nanoid, stringifyMessageContent } from '@metad/copilot'
 import { AnalyticalCardComponent, AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
@@ -77,11 +77,11 @@ import { StorySelectorComponent } from '../../../@shared/story'
     CdkMenuModule,
     MarkdownModule,
     ZardIconComponent,
+    ...ZardMenuImports,
     ...ZardTooltipImports,
     ZardButtonComponent,
     ZardInputDirective,
     ...ZardFormImports,
-    MatMenuModule,
     DensityDirective,
     NgmDisplayBehaviourComponent,
 

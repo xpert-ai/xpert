@@ -1,7 +1,6 @@
 import { Component, afterNextRender, booleanAttribute, effect, input, signal, viewChild } from '@angular/core'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardPaginatorComponent, type ZardPaginatorLike } from '@xpert-ai/headless-ui'
 
-import { MatPaginator, MatPaginatorDefaultOptions, MatPaginatorModule } from '@angular/material/paginator'
 import { MatTableDataSource, MatTableModule } from '@angular/material/table'
 import { NgmDisplayBehaviourComponent, TableColumn } from '@metad/ocap-angular/common'
 import { DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
@@ -13,6 +12,9 @@ import { CommonModule } from '@angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 
 type LevelTableColumn = TableColumn & { captionName: string }
+type PagedTableDataSource<T> = Omit<MatTableDataSource<T>, 'paginator'> & {
+  paginator: ZardPaginatorLike | null
+}
 
 @Component({
   standalone: true,
@@ -28,7 +30,7 @@ type LevelTableColumn = TableColumn & { captionName: string }
     MatTableModule,
     ZardIconComponent,
     ZardButtonComponent,
-    MatPaginatorModule,
+    ZardPaginatorComponent,
     TranslateModule,
     DensityDirective,
     NgmDisplayBehaviourComponent
@@ -54,14 +56,14 @@ export class HierarchyTableComponent<T> {
   readonly paging = input<boolean, boolean | string>(false, {
     transform: booleanAttribute
   })
-  readonly pageSizeOptions = input<MatPaginatorDefaultOptions['pageSizeOptions']>([100, 200, 500, 1000])
+  readonly pageSizeOptions = input<number[]>([100, 200, 500, 1000])
 
   /**
   |--------------------------------------------------------------------------
   | Child Components
   |--------------------------------------------------------------------------
   */
-  readonly paginator = viewChild(MatPaginator)
+  readonly paginator = viewChild(ZardPaginatorComponent)
 
   /**
   |--------------------------------------------------------------------------
@@ -71,11 +73,11 @@ export class HierarchyTableComponent<T> {
   readonly _data = signal<HierarchyTableDataType<T>[]>([])
   readonly displayedColumns = signal<string[]>([])
 
-  readonly dataSource = new MatTableDataSource<any>()
+  readonly dataSource = new MatTableDataSource<any>() as PagedTableDataSource<any>
 
   constructor() {
     afterNextRender(() => {
-      this.dataSource.paginator = this.paginator()
+      this.dataSource.paginator = this.paginator() ?? null
     })
 
     effect(

@@ -19,15 +19,20 @@ import {
   ZardButtonComponent,
   ZardIconComponent,
   ZardInputDirective,
-  ZardCheckboxComponent
+  ZardCheckboxComponent,
+  ZardPaginatorComponent,
+  type ZardPaginatorLike
 } from '@xpert-ai/headless-ui'
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator'
 import { MatSort, MatSortModule } from '@angular/material/sort'
 import { MatTableDataSource, MatTableModule } from '@angular/material/table'
 import { DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import get from 'lodash-es/get'
 import { NgmSearchComponent } from '../../search/search.component'
+
+type PagedTableDataSource<T> = Omit<MatTableDataSource<T>, 'paginator'> & {
+  paginator: ZardPaginatorLike | null
+}
 
 export type SelectionTableColumn = {
   value: string
@@ -52,7 +57,7 @@ export type SelectionTableColumn = {
     TranslateModule,
     ZardCheckboxComponent,
     MatTableModule,
-    MatPaginatorModule,
+    ZardPaginatorComponent,
     ZardIconComponent,
     ZardButtonComponent,
     MatSortModule,
@@ -96,7 +101,7 @@ export class NgmSelectionTableComponent implements OnInit, ControlValueAccessor 
 
   @Input() disabled = false
 
-  @ViewChild(MatPaginator) paginator?: MatPaginator
+  @ViewChild(ZardPaginatorComponent) paginator?: ZardPaginatorComponent
   @ViewChild(MatSort) sort: MatSort
 
   displayedColumns: string[]
@@ -105,7 +110,7 @@ export class NgmSelectionTableComponent implements OnInit, ControlValueAccessor 
     return a[this.key()] === b[this.key()]
   })
 
-  dataSource = new MatTableDataSource([])
+  dataSource = new MatTableDataSource([]) as PagedTableDataSource<any>
   readonly searchText = model('')
 
   constructor() {
@@ -143,7 +148,7 @@ export class NgmSelectionTableComponent implements OnInit, ControlValueAccessor 
   }
 
   ngAfterViewInit() {
-    this.dataSource.paginator = this.paginator
+    this.dataSource.paginator = this.paginator ?? null
     this.dataSource.sort = this.sort
     // If the user changes the sort order, reset back to the first page.
     this.sort?.sortChange.subscribe((sort) => {

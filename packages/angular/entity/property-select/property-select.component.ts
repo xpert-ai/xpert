@@ -98,7 +98,6 @@ import {
 } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 
-import { MatMenuModule } from '@angular/material/menu'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
@@ -107,6 +106,7 @@ import { PropertyCapacity } from '../types'
 import { NgmEntityPropertyComponent, propertyIcon } from '../property/property.component'
 import { NgmFormattingComponent } from '../formatting/formatting.component'
 import { CdkMenuModule } from '@angular/cdk/menu'
+import { ZardMenuImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -132,7 +132,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     ZardComboboxComponent,
     ZardIconComponent,
     ZardButtonComponent,
-    MatMenuModule,
+    ...ZardMenuImports,
     ZardDividerComponent,
     CdkListboxModule,
     ZardCheckboxComponent,

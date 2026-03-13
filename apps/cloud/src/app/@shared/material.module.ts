@@ -13,12 +13,12 @@ import {
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
+  ZardMenuImports,
   ZardTabsImports,
   ZardCheckboxComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { MatExpansionModule } from '@angular/material/expansion'
-import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSidenavModule } from '@angular/material/sidenav'
@@ -26,14 +26,13 @@ import { MatStepperModule } from '@angular/material/stepper'
 import { MatTableModule } from '@angular/material/table'
 import { MatTreeModule } from '@angular/material/tree'
 import { MatDatepickerModule } from '@angular/material/datepicker'
-import { MatPaginatorModule } from '@angular/material/paginator'
 
 const MATERIAL_MODULES = [
   DragDropModule,
   CdkListboxModule,
   ZardIconComponent,
   ZardDividerComponent,
-  MatMenuModule,
+  ...ZardMenuImports,
   MatDialogModule,
   ZardButtonComponent,
   ...ZardFormImports,
@@ -53,8 +52,7 @@ const MATERIAL_MODULES = [
   MatTableModule,
   MatProgressSpinnerModule,
   MatDatepickerModule,
-  MatNativeDateModule,
-  MatPaginatorModule
+  MatNativeDateModule
 ]
 
 /**

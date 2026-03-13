@@ -18,7 +18,7 @@
 </mat-dialog-content>
 
 <mat-dialog-actions style="display: flex; justify-content: space-between; align-items: center;">
-  <button z-button zType="ghost" color="primary" ngmAppearance="dashed" [matMenuTriggerFor]="menu">
+  <button z-button zType="ghost" color="primary" ngmAppearance="dashed" z-menu [zMenuTriggerFor]="menu">
     <z-icon zType="add"></z-icon>
     {{ 'Ngm.Common.ADD' | translate: {Default: "Add"} }}
   </button>
@@ -33,52 +33,81 @@
   </div>
 </mat-dialog-actions>
 
-<mat-menu #menu="matMenu" class="ngm-density__compact">
-  <ngm-search class="px-1" [formControl]="searchControl" (click)="$event.stopPropagation()"></ngm-search>
+<ng-template #menu>
+  <div z-menu-content class="ngm-density__compact">
+    <div class="px-1" (click)="$event.stopPropagation()">
+      <ngm-search [formControl]="searchControl"></ngm-search>
+    </div>
 
-  <ng-container *ngFor="let property of dimensions$ | async">
-    <button mat-menu-item *ngIf="isSemanticCalendar(property); else menuItem" (click)="openSlicerCreator(property)"
-      [matMenuTriggerFor]="calendarMenu"
-      [matMenuTriggerData]="{property: property}"
+    <ng-container *ngFor="let property of dimensions$ | async">
+      <button
+        *ngIf="isSemanticCalendar(property); else menuItem"
+        type="button"
+        z-menu-item
+        z-menu
+        [zMenuTriggerFor]="calendarMenu"
+        [zMenuTriggerData]="{property: property}"
+        (click)="openSlicerCreator(property)"
+      >
+        <ngm-entity-property
+          class="flex-1"
+          [property]="property"
+          [displayBehaviour]="DisplayBehaviour.auto"
+          [highlight]="highlight"
+        >
+        </ngm-entity-property>
+        <z-icon class="ml-auto opacity-60" zType="chevron_right"></z-icon>
+      </button>
+
+      <ng-template #menuItem>
+        <button type="button" z-menu-item (click)="openValueHelp(property)">
+          <ngm-entity-property
+            class="flex-1"
+            [property]="property"
+            [displayBehaviour]="DisplayBehaviour.auto"
+            [highlight]="highlight"
+          >
+          </ngm-entity-property>
+        </button>
+      </ng-template>
+    </ng-container>
+
+    <button
+      *ngIf="showCombinationSlicer"
+      type="button"
+      z-menu-item
+      (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.CombinationSlicer)"
     >
-      <ngm-entity-property [property]="property" [displayBehaviour]="DisplayBehaviour.auto"
-        [highlight]="highlight">
-      </ngm-entity-property>
+      <z-icon zType="tune"></z-icon>
+      {{ 'Ngm.Selection.CombinationSlicer' | translate: {Default: 'Combination Slicer'} }}
     </button>
 
-    <ng-template #menuItem>
-      <button mat-menu-item (click)="openValueHelp(property)">
-        <ngm-entity-property [property]="property" [displayBehaviour]="DisplayBehaviour.auto"
-          [highlight]="highlight">
-        </ngm-entity-property>
-      </button>
-    </ng-template>
-  </ng-container>
+    <button
+      *ngIf="showAdvancedSlicer"
+      type="button"
+      z-menu-item
+      (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.AdvancedSlicer)"
+    >
+      <z-icon zType="data_array"></z-icon>
+      {{ 'Ngm.Selection.AdvancedSlicer' | translate: {Default: 'Advanced Slicer'} }}
+    </button>
+  </div>
+</ng-template>
 
-  <button mat-menu-item *ngIf="showCombinationSlicer"
-    (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.CombinationSlicer)">
-    <z-icon zType="tune"></z-icon>
-    {{ 'Ngm.Selection.CombinationSlicer' | translate: {Default: 'Combination Slicer'} }}
-  </button>
-
-  <button mat-menu-item *ngIf="showAdvancedSlicer"
-    (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.AdvancedSlicer)">
-    <z-icon zType="data_array"></z-icon>
-    {{ 'Ngm.Selection.AdvancedSlicer' | translate: {Default: 'Advanced Slicer'} }}
-  </button>
-</mat-menu>
-
-<mat-menu #calendarMenu="matMenu" class="ngm-density__compact">
-  <ng-template matMenuContent let-property="property">
-    <button mat-menu-item (click)="openValueHelp(property)">
+<ng-template #calendarMenu let-property="property">
+  <div z-menu-content class="ngm-density__compact">
+    <button type="button" z-menu-item (click)="openValueHelp(property)">
       <z-icon zType="people_outline"></z-icon>
       {{ 'Ngm.Selection.DimensionMembers' | translate: {Default: 'Dimension Members'} }}
     </button>
 
-    <button mat-menu-item *ngFor="let variable of dateVariables"
-      (click)="openDynamicDateHelp(property, variable.dateRange)">
+    <button
+      type="button"
+      z-menu-item
+      *ngFor="let variable of dateVariables"
+      (click)="openDynamicDateHelp(property, variable.dateRange)"
+    >
       {{variable.name}}
     </button>
-    
-  </ng-template>
-</mat-menu>
+  </div>
+</ng-template>
