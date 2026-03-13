@@ -1,13 +1,17 @@
-<div class="rounded-xl hover:bg-hover-bg"
-  [matTooltip]="('PAC.Header.Organization.SwitchOrganization' | translate: {Default: 'Switch Organization'}) + (organization()?.name || '')"
-  matTooltipPosition="after"
-  [matTooltipDisabled]="!isCollapsed()"
+<div
+  class="rounded-xl hover:bg-hover-bg"
+  [zTooltip]="
+    ('PAC.Header.Organization.SwitchOrganization' | translate: { Default: 'Switch Organization' }) +
+    (organization()?.name || '')
+  "
+  zPosition="right"
+  [zDisabled]="!isCollapsed()"
   [cdkMenuTriggerFor]="menu"
 >
   @if (organization()) {
     <div class="flex justify-start items-center">
-      <pac-org-avatar [organization]="organization()" class="shrink-0 w-8 h-8 rounded-full overflow-hidden block m-1"/>
-      
+      <pac-org-avatar [organization]="organization()" class="shrink-0 w-8 h-8 rounded-full overflow-hidden block m-1" />
+
       @if (!isCollapsed()) {
         <div class="flex-1 truncate mr-2">{{ organization().name }}</div>
       }
@@ -24,7 +28,9 @@
       <div cdkMenuItem [class.active]="org.id === organization()?.id" (click)="selectOrganization(org)">
         <div class="flex justify-start items-center overflow-hidden text-ellipsis">
           <pac-org-avatar [organization]="org" class="shrink-0 w-6 h-6 rounded-full overflow-hidden block mr-2" />
-          <span class="whitespace-nowrap" [title]="org.name" [ngmHighlight]="searchTerm()" [content]="org.name">{{org.name}}</span>
+          <span class="whitespace-nowrap" [title]="org.name" [ngmHighlight]="searchTerm()" [content]="org.name">{{
+            org.name
+          }}</span>
         </div>
       </div>
     }

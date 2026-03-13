@@ -5,7 +5,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { XpertEnvironmentManageComponent, XpertEnvVariableFormComponent } from '@cloud/app/@shared/environment'
 import { AsteriskPipe } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -16,7 +15,7 @@ import { IEnvironment, TEnvironmentVariable, VariableOperationEnum } from '../..
 import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-environment',
   templateUrl: './environment.component.html',
@@ -30,7 +29,7 @@ import { XpertStudioPanelComponent } from '../panel.component'
     TranslateModule,
     DragDropModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     A11yModule,
     NgmSpinComponent,
     AsteriskPipe,

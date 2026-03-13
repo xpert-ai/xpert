@@ -11,7 +11,6 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ChatConversationPreviewComponent } from '@cloud/app/@shared/chat'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -27,6 +26,7 @@ import {
 import { XpertExecutionService } from '../../../services/execution.service'
 import { processEvents } from '../../agent-execution/execution.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-trigger-test',
@@ -34,7 +34,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   styleUrls: ['./trigger.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, MatTooltipModule, TranslateModule, ChatConversationPreviewComponent]
+  imports: [CommonModule, FormsModule, ...ZardTooltipImports, TranslateModule, ChatConversationPreviewComponent]
 })
 export class XpertWorkflowTriggerTestComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

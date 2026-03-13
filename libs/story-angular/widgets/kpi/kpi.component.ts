@@ -3,11 +3,20 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { AbstractStoryWidget, StoryWidgetState, StoryWidgetStyling, WidgetMenuType, nonNullable } from '@metad/core'
 import { NgmObjectNumberComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
-import { DataSettings, Dimension, PropertyHierarchy, TrendType, assignDeepOmitBlank, getEntityDimensions, isEmpty, isEqual, isNil } from '@metad/ocap-core'
+import {
+  DataSettings,
+  Dimension,
+  PropertyHierarchy,
+  TrendType,
+  assignDeepOmitBlank,
+  getEntityDimensions,
+  isEmpty,
+  isEqual,
+  isNil
+} from '@metad/ocap-core'
 import { ComponentStyling, NxStoryService, componentStyling } from '@metad/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { AnalyticalGridComponent, AnalyticalGridModule } from '@metad/ocap-angular/analytical-grid'
@@ -17,8 +26,7 @@ import { distinctUntilChanged, filter, map } from 'rxjs/operators'
 import { KPIPlaceholderComponent } from './placeholder/placeholder.component'
 import { KeyPerformanceIndicatorService } from './key-performance-indicator.service'
 import { NxWidgetKPIOptions } from './types'
-import { ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 export interface PacWidgetKPIStyling extends StoryWidgetStyling {
   title: ComponentStyling
   value: ComponentStyling
@@ -37,13 +45,13 @@ export interface PacWidgetKPIStyling extends StoryWidgetStyling {
     TranslateModule,
     CdkMenuModule,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
 
     AnalyticalGridModule,
     NgmObjectNumberComponent,
     KPIPlaceholderComponent,
     NgmSelectionModule,
-    NgmSpinComponent,
+    NgmSpinComponent
   ]
 })
 export class NxWidgetKpiComponent extends AbstractStoryWidget<
@@ -58,7 +66,7 @@ export class NxWidgetKpiComponent extends AbstractStoryWidget<
   readonly dataService = inject(KeyPerformanceIndicatorService)
   readonly storyService = inject(NxStoryService, { optional: true })
   readonly #logger = inject(NGXLogger)
-  
+
   // Chirldren
   readonly gridComponent = viewChild('gridComponent', { read: AnalyticalGridComponent })
 
@@ -145,9 +153,7 @@ export class NxWidgetKpiComponent extends AbstractStoryWidget<
           ...dimension,
           zeroSuppression: true
         })),
-        columns: [
-          dataSettings.KPIAnnotation.DataPoint.Value
-        ]
+        columns: [dataSettings.KPIAnnotation.DataPoint.Value]
       }
     } as DataSettings
   })
@@ -233,8 +239,10 @@ export class NxWidgetKpiComponent extends AbstractStoryWidget<
   }
 
   download() {
-    this.gridComponent()?.downloadData().catch((error) => {
-      this.#logger.error('Download data failed', error)
-    })
+    this.gridComponent()
+      ?.downloadData()
+      .catch((error) => {
+        this.#logger.error('Download data failed', error)
+      })
   }
 }

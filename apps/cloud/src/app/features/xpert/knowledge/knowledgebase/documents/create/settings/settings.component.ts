@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import {
   AiModelTypeEnum,
   DocumentTextParserConfig,
@@ -25,8 +24,7 @@ import { KnowledgeDocumentPreviewComponent } from '../preview/preview.component'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'xp-knowledge-document-create-settings',
@@ -37,7 +35,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmI18nPipe,
     NgmCheckboxComponent,
     NgmSelectComponent,

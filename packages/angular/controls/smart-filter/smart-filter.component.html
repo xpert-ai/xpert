@@ -16,7 +16,7 @@
         <ngm-tags class="overflow-hidden" [tags]="chips$ | async" [exclude]="slicerSignal()?.exclude" color="blue" />
 
         @if (restChips().length) {
-          <span class="cursor-pointer shrink-0" [matTooltip]="restChips().join('; ')"> +{{ restChips().length }} </span>
+          <span class="cursor-pointer shrink-0" [zTooltip]="restChips().join('; ')"> +{{ restChips().length }} </span>
         }
       }
     }

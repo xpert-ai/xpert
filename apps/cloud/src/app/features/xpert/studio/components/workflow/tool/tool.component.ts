@@ -1,17 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { FFlowModule } from '@foblex/flow'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
 import { myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import {
-  getToolLabel,
-  IWFNTool,
-} from 'apps/cloud/src/app/@core'
+import { getToolLabel, IWFNTool } from 'apps/cloud/src/app/@core'
 import { of } from 'rxjs'
 import { XpertNodeErrorHandlingComponent } from '../../error-handling/error.component'
 import { WorkflowBaseNodeComponent } from '../workflow-base.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-node-tool',
@@ -21,7 +18,7 @@ import { WorkflowBaseNodeComponent } from '../workflow-base.component'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FFlowModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     PlusSvgComponent,
     NgmI18nPipe,
@@ -30,7 +27,6 @@ import { WorkflowBaseNodeComponent } from '../workflow-base.component'
   ]
 })
 export class XpertWorkflowNodeToolComponent extends WorkflowBaseNodeComponent {
-
   // States
   readonly toolEntity = computed(() => this.entity() as IWFNTool)
   readonly errorHandling = computed(() => this.toolEntity()?.errorHandling)
@@ -54,7 +50,7 @@ export class XpertWorkflowNodeToolComponent extends WorkflowBaseNodeComponent {
     if (tool) {
       return {
         ...tool,
-        label: getToolLabel(tool),
+        label: getToolLabel(tool)
       }
     }
     return null

@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, DestroyRef, inject, input, model, OnInit } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { nonNullable, OverlayAnimation1 } from '@metad/core'
 import { NgmSearchComponent, NgmHighlightDirective } from '@metad/ocap-angular/common'
@@ -14,7 +13,7 @@ import { NgxPermissionsService } from 'ngx-permissions'
 import { combineLatestWith, filter, map, switchMap, tap } from 'rxjs'
 import { IOrganization, PermissionsEnum, Store, UsersOrganizationsService } from '../../../@core'
 import { OrgAvatarComponent } from '../../../@shared/organization'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-organization-selector',
@@ -28,11 +27,11 @@ import { OrgAvatarComponent } from '../../../@shared/organization'
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSearchComponent,
     OrgAvatarComponent,
     NgmHighlightDirective
-],
+  ],
   animations: [OverlayAnimation1]
 })
 export class OrganizationSelectorComponent implements OnInit {

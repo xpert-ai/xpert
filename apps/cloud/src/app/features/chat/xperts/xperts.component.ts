@@ -17,7 +17,6 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import { Store } from '@metad/cloud/state'
 import { OverlayAnimations } from '@metad/core'
@@ -28,6 +27,7 @@ import { AIPermissionsEnum, IXpert } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertCardComponent } from '../../../@shared/xpert'
 import { ChatHomeService } from '../home.service'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -39,7 +39,7 @@ import { ChatHomeService } from '../home.service'
     TranslateModule,
     CdkListboxModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     EmojiAvatarComponent,
     XpertCardComponent
   ],
@@ -140,12 +140,15 @@ export class ChatXpertsComponent {
       }
     })
 
-    effect(() => {
-      if (!this.hoverTooltip()) {
-        this.overlayRef()?.detach()
-        this.element.set(null)
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (!this.hoverTooltip()) {
+          this.overlayRef()?.detach()
+          this.element.set(null)
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   showMore() {

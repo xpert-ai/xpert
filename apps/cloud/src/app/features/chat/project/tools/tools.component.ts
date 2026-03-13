@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import {
   getErrorMessage,
@@ -37,6 +36,7 @@ import { CardCreateComponent } from '@cloud/app/@shared/card'
 import { debouncedSignal, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  *
@@ -50,7 +50,7 @@ import { NgmHighlightDirective } from '@metad/ocap-angular/common'
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ContentLoaderModule,
     DynamicGridDirective,
     MCPMarketplaceComponent,
@@ -201,7 +201,7 @@ export class ChatProjectToolsComponent {
         disableClose: true,
         data: {
           providerName: provider.name,
-          workspaceId: this.workspace().id,
+          workspaceId: this.workspace().id
         }
       })
       .closed.subscribe((result) => {
@@ -218,7 +218,7 @@ export class ChatProjectToolsComponent {
         data: {
           providerName: toolset.type,
           workspaceId: this.workspace().id,
-          toolset,
+          toolset
         }
       })
       .closed.subscribe((result) => {

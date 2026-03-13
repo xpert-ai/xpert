@@ -1,17 +1,19 @@
-<div class="flex flex-col w-16 max-w-[240px] shrink-0 transition-all overflow-y-auto bg-neutral-50"
+<div
+  class="flex flex-col w-16 max-w-[240px] shrink-0 transition-all overflow-y-auto bg-neutral-50"
   [class.w-[240px]]="sideMenuOpened()"
 >
   <ul class="pac-nav__tab-bar flex-1 p-2 rounded-lg space-y-1">
     @for (e of menus(); track $index) {
-      <li class="link flex justify-start items-center px-3 py-2 cursor-pointer rounded-lg hover:bg-hover-bg"
+      <li
+        class="link flex justify-start items-center px-3 py-2 cursor-pointer rounded-lg hover:bg-hover-bg"
         [routerLink]="e.link"
         [routerLinkActiveOptions]="{ exact: false }"
         routerLinkActive
         #rla="routerLinkActive"
         [class.active]="rla.isActive"
-        [matTooltip]=" 'PAC.MENU.' + e.label | translate: { Default: e.label } "
-        matTooltipPosition="after"
-        [matTooltipDisabled]="sideMenuOpened()"
+        [zTooltip]="'PAC.MENU.' + e.label | translate: { Default: e.label }"
+        zPosition="right"
+        [zDisabled]="sideMenuOpened()"
       >
         @if (e.icon) {
           <z-icon zSize="default" [zType]="e.icon"></z-icon>
@@ -27,12 +29,16 @@
   </ul>
 </div>
 
-<div [@routeAnimations]="o.isActivated && o.activatedRouteData?.title"
-      class="pac-nav__router relative flex-1 bg-components-panel-bg">
+<div
+  [@routeAnimations]="o.isActivated && o.activatedRouteData?.title"
+  class="pac-nav__router relative flex-1 bg-components-panel-bg"
+>
   <router-outlet #o="outlet"></router-outlet>
 
-  <ngm-drawer-trigger class="absolute -left-2 top-1/2 -translate-y-1/2 z-40" 
-    [(opened)]="sideMenuOpened" 
-    [matTooltip]="'PAC.KEY_WORDS.SettingsNavigation' | translate: {Default: 'Settings Navigation'}"
-    matTooltipPosition="after" />
+  <ngm-drawer-trigger
+    class="absolute -left-2 top-1/2 -translate-y-1/2 z-40"
+    [(opened)]="sideMenuOpened"
+    [zTooltip]="'PAC.KEY_WORDS.SettingsNavigation' | translate: { Default: 'Settings Navigation' }"
+    zPosition="right"
+  />
 </div>

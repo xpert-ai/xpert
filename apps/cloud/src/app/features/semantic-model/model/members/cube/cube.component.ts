@@ -5,11 +5,17 @@ import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
 import { MatExpansionModule } from '@angular/material/expansion'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { CdkConfirmDeleteComponent, NgmCheckboxComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { Cube, EntityType, FilterSelectionType, Property, getEntityDimensions, getEntityProperty } from '@metad/ocap-core'
+import {
+  Cube,
+  EntityType,
+  FilterSelectionType,
+  Property,
+  getEntityDimensions,
+  getEntityProperty
+} from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ISemanticModelEntity,
@@ -26,8 +32,7 @@ import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { SemanticModelService } from '../../model.service'
 import { ModelMembersRetrievalTestingComponent } from '../retrieval/retrieval.component'
 import { ModelTaskDialogComponent } from '../task/task.component'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -37,11 +42,11 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     ZardIconComponent,
     MatExpansionModule,
     ZardButtonComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MatProgressSpinnerModule,
     DensityDirective,
     AppearanceDirective,
-    NgmCheckboxComponent,
+    NgmCheckboxComponent
   ],
   selector: 'pac-model-members-cube',
   templateUrl: 'cube.component.html',
@@ -93,7 +98,7 @@ export class ModelMembersCubeComponent {
   readonly job = computed(() => this.cube()?.__entity__?.job)
 
   readonly delayRefresh$ = new Subject<boolean>()
-  
+
   constructor() {
     // effect(
     //   () => {
@@ -114,7 +119,7 @@ export class ModelMembersCubeComponent {
     )
 
     effect(() => {
-      if (this.job()?.status ==='processing') {
+      if (this.job()?.status === 'processing') {
         this.delayRefresh$.next(true)
       }
     })
@@ -162,7 +167,7 @@ export class ModelMembersCubeComponent {
         const dimensionProperty = getEntityProperty(this.cube().entityType, name)
         for await (const hierarchy of dimensionProperty.hierarchies ?? []) {
           let storeMembers = []
-        // const hierarchy = getEntityHierarchy(this.cube().entityType, name)
+          // const hierarchy = getEntityHierarchy(this.cube().entityType, name)
           if (!hierarchy) {
             this.#toastr.error('PAC.MODEL.CanntFoundHierarchy', null, {
               Default: `Can't found hierarchy '${name}'`,
@@ -176,7 +181,7 @@ export class ModelMembersCubeComponent {
               }),
               this.#toastr
             )
-            
+
             if (members) {
               storeMembers = storeMembers.concat(members)
             }
@@ -213,7 +218,7 @@ export class ModelMembersCubeComponent {
         type: ModelEntityType.Cube,
         options: {
           vector: {
-            dimensions,
+            dimensions
             // hierarchies: uniq(dimensions)
           }
         }
@@ -221,7 +226,9 @@ export class ModelMembersCubeComponent {
       .subscribe({
         next: (entity) => {
           this.cube.update((cube) => ({ ...cube, __entity__: entity }))
-          this.#toastr.success('PAC.MODEL.SynchronizationJobCreatedSuccessfully', { Default: 'Synchronization job created successfully!' })
+          this.#toastr.success('PAC.MODEL.SynchronizationJobCreatedSuccessfully', {
+            Default: 'Synchronization job created successfully!'
+          })
         },
         error: (err) => {
           this.#toastr.error(getErrorMessage(err))
@@ -257,8 +264,7 @@ export class ModelMembersCubeComponent {
           })
         }
       })
-      .closed
-      .pipe(
+      .closed.pipe(
         switchMap((confirm) =>
           confirm
             ? this.modelEntityService.delete(id).pipe(
@@ -303,32 +309,38 @@ export class ModelMembersCubeComponent {
   }
 
   retrievalTesting() {
-    this.#dialog.open(ModelMembersRetrievalTestingComponent, {
-      viewContainerRef: this.viewContainerRef,
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet',
-      data: {
-        modelId: this.modelService.modelSignal().id,
-        cube: this.cube()
-      }
-    }).closed.subscribe((result) => {
-      if (result) {
-      }
-    })
+    this.#dialog
+      .open(ModelMembersRetrievalTestingComponent, {
+        viewContainerRef: this.viewContainerRef,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: {
+          modelId: this.modelService.modelSignal().id,
+          cube: this.cube()
+        }
+      })
+      .closed.subscribe((result) => {
+        if (result) {
+        }
+      })
   }
 
   scheduledSyncTask() {
-    this.#dialog.open(ModelTaskDialogComponent, {
-      backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet',
-      data: {
-        task: this.entity()
-      }
-    }).closed.subscribe((task) => {
-      if (task) {
-        this.cube.update((cube) => ({ ...cube, __entity__: task }))
-        this.#toastr.success('PAC.MODEL.SynchronizationJobCreatedSuccessfully', { Default: 'Synchronization job created successfully!' })
-      }
-    })
+    this.#dialog
+      .open(ModelTaskDialogComponent, {
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: {
+          task: this.entity()
+        }
+      })
+      .closed.subscribe((task) => {
+        if (task) {
+          this.cube.update((cube) => ({ ...cube, __entity__: task }))
+          this.#toastr.success('PAC.MODEL.SynchronizationJobCreatedSuccessfully', {
+            Default: 'Synchronization job created successfully!'
+          })
+        }
+      })
   }
 }

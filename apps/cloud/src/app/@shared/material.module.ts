@@ -14,7 +14,8 @@ import {
   ZardIconComponent,
   ZardInputDirective,
   ZardTabsImports,
-  ZardCheckboxComponent
+  ZardCheckboxComponent,
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { MatExpansionModule } from '@angular/material/expansion'
 import { MatMenuModule } from '@angular/material/menu'
@@ -26,7 +27,6 @@ import { MatSnackBarModule } from '@angular/material/snack-bar'
 import { MatStepperModule } from '@angular/material/stepper'
 import { MatTableModule } from '@angular/material/table'
 import { MatToolbarModule } from '@angular/material/toolbar'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatTreeModule } from '@angular/material/tree'
 import { MatDatepickerModule } from '@angular/material/datepicker'
 import { MatBottomSheetModule } from '@angular/material/bottom-sheet'
@@ -53,7 +53,7 @@ const MATERIAL_MODULES = [
   MatExpansionModule,
   MatAutocompleteModule,
   MatChipsModule,
-  MatTooltipModule,
+  ...ZardTooltipImports,
   MatRippleModule,
   MatTreeModule,
   ZardBadgeComponent,

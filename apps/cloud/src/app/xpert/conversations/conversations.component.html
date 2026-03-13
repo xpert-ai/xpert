@@ -1,13 +1,16 @@
 <div class="flex items-center gap-3 px-5 border-b border-border h-14">
-  <div class="flex items-center w-full gap-2" >
+  <div class="flex items-center w-full gap-2">
     <input
-      [placeholder]="('PAC.KEY_WORDS.Search' | translate: {Default: 'Search'}) + '...'"
+      [placeholder]="('PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }) + '...'"
       class="flex-grow w-full bg-transparent placeholder:text-secondary focus-visible:outline-none"
       role="combobox"
       type="text"
       [formControl]="searchControl"
     />
-    <div class="w-8 h-8 flex justify-center items-center flex-shrink-0 cursor-pointer hover:bg-hover-bg rounded-full" (click)="clearSearch()">
+    <div
+      class="w-8 h-8 flex justify-center items-center flex-shrink-0 cursor-pointer hover:bg-hover-bg rounded-full"
+      (click)="clearSearch()"
+    >
       @if (searchValue) {
         <i class="ri-close-line text-xl text-text-secondary"></i>
       } @else {
@@ -20,9 +23,14 @@
 <div class="container relative w-[600px] h-[600px]" [class.expand]="expand()">
   @if (_filterXpert(); as xpert) {
     <div class="p-1">
-      <span class="truncate border-[0.5px] border-slate-200 border-solid rounded-md px-2 py-1 ml-1 text-xs font-mono text-gray-600 bg-slate-50">
-        {{xpert.title || xpert.name}}
-        <i class="ri-close-circle-line cursor-pointer text-text-tertiary hover:text-text-primary" (click)="filterXpert(null)"></i>
+      <span
+        class="truncate border-[0.5px] border-slate-200 border-solid rounded-md px-2 py-1 ml-1 text-xs font-mono text-gray-600 bg-slate-50"
+      >
+        {{ xpert.title || xpert.name }}
+        <i
+          class="ri-close-circle-line cursor-pointer text-text-tertiary hover:text-text-primary"
+          (click)="filterXpert(null)"
+        ></i>
       </span>
     </div>
   }
@@ -31,39 +39,52 @@
       class="conversations col-span-2 xl:col-span-5 h-full overflow-auto space-y-3 p-3 border-r border-border"
       style="scroll-padding-block: 1rem"
     >
-      <div class="flex-1 p-2 overflow-auto max-h-fit"
-        waIntersectionObserver
-        waIntersectionThreshold="0.5"
-      >
+      <div class="flex-1 p-2 overflow-auto max-h-fit" waIntersectionObserver waIntersectionThreshold="0.5">
         <ul>
           @for (group of groups(); track groups.name; let first = $first) {
-            <div class="text-sm font-semibold text-ellipsis overflow-hidden break-all text-token-text-primary"
-              [class.pt-8]="!first">
-              {{ 'PAC.KEY_WORDS.Date_' + group.name | translate: {Default: group.name} }}
+            <div
+              class="text-sm font-semibold text-ellipsis overflow-hidden break-all text-token-text-primary"
+              [class.pt-8]="!first"
+            >
+              {{ 'PAC.KEY_WORDS.Date_' + group.name | translate: { Default: group.name } }}
             </div>
             @for (item of group.values; track item.id) {
-              <li class="pac-chat__conversation-item relative group flex justify-between items-center overflow-hidden px-3 py-2 rounded-xl text-text-primary hover:bg-black/5 dark:hover:bg-white/10"
-                [ngClass]="{active: item.id === conversationId()}"
+              <li
+                class="pac-chat__conversation-item relative group flex justify-between items-center overflow-hidden px-3 py-2 rounded-xl text-text-primary hover:bg-black/5 dark:hover:bg-white/10"
+                [ngClass]="{ active: item.id === conversationId() }"
               >
-                @if (editingConversation()  === item.id) {
-                  <input z-input [(ngModel)]="editingTitle" (keydown.enter)="updateTitle(item)" 
-                    (keydown.esc)="exitEdit($event)">
+                @if (editingConversation() === item.id) {
+                  <input
+                    z-input
+                    [(ngModel)]="editingTitle"
+                    (keydown.enter)="updateTitle(item)"
+                    (keydown.esc)="exitEdit($event)"
+                  />
                 } @else {
-                  <a class="truncate cursor-pointer" [ngmHighlight]="searchValue" [content]="(item.title | i18n) || item.id"
-                    (click)="selectConversation(item)">{{item.title || item.id}}</a>
+                  <a
+                    class="truncate cursor-pointer"
+                    [ngmHighlight]="searchValue"
+                    [content]="(item.title | i18n) || item.id"
+                    (click)="selectConversation(item)"
+                    >{{ item.title || item.id }}</a
+                  >
                   @if (item.project) {
-                    <span class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 ml-1 text-xs font-mono truncate text-gray-600 bg-slate-50">
-                      {{item.project.name}}
+                    <span
+                      class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 ml-1 text-xs font-mono truncate text-gray-600 bg-slate-50"
+                    >
+                      {{ item.project.name }}
                     </span>
                   }
                   @if (item.xpert) {
-                    <span class="truncate border-[0.5px] border-slate-200 border-solid rounded-md px-1 ml-1 text-xs font-mono cursor-pointer text-gray-600 bg-slate-50"
-                      (click)="filterXpert(item.xpert);">
+                    <span
+                      class="truncate border-[0.5px] border-slate-200 border-solid rounded-md px-1 ml-1 text-xs font-mono cursor-pointer text-gray-600 bg-slate-50"
+                      (click)="filterXpert(item.xpert)"
+                    >
                       @if (item.taskId) {
                         <i class="ri-timer-line"></i>
                       }
                       <span>
-                        {{item.xpert.title || item.xpert.name}}
+                        {{ item.xpert.title || item.xpert.name }}
                       </span>
                     </span>
                   }
@@ -72,37 +93,43 @@
                 <span class="grow"></span>
 
                 <div class="z-20 relative flex items-center">
-                  <span class="text-secondary whitespace-nowrap ml-2 hidden text-sm group-hover:opacity-0 md:inline md:group-hover/item:hidden md:group-focus/item:hidden md:group-active/item:hidden"
-                    >{{ item.updatedAt | relative }}</span>
-                  
-                  @if (editingConversation()  === item.id) {
+                  <span
+                    class="text-secondary whitespace-nowrap ml-2 hidden text-sm group-hover:opacity-0 md:inline md:group-hover/item:hidden md:group-focus/item:hidden md:group-active/item:hidden"
+                    >{{ item.updatedAt | relative }}</span
+                  >
+
+                  @if (editingConversation() === item.id) {
                     <div class="absolute right-1 flex items-center gap-1">
                       <button
                         class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
                         type="button"
                         tabindex="-1"
-                        [matTooltip]="'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'}"
-                        matTooltipPosition="above"
+                        [zTooltip]="'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' }"
+                        zPosition="top"
                         (click)="exitEdit($event)"
-                      ><i class="ri-close-line"></i></button>
+                      >
+                        <i class="ri-close-line"></i>
+                      </button>
 
                       <button
                         class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
                         type="button"
                         tabindex="-1"
-                        [matTooltip]="'PAC.ACTIONS.Save' | translate: {Default: 'Save'}"
-                        matTooltipPosition="above"
+                        [zTooltip]="'PAC.ACTIONS.Save' | translate: { Default: 'Save' }"
+                        zPosition="top"
                         (click)="updateTitle(item)"
-                      ><i class="ri-check-line"></i></button>
+                      >
+                        <i class="ri-check-line"></i>
+                      </button>
                     </div>
                   } @else {
-                    <div class="absolute right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100" >
+                    <div class="absolute right-1 flex items-center gap-1 opacity-0 group-hover:opacity-100">
                       <button
                         class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default text-primary hover:bg-button-ghost-hover flex items-center gap-3 rounded-lg"
                         type="button"
                         tabindex="-1"
-                        [matTooltip]="'PAC.ACTIONS.OpenInNewTab' | translate: {Default: 'Open in new tab'}"
-                        matTooltipPosition="above"
+                        [zTooltip]="'PAC.ACTIONS.OpenInNewTab' | translate: { Default: 'Open in new tab' }"
+                        zPosition="top"
                         (click)="openInTab(item)"
                       >
                         <svg
@@ -130,9 +157,9 @@
                         class="btn w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-button-ghost-hover flex items-center gap-3 size-8 rounded-md"
                         type="button"
                         tabindex="-1"
-                        [matTooltip]="'PAC.ACTIONS.Edit' | translate: {Default: 'Edit'}"
-                        matTooltipPosition="above"
-                        (click)="editingConversation.set(item.id);editingTitle.set(item.title)"
+                        [zTooltip]="'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' }"
+                        zPosition="top"
+                        (click)="editingConversation.set(item.id); editingTitle.set(item.title)"
                       >
                         <svg
                           width="16"
@@ -153,8 +180,8 @@
                         class="btn danger w-8 h-8 justify-center whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary hover:bg-button-ghost-hover flex items-center gap-3 size-8 rounded-md"
                         type="button"
                         tabindex="-1"
-                        [matTooltip]="'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'}"
-                        matTooltipPosition="above"
+                        [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+                        zPosition="top"
                         (click)="deleteConv(item.id)"
                       >
                         <svg
@@ -180,7 +207,6 @@
                     </div>
                   }
                 </div>
-                
               </li>
             }
           }
@@ -192,14 +218,12 @@
 
         <div (waIntersectionObservee)="onIntersection()" class="p-4"></div>
       </div>
-     
+
       <div class="h-[1px] flex justify-center !m-0 !p-0"></div>
     </div>
 
     @if (expand()) {
-      <div class="conversation col-span-1 xl:col-span-3 h-full overflow-auto">
-        CCCC
-      </div>
+      <div class="conversation col-span-1 xl:col-span-3 h-full overflow-auto">CCCC</div>
     }
   </div>
 </div>

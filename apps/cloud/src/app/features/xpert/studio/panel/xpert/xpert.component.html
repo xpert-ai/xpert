@@ -17,7 +17,7 @@
 
     <div
       class="flex items-center justify-center w-8 h-8 rounded-md cursor-pointer text-text-tertiary hover:text-base-content hover:bg-hover-bg"
-      [matTooltip]="'PAC.Xpert.ShowDiagram' | translate: { Default: 'Show diagram' }"
+      [zTooltip]="'PAC.Xpert.ShowDiagram' | translate: { Default: 'Show diagram' }"
       #mt1="cdkMenuTriggerFor"
       [cdkMenuTriggerFor]="diagramMenu"
       [cdkMenuTriggerData]="{ trigger: mt1 }"
@@ -28,7 +28,7 @@
     <button
       type="button"
       class="action-btn action-btn-sm justify-center w-8 h-8 p-0.5 rounded-md pressable"
-      [matTooltip]="
+      [zTooltip]="
         'PAC.Xpert.RefreshExternalXpert' | translate: { Default: 'Refresh, sync external xpert configuration' }
       "
       (click)="refresh()"
@@ -91,10 +91,10 @@
         class="flex"
         [(ngModel)]="mute"
         labelPosition="before"
-        [matTooltip]="
+        [zTooltip]="
           'PAC.Xpert.DisableOutputTip' | translate: { Default: 'Disable returning the agent\'s output to the user' }
         "
-        matTooltipPosition="above"
+        zPosition="top"
         zSize="sm"
       />
     </div>

@@ -5,7 +5,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, effect, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 import {
   EnvironmentService,
@@ -25,6 +24,7 @@ import { BehaviorSubject, Observable, pipe } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
 import { NgmSelectComponent } from '../../common'
 import { VariableTypeOptions } from '../types'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 const AutoSaveDebounceTime = 1000
 
@@ -39,7 +39,7 @@ const AutoSaveDebounceTime = 1000
     CdkMenuModule,
     CdkListboxModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
 
     NgmSpinComponent,
     NgmSelectComponent

@@ -17,10 +17,15 @@ import {
 import { FormsModule } from '@angular/forms'
 
 import { MAT_DIALOG_DATA } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatSnackBar } from '@angular/material/snack-bar'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser'
 import { AccessEnum, ISemanticModel, Visibility } from '@metad/contracts'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -38,7 +43,7 @@ import { firstValueFrom } from 'rxjs'
     ZardInputDirective,
     ZardButtonComponent,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MatSliderModule,
     TranslateModule,
     NgmCommonModule

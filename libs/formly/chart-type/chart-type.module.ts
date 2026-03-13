@@ -4,7 +4,6 @@ import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialogModule } from '@angular/material/dialog'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule, ResizerModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
@@ -18,7 +17,8 @@ import {
   provideZardIconAssets,
   ZardCheckboxComponent,
   ZardToggleGroupComponent,
-  ZardToggleGroupItemComponent
+  ZardToggleGroupItemComponent,
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { PACFormlyChartTypeComponent } from './chart-type.component'
 import { CHART_ICON_ASSETS } from './types'
@@ -37,9 +37,9 @@ import { CHART_ICON_ASSETS } from './types'
     MatDialogModule,
     ZardInputDirective,
     ZardCheckboxComponent,
-    MatTooltipModule,
     ZardToggleGroupComponent,
     ZardToggleGroupItemComponent,
+    ...ZardTooltipImports,
     MonacoEditorModule,
     TranslateModule,
     ButtonGroupDirective,

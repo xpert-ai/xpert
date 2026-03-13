@@ -3,15 +3,13 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertTool, IXpertToolset } from '@cloud/app/@core/types'
 import { XpertToolNameInputComponent } from '@cloud/app/@shared/xpert'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { MCPToolTestDialogComponent } from '../tool-test'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  *
  */
@@ -22,7 +20,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     FormsModule,
     TranslateModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmDensityDirective,
     XpertToolNameInputComponent,
     ZardSwitchComponent

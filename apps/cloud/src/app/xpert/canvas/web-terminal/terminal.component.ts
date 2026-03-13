@@ -1,13 +1,22 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { afterNextRender, ChangeDetectionStrategy, Component, ElementRef, inject, input, model, signal, viewChild } from '@angular/core'
+import {
+  afterNextRender,
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  inject,
+  input,
+  model,
+  signal,
+  viewChild
+} from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { getErrorMessage, injectToastr, SandboxService } from '@cloud/app/@core'
 import { omitBlank } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 interface TerminalLine {
   type: 'input' | 'output'
   text: string
@@ -15,7 +24,15 @@ interface TerminalLine {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, RouterModule, CdkMenuModule, RouterModule, TranslateModule, MatTooltipModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    RouterModule,
+    CdkMenuModule,
+    RouterModule,
+    TranslateModule,
+    ...ZardTooltipImports
+  ],
   selector: 'chat-canvas-web-terminal',
   templateUrl: './terminal.component.html',
   styleUrl: 'terminal.component.scss',
@@ -94,12 +111,12 @@ export class ChatCanvasWebTerminalComponent {
   }
 
   focusInput(): void {
-    const input = this.textInput()?.nativeElement;
+    const input = this.textInput()?.nativeElement
     if (input) {
       setTimeout(() => {
-        input.focus();
-        input.setSelectionRange(input.value.length, input.value.length);
-      });
+        input.focus()
+        input.setSelectionRange(input.value.length, input.value.length)
+      })
     }
   }
 }

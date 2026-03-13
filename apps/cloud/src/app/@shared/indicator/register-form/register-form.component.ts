@@ -47,14 +47,14 @@ import {
 } from 'rxjs'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
 
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatDatepickerModule } from '@angular/material/datepicker'
 import {
   ZardButtonComponent,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
-  ZardCheckboxComponent
+  ZardCheckboxComponent,
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '../types'
 import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
@@ -71,7 +71,7 @@ import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
     ReactiveFormsModule,
     ZardIconComponent,
     ZardButtonComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ...ZardFormImports,
     MatDatepickerModule,
     ZardInputDirective,

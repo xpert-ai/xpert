@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -13,6 +12,7 @@ import {
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-node-trigger',
@@ -20,7 +20,7 @@ import { XpertStudioApiService } from '../../../domain'
   styleUrls: ['./trigger.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent, NgmI18nPipe]
+  imports: [FFlowModule, ...ZardTooltipImports, TranslateModule, PlusSvgComponent, NgmI18nPipe]
 })
 export class XpertWorkflowNodeTriggerComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

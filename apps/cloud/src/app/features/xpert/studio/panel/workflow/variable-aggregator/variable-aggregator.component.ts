@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -12,6 +11,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-variable-aggregator',
@@ -19,7 +19,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   styleUrls: ['./variable-aggregator.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FormsModule, MatTooltipModule, TranslateModule, StateVariableSelectComponent]
+  imports: [FormsModule, ...ZardTooltipImports, TranslateModule, StateVariableSelectComponent]
 })
 export class XpertWorkflowVariableAggregatorComponent extends XpertWorkflowBaseComponent {
   readonly studioService = inject(XpertStudioApiService)
@@ -46,7 +46,10 @@ export class XpertWorkflowVariableAggregatorComponent extends XpertWorkflowBaseC
 
     effect(
       () => {
-        if (!this.outputType() && this.firstVariableType() || this.firstVariableType() && this.outputType() !== this.firstVariableType()) {
+        if (
+          (!this.outputType() && this.firstVariableType()) ||
+          (this.firstVariableType() && this.outputType() !== this.firstVariableType())
+        ) {
           this.outputType.set(this.firstVariableType())
         }
       },

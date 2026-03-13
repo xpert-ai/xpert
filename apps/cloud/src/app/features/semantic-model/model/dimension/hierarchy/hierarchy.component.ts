@@ -69,14 +69,13 @@ import { HierarchyTableDataType } from '../types'
 import { ModelHierarchyService } from './hierarchy.service'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-
 import { MatToolbarModule } from '@angular/material/toolbar'
-import {
-  ZardButtonComponent,
+import { 
+  ZardButtonComponent, 
   ZardCheckboxComponent,
   ZardIconComponent,
   ZardToggleGroupComponent,
+  ZardTooltipImports
   ZardToggleGroupItemComponent
 } from '@xpert-ai/headless-ui'
 
@@ -95,7 +94,7 @@ import {
     ContentLoaderModule,
     FormsModule,
     ZardCheckboxComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardIconComponent,
     ZardButtonComponent,
     ZardToggleGroupComponent,

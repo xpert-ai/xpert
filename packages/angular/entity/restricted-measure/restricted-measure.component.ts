@@ -14,7 +14,6 @@ import {
   AbstractControl,
   ValidationErrors
 } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import {
   DataSettings,
@@ -32,8 +31,7 @@ import { BehaviorSubject, map } from 'rxjs'
 import { PropertyCapacity } from '../types'
 import { NgmMeasureSelectComponent } from '../measure-select/measure-select.component'
 import { NgmPropertyArrayComponent } from '../property-array/property-array.component'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'ngm-restricted-measure',
@@ -56,7 +54,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     OcapCoreModule,
     NgmMeasureSelectComponent,
     NgmPropertyArrayComponent,

@@ -11,8 +11,8 @@
       <button
         type="button"
         class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
-        [matTooltip]="'PAC.Xpert.EditToolset' | translate: { Default: 'Edit toolset configuration' }"
-        matTooltipPosition="above"
+        [zTooltip]="'PAC.Xpert.EditToolset' | translate: { Default: 'Edit toolset configuration' }"
+        zPosition="top"
         (click)="edit()"
       >
         <i class="ri-settings-4-line"></i>
@@ -21,8 +21,8 @@
       <button
         type="button"
         class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
-        [matTooltip]="'PAC.Xpert.RefreshToolset' | translate: { Default: 'Refresh, sync toolset configuration' }"
-        matTooltipPosition="above"
+        [zTooltip]="'PAC.Xpert.RefreshToolset' | translate: { Default: 'Refresh, sync toolset configuration' }"
+        zPosition="top"
         (click)="refresh()"
       >
         <i class="ri-refresh-line"></i>
@@ -32,8 +32,8 @@
     <button
       type="button"
       class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
-      [matTooltip]="'PAC.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
-      matTooltipPosition="above"
+      [zTooltip]="'PAC.Xpert.MoveToNode' | translate: { Default: 'Move to this node' }"
+      zPosition="top"
       (click)="moveToNode()"
     >
       <i class="ri-crosshair-line"></i>
@@ -43,8 +43,8 @@
       [href]="helpUrl()"
       target="_blank"
       class="action-btn action-btn-sm justify-center w-7 h-7 rounded-md pressable"
-      [matTooltip]="'PAC.Xpert.HelpDocumentation' | translate: { Default: 'Help Documentation' }"
-      matTooltipPosition="above"
+      [zTooltip]="'PAC.Xpert.HelpDocumentation' | translate: { Default: 'Help Documentation' }"
+      zPosition="top"
     >
       <i class="ri-book-open-line"></i>
     </a>
@@ -150,11 +150,11 @@
             [ngModel]="getSensitive(item.tool.name)"
             (ngModelChange)="updateSensitive(item.tool.name, $event)"
             labelPosition="before"
-            [matTooltip]="
+            [zTooltip]="
               'PAC.Xpert.SensitiveToolsTip'
                 | translate: { Default: 'Sensitive tools require user confirmation before execution' }
             "
-            matTooltipPosition="left"
+            zPosition="left"
             zSize="sm"
             >{{ 'PAC.Xpert.Sensitive' | translate: { Default: 'Sensitive' } }}</z-switch
           >
@@ -165,10 +165,10 @@
             [ngModel]="isEnd(item.tool.name)"
             (ngModelChange)="updateEnd(item.tool.name, $event)"
             labelPosition="before"
-            [matTooltip]="
+            [zTooltip]="
               'PAC.Xpert.EndTool' | translate: { Default: 'End point tool, the conversation ends when tool completed' }
             "
-            matTooltipPosition="left"
+            zPosition="left"
             zSize="sm"
             >{{ 'PAC.Xpert.End' | translate: { Default: 'End' } }}</z-switch
           >
@@ -179,11 +179,11 @@
             [ngModel]="toolMemory(item.tool.name)"
             (ngModelChange)="toggleToolMemory(item.tool.name, $event)"
             labelPosition="before"
-            [matTooltip]="
+            [zTooltip]="
               'PAC.Xpert.ToolMemoryTip'
                 | translate: { Default: 'Tool memory, storing tool results in agent state variables' }
             "
-            matTooltipPosition="left"
+            zPosition="left"
             zSize="sm"
             >{{ 'PAC.Xpert.ToolMemory' | translate: { Default: 'Tool Memory' } }}</z-switch
           >

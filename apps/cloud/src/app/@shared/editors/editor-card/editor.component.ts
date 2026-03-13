@@ -10,15 +10,15 @@ import {
   viewChild
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { CodeEditorComponent } from '../code-editor/editor.component'
 import { Copy2Component } from '../../common'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, MatTooltipModule, TranslateModule, CodeEditorComponent, Copy2Component],
+  imports: [CommonModule, FormsModule, ...ZardTooltipImports, TranslateModule, CodeEditorComponent, Copy2Component],
   selector: 'pac-code-editor-card',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss'],

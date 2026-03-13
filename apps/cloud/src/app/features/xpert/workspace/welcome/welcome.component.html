@@ -1,10 +1,7 @@
 @if (workspaces()) {
   @if (workspaces().length === 0) {
     <div class="flex-1 flex justify-center items-center">
-      <button type="button"
-        class="btn btn-primary px-4 py-2 text-lg rounded-xl"
-        (click)="newWorkspace()"
-      >
+      <button type="button" class="btn btn-primary px-4 py-2 text-lg rounded-xl" (click)="newWorkspace()">
         {{ 'PAC.Xpert.CreateWorkspaceStart' | translate: { Default: 'Create a workspace to get started!' } }}
       </button>
     </div>
@@ -21,7 +18,10 @@
           <div class="group rounded-xl py-2 pl-4 pr-2 flex items-center justify-between hover:bg-hover-bg">
             <div class="text-gray-800 font-medium">
               @if (me().id === workspace.ownerId) {
-                <i class="ri-user-2-fill text-text-secondary" [matTooltip]="'PAC.Xpert.YouAreOwner' | translate: {Default: 'You are owner'}"></i>
+                <i
+                  class="ri-user-2-fill text-text-secondary"
+                  [zTooltip]="'PAC.Xpert.YouAreOwner' | translate: { Default: 'You are owner' }"
+                ></i>
               }
               {{ workspace.name }}
             </div>

@@ -2,7 +2,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { calcTimeRange, OverlayAnimations, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -13,7 +12,7 @@ import { of } from 'rxjs'
 import { injectApiBaseUrl, injectToastr, XpertAPIService } from '../../../../../@core'
 import { XpertComponent } from '../../xpert.component'
 import { StatisticsChartComponent, StatisticsTokenUsageComponent } from 'apps/cloud/src/app/@shared/charts'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -23,7 +22,7 @@ import { StatisticsChartComponent, StatisticsTokenUsageComponent } from 'apps/cl
     TranslateModule,
     RouterModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmI18nPipe,
     NgmSelectComponent,
     StatisticsChartComponent,
@@ -68,7 +67,9 @@ export class XpertStatisticsComponent {
     return this.xpertId() ? this.xpertService.getStatisticsTokensPerSecond(this.xpertId(), this.timeRange()) : of(null)
   })
   readonly userSatisfactionRate = derivedAsync(() => {
-    return this.xpertId() ? this.xpertService.getStatisticsUserSatisfactionRate(this.xpertId(), this.timeRange()) : of(null)
+    return this.xpertId()
+      ? this.xpertService.getStatisticsUserSatisfactionRate(this.xpertId(), this.timeRange())
+      : of(null)
   })
   readonly tokenCost = derivedAsync(() => {
     return this.xpertId() ? this.xpertService.getStatisticsTokenCost(this.xpertId(), this.timeRange()) : of(null)

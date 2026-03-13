@@ -13,8 +13,7 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { ZardInputDirective, ZardSwitchComponent } from '@xpert-ai/headless-ui'
-import { MatTooltipModule } from '@angular/material/tooltip'
+import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -44,7 +43,7 @@ import { CopilotAiProviderAuthComponent } from '../provider-authorization/author
     FormsModule,
     TranslateModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardInputDirective,
     NgmI18nPipe,
     NgmSpinComponent,

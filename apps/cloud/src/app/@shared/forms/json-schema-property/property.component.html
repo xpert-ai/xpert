@@ -12,8 +12,8 @@
       @if (meta().description; as desc) {
         <i
           class="ri-information-line ml-2 text-text-tertiary hover:text-text-primary opacity-80"
-          [matTooltip]="desc | i18n"
-          matTooltipPosition="above"
+          [zTooltip]="desc | i18n"
+          zPosition="top"
         ></i>
       }
     }
@@ -213,7 +213,7 @@
               @if (meta().description) {
                 <i
                   class="ri-information-line ml-2 text-text-tertiary hover:text-text-primary opacity-80"
-                  [matTooltip]="meta().description | i18n"
+                  [zTooltip]="meta().description | i18n"
                 ></i>
               }
             </z-switch>

@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -11,6 +10,7 @@ import {
   XpertAgentExecutionStatusEnum
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-node-template',
@@ -18,7 +18,7 @@ import { XpertStudioApiService } from '../../../domain'
   styleUrls: ['./template.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [FFlowModule, MatTooltipModule, TranslateModule, PlusSvgComponent],
+  imports: [FFlowModule, ...ZardTooltipImports, TranslateModule, PlusSvgComponent],
   host: {
     tabindex: '-1'
   }

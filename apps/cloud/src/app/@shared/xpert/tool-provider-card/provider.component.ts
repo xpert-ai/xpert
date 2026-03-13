@@ -1,16 +1,15 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, input, output } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { injectOrganizationId } from '@metad/cloud/state'
 import { TranslateModule } from '@ngx-translate/core'
 import { upperFirst } from 'lodash-es'
 import { injectHelpWebsite, ITag, IToolProvider, TagCategoryEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../avatar'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, MatTooltipModule, EmojiAvatarComponent, NgmI18nPipe],
+  imports: [CommonModule, TranslateModule, ...ZardTooltipImports, EmojiAvatarComponent, NgmI18nPipe],
   selector: 'xpert-tool-provider-card',
   templateUrl: 'provider.component.html',
   styleUrls: ['provider.component.scss']
@@ -43,10 +42,12 @@ export class ToolProviderCardComponent {
   readonly create = output()
 
   readonly avatar = computed(() => {
-    return this.provider()?.avatar && {
-      ...this.provider().avatar,
-      url: this.provider().avatar.url ? this.provider().avatar.url + `?org=${this.organizationId()}` : null
-    }
+    return (
+      this.provider()?.avatar && {
+        ...this.provider().avatar,
+        url: this.provider().avatar.url ? this.provider().avatar.url + `?org=${this.organizationId()}` : null
+      }
+    )
   })
 
   onCreate() {

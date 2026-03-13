@@ -4,14 +4,18 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { myRxResource, NgmI18nPipe, omitBlank } from '@metad/ocap-angular/core'
 import { nonNullable } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
-import { KnowledgeChunkComponent, KnowledgeDocumentPreviewComponent, KnowledgeFilePreviewComponent, KnowledgeLocalFileComponent } from 'apps/cloud/src/app/@shared/knowledge'
+import {
+  KnowledgeChunkComponent,
+  KnowledgeDocumentPreviewComponent,
+  KnowledgeFilePreviewComponent,
+  KnowledgeLocalFileComponent
+} from 'apps/cloud/src/app/@shared/knowledge'
 import {
   channelName,
   DocumentSourceProviderCategoryEnum,
@@ -33,6 +37,7 @@ import { KnowledgeDocumentPipelineComponent } from '../pipeline.component'
 import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
 import { NgmCheckboxComponent } from '@metad/ocap-angular/common'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -46,7 +51,7 @@ import { NgmCheckboxComponent } from '@metad/ocap-angular/common'
     RouterModule,
     CdkMenuModule,
     CdkListboxModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MatProgressBarModule,
     ContentLoaderModule,
     MarkdownModule,
@@ -98,7 +103,11 @@ export class KnowledgeDocumentPipelineStep1Component {
   readonly parameterValue = model<Record<string, unknown>>()
 
   // States
-  readonly fileExtensions = computed(() => this.selectedSource()?.entity?.config?.fileExtensions?.filter(Boolean).map((ext) => `.${ext}`))
+  readonly fileExtensions = computed(() =>
+    this.selectedSource()
+      ?.entity?.config?.fileExtensions?.filter(Boolean)
+      .map((ext) => `.${ext}`)
+  )
 
   // local files
   readonly createFileTask = myRxResource({
@@ -118,7 +127,7 @@ export class KnowledgeDocumentPipelineStep1Component {
                 documents: request.files.map((file) => ({
                   ...file,
                   status: KBDocumentStatusEnum.WAITING,
-                  parent: this.parentId() ? { id: this.parentId() } : null,
+                  parent: this.parentId() ? { id: this.parentId() } : null
                 }))
               }
             })
@@ -174,7 +183,7 @@ export class KnowledgeDocumentPipelineStep1Component {
           stage: 'preview'
         },
         [channelName(this.sourceKey())]: {
-          ...(this.parameterValue() ?? {}),
+          ...(this.parameterValue() ?? {})
         }
       })
       .subscribe({

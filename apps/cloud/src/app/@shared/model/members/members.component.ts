@@ -12,12 +12,18 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ChatDashboardMessageType, TMessageContentCube, TMessageContentMembers } from '@metad/cloud/state'
 import { OverlayAnimation1 } from '@metad/core'
 import { attrModel, linkedModel, NgmDSCoreService } from '@metad/ocap-angular/core'
 import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
-import { CalculationProperty, DeepPartial, isCalculationProperty, isParameterProperty, ParameterProperty, Syntax } from '@metad/ocap-core'
+import {
+  CalculationProperty,
+  DeepPartial,
+  isCalculationProperty,
+  isParameterProperty,
+  ParameterProperty,
+  Syntax
+} from '@metad/ocap-core'
 import { getSemanticModelKey } from '@metad/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ModelDraftBaseComponent } from '../draft-base'
@@ -25,6 +31,7 @@ import { ModelStudioService } from '../model.service'
 import { ModelMemberEditComponent } from './edit/edit.component'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
 import { ModelCubeComponent } from '../cube/cube.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -32,7 +39,15 @@ import { ModelCubeComponent } from '../cube/cube.component'
   selector: 'xp-model-members',
   templateUrl: 'members.component.html',
   styleUrls: ['members.component.scss'],
-  imports: [CommonModule, FormsModule, DragDropModule, MatTooltipModule, TranslateModule, ModelCubeComponent, ModelMemberEditComponent],
+  imports: [
+    CommonModule,
+    FormsModule,
+    DragDropModule,
+    ...ZardTooltipImports,
+    TranslateModule,
+    ModelCubeComponent,
+    ModelMemberEditComponent
+  ],
   host: {
     class: 'xp-model-members'
   },
@@ -53,7 +68,9 @@ export class ModelMembersComponent extends ModelDraftBaseComponent {
 
   readonly #modelId = computed(() => this.data()?.data?.modelId)
   readonly #cubeName = computed(() => this.data()?.data?.cubeName)
-  readonly cubeData = computed(() => ({type: ChatDashboardMessageType.Cube, data: this.data().data} as TMessageContentCube))
+  readonly cubeData = computed(
+    () => ({ type: ChatDashboardMessageType.Cube, data: this.data().data }) as TMessageContentCube
+  )
 
   readonly memberKey = signal<string>(null)
 

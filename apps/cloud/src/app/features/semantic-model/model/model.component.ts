@@ -1,5 +1,18 @@
 import { CdkDrag, CdkDragDrop, CdkDragRelease } from '@angular/cdk/drag-drop'
-import { ChangeDetectionStrategy, Component, DestroyRef, HostBinding, HostListener, TemplateRef, ViewChild, ViewContainerRef, computed, inject, model, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  HostBinding,
+  HostListener,
+  TemplateRef,
+  ViewChild,
+  ViewContainerRef,
+  computed,
+  inject,
+  model,
+  signal
+} from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog, MatDialogConfig } from '@angular/material/dialog'
@@ -7,7 +20,13 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { CopilotChatMessageRoleEnum, CopilotEngine } from '@metad/copilot'
 import { nonBlank } from '@metad/core'
-import { NgmCommonModule, NgmConfirmDeleteComponent, NgmConfirmUniqueComponent, ResizerModule, SplitterModule } from '@metad/ocap-angular/common'
+import {
+  NgmCommonModule,
+  NgmConfirmDeleteComponent,
+  NgmConfirmUniqueComponent,
+  ResizerModule,
+  SplitterModule
+} from '@metad/ocap-angular/common'
 import { NgmCopilotChatComponent, provideCopilotDropAction } from '@metad/copilot-angular'
 import { DBTable, PropertyAttributes, TableEntity, VirtualCube, pick } from '@metad/ocap-core'
 import { NX_STORY_STORE, NxStoryStore, StoryModel } from '@metad/story/core'
@@ -19,7 +38,6 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
 
 import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
@@ -45,11 +63,26 @@ import {
   switchMap,
   tap
 } from 'rxjs'
-import { DateRelativePipe, ISemanticModel, MenuCatalog, getErrorMessage, injectToastr, routeAnimations, uuid } from '../../../@core'
+import {
+  DateRelativePipe,
+  ISemanticModel,
+  MenuCatalog,
+  getErrorMessage,
+  injectToastr,
+  routeAnimations,
+  uuid
+} from '../../../@core'
 import { AppService } from '../../../app.service'
 import { exportSemanticModel } from '../types'
 import { ModelUploadComponent } from '../upload/upload.component'
-import { injectCubeCommand, injectDBACommand, injectDimensionCommand, injectModelerCommand, injectTableCommand, provideCopilotTables } from './copilot'
+import {
+  injectCubeCommand,
+  injectDBACommand,
+  injectDimensionCommand,
+  injectModelerCommand,
+  injectTableCommand,
+  provideCopilotTables
+} from './copilot'
 import {
   CreateEntityDialogDataType,
   CreateEntityDialogRetType,
@@ -66,8 +99,7 @@ import {
   TOOLBAR_ACTION_CATEGORY
 } from './types'
 import { markdownTableData, stringifyTableType } from './utils'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -82,7 +114,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     ZardIconComponent,
     ZardButtonComponent,
     MatSidenavModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MatProgressBarModule,
     MatProgressSpinnerModule,
 
@@ -98,7 +130,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
   selector: 'ngm-semanctic-model',
   templateUrl: './model.component.html',
   styleUrls: ['./model.component.scss'],
-  providers: [NxSettingsPanelService, SemanticModelService, ...provideOcapCore(),],
+  providers: [NxSettingsPanelService, SemanticModelService, ...provideOcapCore()],
   host: {
     class: 'ngm-semanctic-model'
   },
@@ -340,9 +372,7 @@ export class ModelComponent {
   }
 
   dropEntity(event: CdkDragDrop<Array<TableEntity>>) {
-    if (
-      event.previousContainer.id === CdkDragDropContainers.Tables
-    ) {
+    if (event.previousContainer.id === CdkDragDropContainers.Tables) {
       this.createEntity(event.item.data)
     }
     // Move items in array
@@ -372,7 +402,7 @@ export class ModelComponent {
 
   // dropDimension(event: CdkDragDrop<Array<ModelDimensionState>>) {
   //   if (
-  //     event.previousContainer.id === CdkDragDropContainers.Tables 
+  //     event.previousContainer.id === CdkDragDropContainers.Tables
   //     // &&
   //     // event.container.id === CdkDragDropContainers.ShareDimensions
   //   ) {
@@ -407,24 +437,21 @@ export class ModelComponent {
     if (modelType === MODEL_TYPE.XMLA) {
       // Check cube exist
       if (entity?.name && this.cubes().some((_) => _.name === entity.name)) {
-        this.#toastr.error('PAC.MODEL.Error_EntityExists', '', {Default: 'Entity already exists!'})
+        this.#toastr.error('PAC.MODEL.Error_EntityExists', '', { Default: 'Entity already exists!' })
         return
       }
       this.#dialog
-        .open<CreateEntityDialogRetType>(
-          ModelCreateEntityComponent,
-          {
-            viewContainerRef: this._viewContainerRef,
-            data: {
-              model: { name: entity?.name, caption: entity?.caption },
-              entitySets,
-              modelType,
-              type
-            },
-            backdropClass: 'xp-overlay-share-sheet',
-            panelClass: 'xp-overlay-pane-share-sheet',
-          }
-        )
+        .open<CreateEntityDialogRetType>(ModelCreateEntityComponent, {
+          viewContainerRef: this._viewContainerRef,
+          data: {
+            model: { name: entity?.name, caption: entity?.caption },
+            entitySets,
+            modelType,
+            type
+          },
+          backdropClass: 'xp-overlay-share-sheet',
+          panelClass: 'xp-overlay-pane-share-sheet'
+        })
         .closed.subscribe((result) => {
           if (result) {
             const entity = this.modelService.createCube(result)
@@ -432,21 +459,18 @@ export class ModelComponent {
           }
         })
     } else {
-     this.#dialog
-      .open<CreateEntityDialogRetType>(
-        ModelCreateEntityComponent,
-          {
-            viewContainerRef: this._viewContainerRef,
-            data: { 
-              model: { table: entity?.name, caption: entity?.caption }, 
-              entitySets, 
-              modelType,
-              type
-            },
-            backdropClass: 'xp-overlay-share-sheet',
-            panelClass: 'xp-overlay-pane-share-sheet',
-          }
-        )
+      this.#dialog
+        .open<CreateEntityDialogRetType>(ModelCreateEntityComponent, {
+          viewContainerRef: this._viewContainerRef,
+          data: {
+            model: { table: entity?.name, caption: entity?.caption },
+            entitySets,
+            modelType,
+            type
+          },
+          backdropClass: 'xp-overlay-share-sheet',
+          panelClass: 'xp-overlay-pane-share-sheet'
+        })
         .closed.subscribe((result) => {
           if (result) {
             let modelEntity: SemanticModelEntity
@@ -614,10 +638,9 @@ export class ModelComponent {
       .open(ModelPreferencesComponent, {
         data: pick(model, ...preferences),
         backdropClass: 'xp-overlay-share-sheet',
-        panelClass: 'xp-overlay-pane-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet'
       })
-      .closed
-      .subscribe({
+      .closed.subscribe({
         next: (result) => {
           if (result) {
             this.modelService.updateModel(result)
@@ -700,9 +723,9 @@ export class ModelComponent {
     try {
       await firstValueFrom(this.modelsService.clearCache(this.model.id))
       this.clearingServerCache = false
-      this.#toastr.success('PAC.MODEL.ClearServerCache', {Default: 'Clear server cache successfully'})
+      this.#toastr.success('PAC.MODEL.ClearServerCache', { Default: 'Clear server cache successfully' })
     } catch (err) {
-      this.#toastr.error('PAC.MODEL.ClearServerCache', getErrorMessage(err), {Default: 'Clear server cache failed'})
+      this.#toastr.error('PAC.MODEL.ClearServerCache', getErrorMessage(err), { Default: 'Clear server cache failed' })
       this.clearingServerCache = false
     }
   }
@@ -717,7 +740,7 @@ export class ModelComponent {
   async onDownload() {
     try {
       await exportSemanticModel(this.modelsService, this.model.id)
-    } catch(err) {
+    } catch (err) {
       this.#toastr.error(getErrorMessage(err))
     }
   }
@@ -741,37 +764,38 @@ export class ModelComponent {
 
   publish() {
     this.publishing.set(true)
-    this.modelsService.publish(this.model.id, '')
-      .subscribe({
-        next: (model) => {
-          this.publishing.set(false)
-          window.location.reload()
-        },
-        error: (err) => {
-          this.publishing.set(false)
-          this.#toastr.error(getErrorMessage(err))
-        }
-      })
-  }
-
-  resume() {
-    this.modelsService.updateModel(this.model.id, { 
-      key: this.model.key,
-      name: this.model.name,
-      draft: null
-    }).subscribe({
-      next: () => {
+    this.modelsService.publish(this.model.id, '').subscribe({
+      next: (model) => {
+        this.publishing.set(false)
         window.location.reload()
       },
       error: (err) => {
+        this.publishing.set(false)
         this.#toastr.error(getErrorMessage(err))
       }
     })
   }
 
+  resume() {
+    this.modelsService
+      .updateModel(this.model.id, {
+        key: this.model.key,
+        name: this.model.name,
+        draft: null
+      })
+      .subscribe({
+        next: () => {
+          window.location.reload()
+        },
+        error: (err) => {
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
+  }
+
   duplicateEntity(entity: SemanticModelEntity) {
     const newKey = uuid()
-    this.modelService.duplicate({type: entity.type, id: entity.id, newKey})
+    this.modelService.duplicate({ type: entity.type, id: entity.id, newKey })
     const type = snakeCase(lowerCase(entity.type))
     this.router.navigate([type, newKey], { relativeTo: this.route })
   }

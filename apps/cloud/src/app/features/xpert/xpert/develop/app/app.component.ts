@@ -4,21 +4,19 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TChatApp } from '@metad/contracts'
 import { SlideUpAnimation } from '@metad/core'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectToastr } from 'apps/cloud/src/app/@core'
-import { ZardButtonComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardButtonComponent,
     ButtonGroupDirective,
     ZardSwitchComponent

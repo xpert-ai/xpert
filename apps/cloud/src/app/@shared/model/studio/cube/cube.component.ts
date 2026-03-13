@@ -5,7 +5,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input, ViewContainerRef } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { suuid } from '@cloud/app/@core'
 import { EFConnectionType, EFMarkerType, FFlowModule } from '@foblex/flow'
 import { attrModel } from '@metad/ocap-angular/core'
@@ -37,6 +36,7 @@ import { CubeStudioDimensionUsageComponent } from './usage/usage.component'
 import { MatDialog } from '@angular/material/dialog'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
 import { OverlayAnimation1 } from '@metad/core'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -51,7 +51,7 @@ import { OverlayAnimation1 } from '@metad/core'
     DragDropModule,
     FFlowModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     CubeStudioCubeSettingsComponent,
     CubeStudioDimensionUsageComponent,
     CubeStudioDimensionSettingsComponent,
@@ -62,7 +62,7 @@ import { OverlayAnimation1 } from '@metad/core'
   host: {
     class: 'xp-cube-studio-cube'
   },
-  animations: [ OverlayAnimation1 ]
+  animations: [OverlayAnimation1]
 })
 export class CubeStudioCubeComponent {
   eEFConnectionType = EFConnectionType
@@ -355,5 +355,4 @@ export class CubeStudioCubeComponent {
       return parameters
     })
   }
-
 }

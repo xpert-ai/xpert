@@ -8,10 +8,15 @@ import { MatAutocomplete, MatAutocompleteActivatedEvent, MatAutocompleteModule }
 
 import { MatChipsModule } from '@angular/material/chips'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { CopilotContextItem, CopilotEngine } from '@metad/copilot'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniq } from 'lodash-es'
@@ -42,7 +47,7 @@ import { NgmCopilotEngineService, NgmCopilotService } from '../services'
     TextFieldModule,
     MatProgressBarModule,
     MatAutocompleteModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MatMenuModule,
     ZardIconComponent,
     ScrollingModule,

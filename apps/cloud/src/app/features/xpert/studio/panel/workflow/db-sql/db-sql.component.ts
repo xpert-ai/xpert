@@ -1,20 +1,19 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { CopilotPromptEditorComponent } from '@cloud/app/@shared/copilot'
 import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IWFNDBSql } from 'apps/cloud/src/app/@core'
 import { XpertWorkflowPanelDBBaseComponent } from '../db/db.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xp-workflow-panel-db-sql',
   templateUrl: './db-sql.component.html',
   styleUrls: ['./db-sql.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, MatTooltipModule, TranslateModule, CopilotPromptEditorComponent]
+  imports: [CommonModule, FormsModule, ...ZardTooltipImports, TranslateModule, CopilotPromptEditorComponent]
 })
 export class XpertWorkflowPanelDBSQLComponent extends XpertWorkflowPanelDBBaseComponent {
   // States

@@ -1,29 +1,32 @@
-<div class="max-w-[50rem] xl:max-w-[62rem] px-2 pt-16 mx-auto w-full flex-1 flex flex-col justify-between items-stretch gap-6">
+<div
+  class="max-w-[50rem] xl:max-w-[62rem] px-2 pt-16 mx-auto w-full flex-1 flex flex-col justify-between items-stretch gap-6"
+>
   <div class="flex flex-col items-center sm:flex-row gap-6 sm:gap-1 w-full p-1 sticky top-0 bg-surface-container z-20">
     <div class="flex-1 flex items-center gap-1 sm:gap-2 justify-start group min-w-0 w-full">
-      <emoji-avatar [editable]="editing()" class="rounded-xl overflow-hidden" 
-        [(ngModel)]="avatar" 
-      />
+      <emoji-avatar [editable]="editing()" class="rounded-xl overflow-hidden" [(ngModel)]="avatar" />
 
       <div class="flex-1 flex gap-2 justify-between items-center min-w-0" cdkTrapFocus cdkTrapFocusAutoCapture>
         @if (editing()) {
-          <input class="flex-1 bg-transparent text-2xl focus-visible:outline-none bg-white" cdkFocusInitial
+          <input
+            class="flex-1 bg-transparent text-2xl focus-visible:outline-none bg-white"
+            cdkFocusInitial
             type="text"
             [(ngModel)]="name"
           />
-          <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-full"
+          <button
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-full"
             type="button"
             (click)="saveProject()"
           >
             <i class="ri-check-line text-lg"></i>
           </button>
         } @else {
-          <span class="text-2xl truncate">{{name()}}</span>
+          <span class="text-2xl truncate">{{ name() }}</span>
         }
       </div>
 
-      <button class="inline-flex items-center justify-center gap-2 pressable whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-3xl m-[1px]
-        text-text-secondary hover:text-text-primary"
+      <button
+        class="inline-flex items-center justify-center gap-2 pressable whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-3xl m-[1px] text-text-secondary hover:text-text-primary"
         type="button"
         [cdkMenuTriggerFor]="editMenu"
       >
@@ -31,39 +34,54 @@
       </button>
     </div>
     <button
-      class="inline-flex items-center justify-center gap-2 pressable whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 hover:bg-hover-bg h-9 rounded-full px-3.5 py-2 group
-        text-text-secondary hover:text-text-primary"
+      class="inline-flex items-center justify-center gap-2 pressable whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 hover:bg-hover-bg h-9 rounded-full px-3.5 py-2 group text-text-secondary hover:text-text-primary"
       type="button"
       (click)="openInstruction()"
     >
       <i class="ri-equalizer-2-line"></i>
-      <span>{{ 'PAC.XProject.Instruction' | translate: {Default: 'Instruction'} }}</span>
+      <span>{{ 'PAC.XProject.Instruction' | translate: { Default: 'Instruction' } }}</span>
     </button>
 
     @if (loading()) {
-      <ngm-spin class="absolute left-0 top-0 w-full h-full"/>
+      <ngm-spin class="absolute left-0 top-0 w-full h-full" />
     }
   </div>
 
   <div class="flex-1 flex gap-6 flex-col">
-
     <pac-chat-project-xperts class="mt-12 self-center" />
 
     <div class="relative">
-      <form class="bottom-0 w-full text-base flex flex-col gap-2 items-center justify-center relative z-10"
+      <form
+        class="bottom-0 w-full text-base flex flex-col gap-2 items-center justify-center relative z-10"
         [formGroup]="form"
-        (ngSubmit)="onSubmit()">
+        (ngSubmit)="onSubmit()"
+      >
         <div class="flex flex-row gap-2 justify-center w-full relative">
-          <input #fileDropRef class="hidden" multiple="" type="file" name="files" (change)="fileBrowseHandler($event.target)"
-            (click)="fileDropRef.value=null;"/>
-          <div class="query-bar group max-w-[51rem] bg-components-card-bg ring-zinc-100 hover:ring-zinc-200 focus-within:ring-zinc-300 hover:focus-within:ring-zinc-300 duration-100 relative w-full overflow-hidden @container/input shadow shadow-black/5 ring-1 ring-inset focus-within:ring-1 pb-12 px-2 @[480px]/input:px-3 rounded-3xl">
+          <input
+            #fileDropRef
+            class="hidden"
+            multiple=""
+            type="file"
+            name="files"
+            (change)="fileBrowseHandler($event.target)"
+            (click)="fileDropRef.value = null"
+          />
+          <div
+            class="query-bar group max-w-[51rem] bg-components-card-bg ring-zinc-100 hover:ring-zinc-200 focus-within:ring-zinc-300 hover:focus-within:ring-zinc-300 duration-100 relative w-full overflow-hidden @container/input shadow shadow-black/5 ring-1 ring-inset focus-within:ring-1 pb-12 px-2 @[480px]/input:px-3 rounded-3xl"
+          >
             @if (attachments()?.length) {
-              <chat-attachments class="w-full pt-2" editable [(attachments)]="attachments" 
+              <chat-attachments
+                class="w-full pt-2"
+                editable
+                [(attachments)]="attachments"
                 (onCreated)="onAttachCreated($event)"
-                />
+              />
             }
             <div class="relative z-10">
-              <textarea [placeholder]=" 'PAC.XProject.InputPlaceholder' | translate: {Default: 'Start a conversation in this project'} "
+              <textarea
+                [placeholder]="
+                  'PAC.XProject.InputPlaceholder' | translate: { Default: 'Start a conversation in this project' }
+                "
                 dir="auto"
                 class="w-full px-2 @[480px]/input:px-3 bg-transparent focus:outline-none text-fg-primary align-bottom min-h-14 pt-5 my-0 mb-5"
                 style="resize: none; height: 44px !important"
@@ -78,14 +96,19 @@
               ></textarea>
             </div>
 
-            <div class="flex items-center gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-2 max-w-full">
+            <div
+              class="flex items-center gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-2 max-w-full"
+            >
               <button
                 class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 h-9 rounded-full py-2 relative px-2 transition-all duration-150 bg-transparent border w-9 aspect-square border-toggle-border text-secondary hover:text-primary hover:bg-toggle-hover"
                 type="button"
                 aria-label="Attach"
                 tabindex="0"
-                [matTooltip]="'PAC.XProject.UploadAttachmentsTooltip' | translate: {Default: 'Upload attachments (only recognize text and images)'}"
-                matTooltipPosition="above"
+                [zTooltip]="
+                  'PAC.XProject.UploadAttachmentsTooltip'
+                    | translate: { Default: 'Upload attachments (only recognize text and images)' }
+                "
+                zPosition="top"
                 [cdkMenuTriggerFor]="attachMenu"
                 [cdkMenuPosition]="[
                   {
@@ -93,7 +116,7 @@
                     originY: 'top',
                     overlayX: 'center',
                     overlayY: 'bottom',
-                    offsetY: -5,
+                    offsetY: -5
                   }
                 ]"
               >
@@ -126,21 +149,25 @@
                     <i class="ri-lightbulb-flash-line text-lg"></i><span>Think</span>
                   </button> -->
 
-                  <div class="flex ring-1 rounded-full items-center max-h-[31px] box-border transition-colors duration-100 relative overflow-hidden ring-inset ring-zinc-200">
-                    <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default h-9 rounded-full px-3.5 py-2 group/ds-toggle transition-colors duration-100 focus-visible:ring-transparent box-border relative overflow-hidden rounded-r-none pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
+                  <div
+                    class="flex ring-1 rounded-full items-center max-h-[31px] box-border transition-colors duration-100 relative overflow-hidden ring-inset ring-zinc-200"
+                  >
+                    <button
+                      class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default h-9 rounded-full px-3.5 py-2 group/ds-toggle transition-colors duration-100 focus-visible:ring-transparent box-border relative overflow-hidden rounded-r-none pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
                       type="button"
                       tabindex="0"
                     >
                       @if (mode() === 'plan') {
                         <i class="ri-quill-pen-ai-line text-lg"></i>
-                        <span>{{ 'PAC.XProject.PlanningMode' | translate: {Default: 'Planning Mode'} }}</span>
+                        <span>{{ 'PAC.XProject.PlanningMode' | translate: { Default: 'Planning Mode' } }}</span>
                       } @else {
                         <i class="ri-shake-hands-line text-lg"></i>
-                        <span>{{ 'PAC.XProject.ExploreMode' | translate: {Default: 'Explore Mode'} }}</span>
+                        <span>{{ 'PAC.XProject.ExploreMode' | translate: { Default: 'Explore Mode' } }}</span>
                       }
                     </button>
                     <div class="h-4 w-[1px] bg-divider-deep focus:outline-none" tabindex="-1"></div>
-                    <button class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default text-primary h-9 rounded-full px-3.5 py-2 transition-colors duration-100 relative overflow-hidden focus-visible:ring-transparent rounded-l-none pl-2 pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
+                    <button
+                      class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default text-primary h-9 rounded-full px-3.5 py-2 transition-colors duration-100 relative overflow-hidden focus-visible:ring-transparent rounded-l-none pl-2 pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
                       type="button"
                       [cdkMenuTriggerFor]="modeMenu"
                       [cdkMenuPosition]="[
@@ -149,7 +176,7 @@
                           originY: 'bottom',
                           overlayX: 'end',
                           overlayY: 'top',
-                          offsetX: 3,
+                          offsetX: 3
                         }
                       ]"
                     >
@@ -159,14 +186,20 @@
                 </div>
               </div>
               <div class="ml-auto flex flex-row items-end gap-1">
-                <button type="button" class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1
-                  bg-black disabled:opacity-10 disabled:text-gray-400 enabled:bg-black text-white dark:border-white dark:bg-white bottom-1.5 transition-transform
-                    origin-center enabled:hover:scale-110"
+                <button
+                  type="button"
+                  class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 bg-black disabled:opacity-10 disabled:text-gray-400 enabled:bg-black text-white dark:border-white dark:bg-white bottom-1.5 transition-transform origin-center enabled:hover:scale-110"
                   [disabled]="!input()"
                   (click)="onSubmit()"
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-white dark:text-black">
-                    <path d="M7 11L12 6L17 11M12 18V7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path>
+                    <path
+                      d="M7 11L12 6L17 11M12 18V7"
+                      stroke="currentColor"
+                      stroke-width="2"
+                      stroke-linecap="round"
+                      stroke-linejoin="round"
+                    ></path>
                   </svg>
                 </button>
               </div>
@@ -216,7 +249,10 @@
         ><span class="text-secondary">Drop here to add files to query</span>
       </div>
 
-      <copilot-enable-model enableModel class="absolute top-0 left-0 w-full h-full justify-center items-center z-10 rounded-3xl overflow-hidden backdrop-blur-md bg-white/2 hidden" />
+      <copilot-enable-model
+        enableModel
+        class="absolute top-0 left-0 w-full h-full justify-center items-center z-10 rounded-3xl overflow-hidden backdrop-blur-md bg-white/2 hidden"
+      />
     </div>
 
     <div dir="ltr" data-orientation="horizontal" class="flex-1 flex flex-col relative pt-1">
@@ -227,49 +263,66 @@
           class="inline-flex items-center justify-center rounded-lg bg-ivory dark:bg-jet/20 p-1 text-secondary place-self-start !bg-transparent bg-none"
           tabindex="0"
         >
-          <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+          <button
+            type="button"
+            class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
+            role="tab"
             [class.active]="viewType() === 'files'"
             (click)="viewType.set('files')"
           >
             <i class="ri-hard-drive-3-line text-lg"></i>
-            {{'PAC.XProject.Files' | translate: {Default: 'Files'} }}
+            {{ 'PAC.XProject.Files' | translate: { Default: 'Files' } }}
           </button>
 
-          <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+          <button
+            type="button"
+            class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
+            role="tab"
             [class.active]="viewType() === 'tools'"
             (click)="viewType.set('tools')"
           >
             <i class="ri-hammer-line text-lg"></i>
-            {{'PAC.XProject.Tools' | translate: {Default: 'Tools'} }}
+            {{ 'PAC.XProject.Tools' | translate: { Default: 'Tools' } }}
           </button>
-          <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+          <button
+            type="button"
+            class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
+            role="tab"
             [class.active]="viewType() === 'knowledges'"
             (click)="viewType.set('knowledges')"
           >
             <i class="ri-book-shelf-line text-lg"></i>
-            {{'PAC.XProject.Knowledges' | translate: {Default: 'Knowledges'} }}
+            {{ 'PAC.XProject.Knowledges' | translate: { Default: 'Knowledges' } }}
           </button>
 
-          <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+          <button
+            type="button"
+            class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
+            role="tab"
             [class.active]="viewType() === 'conversations'"
             (click)="viewType.set('conversations')"
           >
             <i class="ri-chat-thread-line text-lg"></i>
-            {{'PAC.XProject.Conversations' | translate: {Default: 'Conversations'} }}
+            {{ 'PAC.XProject.Conversations' | translate: { Default: 'Conversations' } }}
           </button>
 
           @if (project()?.vcsId) {
-            <button type="button" class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none" role="tab"
+            <button
+              type="button"
+              class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
+              role="tab"
               [class.active]="viewType() === 'vcs'"
               (click)="viewType.set('vcs')"
             >
               <i class="ri-github-fill text-lg"></i>
-              {{'PAC.XProject.GitHub' | translate: {Default: 'GitHub'} }}
+              {{ 'PAC.XProject.GitHub' | translate: { Default: 'GitHub' } }}
             </button>
           }
         </div>
 
-        <button type="button" class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-2xl py-2 group/attach-button relative transition-colors duration-100 bg-transparent border aspect-square border-border-l2 hover:bg-button-ghost-hover px-2 w-auto"
+        <button
+          type="button"
+          class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-primary h-9 rounded-2xl py-2 group/attach-button relative transition-colors duration-100 bg-transparent border aspect-square border-border-l2 hover:bg-button-ghost-hover px-2 w-auto"
           tabindex="0"
           [cdkMenuTriggerFor]="workspaceMenu"
           [cdkMenuPosition]="[
@@ -278,24 +331,27 @@
               originY: 'bottom',
               overlayX: 'end',
               overlayY: 'center',
-              offsetX: 3,
+              offsetX: 3
             }
           ]"
         >
           @if (workspaceError()) {
             <i class="ri-error-warning-line text-base text-text-destructive"></i>
-            {{workspaceError()}}
+            {{ workspaceError() }}
           } @else {
             <i class="ri-planet-line text-base"></i>
-            
+
             @if (workspace()) {
-              <span class="max-w-[100px] truncate">{{workspace().name}}</span>
-              <button type="button" class="w-6 h-6 shrink-0 inline-flex justify-center items-center rounded-lg hover:bg-hover-bg transition-colors duration-100"
-                (click)="openWorkspace()">
+              <span class="max-w-[100px] truncate">{{ workspace().name }}</span>
+              <button
+                type="button"
+                class="w-6 h-6 shrink-0 inline-flex justify-center items-center rounded-lg hover:bg-hover-bg transition-colors duration-100"
+                (click)="openWorkspace()"
+              >
                 <i class="ri-external-link-line"></i>
               </button>
             } @else {
-              <span>{{ 'PAC.XProject.SelectWorkspace' | translate: {Default: 'Select workspace'} }}</span>
+              <span>{{ 'PAC.XProject.SelectWorkspace' | translate: { Default: 'Select workspace' } }}</span>
             }
           }
         </button>
@@ -328,19 +384,27 @@
     <div cdkMenuItem [class.active]="!mode()" (click)="setMode('')">
       <i class="ri-shake-hands-line text-lg mr-2"></i>
       <div class="flex-1 text-left">
-        <div class="text-sm font-medium">{{ 'PAC.XProject.ExploreMode' | translate: {Default: 'Explore Mode'} }}</div>
+        <div class="text-sm font-medium">{{ 'PAC.XProject.ExploreMode' | translate: { Default: 'Explore Mode' } }}</div>
         <div class="text-xs">
-          {{ 'PAC.XProject.ExploreModeDesc' | translate: {Default: 'Let AI think dynamically and autonomously to complete tasks faster'} }}
-          </div>
+          {{
+            'PAC.XProject.ExploreModeDesc'
+              | translate: { Default: 'Let AI think dynamically and autonomously to complete tasks faster' }
+          }}
+        </div>
       </div>
     </div>
 
     <div cdkMenuItem [class.active]="mode() === 'plan'" (click)="setMode('plan')">
       <i class="ri-quill-pen-ai-line text-lg mr-2"></i>
       <div class="flex-1 text-left">
-        <div class="text-sm font-medium">{{ 'PAC.XProject.PlanningMode' | translate: {Default: 'Planning Mode'} }}</div>
+        <div class="text-sm font-medium">
+          {{ 'PAC.XProject.PlanningMode' | translate: { Default: 'Planning Mode' } }}
+        </div>
         <div class="text-xs">
-          {{ 'PAC.XProject.PlanningModeDesc' | translate: {Default: 'AI helps you plan steps and execute them step by step'} }}
+          {{
+            'PAC.XProject.PlanningModeDesc'
+              | translate: { Default: 'AI helps you plan steps and execute them step by step' }
+          }}
         </div>
       </div>
     </div>
@@ -362,12 +426,12 @@
     @if (editing()) {
       <div cdkMenuItem (click)="cancelEdit()">
         <i class="ri-pencil-line mr-1"></i>
-        <span>{{ 'PAC.XProject.CancelEdit' | translate: {Default: 'Cancel Edit'} }}</span>
+        <span>{{ 'PAC.XProject.CancelEdit' | translate: { Default: 'Cancel Edit' } }}</span>
       </div>
     } @else {
       <div cdkMenuItem (click)="edit()">
         <i class="ri-pencil-line mr-1"></i>
-        <span>{{ 'PAC.XProject.Edit' | translate: {Default: 'Edit'} }}</span>
+        <span>{{ 'PAC.XProject.Edit' | translate: { Default: 'Edit' } }}</span>
       </div>
     }
     <!-- @if (editing()) {
@@ -379,14 +443,14 @@
 
     <div cdkMenuItem (click)="exportDsl()">
       <i class="ri-export-line mr-1"></i>
-      <span>{{ 'PAC.XProject.ExportDSL' | translate: {Default: 'Export DSL'} }}</span>
+      <span>{{ 'PAC.XProject.ExportDSL' | translate: { Default: 'Export DSL' } }}</span>
     </div>
 
     <div class="border-b border-solid border-divider-regular my-1"></div>
 
     <div cdkMenuItem (click)="manage()">
       <i class="ri-settings-4-line mr-1"></i>
-      <span>{{ 'PAC.XProject.Manage' | translate: {Default: 'Manage'} }}</span>
+      <span>{{ 'PAC.XProject.Manage' | translate: { Default: 'Manage' } }}</span>
     </div>
   </div>
 </ng-template>
@@ -395,12 +459,12 @@
   <div cdkMenu class="cdk-menu__large">
     <div cdkMenuItem (click)="fileDropRef.click()">
       <i class="ri-folder-line text-lg mr-2"></i>
-      <div class="text-sm font-medium">{{ 'PAC.XProject.UploadAFile' | translate: {Default: 'Upload a file'} }}</div>
+      <div class="text-sm font-medium">{{ 'PAC.XProject.UploadAFile' | translate: { Default: 'Upload a file' } }}</div>
     </div>
 
-    <div cdkMenuItem [cdkMenuTriggerFor]="recentMenu" >
+    <div cdkMenuItem [cdkMenuTriggerFor]="recentMenu">
       <i class="ri-file-history-line text-lg mr-2"></i>
-      <div class="grow text-sm font-medium">{{ 'PAC.XProject.Recent' | translate: {Default: 'Recent'} }}</div>
+      <div class="grow text-sm font-medium">{{ 'PAC.XProject.Recent' | translate: { Default: 'Recent' } }}</div>
       <i class="ri-arrow-right-s-line"></i>
     </div>
   </div>
@@ -413,16 +477,21 @@
         <pac-file-icon [fileType]="file.originalName | fileType" />
         <div class="flex-1 text-left max-w-sm truncate">
           <div class="text-base truncate">{{ file.originalName }}</div>
-          <div class="text-xs font-mono text-secondary">{{ file.size/1024 | number:'0.0-0' }}KB · {{ file.createdAt | relative }}</div>
+          <div class="text-xs font-mono text-secondary">
+            {{ file.size / 1024 | number: '0.0-0' }}KB · {{ file.createdAt | relative }}
+          </div>
         </div>
-        <button type="button" class="btn btn-secondary btn-sm flex justify-center items-center rounded-full w-6 h-6 hover:text-text-destructive hover:border-text-destructive"
-           (click)="onAttachDeleted(file.id)">
+        <button
+          type="button"
+          class="btn btn-secondary btn-sm flex justify-center items-center rounded-full w-6 h-6 hover:text-text-destructive hover:border-text-destructive"
+          (click)="onAttachDeleted(file.id)"
+        >
           <i class="ri-close-line"></i>
         </button>
       </div>
     } @empty {
       <div class="text-center text-sm text-text-secondary px-2 py-1">
-        {{ 'PAC.XProject.NoRecentFiles' | translate: {Default: 'No recent files'} }}
+        {{ 'PAC.XProject.NoRecentFiles' | translate: { Default: 'No recent files' } }}
       </div>
     }
   </div>

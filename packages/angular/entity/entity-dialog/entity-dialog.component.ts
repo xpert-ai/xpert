@@ -8,7 +8,6 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, ISelectOption, mergeSelectedValues } from '@metad/ocap-angular/core'
 import { DSCoreService, nonNullable } from '@metad/ocap-core'
@@ -16,8 +15,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { catchError, combineLatestWith, distinctUntilChanged, filter, map, of, startWith, switchMap, tap } from 'rxjs'
 import { EntitySelectResultType } from '../types'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 export type EntitySelectDataType = {
   dataSources: ISelectOption<string>[]
   dsCoreService: DSCoreService
@@ -43,7 +41,7 @@ export type EntitySelectDataType = {
     MatDialogModule,
     ZardIconComponent,
     MatProgressSpinnerModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
 
     NgmSearchComponent,
     ButtonGroupDirective,
@@ -108,7 +106,9 @@ export class NgmEntityDialogComponent implements OnInit {
             )
           : [...entities]
         const selectedEntities = (this.entities() ?? []).map((key) => {
-          return entities.find((item) => item.key === key) ?? ({ key, caption: key, value: { name: key } } as ISelectOption)
+          return (
+            entities.find((item) => item.key === key) ?? ({ key, caption: key, value: { name: key } } as ISelectOption)
+          )
         })
 
         return mergeSelectedValues(filteredEntities, selectedEntities, (a, b) => a?.key === b?.key)

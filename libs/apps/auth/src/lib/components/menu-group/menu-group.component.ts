@@ -1,15 +1,13 @@
 import { CommonModule } from '@angular/common'
 import { Component, EventEmitter, HostBinding, Input, Output, input, signal } from '@angular/core'
 
-import { MatTooltipModule } from '@angular/material/tooltip'
-import {CdkMenuModule} from '@angular/cdk/menu'
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { RouterModule } from '@angular/router'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { isNil } from '@metad/ocap-core'
 import { PacMenuItem } from '../types'
 import { OverlayModule } from '@angular/cdk/overlay'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-menu-group',
@@ -21,7 +19,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     OverlayModule,
     ZardButtonComponent,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     RouterModule,
     DensityDirective
   ]
@@ -30,7 +28,8 @@ export class PacMenuGroupComponent {
   isNil = isNil
 
   @HostBinding('class.collapsed')
-  @Input() isCollapsed = false
+  @Input()
+  isCollapsed = false
 
   readonly isMobile = input<boolean>(false)
 
@@ -56,7 +55,7 @@ export class PacMenuGroupComponent {
         [item.link]: null
       }
     })
-    this.menuOpen.update((state) => ({...state, [item.link]: true}))
+    this.menuOpen.update((state) => ({ ...state, [item.link]: true }))
   }
 
   closeSubMenu(item: PacMenuItem) {
@@ -65,7 +64,7 @@ export class PacMenuGroupComponent {
         clearTimeout(state[item.link])
       }
       const handler = setTimeout(() => {
-        this.menuOpen.update((state) => ({...state, [item.link]: false}))
+        this.menuOpen.update((state) => ({ ...state, [item.link]: false }))
       }, 500) as unknown as number
 
       return {
@@ -74,5 +73,4 @@ export class PacMenuGroupComponent {
       }
     })
   }
-
 }

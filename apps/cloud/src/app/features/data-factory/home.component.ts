@@ -12,7 +12,6 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltip, MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { CopilotChatMessage } from '@metad/copilot'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
@@ -25,6 +24,7 @@ import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { filter, map, switchMap, tap } from 'rxjs'
 import { ChatBIConversationService, routeAnimations } from '../../@core'
 import { AppService } from '../../app.service'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -36,8 +36,8 @@ import { AppService } from '../../app.service'
     DragDropModule,
     RouterModule,
     TranslateModule,
-    MatTooltipModule,
-    NgmSelectComponent,
+    ...ZardTooltipImports,
+    NgmSelectComponent
   ],
   selector: 'pac-chatbi-home',
   templateUrl: './home.component.html',
@@ -54,5 +54,4 @@ export class DataFactoryHomeComponent {
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
   readonly logger = inject(NGXLogger)
-  
 }

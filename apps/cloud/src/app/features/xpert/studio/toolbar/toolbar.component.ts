@@ -7,8 +7,7 @@ import { OverlayAnimations } from '@metad/core'
 import { XpertStudioComponent } from '../studio.component'
 import { XpertStudioApiService } from '../domain'
 import { XpertStudioContextMenuComponent } from '../components'
-import { MatTooltipModule } from '@angular/material/tooltip'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-toolbar',
   standalone: true,
@@ -16,7 +15,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
     CommonModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     AppearanceDirective,
 
     XpertStudioContextMenuComponent

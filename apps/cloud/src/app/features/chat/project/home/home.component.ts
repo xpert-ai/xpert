@@ -6,7 +6,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import {
   DateRelativePipe,
@@ -40,6 +39,7 @@ import { ProjectService } from '../project.service'
 import { ChatProjectFilesComponent } from '../files/files.component'
 import { FileIconComponent } from '@cloud/app/@shared/files'
 import { ChatProjectVcsComponent } from '../vcs/vcs.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  *
@@ -54,7 +54,7 @@ import { ChatProjectVcsComponent } from '../vcs/vcs.component'
     A11yModule,
     CdkMenuModule,
     TextFieldModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     EmojiAvatarComponent,
     TranslatePipe,
@@ -170,7 +170,7 @@ export class ChatProjectHomeComponent {
 
   // Attachments
   readonly attachments = this.projectService.attachments
-  
+
   constructor() {
     effect(() => {
       //
@@ -286,7 +286,7 @@ export class ChatProjectHomeComponent {
 
   openInstruction() {
     this.#dialog
-      .open<{instruction: string}>(CopilotPromptGeneratorComponent, {
+      .open<{ instruction: string }>(CopilotPromptGeneratorComponent, {
         panelClass: 'large',
         disableClose: true,
         data: {
@@ -297,7 +297,9 @@ export class ChatProjectHomeComponent {
         switchMap((result) => {
           if (result?.instruction) {
             this.loading.set(true)
-            return this.updateProject({ settings: { ...(this.settings() ?? {}), instruction: result.instruction } }).pipe(
+            return this.updateProject({
+              settings: { ...(this.settings() ?? {}), instruction: result.instruction }
+            }).pipe(
               tap(() => {
                 this.loading.set(false)
                 this.instruction.set(result.instruction)
@@ -366,7 +368,7 @@ export class ChatProjectHomeComponent {
   addAttachment(file: IStorageFile) {
     this.attachments.update((state) => {
       if (!state?.some((attachment) => attachment.storageFile?.id === file.id)) {
-        return [...state, {storageFile: file}]
+        return [...state, { storageFile: file }]
       }
       return state
     })

@@ -15,7 +15,7 @@
     >
       @for (option of roles$ | async; track option.id) {
         <span z-tab-link [active]="role?.name === option.name" (click)="onSelectedRole(option)">
-          <span class="pac-nav-tab__label" matTooltipClass="pac-model-query__statement-tip">
+          <span class="pac-nav-tab__label" zTooltipClass="pac-model-query__statement-tip">
             {{ option.name }}
           </span>
 

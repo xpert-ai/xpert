@@ -13,7 +13,8 @@ import {
   ZardIconComponent,
   ZardInputDirective,
   ZardTabsImports,
-  ZardCheckboxComponent
+  ZardCheckboxComponent,
+  ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
@@ -21,7 +22,6 @@ import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTableModule } from '@angular/material/table'
 import { MatToolbarModule } from '@angular/material/toolbar'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatExpansionModule } from '@angular/material/expansion'
 
 const MAT_MODULES = [
@@ -36,7 +36,7 @@ const MAT_MODULES = [
   MatTableModule,
   ZardCheckboxComponent,
   MatToolbarModule,
-  MatTooltipModule,
+  ...ZardTooltipImports,
   MatProgressBarModule,
   DragDropModule,
   PortalModule,

@@ -67,7 +67,6 @@ import {
   XpertParametersEditComponent,
   XpertVariablesAssignerComponent
 } from 'apps/cloud/src/app/@shared/xpert'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { isEqual, uniq } from 'lodash-es'
 import { XpertStudioComponent } from '../../studio.component'
 import { myRxResource, NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -79,8 +78,7 @@ import { ATTACHMENT_DEFAULT_VARIABLE } from '../../types'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { XpertStudioPanelMiddlewareSectionComponent } from './middleware-section/middleware.component'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-agent',
   templateUrl: './agent.component.html',
@@ -92,7 +90,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     FormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MatSliderModule,
     DateRelativePipe,
 

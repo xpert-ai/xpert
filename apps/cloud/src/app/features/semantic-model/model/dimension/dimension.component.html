@@ -2,14 +2,25 @@
   <!-- <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [color]="mt.isOpen() ? 'accent':''" [cdkMenuTriggerFor]="menu" #mt="cdkMenuTriggerFor">
     <z-icon [color]="mt.isOpen() ? 'accent':''" zType="more_vert"></z-icon>
   </button> -->
-  <nav z-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple class="flex-1" stretchTabs="false" alignTabs="start">
+  <nav
+    z-tab-nav-bar
+    [tabPanel]="tabPanel"
+    color="accent"
+    disableRipple
+    class="flex-1"
+    stretchTabs="false"
+    alignTabs="start"
+  >
     @for (tab of hierarchies(); track tab.__id__; let i = $index) {
-      <span z-tab-link class="relative"
+      <span
+        z-tab-link
+        class="relative"
         [routerLink]="['hierarchy', tab.__id__]"
-        routerLinkActive #rla="routerLinkActive"
+        routerLinkActive
+        #rla="routerLinkActive"
         [active]="rla.isActive"
       >
-        <span>{{tab.caption}}</span>
+        <span>{{ tab.caption }}</span>
 
         <!-- @if (dirty() && isDirty(tab.__id__)) {
           <span class="ping-badge pointer-events-none absolute -left-2 top-2 flex h-2 w-2">
@@ -18,9 +29,10 @@
           </span>
         } -->
 
-        <div class="w-7 h-7 flex justify-center items-center self-center rounded-full cursor-pointer hover:bg-hover-bg"
+        <div
+          class="w-7 h-7 flex justify-center items-center self-center rounded-full cursor-pointer hover:bg-hover-bg"
           [cdkMenuTriggerFor]="hMenu"
-          [cdkMenuTriggerData]="{key: tab.__id__}"
+          [cdkMenuTriggerData]="{ key: tab.__id__ }"
           #mt="cdkMenuTriggerFor"
           [class.active]="mt.isOpen()"
         >
@@ -29,15 +41,17 @@
       </span>
     }
 
-    <div class="w-7 h-7 flex justify-center items-center self-center rounded-lg mx-2 cursor-pointer hover:bg-hover-bg"
-      [matTooltip]=" 'PAC.MODEL.DIMENSION.NewHierarchy' | translate: {Default: 'New Hierarchy'} " matTooltipPosition="above"
+    <div
+      class="w-7 h-7 flex justify-center items-center self-center rounded-lg mx-2 cursor-pointer hover:bg-hover-bg"
+      [zTooltip]="'PAC.MODEL.DIMENSION.NewHierarchy' | translate: { Default: 'New Hierarchy' }"
+      zPosition="top"
       (click)="newHierarchy()"
     >
       <i class="ri-add-line"></i>
     </div>
 
     <!-- <div class="w-6 h-6 flex justify-center items-center rounded-lg mx-1 cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
-      [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " matTooltipPosition="above"
+      [zTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " zPosition="top"
       (click)="generateWithAI()"
     >
       <i class="ri-magic-line"></i>
@@ -45,45 +59,47 @@
   </nav>
 
   <div class="flex justify-around items-center">
-    <button type="button" class="btn btn-secondary btn-small"
-      [cdkMenuTriggerFor]="menu"
-      >
+    <button type="button" class="btn btn-secondary btn-small" [cdkMenuTriggerFor]="menu">
       <i class="ri-node-tree"></i>
       <span class="ml-1">
-        {{ 'PAC.KEY_WORDS.Dimension' | translate: {Default: "Dimension"} }}
+        {{ 'PAC.KEY_WORDS.Dimension' | translate: { Default: 'Dimension' } }}
       </span>
     </button>
-    <button type="button" class="btn btn-secondary btn-small ml-2"
-      [matTooltip]="'PAC.ACTIONS.OpenAttributesPanel' | translate: {Default: 'Open attributes panel'}"
-      matTooltipPosition="above"
+    <button
+      type="button"
+      class="btn btn-secondary btn-small ml-2"
+      [zTooltip]="'PAC.ACTIONS.OpenAttributesPanel' | translate: { Default: 'Open attributes panel' }"
+      zPosition="top"
       [class.text-primary-500]="detailsOpen()"
       (click)="drawer.toggle()"
     >
       <i class="ri-list-settings-line"></i>
       @if (!isMobile()) {
-        <span >{{ 'PAC.MENU.Attributes' | translate: {Default: "Attributes"} }}</span>
+        <span>{{ 'PAC.MENU.Attributes' | translate: { Default: 'Attributes' } }}</span>
       }
     </button>
   </div>
 </div>
 
 <mat-drawer-container class="flex-1" [hasBackdrop]="false" [autosize]="true">
-  <mat-drawer #drawer class="ngm-story__designer-drawer mat-elevation-z"
-    autosize position="end"
+  <mat-drawer
+    #drawer
+    class="ngm-story__designer-drawer mat-elevation-z"
+    autosize
+    position="end"
     [mode]="isMobile() ? 'over' : 'side'"
     [(opened)]="detailsOpen"
-    ngmResizer [resizerWidth]="380"
+    ngmResizer
+    [resizerWidth]="380"
   >
-    <ngm-settings-panel class="pac-model__settings-container m-2 rounded-lg shadow-lg overflow-hidden"
+    <ngm-settings-panel
+      class="pac-model__settings-container m-2 rounded-lg shadow-lg overflow-hidden"
       displayDensity="compact"
       liveMode
       (opened)="detailsOpen.set(true)"
     />
 
-    <div ngmResizerBar resizerBarPosition="left" style="z-index: 1;"
-      cdkDrag
-      cdkDragLockAxis="x"
-    ></div>
+    <div ngmResizerBar resizerBarPosition="left" style="z-index: 1" cdkDrag cdkDragLockAxis="x"></div>
   </mat-drawer>
   <mat-drawer-content>
     <z-tab-nav-panel #tabPanel class="h-full w-full flex-1 overflow-hidden">
@@ -93,29 +109,30 @@
 </mat-drawer-container>
 
 @if (!dimension()) {
-  <div class="pac-result absolute top-0 left-0 w-full h-full z-10 flex flex-col justify-center items-center backdrop-blur-md
-    bg-white/10 dark:bg-black/5">
+  <div
+    class="pac-result absolute top-0 left-0 w-full h-full z-10 flex flex-col justify-center items-center backdrop-blur-md bg-white/10 dark:bg-black/5"
+  >
     <span class="bug font-notoColorEmoji">🐞</span>
-    <span class="description">{{ 'PAC.MODEL.DIMENSION.DimensionNotFound' | translate: {Default: 'Dimension not found!'} }}</span>
+    <span class="description">{{
+      'PAC.MODEL.DIMENSION.DimensionNotFound' | translate: { Default: 'Dimension not found!' }
+    }}</span>
   </div>
 }
 
-<ng-template #menu >
+<ng-template #menu>
   <div cdkMenu class="cdk-menu__medium">
     <button cdkMenuItem (click)="editDimension()">
       <i class="ri-equalizer-3-line mr-1"></i>
-      <span>{{ 'PAC.MODEL.DimensionAttributes' | translate: {Default: "Dimension Attributes"} }}</span>
+      <span>{{ 'PAC.MODEL.DimensionAttributes' | translate: { Default: 'Dimension Attributes' } }}</span>
     </button>
 
     <button cdkMenuItem class="" (click)="duplicate()">
       <i class="ri-file-copy-line mr-1"></i>
-      <span>{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}</span>
+      <span>{{ 'PAC.ACTIONS.Duplicate' | translate: { Default: 'Duplicate' } }}</span>
     </button>
-    <button cdkMenuItem class="danger px-2 py-1 rounded-lg"
-      (click)="delete()"
-    >
+    <button cdkMenuItem class="danger px-2 py-1 rounded-lg" (click)="delete()">
       <i class="ri-delete-bin-line mr-1"></i>
-      <span>{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
+      <span>{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
     </button>
   </div>
 </ng-template>
@@ -124,17 +141,17 @@
   <div cdkMenu class="cdk-menu__medium">
     <button cdkMenuItem (click)="editHierarchy(key)">
       <i class="ri-equalizer-3-line mr-1"></i>
-      <span>{{ 'PAC.MODEL.DIMENSION.EditAttributes' | translate: {Default: "Edit Attributes"} }}</span>
+      <span>{{ 'PAC.MODEL.DIMENSION.EditAttributes' | translate: { Default: 'Edit Attributes' } }}</span>
     </button>
 
     <button cdkMenuItem (click)="duplicateHierarchy(key)">
       <i class="ri-file-copy-line mr-1"></i>
-      <span>{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}</span>
+      <span>{{ 'PAC.ACTIONS.Duplicate' | translate: { Default: 'Duplicate' } }}</span>
     </button>
-  
+
     <button cdkMenuItem class="danger" (click)="removeHierarchy(key)">
       <i class="ri-delete-bin-4-line mr-1"></i>
-      <span>{{ 'PAC.KEY_WORDS.DELETE' | translate: {Default: "Delete"} }}</span>
+      <span>{{ 'PAC.KEY_WORDS.DELETE' | translate: { Default: 'Delete' } }}</span>
     </button>
   </div>
 </ng-template>

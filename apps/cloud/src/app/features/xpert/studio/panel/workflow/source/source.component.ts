@@ -3,17 +3,22 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { injectIntegrationAPI, IWFNSource, IWorkflowNode, KnowledgebaseService, TSelectOption } from 'apps/cloud/src/app/@core'
+import {
+  injectIntegrationAPI,
+  IWFNSource,
+  IWorkflowNode,
+  KnowledgebaseService,
+  TSelectOption
+} from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
 import { XpertParametersEditComponent } from '@cloud/app/@shared/xpert'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workflow-source',
   templateUrl: './source.component.html',
@@ -24,7 +29,7 @@ import { XpertParametersEditComponent } from '@cloud/app/@shared/xpert'
     CommonModule,
     FormsModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     XpertParametersEditComponent,
     JSONSchemaFormComponent,
@@ -88,34 +93,34 @@ export class XpertWorkflowSourceComponent extends XpertWorkflowBaseComponent {
     }
   })
   readonly authModeOptions = computed(() => {
-      const options: TSelectOption[] = [
-        {
-          value: 'default',
-          label: {
-            en_US: 'Local',
-            zh_Hans: '本地部署'
-          },
-          description: {
-            en_US: 'In local deployment mode, use environment variables to configure authentication information.',
-            zh_Hans: '本地部署模式，使用环境变量配置认证信息。'
-          }
+    const options: TSelectOption[] = [
+      {
+        value: 'default',
+        label: {
+          en_US: 'Local',
+          zh_Hans: '本地部署'
+        },
+        description: {
+          en_US: 'In local deployment mode, use environment variables to configure authentication information.',
+          zh_Hans: '本地部署模式，使用环境变量配置认证信息。'
         }
-      ]
-      if (this.integration()) {
-        options.push({
-          value: 'integration',
-          label: {
-            en_US: 'Integration',
-            zh_Hans: '集成模式'
-          },
-          description: {
-            en_US: 'In integration mode, use system integration to configure authentication information.',
-            zh_Hans: '使用集成模式，通过系统集成配置认证信息。'
-          }
-        })
       }
-      return options
-    })
+    ]
+    if (this.integration()) {
+      options.push({
+        value: 'integration',
+        label: {
+          en_US: 'Integration',
+          zh_Hans: '集成模式'
+        },
+        description: {
+          en_US: 'In integration mode, use system integration to configure authentication information.',
+          zh_Hans: '使用集成模式，通过系统集成配置认证信息。'
+        }
+      })
+    }
+    return options
+  })
 
   openIntegrations() {
     window.open('/settings/integration', '_blank')

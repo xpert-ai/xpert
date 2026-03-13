@@ -12,7 +12,6 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -30,8 +29,7 @@ import {
 import { isNil, omit } from 'lodash-es'
 import { Observable, Subscription } from 'rxjs'
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -39,7 +37,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmDensityDirective,
     NgmSpinComponent,
     XpToolParametersFormComponent,

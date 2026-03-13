@@ -35,12 +35,12 @@
       <button
         type="button"
         class="btn disabled:btn-disabled btn-secondary btn-small"
-        [matTooltip]="
+        [zTooltip]="
           'PAC.MODEL.ENTITY.OnekeyGenerateModel'
             | translate
               : { Default: 'Generate a model based on table field division, which will overwrite existing information' }
         "
-        matTooltipPosition="above"
+        zPosition="top"
         [disabled]="visibleEmpty()"
         (click)="generate()"
       >
@@ -51,7 +51,7 @@
       <button
         type="button"
         class="btn disabled:btn-disabled btn-secondary btn-small"
-        [matTooltip]="
+        [zTooltip]="
           'PAC.MODEL.ENTITY.CreateOneDimensionTip'
             | translate
               : {
@@ -59,7 +59,7 @@
                     'Create different levels of a dimension with the selected fields, organized in top-to-bottom order'
                 }
         "
-        matTooltipPosition="above"
+        zPosition="top"
         [disabled]="visibleEmpty()"
         (click)="createDimension()"
       >
@@ -72,10 +72,10 @@
       <button
         type="button"
         class="btn disabled:btn-disabled btn-secondary btn-small"
-        [matTooltip]="
+        [zTooltip]="
           'PAC.MODEL.ENTITY.OnekeySyncModel' | translate: { Default: 'One-key sync model by source cube defination' }
         "
-        matTooltipPosition="above"
+        zPosition="top"
         [disabled]="visibleEmpty()"
         (click)="sync()"
       >

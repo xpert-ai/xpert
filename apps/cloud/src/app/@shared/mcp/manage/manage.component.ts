@@ -5,7 +5,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, ElementRef, HostListener, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 import {
   EnvironmentService,
@@ -35,8 +34,7 @@ import { TagSelectComponent } from '../../tag'
 import { XpertToolNameInputComponent } from '../../xpert'
 import { MCPServerFormComponent } from '../server/server.component'
 import { MCPToolsetToolTestComponent } from '../tool-test'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 export type TXpertMCPManageComponentRet =
   | {
       saved?: boolean
@@ -56,7 +54,7 @@ export type TXpertMCPManageComponentRet =
     CdkMenuModule,
     CdkListboxModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     EmojiAvatarComponent,
     NgmSpinComponent,
     NgmDensityDirective,

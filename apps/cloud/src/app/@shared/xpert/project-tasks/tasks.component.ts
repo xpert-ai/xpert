@@ -10,14 +10,14 @@ import {
   model,
   signal
 } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { getErrorMessage, injectToastr, IXpertProjectTask, XpertProjectService } from '@cloud/app/@core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, MatTooltipModule, NgmSpinComponent],
+  imports: [CommonModule, TranslateModule, ...ZardTooltipImports, NgmSpinComponent],
   selector: 'xpert-project-tasks',
   templateUrl: './tasks.component.html',
   styleUrl: 'tasks.component.scss',
@@ -40,11 +40,14 @@ export class XpertProjectTasksComponent {
   readonly loading = signal(false)
 
   constructor() {
-    effect(() => {
-      if (this.editable()) {
-        this.refresh()
-      }
-    }, { allowSignalWrites: true })
+    effect(
+      () => {
+        if (this.editable()) {
+          this.refresh()
+        }
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   refresh() {

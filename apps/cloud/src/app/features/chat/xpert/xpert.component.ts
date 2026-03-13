@@ -2,7 +2,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, OnDestroy, signal } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { IXpert, OrderTypeEnum, PaginationParams, XpertAPIService, XpertTypeEnum } from '@cloud/app/@core'
 import { injectWorkspaceService } from '@cloud/app/@core/services/xpert-workspace.service'
@@ -19,7 +18,7 @@ import { ChatPlatformService } from '../chat.service'
 import { ChatHomeService } from '../home.service'
 import { ChatHomeComponent } from '../home/home.component'
 import { ChatXpertsComponent } from '../xperts/xperts.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  */
 @Component({
@@ -31,7 +30,7 @@ import { ChatXpertsComponent } from '../xperts/xperts.component'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     EmojiAvatarComponent,
     NgmSpinComponent,
     XpertChatAppComponent,
@@ -69,10 +68,10 @@ export class ChatXpertComponent implements OnDestroy {
   readonly filteredXperts = computed(() => {
     const allXperts = this.xperts() || []
     const searchText = this.searchControl.value?.toLowerCase() || ''
-    const matchedIds = new Set(this.matchedXperts().map(x => x.id))
+    const matchedIds = new Set(this.matchedXperts().map((x) => x.id))
 
     if (searchText) {
-      return allXperts.filter(xpert => {
+      return allXperts.filter((xpert) => {
         if (matchedIds.has(xpert.id)) {
           return false
         }
@@ -84,12 +83,12 @@ export class ChatXpertComponent implements OnDestroy {
       })
     }
 
-    return allXperts.filter(xpert => !matchedIds.has(xpert.id))
+    return allXperts.filter((xpert) => !matchedIds.has(xpert.id))
   })
 
   readonly hasNoPublishedXperts = computed(() => {
     const hasSearchText = !!this.searchControl.value
-    return (!hasSearchText && this.filteredXperts().length === 0 && this.matchedXperts().length === 0)
+    return !hasSearchText && this.filteredXperts().length === 0 && this.matchedXperts().length === 0
   })
 
   private searchXpertSub: Subscription
@@ -108,61 +107,64 @@ export class ChatXpertComponent implements OnDestroy {
       { allowSignalWrites: true }
     )
 
-    this.searchXpertSub = this.searchControl.valueChanges.pipe(
-      debounceTime(300),
-      distinctUntilChanged(),
-      switchMap((searchText) => {
-        if (!searchText?.trim()) {
-          this.matchedXperts.set([])
-          this.showXpertDropdown.set(false)
-          return of([])
-        }
-
-        this.searchingXperts.set(true)
-        this.showXpertDropdown.set(true)
-
-        return this.#workspaceService.getAllMy({ take: 1 }).pipe(
-          switchMap((workspaces) => {
-            const workspaceId = workspaces.items?.[0]?.id || null
-
-            const options: PaginationParams<IXpert> = {
-              where: {
-                type: XpertTypeEnum.Agent,
-                latest: true
-              },
-              order: { updatedAt: OrderTypeEnum.DESC },
-              take: 10
-            }
-
-            return this.xpertService.getAllByWorkspace(workspaceId, options, true).pipe(
-              map(({ items }) => {
-                const lowerSearch = searchText.toLowerCase()
-                return (items || []).filter(xpert =>
-                  xpert.name?.toLowerCase().includes(lowerSearch) ||
-                  xpert.title?.toLowerCase().includes(lowerSearch) ||
-                  xpert.description?.toLowerCase().includes(lowerSearch)
-                )
-              }),
-              catchError(() => {
-                return of([])
-              })
-            )
-          }),
-          catchError(() => {
+    this.searchXpertSub = this.searchControl.valueChanges
+      .pipe(
+        debounceTime(300),
+        distinctUntilChanged(),
+        switchMap((searchText) => {
+          if (!searchText?.trim()) {
+            this.matchedXperts.set([])
+            this.showXpertDropdown.set(false)
             return of([])
-          })
-        )
+          }
+
+          this.searchingXperts.set(true)
+          this.showXpertDropdown.set(true)
+
+          return this.#workspaceService.getAllMy({ take: 1 }).pipe(
+            switchMap((workspaces) => {
+              const workspaceId = workspaces.items?.[0]?.id || null
+
+              const options: PaginationParams<IXpert> = {
+                where: {
+                  type: XpertTypeEnum.Agent,
+                  latest: true
+                },
+                order: { updatedAt: OrderTypeEnum.DESC },
+                take: 10
+              }
+
+              return this.xpertService.getAllByWorkspace(workspaceId, options, true).pipe(
+                map(({ items }) => {
+                  const lowerSearch = searchText.toLowerCase()
+                  return (items || []).filter(
+                    (xpert) =>
+                      xpert.name?.toLowerCase().includes(lowerSearch) ||
+                      xpert.title?.toLowerCase().includes(lowerSearch) ||
+                      xpert.description?.toLowerCase().includes(lowerSearch)
+                  )
+                }),
+                catchError(() => {
+                  return of([])
+                })
+              )
+            }),
+            catchError(() => {
+              return of([])
+            })
+          )
+        })
+      )
+      .subscribe({
+        next: (xperts: IXpert[]) => {
+          this.matchedXperts.set(xperts)
+          this.searchingXperts.set(false)
+        },
+        error: () => {
+          this.matchedXperts.set([])
+          this.searchingXperts.set(false)
+        }
       })
-    ).subscribe({
-      next: (xperts: IXpert[]) => {
-        this.matchedXperts.set(xperts)
-        this.searchingXperts.set(false)
-      },
-      error: () => {
-        this.matchedXperts.set([])
-        this.searchingXperts.set(false)
-      }
-    })
   }
 
   newConv() {

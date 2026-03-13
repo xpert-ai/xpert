@@ -2,13 +2,28 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { OverlayModule } from '@angular/cdk/overlay'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, HostListener, inject, signal, ViewChild, ViewContainerRef } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  HostListener,
+  inject,
+  signal,
+  ViewChild,
+  ViewContainerRef
+} from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule, RouterOutlet } from '@angular/router'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { groupConversations } from '@cloud/app/xpert/types'
-import { IChatConversation, injectUserPreferences, IXpertProject, IXpertTask, PaginationParams, PersistState } from '@metad/cloud/state'
+import {
+  IChatConversation,
+  injectUserPreferences,
+  IXpertProject,
+  IXpertTask,
+  PaginationParams,
+  PersistState
+} from '@metad/cloud/state'
 import { OverlayAnimations, routeAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { attrModel, linkedModel, myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -28,6 +43,7 @@ import { AppService } from '../../../app.service'
 import { ChatConversationsComponent, XpertHomeService } from '../../../xpert'
 import { ChatHomeService } from '../home.service'
 import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 type TMenuOverlayType = 'history' | 'project' | 'task'
 
@@ -40,7 +56,7 @@ type TMenuOverlayType = 'history' | 'project' | 'task'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     EmojiAvatarComponent,
     NgmI18nPipe
@@ -75,7 +91,7 @@ export class ChatHomeComponent {
   readonly #preferences = injectUserPreferences()
 
   // Signals
-  readonly currentPage = signal<{type?: 'project' | 'conversation', id?: string}>({})
+  readonly currentPage = signal<{ type?: 'project' | 'conversation'; id?: string }>({})
 
   readonly isMobile = this.appService.isMobile
   readonly lang = this.appService.lang
@@ -92,7 +108,7 @@ export class ChatHomeComponent {
       this.chatSidebar.set(state)
     }
   })
-  
+
   readonly menuOverlay = signal<TMenuOverlayType>(null)
   private leaveTimer = null
 
@@ -121,20 +137,19 @@ export class ChatHomeComponent {
   // Conversations
   readonly conversationService = inject(ChatConversationService)
   readonly #conversations = myRxResource({
-    request: () => ({
+    request: () =>
+      ({
         select: ['id', 'threadId', 'title', 'options', 'updatedAt', 'from', 'projectId', 'taskId'],
         order: { updatedAt: OrderTypeEnum.DESC },
         take: 20,
         where: {
-          from: { '$in': ['platform', 'job']},
-          projectId: {'$isNull': true}
+          from: { $in: ['platform', 'job'] },
+          projectId: { $isNull: true }
         },
         relations: ['xpert', 'project']
-      } as PaginationParams<IChatConversation>),
-    loader: ({request}) => {
-      return this.conversationService
-      .getMyInOrg(request)
-      .pipe(map(({ items }) => items))
+      }) as PaginationParams<IChatConversation>,
+    loader: ({ request }) => {
+      return this.conversationService.getMyInOrg(request).pipe(map(({ items }) => items))
     }
   })
 
@@ -143,7 +158,12 @@ export class ChatHomeComponent {
     compute: () => this.#conversations.value(),
     update: (conversations) => {}
   })
-  readonly taskConversations = computed(() => this.#conversations.value()?.filter((conv) => conv.taskId).slice(0, 10))
+  readonly taskConversations = computed(() =>
+    this.#conversations
+      .value()
+      ?.filter((conv) => conv.taskId)
+      .slice(0, 10)
+  )
 
   readonly groups = computed(() => {
     const conversations = this.conversations()
@@ -319,8 +339,8 @@ export class ChatHomeComponent {
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
     if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
-      event.preventDefault(); // Prevent the default action
-      this.openConversations(); // Execute the openConversations method
+      event.preventDefault() // Prevent the default action
+      this.openConversations() // Execute the openConversations method
     }
   }
 }

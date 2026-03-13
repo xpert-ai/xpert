@@ -2,7 +2,6 @@ import { Component, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialog } from '@angular/material/dialog'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
@@ -20,8 +19,7 @@ import {
   ToastrService
 } from '../../../../@core'
 import { CommonModule } from '@angular/common'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-settings-copilot-usages',
@@ -33,7 +31,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardButtonComponent,
     ZardIconComponent,
     WaIntersectionObserver,

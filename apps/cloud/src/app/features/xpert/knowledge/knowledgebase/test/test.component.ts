@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { KnowledgeChunkComponent, KnowledgeRetrievalSettingsComponent } from '@cloud/app/@shared/knowledge'
 import { DocumentInterface } from '@langchain/core/documents'
@@ -22,6 +21,7 @@ import {
   routeAnimations
 } from '../../../../../@core'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -34,7 +34,7 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmCommonModule,
     DateRelativePipe,
     KnowledgeChunkComponent,
@@ -49,7 +49,6 @@ export class KnowledgeTestComponent {
   readonly _toastrService = inject(ToastrService)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly helpUrl = injectHelpWebsite('/docs/ai/knowledge/retrieval')
-  
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
 
@@ -71,7 +70,7 @@ export class KnowledgeTestComponent {
           createdAt: OrderTypeEnum.DESC
         },
         skip: 0,
-        take: 20,
+        take: 20
       }
     }),
     loader: ({ request }) => {

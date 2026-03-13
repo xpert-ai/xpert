@@ -1,4 +1,5 @@
-<ngm-select [displayDensity]="props?.displayDensity"
+<ngm-select
+  [displayDensity]="props?.displayDensity"
   [label]="props?.label"
   [placeholder]="props?.placeholder"
   [required]="props?.required"
@@ -9,28 +10,28 @@
   [displayBehaviour]="props?.displayBehaviour"
   [formControl]="valueFormControl"
   [selectOptions]="selectOptions()"
-
   [class.ngm-select-error]="error() || (formControl.invalid && formControl.touched)"
 >
   @if (props?.help) {
-    <a ngmLabel [href]="props.help" target="_blank" rel="noopener noreferrer" class="group text-xs font-light text-primary-400 hover:text-primary-600 hover:underline hover:font-normal">
-      {{ 'FORMLY.COMMON.Help' | translate: {Default: 'Help'} }}
-      <i class="ri-external-link-line inline-block group-hover:translate-x-1 transition-transform"></i>
-    </a>
-  }
-  @if (formControl.invalid && formControl.touched) {
-    <formly-validation-message ngmError [field]="field" />
-  }
-  @if (error()) {
-    <span ngmError>{{error()}}</span>
+  <a
+    ngmLabel
+    [href]="props.help"
+    target="_blank"
+    rel="noopener noreferrer"
+    class="group text-xs font-light text-primary-400 hover:text-primary-600 hover:underline hover:font-normal"
+  >
+    {{ 'FORMLY.COMMON.Help' | translate: {Default: 'Help'} }}
+    <i class="ri-external-link-line inline-block group-hover:translate-x-1 transition-transform"></i>
+  </a>
+  } @if (formControl.invalid && formControl.touched) {
+  <formly-validation-message ngmError [field]="field" />
+  } @if (error()) {
+  <span ngmError>{{error()}}</span>
   }
   <div ngmSuffix class="flex items-center">
     <mat-progress-spinner class="hidden" color="primary" mode="indeterminate" diameter="16" />
     @if (props?.info) {
-      <i class="ri-information-2-line opacity-50"
-        [matTooltip]="props.info"
-        matTooltipPosition="above"
-      ></i>
+    <i class="ri-information-2-line opacity-50" [zTooltip]="props.info" zPosition="top"></i>
     }
   </div>
 </ngm-select>

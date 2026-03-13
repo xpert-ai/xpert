@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import {
   ChatConversationService,
@@ -26,6 +25,7 @@ import { ChatCanvasIframeComponent } from '../iframe/iframe.component'
 import { ChatCanvasTerminalComponent } from '../terminal/terminal.component'
 import { ChatCanvasKnowledgesComponent } from '../knowledges/knowledges.component'
 import { ChatCanvasWebTerminalComponent } from '../web-terminal/terminal.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -36,7 +36,7 @@ import { ChatCanvasWebTerminalComponent } from '../web-terminal/terminal.compone
     CdkMenuModule,
     TranslateModule,
     MatSliderModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     FileTypePipe,
     FileEditorComponent,
     CanvasHtmlEditorComponent,
@@ -74,12 +74,14 @@ export class ChatCanvasComputerComponent {
 
   readonly stepMessages = computed(() => {
     const conversation = this.chatService.conversation()
-    return conversation?.messages?.reduce((acc, message) => {
-      if (Array.isArray(message.content) && message.content.length > 0) {
-        acc.push(...message.content.filter((_) => _.type === 'component' && _.data?.category === 'Computer'))
-      }
-      return acc
-    }, []) ?? []
+    return (
+      conversation?.messages?.reduce((acc, message) => {
+        if (Array.isArray(message.content) && message.content.length > 0) {
+          acc.push(...message.content.filter((_) => _.type === 'component' && _.data?.category === 'Computer'))
+        }
+        return acc
+      }, []) ?? []
+    )
   })
   readonly stepCategories = computed(() => uniq(this.stepMessages().map((_) => _.category)))
   readonly stepTypes = computed(() => uniq(this.stepMessages().map((_) => _.type)))
@@ -92,21 +94,27 @@ export class ChatCanvasComputerComponent {
 
   readonly projectId = computed(() => this.chatService.project()?.id)
 
-  readonly features = computed(() => ['timeline' as TChatConversationOptions['features'][number], ...(this.chatService.conversation()?.options?.features ?? [])])
+  readonly features = computed(() => [
+    'timeline' as TChatConversationOptions['features'][number],
+    ...(this.chatService.conversation()?.options?.features ?? [])
+  ])
   readonly feature = signal<TChatConversationOptions['features'][number]>('timeline')
 
   constructor() {
-    effect(() => {
-      // If componentId is provided, find the step message by componentId
-      if (this.componentId()) {
-        const stepMessage = this.stepMessages()?.find((msg) => msg.id === this.componentId())
-        if (stepMessage) {
-          const index = this.stepMessages().indexOf(stepMessage)
-          this.stepIndex.set(index)
+    effect(
+      () => {
+        // If componentId is provided, find the step message by componentId
+        if (this.componentId()) {
+          const stepMessage = this.stepMessages()?.find((msg) => msg.id === this.componentId())
+          if (stepMessage) {
+            const index = this.stepMessages().indexOf(stepMessage)
+            this.stepIndex.set(index)
+          }
         }
-      }
-    }, { allowSignalWrites: true })
-    
+      },
+      { allowSignalWrites: true }
+    )
+
     effect(
       () => {
         if (this.stepMessageLength() && !this.pin()) {

@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { FFlowModule } from '@foblex/flow'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -16,6 +15,7 @@ import { XpertStudioApiService } from '../../../domain'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { CommonModule } from '@angular/common'
 import { IconComponent } from '@cloud/app/@shared/avatar'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-node-chunker',
@@ -26,11 +26,11 @@ import { IconComponent } from '@cloud/app/@shared/avatar'
   imports: [
     CommonModule,
     FFlowModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     IconComponent,
     PlusSvgComponent,
-    NgmI18nPipe,
+    NgmI18nPipe
   ],
   host: {
     tabindex: '-1'
@@ -58,7 +58,7 @@ export class XpertWorkflowNodeChunkerComponent {
   readonly canBeConnectedInputs = computed(() =>
     this.nodes()
       .filter((_) => _.type === 'agent' || _.type === 'workflow')
-      .map((_) => _.type === 'workflow' ? _.key + '/edge' : _.key)
+      .map((_) => (_.type === 'workflow' ? _.key + '/edge' : _.key))
   )
 
   // Chunker providers from knowledgebase service
@@ -66,7 +66,7 @@ export class XpertWorkflowNodeChunkerComponent {
   readonly chunkerProvider = computed(() => {
     const providerName = this.provider()
     if (providerName && this.chunkerProviders()) {
-      return this.chunkerProviders().find(p => p.name === providerName)
+      return this.chunkerProviders().find((p) => p.name === providerName)
     }
     return null
   })

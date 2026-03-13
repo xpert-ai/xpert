@@ -1,13 +1,29 @@
 import { ClipboardModule } from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, HostBinding, inject, input, model, signal, viewChild, ViewContainerRef } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  HostBinding,
+  inject,
+  input,
+  model,
+  signal,
+  viewChild,
+  ViewContainerRef
+} from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialog } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import { CopilotChatMessage, JSONValue, nanoid, stringifyMessageContent } from '@metad/copilot'
 import { AnalyticalCardComponent, AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
@@ -16,7 +32,18 @@ import { NgmDisplayBehaviourComponent, NgmInputComponent, NgmSearchComponent } f
 import { DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
 import { NgmCalculationEditorComponent, NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
-import { CalculatedProperty, CalculationType, DataSettings, getEntityMeasures, Indicator, ISlicer, isString, OrderDirection, PropertyMeasure, Syntax } from '@metad/ocap-core'
+import {
+  CalculatedProperty,
+  CalculationType,
+  DataSettings,
+  getEntityMeasures,
+  Indicator,
+  ISlicer,
+  isString,
+  OrderDirection,
+  PropertyMeasure,
+  Syntax
+} from '@metad/ocap-core'
 import { WidgetComponentType } from '@metad/story/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
@@ -50,7 +77,7 @@ import { StorySelectorComponent } from '../../../@shared/story'
     CdkMenuModule,
     MarkdownModule,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardButtonComponent,
     ZardInputDirective,
     ...ZardFormImports,
@@ -113,7 +140,11 @@ export class ChatbiAnswerComponent {
     this.toArray(this.message().data).find((item) => this.typeof(item) === 'object' && this.isAnswer(item))
   })
 
-  readonly visualObject = computed(() => this.toArray(this.message().data).filter(isQuestionAnswer).find((item) => item.visualType))
+  readonly visualObject = computed(() =>
+    this.toArray(this.message().data)
+      .filter(isQuestionAnswer)
+      .find((item) => item.visualType)
+  )
 
   readonly orders = computed(() => this.visualObject()?.orders)
   readonly rankTop = computed(() => this.visualObject()?.top)
@@ -139,7 +170,7 @@ export class ChatbiAnswerComponent {
             },
             KPIAnnotation: item.kpi
           },
-          chartSettings: this.toChartSettings(item as unknown as QuestionAnswer),
+          chartSettings: this.toChartSettings(item as unknown as QuestionAnswer)
         }
       }
     })
@@ -158,7 +189,9 @@ export class ChatbiAnswerComponent {
     map(([entityType, text]) => {
       const measures = getEntityMeasures(entityType)
       if (text) {
-        return measures?.filter((measure) => measure?.caption.toLowerCase().includes(text) || measure?.name.toLowerCase().includes(text))
+        return measures?.filter(
+          (measure) => measure?.caption.toLowerCase().includes(text) || measure?.name.toLowerCase().includes(text)
+        )
       }
       return measures
     })
@@ -191,7 +224,7 @@ export class ChatbiAnswerComponent {
   }
 
   isQuestions(value: string | any) {
-    return typeof value === 'object' && Array.isArray(value['questions']) ? value as { questions: string[] } : null
+    return typeof value === 'object' && Array.isArray(value['questions']) ? (value as { questions: string[] }) : null
   }
 
   openExplore(item: string | QuestionAnswer) {
@@ -312,10 +345,10 @@ export class ChatbiAnswerComponent {
   updateSlicers(slicers: ISlicer[]) {
     this.chatbiService.updateQuestionAnswer(this.message().id, { slicers })
   }
-  
+
   toggleMeasureSort(measure: PropertyMeasure) {
     const orders = [...(this.orders() || [])]
-    const index = orders.findIndex((order) => order.by === measure.name);
+    const index = orders.findIndex((order) => order.by === measure.name)
     if (index > -1) {
       if (orders[index].order === OrderDirection.ASC) {
         orders[index] = {

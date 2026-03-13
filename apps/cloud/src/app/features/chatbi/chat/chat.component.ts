@@ -1,10 +1,18 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, model, signal, viewChild } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  ElementRef,
+  inject,
+  model,
+  signal,
+  viewChild
+} from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-import { MatTooltipModule } from '@angular/material/tooltip'
+import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { RouterModule } from '@angular/router'
 import { CopilotChatMessage, stringifyMessageContent } from '@metad/copilot'
 import { nonBlank, nonNullable } from '@metad/ocap-core'
@@ -29,7 +37,7 @@ import { UserAvatarComponent } from '../../../@shared/user'
     TranslateModule,
     MarkdownModule,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardButtonComponent,
     ZardDividerComponent,
     UserAvatarComponent,

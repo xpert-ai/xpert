@@ -1,28 +1,27 @@
 import { CommonModule } from '@angular/common'
 import { AfterViewInit, Component, ElementRef, Input, OnDestroy } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import mermaid from 'mermaid'
 import { CopyComponent } from '../../common'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 let idCounter = 0
 const svgCache = new Map<string, string>()
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MatTooltipModule, TranslateModule, CopyComponent],
+  imports: [CommonModule, ...ZardTooltipImports, TranslateModule, CopyComponent],
   selector: 'chat-mermaid-viewer',
   template: `<div class="group/mermaid relative my-4">
     <copy
       #copy
       class="absolute -top-2 right-2 opacity-30 group-hover/mermaid:opacity-100 z-10"
       [content]="code"
-      [matTooltip]="
+      [zTooltip]="
         copy.copied()
           ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
           : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
       "
-      matTooltipPosition="above"
+      zPosition="top"
     />
     <div class="mermaid-container overflow-auto"></div>
   </div>`

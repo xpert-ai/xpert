@@ -31,9 +31,7 @@ import {
 } from '../../../../@core/index'
 import { ProjectService } from '../../project.service'
 import { ProjectIndicatorsComponent } from '../indicators.component'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { ZardButtonComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardCheckboxComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -42,7 +40,7 @@ import { ZardButtonComponent, ZardCheckboxComponent } from '@xpert-ai/headless-u
     FormsModule,
     ZardCheckboxComponent,
     ZardButtonComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     NgmSpinComponent,
     DateRelativePipe

@@ -2,7 +2,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { injectToastr, TMessageContentCube } from '@cloud/app/@core'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -12,7 +11,7 @@ import { ModelDraftBaseComponent } from '../draft-base'
 import { ModelStudioService } from '../model.service'
 import { CubeStudioComponent } from '../studio/studio.component'
 import { ChecklistComponent } from '../../common'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -24,7 +23,7 @@ import { ChecklistComponent } from '../../common'
     FormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     ChecklistComponent,
     CubeStudioComponent

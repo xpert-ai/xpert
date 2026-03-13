@@ -3,7 +3,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import { injectProjectService, injectToastr } from '@cloud/app/@core'
 import { ChatFileListComponent } from '@cloud/app/@shared/chat/'
@@ -13,7 +12,7 @@ import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/commo
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { ChatProjectComponent } from '../project.component'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  * @deprecated
  */
@@ -26,7 +25,7 @@ import { ChatProjectComponent } from '../project.component'
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     NgmDndDirective,
     ChatFileListComponent

@@ -1,54 +1,74 @@
 <mat-drawer-container class="flex-1" [hasBackdrop]="false" autosize cdkDropListGroup>
-    <mat-drawer #drawer mode="side" position="end" ngmResizer [resizerWidth]="330" class="ngm-formula-editor__drawer">
-        <div ngmResizerBar resizerBarPosition="left" cdkDrag style="z-index: 2;"></div>
-        
-        <ngm-entity-schema class="flex-1"
-            id="ngm-formula-editor__entity-schema"
-            cdkDropList
-            [cdkDropListData]="[]"
+  <mat-drawer #drawer mode="side" position="end" ngmResizer [resizerWidth]="330" class="ngm-formula-editor__drawer">
+    <div ngmResizerBar resizerBarPosition="left" cdkDrag style="z-index: 2"></div>
 
-            [dataSettings]="dataSettings"
-            [capacities]="[
-                EntityCapacity.Dimension,
-                EntityCapacity.Hierarchy,
-                EntityCapacity.Measure,
-                EntityCapacity.Calculation
-            ]"
-        >
-        </ngm-entity-schema>
-    </mat-drawer>
-    <mat-drawer-content class="flex flex-col justify-start items-stretch">
-        <div class="flex justify-between items-center">
-           <span>
-            {{ 'Ngm.Formula.Editor.EditFormula' | translate: {Default: "Edit Formula"} }}
-           </span>
+    <ngm-entity-schema
+      class="flex-1"
+      id="ngm-formula-editor__entity-schema"
+      cdkDropList
+      [cdkDropListData]="[]"
+      [dataSettings]="dataSettings"
+      [capacities]="[
+        EntityCapacity.Dimension,
+        EntityCapacity.Hierarchy,
+        EntityCapacity.Measure,
+        EntityCapacity.Calculation
+      ]"
+    >
+    </ngm-entity-schema>
+  </mat-drawer>
+  <mat-drawer-content class="flex flex-col justify-start items-stretch">
+    <div class="flex justify-between items-center">
+      <span>
+        {{ 'Ngm.Formula.Editor.EditFormula' | translate: { Default: 'Edit Formula' } }}
+      </span>
 
-           <div class="flex justify-around items-center gap-2">
-                <!-- <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [matTooltip]="'Ngm.Formula.Editor.Format' | translate: {Default: 'Format'}" (click)="formatDocument()">
+      <div class="flex justify-around items-center gap-2">
+        <!-- <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [zTooltip]="'Ngm.Formula.Editor.Format' | translate: {Default: 'Format'}" (click)="formatDocument()">
                     <z-icon  zType="text_format"></z-icon>
                 </button> -->
 
-                <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="helpLink" displayDensity="cosy" (click)="openHelpLink()" [matTooltip]="'Ngm.Formula.Editor.Help' | translate: {Default: 'Help'}">
-                    <z-icon zType="help_outline"></z-icon>
-                </button>
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          *ngIf="helpLink"
+          displayDensity="cosy"
+          (click)="openHelpLink()"
+          [zTooltip]="'Ngm.Formula.Editor.Help' | translate: { Default: 'Help' }"
+        >
+          <z-icon zType="help_outline"></z-icon>
+        </button>
 
-                <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-formula-editor__drawer-anchor" (click)="drawer.toggle()">
-                    <z-icon *ngIf="drawer.opened" zType="chevron_right"></z-icon>
-                    <z-icon *ngIf="!drawer.opened" zType="menu_open"></z-icon>
-                </button>
-           </div>
-        </div>
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          displayDensity="cosy"
+          class="ngm-formula-editor__drawer-anchor"
+          (click)="drawer.toggle()"
+        >
+          <z-icon *ngIf="drawer.opened" zType="chevron_right"></z-icon>
+          <z-icon *ngIf="!drawer.opened" zType="menu_open"></z-icon>
+        </button>
+      </div>
+    </div>
 
-        <div style="flex: 1; width: 100%; overflow: hidden;">
-            <ngx-monaco-editor id="ngm-formula-editor" style="width: 100%;" [ngStyle]="{'height': 'calc(100% - 1rem)'}"
-                cdkDropList
-                [cdkDropListData]="calculations"
-                (cdkDropListDropped)="drop($event)"
-                [options]="editorOptions"
-                [(ngModel)]="statement"
-                (resized)="onResized($event)"
-                (onInit)="onInit($event)"
-            ></ngx-monaco-editor>
-        </div>
-    </mat-drawer-content>
+    <div style="flex: 1; width: 100%; overflow: hidden">
+      <ngx-monaco-editor
+        id="ngm-formula-editor"
+        style="width: 100%"
+        [ngStyle]="{ height: 'calc(100% - 1rem)' }"
+        cdkDropList
+        [cdkDropListData]="calculations"
+        (cdkDropListDropped)="drop($event)"
+        [options]="editorOptions"
+        [(ngModel)]="statement"
+        (resized)="onResized($event)"
+        (onInit)="onInit($event)"
+      ></ngx-monaco-editor>
+    </div>
+  </mat-drawer-content>
 </mat-drawer-container>

@@ -4,14 +4,20 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { MaskPipe } from '@metad/core'
 import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ApiKeyService, DateFormatPipe, DateRelativePipe, getErrorMessage, IApiKey, injectToastr } from 'apps/cloud/src/app/@core'
+import {
+  ApiKeyService,
+  DateFormatPipe,
+  DateRelativePipe,
+  getErrorMessage,
+  IApiKey,
+  injectToastr
+} from 'apps/cloud/src/app/@core'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { map, switchMap } from 'rxjs/operators'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -19,7 +25,7 @@ import { map, switchMap } from 'rxjs/operators'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     MaskPipe,
     DateFormatPipe,
@@ -67,8 +73,8 @@ export class XpertDevelopApiKeyComponent {
     this.#dialog
       .open(CdkConfirmDeleteComponent, {
         data: {
-          title: this.#translate.instant('PAC.Xpert.DeleteApiKey', {Default: 'Delete this api key?'}),
-          information: this.#translate.instant('PAC.Xpert.ActionUndone', {Default: 'This action cannot be undone.'})
+          title: this.#translate.instant('PAC.Xpert.DeleteApiKey', { Default: 'Delete this api key?' }),
+          information: this.#translate.instant('PAC.Xpert.ActionUndone', { Default: 'This action cannot be undone.' })
         }
       })
       .closed.pipe(

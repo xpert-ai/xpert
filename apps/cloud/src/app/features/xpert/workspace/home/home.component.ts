@@ -17,7 +17,6 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { XpertEnvironmentManageComponent } from '@cloud/app/@shared/environment'
 import { injectWorkspace, Store } from '@metad/cloud/state'
@@ -50,6 +49,7 @@ import {
 import { AppService } from '../../../../app.service'
 import { XpertWorkspaceSettingsComponent } from '../settings/settings.component'
 import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
 
@@ -65,7 +65,7 @@ export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
     CdkMenuModule,
     OverlayModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
 
     NgmCommonModule,
     TagFilterComponent,

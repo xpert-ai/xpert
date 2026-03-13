@@ -9,9 +9,7 @@ import { PlaceholderAddComponent } from '@metad/story/story'
 import { WidgetAnalyticalCardComponent } from './analytical-card.component'
 import { AnalyticalChartPlaceholderComponent } from './chart-placeholder/chart-placeholder.component'
 import { NgmSelectionModule } from '@metad/ocap-angular/selection'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @NgModule({
   imports: [
     CommonModule,
@@ -19,13 +17,13 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     MatMenuModule,
     ZardButtonComponent,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     OcapCoreModule,
     NgmSelectionModule,
-    
+
     PlaceholderAddComponent,
-    AnalyticalChartPlaceholderComponent,
+    AnalyticalChartPlaceholderComponent
   ],
   declarations: [WidgetAnalyticalCardComponent],
   exports: [WidgetAnalyticalCardComponent]

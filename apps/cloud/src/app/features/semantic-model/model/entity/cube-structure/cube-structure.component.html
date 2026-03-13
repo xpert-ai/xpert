@@ -1,23 +1,39 @@
 <div class="flex flex-col group">
-  <div class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10" displayDensity="compact">
-    <span>{{ 'PAC.MENU.DIMENSIONS' | translate: {Default: "Dimensions"} }}</span>
+  <div
+    class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10"
+    displayDensity="compact"
+  >
+    <span>{{ 'PAC.MENU.DIMENSIONS' | translate: { Default: 'Dimensions' } }}</span>
 
     <ngm-search [(ngModel)]="search" class="flex-1 ml-4" />
 
     @if (modelType() !== MODEL_TYPE.XMLA) {
-      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100" [matTooltip]=" 'PAC.MODEL.ENTITY.NewDimension' | translate: {Default: 'New Dimension'} " (click)="$event.stopPropagation();$event.preventDefault();addNewItem({}, null);">
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="cosy"
+        class="ngm-toolbar__action opacity-10 group-hover:opacity-100"
+        [zTooltip]="'PAC.MODEL.ENTITY.NewDimension' | translate: { Default: 'New Dimension' }"
+        (click)="$event.stopPropagation(); $event.preventDefault(); addNewItem({}, null)"
+      >
         <z-icon zType="add"></z-icon>
       </button>
     }
   </div>
 
-  <div cdkDropList id="list-dimensions" class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]"
+  <div
+    cdkDropList
+    id="list-dimensions"
+    class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]"
     [cdkDropListEnterPredicate]="dropDimensionPredicate"
     (cdkDropListDropped)="dropDimension($event)"
-    >
+  >
     <div class="flex-1 flex flex-col overflow-auto">
       @for (item of dimensionUsages$ | async; track item.usage.name) {
-        <pac-usage-dimension displayDensity="compact"
+        <pac-usage-dimension
+          displayDensity="compact"
           [dimension]="item.dimension"
           [usage]="item.usage"
           (delete)="onDelete($event)"
@@ -26,7 +42,8 @@
       }
 
       @for (dim of dimensions(); track dim.__id__) {
-        <pac-inline-dimension displayDensity="compact"
+        <pac-inline-dimension
+          displayDensity="compact"
           [dimension]="dim"
           [readonly]="modelType() === MODEL_TYPE.XMLA"
           (delete)="onDelete($event)"
@@ -38,19 +55,32 @@
 </div>
 
 <div class="flex flex-col mt-4 group">
-  <div class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10" displayDensity="compact">
+  <div
+    class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10"
+    displayDensity="compact"
+  >
     <span>
-      {{ 'PAC.MENU.MEASURES' | translate: {Default: "Measures"} }}
+      {{ 'PAC.MENU.MEASURES' | translate: { Default: 'Measures' } }}
     </span>
 
     @if (modelType() !== MODEL_TYPE.XMLA && editable()) {
-      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100" [matTooltip]=" 'PAC.MODEL.ENTITY.NewMeasure' | translate: {Default: 'New Measure'} " (click)="$event.stopPropagation();$event.preventDefault();onAddMeasure($event)">
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="cosy"
+        class="ngm-toolbar__action opacity-10 group-hover:opacity-100"
+        [zTooltip]="'PAC.MODEL.ENTITY.NewMeasure' | translate: { Default: 'New Measure' }"
+        (click)="$event.stopPropagation(); $event.preventDefault(); onAddMeasure($event)"
+      >
         <z-icon zType="add"></z-icon>
       </button>
     }
   </div>
-        
-  <div class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]"
+
+  <div
+    class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]"
     id="list-measures"
     cdkDropList
     [cdkDropListData]="measures()"
@@ -59,19 +89,24 @@
   >
     <ul>
       @for (member of measures(); track member.__id__) {
-        <li class="row group/item flex items-center px-2 py-1.5 text-sm cursor-move hover:bg-hover-bg"
+        <li
+          class="row group/item flex items-center px-2 py-1.5 text-sm cursor-move hover:bg-hover-bg"
           [class.selected]="isSelected(ModelDesignerType.measure, member.__id__)"
           [class.bg-orange-100]="!member.name"
-          cdkDragBoundary=".pac-model-entity" cdkDrag [cdkDragData]="member"
+          cdkDragBoundary=".pac-model-entity"
+          cdkDrag
+          [cdkDragData]="member"
         >
           <ngm-entity-property class="flex-1" [property]="member" [role]="AGGREGATION_ROLE.measure" />
 
-          <button class="w-6 h-6 rounded-full cursor-pointer opacity-0 group-hover/item:opacity-100 hover:bg-hover-bg"
+          <button
+            class="w-6 h-6 rounded-full cursor-pointer opacity-0 group-hover/item:opacity-100 hover:bg-hover-bg"
             [cdkMenuTriggerFor]="measureMenu"
-            [cdkMenuTriggerData]="{member: member}"
+            [cdkMenuTriggerData]="{ member: member }"
             #mt="cdkMenuTriggerFor"
             [class.opacity-100]="mt.isOpen()"
-            (click)="$event.stopPropagation();$event.preventDefault()">
+            (click)="$event.stopPropagation(); $event.preventDefault()"
+          >
             <i class="ri-more-2-line"></i>
           </button>
           <div class="pac-cdk-drop__placeholder" *cdkDragPlaceholder></div>
@@ -82,42 +117,69 @@
 </div>
 
 <div class="flex flex-col mt-4 group">
-  <div class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10" displayDensity="compact">
+  <div
+    class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10"
+    displayDensity="compact"
+  >
     <span>
-      {{ 'PAC.MENU.CALCULATED_MEMBERS' | translate: {Default: "Calculated Members"} }}
+      {{ 'PAC.MENU.CALCULATED_MEMBERS' | translate: { Default: 'Calculated Members' } }}
     </span>
 
     <span class="flex-1"></span>
 
-    <button z-button zType="ghost" zSize="icon" zShape="circle" [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " (click)="aiCalculated()">
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      [zTooltip]="'Copilot.GenerateWithAI' | translate: { Default: 'Generate with AI' }"
+      (click)="aiCalculated()"
+    >
       <z-icon zType="auto_fix_high"></z-icon>
     </button>
-    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100" [matTooltip]=" 'PAC.MODEL.ENTITY.NewCalculatedMember' | translate: {Default: 'New Calculated Member'} " (click)="$event.stopPropagation();$event.preventDefault();onAddCalculatedMember($event)">
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      displayDensity="cosy"
+      class="ngm-toolbar__action opacity-10 group-hover:opacity-100"
+      [zTooltip]="'PAC.MODEL.ENTITY.NewCalculatedMember' | translate: { Default: 'New Calculated Member' }"
+      (click)="$event.stopPropagation(); $event.preventDefault(); onAddCalculatedMember($event)"
+    >
       <z-icon zType="add"></z-icon>
     </button>
   </div>
-        
-  <div [id]="eCdkDragDropContainers.CalculatedMembers" class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]"
+
+  <div
+    [id]="eCdkDragDropContainers.CalculatedMembers"
+    class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]"
     cdkDropList
     [cdkDropListData]="calculatedMembers()"
     [cdkDropListEnterPredicate]="calculatedEnterPredicate"
-    (cdkDropListDropped)="dropCalcMembers($event)">
+    (cdkDropListDropped)="dropCalcMembers($event)"
+  >
     <ul>
       @for (member of calculatedMembers(); track member) {
-        <li class="row group/item flex items-center px-2 py-1.5 text-sm cursor-move hover:bg-hover-bg"
+        <li
+          class="row group/item flex items-center px-2 py-1.5 text-sm cursor-move hover:bg-hover-bg"
           [class.bg-orange-100]="!member.name"
           [class.selected]="isSelected(ModelDesignerType.calculatedMember, member.__id__)"
-          cdkDragBoundary=".pac-model-entity" cdkDrag [cdkDragData]="member"
+          cdkDragBoundary=".pac-model-entity"
+          cdkDrag
+          [cdkDragData]="member"
         >
           <div class="w-full flex items-center">
             <ngm-entity-property class="flex-1" [property]="$any(member)" />
 
-            <button class="w-6 h-6 rounded-full cursor-pointer opacity-0 group-hover/item:opacity-100 hover:bg-hover-bg"
+            <button
+              class="w-6 h-6 rounded-full cursor-pointer opacity-0 group-hover/item:opacity-100 hover:bg-hover-bg"
               [cdkMenuTriggerFor]="calcMenu"
-              [cdkMenuTriggerData]="{member: member}"
+              [cdkMenuTriggerData]="{ member: member }"
               #mt="cdkMenuTriggerFor"
               [class.opacity-100]="mt.isOpen()"
-              (click)="$event.stopPropagation();$event.preventDefault()">
+              (click)="$event.stopPropagation(); $event.preventDefault()"
+            >
               <i class="ri-more-2-line"></i>
             </button>
           </div>
@@ -130,37 +192,57 @@
 </div>
 
 <div class="flex flex-col mt-4 group">
-  <div class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10" displayDensity="compact">
+  <div
+    class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10"
+    displayDensity="compact"
+  >
     <span>
-      {{ 'PAC.MENU.Calculations' | translate: {Default: "Calculations"} }}
+      {{ 'PAC.MENU.Calculations' | translate: { Default: 'Calculations' } }}
     </span>
 
     <span class="flex-1"></span>
 
-    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100" [matTooltip]=" 'PAC.MODEL.ENTITY.NewCalculation' | translate: {Default: 'New Calculation'} " (click)="$event.stopPropagation();$event.preventDefault();onEditCalculation()">
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      displayDensity="cosy"
+      class="ngm-toolbar__action opacity-10 group-hover:opacity-100"
+      [zTooltip]="'PAC.MODEL.ENTITY.NewCalculation' | translate: { Default: 'New Calculation' }"
+      (click)="$event.stopPropagation(); $event.preventDefault(); onEditCalculation()"
+    >
       <z-icon zType="add"></z-icon>
     </button>
   </div>
 
-  <div [id]="eCdkDragDropContainers.Calculations" class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]"
+  <div
+    [id]="eCdkDragDropContainers.Calculations"
+    class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]"
     cdkDropList
     [cdkDropListData]="calculations()"
     [cdkDropListEnterPredicate]="calculationEnterPredicate"
-    (cdkDropListDropped)="dropCalculation($event)">
+    (cdkDropListDropped)="dropCalculation($event)"
+  >
     <ul>
       @for (item of calculations(); track item.__id__) {
-        <li class="row group/item flex items-center px-2 py-1.5 text-sm cursor-move hover:bg-hover-bg"
+        <li
+          class="row group/item flex items-center px-2 py-1.5 text-sm cursor-move hover:bg-hover-bg"
           [class.bg-orange-100]="!item.name"
-          cdkDragBoundary=".pac-model-entity" cdkDrag [cdkDragData]="item"
+          cdkDragBoundary=".pac-model-entity"
+          cdkDrag
+          [cdkDragData]="item"
         >
           <div class="w-full flex items-center">
             <ngm-entity-property class="flex-1" [property]="$any(item)" />
 
-            <button class="w-6 h-6 rounded-full cursor-pointer opacity-0 group-hover/item:opacity-100 hover:bg-hover-bg"
+            <button
+              class="w-6 h-6 rounded-full cursor-pointer opacity-0 group-hover/item:opacity-100 hover:bg-hover-bg"
               [cdkMenuTriggerFor]="calculationMenu"
               #mt="cdkMenuTriggerFor"
               [class.opacity-100]="mt.isOpen()"
-              (click)="$event.stopPropagation();$event.preventDefault()">
+              (click)="$event.stopPropagation(); $event.preventDefault()"
+            >
               <i class="ri-more-2-line"></i>
             </button>
           </div>
@@ -168,25 +250,25 @@
           <div class="pac-cdk-drop__placeholder" *cdkDragPlaceholder></div>
         </li>
 
-        <ng-template #calculationMenu >
+        <ng-template #calculationMenu>
           <div cdkMenu class="cdk-menu__large">
-            <button cdkMenuItem class="px-2 py-1 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
+            <button
+              cdkMenuItem
+              class="px-2 py-1 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
               (click)="onEditCalculation(item)"
             >
               <i class="ri-edit-line"></i>
-              <span class="ml-2">{{ 'PAC.ACTIONS.Edit' | translate: {Default: "Edit"} }}</span>
+              <span class="ml-2">{{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}</span>
             </button>
 
             <button cdkMenuItem class="" (click)="duplicateCalculation(item)">
               <i class="ri-file-copy-line"></i>
-              <span class="ml-2">{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}</span>
+              <span class="ml-2">{{ 'PAC.ACTIONS.Duplicate' | translate: { Default: 'Duplicate' } }}</span>
             </button>
 
-            <button cdkMenuItem class="danger px-2 py-1 rounded-lg"
-              (click)="onDeleteCalculation(item)"
-            >
+            <button cdkMenuItem class="danger px-2 py-1 rounded-lg" (click)="onDeleteCalculation(item)">
               <i class="ri-delete-bin-line"></i>
-              <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
+              <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
             </button>
           </div>
         </ng-template>
@@ -196,38 +278,58 @@
 </div>
 
 <div class="group flex flex-col my-4">
-  <div class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10" displayDensity="compact">
+  <div
+    class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10"
+    displayDensity="compact"
+  >
     <span>
-      {{ 'PAC.MENU.Parameters' | translate: {Default: "Parameters"} }}
+      {{ 'PAC.MENU.Parameters' | translate: { Default: 'Parameters' } }}
     </span>
 
     <span class="flex-1"></span>
 
-    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-toolbar__action opacity-10 group-hover:opacity-100" [matTooltip]=" 'PAC.MODEL.ENTITY.NewParameter' | translate: {Default: 'New Parameter'} " (click)="$event.stopPropagation();$event.preventDefault();onEditParameter()">
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      displayDensity="cosy"
+      class="ngm-toolbar__action opacity-10 group-hover:opacity-100"
+      [zTooltip]="'PAC.MODEL.ENTITY.NewParameter' | translate: { Default: 'New Parameter' }"
+      (click)="$event.stopPropagation(); $event.preventDefault(); onEditParameter()"
+    >
       <z-icon zType="add"></z-icon>
     </button>
   </div>
 
-  <div [id]="eCdkDragDropContainers.Parameters" class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]"
+  <div
+    [id]="eCdkDragDropContainers.Parameters"
+    class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]"
     cdkDropList
     [cdkDropListData]="parameters()"
     [cdkDropListEnterPredicate]="parameterEnterPredicate"
-    (cdkDropListDropped)="dropParameter($event)">
+    (cdkDropListDropped)="dropParameter($event)"
+  >
     <ul>
       @for (item of parameters(); track item.__id__) {
-        <li class="row group/item flex items-center px-2 py-1.5 text-sm cursor-move hover:bg-hover-bg"
+        <li
+          class="row group/item flex items-center px-2 py-1.5 text-sm cursor-move hover:bg-hover-bg"
           [class.bg-orange-100]="!item.name"
-          cdkDragBoundary=".pac-model-entity" cdkDrag [cdkDragData]="item"
+          cdkDragBoundary=".pac-model-entity"
+          cdkDrag
+          [cdkDragData]="item"
         >
           <div class="w-full flex items-center">
             <ngm-entity-property class="flex-1" [property]="$any(item)" />
 
-            <button class="w-6 h-6 rounded-full cursor-pointer opacity-0 group-hover/item:opacity-100 hover:bg-hover-bg"
+            <button
+              class="w-6 h-6 rounded-full cursor-pointer opacity-0 group-hover/item:opacity-100 hover:bg-hover-bg"
               [cdkMenuTriggerFor]="paramMenu"
-              [cdkMenuTriggerData]="{member: item}"
+              [cdkMenuTriggerData]="{ member: item }"
               #mt="cdkMenuTriggerFor"
               [class.opacity-100]="mt.isOpen()"
-              (click)="$event.stopPropagation();$event.preventDefault()">
+              (click)="$event.stopPropagation(); $event.preventDefault()"
+            >
               <i class="ri-more-2-line"></i>
             </button>
           </div>
@@ -240,23 +342,23 @@
 
   <ng-template #paramMenu let-member="member">
     <div cdkMenu class="cdk-menu__large">
-      <button cdkMenuItem class="px-2 py-1 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
+      <button
+        cdkMenuItem
+        class="px-2 py-1 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
         (click)="onEditParameter(member)"
       >
         <i class="ri-edit-line"></i>
-        <span class="ml-2">{{ 'PAC.ACTIONS.Edit' | translate: {Default: "Edit"} }}</span>
+        <span class="ml-2">{{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}</span>
       </button>
 
       <button cdkMenuItem class="" (click)="duplicateParameter(member)">
         <i class="ri-file-copy-line"></i>
-        <span class="ml-2">{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}</span>
+        <span class="ml-2">{{ 'PAC.ACTIONS.Duplicate' | translate: { Default: 'Duplicate' } }}</span>
       </button>
 
-      <button cdkMenuItem class="danger px-2 py-1 rounded-lg"
-        (click)="onDeleteParameter(member)"
-      >
+      <button cdkMenuItem class="danger px-2 py-1 rounded-lg" (click)="onDeleteParameter(member)">
         <i class="ri-delete-bin-line"></i>
-        <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
+        <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
       </button>
     </div>
   </ng-template>
@@ -264,31 +366,39 @@
 
 @if (variables()?.length) {
   <div class="flex flex-col my-4">
-    <div class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10" displayDensity="compact">
+    <div
+      class="pac-sub-toolbar flex justify-between item-center p-2 bg-components-card-bg sticky top-0 z-10"
+      displayDensity="compact"
+    >
       <span>
-        {{ 'PAC.MODEL.Variables' | translate: {Default: "Variables"} }}
+        {{ 'PAC.MODEL.Variables' | translate: { Default: 'Variables' } }}
       </span>
 
       <span class="flex-1"></span>
     </div>
-          
+
     <div class="pac-cdk-drop__list flex-1 flex flex-col min-h-[60px]">
       <ul>
         @for (variable of variables(); track variable.__id__) {
-          <li class="group relative p-1.5 rounded-md text-sm hover:bg-gray-50"
+          <li
+            class="group relative p-1.5 rounded-md text-sm hover:bg-gray-50"
             [class.bg-orange-100]="!variable.name"
             [class.selected]="isSelected(ModelDesignerType.calculatedMember, variable.__id__)"
           >
-            <ngm-entity-property class="flex-1" [property]="$any(variable)"/>
+            <ngm-entity-property class="flex-1" [property]="$any(variable)" />
 
             <div class="hidden group-hover:flex items-center gap-0.5 absolute right-1 top-1">
-              <button type="button" class="btn btn-small p-0 w-7 h-7 justify-center"
-              (click)="openVariableAttributes(variable)"
+              <button
+                type="button"
+                class="btn btn-small p-0 w-7 h-7 justify-center"
+                (click)="openVariableAttributes(variable)"
               >
                 <i class="ri-edit-line"></i>
               </button>
 
-              <button type="button" class="btn btn-small danger p-0 w-7 h-7 justify-center"
+              <button
+                type="button"
+                class="btn btn-small danger p-0 w-7 h-7 justify-center"
                 (click)="onDeleteVariable($event, variable)"
               >
                 <i class="ri-delete-bin-4-line"></i>
@@ -303,24 +413,24 @@
 
 <ng-template #measureMenu let-member="member">
   <div cdkMenu class="cdk-menu__large">
-    <button cdkMenuItem class="px-2 py-1 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
+    <button
+      cdkMenuItem
+      class="px-2 py-1 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
       (click)="onSelect(ModelDesignerType.measure, member)"
     >
       <i class="ri-edit-line"></i>
-      <span class="ml-2">{{ 'PAC.ACTIONS.Edit' | translate: {Default: "Edit"} }}</span>
+      <span class="ml-2">{{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}</span>
     </button>
 
-     <button cdkMenuItem class="" (click)="duplicateMeasure(member)">
+    <button cdkMenuItem class="" (click)="duplicateMeasure(member)">
       <i class="ri-file-copy-line"></i>
-      <span class="ml-2">{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}</span>
+      <span class="ml-2">{{ 'PAC.ACTIONS.Duplicate' | translate: { Default: 'Duplicate' } }}</span>
     </button>
 
     @if (!member.rt) {
-      <button cdkMenuItem class="danger px-2 py-1 rounded-lg"
-        (click)="onDeleteMeasure($event, member)"
-      >
+      <button cdkMenuItem class="danger px-2 py-1 rounded-lg" (click)="onDeleteMeasure($event, member)">
         <i class="ri-delete-bin-line"></i>
-        <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
+        <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
       </button>
     }
   </div>
@@ -328,23 +438,23 @@
 
 <ng-template #calcMenu let-member="member">
   <div cdkMenu class="cdk-menu__large">
-    <button cdkMenuItem class="px-2 py-1 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
+    <button
+      cdkMenuItem
+      class="px-2 py-1 rounded-lg disabled:cursor-not-allowed disabled:opacity-50"
       (click)="onCalculatedMemberEdit(member)"
     >
       <i class="ri-edit-line"></i>
-      <span class="ml-2">{{ 'PAC.ACTIONS.Edit' | translate: {Default: "Edit"} }}</span>
+      <span class="ml-2">{{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}</span>
     </button>
 
-     <button cdkMenuItem class="" (click)="duplicateCalculatedMember(member)">
+    <button cdkMenuItem class="" (click)="duplicateCalculatedMember(member)">
       <i class="ri-file-copy-line"></i>
-      <span class="ml-2">{{ 'PAC.ACTIONS.Duplicate' | translate: {Default: "Duplicate"} }}</span>
+      <span class="ml-2">{{ 'PAC.ACTIONS.Duplicate' | translate: { Default: 'Duplicate' } }}</span>
     </button>
 
-    <button cdkMenuItem class="danger px-2 py-1 rounded-lg"
-      (click)="onDeleteCalculatedMember($event, member)"
-    >
+    <button cdkMenuItem class="danger px-2 py-1 rounded-lg" (click)="onDeleteCalculatedMember($event, member)">
       <i class="ri-delete-bin-line"></i>
-      <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: {Default: "Delete"} }}</span>
+      <span class="ml-2">{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
     </button>
   </div>
 </ng-template>

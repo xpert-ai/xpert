@@ -72,10 +72,7 @@
 
       <ul cdkTrapFocus cdkTrapFocusAutoCapture class="ngm-nav-list">
         @for (sheet of sheets$ | async; track sheet.name) {
-          <li
-            [class.active]="activeLink === sheet.name"
-            (click)="activeSheet(sheet)"
-          >
+          <li [class.active]="activeLink === sheet.name" (click)="activeSheet(sheet)">
             <span class="block w-full p-2">
               <input
                 z-input

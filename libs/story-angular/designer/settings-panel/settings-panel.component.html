@@ -4,14 +4,15 @@
   <div class="flex justify-center p-2">
     <ul class="p-1 flex items-center justify-center gap-2 bg-hover-bg rounded-xl">
       @for (settingsPortal of settingsPortals; track i; let i = $index) {
-        <li class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 whitespace-nowrap cursor-pointer hover:bg-white"
+        <li
+          class="p-2 flex-1 flex justify-center items-center h-8 rounded-xl text-sm shrink-0 whitespace-nowrap cursor-pointer hover:bg-white"
           [ngClass]="tabPortalIndex() === i ? 'shadow-md bg-components-card-bg' : ''"
           (click)="tabPortalIndex.set(i)"
         >
           @if (settingsPortal.icon) {
             <z-icon class="scale-75 origin-center text-zinc-500" [zType]="settingsPortal.icon"></z-icon>
           }
-          <span class="ml-1">{{settingsPortal.label | translate: {Default: settingsPortal.label} }}</span>
+          <span class="ml-1">{{ settingsPortal.label | translate: { Default: settingsPortal.label } }}</span>
         </li>
       }
     </ul>
@@ -24,26 +25,57 @@
 
 @if (drawerOpened()) {
   <div class="absolute top-8 left-0 bottom-0 overflow-y-auto">
-    <mat-toolbar class="ngm-settings-panel__drawer-drawer flex justify-start items-center gap-2 sticky top-0 bg-components-card-bg">
-      <button z-button zType="ghost" zSize="icon" zShape="circle" type="button" displayDensity="cosy" (click)="closeDrawer()">
+    <mat-toolbar
+      class="ngm-settings-panel__drawer-drawer flex justify-start items-center gap-2 sticky top-0 bg-components-card-bg"
+    >
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        type="button"
+        displayDensity="cosy"
+        (click)="closeDrawer()"
+      >
         <span class="flex">
           <z-icon zType="chevron_right"></z-icon>
         </span>
       </button>
       <span class="flex-1">{{ drawerTitle }}</span>
 
-    @if (!liveMode) {
-      <button z-button zType="ghost" zSize="icon" zShape="circle" type="submit" color="primary" displayDensity="cosy" [matTooltip]="'STORY.DESIGNER.SUBMIT' | translate: {Default: 'Submit'}" (click)="submitDrawer()">
-        <z-icon zType="done"></z-icon>
-      </button>
-    }
+      @if (!liveMode) {
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          type="submit"
+          color="primary"
+          displayDensity="cosy"
+          [zTooltip]="'STORY.DESIGNER.SUBMIT' | translate: { Default: 'Submit' }"
+          (click)="submitDrawer()"
+        >
+          <z-icon zType="done"></z-icon>
+        </button>
+      }
 
-      <button z-button zType="ghost" zSize="icon" zShape="circle" type="button" displayDensity="cosy" ngmAppearance="danger" class="ngm-settings-panel__drawer-cancel" [matTooltip]="'STORY.DESIGNER.DELETE' | translate: {Default: 'Delete'}" (click)="remove()">
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        type="button"
+        displayDensity="cosy"
+        ngmAppearance="danger"
+        class="ngm-settings-panel__drawer-cancel"
+        [zTooltip]="'STORY.DESIGNER.DELETE' | translate: { Default: 'Delete' }"
+        (click)="remove()"
+      >
         <z-icon zType="delete"></z-icon>
       </button>
     </mat-toolbar>
 
-    <div style="flex: 1; max-height: 100%; overflow: auto;">
+    <div style="flex: 1; max-height: 100%; overflow: auto">
       <ng-template [cdkPortalOutlet]="drawerPortal"></ng-template>
     </div>
   </div>

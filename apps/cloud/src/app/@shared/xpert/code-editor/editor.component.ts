@@ -22,13 +22,13 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { effectAction } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { timer } from 'rxjs'
 import { switchMap, tap } from 'rxjs/operators'
 import { agentLabel, TWorkflowVarGroup } from '../../../@core'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 declare var monaco: any
 
@@ -38,7 +38,7 @@ declare var monaco: any
   styleUrls: ['./editor.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MonacoEditorModule, MatTooltipModule],
+  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MonacoEditorModule, ...ZardTooltipImports],
   host: {
     '[class.fullscreen]': 'fullscreen()'
   }
@@ -55,7 +55,7 @@ export class XpertWorkflowCodeEditorComponent {
   // Inputs
   readonly language = model<string>('javascript')
   readonly code = model<string>()
-  readonly parameters = input<{name: string;}[]>()
+  readonly parameters = input<{ name: string }[]>()
   readonly initHeight = input<number, number | string>(210, {
     transform: numberAttribute
   })
@@ -100,8 +100,16 @@ export class XpertWorkflowCodeEditorComponent {
   readonly #editor = signal(null)
 
   // parameters of function
-  readonly argNames = computed(() => this.parameters()?.map(({name}) => name).join(', '))
-  readonly argsNameType = computed(() => this.parameters()?.map(({name}) => `${name}: str`).join(', '))
+  readonly argNames = computed(() =>
+    this.parameters()
+      ?.map(({ name }) => name)
+      .join(', ')
+  )
+  readonly argsNameType = computed(() =>
+    this.parameters()
+      ?.map(({ name }) => `${name}: str`)
+      .join(', ')
+  )
 
   constructor(private overlay: Overlay) {
     effect(() => {

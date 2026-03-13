@@ -3,14 +3,19 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, input, output, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
-import { CopilotChatConversation, CopilotChatMessage, CopilotCommand, MessageDataType, stringifyMessageContent } from '@metad/copilot'
+import {
+  CopilotChatConversation,
+  CopilotChatMessage,
+  CopilotCommand,
+  MessageDataType,
+  stringifyMessageContent
+} from '@metad/copilot'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { NgmCopilotEngineService, NgmCopilotService } from '../../services'
 import { CopilotChatTokenComponent } from '../token/token.component'
 import { NgmCopilotChatMessage } from '../../types'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  * @deprecated use ChatKit instead
  */
@@ -28,7 +33,7 @@ import { NgmCopilotChatMessage } from '../../types'
     ClipboardModule,
 
     MarkdownModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
 
     CopilotChatTokenComponent
   ]
@@ -54,7 +59,7 @@ export class CopilotAIMessageComponent {
 
   readonly messageData = computed(() => {
     const data = this.message().data
-    return data as {type: MessageDataType; data?: any;}
+    return data as { type: MessageDataType; data?: any }
   })
 
   async revert(command: CopilotCommand, message: CopilotChatMessage) {
@@ -79,6 +84,6 @@ export class CopilotAIMessageComponent {
   }
 
   onRouteChange(conversationId: string, event: string) {
-    this.copilotEngine().updateConversationState(conversationId, {instructions: event})
+    this.copilotEngine().updateConversationState(conversationId, { instructions: event })
   }
 }

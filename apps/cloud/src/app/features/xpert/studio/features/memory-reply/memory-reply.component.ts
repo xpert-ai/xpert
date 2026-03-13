@@ -6,20 +6,19 @@ import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../domain'
 import { AiModelTypeEnum } from '@cloud/app/@core'
 import { linkedXpertFeaturesModel } from '../types'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatSliderModule } from '@angular/material/slider'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-features-memory-reply',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, MatTooltipModule, MatSliderModule],
+  imports: [CommonModule, FormsModule, TranslateModule, ...ZardTooltipImports, MatSliderModule],
   templateUrl: './memory-reply.component.html',
   styleUrl: './memory-reply.component.scss',
   animations: [...OverlayAnimations]
 })
 export class XpertStudioFeaturesMemoryReplyComponent {
   eAiModelType = AiModelTypeEnum
-  
+
   readonly apiService = inject(XpertStudioApiService)
 
   readonly features = linkedXpertFeaturesModel(this.apiService)

@@ -1,9 +1,4 @@
-<mat-tree
-  [dataSource]="dataSource"
-  [treeControl]="treeControl"
-  class="ngm-tree_selection"
-  id="pac-entity-dimension"
->
+<mat-tree [dataSource]="dataSource" [treeControl]="treeControl" class="ngm-tree_selection" id="pac-entity-dimension">
   <mat-tree-node
     *matTreeNodeDef="let node"
     matTreeNodeToggle
@@ -19,9 +14,19 @@
 
     <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()" />
 
-    <div class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg">
-      @if (node.role==='dimension') {
-        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" color="warn" (click)="onDelete($event, node)">
+    <div
+      class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg"
+    >
+      @if (node.role === 'dimension') {
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          displayDensity="cosy"
+          color="warn"
+          (click)="onDelete($event, node)"
+        >
           <z-icon zType="delete"></z-icon>
         </button>
       }
@@ -39,31 +44,45 @@
     [cdkDragData]="node"
   >
     <button z-button zType="ghost" zSize="icon" zShape="circle" matTreeNodeToggle displayDensity="cosy">
-      <z-icon class="z-icon-rtl-mirror" [zType]="treeControl.isExpanded(node) ? 'arrow_drop_down' : 'arrow_right'"></z-icon>
+      <z-icon
+        class="z-icon-rtl-mirror"
+        [zType]="treeControl.isExpanded(node) ? 'arrow_drop_down' : 'arrow_right'"
+      ></z-icon>
     </button>
-    
+
     <ngm-entity-property [property]="node" [displayBehaviour]="displayBehaviour()" />
 
-    <div class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg">
-      @if (node.role==='dimension') {
-        <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
-          [matTooltip]="'PAC.MODEL.ConfigureAssociation' | translate: {Default: 'Configure association'}"
-          matTooltipPosition="above"
-          (click)="$event.stopPropagation();onSelect(node)">
+    <div
+      class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg"
+    >
+      @if (node.role === 'dimension') {
+        <button
+          type="button"
+          class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+          [zTooltip]="'PAC.MODEL.ConfigureAssociation' | translate: { Default: 'Configure association' }"
+          zPosition="top"
+          (click)="$event.stopPropagation(); onSelect(node)"
+        >
           <i class="ri-equalizer-2-line"></i>
         </button>
 
-        <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
-          [matTooltip]="'PAC.MODEL.EditSharedDimension' | translate: {Default: 'Edit shared dimension'}"
-          matTooltipPosition="above"
-          (click)="toDimension.emit()">
+        <button
+          type="button"
+          class="w-7 h-7 rounded-full flex justify-center items-center text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+          [zTooltip]="'PAC.MODEL.EditSharedDimension' | translate: { Default: 'Edit shared dimension' }"
+          zPosition="top"
+          (click)="toDimension.emit()"
+        >
           <i class="ri-edit-line"></i>
         </button>
 
-        <button type="button" class="w-7 h-7 rounded-full flex justify-center items-center danger text-text-secondary hover:text-text-primary hover:bg-hover-bg"
-          [matTooltip]="'PAC.MODEL.UnlinkSharedDimension' | translate: {Default: 'Unlink shared dimension'}"
-          matTooltipPosition="above"
-          (click)="onDelete($event, node)">
+        <button
+          type="button"
+          class="w-7 h-7 rounded-full flex justify-center items-center danger text-text-secondary hover:text-text-primary hover:bg-hover-bg"
+          [zTooltip]="'PAC.MODEL.UnlinkSharedDimension' | translate: { Default: 'Unlink shared dimension' }"
+          zPosition="top"
+          (click)="onDelete($event, node)"
+        >
           <i class="ri-link-unlink-m"></i>
         </button>
       }

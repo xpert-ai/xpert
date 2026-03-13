@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 import {
   derivedHelpUrl,
@@ -35,8 +34,7 @@ import { XpertStudioApiService } from '../../domain'
 import { XpertStudioComponent } from '../../studio.component'
 import { XpertStudioPanelComponent } from '../panel.component'
 import { TXpertVariablesOptions } from '@cloud/app/@shared/agent'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-toolset',
   templateUrl: './toolset.component.html',
@@ -47,7 +45,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     CommonModule,
     FormsModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     CloseSvgComponent,
     EmojiAvatarComponent,
     XpertToolTestComponent,

@@ -5,11 +5,9 @@ import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { ApiAuthType } from 'apps/cloud/src/app/@core/types'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -19,7 +17,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     ReactiveFormsModule,
     CdkListboxModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardButtonComponent
   ],
   selector: 'xpert-tool-authorization',
@@ -32,14 +30,14 @@ export class XpertToolAuthorizationComponent {
   readonly data = inject(DIALOG_DATA)
   readonly #formBuilder = inject(FormBuilder)
   readonly #dialogRef = inject(DialogRef)
-    
+
   readonly formGroup = this.#formBuilder.group({
     auth_type: this.#formBuilder.control(ApiAuthType.NONE),
     api_key_header_prefix: this.#formBuilder.control<'' | 'bearar' | 'custom'>(''),
     api_key_header: this.#formBuilder.control('Authorization'),
     api_key_value: this.#formBuilder.control(null),
     username: this.#formBuilder.control(null),
-    password: this.#formBuilder.control(null),
+    password: this.#formBuilder.control(null)
   })
 
   get authType() {

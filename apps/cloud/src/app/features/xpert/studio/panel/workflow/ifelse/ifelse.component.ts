@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,
@@ -22,6 +21,7 @@ import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-studio-panel-workflow-ifelse',
@@ -29,7 +29,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   styleUrls: ['./ifelse.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [DragDropModule, MatTooltipModule, TranslateModule, XpertWorkflowCaseFormComponent],
+  imports: [DragDropModule, ...ZardTooltipImports, TranslateModule, XpertWorkflowCaseFormComponent],
   host: {
     tabindex: '-1'
   }

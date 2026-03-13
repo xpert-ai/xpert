@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { SlashSvgComponent, VariableSvgComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
@@ -10,7 +9,7 @@ import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { TSelectOption, TXpertParameter, XpertParameterTypeEnum } from '../../../@core'
 import { NgmSelectComponent } from '../../common'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'xpert-parameters-form',
@@ -19,12 +18,12 @@ import { NgmSelectComponent } from '../../common'
   imports: [
     CommonModule,
     FormsModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     NgmI18nPipe,
     NgmSelectComponent,
     VariableSvgComponent,
-    SlashSvgComponent,
+    SlashSvgComponent
   ],
   hostDirectives: [NgxControlValueAccessor]
 })
@@ -41,7 +40,7 @@ export class XpertParametersFormComponent {
   })
 
   // States
-  readonly params = computed<Array<TXpertParameter & {selectOptions?: TSelectOption[]}>>(() => {
+  readonly params = computed<Array<TXpertParameter & { selectOptions?: TSelectOption[] }>>(() => {
     return this.parameters().map((parameter) => {
       if (parameter.type === XpertParameterTypeEnum.SELECT) {
         return {
@@ -63,9 +62,7 @@ export class XpertParametersFormComponent {
     // If the initial value is null, but there are parameters with default values, set the value to those defaults
     setTimeout(() => {
       if (this.cva.value == null && this.parameters()?.some((param) => !isNil(param.default))) {
-        this.cva.writeValue(
-          this.parameters().reduce((acc, cur) => ({ ...acc, [cur.name]: cur.default ?? null }), {})
-        )
+        this.cva.writeValue(this.parameters().reduce((acc, cur) => ({ ...acc, [cur.name]: cur.default ?? null }), {}))
       }
     })
   }
@@ -103,7 +100,7 @@ export class XpertParametersFormComponent {
    */
   getNestedValue(name: string): Record<string, unknown> {
     const currentValue = this.cva.value?.[name]
-    
+
     // If current value exists and is a valid object, use it
     if (currentValue && typeof currentValue === 'object' && !Array.isArray(currentValue)) {
       const cached = this.nestedValueCache.get(name)
@@ -115,13 +112,13 @@ export class XpertParametersFormComponent {
       this.nestedValueCache.set(name, currentValue as Record<string, unknown>)
       return currentValue as Record<string, unknown>
     }
-    
+
     // Check if we have a cached value (even if not in currentValue)
     const cached = this.nestedValueCache.get(name)
     if (cached) {
       return cached
     }
-    
+
     // Create new nested object only once and cache it
     // Don't initialize in parent value here to avoid write during template evaluation
     // It will be initialized when child component writes a value

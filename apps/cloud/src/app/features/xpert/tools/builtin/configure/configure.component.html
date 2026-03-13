@@ -5,15 +5,16 @@
     </div>
     <div class="grow w-0 py-[1px]">
       <div class="flex items-center text-md leading-6 font-semibold text-gray-900">
-        <div class="truncate" [title]="provider.label | i18n">{{provider.label | i18n}}</div>
+        <div class="truncate" [title]="provider.label | i18n">{{ provider.label | i18n }}</div>
       </div>
     </div>
   </div>
   <div class="px-6 py-3 bg-gray-200">
-    <div class="min-h-[36px] text-gray-500 text-sm leading-[18px]">{{provider.description | i18n}}</div>
-  
+    <div class="min-h-[36px] text-gray-500 text-sm leading-[18px]">{{ provider.description | i18n }}</div>
+
     @if (authorizing()) {
-      <xpert-tool-builtin-authorize class="mb-4"
+      <xpert-tool-builtin-authorize
+        class="mb-4"
         [provider]="provider.name"
         [workspaceId]="workspaceId()"
         [(toolset)]="toolset"
@@ -23,78 +24,117 @@
     } @else {
       <div class="flex flex-col gap-1 border-b-[0.5px] border-black/5">
         @if (!proEnv && pro()) {
-          <card-upgrade class="ngm-card-border-gradient shadow-lg"/>
+          <card-upgrade class="ngm-card-border-gradient shadow-lg" />
         } @else if (notImplemented()) {
           <div class="flex gap-2 items-center">
-            <a type="button" class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
-              [matTooltip]="'PAC.Copilot.HowToContribute' | translate: {Default: 'In just a few steps, contribute code and create a better future together'}"
-              matTooltipPosition="above"
-              href="https://github.com/xpert-ai/xpert/tree/main/packages/server-ai/src/xpert-toolset/provider/builtin/" target="_blank">
+            <a
+              type="button"
+              class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
+              [zTooltip]="
+                'PAC.Copilot.HowToContribute'
+                  | translate: { Default: 'In just a few steps, contribute code and create a better future together' }
+              "
+              zPosition="top"
+              href="https://github.com/xpert-ai/xpert/tree/main/packages/server-ai/src/xpert-toolset/provider/builtin/"
+              target="_blank"
+            >
               <i class="ri-code-ai-line text-lg mr-1"></i>
               <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
-                {{'PAC.Copilot.Contribute' | translate: {Default: 'Contribute'} }}
+                {{ 'PAC.Copilot.Contribute' | translate: { Default: 'Contribute' } }}
               </span>
             </a>
-            <a type="button" class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
-              [matTooltip]="'PAC.Copilot.OurSupport' | translate: {Default: 'Contact us for priority support'}"
-              matTooltipPosition="above"
-              href="{{helpBaseUrl() + '/#connect'}}" target="_blank">
+            <a
+              type="button"
+              class="flex-1 btn disabled:btn-disabled btn-secondary btn-medium h-7 text-sm shrink-0"
+              [zTooltip]="'PAC.Copilot.OurSupport' | translate: { Default: 'Contact us for priority support' }"
+              zPosition="top"
+              href="{{ helpBaseUrl() + '/#connect' }}"
+              target="_blank"
+            >
               <i class="ri-hand-heart-line text-lg mr-1"></i>
               <span class="text-sm inline-flex items-center justify-center overflow-ellipsis shrink-0">
-                {{'PAC.Copilot.Support' | translate: {Default: 'Support'} }}
+                {{ 'PAC.Copilot.Support' | translate: { Default: 'Support' } }}
               </span>
             </a>
           </div>
         } @else if (toolset()) {
-          <button type="button" class="open-authorize-btn btn disabled:btn-disabled btn-medium shrink-0 my-3 w-full border border-solid border-transparent bg-white"
+          <button
+            type="button"
+            class="open-authorize-btn btn disabled:btn-disabled btn-medium shrink-0 my-3 w-full border border-solid border-transparent bg-white"
             [class.tempalte]="!toolset().id"
-            (click)="openAuthorize(toolset())">
+            (click)="openAuthorize(toolset())"
+          >
             @if (toolset().id) {
-              <div class="w-2 h-2 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)] mr-2"></div>
-              <div class="text-[13px] font-medium text-gray-700">{{'PAC.Xpert.Authorized' | translate: {Default: 'Authorized'} }}: {{toolset()?.name}}</div>
+              <div
+                class="w-2 h-2 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)] mr-2"
+              ></div>
+              <div class="text-[13px] font-medium text-gray-700">
+                {{ 'PAC.Xpert.Authorized' | translate: { Default: 'Authorized' } }}: {{ toolset()?.name }}
+              </div>
             } @else {
               <i class="ri-spam-2-line text-orange-500"></i>
-              <div class="font-medium text-orange-500">{{ 'PAC.Xpert.Reconfigure' | translate: {Default: 'Reconfigure'} }}: {{toolset()?.name}}</div>
+              <div class="font-medium text-orange-500">
+                {{ 'PAC.Xpert.Reconfigure' | translate: { Default: 'Reconfigure' } }}: {{ toolset()?.name }}
+              </div>
             }
           </button>
         } @else {
-          <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium shrink-0 my-3 w-full text-center"
-            (click)="openAuthorize()">
+          <button
+            type="button"
+            class="btn disabled:btn-disabled btn-primary btn-medium shrink-0 my-3 w-full text-center"
+            (click)="openAuthorize()"
+          >
             <div class="text-white font-medium">
-              {{'PAC.Xpert.ToAuthorize' | translate: {Default: 'To Authorize'} }}
+              {{ 'PAC.Xpert.ToAuthorize' | translate: { Default: 'To Authorize' } }}
             </div>
           </button>
         }
       </div>
     }
-  
+
     @if (toolsets()?.length) {
       <div class="flex flex-col gap-1 border-b-[0.5px] border-black/5">
         <div class="text-sm font-medium leading-6 text-gray-500">
-          <span class="">{{toolsets()?.length ?? 0}} {{'PAC.Xpert.Authorizations' | translate: {Default: 'Authorizations'} }}</span>
+          <span class=""
+            >{{ toolsets()?.length ?? 0 }}
+            {{ 'PAC.Xpert.Authorizations' | translate: { Default: 'Authorizations' } }}</span
+          >
         </div>
         @for (toolset of toolsets(); track toolset.id) {
-          <button type="button" class="btn disabled:btn-disabled btn-medium shrink-0 my-1 w-full bg-white"
-            (click)="openAuthorize(toolset)">
-            <div class="w-2 h-2 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)] mr-2"></div>
-            <div class="text-[13px] font-medium text-gray-700">{{'PAC.Xpert.Authorized' | translate: {Default: 'Authorized'} }}: <span>{{toolset.name}}</span> </div>
+          <button
+            type="button"
+            class="btn disabled:btn-disabled btn-medium shrink-0 my-1 w-full bg-white"
+            (click)="openAuthorize(toolset)"
+          >
+            <div
+              class="w-2 h-2 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)] mr-2"
+            ></div>
+            <div class="text-[13px] font-medium text-gray-700">
+              {{ 'PAC.Xpert.Authorized' | translate: { Default: 'Authorized' } }}: <span>{{ toolset.name }}</span>
+            </div>
           </button>
         }
       </div>
     }
-  
+
     <div class="pt-3">
       <div class="text-sm font-medium leading-6 text-gray-500">
-        <span class="">{{builtinTools()?.length ?? 0}} {{'PAC.Xpert.ToolsIncluded' | translate: {Default: 'Tools Included'} }}</span>
+        <span class=""
+          >{{ builtinTools()?.length ?? 0 }}
+          {{ 'PAC.Xpert.ToolsIncluded' | translate: { Default: 'Tools Included' } }}</span
+        >
         @if (!toolset()) {
           <span class="px-1">·</span>
-          <span class="text-[#DC6803]">{{'PAC.Xpert.SetUpAuthorizationToUse' | translate: {Default: 'Set Up Authorization to Use'} }}</span>
+          <span class="text-[#DC6803]">{{
+            'PAC.Xpert.SetUpAuthorizationToUse' | translate: { Default: 'Set Up Authorization to Use' }
+          }}</span>
         }
       </div>
-      
+
       <div class="mt-1">
         @for (tool of builtinTools(); track tool.identity.name) {
-          <xpert-tool-builtin-tool class=""
+          <xpert-tool-builtin-tool
+            class=""
             [disabled]="!toolset() || authorizing()"
             [tool]="tool"
             [toolset]="toolset()"
@@ -106,16 +146,21 @@
     </div>
   </div>
 } @else if (pvLoading()) {
-  <ngm-spin class="w-full h-28 mt-12"/>
+  <ngm-spin class="w-full h-28 mt-12" />
 } @else if (error()) {
-  <div class="p-4 text-text-destructive">{{error()}}</div>
+  <div class="p-4 text-text-destructive">{{ error() }}</div>
 }
 
 <div class="sticky bottom-0 flex justify-end p-4 bg-components-card-bg">
   <div class="grow">
     @if (helpUrl()) {
-      <a [href]="helpUrl()" target="_blank" rel="noopener noreferrer" class="group inline-flex items-center p-1 text-sm !text-primary-400 hover:!text-primary-600">
-        {{'PAC.Xpert.HelpDocumentation' | translate: {Default: 'Help Documentation'} }}
+      <a
+        [href]="helpUrl()"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="group inline-flex items-center p-1 text-sm !text-primary-400 hover:!text-primary-600"
+      >
+        {{ 'PAC.Xpert.HelpDocumentation' | translate: { Default: 'Help Documentation' } }}
         <i class="ri-book-open-line inline-block group-hover:translate-x-1 transition-transform"></i>
       </a>
     }
@@ -123,20 +168,24 @@
   @if (!atLeastOne()) {
     <div class="flex items-center gap-1 mr-2 text-sm text-text-warning">
       <i class="ri-alarm-warning-line"></i>
-      {{'PAC.Xpert.AtLeastOneTool' | translate: {Default: 'Enable at least one tool'} }}</div>
+      {{ 'PAC.Xpert.AtLeastOneTool' | translate: { Default: 'Enable at least one tool' } }}
+    </div>
   }
   <div class="flex space-x-2">
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium"
-      (click)="cancel($event)">
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium" (click)="cancel($event)">
       @if (dirty()) {
-        {{'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}
+        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
       } @else {
-        {{'PAC.ACTIONS.Close' | translate: {Default: 'Close'} }}
+        {{ 'PAC.ACTIONS.Close' | translate: { Default: 'Close' } }}
       }
     </button>
-    <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium"
+    <button
+      type="button"
+      class="btn disabled:btn-disabled btn-primary btn-medium"
       [disabled]="!dirty() || !toolsetId() || !atLeastOne()"
       (click)="save()"
-    >{{'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</button>
+    >
+      {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+    </button>
   </div>
 </div>

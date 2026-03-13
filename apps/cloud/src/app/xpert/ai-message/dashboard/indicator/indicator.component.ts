@@ -3,11 +3,10 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { Indicator, TimeGranularity } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -18,7 +17,7 @@ import { TranslateModule } from '@ngx-translate/core'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-    MatTooltipModule
+    ...ZardTooltipImports
   ],
   selector: 'chat-component-indicator',
   templateUrl: './indicator.component.html',

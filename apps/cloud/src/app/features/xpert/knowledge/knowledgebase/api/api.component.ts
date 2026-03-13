@@ -4,19 +4,13 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { OverlayAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import {
-  getErrorMessage,
-  injectApiBaseUrl,
-  injectToastr,
-  routeAnimations,
-  XpertAPIService
-} from '../../../../../@core'
+import { getErrorMessage, injectApiBaseUrl, injectToastr, routeAnimations, XpertAPIService } from '../../../../../@core'
 import { XpertDevelopApiKeyComponent } from '../../../xpert/develop'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -27,7 +21,7 @@ import { XpertDevelopApiKeyComponent } from '../../../xpert/develop'
     TranslateModule,
     RouterModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent
   ],
   selector: 'xpert-knowledgebase-api',
@@ -54,8 +48,6 @@ export class XpertKBAPIComponent {
   })
 
   readonly loading = signal(false)
-
-  
 
   copy(content: string) {
     this.#clipboard.copy(content)

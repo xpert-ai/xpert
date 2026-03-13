@@ -4,10 +4,9 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
 import { MatChipInputEvent, MatChipsModule } from '@angular/material/chips'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmHighlightDirective } from '../core/directives'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  * @deprecated use ChatKit instead
  */
@@ -16,7 +15,16 @@ import { NgmHighlightDirective } from '../core/directives'
   selector: 'ngm-copilot-input',
   templateUrl: './input.component.html',
   styleUrl: './input.component.scss',
-  imports: [NgIf, NgFor, TranslateModule, ReactiveFormsModule, MatTooltipModule, MatChipsModule, MatAutocompleteModule, NgmHighlightDirective]
+  imports: [
+    NgIf,
+    NgFor,
+    TranslateModule,
+    ReactiveFormsModule,
+    ...ZardTooltipImports,
+    MatChipsModule,
+    MatAutocompleteModule,
+    NgmHighlightDirective
+  ]
 })
 export class NgmCopilotInputComponent {
   @Input() get suggests() {
@@ -27,7 +35,7 @@ export class NgmCopilotInputComponent {
   }
   readonly #suggests = signal<string[]>([])
 
-  @Output() ask = new EventEmitter<{command?: string; prompt: string}>()
+  @Output() ask = new EventEmitter<{ command?: string; prompt: string }>()
 
   answering = signal(false)
   suggesting = signal(false)

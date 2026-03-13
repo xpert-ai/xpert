@@ -61,21 +61,21 @@
       <li class="group flex justify-between items-center px-4 py-2 rounded-lg text-sm hover:bg-hover-bg">
         <div class="flex items-center">
           @if (item.version) {
-            <span class="mr-1" [matTooltip]="item.releaseNotes">v{{ item.version }}</span>
+            <span class="mr-1" [zTooltip]="item.releaseNotes">v{{ item.version }}</span>
           } @else {
             <span class="mr-1">{{ 'PAC.Xpert.Draft' | translate: { Default: 'Draft' } }}</span>
           }
           @if (item.version === version()) {
             <i
               class="ri-checkbox-circle-fill text-lg mx-1 text-primary-500"
-              [matTooltip]="'PAC.Xpert.CurrentVersion' | translate: { Default: 'Current Version' }"
+              [zTooltip]="'PAC.Xpert.CurrentVersion' | translate: { Default: 'Current Version' }"
             ></i>
           }
 
           @if (item.latest) {
             <i
               class="ri-lightbulb-flash-fill text-lg mx-1 text-text-success"
-              [matTooltip]="'PAC.Xpert.LatestVersion' | translate: { Default: 'Latest Version' }"
+              [zTooltip]="'PAC.Xpert.LatestVersion' | translate: { Default: 'Latest Version' }"
             ></i>
           }
 

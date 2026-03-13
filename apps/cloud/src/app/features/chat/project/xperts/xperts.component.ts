@@ -18,7 +18,6 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import { AIPermissionsEnum, getErrorMessage, injectProjectService, injectToastr, IXpert } from '@cloud/app/@core'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
@@ -32,6 +31,7 @@ import { derivedFrom } from 'ngxtension/derived-from'
 import { combineLatestWith, debounceTime, map, of, pipe, startWith } from 'rxjs'
 import { ChatHomeService } from '../../home.service'
 import { ChatProjectComponent } from '../project.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -44,7 +44,7 @@ import { ChatProjectComponent } from '../project.component'
     CdkListboxModule,
     CdkMenuModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmSpinComponent,
     EmojiAvatarComponent,
     NgmSearchComponent,
@@ -78,7 +78,7 @@ export class ChatProjectXpertsComponent {
 
   readonly #xperts = derivedAsync(() => {
     const projectId = this.projectId()
-    return projectId ? this.projectService.getXperts(projectId, {relations: ['createdBy']}) : of(null)
+    return projectId ? this.projectService.getXperts(projectId, { relations: ['createdBy'] }) : of(null)
   })
 
   readonly xperts = linkedModel({
@@ -112,7 +112,12 @@ export class ChatProjectXpertsComponent {
       ),
       map(([[xperts], text]) => {
         return text
-          ? xperts?.filter((_) => _.name.toLowerCase().includes(text) || _.title?.toLowerCase().includes(text) || _.description?.toLowerCase().includes(text))
+          ? xperts?.filter(
+              (_) =>
+                _.name.toLowerCase().includes(text) ||
+                _.title?.toLowerCase().includes(text) ||
+                _.description?.toLowerCase().includes(text)
+            )
           : xperts
       })
     )

@@ -4,7 +4,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TStateVariable, VariableOperationEnum } from '../../../../../@core/types'
 import { CdkConfirmDeleteComponent } from '@metad/ocap-angular/common'
 import { isNil } from '@metad/ocap-core'
@@ -15,8 +14,7 @@ import { XpertStudioPanelComponent } from '../panel.component'
 import { XpertVariableFormComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { injectHelpWebsite } from 'apps/cloud/src/app/@core'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-variables',
   templateUrl: './variables.component.html',
@@ -30,7 +28,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     DragDropModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     A11yModule,
     XpertVariableFormComponent,
     ZardSwitchComponent

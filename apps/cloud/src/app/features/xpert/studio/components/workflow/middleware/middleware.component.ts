@@ -1,5 +1,4 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -13,7 +12,7 @@ import { injectXpertAgentAPI, IWFNMiddleware, XpertAgentExecutionStatusEnum } fr
 import { WorkflowBaseNodeComponent } from '../workflow-base.component'
 import { XpertExecutionService } from '../../../services/execution.service'
 import { map } from 'rxjs/operators'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workflow-node-middleware',
   templateUrl: './middleware.component.html',
@@ -22,7 +21,7 @@ import { map } from 'rxjs/operators'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FFlowModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     NgxFloatUiModule,
     NgxJsonViewerModule,

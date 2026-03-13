@@ -3,8 +3,13 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, inject, signal, ViewContainerRef } from '@angular/core'
 
-import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
-import { MatTooltipModule } from '@angular/material/tooltip'
+import {
+  ZardButtonComponent,
+  ZardDividerComponent,
+  ZardIconComponent,
+  ZardTabsImports,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { RouterModule } from '@angular/router'
 import { injectFetchModelDetails, XpIndicatorFormComponent } from '@cloud/app/@shared/indicator'
 import { Indicator, IndicatorsService } from '@metad/cloud/state'
@@ -15,12 +20,7 @@ import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom, Subject } from 'rxjs'
-import {
-  IIndicator,
-  ProjectAPIService,
-  routeAnimations,
-  ToastrService
-} from '../../../@core'
+import { IIndicator, ProjectAPIService, routeAnimations, ToastrService } from '../../../@core'
 import { ManageEntityBaseComponent } from '../../../@shared/directives'
 import { ProjectService } from '../project.service'
 import { NewIndicatorCodePlaceholder } from '../types'
@@ -33,7 +33,7 @@ import { IndicatorImportComponent } from './indicator-import/indicator-import.co
     RouterModule,
     TranslateModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardButtonComponent,
     ZardIconComponent,
     ...ZardTabsImports,
@@ -96,19 +96,17 @@ export class ProjectIndicatorsComponent extends ManageEntityBaseComponent<IIndic
     const indicators = await uploadYamlFile<Indicator[]>((<HTMLInputElement>event.target).files[0])
     const project = this.projectService.project()
     const results = await firstValueFrom(
-      this.#dialog
-        .open(IndicatorImportComponent, {
-          viewContainerRef: this.#viewContainerRef,
-          backdropClass: 'xp-overlay-share-sheet',
-          panelClass: 'xp-overlay-pane-share-sheet',
-          data: {
-            indicators,
-            models: project.models,
-            certifications: project.certifications,
-            projectId: project?.id
-          }
-        })
-        .closed
+      this.#dialog.open(IndicatorImportComponent, {
+        viewContainerRef: this.#viewContainerRef,
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet',
+        data: {
+          indicators,
+          models: project.models,
+          certifications: project.certifications,
+          projectId: project?.id
+        }
+      }).closed
     )
     if (results) {
       // Download and upload results

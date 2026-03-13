@@ -3,7 +3,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, ViewContainerRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import { injectProjectService, IXpertProject } from '@cloud/app/@core'
 import { provideOcap } from '@cloud/app/@core/providers/ocap'
@@ -20,6 +19,7 @@ import { injectParams } from 'ngxtension/inject-params'
 import { ChatProjectService } from '../chat-project.service'
 import { ChatProjectComponent } from '../project.component'
 import { ProjectService } from '../project.service'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  *
@@ -31,7 +31,7 @@ import { ProjectService } from '../project.service'
     RouterModule,
     FormsModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     XpertChatAppComponent
   ],
@@ -68,12 +68,14 @@ export class ChatProjectConversationComponent {
     const navigation = this.#router.getCurrentNavigation()
     if (navigation?.extras.state) {
       const { input } = navigation.extras.state
-      
+
       // Wait until all Signals are initialized before assigning values (linkedModel)
       setTimeout(() => {
         this.chatSercice.project.set(this.project() as IXpertProject)
         // Process the data as needed
-        this.chatSercice.ask(input, {files: this.projectService.files()?.map((file) => ({id: file.id, originalName: file.originalName}))})
+        this.chatSercice.ask(input, {
+          files: this.projectService.files()?.map((file) => ({ id: file.id, originalName: file.originalName }))
+        })
         this.projectService.attachments.set([])
       })
     }

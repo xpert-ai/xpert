@@ -2,7 +2,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { Component, computed, effect, ElementRef, inject, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { attrModel, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -11,9 +10,10 @@ import {
   KBMetadataFieldDef,
   TWFCaseCondition,
   WorkflowComparisonOperator,
-  XpertParameterTypeEnum,
+  XpertParameterTypeEnum
 } from 'apps/cloud/src/app/@core'
 import { XpertVariableInputComponent } from '../../agent'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -24,10 +24,10 @@ import { XpertVariableInputComponent } from '../../agent'
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TextFieldModule,
     NgmI18nPipe,
-    XpertVariableInputComponent,
+    XpertVariableInputComponent
   ]
 })
 export class XpertKnowledgeConditionFormComponent {
@@ -46,7 +46,7 @@ export class XpertKnowledgeConditionFormComponent {
 
   // States
   readonly loading = signal(false)
-  
+
   readonly variableSelector = attrModel(this.condition, 'variableSelector')
 
   readonly hoverDelete = signal(false)

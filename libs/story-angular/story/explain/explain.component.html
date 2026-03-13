@@ -1,35 +1,44 @@
-<div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
-  <div class="w-full flex justify-start items-center cursor-pointer mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<div
+  class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group"
+>
+  <div
+    class="w-full flex justify-start items-center cursor-pointer mb-4"
+    cdkDrag
+    cdkDragRootElement=".cdk-overlay-pane"
+    cdkDragHandle
+  >
     <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-xl font-medium pointer-events-none">
-      {{ 'Story.Explain.Title' | translate: {Default: "Execute Explain"} }}
+      {{ 'Story.Explain.Title' | translate: { Default: 'Execute Explain' } }}
     </span>
   </div>
 
   <ul class="ngm-nav-list my-2 flex-1 overflow-auto">
     @for (item of explains; track item.key) {
-      <li class="flex group/item px-4 py-2 mb-2 rounded-lg cursor-pointer hover:bg-white/10 active:bg-white/20"
+      <li
+        class="flex group/item px-4 py-2 mb-2 rounded-lg cursor-pointer hover:bg-white/10 active:bg-white/20"
         [class.active]="explain?.key === item.key"
-        (click)="activeLink(item)">
+        (click)="activeLink(item)"
+      >
         <span class="flex-1">
           @switch (item.type) {
             @case ('dataSettings') {
-              {{ 'Story.Explain.DataSettings' | translate: {Default: 'Data Settings'} }}
+              {{ 'Story.Explain.DataSettings' | translate: { Default: 'Data Settings' } }}
             }
             @case ('statements') {
-              {{ 'Story.Explain.ExecuteStatements' | translate: {Default: 'Execute Statements'} }}
+              {{ 'Story.Explain.ExecuteStatements' | translate: { Default: 'Execute Statements' } }}
             }
             @case ('data') {
-              {{ 'Story.Explain.Data' | translate: {Default: 'Data'} }}
+              {{ 'Story.Explain.Data' | translate: { Default: 'Data' } }}
             }
             @case ('error') {
-              {{ 'Story.Explain.Error' | translate: {Default: 'Error'} }}
+              {{ 'Story.Explain.Error' | translate: { Default: 'Error' } }}
             }
             @case ('chart') {
-              {{ 'Story.Explain.ChartOptions' | translate: {Default: 'Chart Options'} }}
+              {{ 'Story.Explain.ChartOptions' | translate: { Default: 'Chart Options' } }}
             }
             @case ('slicers') {
-              {{ 'Story.Explain.Slicers' | translate: {Default: 'Slicers'} }}
+              {{ 'Story.Explain.Slicers' | translate: { Default: 'Slicers' } }}
             }
           }
         </span>
@@ -40,7 +49,7 @@
   <div class="flex justify-start items-center">
     <div ngmButtonGroup>
       <button z-button zType="secondary" (click)="close()">
-        {{ 'Story.Common.Close' | translate: {Default: 'Close'} }}
+        {{ 'Story.Common.Close' | translate: { Default: 'Close' } }}
       </button>
     </div>
   </div>
@@ -50,13 +59,19 @@
   @switch (explain?.type) {
     @case ('dataSettings') {
       <h5 class="px-4 py-2 text-lg sticky top-0 z-10 bg-components-card-bg">
-        {{ 'Story.Explain.DataSettings' | translate: {Default: 'Data Settings'} }}:
+        {{ 'Story.Explain.DataSettings' | translate: { Default: 'Data Settings' } }}:
       </h5>
       <div class="flex justify-start px-4 py-1">
-        <ngm-copy #copy class="copy"
+        <ngm-copy
+          #copy
+          class="copy"
           [content]="explain.data"
-          [matTooltip]="copy.copied() ? ('Story.Common.Copied' | translate: {Default: 'Copied'}) : ('Story.Common.Copy' | translate: {Default: 'Copy'})"
-          matTooltipPosition="above" 
+          [zTooltip]="
+            copy.copied()
+              ? ('Story.Common.Copied' | translate: { Default: 'Copied' })
+              : ('Story.Common.Copy' | translate: { Default: 'Copy' })
+          "
+          zPosition="top"
         />
       </div>
       @if (explain.data | omitBlank; as data) {
@@ -66,18 +81,20 @@
     @case ('statements') {
       <div>
         @for (statement of explain.statements; track statement) {
-        <div>
-          <h5 class="px-4 py-2 text-lg">{{ 'Story.Explain.Statement' | translate: {Default: 'Statement'} }}:</h5>
-          <ngm-prism-highlight class="text-sm select-all rounded-lg border-dotted border-2 p-2 m-4"
-            [code]="statement"
-            language="sql"
-          />
-        </div>
+          <div>
+            <h5 class="px-4 py-2 text-lg">{{ 'Story.Explain.Statement' | translate: { Default: 'Statement' } }}:</h5>
+            <ngm-prism-highlight
+              class="text-sm select-all rounded-lg border-dotted border-2 p-2 m-4"
+              [code]="statement"
+              language="sql"
+            />
+          </div>
         }
       </div>
     }
     @case ('data') {
-      <ngm-table class="ngm-data-preview flex-1 overflow-auto"
+      <ngm-table
+        class="ngm-data-preview flex-1 overflow-auto"
         [data]="explain.data"
         [columns]="explain.columns"
         paging
@@ -86,7 +103,7 @@
     }
     @case ('error') {
       <div>
-        <h5 class="px-4 py-2 text-lg">{{ 'Story.Explain.ErrorInfo' | translate: {Default: 'Error Info'} }}:</h5>
+        <h5 class="px-4 py-2 text-lg">{{ 'Story.Explain.ErrorInfo' | translate: { Default: 'Error Info' } }}:</h5>
         <div class="text-sm select-all rounded-lg border-dotted border-2 p-2 m-4">
           <code>{{ explain.error }}</code>
         </div>
@@ -95,12 +112,19 @@
     @case ('chart') {
       <div>
         <h5 class="px-4 py-2 text-lg sticky top-0 z-10 bg-components-card-bg">
-          {{ 'Story.Explain.Options' | translate: {Default: 'Options'} }}:</h5>
+          {{ 'Story.Explain.Options' | translate: { Default: 'Options' } }}:
+        </h5>
         <div class="flex justify-start px-4 py-1">
-          <ngm-copy #copy class="copy"
+          <ngm-copy
+            #copy
+            class="copy"
             [content]="explain.options"
-            [matTooltip]="copy.copied() ? ('Story.Common.Copied' | translate: {Default: 'Copied'}) : ('Story.Common.Copy' | translate: {Default: 'Copy'})"
-            matTooltipPosition="above" 
+            [zTooltip]="
+              copy.copied()
+                ? ('Story.Common.Copied' | translate: { Default: 'Copied' })
+                : ('Story.Common.Copy' | translate: { Default: 'Copy' })
+            "
+            zPosition="top"
           />
         </div>
         <div class="p-4">
@@ -113,12 +137,19 @@
     @case ('slicers') {
       <div>
         <h5 class="px-4 py-2 text-lg sticky top-0 z-10 bg-components-card-bg">
-          {{ 'Story.Explain.Slicers' | translate: {Default: 'Slicers'} }}:</h5>
+          {{ 'Story.Explain.Slicers' | translate: { Default: 'Slicers' } }}:
+        </h5>
         <div class="flex justify-start px-4 py-1">
-          <ngm-copy #copy class="copy"
+          <ngm-copy
+            #copy
+            class="copy"
             [content]="explain.options"
-            [matTooltip]="copy.copied() ? ('Story.Common.Copied' | translate: {Default: 'Copied'}) : ('Story.Common.Copy' | translate: {Default: 'Copy'})"
-            matTooltipPosition="above" 
+            [zTooltip]="
+              copy.copied()
+                ? ('Story.Common.Copied' | translate: { Default: 'Copied' })
+                : ('Story.Common.Copy' | translate: { Default: 'Copy' })
+            "
+            zPosition="top"
           />
         </div>
         <div class="p-4">

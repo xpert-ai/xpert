@@ -6,15 +6,35 @@ import { OverlayModule } from '@angular/cdk/overlay'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, ElementRef, EventEmitter, Input, Output, TemplateRef, ViewChild, computed, effect, inject, input, model, signal, viewChild } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  EventEmitter,
+  Input,
+  Output,
+  TemplateRef,
+  ViewChild,
+  computed,
+  effect,
+  inject,
+  input,
+  model,
+  signal,
+  viewChild
+} from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { ZardButtonComponent, ZardDividerComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardDividerComponent,
+  ZardInputDirective,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatSnackBar } from '@angular/material/snack-bar'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import {
   AI_PROVIDERS,
@@ -81,7 +101,7 @@ export const AUTO_SUGGESTION_STOP = ['\n', '.', ',', '@', '#']
     ZardDividerComponent,
     ZardInputDirective,
     ZardButtonComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     MatProgressBarModule,
     MatListModule,
     TranslateModule,
@@ -438,7 +458,7 @@ export class NgmCopilotChatComponent {
         this.focus()
       }
     })
-    
+
     effect(
       () => {
         this.answering() ? this.promptControl.disable() : this.promptControl.enable()
@@ -706,7 +726,7 @@ export class NgmCopilotChatComponent {
           } else {
             return
           }
-  
+
           this.promptControl.setValue(historyQuestions[this.historyIndex()] ?? '')
         }
       }
@@ -765,7 +785,7 @@ export class NgmCopilotChatComponent {
 
   /**
    * Set context item by click
-   * 
+   *
    * @param item Context item
    */
   setContext(item: CopilotContextItem) {
@@ -799,7 +819,7 @@ export class NgmCopilotChatComponent {
     // }
     setTimeout(() => {
       this.userInput().nativeElement.focus()
-    }, 100);
+    }, 100)
   }
 
   async continue(conversation: CopilotChatConversation) {

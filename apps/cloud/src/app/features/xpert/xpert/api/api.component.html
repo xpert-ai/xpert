@@ -1,4 +1,7 @@
-<div class="px-6 py-5 bg-purple-50 rounded-lg data-[small=true]:px-3 data-[small=true]:py-2" [attr.data-small]="small()">
+<div
+  class="px-6 py-5 bg-purple-50 rounded-lg data-[small=true]:px-3 data-[small=true]:py-2"
+  [attr.data-small]="small()"
+>
   <div class="mb-2.5 flex flex-row items-start justify-between">
     <div class="flex items-start p-1">
       <div class="flex-shrink-0 mr-3">
@@ -51,40 +54,52 @@
         ></span>
       </div>
       <div class="group">
-        <div
-          class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
-        >
-          {{ 'PAC.Xpert.BackendServiceAPI' | translate: {Default: 'Backend Service API'} }}
+        <div class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all">
+          {{ 'PAC.Xpert.BackendServiceAPI' | translate: { Default: 'Backend Service API' } }}
         </div>
         <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
-          {{ 'PAC.Xpert.EasilyIntegratedApp' | translate: {Default: 'Easily integrated into your application'} }}
+          {{ 'PAC.Xpert.EasilyIntegratedApp' | translate: { Default: 'Easily integrated into your application' } }}
         </div>
         <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
       </div>
     </div>
     <div class="flex flex-row items-center h-9">
       @if (enabledApi()) {
-        <div class="px-2.5 py-px text-xs leading-5 rounded-md inline-flex items-center flex-shrink-0 text-green-800 bg-green-100 mr-2">
-          {{ 'PAC.KEY_WORDS.InService' | translate: {Default: 'In Service'} }}
+        <div
+          class="px-2.5 py-px text-xs leading-5 rounded-md inline-flex items-center flex-shrink-0 text-green-800 bg-green-100 mr-2"
+        >
+          {{ 'PAC.KEY_WORDS.InService' | translate: { Default: 'In Service' } }}
         </div>
       } @else {
-        <div class="px-2.5 py-px text-xs leading-5 rounded-md inline-flex items-center flex-shrink-0 text-yellow-800 bg-yellow-100 mr-2">
-          {{ 'PAC.KEY_WORDS.Disabled' | translate: {Default: 'Disabled'} }}
+        <div
+          class="px-2.5 py-px text-xs leading-5 rounded-md inline-flex items-center flex-shrink-0 text-yellow-800 bg-yellow-100 mr-2"
+        >
+          {{ 'PAC.KEY_WORDS.Disabled' | translate: { Default: 'Disabled' } }}
         </div>
       }
 
-      <label class="inline-flex items-center cursor-pointer"
-        [matTooltip]="'PAC.Xpert.EnableXpertApi' | translate: {Default: 'Enable or disable api for xpert'}"
-        matTooltipPosition="above">
-        <input type="checkbox" value="" class="sr-only peer" [ngModel]="enabledApi()" (ngModelChange)="updateApi({disabled: !$event})">
-        <div class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"></div>
+      <label
+        class="inline-flex items-center cursor-pointer"
+        [zTooltip]="'PAC.Xpert.EnableXpertApi' | translate: { Default: 'Enable or disable api for xpert' }"
+        zPosition="top"
+      >
+        <input
+          type="checkbox"
+          value=""
+          class="sr-only peer"
+          [ngModel]="enabledApi()"
+          (ngModelChange)="updateApi({ disabled: !$event })"
+        />
+        <div
+          class="relative w-9 h-5 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 dark:peer-focus:ring-blue-800 rounded-full peer dark:bg-gray-700 peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-blue-600"
+        ></div>
       </label>
     </div>
   </div>
   <div class="flex flex-col justify-center py-2">
     <div class="py-1">
       <div class="pb-1 text-sm text-gray-500">
-        {{ 'PAC.Xpert.ServiceAPIEndpoint' | translate: {Default: 'Service API Endpoint'} }}
+        {{ 'PAC.Xpert.ServiceAPIEndpoint' | translate: { Default: 'Service API Endpoint' } }}
       </div>
       <div
         class="w-full h-9 pl-2 pr-0.5 py-0.5 bg-black/5 rounded-lg border border-(--border) justify-start items-center inline-flex"
@@ -95,9 +110,10 @@
           </div>
         </div>
         <div class="border-r border-solid mx-2 border-divider-deep !h-3.5 shrink-0"></div>
-        <div class="w-8 h-8 cursor-pointer rounded-lg flex justify-center items-center text-text-secondary hover:bg-gray-200 hover:text-text-primary"
-          [matTooltip]="'PAC.KEY_WORDS.Copy' | translate: {Default: 'Copy'}"
-          matTooltipPosition="above"
+        <div
+          class="w-8 h-8 cursor-pointer rounded-lg flex justify-center items-center text-text-secondary hover:bg-gray-200 hover:text-text-primary"
+          [zTooltip]="'PAC.KEY_WORDS.Copy' | translate: { Default: 'Copy' }"
+          zPosition="top"
           (click)="copy(apiUrl())"
         >
           <i class="ri-clipboard-line text-lg"></i>
@@ -115,16 +131,14 @@
         <i class="ri-key-2-line text-lg mr-1.5"></i>
       </div>
       <div class="text-[13px] text-gray-800 font-medium">
-        API {{'PAC.KEY_WORDS.SecretKey' | translate: {Default: 'Key'} }}
+        API {{ 'PAC.KEY_WORDS.SecretKey' | translate: { Default: 'Key' } }}
       </div>
     </button>
-    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2"
-      (click)="openApiReference()"
-    >
-      <div class="flex flex-row items-center" >
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-medium mr-2" (click)="openApiReference()">
+      <div class="flex flex-row items-center">
         <i class="ri-file-text-line text-lg mr-1.5"></i>
         <span class="text-[13px]">
-          {{ 'PAC.Xpert.APIReference' | translate: {Default: 'API Reference'} }}
+          {{ 'PAC.Xpert.APIReference' | translate: { Default: 'API Reference' } }}
         </span>
       </div>
     </button>

@@ -3,14 +3,13 @@ import { CommonModule } from '@angular/common'
 import { Component, DestroyRef, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router } from '@angular/router'
 import { injectWorkspace } from '@metad/cloud/state'
 import { OverlayAnimation1 } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { map, tap } from 'rxjs/operators'
 import { injectUser, IXpertWorkspace, OrderTypeEnum, Store, XpertWorkspaceService } from '../../../@core'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-workspace-selector',
@@ -19,7 +18,7 @@ import { injectUser, IXpertWorkspace, OrderTypeEnum, Store, XpertWorkspaceServic
   host: {
     class: 'pac-workspace-selector'
   },
-  imports: [CommonModule, FormsModule, CdkMenuModule, TranslateModule, MatTooltipModule],
+  imports: [CommonModule, FormsModule, CdkMenuModule, TranslateModule, ...ZardTooltipImports],
   animations: [OverlayAnimation1]
 })
 export class WorkspaceSelectorComponent {
@@ -47,7 +46,7 @@ export class WorkspaceSelectorComponent {
   }
 
   routeWorkspace(ws: IXpertWorkspace) {
-    if(!ws || !ws.id) return
+    if (!ws || !ws.id) return
     this.router.navigate(['/xpert/w/', ws.id])
   }
 }

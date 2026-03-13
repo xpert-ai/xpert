@@ -1,6 +1,5 @@
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { CommonModule } from '@angular/common'
 import { Component, forwardRef, Input } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
@@ -12,8 +11,6 @@ import { NgmEntitySchemaComponent } from '../entity-schema/entity-schema.compone
 import { ResizerModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-import { MatTooltipModule } from '@angular/material/tooltip'
-
 @Component({
   standalone: true,
   imports: [
@@ -23,13 +20,13 @@ import { MatTooltipModule } from '@angular/material/tooltip'
     DragDropModule,
     MatSidenavModule,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardButtonComponent,
     MonacoEditorModule,
 
     NgmEntitySchemaComponent,
     ResizerModule,
-    OcapCoreModule,
+    OcapCoreModule
   ],
   selector: 'ngm-formula-editor',
   templateUrl: 'editor.component.html',

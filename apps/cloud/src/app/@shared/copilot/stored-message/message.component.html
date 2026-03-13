@@ -1,36 +1,54 @@
 <div class="flex justify-between items-center px-2 py-1">
-  <div class="uppercase font-semibold">{{message().type}}</div>
+  <div class="uppercase font-semibold">{{ message().type }}</div>
 
-  <copy2 #copy class="copy"
+  <copy2
+    #copy
+    class="copy"
     [content]="text()"
-    [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
-    matTooltipPosition="above" />
+    [zTooltip]="
+      copy.copied()
+        ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
+        : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+    "
+    zPosition="top"
+  />
 </div>
 
 <div class="opacity-80 hover:opacity-100 p-2 flex flex-col max-h-[400px] font-body overflow-auto">
-
   @if (reasoning()) {
-    <div class="relative group/reasoning w-full max-h-90 px-1 mb-2 border-l-2 border-solid border-gray-200 overflow-auto">
+    <div
+      class="relative group/reasoning w-full max-h-90 px-1 mb-2 border-l-2 border-solid border-gray-200 overflow-auto"
+    >
       <div class="flex justify-between items-center">
-        <div class="flex items-center cursor-pointer pressable rounded-md px-1 text-gray-500 hover:bg-hover-bg"
-          (click)="expandReason.set(!expandReason())">
+        <div
+          class="flex items-center cursor-pointer pressable rounded-md px-1 text-gray-500 hover:bg-hover-bg"
+          (click)="expandReason.set(!expandReason())"
+        >
           @if (expandReason()) {
             <i class="ri-arrow-down-s-line"></i>
           } @else {
             <i class="ri-arrow-right-s-line"></i>
           }
           <div class="mr-1 leading-[18px] text-sm font-semibold uppercase">
-            {{ 'PAC.Chat.Reasoning' | translate: {Default: 'Reasoning'} }}
+            {{ 'PAC.Chat.Reasoning' | translate: { Default: 'Reasoning' } }}
           </div>
         </div>
-  
-        <copy #copy class="opacity-30 group-hover/reasoning:opacity-100"
+
+        <copy
+          #copy
+          class="opacity-30 group-hover/reasoning:opacity-100"
           [content]="reasoning()"
-          [matTooltip]="copy.copied() ? ('PAC.Xpert.Copied' | translate: {Default: 'Copied'}) : ('PAC.Xpert.Copy' | translate: {Default: 'Copy'})"
-          matTooltipPosition="above" />
+          [zTooltip]="
+            copy.copied()
+              ? ('PAC.Xpert.Copied' | translate: { Default: 'Copied' })
+              : ('PAC.Xpert.Copy' | translate: { Default: 'Copy' })
+          "
+          zPosition="top"
+        />
       </div>
       @if (expandReason()) {
-        <markdown class="ngm-copilot-markdown text-xs text-zinc-500"
+        <markdown
+          class="ngm-copilot-markdown text-xs text-zinc-500"
           [disableSanitizer]="true"
           lineNumbers
           [start]="5"
@@ -60,7 +78,7 @@
       }
     }
     @case ('tool') {
-      <div class="flex items-center mb-1">Tool: {{toolMessage().name || toolMessage().tool_call_id}}</div>
+      <div class="flex items-center mb-1">Tool: {{ toolMessage().name || toolMessage().tool_call_id }}</div>
       <div class="whitespace-pre-wrap">{{ toolResponse() }}</div>
     }
   }

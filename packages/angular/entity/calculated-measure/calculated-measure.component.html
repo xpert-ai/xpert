@@ -1,34 +1,44 @@
 <mat-drawer-container class="flex flex-1" [hasBackdrop]="false" autosize>
-  <mat-drawer #drawer class="ngm-calculated-measure__drawer"
-    mode="side" position="end" ngmResizer [resizerWidth]="330"
+  <mat-drawer
+    #drawer
+    class="ngm-calculated-measure__drawer"
+    mode="side"
+    position="end"
+    ngmResizer
+    [resizerWidth]="330"
     [(opened)]="drawerOpened"
-    (openedChange)="$event?helper.realignInkBar():''">
-    <z-tab-group #helper="zTabGroup" class="ngm-calculated-measure__helpers" [stretchTabs]="false" >
-      <z-tab [label]="'Ngm.Calculation.DIMENSION_MEMBERS' | translate: {Default: 'Dimension Members'}"
+    (openedChange)="$event ? helper.realignInkBar() : ''"
+  >
+    <z-tab-group #helper="zTabGroup" class="ngm-calculated-measure__helpers" [stretchTabs]="false">
+      <z-tab
+        [label]="'Ngm.Calculation.DIMENSION_MEMBERS' | translate: { Default: 'Dimension Members' }"
         id="ngm-calculated-measure__entity-schema"
         cdkDropList
         [cdkDropListData]="[]"
       >
-        <ngm-entity-schema class="flex-1 max-w-full w-full"
+        <ngm-entity-schema
+          class="flex-1 max-w-full w-full"
           [dsCoreService]="dsCoreService()"
           [dataSettings]="dataSettings()"
-          [capacities]="[
-            EntityCapacity.Dimension,
-            EntityCapacity.Measure
-          ]" />
+          [capacities]="[EntityCapacity.Dimension, EntityCapacity.Measure]"
+        />
       </z-tab>
 
-      <z-tab [label]="'Ngm.Calculation.CALCULATED_MEMBERS' | translate: {Default: 'Calculated Members'}">
+      <z-tab [label]="'Ngm.Calculation.CALCULATED_MEMBERS' | translate: { Default: 'Calculated Members' }">
         <div class="max-w-full w-full flex flex-col justify-start items-stretch p-2 overflow-hidden">
           <ngm-search class="" [formControl]="calculatedMemberSearch" />
-          <ul role="list" class="ngm-list flex-1 max-w-full w-full overflow-auto"
+          <ul
+            role="list"
+            class="ngm-list flex-1 max-w-full w-full overflow-auto"
             id="ngm-calculated-calculations"
             cdkDropList
             [cdkDropListData]="calculations"
             (cdkDropListDropped)="drop($event)"
           >
             @for (property of calculations$ | async; track property.name) {
-              <li role="listitem" class="hover:bg-neutral-100 dark:hover:bg-neutral-800"
+              <li
+                role="listitem"
+                class="hover:bg-neutral-100 dark:hover:bg-neutral-800"
                 cdkDrag
                 [cdkDragData]="property"
               >
@@ -38,66 +48,84 @@
             }
           </ul>
         </div>
-
       </z-tab>
 
-    @if (story()) {
-      <z-tab [label]="'Ngm.Calculation.PARAMETERS' | translate: {Default: 'Parameters'}">
-        <ng-template zTabContent>
-          <div class="w-full flex flex-col justify-start items-stretch p-4">
-            <button z-button zType="ghost" displayDensity="cosy" ngmAppearance="dashed" (click)="openCreateParameter()">
-              <div class="flex justify-center items-center">
-                <z-icon zType="add"></z-icon>
-                {{ 'Ngm.Calculation.PARAMETERS' | translate: {Default: 'Parameters'} }}
-              </div>
-            </button>
+      @if (story()) {
+        <z-tab [label]="'Ngm.Calculation.PARAMETERS' | translate: { Default: 'Parameters' }">
+          <ng-template zTabContent>
+            <div class="w-full flex flex-col justify-start items-stretch p-4">
+              <button
+                z-button
+                zType="ghost"
+                displayDensity="cosy"
+                ngmAppearance="dashed"
+                (click)="openCreateParameter()"
+              >
+                <div class="flex justify-center items-center">
+                  <z-icon zType="add"></z-icon>
+                  {{ 'Ngm.Calculation.PARAMETERS' | translate: { Default: 'Parameters' } }}
+                </div>
+              </button>
 
-            <ul role="list" class="ngm-list"
-              id="ngm-calculated-parameters"
-              cdkDropList
-              [cdkDropListData]="calculations"
-            >
-              @for (property of parameters$ | async; track property.name) {
-                <li role="listitem" class="rounded-lg overflow-hidden hover:bg-gray-100"
-                  cdkDrag
-                  [cdkDragData]="property"
-                >
-                  <div class="flex justify-between items-center">
-                    <ngm-entity-property class="flex-1" [property]="property"></ngm-entity-property>
-                    <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-calculated-measure__parameter-edit" (click)="openCreateParameter(property)">
-                      <z-icon zType="edit"></z-icon>
-                    </button>
-                  </div>
+              <ul
+                role="list"
+                class="ngm-list"
+                id="ngm-calculated-parameters"
+                cdkDropList
+                [cdkDropListData]="calculations"
+              >
+                @for (property of parameters$ | async; track property.name) {
+                  <li
+                    role="listitem"
+                    class="rounded-lg overflow-hidden hover:bg-gray-100"
+                    cdkDrag
+                    [cdkDragData]="property"
+                  >
+                    <div class="flex justify-between items-center">
+                      <ngm-entity-property class="flex-1" [property]="property"></ngm-entity-property>
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        zShape="circle"
+                        class="ngm-calculated-measure__parameter-edit"
+                        (click)="openCreateParameter(property)"
+                      >
+                        <z-icon zType="edit"></z-icon>
+                      </button>
+                    </div>
 
-                  <div *cdkDragPlaceholder></div>
-                </li>
-              }
-            </ul>
-          </div>
-        </ng-template>
-      </z-tab>
-    }
+                    <div *cdkDragPlaceholder></div>
+                  </li>
+                }
+              </ul>
+            </div>
+          </ng-template>
+        </z-tab>
+      }
 
-      <z-tab [label]="'Ngm.Calculation.Formulas' | translate: {Default: 'Formulas'}">
+      <z-tab [label]="'Ngm.Calculation.Formulas' | translate: { Default: 'Formulas' }">
         <ng-template zTabContent>
           <div class="flex-1 flex flex-col justify-start items-stretch overflow-auto">
             <ngm-search class="m-2" [formControl]="fnSearchControl" />
-            <mat-accordion id="ngm-calculated-functions" cdkDropList
-              [cdkDropListData]="FUNCTIONS">
+            <mat-accordion id="ngm-calculated-functions" cdkDropList [cdkDropListData]="FUNCTIONS">
               @for (f of functions$ | async; track f) {
                 <mat-expansion-panel hideToggle class="mat-elevation-z" style="background: transparent">
                   <mat-expansion-panel-header>
-                    <mat-panel-title cdkDrag
-                      [cdkDragData]="f.insertText">
-                      <span [ngmHighlight]="fnHighlight" [caseSensitive]="false" customClasses="bg-transparent font-semibold text-amber-500"
-                        [content]="f.label">
+                    <mat-panel-title cdkDrag [cdkDragData]="f.insertText">
+                      <span
+                        [ngmHighlight]="fnHighlight"
+                        [caseSensitive]="false"
+                        customClasses="bg-transparent font-semibold text-amber-500"
+                        [content]="f.label"
+                      >
                       </span>
                     </mat-panel-title>
                   </mat-expansion-panel-header>
-        
+
                   <ng-template matExpansionPanelContent>
                     <div class="my-2 text-xs font-mono italic">
-                      {{f.expression}}
+                      {{ f.expression }}
                     </div>
                     <markdown [textContent]="f.documentation" class=""></markdown>
                   </ng-template>
@@ -109,7 +137,11 @@
       </z-tab>
     </z-tab-group>
 
-    <div ngmResizerBar resizerBarPosition="left" style="z-index: 1;" class="absolute top-0"
+    <div
+      ngmResizerBar
+      resizerBarPosition="left"
+      style="z-index: 1"
+      class="absolute top-0"
       cdkDrag
       cdkDragLockAxis="x"
     ></div>
@@ -120,37 +152,43 @@
       <div class="flex items-center">
         <ng-content select="[icon]"></ng-content>
         <span class="text-lg font-medium">
-          {{ 'Ngm.Calculation.EDIT_FORMULA' | translate: {Default: "Edit Formula"} }}
+          {{ 'Ngm.Calculation.EDIT_FORMULA' | translate: { Default: 'Edit Formula' } }}
         </span>
       </div>
 
       <div class="flex justify-around items-center gap-1">
         <ng-content select=".ngm-calculated-measure__action"></ng-content>
 
-        <button type="button" class="action-btn action-btn-m w-7 h-7"
+        <button
+          type="button"
+          class="action-btn action-btn-m w-7 h-7"
           [class.text-primary-500]="editorOptions().wordWrap"
           (click)="toggleWrap()"
         >
           <i class="ri-text-wrap text-base"></i>
         </button>
 
-        <button type="button" class="action-btn action-btn-m w-7 h-7"
+        <button
+          type="button"
+          class="action-btn action-btn-m w-7 h-7"
           [class.text-primary-500]="drawerOpened()"
-          [matTooltip]="'Ngm.Calculation.ToggleSidebar' | translate: {Default: 'Toggle Sidebar'}"
-          matTooltipPosition="above"
+          [zTooltip]="'Ngm.Calculation.ToggleSidebar' | translate: { Default: 'Toggle Sidebar' }"
+          zPosition="top"
           (click)="toggleSideMenu()"
         >
           @if (drawerOpened()) {
             <i class="ri-sidebar-unfold-line text-base"></i>
           } @else {
-            <i class="ri-sidebar-fold-line text-base"></i>  
+            <i class="ri-sidebar-fold-line text-base"></i>
           }
         </button>
       </div>
     </div>
 
-    @if (syntax()===Syntax.MDX) {
-      <ngm-mdx-editor #editor class="ngm-calculated-measure__monaco-editor pac-cdk-drop__list pac-cdk-drop__area flex-1"
+    @if (syntax() === Syntax.MDX) {
+      <ngm-mdx-editor
+        #editor
+        class="ngm-calculated-measure__monaco-editor pac-cdk-drop__list pac-cdk-drop__area flex-1"
         id="ngm-calculated-editor"
         cdkDropList
         [cdkDropListEnterPredicate]="dropPredicate"
@@ -161,8 +199,8 @@
         [options]="editorOptions()"
         (blur)="onBlur()"
       />
-    } @else if (syntax()===Syntax.SQL) {
-    <!-- <ngm-editor-sql class="ngm-calculated-measure__monaco-editor flex-1"
+    } @else if (syntax() === Syntax.SQL) {
+      <!-- <ngm-editor-sql class="ngm-calculated-measure__monaco-editor flex-1"
         id="ngm-calculated-editor"
         cdkDropList
         [cdkDropListData]="calculations"
@@ -173,10 +211,11 @@
     </ngm-editor-sql> -->
     }
 
-    <ngm-drawer-trigger class="absolute -right-2 top-1/2 -translate-y-1/2 z-40"
+    <ngm-drawer-trigger
+      class="absolute -right-2 top-1/2 -translate-y-1/2 z-40"
       side="right"
       [(opened)]="drawerOpened"
-      [matTooltip]="'Ngm.Calculation.ToggleSidebar' | translate: {Default: 'Toggle Sidebar'}"
+      [zTooltip]="'Ngm.Calculation.ToggleSidebar' | translate: { Default: 'Toggle Sidebar' }"
     />
   </mat-drawer-content>
 </mat-drawer-container>

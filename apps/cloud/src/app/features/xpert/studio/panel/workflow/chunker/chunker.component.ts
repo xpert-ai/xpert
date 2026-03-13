@@ -1,7 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
 import { SafePipe } from '@metad/core'
@@ -11,7 +10,7 @@ import { IWFNChunker, IWorkflowNode, KnowledgebaseService } from 'apps/cloud/src
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workflow-chunker',
   templateUrl: './chunker.component.html',
@@ -20,7 +19,7 @@ import { IconComponent } from '@cloud/app/@shared/avatar'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     SafePipe,
     NgmI18nPipe,

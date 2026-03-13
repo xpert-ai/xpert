@@ -1,8 +1,15 @@
 <div class="filter-bar p-2 flex items-center gap-4 z-20">
   <span class="flex-1"></span>
 
-  <div ngmButtonGroup >
-    <button z-button zType="default" zSize="icon-sm" zShape="circle" [matTooltip]=" 'PAC.ChatBI.AddModel' | translate: {Default: 'Add new model' }" (click)="addModel()">
+  <div ngmButtonGroup>
+    <button
+      z-button
+      zType="default"
+      zSize="icon-sm"
+      zShape="circle"
+      [zTooltip]="'PAC.ChatBI.AddModel' | translate: { Default: 'Add new model' }"
+      (click)="addModel()"
+    >
       <z-icon zType="add"></z-icon>
     </button>
   </div>
@@ -13,7 +20,9 @@
   <ngm-search [formControl]="searchControl" class="w-full" />
 </div>
 
-<ngm-table class="w-full max-w-full z-10" displayDensity="cosy"
+<ngm-table
+  class="w-full max-w-full z-10"
+  displayDensity="cosy"
   [data]="models()"
   [columns]="[
     {
@@ -36,25 +45,43 @@
       name: 'actions',
       caption: 'PAC.KEY_WORDS.Actions' | translate: { Default: 'Actions' },
       cellTemplate: actionTemplate,
-      stickyEnd: true }
+      stickyEnd: true
+    }
   ]"
 ></ngm-table>
 
 <ng-template #modelTempl let-model>
   <div class="model-temp">
-    <span>{{model?.name}}</span>
+    <span>{{ model?.name }}</span>
   </div>
 </ng-template>
 
 <ng-template #actionTemplate let-id="id" let-entityCaption="entityCaption" let-entity="entity">
   <div class="flex items-center group">
-      <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-50 group-hover:opacity-100" [matTooltip]="'PAC.ChatBI.EditModel' | translate: {Default: 'Edit Model'}" (click)="editModel(id)">
-        <z-icon zType="edit"></z-icon>
-      </button>
-      <z-divider vertical style="height: 20px; margin: 0 10px;"></z-divider>
-      <button z-button zType="ghost" zSize="icon" zShape="circle" class="opacity-50 group-hover:opacity-100" ngmAppearance="danger" [matTooltip]="'PAC.ChatBI.DeleteModel' | translate: {Default: 'Delete Model'}" (click)="deleteModel(id, entity, entityCaption)">
-        <z-icon zType="delete"></z-icon>
-      </button>
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      class="opacity-50 group-hover:opacity-100"
+      [zTooltip]="'PAC.ChatBI.EditModel' | translate: { Default: 'Edit Model' }"
+      (click)="editModel(id)"
+    >
+      <z-icon zType="edit"></z-icon>
+    </button>
+    <z-divider vertical style="height: 20px; margin: 0 10px"></z-divider>
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      class="opacity-50 group-hover:opacity-100"
+      ngmAppearance="danger"
+      [zTooltip]="'PAC.ChatBI.DeleteModel' | translate: { Default: 'Delete Model' }"
+      (click)="deleteModel(id, entity, entityCaption)"
+    >
+      <z-icon zType="delete"></z-icon>
+    </button>
   </div>
 </ng-template>
 

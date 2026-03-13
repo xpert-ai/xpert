@@ -21,10 +21,9 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 
 import { NgmInputComponent } from '@metad/ocap-angular/common'
 import { FormlyModule } from '@ngx-formly/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { ZardButtonComponent, ZardToggleGroupComponent, ZardSwitchComponent, ZardToggleGroupItemComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardToggleGroupComponent, ZardSwitchComponent, ZardToggleGroupItemComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -37,9 +36,6 @@ import { ZardButtonComponent, ZardToggleGroupComponent, ZardSwitchComponent, Zar
     ReactiveFormsModule,
     CdkListboxModule,
     ZardButtonComponent,
-    ZardToggleGroupComponent,
-    ZardToggleGroupItemComponent,
-    MatTooltipModule,
     ContentLoaderModule,
     NgmInputComponent,
     ButtonGroupDirective,

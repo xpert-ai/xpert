@@ -1,29 +1,30 @@
 <div class="pac-page-header">
   <div class="w-full flex flex-wrap justify-between items-center">
     <h2 class="pac-page-title">
-      {{ 'PAC.Project.ManageIndicators' | translate: {Default: "Manage Indicators"} }}
+      {{ 'PAC.Project.ManageIndicators' | translate: { Default: 'Manage Indicators' } }}
     </h2>
 
     <div class="flex gap-2 ml-auto">
-
-      <input #fileUpload type="file" class="file-input invisible"
+      <input
+        #fileUpload
+        type="file"
+        class="file-input invisible"
         (change)="handleUploadChange($event)"
-        (click)="fileUpload.value=null;">
+        (click)="fileUpload.value = null"
+      />
       <div ngmButtonGroup>
         <!-- <div class="w-8 h-8 flex justify-center items-center rounded-2xl mx-1 text-xl cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
-          [matTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " matTooltipPosition="above"
+          [zTooltip]=" 'Copilot.GenerateWithAI' | translate: {Default: 'Generate with AI'} " zPosition="top"
           (click)="aiRegister()"
         >
           <i class="ri-magic-line"></i>
         </div> -->
 
-        <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
-          (click)="register()"
-        >
+        <button type="button" class="btn disabled:btn-disabled btn-primary btn-large" (click)="register()">
           <i class="ri-function-add-line mr-1"></i>
-          {{ 'PAC.INDICATOR.MY_INDICATORS.REGISTER' | translate: {Default: "Register"} }}
+          {{ 'PAC.INDICATOR.MY_INDICATORS.REGISTER' | translate: { Default: 'Register' } }}
         </button>
-        
+
         <!-- @if (hasDirty()) {
           <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
             (click)="saveAll()"
@@ -32,24 +33,43 @@
             {{ 'PAC.INDICATOR.SaveAll' | translate: {Default: "Save All"} }}
           </button>
         } -->
-        
-        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [cdkMenuTriggerFor]="menu" #mt="cdkMenuTriggerFor" [class.active]="mt.isOpen()">
+
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          displayDensity="cosy"
+          [cdkMenuTriggerFor]="menu"
+          #mt="cdkMenuTriggerFor"
+          [class.active]="mt.isOpen()"
+        >
           <z-icon zType="more_horiz"></z-icon>
         </button>
       </div>
     </div>
   </div>
 
-  <nav z-tab-nav-bar class="pac-tab-nav-bar max-w-full self-stretch" color="accent" disableRipple displayDensity="cosy" stretchTabs="false" alignTabs="start"
+  <nav
+    z-tab-nav-bar
+    class="pac-tab-nav-bar max-w-full self-stretch"
+    color="accent"
+    disableRipple
+    displayDensity="cosy"
+    stretchTabs="false"
+    alignTabs="start"
     [tabPanel]="tabPanel"
   >
-    <span z-tab-link [routerLink]="['.']"
-      routerLinkActive #rla="routerLinkActive"
-      [routerLinkActiveOptions]="{exact: true}"
+    <span
+      z-tab-link
+      [routerLink]="['.']"
+      routerLinkActive
+      #rla="routerLinkActive"
+      [routerLinkActiveOptions]="{ exact: true }"
       [active]="rla.isActive"
     >
       <z-icon zSize="default" zType="settings"></z-icon>
-      {{ 'PAC.INDICATOR.All' | translate: {Default: "All"} }}
+      {{ 'PAC.INDICATOR.All' | translate: { Default: 'All' } }}
     </span>
 
     <!-- <span z-tab-link [routerLink]="['./all']"
@@ -61,19 +81,24 @@
       {{ 'PAC.INDICATOR.MY_INDICATORS.ALL' | translate: {Default: "All"} }}
     </span> -->
 
-    <span z-tab-link [routerLink]="['approvals']"
-      routerLinkActive #rla3="routerLinkActive"
-      [routerLinkActiveOptions]="{exact: true}"
+    <span
+      z-tab-link
+      [routerLink]="['approvals']"
+      routerLinkActive
+      #rla3="routerLinkActive"
+      [routerLinkActiveOptions]="{ exact: true }"
       [active]="rla3.isActive"
     >
       <z-icon zSize="default" zType="verified_user"></z-icon>
-      {{ 'PAC.INDICATOR.MY_INDICATORS.Approvals' | translate: {Default: "Approvals"} }}
+      {{ 'PAC.INDICATOR.MY_INDICATORS.Approvals' | translate: { Default: 'Approvals' } }}
     </span>
 
     @for (indicator of openedLinks(); track indicator) {
-      <span z-tab-link [routerLink]="[indicator.id || indicator.code]"
-        [active]="indicator.id === currentLink()?.id || indicator.code === currentLink()?.code">
-
+      <span
+        z-tab-link
+        [routerLink]="[indicator.id || indicator.code]"
+        [active]="indicator.id === currentLink()?.id || indicator.code === currentLink()?.code"
+      >
         @if (isDirty(indicator.id)) {
           <span class="ping-badge pointer-events-none absolute -left-2 top-2 flex h-2 w-2">
             <span class="animate-ping absolute inline-flex h-full w-full rounded-full opacity-75"></span>
@@ -83,13 +108,21 @@
 
         <z-icon zSize="default" zType="trending_up"></z-icon>
         @if (indicator.id === NewIndicatorCodePlaceholder) {
-          <span class="mr-2">{{ 'PAC.INDICATOR.New' | translate: {Default: 'New'} }}</span>
+          <span class="mr-2">{{ 'PAC.INDICATOR.New' | translate: { Default: 'New' } }}</span>
         }
 
         @if (indicator.name) {
-          <span class="overflow-hidden text-ellipsis max-w-[200px]" [title]="indicator.name">{{indicator.name}}</span>
+          <span class="overflow-hidden text-ellipsis max-w-[200px]" [title]="indicator.name">{{ indicator.name }}</span>
         }
-        <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-tab-close" displayDensity="compact" (click)="removeOpenedLink(indicator)">
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          class="pac-tab-close"
+          displayDensity="compact"
+          (click)="removeOpenedLink(indicator)"
+        >
           <z-icon zType="cancel"></z-icon>
         </button>
       </span>
@@ -98,8 +131,11 @@
 </div>
 <z-divider></z-divider>
 
-<z-tab-nav-panel #tabPanel class="pac-page-body flex flex-col items-center"
-  [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path">
+<z-tab-nav-panel
+  #tabPanel
+  class="pac-page-body flex flex-col items-center"
+  [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path"
+>
   <router-outlet #o="outlet"></router-outlet>
 </z-tab-nav-panel>
 
@@ -107,7 +143,9 @@
   <div cdkMenu class="cdk-menu__medium">
     <button cdkMenuItem (click)="fileUpload.click()">
       <i class="ri-upload-2-line mr-1"></i>
-      <span class="whitespace-nowrap">{{ 'PAC.MENU.INDICATOR.BATCH_UPLOAD' | translate: {Default: "Batch Upload"} }}</span>
+      <span class="whitespace-nowrap">{{
+        'PAC.MENU.INDICATOR.BATCH_UPLOAD' | translate: { Default: 'Batch Upload' }
+      }}</span>
     </button>
 
     <div class="border-b border-solid border-divider-deep my-1"></div>
@@ -115,7 +153,7 @@
     <button cdkMenuItem (click)="startEmbedding()">
       <i class="ri-text-block mr-1"></i>
       <span class="whitespace-nowrap">
-        {{ 'PAC.Project.EmbeddingAll' | translate: {Default: "Embedding All"} }}
+        {{ 'PAC.Project.EmbeddingAll' | translate: { Default: 'Embedding All' } }}
       </span>
     </button>
   </div>

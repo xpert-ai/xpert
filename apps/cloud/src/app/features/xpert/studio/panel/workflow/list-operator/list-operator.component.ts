@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { StateVariableSelectComponent, XpertVariableInputComponent } from '@cloud/app/@shared/agent'
 import { XpertWorkflowConditionFormComponent } from '@cloud/app/@shared/workflow'
 import { NgmCheckboxComponent } from '@metad/ocap-angular/common'
@@ -17,8 +16,7 @@ import {
 } from 'apps/cloud/src/app/@core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workflow-list-operator',
   templateUrl: './list-operator.component.html',
@@ -27,7 +25,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
     FormsModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     NgmCheckboxComponent,
     StateVariableSelectComponent,

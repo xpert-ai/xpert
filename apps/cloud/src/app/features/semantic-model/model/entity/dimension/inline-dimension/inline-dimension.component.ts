@@ -4,23 +4,13 @@ import { CommonModule } from '@angular/common'
 import { Component, effect, inject, input, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { MatTreeFlatDataSource, MatTreeFlattener, MatTreeModule } from '@angular/material/tree'
 import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
-import {
-  AggregationRole,
-  assign,
-  DisplayBehaviour,
-  isNil,
-  isVisible,
-  omit,
-  PropertyDimension
-} from '@metad/ocap-core'
+import { AggregationRole, assign, DisplayBehaviour, isNil, isVisible, omit, PropertyDimension } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ModelEntityService } from '../../entity.service'
 import { mapDimensionToTreeItemNode, TreeItemFlatNode, TreeItemNode } from '../types'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-inline-dimension',
@@ -37,7 +27,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     MatTreeModule,
     ZardButtonComponent,
     ZardIconComponent,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmEntityPropertyComponent
   ]
 })
@@ -105,8 +95,8 @@ export class InlineDimensionComponent {
 
   /**
    * Click node to open attribute editor.
-   * 
-   * @param node 
+   *
+   * @param node
    */
   onSelect(node: TreeItemFlatNode) {
     this.cubeState.setSelectedProperty(node.role, node.id)

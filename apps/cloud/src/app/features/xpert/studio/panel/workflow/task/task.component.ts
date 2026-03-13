@@ -4,7 +4,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
 import { attrModel, linkedModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -21,6 +20,7 @@ import {
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-task',
@@ -28,7 +28,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   styleUrls: ['./task.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ClipboardModule, CdkMenuModule, MatTooltipModule, TranslateModule]
+  imports: [CommonModule, FormsModule, ClipboardModule, CdkMenuModule, ...ZardTooltipImports, TranslateModule]
 })
 export class XpertWorkflowTaskComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

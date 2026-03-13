@@ -3,18 +3,25 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TKBRecallParams } from '@metad/contracts'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  *
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MatTooltipModule, MatSliderModule, NgmDensityDirective],
+  imports: [
+    CommonModule,
+    CdkMenuModule,
+    FormsModule,
+    TranslateModule,
+    ...ZardTooltipImports,
+    MatSliderModule,
+    NgmDensityDirective
+  ],
   selector: 'knowledge-recall-params',
   templateUrl: 'recall-params.component.html',
   styleUrls: ['recall-params.component.scss'],

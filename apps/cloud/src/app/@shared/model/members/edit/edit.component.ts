@@ -12,7 +12,6 @@ import {
   signal
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { getErrorMessage } from '@cloud/app/@core'
 import { convertQueryResultColumns } from '@metad/core'
 import { NgmSpinComponent, NgmTableComponent } from '@metad/ocap-angular/common'
@@ -36,6 +35,7 @@ import { catchError, map, of, startWith } from 'rxjs'
 import { typeOfObj } from '../../types'
 import { animate, style, transition, trigger } from '@angular/animations'
 import { ModelStudioService } from '../../model.service'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -47,7 +47,7 @@ import { ModelStudioService } from '../../model.service'
     CommonModule,
     FormsModule,
     DragDropModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmTableComponent,
     TranslateModule,
     NgmEntityModule,
@@ -62,7 +62,7 @@ import { ModelStudioService } from '../../model.service'
       transition(':enter', [
         style({ transform: 'rotate(90deg)', opacity: 0 }),
         animate('100ms ease-out', style({ transform: 'rotate(0deg)', opacity: 1 }))
-      ]),
+      ])
     ])
   ]
 })
@@ -196,7 +196,7 @@ export class ModelMemberEditComponent {
 
   setFormula(formula: string) {
     this.member.update((member) => {
-      return {...member, formula }
+      return { ...member, formula }
     })
     this.close.emit()
   }

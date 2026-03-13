@@ -9,22 +9,22 @@ import {
   signal,
   viewChild
 } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { TMessageContentComplex, TMessageContentReasoning } from '@cloud/app/@core/types'
 import { CopyComponent } from '@cloud/app/@shared/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { TCopilotChatMessage } from '../types'
 import { listEnterAnimation } from '@metad/core'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, MarkdownModule, MatTooltipModule, CopyComponent],
+  imports: [CommonModule, TranslateModule, MarkdownModule, ...ZardTooltipImports, CopyComponent],
   selector: 'chat-thought',
   templateUrl: './thought.component.html',
   styleUrl: 'thought.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  animations: [ listEnterAnimation ]
+  animations: [listEnterAnimation]
 })
 export class ChatThoughtComponent {
   readonly message = input<TCopilotChatMessage>()
@@ -32,10 +32,14 @@ export class ChatThoughtComponent {
 
   // Reasoning
   readonly _content = computed(() => this.content() as TMessageContentReasoning)
-  readonly reasoning = computed(() => this.expandReason() ? (this._content() ? [this._content()] : this.message().reasoning) : [])
+  readonly reasoning = computed(() =>
+    this.expandReason() ? (this._content() ? [this._content()] : this.message().reasoning) : []
+  )
   readonly expandReason = signal(true)
 
-  readonly reasoningText = computed(() => (this._content() ? [this._content()] : this.message().reasoning)?.map(({text}) => text).join('\n\n'))
+  readonly reasoningText = computed(() =>
+    (this._content() ? [this._content()] : this.message().reasoning)?.map(({ text }) => text).join('\n\n')
+  )
 
   readonly status = computed(() => this.message()?.status)
 

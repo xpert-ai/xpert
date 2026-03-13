@@ -1,13 +1,31 @@
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, model, output, signal, viewChild } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  effect,
+  ElementRef,
+  inject,
+  input,
+  model,
+  output,
+  signal,
+  viewChild
+} from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatTooltipModule } from '@angular/material/tooltip'
+import { ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { Router, RouterModule } from '@angular/router'
-import { Attachment_Type_Options, AudioRecorderService, DateRelativePipe, injectToastr, IStorageFile, uuid } from '@cloud/app/@core'
+import {
+  Attachment_Type_Options,
+  AudioRecorderService,
+  DateRelativePipe,
+  injectToastr,
+  IStorageFile,
+  uuid
+} from '@cloud/app/@core'
 import { CopilotEnableModelComponent } from '@cloud/app/@shared/copilot'
 import { AppService } from '@cloud/app/app.service'
 import { FileTypePipe, OverlayAnimations } from '@metad/core'
@@ -29,7 +47,7 @@ import { FileIconComponent } from '@cloud/app/@shared/files'
     RouterModule,
     TranslateModule,
     ZardInputDirective,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmCommonModule,
     DateRelativePipe,
     CopilotEnableModelComponent,
@@ -59,8 +77,8 @@ export class ChatInputComponent {
   readonly asked = output<string>()
 
   // Chirldren
-  readonly attachTrigger = viewChild('attachTrigger', {read: CdkMenuTrigger})
-  readonly canvasRef = viewChild('waveCanvas', {read: ElementRef})
+  readonly attachTrigger = viewChild('attachTrigger', { read: CdkMenuTrigger })
+  readonly canvasRef = viewChild('waveCanvas', { read: ElementRef })
 
   // States
   readonly promptControl = new FormControl<string>(null)
@@ -85,7 +103,14 @@ export class ChatInputComponent {
     }
     const fileTypes = this.attachment()?.fileTypes
     if (fileTypes) {
-      return fileTypes.map((type) => Attachment_Type_Options.find((_) => _.key === type)?.value?.split(',').map((t) => `.${t.trim()}`)).flat().join(',')
+      return fileTypes
+        .map((type) =>
+          Attachment_Type_Options.find((_) => _.key === type)
+            ?.value?.split(',')
+            .map((t) => `.${t.trim()}`)
+        )
+        .flat()
+        .join(',')
     }
     return '*/*'
   })
@@ -94,7 +119,7 @@ export class ChatInputComponent {
   readonly attachments = this.chatService.attachments // model<{file?: File; url?: string; storageFile?: IStorageFile}[]>([])
   readonly recentAttachments = this.chatService.getRecentAttachmentsSignal()
   readonly url = model<string>(null)
-  readonly files = computed(() => this.attachments()?.map(({storageFile}) => storageFile))
+  readonly files = computed(() => this.attachments()?.map(({ storageFile }) => storageFile))
 
   constructor() {
     effect(() => {
@@ -139,7 +164,20 @@ export class ChatInputComponent {
     this.promptControl.setValue('')
 
     // Send message
-    this.chatService.chat({ id, content, files: this.files()?.map((file) => ({id: file.id, originalName: file.originalName, name: file.originalName, filePath: file.file, fileUrl: file.url, mimeType: file.mimetype, size: file.size, extension: file.originalName.split('.').pop()})) })
+    this.chatService.chat({
+      id,
+      content,
+      files: this.files()?.map((file) => ({
+        id: file.id,
+        originalName: file.originalName,
+        name: file.originalName,
+        filePath: file.file,
+        fileUrl: file.url,
+        mimeType: file.mimetype,
+        size: file.size,
+        extension: file.originalName.split('.').pop()
+      }))
+    })
 
     // Clear
     this.attachments.set([])
@@ -203,12 +241,14 @@ export class ChatInputComponent {
     this.attachments.update((state) => {
       while (state.length <= this.attachment_maxNum() && filesArray.length > 0) {
         if (state.length >= this.attachment_maxNum()) {
-          this.#toastr.error('PAC.Chat.AttachmentsMaxNumExceeded', '', {Default: 'Attachments exceed the maximum number allowed.'})
+          this.#toastr.error('PAC.Chat.AttachmentsMaxNumExceeded', '', {
+            Default: 'Attachments exceed the maximum number allowed.'
+          })
           return [...state]
         }
         const file = filesArray.shift()
         if (state.some((_) => _.file.name === file.name)) {
-          this.#toastr.error('PAC.Chat.AttachmentsAlreadyExists', '', {Default: 'Attachment already exists.'})
+          this.#toastr.error('PAC.Chat.AttachmentsAlreadyExists', '', { Default: 'Attachment already exists.' })
           continue
         }
         state.push({ file })
@@ -226,10 +266,12 @@ export class ChatInputComponent {
     this.attachments.update((state) => {
       if (!state?.some((attachment) => attachment.storageFile?.id === file.id)) {
         if (state.length >= this.attachment_maxNum()) {
-          this.#toastr.error('PAC.Chat.AttachmentsMaxNumExceeded', '', {Default: 'Attachments exceed the maximum number allowed.'})
+          this.#toastr.error('PAC.Chat.AttachmentsMaxNumExceeded', '', {
+            Default: 'Attachments exceed the maximum number allowed.'
+          })
           return state
         }
-        return [...state, {storageFile: file}]
+        return [...state, { storageFile: file }]
       }
       return state
     })

@@ -166,7 +166,7 @@
               <div class="flex justify-start items-start">
                 <z-switch
                   [ngModel]="parameter.visible"
-                  [matTooltip]="'PAC.Xpert.IsVisible' | translate: { Default: 'Is visible' }"
+                  [zTooltip]="'PAC.Xpert.IsVisible' | translate: { Default: 'Is visible' }"
                   (ngModelChange)="updateParameter(tool, parameter.name, { visible: $event })"
                   zSize="sm"
                 />

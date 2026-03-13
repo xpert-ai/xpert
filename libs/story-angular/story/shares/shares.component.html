@@ -91,7 +91,7 @@
           zSize="icon"
           zShape="circle"
           displayDensity="cosy"
-          [matTooltip]="'Story.Shares.CopyURL' | translate: { Default: 'Copy URL' }"
+          [zTooltip]="'Story.Shares.CopyURL' | translate: { Default: 'Copy URL' }"
           [disabled]="!applicationUrl()"
           (click)="copy(applicationUrl())"
         >

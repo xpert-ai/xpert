@@ -19,7 +19,7 @@
   <div class="flex items-center gap-2">
     @if (error()) {
       <div class="w-7 h-7 flex justify-center items-center">
-        <i class="ri-bug-line text-text-destructive" [matTooltip]="error()" matTooltipPosition="above"></i>
+        <i class="ri-bug-line text-text-destructive" [zTooltip]="error()" zPosition="top"></i>
       </div>
     }
     <button
@@ -292,7 +292,7 @@
             zSize="icon"
             zShape="circle"
             displayDensity="cosy"
-            [matTooltip]="'PAC.MODEL.VirtualCube.NewCalculatedMember' | translate: { Default: 'New Calculated Member' }"
+            [zTooltip]="'PAC.MODEL.VirtualCube.NewCalculatedMember' | translate: { Default: 'New Calculated Member' }"
             (click)="createCalculatedMember(); $event.stopPropagation()"
           >
             <z-icon zType="add_circle_outline"></z-icon>

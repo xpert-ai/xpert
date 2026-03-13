@@ -4,7 +4,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { XpertOutputVariablesEditComponent } from '@cloud/app/@shared/xpert'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
 import { attrModel, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
@@ -21,8 +20,7 @@ import {
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
-
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workflow-agent-tool',
   templateUrl: './tool.component.html',
@@ -34,7 +32,7 @@ import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
     FormsModule,
     ClipboardModule,
     CdkMenuModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     TranslateModule,
     NgmDensityDirective,
     XpertOutputVariablesEditComponent,

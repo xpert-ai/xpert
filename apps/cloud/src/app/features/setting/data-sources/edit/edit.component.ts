@@ -14,8 +14,7 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatTooltipModule } from '@angular/material/tooltip'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { environment } from '@cloud/environments/environment'
 import { DataSourceProtocolEnum, DataSourceService, DataSourceTypesService } from '@metad/cloud/state'
 import { NgmInputComponent, NgmRadioSelectComponent } from '@metad/ocap-angular/common'
@@ -46,7 +45,7 @@ import {
     DragDropModule,
     ZardInputDirective,
     ...ZardFormImports,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     ZardButtonComponent,
     FormlyModule,
     ContentLoaderModule,

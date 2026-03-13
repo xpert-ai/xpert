@@ -2,13 +2,28 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule, DatePipe } from '@angular/common'
-import { Component, computed, effect, inject, input, LOCALE_ID, model, signal, TemplateRef, viewChild } from '@angular/core'
+import {
+  Component,
+  computed,
+  effect,
+  inject,
+  input,
+  LOCALE_ID,
+  model,
+  signal,
+  TemplateRef,
+  viewChild
+} from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { saveAsYaml, uploadYamlFile } from '@metad/core'
 import { FORMLY_W_1_2 } from '@metad/formly'
-import { CdkConfirmDeleteComponent, CdkConfirmOptionsComponent, NgmCommonModule, TableColumn } from '@metad/ocap-angular/common'
+import {
+  CdkConfirmDeleteComponent,
+  CdkConfirmOptionsComponent,
+  NgmCommonModule,
+  TableColumn
+} from '@metad/ocap-angular/common'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -17,7 +32,7 @@ import { BehaviorSubject, combineLatest, EMPTY, map, pipe, switchMap } from 'rxj
 import { CopilotExampleService, getErrorMessage, ICopilotKnowledge, injectToastr, IXpert } from '../../../@core'
 import { userLabel } from '../../pipes'
 import { ActivatedRoute, Router } from '@angular/router'
-
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -27,7 +42,7 @@ import { ActivatedRoute, Router } from '@angular/router'
     TranslateModule,
     CdkMenuModule,
     CdkListboxModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmCommonModule
   ],
   selector: 'copilot-knowledges',
@@ -46,7 +61,7 @@ export class CopilotKnowledgesComponent {
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
   readonly locale = inject(LOCALE_ID)
-  readonly datePipe = new DatePipe(this.locale,)
+  readonly datePipe = new DatePipe(this.locale)
 
   // Inputs
   readonly xpert = input<Partial<IXpert>>()
@@ -57,7 +72,7 @@ export class CopilotKnowledgesComponent {
 
   // States
   readonly xpertName = computed(() => this.xpert()?.name)
-  
+
   readonly commandFilter = model<string>(null)
 
   readonly refreshFilter$ = new BehaviorSubject<void>(null)
@@ -79,22 +94,21 @@ export class CopilotKnowledgesComponent {
   )
 
   readonly refresh$ = new BehaviorSubject<void>(null)
-  
-  readonly items = toSignal(combineLatest([
-    toObservable(this.xpertName),
-    toObservable(this.commandFilter),
-    this.refresh$
-  ]).pipe(
-    switchMap(([xpertName, command,]) => {
-      return this.exampleService.getAll({
-        filter: {
-          role: xpertName,
-          command
-        },
-        relations: ['updatedBy']
+
+  readonly items = toSignal(
+    combineLatest([toObservable(this.xpertName), toObservable(this.commandFilter), this.refresh$]).pipe(
+      switchMap(([xpertName, command]) => {
+        return this.exampleService.getAll({
+          filter: {
+            role: xpertName,
+            command
+          },
+          relations: ['updatedBy']
+        })
       })
-    })
-  ), { initialValue: null })
+    ),
+    { initialValue: null }
+  )
 
   readonly loading = signal(true)
 
@@ -150,8 +164,6 @@ export class CopilotKnowledgesComponent {
     )
   )
 
-  
-
   constructor() {
     effect(
       () => {
@@ -190,7 +202,7 @@ export class CopilotKnowledgesComponent {
     }
 
     this.#dialog
-      .open<{clearRole: boolean}>(CdkConfirmOptionsComponent, {
+      .open<{ clearRole: boolean }>(CdkConfirmOptionsComponent, {
         data: {
           information: this.#translate.instant('PAC.Copilot.Examples.ConfirmOptionsForUploadExample', {
             Default: 'Please confirm the options for upload copilot examples'
@@ -219,12 +231,14 @@ export class CopilotKnowledgesComponent {
           ]
         }
       })
-      .closed
-      .pipe(
+      .closed.pipe(
         switchMap((options) => {
           if (options) {
             this.loading.set(true)
-            return this.exampleService.createBulk(examples.map((item) => ({...item, role: this.xpertName(), xpertId: this.xpert().id})), options)
+            return this.exampleService.createBulk(
+              examples.map((item) => ({ ...item, role: this.xpertName(), xpertId: this.xpert().id })),
+              options
+            )
           } else {
             return EMPTY
           }
@@ -269,11 +283,10 @@ export class CopilotKnowledgesComponent {
       .open(CdkConfirmDeleteComponent, {
         data: {
           value: id,
-          information: `${this.#translate.instant('PAC.Copilot.Examples.Input', {Default: 'Input'})}: ${input}`
+          information: `${this.#translate.instant('PAC.Copilot.Examples.Input', { Default: 'Input' })}: ${input}`
         }
       })
-      .closed
-      .pipe(
+      .closed.pipe(
         switchMap((confirm) => {
           if (confirm) {
             this.loading.set(true)

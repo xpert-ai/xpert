@@ -3,7 +3,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule, Location } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -24,6 +23,7 @@ import {
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { sortBy } from 'lodash-es'
 import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -34,7 +34,7 @@ import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat'
     RouterModule,
     CdkMenuModule,
     TranslateModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     NgmCommonModule,
     EmojiAvatarComponent,
     DateRelativePipe,
@@ -60,16 +60,24 @@ export class ChatTasksComponent {
   readonly refresh$ = this.#refresh$.pipe(debounceTime(5000), startWith(true))
   // Refresh immediately
   readonly _refresh = signal({})
-  readonly tasks = derivedAsync(() => this._refresh() &&
-    this.refresh$.pipe(
-      switchMap(() => this.taskService.getMyAll({ relations: ['xpert', 'conversations'], order: { updatedAt: OrderTypeEnum.DESC } })),
-      map(({ items }) => items)
-    )
+  readonly tasks = derivedAsync(
+    () =>
+      this._refresh() &&
+      this.refresh$.pipe(
+        switchMap(() =>
+          this.taskService.getMyAll({ relations: ['xpert', 'conversations'], order: { updatedAt: OrderTypeEnum.DESC } })
+        ),
+        map(({ items }) => items)
+      )
   )
 
-  readonly scheduledTasks = derivedAsync(() => this.tasks()?.filter((task) => task.status === ScheduleTaskStatus.SCHEDULED))
+  readonly scheduledTasks = derivedAsync(() =>
+    this.tasks()?.filter((task) => task.status === ScheduleTaskStatus.SCHEDULED)
+  )
   readonly pausedTasks = derivedAsync(() => this.tasks()?.filter((task) => task.status === ScheduleTaskStatus.PAUSED))
-  readonly archivedTasks = derivedAsync(() => this.tasks()?.filter((task) => task.status === ScheduleTaskStatus.ARCHIVED))
+  readonly archivedTasks = derivedAsync(() =>
+    this.tasks()?.filter((task) => task.status === ScheduleTaskStatus.ARCHIVED)
+  )
 
   // Details
   readonly taskId = signal<string>(null)
@@ -80,13 +88,15 @@ export class ChatTasksComponent {
       const taskId = request.id
       return taskId
         ? this.taskService.getOneById(taskId, {
-            relations: ['xpert', 'conversations'],
+            relations: ['xpert', 'conversations']
           })
         : of(null)
     }
   })
   readonly taskHistory = this.#taskDetail.value
-  readonly historyConversations = computed(() => this.taskHistory()?.conversations ? sortBy(this.taskHistory()?.conversations, 'updatedAt').reverse() : [])
+  readonly historyConversations = computed(() =>
+    this.taskHistory()?.conversations ? sortBy(this.taskHistory()?.conversations, 'updatedAt').reverse() : []
+  )
   readonly taskDetailLoading = computed(() => this.#taskDetail.status() === 'loading')
 
   readonly loading = signal(false)
@@ -186,7 +196,7 @@ export class ChatTasksComponent {
   newTask() {
     this.dialog
       .open<IXpertTask>(XpertTaskDialogComponent, {
-        data: {total: this.scheduledTasks()?.length},
+        data: { total: this.scheduledTasks()?.length },
         disableClose: true,
         backdropClass: 'xp-overlay-share-sheet',
         panelClass: 'xp-overlay-pane-share-sheet'

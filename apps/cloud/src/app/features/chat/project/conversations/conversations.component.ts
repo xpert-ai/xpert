@@ -2,7 +2,6 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { Router, RouterModule } from '@angular/router'
 import {
   DateRelativePipe,
@@ -18,6 +17,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { of, startWith } from 'rxjs'
 import { ChatProjectHomeComponent } from '../home/home.component'
 import { ChatProjectComponent } from '../project.component'
+import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 /**
  *
@@ -30,7 +30,7 @@ import { ChatProjectComponent } from '../project.component'
     CdkMenuModule,
     TranslateModule,
     ContentLoaderModule,
-    MatTooltipModule,
+    ...ZardTooltipImports,
     UserPipe,
     DateRelativePipe
   ],

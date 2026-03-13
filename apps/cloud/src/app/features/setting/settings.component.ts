@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { MatTooltipModule } from '@angular/material/tooltip'
 import { RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -19,11 +18,10 @@ import {
   routeAnimations
 } from '../../@core'
 import { AppService } from '../../app.service'
-import { ZardIconComponent } from '@xpert-ai/headless-ui'
-
+import { ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterModule, MatTooltipModule, ZardIconComponent, TranslateModule, NgmCommonModule],
+  imports: [CommonModule, RouterModule, ...ZardTooltipImports, ZardIconComponent, TranslateModule, NgmCommonModule],
   selector: 'pac-settings',
   templateUrl: `settings.component.html`,
   styleUrl: './settings.component.scss',
@@ -87,10 +85,7 @@ export class PACSettingComponent {
         icon: 'mms',
         data: {
           permissionKeys: [AIPermissionsEnum.XPERT_EDIT],
-          featureKey: [
-            AiFeatureEnum.FEATURE_XPERT,
-            AnalyticsFeatures.FEATURE_MODEL
-          ]
+          featureKey: [AiFeatureEnum.FEATURE_XPERT, AnalyticsFeatures.FEATURE_MODEL]
         }
       },
       {
