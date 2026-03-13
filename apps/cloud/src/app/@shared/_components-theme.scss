@@ -141,11 +141,13 @@
   //   @apply bg-gray-400/20;
   // }
 
-  .mat-accordion.ngm-density__compact {
-    .mat-expansion-panel-header:not(.mat-expanded) {
-      height: 38px;
+  [data-slot='accordion'].ngm-density__compact,
+  .ngm-density__compact [data-slot='accordion'] {
+    [data-slot='accordion-header'][data-state='closed'] {
+      min-height: 38px;
     }
-    .mat-expansion-panel-header {
+
+    [data-slot='accordion-header'] {
       padding: 0 14px;
     }
   }
@@ -169,13 +171,13 @@
   }
 
   .metad-formly-accordion {
-    .mat-expansion-panel-header-description {
+    [data-slot='accordion-description'] {
       margin-right: 0;
     }
   }
 
   .metad-formly-expansion {
-    .mat-expansion-panel-header > .mat-content {
+    [data-slot='accordion-header-content'] {
       overflow: visible;
     }
   }

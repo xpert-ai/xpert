@@ -19,16 +19,16 @@
     {{ 'PAC.Copilot.CustomCopilots' | translate: { Default: 'Custom Copilots' } }}
   </div>
 }
-<mat-accordion>
-  <mat-expansion-panel
-    #expansion
+<z-accordion>
+  <z-accordion-item
+    #expansion="zAccordionItem"
     hideToggle
-    class="mat-elevation-z"
+    class="mat-elevation-z rounded-[1rem]"
     [disabled]="!primary()?.enabled"
     [expanded]="!!primary()?.enabled"
   >
-    <mat-expansion-panel-header>
-      <mat-panel-title>
+    <z-accordion-header>
+      <z-accordion-title>
         @if (primary(); as copilot) {
           @if (copilot.modelProvider?.provider && !expansion.expanded) {
             <div class="flex" [zTooltip]="copilot.id" zPosition="left">
@@ -55,8 +55,8 @@
           {{ 'PAC.KEY_WORDS.Primary' | translate: { Default: 'Primary' } }}
           {{ 'PAC.KEY_WORDS.Provider' | translate: { Default: 'Provider' } }}
         </div>
-      </mat-panel-title>
-      <mat-panel-description class="flex-1">
+      </z-accordion-title>
+      <z-accordion-description class="!flex-none">
         <z-switch
           labelPosition="before"
           [zTooltip]="'PAC.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
@@ -67,16 +67,16 @@
           zSize="sm"
         >
         </z-switch>
-      </mat-panel-description>
-    </mat-expansion-panel-header>
+      </z-accordion-description>
+    </z-accordion-header>
 
     <pac-copilot-form [copilot]="primary()" />
-  </mat-expansion-panel>
+  </z-accordion-item>
 
   @for (copilot of copilots(); track copilot.id) {
-    <mat-expansion-panel #expansion hideToggle class="mat-elevation-z" [disabled]="!copilot.enabled">
-      <mat-expansion-panel-header>
-        <mat-panel-title>
+    <z-accordion-item #expansion="zAccordionItem" hideToggle class="mat-elevation-z rounded-[1rem]" [disabled]="!copilot.enabled">
+      <z-accordion-header>
+        <z-accordion-title>
           <div [zTooltip]="copilot.id" zPosition="left" class="flex">
             @if (copilot.modelProvider?.provider && !expansion.expanded) {
               @if (copilot.modelProvider.provider.icon_large) {
@@ -98,7 +98,7 @@
             }
           </div>
 
-          <div class="flex justify-start items-center ml-2">
+          <div class="ml-2 flex items-center justify-start">
             @if (editingId() === copilot.id) {
               <input
                 class="flex-1 bg-transparent focus-visible:outline-none bg-white"
@@ -130,8 +130,8 @@
               </div>
             }
           </div>
-        </mat-panel-title>
-        <mat-panel-description class="flex-1">
+        </z-accordion-title>
+        <z-accordion-description class="!flex-none">
           <z-switch
             labelPosition="before"
             [zTooltip]="'PAC.Copilot.EnableCopilot' | translate: { Default: 'Enable Copilot' }"
@@ -153,13 +153,13 @@
               <i class="ri-close-line"></i>
             </button>
           }
-        </mat-panel-description>
-      </mat-expansion-panel-header>
+        </z-accordion-description>
+      </z-accordion-header>
 
       <pac-copilot-form [copilot]="copilot" />
-    </mat-expansion-panel>
+    </z-accordion-item>
   }
-</mat-accordion>
+</z-accordion>
 
 <div class="flex justify-end mt-2">
   <button type="button" class="btn btn-primary btn-large pressable" [cdkMenuTriggerFor]="addMenu">

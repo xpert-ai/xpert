@@ -35,18 +35,18 @@
 
 <div class="pac-model-access-cube__hierarchy-list">
 
-    <mat-accordion class="pac-model__accordion">
-        <mat-expansion-panel hideToggle class="mat-elevation-z" [class.pac-model-access__hierarchy-hidden]="hierarchyGrant.access===Access.none"
+    <z-accordion class="pac-model__accordion">
+        <z-accordion-item hideToggle class="mat-elevation-z bg-[var(--ngm-color-surface-container-low)]" [class.pac-model-access__hierarchy-hidden]="hierarchyGrant.access===Access.none"
             *ngFor="let hierarchyGrant of hierarchyGrants$ | async; trackBy: trackByName"
             [disabled]="hierarchyGrant.access===Access.none"
             [expanded]="hierarchyGrant.access!==Access.none"
             (opened)="openedHierarchy(hierarchyGrant.hierarchy)"
         >
-            <mat-expansion-panel-header>
-                <mat-panel-title class="text-base">
+            <z-accordion-header class="pl-6">
+                <z-accordion-title class="text-base">
                     <ngm-display-behaviour [option]="{value: hierarchyGrant.hierarchy, label: hierarchyGrant.caption}"></ngm-display-behaviour>
-                </mat-panel-title>
-                <mat-panel-description class="flex justify-end items-center gap-4 text-base">
+                </z-accordion-title>
+                <z-accordion-description class="flex justify-end items-center gap-4 text-base">
                     <div class="flex justify-end items-center gap-2">
                         <span class="whitespace-nowrap hidden md:inline-block">
                             {{ 'PAC.MODEL.AccessControl.RollupPolicy' | translate: {Default: 'Rollup Policy'} }}:
@@ -79,8 +79,8 @@
                     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeHierarchy(hierarchyGrant.hierarchy)">
                         <z-icon zType="cancel"></z-icon>
                     </button>
-                </mat-panel-description>
-            </mat-expansion-panel-header>
+                </z-accordion-description>
+            </z-accordion-header>
             <ng-container *ngIf="hierarchyGrant.access===Access.custom">
                 <div class="w-full flex justify-start items-center gap-4">
                     <div class="pac-model-access__level pac-cdk-drop__list pac-cdk-drop__area flex-1 flex items-center h-8"
@@ -180,8 +180,8 @@
           </ul>
         </div>
       </ng-container>
-    </mat-expansion-panel>
-  </mat-accordion>
+    </z-accordion-item>
+  </z-accordion>
 
   <div
     class="pac-cdk-drop__list pac-cdk-drop__area h-52 min-h-[120px] w-full mt-4 border-2 border-dashed rounded-lg"

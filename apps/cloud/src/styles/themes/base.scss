@@ -2,10 +2,6 @@
   --ngm-primary-container-rounded: 0; // @deprecated
 }
 
-:root .default, :root .light, :root .dark {
-  --mat-expansion-container-background-color: var(--ngm-color-surface-container-low);
-}
-
 :root .default, :root .light {
   --radius: 0.625rem;
   --radius-sm: calc(var(--radius) - 4px);

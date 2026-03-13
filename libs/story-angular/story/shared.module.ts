@@ -7,6 +7,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialogModule } from '@angular/material/dialog'
 import {
+  ZardAccordionImports,
   ZardButtonComponent,
   ZardCardImports,
   ZardFormImports,
@@ -21,7 +22,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTableModule } from '@angular/material/table'
-import { MatExpansionModule } from '@angular/material/expansion'
 
 const MAT_MODULES = [
   ZardIconComponent,
@@ -41,7 +41,7 @@ const MAT_MODULES = [
   LayoutModule,
   MatProgressSpinnerModule,
   ...ZardCardImports,
-  MatExpansionModule
+  ...ZardAccordionImports
 ]
 @NgModule({
   declarations: [],

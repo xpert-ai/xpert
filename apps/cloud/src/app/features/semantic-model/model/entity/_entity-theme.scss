@@ -14,13 +14,13 @@
   @include dimension.color($config-or-theme);
   
   .pac-model-entity__cube {
-    .mat-expansion-panel-header-title,
-    .mat-expansion-panel-header-description {
+    [data-slot='accordion-title'],
+    [data-slot='accordion-description'] {
       margin-right: unset;
       white-space: nowrap;
     }
 
-    .mat-expansion-panel-header-description {
+    [data-slot='accordion-description'] {
       justify-content: flex-end;
     }
 

@@ -3,7 +3,6 @@ import { Component, computed, effect, inject, model, signal, viewChild, ViewCont
 import { FormsModule } from '@angular/forms'
 
 import { MatDialog } from '@angular/material/dialog'
-import { MatExpansionModule } from '@angular/material/expansion'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { CdkConfirmDeleteComponent, NgmCheckboxComponent } from '@metad/ocap-angular/common'
@@ -32,7 +31,7 @@ import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { SemanticModelService } from '../../model.service'
 import { ModelMembersRetrievalTestingComponent } from '../retrieval/retrieval.component'
 import { ModelTaskDialogComponent } from '../task/task.component'
-import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardAccordionImports, ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -40,7 +39,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpe
     FormsModule,
     TranslateModule,
     ZardIconComponent,
-    MatExpansionModule,
+    ...ZardAccordionImports,
     ZardButtonComponent,
     ...ZardTooltipImports,
     MatProgressSpinnerModule,

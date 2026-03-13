@@ -3,12 +3,12 @@ import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import {
+  ZardAccordionImports,
   ZardButtonComponent,
   ZardDividerComponent,
   ZardIconComponent,
   ZardSwitchComponent
 } from '@xpert-ai/headless-ui'
-import { MatExpansionModule } from '@angular/material/expansion'
 import { FormlyModule } from '@ngx-formly/core'
 import { NgmDensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -25,7 +25,7 @@ import { NgmFormlyAccordionComponent } from './accordion-wrapper.component'
     ZardButtonComponent,
     ZardDividerComponent,
     ZardSwitchComponent,
-    MatExpansionModule,
+    ...ZardAccordionImports,
     NgmDensityDirective,
     FormlyModule.forChild({
       types: [

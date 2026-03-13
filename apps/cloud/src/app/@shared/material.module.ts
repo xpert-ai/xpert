@@ -6,6 +6,7 @@ import { MatChipsModule } from '@angular/material/chips'
 import { MatNativeDateModule } from '@angular/material/core'
 import { MatDialogModule } from '@angular/material/dialog'
 import {
+  ZardAccordionImports,
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
@@ -18,7 +19,6 @@ import {
   ZardCheckboxComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { MatExpansionModule } from '@angular/material/expansion'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatStepperModule } from '@angular/material/stepper'
@@ -41,7 +41,7 @@ const MATERIAL_MODULES = [
   ZardInputDirective,
   MatSidenavModule,
   ZardCheckboxComponent,
-  MatExpansionModule,
+  ...ZardAccordionImports,
   MatAutocompleteModule,
   MatChipsModule,
   ...ZardTooltipImports,

@@ -57,12 +57,18 @@
         }
       </div>
     }
-    <mat-accordion class="flex-1" displayDensity="compact" displayMode="flat" togglePosition="before" [multi]="true">
-      <mat-expansion-panel class="mat-elevation-z" [expanded]="true">
-        <mat-expansion-panel-header>
-          <mat-panel-title>
+    <z-accordion
+      class="flex-1 overflow-y-auto"
+      displayDensity="compact"
+      displayMode="flat"
+      togglePosition="before"
+      [multi]="true"
+    >
+      <z-accordion-item class="mat-elevation-z bg-transparent" [expanded]="true">
+        <z-accordion-header>
+          <z-accordion-title>
             {{ 'PAC.MODEL.ENTITY.CALCULATION.ROWS' | translate: { Default: 'Rows' } }}
-          </mat-panel-title>
+          </z-accordion-title>
 
           <div class="flex justify-end items-center">
             <button
@@ -70,13 +76,14 @@
               zType="ghost"
               zSize="icon"
               zShape="circle"
+              class="opacity-60"
               displayDensity="cosy"
               (click)="$event.stopPropagation(); $event.preventDefault(); add('rows')"
             >
               <z-icon zType="add"></z-icon>
             </button>
           </div>
-        </mat-expansion-panel-header>
+        </z-accordion-header>
 
         <div
           [id]="eCdkDragDropContainers.PreviewRows"
@@ -120,25 +127,26 @@
             </div>
           }
         </div>
-      </mat-expansion-panel>
-      <mat-expansion-panel class="mat-elevation-z" [expanded]="true">
-        <mat-expansion-panel-header>
-          <mat-panel-title>
+      </z-accordion-item>
+      <z-accordion-item class="mat-elevation-z bg-transparent" [expanded]="true">
+        <z-accordion-header>
+          <z-accordion-title>
             {{ 'PAC.MODEL.ENTITY.CALCULATION.COLUMNS' | translate: { Default: 'Columns' } }}
-          </mat-panel-title>
+          </z-accordion-title>
           <div class="flex justify-end items-center">
             <button
               z-button
               zType="ghost"
               zSize="icon"
               zShape="circle"
+              class="opacity-60"
               displayDensity="cosy"
               (click)="$event.stopPropagation(); $event.preventDefault(); add('columns')"
             >
               <z-icon zType="add"></z-icon>
             </button>
           </div>
-        </mat-expansion-panel-header>
+        </z-accordion-header>
         <div
           [id]="eCdkDragDropContainers.PreviewColumns"
           class="pac-cdk-drop__list flex flex-col pb-2"
@@ -180,19 +188,19 @@
             </div>
           }
         </div>
-      </mat-expansion-panel>
+      </z-accordion-item>
 
-      <mat-expansion-panel class="mat-elevation-z" [expanded]="true">
-        <mat-expansion-panel-header>
-          <mat-panel-title>
+      <z-accordion-item class="mat-elevation-z bg-transparent" [expanded]="true">
+        <z-accordion-header>
+          <z-accordion-title>
             {{ 'PAC.MODEL.ENTITY.CALCULATION.FILTERS' | translate: { Default: 'Slicers' } }}
-          </mat-panel-title>
+          </z-accordion-title>
           <div class="flex justify-end items-center">
             <!-- <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="$event.stopPropagation();$event.preventDefault();newSlicer()">
               <z-icon zType="add"></z-icon>
             </button> -->
           </div>
-        </mat-expansion-panel-header>
+        </z-accordion-header>
 
         <div
           id="property-modeling-slicers"
@@ -228,8 +236,8 @@
             </ngm-smart-filter>
           }
         </div>
-      </mat-expansion-panel>
-    </mat-accordion>
+      </z-accordion-item>
+    </z-accordion>
   </ngm-splitter-pane>
   <ngm-splitter-pane size="auto" class="flex-1 flex">
     <ngm-analytical-grid

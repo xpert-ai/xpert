@@ -72,7 +72,8 @@
     .ngm-mdx-cube__add {
       visibility: hidden;
     }
-    .cdk-tree-node.mat-tree-node, .mat-expansion-panel-header {
+    .cdk-tree-node.mat-tree-node,
+    [data-slot='accordion-header'] {
       &:hover {
         .ngm-mdx-cube__add {
           visibility: visible;
@@ -90,7 +91,7 @@
       }
     }
 
-    .mat-expansion-panel {
+    [data-slot='accordion-item'] {
       .mat-mdc-list-item {
         .mat-mdc-list-item-content {
           padding-left: 20px;

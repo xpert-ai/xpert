@@ -1,16 +1,16 @@
-<mat-accordion>
+<z-accordion>
   @for (feature of features$ | async; track feature.code) {
-    <mat-expansion-panel hideToggle class="mat-elevation-z group/item" [disabled]="!enabledFeature(feature)">
-      <mat-expansion-panel-header>
-        <mat-panel-title>
+    <z-accordion-item hideToggle class="mat-elevation-z group/item rounded-[1rem]" [disabled]="!enabledFeature(feature)">
+      <z-accordion-header>
+        <z-accordion-title>
           <span>
             {{ 'PAC.Feature.Features.' + feature.code + '.Name' | translate: { Default: feature.name } }}
           </span>
-        </mat-panel-title>
+        </z-accordion-title>
 
-        <mat-panel-description class="flex justify-end items-center">
+        <z-accordion-description class="flex justify-end items-center">
           {{ 'PAC.Feature.Features.' + feature.code + '.Description' | translate: { Default: feature.description } }}
-        </mat-panel-description>
+        </z-accordion-description>
 
         <button
           type="button"
@@ -21,7 +21,7 @@
         >
           <i class="ri-more-line"></i>
         </button>
-      </mat-expansion-panel-header>
+      </z-accordion-header>
 
       @if (feature.children?.length > 0) {
         <ul role="list" class="ngm-list">
@@ -39,7 +39,7 @@
           }
         </ul>
       }
-    </mat-expansion-panel>
+    </z-accordion-item>
 
     <ng-template #menu>
       <div cdkMenu class="cdk-menu__large">
@@ -57,7 +57,7 @@
       </div>
     </ng-template>
   }
-</mat-accordion>
+</z-accordion>
 
 @if (loading()) {
   <div class="absolute left-0 top-0 w-full h-full flex justify-center items-center">

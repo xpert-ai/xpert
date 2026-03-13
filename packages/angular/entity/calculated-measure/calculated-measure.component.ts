@@ -17,7 +17,6 @@ import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialog } from '@angular/material/dialog'
-import { MatExpansionModule } from '@angular/material/expansion'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { NgmCommonModule, NgmHighlightDirective, ResizerModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
@@ -43,7 +42,7 @@ import { NgmEntitySchemaComponent } from '../entity-schema/entity-schema.compone
 import { EntityCapacity } from '../entity-schema/types'
 import { NgmEntityPropertyComponent } from '../property/property.component'
 import { Dialog } from '@angular/cdk/dialog'
-import { ZardButtonComponent, ZardIconComponent, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardAccordionImports, ZardButtonComponent, ZardIconComponent, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -56,7 +55,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardTabsImports, ZardTooltipImp
     ZardIconComponent,
     ZardButtonComponent,
     ...ZardTooltipImports,
-    MatExpansionModule,
+    ...ZardAccordionImports,
     TranslateModule,
     MarkdownModule,
 

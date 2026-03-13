@@ -16,11 +16,11 @@
   </div>
 </div>
 
-<mat-accordion multi class="px-4 py-2">
+<z-accordion multi class="px-4 py-2">
   @for (cube of allCubes(); track cube.name) {
     <pac-model-members-cube [cube]="cube" />
   }
-</mat-accordion>
+</z-accordion>
 
 @if (loading()) {
   <ngm-spin class="absolute top-0 left-0 w-full h-full" />

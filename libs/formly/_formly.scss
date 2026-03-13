@@ -2,10 +2,10 @@
 .ngm-formly-accordion,
 .ngm-formly-expansion,
 .metad-formly-expansion {
-  .mat-expansion-panel-header-title {
+  [data-slot='accordion-title'] {
     @apply text-base;
   }
-  .mat-expansion-panel-header-description {
+  [data-slot='accordion-description'] {
     flex-grow: 1;
   }
 }

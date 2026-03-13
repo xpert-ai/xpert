@@ -26,14 +26,14 @@
     </ng-container>
   </div>
 
-  <mat-accordion hideToggle formArrayName="ranges" displayDensity="cosy" class="">
-    <mat-expansion-panel *ngFor="let range of ranges.controls; let i = index" [formGroupName]="i">
-      <mat-expansion-panel-header class="pr-0">
-        <mat-panel-title>
+  <z-accordion hideToggle formArrayName="ranges" displayDensity="cosy" class="">
+    <z-accordion-item *ngFor="let range of ranges.controls; let i = index" [formGroupName]="i">
+      <z-accordion-header class="pr-0">
+        <z-accordion-title>
           {{ 'Ngm.TimeFilter.RANGE' | translate: { Default: 'Range' } }} {{ i + 1 }}: {{ range.value.result?.[0] }} -
           {{ range.value.result?.[1] }}
-        </mat-panel-title>
-        <mat-panel-description class="">
+        </z-accordion-title>
+        <z-accordion-description class="">
           <button
             z-button
             zType="ghost"
@@ -44,8 +44,8 @@
           >
             <z-icon zType="close"></z-icon>
           </button>
-        </mat-panel-description>
-      </mat-expansion-panel-header>
+        </z-accordion-description>
+      </z-accordion-header>
 
       <div class="flex flex-wrap gap-2">
         <z-form-field appearance="fill">
@@ -120,8 +120,8 @@
           <input z-input formControlName="amount" type="number" />
         </z-form-field>
       </div>
-    </mat-expansion-panel>
-  </mat-accordion>
+    </z-accordion-item>
+  </z-accordion>
 
   <button
     z-button
