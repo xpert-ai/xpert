@@ -15,6 +15,7 @@ import {
   ZardCardImports,
   ZardIconComponent,
   ZardToggleGroupComponent, 
+  ZardToggleGroupItemComponent,
   ZardTooltipImports 
 } from '@xpert-ai/headless-ui'
 

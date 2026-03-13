@@ -105,10 +105,10 @@
             <div>{{ 'PAC.MENU.DATA_SOURCES.AuthType' | translate: {Default: 'Auth Type'} }}</div>
             <z-toggle-group formControlName="authType" name="authType" ngmAppearance="outline" displayDensity="compact" color="accent">
               <z-toggle-group-item [value]="null"
-                [matTooltip]="'PAC.MENU.DATA_SOURCES.AuthType_None_Description' | translate: {Default: 'Unified system authorization, no need for users to provide accounts.'}"
+                [zTooltip]="'PAC.MENU.DATA_SOURCES.AuthType_None_Description' | translate: {Default: 'Unified system authorization, no need for users to provide accounts.'}"
               >{{ 'PAC.MENU.DATA_SOURCES.AuthType_None' | translate: {Default: 'None'} }}</z-toggle-group-item>
               <z-toggle-group-item [value]="AuthenticationEnum.BASIC"
-                [matTooltip]="'PAC.MENU.DATA_SOURCES.AuthType_Basic_Description' | translate: {Default: 'Users need to provide an account for authorization.'}"
+                [zTooltip]="'PAC.MENU.DATA_SOURCES.AuthType_Basic_Description' | translate: {Default: 'Users need to provide an account for authorization.'}"
               >{{ 'PAC.MENU.DATA_SOURCES.AuthType_Basic' | translate: {Default: 'Basic'} }}</z-toggle-group-item>
             </z-toggle-group>
           </div>

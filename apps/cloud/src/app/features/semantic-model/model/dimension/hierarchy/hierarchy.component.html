@@ -129,10 +129,10 @@
               </z-checkbox>
             }
             <z-toggle-group [(ngModel)]="viewMode" ngmAppearance="outline" color="accent">
-              <z-toggle-group-item value="table" [matTooltip]="'PAC.KEY_WORDS.Table' | translate: { Default: 'Table' }">
+              <z-toggle-group-item value="table" [zTooltip]="'PAC.KEY_WORDS.Table' | translate: { Default: 'Table' }">
                 <z-icon zSize="sm" class="opacity-50" zType="table_view"></z-icon>
               </z-toggle-group-item>
-              <z-toggle-group-item value="tree" [matTooltip]="'PAC.KEY_WORDS.Tree' | translate: { Default: 'Tree' }">
+              <z-toggle-group-item value="tree" [zTooltip]="'PAC.KEY_WORDS.Tree' | translate: { Default: 'Tree' }">
                 <z-icon zSize="sm" class="opacity-50" zType="account_tree"></z-icon>
               </z-toggle-group-item>
             </z-toggle-group>

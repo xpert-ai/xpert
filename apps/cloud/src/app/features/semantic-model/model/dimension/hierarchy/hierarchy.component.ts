@@ -75,7 +75,7 @@ import {
   ZardCheckboxComponent,
   ZardIconComponent,
   ZardToggleGroupComponent,
-  ZardTooltipImports
+  ZardTooltipImports,
   ZardToggleGroupItemComponent
 } from '@xpert-ai/headless-ui'
 

@@ -216,107 +216,105 @@
                     [chartType]="chartType()"
                   />
 
-                          <ngm-chart-type-form class="text-sm" displayDensity="compact" [(ngModel)]="chartTypeChartOptions"
-                            [chartType]="chartType()" />
-                        }
-                        @case (ComponentType.AnalyticalGrid) {
-                          <ngm-grid-settings class="w-full text-sm" displayDensity="compact"
-                            [(ngModel)]="gridSettings"
-                          />
-                        }
-                      }
-                    </z-tab>
-                </z-tab-group>
-            </div>
-          }
-          @case ('visual') {
-            <div class="surface h-full rounded-xl flex flex-col justify-start items-stretch overflow-auto">
-              @for (group of charts; track group.label) {
-                <div>
-                    <div class="text-sm p-2">
-                        {{'Story.Chart.' + group.label | translate: {Default: group.label} }}
-                    </div>
-                    <div class="grid grid-cols-4 gap-2">
-                      @for (chart of group.charts; track chart.label) {
-                        <button class="ngm-story-explorer__chart m-2 flex flex-col justify-center items-center rounded-lg overflow-hidden
-                            ring-offset-2 ring-offset-transparent ring-2 ring-transparent hover:ring-violet-300 focus:ring-violet-500"
-                            [matTooltip]="'Story.Chart.' + chart.label | translate: {Default: chart.label}"
-                            matTooltipPosition="above"
-                            draggable="true"
-                            [class.selected]="component().label === chart.label"
-                            (click)="createWidget({
-                                label: chart.label,
-                                component: ComponentType.AnalyticalCard,
-                                dataSettings: {
-                                    chartAnnotation: chart.value
-                                }
-                            })"
-                        >
-                            <img [src]="'/assets/icons/charts/' + chart.icon" class="w-12 h-12" alt="{{chart.label}}"
-                                [ngStyle]="{
-                                    transform: chart.rotate ? 'rotate(90deg)' : 'none'
-                                }"
-                            >
-                            <div class="text-xs">{{ 'Story.Chart.' + chart.label | translate: {Default: chart.label} }}</div>
-                        </button>
-                      }
-                    </div>
-                </div>
+                  <ngm-chart-type-form
+                    class="text-sm"
+                    displayDensity="compact"
+                    [(ngModel)]="chartTypeChartOptions"
+                    [chartType]="chartType()"
+                  />
+                }
+                @case (ComponentType.AnalyticalGrid) {
+                  <ngm-grid-settings class="w-full text-sm" displayDensity="compact" [(ngModel)]="gridSettings" />
+                }
               }
+            </z-tab>
+          </z-tab-group>
+        </div>
+      }
+      @case ('visual') {
+        <div class="surface h-full rounded-xl flex flex-col justify-start items-stretch overflow-auto">
+          @for (group of charts; track group.label) {
+            <div>
+              <div class="text-sm p-2">
+                {{ 'Story.Chart.' + group.label | translate: { Default: group.label } }}
+              </div>
+              <div class="grid grid-cols-4 gap-2">
+                @for (chart of group.charts; track chart.label) {
+                  <button
+                    class="ngm-story-explorer__chart m-2 flex flex-col justify-center items-center rounded-lg overflow-hidden ring-offset-2 ring-offset-transparent ring-2 ring-transparent hover:ring-violet-300 focus:ring-violet-500"
+                    [zTooltip]="'Story.Chart.' + chart.label | translate: { Default: chart.label }"
+                    zPosition="top"
+                    draggable="true"
+                    [class.selected]="component().label === chart.label"
+                    (click)="
+                      createWidget({
+                        label: chart.label,
+                        component: ComponentType.AnalyticalCard,
+                        dataSettings: {
+                          chartAnnotation: chart.value
+                        }
+                      })
+                    "
+                  >
+                    <img
+                      [src]="'/assets/icons/charts/' + chart.icon"
+                      class="w-12 h-12"
+                      alt="{{ chart.label }}"
+                      [ngStyle]="{
+                        transform: chart.rotate ? 'rotate(90deg)' : 'none'
+                      }"
+                    />
+                    <div class="text-xs">{{ 'Story.Chart.' + chart.label | translate: { Default: chart.label } }}</div>
+                  </button>
+                }
+              </div>
             </div>
-          }
-        }
-    </div>
-    <div class="surface flex-1 min-h-[600px] rounded-xl flex flex-col justify-center items-center overflow-hidden
-      lg:max-h-full lg:min-h-full">
-        <div class="flex-1 w-full overflow-hidden">
-          @switch (view) {
-            @case ('chart') {
-              <ngm-analytical-card class="w-full h-full group"
-                [title]="chartTitle()"
-                [dataSettings]="dataSettingsChart()"
-                [chartOptions]="chartSettings.chartOptions"
-                [chartSettings]="chartSettings.chartSettings"
-                (explain)="setExplains($event)"
-                >
-              </ngm-analytical-card>
-            }
-            @case ('table') {
-              <ngm-analytical-grid class="w-full h-full group overflow-auto"
-                [title]="chartTitle()"
-                [dataSettings]="dataSettingsGrid()"
-                [appearance]="{
-                  displayDensity: DisplayDensity.compact
-                }"
-                [options]="gridSettings.options"
-                (explain)="setExplains($event)"
-              ></ngm-analytical-grid>
-            }
           }
         </div>
-        <z-divider class="w-full"></z-divider>
-        <div class="w-full flex justify-between items-center p-2">
-            <mat-button-toggle-group displayDensity="cosy" ngmAppearance="hero" color="accent"
-                [(ngModel)]="visualPanel"
-            >
-                <mat-button-toggle *ngIf="component().component === ComponentType.AnalyticalCard" value="visual">
-                    {{ 'Story.Explorer.Visual' | translate: {Default: 'Visual'} }}
-                </mat-button-toggle>
-                <mat-button-toggle value="options">
-                    <z-icon zSize="sm" zType="settings"></z-icon>
-                </mat-button-toggle>
-            </mat-button-toggle-group>
+      }
+    }
+  </div>
+  <div
+    class="surface flex-1 min-h-[600px] rounded-xl flex flex-col justify-center items-center overflow-hidden lg:max-h-full lg:min-h-full"
+  >
+    <div class="flex-1 w-full overflow-hidden">
+      @switch (view) {
+        @case ('chart') {
+          <ngm-analytical-card
+            class="w-full h-full group"
+            [title]="chartTitle()"
+            [dataSettings]="dataSettingsChart()"
+            [chartOptions]="chartSettings.chartOptions"
+            [chartSettings]="chartSettings.chartSettings"
+            (explain)="setExplains($event)"
+          >
+          </ngm-analytical-card>
+        }
+        @case ('table') {
+          <ngm-analytical-grid
+            class="w-full h-full group overflow-auto"
+            [title]="chartTitle()"
+            [dataSettings]="dataSettingsGrid()"
+            [appearance]="{
+              displayDensity: DisplayDensity.compact
+            }"
+            [options]="gridSettings.options"
+            (explain)="setExplains($event)"
+          ></ngm-analytical-grid>
+        }
+      }
+    </div>
+    <z-divider class="w-full"></z-divider>
+    <div class="w-full flex justify-between items-center p-2">
+      <z-toggle-group displayDensity="cosy" ngmAppearance="hero" color="accent" [(ngModel)]="visualPanel">
+        <z-toggle-group-item *ngIf="component().component === ComponentType.AnalyticalCard" value="visual">
+          {{ 'Story.Explorer.Visual' | translate: { Default: 'Visual' } }}
+        </z-toggle-group-item>
+        <z-toggle-group-item value="options">
+          <z-icon zSize="sm" zType="settings"></z-icon>
+        </z-toggle-group-item>
+      </z-toggle-group>
 
-            <z-toggle-group displayDensity="cosy" ngmAppearance="hero" color="accent"
-                [(ngModel)]="view"
-            >
-                <z-toggle-group-item value="table">
-                    {{ 'Story.Explorer.Table' | translate: {Default: 'Table'} }}
-                </z-toggle-group-item>
-                <z-toggle-group-item *ngIf="component().component === ComponentType.AnalyticalCard" value="chart">
-                    {{ 'Story.Explorer.Chart' | translate: {Default: 'Chart'} }}
-                </z-toggle-group-item>
-            </z-toggle-group>
 
       <div ngmButtonGroup>
         <button z-button zType="ghost" (click)="openExplain()">

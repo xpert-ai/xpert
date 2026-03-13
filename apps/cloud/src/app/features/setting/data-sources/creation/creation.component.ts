@@ -23,7 +23,13 @@ import { NgmInputComponent } from '@metad/ocap-angular/common'
 import { FormlyModule } from '@ngx-formly/core'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { ZardButtonComponent, ZardToggleGroupComponent, ZardSwitchComponent, ZardToggleGroupItemComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardSwitchComponent,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -36,12 +42,15 @@ import { ZardButtonComponent, ZardToggleGroupComponent, ZardSwitchComponent, Zar
     ReactiveFormsModule,
     CdkListboxModule,
     ZardButtonComponent,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent,
     ContentLoaderModule,
     NgmInputComponent,
     ButtonGroupDirective,
     AppearanceDirective,
     DensityDirective,
-    ZardSwitchComponent
+    ZardSwitchComponent,
+    ...ZardTooltipImports
   ],
   selector: 'pac-data-source-creation',
   templateUrl: './creation.component.html',
