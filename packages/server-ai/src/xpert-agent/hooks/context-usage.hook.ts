@@ -72,10 +72,7 @@ export function createThreadContextUsageEvent(params: {
 		return null
 	}
 
-	const totalTokens = toFiniteNumber(
-		params.execution?.tokens,
-		tokenUsage.totalTokens || tokenUsage.promptTokens + tokenUsage.completionTokens
-	)
+	const totalTokens = toFiniteNumber(tokenUsage.totalTokens || tokenUsage.promptTokens + tokenUsage.completionTokens)
 
 	return {
 		type: 'thread_context_usage',
