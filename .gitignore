@@ -9,6 +9,7 @@ xpertai.zip
 packages/**/.docs/
 packages/angular/.storybook/documentation.json
 packages/angular/.storybook/index.css
+*.log
 
 # dependencies
 /node_modules

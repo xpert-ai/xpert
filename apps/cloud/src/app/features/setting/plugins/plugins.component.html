@@ -1,9 +1,7 @@
 <div class="flex justify-between items-center px-8 py-4">
   <div class="flex justify-between items-center">
     <div class="pac-page-title mr-2">{{ 'PAC.KEY_WORDS.Plugins' | translate: { Default: 'Plugins' } }}</div>
-    <div
-      class="relative inline-flex items-center justify-center gap-1 rounded-[10px] h-10 bg-neutral-100 p-0.5"
-    >
+    <div class="relative inline-flex items-center justify-center gap-1 rounded-[10px] h-10 bg-neutral-100 p-0.5">
       <div
         id="tab-0"
         class="tab relative z-10 flex cursor-pointer items-center justify-center gap-1 rounded-[10px] px-2.5 py-1.5 transition-colors duration-300 ease-in-out system-md-semibold text-text-tertiary"
@@ -12,7 +10,7 @@
       >
         {{ 'PAC.Plugin.Installed' | translate: { Default: 'Installed' } }}
         <div class="badge badge-s px-[5px] py-[3px] text-xs leading-3 font-medium uppercase">
-          {{ plugins().length}}
+          {{ plugins().length }}
         </div>
       </div>
       <div
@@ -63,12 +61,21 @@
 } @else {
   <div class="flex flex-col items-start justify-center gap-3 self-stretch px-12 pb-3 pt-1">
     <div class="flex items-center gap-2 self-stretch">
-      <ngm-select class="inline-block w-[160px]" multiple [selectOptions]="categoriesOptions()"
+      <ngm-select
+        class="inline-block w-[160px]"
+        multiple
+        [selectOptions]="categoriesOptions()"
         [placeholder]="'PAC.Plugin.AllCategories' | translate: { Default: 'All Categories' }"
-        [(ngModel)]="categories" />
-      <ngm-select class="inline-block w-[160px]" multiple searchable [selectOptions]="keywordsOptions()"
+        [(ngModel)]="categories"
+      />
+      <ngm-select
+        class="inline-block w-[160px]"
+        multiple
+        searchable
+        [selectOptions]="keywordsOptions()"
         [placeholder]="'PAC.Plugin.AllKeywords' | translate: { Default: 'All Keywords' }"
-        [(ngModel)]="keywords" />
+        [(ngModel)]="keywords"
+      />
 
       <div class="relative flex w-[200px] items-center rounded-lg">
         <i class="ri-search-line absolute left-2 top-1/2 -translate-y-1/2 text-components-input-text-placeholder"></i>
@@ -86,10 +93,11 @@
       <div class="pb-3">
         <div class="grid grid-cols-2 gap-3">
           @for (plugin of filteredPlugins(); track plugin.__trackId) {
-            <div class="relative overflow-hidden rounded-xl border-[1.5px] border-background-section-burn p-1 bg-gray-100">
+            <div
+              class="relative overflow-hidden rounded-xl border-[1.5px] border-background-section-burn p-1 bg-gray-100"
+            >
               <div
-                class="relative z-10 rounded-xl border-[0.5px]
-                  bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
+                class="relative z-10 rounded-xl border-[0.5px] bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
               >
                 <div class="absolute right-0 top-0 flex pl-[13px]">
                   <svg
@@ -109,15 +117,25 @@
                   <div
                     class="text-xs font-semibold font-body uppercase h-[18px] rounded-tr-xl bg-gray-100 pr-2 leading-5 text-text-tertiary"
                   >
-                    {{ 'PAC.Plugin.Category_' + plugin.meta.category | translate: {Default: plugin.meta.category} }}
+                    {{ 'PAC.Plugin.Category_' + plugin.meta.category | translate: { Default: plugin.meta.category } }}
                   </div>
                 </div>
                 <div class="flex">
-                  <xp-icon [icon]="plugin.meta.icon" size="24" class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border-[1px] border-components-panel-border-subtle"/>
+                  <xp-icon
+                    [icon]="plugin.meta.icon"
+                    size="24"
+                    class="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border-[1px] border-components-panel-border-subtle"
+                  />
                   <div class="ml-3 w-0 grow">
                     <div class="flex h-5 items-center">
-                      <div class="system-md-semibold truncate text-text-primary" [title]="plugin.meta.displayName"
-                        [ngmHighlight]="searchText()" [content]="plugin.meta.displayName">{{plugin.meta.displayName}}</div>
+                      <div
+                        class="system-md-semibold truncate text-text-primary"
+                        [title]="plugin.meta.displayName"
+                        [ngmHighlight]="searchText()"
+                        [content]="plugin.meta.displayName"
+                      >
+                        {{ plugin.meta.displayName }}
+                      </div>
                       <i class="ri-verified-badge-line shrink-0 ml-1 text-primary-500"></i>
                       <div
                         class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] font-body text-text-tertiary text-xs font-medium uppercase ml-1 shrink-0"
@@ -126,24 +144,55 @@
                       </div>
                     </div>
                     <div class="flex items-center justify-between">
-                      <div class="text-sm text-text-tertiary font-body truncate" [title]="plugin.meta.description"
-                        [ngmHighlight]="searchText()" [content]="plugin.meta.description">{{plugin.meta.description}}</div>
-                      @if (plugin.isGlobal) {
-                        <div class="w-7 h-7 flex justify-center items-center"
-                          [matTooltip]="'PAC.Plugin.GlobalPlugin' | translate: { Default: 'This is a global plugin available to all organizations' }"
-                          matTooltipPosition="above">
-                          <i class="ri-global-line text-text-tertiary"></i>
-                        </div>
-                      } @else {
-                        <div class="flex space-x-1">
-                          <button type="button" class="action-btn action-btn-m text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive flex items-center justify-center"
-                            [matTooltip]="'PAC.Plugin.RemovePlugin' | translate: { Default: 'Remove this plugin from your organization' }"
+                      <div
+                        class="text-sm text-text-tertiary font-body truncate"
+                        [title]="plugin.meta.description"
+                        [ngmHighlight]="searchText()"
+                        [content]="plugin.meta.description"
+                      >
+                        {{ plugin.meta.description }}
+                      </div>
+                      <div class="flex space-x-1">
+                        @if (plugin.isGlobal) {
+                          <div
+                            class="w-7 h-7 flex justify-center items-center"
+                            [matTooltip]="
+                              'PAC.Plugin.GlobalPlugin'
+                                | translate: { Default: 'This is a global plugin available to all organizations' }
+                            "
                             matTooltipPosition="above"
-                            (click)="uninstall(plugin)">
+                          >
+                            <i class="ri-global-line text-text-tertiary"></i>
+                          </div>
+                        }
+                        @if (plugin.canConfigure && plugin.configSchema) {
+                          <button
+                            type="button"
+                            class="action-btn action-btn-m text-text-tertiary hover:bg-gray-100 hover:text-text-primary flex items-center justify-center"
+                            [matTooltip]="
+                              'PAC.Plugin.ConfigurePlugin' | translate: { Default: 'Configure this plugin' }
+                            "
+                            matTooltipPosition="above"
+                            (click)="configure(plugin)"
+                          >
+                            <i class="ri-settings-4-line"></i>
+                          </button>
+                        }
+                        @if (!plugin.isGlobal) {
+                          <button
+                            type="button"
+                            class="action-btn action-btn-m text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive flex items-center justify-center"
+                            [matTooltip]="
+                              'PAC.Plugin.RemovePlugin'
+                                | translate: { Default: 'Remove this plugin from your organization' }
+                            "
+                            matTooltipPosition="above"
+                            (click)="uninstall(plugin)"
+                          >
                             <i class="ri-delete-bin-line"></i>
                           </button>
-                        </div>
-                      }
+                        }
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -151,21 +200,27 @@
               <div class="mb-1 mt-2 flex h-4 items-center gap-x-2 px-2">
                 <div class="flex grow items-center overflow-hidden">
                   <div class="flex h-4 items-center space-x-0.5">
-                    <span class="system-xs-regular shrink-0 text-text-tertiary">{{plugin.meta.author}}</span>
+                    <span class="system-xs-regular shrink-0 text-text-tertiary">{{ plugin.meta.author }}</span>
                     <span class="system-xs-regular shrink-0 text-text-quaternary">/</span>
-                    <a class="system-xs-regular shrink-0 grow truncate text-text-tertiary w-auto max-w-[250px] font-mono hover:underline hover:text-primary-500"
-                      [href]="plugin.meta.homepage || ('https://www.npmjs.com/package/' + plugin.meta.name)" target="_blank" rel="noopener noreferrer">
-                      {{plugin.meta.name}}
+                    <a
+                      class="system-xs-regular shrink-0 grow truncate text-text-tertiary w-auto max-w-[250px] font-mono hover:underline hover:text-primary-500"
+                      [href]="plugin.meta.homepage || 'https://www.npmjs.com/package/' + plugin.meta.name"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
+                      {{ plugin.meta.name }}
                     </a>
                   </div>
                 </div>
                 <div class="flex shrink-0 items-center">
                   <div class="flex w-full items-center gap-1 overflow-hidden text-text-tertiary">
                     @for (keyword of plugin.meta.keywords; track keyword) {
-                      <div class="flex items-center gap-x-0.5 rounded-[5px] border border-divider-deep cursor-pointer bg-gray-50 px-[5px] py-[1px] hover:bg-gray-100"
-                        [ngClass]="{'text-primary-500': keywords().includes(keyword)}"
-                        (click)="toggleKeyword(keyword)">
-                        <div class="text-xs font-medium uppercase font-body text-nowrap"># {{keyword}}</div>
+                      <div
+                        class="flex items-center gap-x-0.5 rounded-[5px] border border-divider-deep cursor-pointer bg-gray-50 px-[5px] py-[1px] hover:bg-gray-100"
+                        [ngClass]="{ 'text-primary-500': keywords().includes(keyword) }"
+                        (click)="toggleKeyword(keyword)"
+                      >
+                        <div class="text-xs font-medium uppercase font-body text-nowrap"># {{ keyword }}</div>
                       </div>
                     }
                   </div>
@@ -183,15 +238,12 @@
   </div>
 }
 
-
 <ng-template #installMenu>
   <div cdkMenu class="cdk-menu__large w-28">
     <div class="font-semibold mb-2">
       {{ 'PAC.Plugin.InstallSource' | translate: { Default: 'Install Source' } }}
     </div>
-    <div cdkMenuItem class="" (click)="installNpm()">
-      <i class="ri-npmjs-line mr-1"></i> NPM
-    </div>
+    <div cdkMenuItem class="" (click)="installNpm()"><i class="ri-npmjs-line mr-1"></i> NPM</div>
   </div>
 </ng-template>
 
@@ -201,7 +253,11 @@
       <div class="text-xl font-semibold text-text-primary">
         {{ 'PAC.Plugin.InstallFromNpm' | translate: { Default: 'Install from NPM' } }}
       </div>
-      <button type="button" class="btn btn-ghost btn-small w-8 h-8 flex items-center justify-center" (click)="dialogRef.close()">
+      <button
+        type="button"
+        class="btn btn-ghost btn-small w-8 h-8 flex items-center justify-center"
+        (click)="dialogRef.close()"
+      >
         <i class="ri-close-line"></i>
       </button>
     </div>
@@ -210,17 +266,21 @@
         <label class="text-sm font-medium text-text-tertiary">
           {{ 'PAC.Plugin.NpmPackageName' | translate: { Default: 'NPM package name' } }}
         </label>
-        <input class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+        <input
+          class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
           [placeholder]="'PAC.Plugin.InputPackageName' | translate: { Default: 'e.g. @scope/xpert-plugin' }"
-          [(ngModel)]="npmPackageName" />
+          [(ngModel)]="npmPackageName"
+        />
       </div>
       <div class="flex flex-col gap-2">
         <label class="text-sm font-medium text-text-tertiary">
           {{ 'PAC.Plugin.NpmPackageVersion' | translate: { Default: 'Version (optional)' } }}
         </label>
-        <input class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+        <input
+          class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
           [placeholder]="'PAC.Plugin.InputPackageVersion' | translate: { Default: 'e.g. 1.0.0' }"
-          [(ngModel)]="npmPackageVersion" />
+          [(ngModel)]="npmPackageVersion"
+        />
       </div>
       @if (npmInstallError()) {
         <div class="max-w-sm text-sm text-text-destructive">{{ npmInstallError() }}</div>
@@ -233,9 +293,12 @@
       <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="dialogRef.close()">
         {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
       </button>
-      <button type="button" class="btn disabled:btn-disabled btn-primary btn-large flex items-center gap-1"
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-primary btn-large flex items-center gap-1"
         [disabled]="npmInstalling() || !npmPackageName()?.trim()"
-        (click)="confirmInstallNpm(dialogRef)">
+        (click)="confirmInstallNpm(dialogRef)"
+      >
         @if (npmInstalling()) {
           <ngm-spin small class="!text-primary-200" />
         }

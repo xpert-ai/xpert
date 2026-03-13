@@ -4,6 +4,25 @@ export type TTokenUsage = {
   totalTokens: number
 }
 
+export type TThreadContextUsageMetrics = {
+  contextTokens: number
+  inputTokens: number
+  outputTokens: number
+  totalTokens: number
+  embedTokens: number
+  totalPrice: number
+  currency: string | null
+}
+
+export type TThreadContextUsageEvent = {
+  type: 'thread_context_usage'
+  threadId: string
+  runId: string | null
+  agentKey: string
+  updatedAt: string
+  usage: TThreadContextUsageMetrics
+}
+
 export interface IModelUsage {
   totalTokens: number
   totalPrice: number

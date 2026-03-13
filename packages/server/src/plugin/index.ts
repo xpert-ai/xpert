@@ -1,4 +1,5 @@
 export * from './plugin.module'
+export * from './plugin-config.resolver'
 export * from './plugin.helper'
 export * from './permissions'
 export * from './organization-plugin.store'

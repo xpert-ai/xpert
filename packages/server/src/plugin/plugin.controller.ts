@@ -1,8 +1,8 @@
-import { BadRequestException, Body, Controller, Delete, Get, Inject, Logger, Post } from '@nestjs/common'
+import { BadRequestException, Body, Controller, Delete, Get, Inject, Logger, Post, Put } from '@nestjs/common'
 import { LazyModuleLoader, ModuleRef } from '@nestjs/core'
 import { ApiTags } from '@nestjs/swagger'
 import { t } from 'i18next'
-import { PLUGIN_LEVEL, RolesEnum } from '@metad/contracts'
+import { IPluginConfiguration, IPluginDescriptor, PLUGIN_LEVEL, RolesEnum } from '@metad/contracts'
 import {
 	getErrorMessage,
 	GLOBAL_ORGANIZATION_SCOPE,
@@ -12,6 +12,7 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { buildConfig } from './config'
 import { getOrganizationPluginPath, getOrganizationPluginRoot, stageWorkspacePlugin } from './organization-plugin.store'
+import { resolvePluginConfigSchema } from './plugin-config-schema'
 import { resolvePluginLevel } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
 import { loadPlugin } from './plugin-loader'
@@ -34,22 +35,65 @@ export class PluginController {
 	) {}
 
 	@Get()
-	getPlugins() {
-		const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
-		const isSuperAdmin = RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
-		return this.loadedPlugins
-			.filter(
-				(plugin) =>
-					plugin.organizationId === organizationId || plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE
-			)
-			.filter((plugin) => isSuperAdmin || plugin.level !== PLUGIN_LEVEL.SYSTEM)
-			.map((plugin) => ({
-				organizationId: plugin.organizationId,
-				name: plugin.name,
-				meta: plugin.instance.meta,
-				isGlobal: plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE,
-				level: plugin.level ?? PLUGIN_LEVEL.ORGANIZATION
-			}))
+	getPlugins(): IPluginDescriptor[] {
+		return this.listVisiblePlugins()
+	}
+
+	@Post('configuration')
+	async getConfiguration(@Body() body: { pluginName: string }): Promise<IPluginConfiguration> {
+		if (!body?.pluginName) {
+			throw new BadRequestException('pluginName is required')
+		}
+
+		const organizationId = this.getCurrentOrganizationId()
+		const plugin = this.findLoadedPlugin(body.pluginName, organizationId, false)
+		if (!plugin) {
+			throw new BadRequestException(`Plugin "${body.pluginName}" is not configurable in the current scope`)
+		}
+
+		const instance = await this.pluginInstanceService.findOneByPluginName(plugin.name, organizationId)
+		const config = buildConfig(plugin.name, this.pluginInstanceService.getConfig(instance), plugin.instance.config)
+
+		return {
+			pluginName: plugin.name,
+			config,
+			configSchema: resolvePluginConfigSchema(plugin.instance)
+		}
+	}
+
+	@Put('configuration')
+	async saveConfiguration(
+		@Body() body: { pluginName: string; config?: Record<string, any> }
+	): Promise<IPluginConfiguration> {
+		if (!body?.pluginName) {
+			throw new BadRequestException('pluginName is required')
+		}
+
+		const organizationId = this.getCurrentOrganizationId()
+		const plugin = this.findLoadedPlugin(body.pluginName, organizationId, false)
+		if (!plugin) {
+			throw new BadRequestException(`Plugin "${body.pluginName}" is not configurable in the current scope`)
+		}
+
+		const existing = await this.pluginInstanceService.findOneByPluginName(plugin.name, organizationId)
+		const config = buildConfig(plugin.name, body.config ?? {}, plugin.instance.config)
+
+		await this.pluginInstanceService.upsert({
+			tenantId: RequestContext.currentTenantId() ?? existing?.tenantId,
+			organizationId,
+			pluginName: plugin.name,
+			packageName: existing?.packageName ?? normalizePluginName(plugin.packageName ?? plugin.name),
+			version: existing?.version ?? plugin.instance.meta?.version,
+			source: existing?.source ?? 'env',
+			level: existing?.level ?? plugin.level ?? resolvePluginLevel(plugin.instance.meta?.level),
+			config
+		})
+
+		return {
+			pluginName: plugin.name,
+			config,
+			configSchema: resolvePluginConfigSchema(plugin.instance)
+		}
 	}
 
 	/**
@@ -193,17 +237,8 @@ export class PluginController {
 	}
 
 	@Post('by-names')
-	getByNames(@Body() body: { names: string[] }) {
-		const organizationId = RequestContext.getOrganizationId?.() ?? GLOBAL_ORGANIZATION_SCOPE
-		const isSuperAdmin = RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
-		return this.loadedPlugins
-			.filter((plugin) => plugin.organizationId === organizationId && body.names.includes(plugin.name))
-			.filter((plugin) => isSuperAdmin || plugin.level !== PLUGIN_LEVEL.SYSTEM)
-			.map((plugin) => ({
-				organizationId: plugin.organizationId,
-				name: plugin.name,
-				meta: plugin.instance.meta
-			}))
+	getByNames(@Body() body: { names: string[] }): IPluginDescriptor[] {
+		return this.listVisiblePlugins(body.names)
 	}
 
 	@Delete('uninstall')
@@ -223,6 +258,56 @@ export class PluginController {
 
 	private canManageSystemPlugins(organizationId: string) {
 		return organizationId === GLOBAL_ORGANIZATION_SCOPE && RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
+	}
+
+	private getCurrentOrganizationId() {
+		return RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
+	}
+
+	private listVisiblePlugins(names?: string[]) {
+		const organizationId = this.getCurrentOrganizationId()
+		const isSuperAdmin = RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
+		const normalizedNames = names?.length ? new Set(names.map((name) => normalizePluginName(name))) : null
+
+		return this.loadedPlugins
+			.filter(
+				(plugin) =>
+					plugin.organizationId === organizationId || plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE
+			)
+			.filter((plugin) => isSuperAdmin || plugin.level !== PLUGIN_LEVEL.SYSTEM)
+			.filter((plugin) => !normalizedNames || normalizedNames.has(normalizePluginName(plugin.name)))
+			.map((plugin) => this.toPluginDescriptor(plugin, organizationId))
+	}
+
+	private toPluginDescriptor(plugin: LoadedPluginRecord, organizationId: string): IPluginDescriptor {
+		return {
+			organizationId: plugin.organizationId,
+			name: plugin.name,
+			meta: plugin.instance.meta,
+			isGlobal: plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE,
+			level: plugin.level ?? PLUGIN_LEVEL.ORGANIZATION,
+			canConfigure: plugin.organizationId === organizationId && !!resolvePluginConfigSchema(plugin.instance),
+			configSchema: resolvePluginConfigSchema(plugin.instance)
+		}
+	}
+
+	private findLoadedPlugin(pluginName: string, organizationId: string, fallbackToGlobal = true) {
+		const normalized = normalizePluginName(pluginName)
+		const matches = (plugin: LoadedPluginRecord) => {
+			const candidates = [plugin.name, plugin.packageName, plugin.instance?.meta?.name]
+				.filter(Boolean)
+				.map((value) => normalizePluginName(value))
+			return candidates.includes(normalized)
+		}
+
+		return (
+			this.loadedPlugins.find((plugin) => plugin.organizationId === organizationId && matches(plugin)) ??
+			(fallbackToGlobal && organizationId !== GLOBAL_ORGANIZATION_SCOPE
+				? this.loadedPlugins.find(
+						(plugin) => plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE && matches(plugin)
+					)
+				: undefined)
+		)
 	}
 
 	private assertNoSystemPlugins(pluginNamesOrPackages: string[], allowSystemPlugins = false) {

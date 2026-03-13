@@ -1,6 +1,7 @@
 export * from './server.module'
 export * from './bootstrap/index'
 export * from './core/index'
+export * from './file'
 export * from './tenant/index'
 export * from './shared/index'
 export * from './feature/index'

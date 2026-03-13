@@ -35,6 +35,7 @@ import { IntegrationGithubModule } from './integration-github'
 import { EnvironmentModule } from './environment'
 import { XpertTableModule } from './xpert-table'
 import { HandoffQueueModule } from './handoff/message-queue.module'
+import { FileUploadTargetsModule } from './shared'
 
 @Module({
 	imports: [
@@ -56,6 +57,7 @@ import { HandoffQueueModule } from './handoff/message-queue.module'
 		EnvironmentModule,
 		GraphragModule,
 		HandoffQueueModule,
+		FileUploadTargetsModule,
 		XpertModule,
 		XpertAgentModule,
 		XpertAgentExecutionModule,
@@ -71,7 +73,7 @@ import { HandoffQueueModule } from './handoff/message-queue.module'
 		IntegrationGithubModule,
 		RagVStoreModule,
 		RagWebModule,
-		SandboxModule,
+		SandboxModule
 	],
 	controllers: [],
 	providers: [...EventHandlers, ...CommandHandlers]

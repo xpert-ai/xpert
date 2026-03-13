@@ -1,0 +1,423 @@
+# Unified File Upload Architecture
+
+## Overview
+
+The unified file upload stack is split into four layers:
+
+1. `server/file/file-upload`
+2. `server/file/file-storage`
+3. `server-ai/shared/file-upload-targets`
+4. `plugin-sdk`
+
+This keeps upload orchestration, storage drivers, business-specific targets, and plugin extension points separate.
+
+## Layer responsibilities
+
+### 1. Source normalization
+
+`UploadFileService` accepts three source kinds:
+
+- `multipart`
+- `storage_file`
+- `local_file`
+
+All sources are normalized into one resolved source payload containing:
+
+- file buffer
+- file name
+- original name
+- MIME type
+- size
+- source metadata
+
+### 2. Target orchestration
+
+Targets describe where the file should go.
+
+Built-in target kinds:
+
+- `storage`
+- `volume`
+- `sandbox`
+
+Built-in target strategies:
+
+- `storage`
+- `volume`
+- `sandbox:mounted_workspace`
+- `sandbox:backend_upload`
+
+`UploadFileService` resolves the target strategy from either `target.strategy` or the built-in mapping.
+
+Each target produces one destination, and all destinations are aggregated into a single `FileAsset`.
+
+### 3. File-storage providers
+
+The `storage` target does not write bytes directly.
+
+Instead:
+
+1. `StorageTargetStrategy` generates object keys and creates `StorageFile`
+2. `FileStorage` resolves the concrete provider
+3. the resolved `IFileStorageProvider` writes and reads bytes
+
+The host keeps only one built-in provider:
+
+- `LOCAL`
+
+Object-storage providers such as `MINIO`, `RUSTFS`, `S3`, `WASABI`, and `OSS` are loaded through plugins.
+
+### 3.5. Where `storage-file` fits
+
+`storage-file` is not another upload orchestration layer.
+
+Its role is narrower:
+
+1. persist a `StorageFile` record after a `storage` upload succeeds
+2. act as the metadata index for stored objects
+3. keep legacy `StorageFile` APIs compatible while the implementation moves to unified upload
+
+The current flow for a `storage` target is:
+
+1. `UploadFileService` resolves the source and selects the `storage` target strategy
+2. `StorageTargetStrategy` asks `FileStorage` for a concrete provider
+3. the provider writes bytes to the backend
+4. `StorageFileService` persists a `StorageFile` row for that stored object
+5. the destination returns both the storage path and the `StorageFile` reference
+
+This means:
+
+- `file-upload` owns the upload pipeline
+- `file-storage` owns byte-level storage integration
+- `storage-file` owns persistence, lookup, and compatibility for stored-object records
+
+Not every upload creates a `StorageFile`.
+
+Only uploads that target object storage should do that. `volume` and `sandbox` uploads can succeed without any `StorageFile` record because their destination is not the object-storage catalog.
+
+### 4. Plugin extension points
+
+`plugin-sdk` exposes two extension surfaces:
+
+1. `IFileUploadTargetStrategy`
+2. `IFileStorageProvider`
+
+This is intentionally the only file extension model now.
+
+There is no upload-specific storage-provider strategy layer anymore, because it duplicated the responsibility of the storage provider itself.
+
+## Plugin configuration model
+
+Plugin-backed storage providers can expose configuration in three parts:
+
+1. `config.schema`
+   Used for runtime validation.
+2. `config.formSchema`
+   Optional JSON schema used by the frontend configuration dialog.
+3. provider runtime resolution through `PluginConfigResolver`
+
+The host persists plugin configuration in `PluginInstance.config`.
+
+For sensitive values, the full configuration object is encrypted at rest before it is stored.
+
+At runtime, effective plugin configuration is resolved with this precedence:
+
+1. decrypted `PluginInstance.config`
+2. plugin-local env defaults from `registerAs(...)`
+3. provider internal defaults
+
+## Request and response model
+
+### Request
+
+`POST /files/upload`
+
+Fields:
+
+- `file`: multipart file
+- `targets`: JSON string array
+- `metadata`: optional JSON string
+
+Example:
+
+```bash
+curl -X POST http://localhost:3000/api/files/upload \
+  -F 'file=@./README.md' \
+  -F 'targets=[{"kind":"storage","provider":"S3","directory":"files","prefix":"docs"}]'
+```
+
+### Response
+
+The response is always a `FileAsset`.
+
+```json
+{
+  "status": "success",
+  "originalName": "README.md",
+  "destinations": [
+    {
+      "kind": "storage",
+      "status": "success",
+      "path": "files/tenant-id/docs-123456.md",
+      "url": "https://...",
+      "referenceId": "storage-file-id"
+    }
+  ]
+}
+```
+
+## How to use each capability
+
+### Upload to object storage
+
+Use a `storage` target:
+
+```json
+[
+  {
+    "kind": "storage",
+    "provider": "S3",
+    "directory": "files",
+    "prefix": "knowledge"
+  }
+]
+```
+
+The provider can be either:
+
+- the built-in local provider `LOCAL`
+- a plugin-backed provider such as `MINIO`, `RUSTFS`, `S3`, `WASABI`, or `OSS`
+
+### Upload to volume
+
+```json
+[
+  {
+    "kind": "volume",
+    "catalog": "projects",
+    "projectId": "project-id",
+    "folder": "docs"
+  }
+]
+```
+
+Returned metadata includes:
+
+- `filePath`
+- `fileUrl`
+- `absolutePath`
+- `mimeType`
+
+### Upload to sandbox mounted workspace
+
+```json
+[
+  {
+    "kind": "sandbox",
+    "mode": "mounted_workspace",
+    "workspacePath": "/workspace",
+    "workspaceUrl": "http://sandbox.local/workspace",
+    "folder": "attachments"
+  }
+]
+```
+
+Returned metadata includes:
+
+- `localPath`
+- `workspacePath`
+- `workspaceUrl`
+
+### Upload to sandbox backend
+
+```json
+[
+  {
+    "kind": "sandbox",
+    "mode": "backend_upload",
+    "workspaceId": "workspace-id",
+    "sandboxUrl": "http://sandbox.local"
+  }
+]
+```
+
+Current limitation:
+
+- `sandbox:backend_upload` only supports UTF-8 text files
+- binary files should use `mounted_workspace`
+
+### Multi-target upload
+
+One request can write the same file to multiple destinations:
+
+```json
+[
+  { "kind": "storage", "provider": "OSS", "directory": "files" },
+  { "kind": "volume", "catalog": "knowledges", "knowledgeId": "kb-id" },
+  { "kind": "sandbox", "mode": "mounted_workspace", "workspacePath": "/workspace" }
+]
+```
+
+Aggregation rules:
+
+- all success -> `success`
+- partial success -> `partial_success`
+- all failed -> `failed`
+
+## Legacy compatibility
+
+Legacy upload endpoints still exist, but they now call the unified pipeline internally.
+
+Examples:
+
+- storage upload endpoints still return `StorageFile`
+- project and knowledgebase endpoints still return their previous response shapes
+- agent attachment sync also reuses the same upload service
+
+`storage-file` therefore remains important, but mainly as:
+
+- the persistence model for object-storage uploads
+- the compatibility surface for older APIs
+- the place for lifecycle concerns around stored-object records such as deletion hooks
+
+## Storage provider configuration
+
+Object-storage providers are no longer host built-ins.
+
+`MINIO`, `RUSTFS`, `S3`, `WASABI`, and `OSS` are now registered by the draft plugin package `@xpert-ai/plugin-draft`.
+
+The plugin config is split by child properties so each provider can evolve independently later:
+
+- `minio`
+- `rustfs`
+- `s3`
+- `wasabi`
+- `oss`
+
+The plugin still supports provider-specific environment variables as plugin-local defaults, but they are no longer part of the host `environment` contract.
+
+See the dedicated guide: [MinIO File Storage Plugin](/en/guides/minio-file-storage)
+See also: [RustFS File Storage Plugin](/en/guides/rustfs-file-storage)
+
+## How to extend with plugins
+
+### Add a custom target strategy
+
+```ts
+import { FileUploadTargetStrategy, IFileUploadTargetStrategy } from '@xpert-ai/plugin-sdk'
+import { Injectable } from '@nestjs/common'
+
+@Injectable()
+@FileUploadTargetStrategy('archive')
+export class ArchiveTargetStrategy implements IFileUploadTargetStrategy {
+  async upload(source, target, context) {
+    return {
+      kind: 'storage',
+      status: 'success',
+      path: `archive/${source.originalName}`
+    }
+  }
+}
+```
+
+### Add a custom file-storage provider
+
+```ts
+import { FileStorageProvider, IFileStorageProvider } from '@xpert-ai/plugin-sdk'
+import { Injectable } from '@nestjs/common'
+
+@Injectable()
+@FileStorageProvider('R2')
+export class R2Provider implements IFileStorageProvider {
+  name = 'R2'
+  config = { rootPath: '' }
+
+  url(path: string) {
+    return `https://r2.example.com/${path}`
+  }
+
+  path(path: string) {
+    return path
+  }
+
+  handler() {
+    return undefined
+  }
+
+  async getFile() {
+    return Buffer.from('')
+  }
+
+  async putFile() {
+    throw new Error('Not implemented')
+  }
+
+  async deleteFile() {}
+}
+```
+
+### Add plugin configuration UI support
+
+If the provider plugin needs user-managed configuration:
+
+1. define `config.schema` for validation
+2. optionally define `config.formSchema` for the frontend form
+3. read effective config through `PluginConfigResolver`
+
+When `config.formSchema` is present, the Installed Plugins page automatically exposes a `Configure` action and renders the dialog with `JSONSchemaFormComponent`.
+
+## Future direction
+
+The intended direction is to keep responsibilities even more explicit.
+
+### `file-upload`
+
+This should remain the single entry point for all new upload flows.
+
+Future work should continue to land here when it involves:
+
+- new source kinds
+- new upload destinations
+- multi-target orchestration
+- shared upload validation, metadata, and status aggregation
+
+New business uploads should prefer wrapping `UploadFileCommand` instead of adding parallel ad-hoc controllers.
+
+### `file-storage`
+
+This should remain the storage-driver layer.
+
+Future work should continue to land here when it involves:
+
+- new storage providers
+- provider-specific path generation or URL behavior
+- plugin-backed storage configuration
+- storage SDK migrations
+
+It should not absorb business workflow logic or API compatibility logic.
+
+### `storage-file`
+
+This should become thinner over time, not thicker.
+
+Its long-term role is:
+
+- persist object-storage metadata
+- provide lookup by stored-object ID
+- support deletion and lifecycle hooks
+- preserve compatibility for old `StorageFile`-shaped APIs where needed
+
+New upload orchestration should not be added directly to `storage-file`.
+
+If a feature starts with "upload a file and then...", the first design question should usually be "which `file-upload` target should own it?"
+
+### Likely follow-up work
+
+- widen `StorageFile.storageProvider` from enum to string if custom provider names must persist generically
+- continue migrating remaining legacy upload endpoints into thin wrappers over `UploadFileCommand`
+- keep `storage-file` focused on persistence and compatibility rather than new upload branching
+
+## Notes
+
+- `StorageFile.storageProvider` now persists provider values as strings.
+- If a future provider must persist a custom provider name, the persistence field should be widened from enum to string in a follow-up change.

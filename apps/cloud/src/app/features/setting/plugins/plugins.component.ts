@@ -1,11 +1,18 @@
 import { Dialog, DialogRef } from '@angular/cdk/dialog'
-import { CdkMenuModule } from "@angular/cdk/menu"
+import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
+import { Component, computed, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { getErrorMessage, injectHelpWebsite, routeAnimations } from '@cloud/app/@core'
+import {
+  getErrorMessage,
+  injectHelpWebsite,
+  routeAnimations,
+  KnowledgebaseService,
+  XpertAgentService,
+  XpertToolsetService
+} from '@cloud/app/@core'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { injectPluginAPI } from '@metad/cloud/state'
@@ -15,7 +22,9 @@ import { debouncedSignal, linkedModel, myRxResource } from '@metad/ocap-angular/
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { I18nService } from '@cloud/app/@shared/i18n'
+import { PluginConfigureComponent } from './configure/configure.component'
 import { PluginsMarketplaceComponent } from './marketplace/marketplace.component'
+import { TInstalledPlugin } from './types'
 
 @Component({
   standalone: true,
@@ -29,8 +38,8 @@ import { PluginsMarketplaceComponent } from './marketplace/marketplace.component
     NgmHighlightDirective,
     IconComponent,
     NgmSpinComponent,
-    PluginsMarketplaceComponent,
-],
+    PluginsMarketplaceComponent
+  ],
   selector: 'xp-settings-plugins',
   templateUrl: './plugins.component.html',
   styleUrls: ['./plugins.component.scss'],
@@ -44,6 +53,9 @@ export class PluginsComponent {
   readonly i18nService = inject(I18nService)
   readonly pluginAPI = injectPluginAPI()
   readonly confirmDelete = injectConfirmDelete()
+  readonly #agentService = inject(XpertAgentService)
+  readonly #knowledgebaseService = inject(KnowledgebaseService)
+  readonly #toolsetService = inject(XpertToolsetService)
   readonly npmInstallDialog = viewChild('npmInstallDialog', { read: TemplateRef })
 
   readonly category = linkedModel({
@@ -61,9 +73,9 @@ export class PluginsComponent {
     request: () => ({}),
     loader: () => this.pluginAPI.getPlugins()
   })
-  
+
   readonly plugins = linkedModel({
-    initialValue: [] as Array<any>,
+    initialValue: [] as Array<TInstalledPlugin>,
     compute: () =>
       (this.#plugins.value() ?? []).map((plugin, index) => ({
         ...plugin,
@@ -121,7 +133,7 @@ export class PluginsComponent {
 
   readonly categoriesOptions = computed(() => {
     return this.#categories().map((category) => ({
-      label: this.i18nService.instant('PAC.Plugin.Category_' + category, {Default: category}),
+      label: this.i18nService.instant('PAC.Plugin.Category_' + category, { Default: category }),
       value: category
     }))
   })
@@ -149,7 +161,7 @@ export class PluginsComponent {
   //   })
   // }
 
-  private buildPluginTrackId(plugin: any, index: number): string {
+  private buildPluginTrackId(plugin: TInstalledPlugin, index: number): string {
     const name =
       typeof plugin?.name === 'string'
         ? plugin.name
@@ -157,11 +169,7 @@ export class PluginsComponent {
           ? plugin.meta.name
           : `plugin-${index}`
     const scope =
-      typeof plugin?.organizationId === 'string'
-        ? plugin.organizationId
-        : plugin?.isGlobal
-          ? 'global'
-          : 'org'
+      typeof plugin?.organizationId === 'string' ? plugin.organizationId : plugin?.isGlobal ? 'global' : 'org'
 
     return `${scope}:${name}:${index}`
   }
@@ -180,19 +188,33 @@ export class PluginsComponent {
     this.#plugins.reload()
   }
 
-  uninstall(plugin: {name: string; meta: {displayName?: string}}) {
-    this.confirmDelete({
-      title: this.i18nService.instant('PAC.Plugin.Uninstall_Title', { Default: 'Uninstall Plugin' }),
-      information: this.i18nService.instant('PAC.Plugin.Uninstall_Message', {
-        Default: `Are you sure you want to uninstall plugin "${plugin.meta?.displayName || plugin.name}"?`
-      }),
-    }, () => {
-      this.removing.set(plugin.name)
-      return this.pluginAPI.uninstall([plugin.name])
-    }).subscribe({
+  configure(plugin: TInstalledPlugin) {
+    this.#dialog.open(PluginConfigureComponent, {
+      data: {
+        plugin,
+        reload: this.reload.bind(this)
+      },
+      backdropClass: 'backdrop-blur-sm-black'
+    })
+  }
+
+  uninstall(plugin: { name: string; meta: { displayName?: string } }) {
+    this.confirmDelete(
+      {
+        title: this.i18nService.instant('PAC.Plugin.Uninstall_Title', { Default: 'Uninstall Plugin' }),
+        information: this.i18nService.instant('PAC.Plugin.Uninstall_Message', {
+          Default: `Are you sure you want to uninstall plugin "${plugin.meta?.displayName || plugin.name}"?`
+        })
+      },
+      () => {
+        this.removing.set(plugin.name)
+        return this.pluginAPI.uninstall([plugin.name])
+      }
+    ).subscribe({
       next: () => {
         this.removing.set('')
         this.plugins.update((plugins) => plugins.filter((item) => item.name !== plugin.name))
+        this.refreshStrategyCaches()
       },
       error: () => {
         this.removing.set('')
@@ -226,21 +248,33 @@ export class PluginsComponent {
     this.npmInstalling.set(true)
     this.npmInstallError.set(null)
     const version = this.npmPackageVersion()?.trim()
-    this.pluginAPI.create({
-      pluginName: packageName,
-      packageName,
-      version: version || undefined,
-      source: 'npm'
-    }).subscribe({
-      next: () => {
-        this.npmInstalling.set(false)
-        dialogRef.close()
-        this.#plugins.reload()
-      },
-      error: (err) => {
-        this.npmInstallError.set(getErrorMessage(err))
-        this.npmInstalling.set(false)
-      }
-    })
+    this.pluginAPI
+      .create({
+        pluginName: packageName,
+        packageName,
+        version: version || undefined,
+        source: 'npm'
+      })
+      .subscribe({
+        next: () => {
+          this.npmInstalling.set(false)
+          dialogRef.close()
+          this.#plugins.reload()
+          this.refreshStrategyCaches()
+        },
+        error: (err) => {
+          this.npmInstallError.set(getErrorMessage(err))
+          this.npmInstalling.set(false)
+        }
+      })
+  }
+
+  /**
+   * Refresh all strategy caches after plugin install/uninstall
+   */
+  refreshStrategyCaches() {
+    this.#agentService.refresh()
+    this.#knowledgebaseService.refresh()
+    this.#toolsetService.refresh()
   }
 }

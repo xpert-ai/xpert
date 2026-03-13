@@ -5,3 +5,28 @@
 .btn-canvas.active {
   @apply bg-lime-50 text-lime-800;
 }
+
+.context-usage-ring {
+  @apply relative flex h-9 w-9 items-center justify-center rounded-full;
+}
+
+.context-usage-ring__inner {
+  @apply flex h-6 w-6 items-center justify-center rounded-full bg-components-card-bg shadow-[inset_0_0_0_1px_rgba(148,163,184,0.18)];
+}
+
+.context-usage-ring__label {
+  @apply text-[9px] font-semibold leading-none;
+}
+
+:host ::ng-deep .context-usage-tooltip {
+  white-space: pre-line;
+  border-radius: 20px;
+  padding: 14px 16px;
+  font-size: 13px;
+  line-height: 1.45;
+  text-align: center;
+  background: rgba(15, 23, 42, 0.96);
+  color: #e2e8f0;
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.28);
+}

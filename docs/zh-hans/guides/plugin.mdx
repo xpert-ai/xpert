@@ -4,16 +4,34 @@
 
 开发阶段新增插件时，请同步更新以下位置：
 
-- 在内置 `preBootstrapPlugins` 列表中声明插件。
-- 在 `apps/api/package.json` 的 `dependencies` 中加入插件包。
-- 在 `.deploy/api/package-prod.json` 的 `dependencies` 中加入插件包。
+- 如果该插件需要随应用默认发布，将其加入内置 `preBootstrapPlugins` 列表
+- 在 `apps/api/package.json` 中加入插件包
+- 在 `.deploy/api/package.json` 或当前使用的部署清单中加入插件包
 
 ## 部署阶段接入插件
 
-部署阶段通过 `PLUGINS` 环境变量声明插件。
+部署阶段通过 `PLUGINS` 环境变量注入插件。
 
-- 多个插件使用英文逗号分隔。
+- 多个插件使用英文逗号分隔
+
+## 插件配置支持
+
+如果插件需要用户可管理配置：
+
+1. 定义 `config.schema` 做运行时校验
+2. 可选定义 `config.formSchema` 用于前端配置 dialog
+3. 在运行时通过宿主的 `PluginConfigResolver` 读取配置
+
+当插件提供 `config.formSchema` 时：
+
+- 已安装插件页会出现 `Configure` 按钮
+- 前端会通过 `JSONSchemaFormComponent` 自动渲染表单
+- 宿主会把配置保存到 `PluginInstance.config`
+- 配置会在持久化前按整段对象加密存储
 
 ## 相关文档
 
-- 中间件能力与接线方式见 [Agent Middleware](/zh-hans/guides/agent-middleware)。
+- [统一文件上传架构](/zh-hans/guides/file-upload-architecture)
+- [MinIO 文件存储插件](/zh-hans/guides/minio-file-storage)
+- [RustFS 文件存储插件](/zh-hans/guides/rustfs-file-storage)
+- [Agent Middleware](/zh-hans/guides/agent-middleware)

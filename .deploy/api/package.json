@@ -28,7 +28,7 @@
     "start": "nx serve",
     "build": "nx build",
     "test": "nx test",
-    "build:plugins": "yarn nx build agent-middlewares && yarn nx build integration-github && yarn nx build retriever-common && yarn nx build textsplitter-common && yarn nx build transformer-common && yarn nx build trigger-schedule && yarn nx build vlm-default"
+    "build:plugins": "yarn nx build agent-middlewares && yarn nx build integration-github && yarn nx build retriever-common && yarn nx build textsplitter-common && yarn nx build transformer-common && yarn nx build trigger-schedule && yarn nx build vlm-default && yarn nx build draft"
   },
   "dependencies": {
     "@langchain/community": "0.3.53",

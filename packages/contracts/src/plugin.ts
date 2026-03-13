@@ -1,4 +1,5 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
+import { JsonSchemaObjectType } from './ai/types'
 import { IconDefinition } from './types'
 
 export type PluginName = string
@@ -48,4 +49,20 @@ export interface IPlugin extends IBasePerTenantAndOrganizationEntityModel {
   source?: 'marketplace' | 'local' | 'git' | 'url' | 'npm' | 'code' | 'env'
   level?: PluginLevel
   config: Record<string, any>
+}
+
+export interface IPluginDescriptor {
+  organizationId?: string
+  name: PluginName
+  meta: PluginMeta
+  isGlobal: boolean
+  level: PluginLevel
+  canConfigure?: boolean
+  configSchema?: JsonSchemaObjectType
+}
+
+export interface IPluginConfiguration<TConfig extends Record<string, any> = Record<string, any>> {
+  pluginName: PluginName
+  config: TConfig
+  configSchema?: JsonSchemaObjectType
 }

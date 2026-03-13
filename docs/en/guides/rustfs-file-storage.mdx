@@ -1,0 +1,132 @@
+# RustFS File Storage Plugin
+
+## Overview
+
+RustFS is wired as a plugin-backed `IFileStorageProvider` inside `@xpert-ai/plugin-draft`.
+
+It is registered under provider name `RUSTFS` and reuses the same S3-compatible runtime path as MinIO, S3, and Wasabi.
+
+Use RustFS when you want a self-hosted S3-compatible object-storage backend while keeping the unified upload contract unchanged.
+
+## Where the code lives
+
+- Plugin entry: `packages/plugins/draft/src/index.ts`
+- Nest module: `packages/plugins/draft/src/lib/draft.ts`
+- Provider implementation: `packages/plugins/draft/src/lib/rustfs.provider.ts`
+- Shared S3-compatible base: `packages/plugins/draft/src/lib/s3-compatible.provider.ts`
+- Plugin env defaults: `packages/plugins/draft/src/lib/file-storage.config.ts`
+- Plugin validation and UI schema: `packages/plugins/draft/src/lib/file-storage.types.ts`
+
+## Configuration model
+
+RustFS runtime configuration is resolved from three layers, highest priority first:
+
+1. encrypted `PluginInstance.config`
+2. plugin env defaults from `registerAs('plugins.file-storage.draft', ...)`
+3. provider internal defaults
+
+Current internal defaults:
+
+- `region = us-east-1`
+- `forcePathStyle = true`
+- `signedUrlExpires = 3600`
+
+RustFS configuration is stored under `config.rustfs`.
+
+## Configure from the UI
+
+After the draft plugin is installed:
+
+1. open `Settings -> Plugins`
+2. find `Draft File Storage Providers`
+3. click `Configure`
+4. fill the `RustFS` section in the JSON-schema dialog
+5. save
+
+The host persists the full plugin config in `PluginInstance.config` and encrypts it at rest.
+
+## Configure through the plugin API
+
+```bash
+curl -X PUT http://localhost:3000/api/plugin/configuration \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "pluginName": "@xpert-ai/plugin-draft",
+    "config": {
+      "rustfs": {
+        "endpoint": "http://127.0.0.1:9000",
+        "bucket": "xpert-files",
+        "accessKeyId": "rustfsadmin",
+        "secretAccessKey": "rustfsadmin",
+        "region": "us-east-1",
+        "publicUrl": "http://localhost:9000",
+        "forcePathStyle": true
+      }
+    }
+  }'
+```
+
+## Environment defaults
+
+RustFS env defaults are plugin-local and optional.
+
+Supported variables:
+
+- `RUSTFS_ROOT_PATH`
+- `RUSTFS_ACCESS_KEY_ID`
+- `RUSTFS_SECRET_ACCESS_KEY`
+- `RUSTFS_REGION`
+- `RUSTFS_BUCKET`
+- `RUSTFS_ENDPOINT`
+- `RUSTFS_PUBLIC_URL`
+- `RUSTFS_FORCE_PATH_STYLE`
+- `RUSTFS_SIGNED_URL_EXPIRES`
+
+Example:
+
+```env
+RUSTFS_ENDPOINT=http://127.0.0.1:9000
+RUSTFS_BUCKET=xpert-files
+RUSTFS_ACCESS_KEY_ID=rustfsadmin
+RUSTFS_SECRET_ACCESS_KEY=rustfsadmin
+RUSTFS_REGION=us-east-1
+RUSTFS_PUBLIC_URL=http://localhost:9000
+RUSTFS_FORCE_PATH_STYLE=true
+RUSTFS_SIGNED_URL_EXPIRES=3600
+```
+
+## Use RustFS in unified upload
+
+```bash
+curl -X POST http://localhost:3000/api/files/upload \
+  -F 'file=@./README.md' \
+  -F 'targets=[{"kind":"storage","provider":"RUSTFS","directory":"files","prefix":"docs"}]'
+```
+
+Example target:
+
+```json
+[
+  {
+    "kind": "storage",
+    "provider": "RUSTFS",
+    "directory": "files",
+    "prefix": "docs"
+  }
+]
+```
+
+## Use RustFS as the default storage backend
+
+```env
+FILE_PROVIDER=RUSTFS
+```
+
+This works when the draft plugin is installed and available in the active scope.
+
+## Notes
+
+- RustFS is currently packaged through `@xpert-ai/plugin-draft`
+- RustFS configuration lives under `config.rustfs`
+- `RUSTFS` is a plugin provider name, not a built-in host enum member
+- Path-style URLs are enabled by default because RustFS is typically deployed behind a single endpoint

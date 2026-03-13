@@ -4,34 +4,35 @@ import { ModuleRef } from '@nestjs/core'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import {
 	INTEGRATION_PERMISSION_SERVICE_TOKEN,
+	PLUGIN_CONFIG_RESOLVER_TOKEN,
 	PluginLifecycleMethods,
 	StrategyBus,
-	USER_PERMISSION_SERVICE_TOKEN,
+	USER_PERMISSION_SERVICE_TOKEN
 } from '@xpert-ai/plugin-sdk'
 import chalk from 'chalk'
 import { PluginController } from './plugin.controller'
 import { getPluginModules, hasLifecycleMethod, loaded } from './plugin.helper'
+import { PluginConfigResolver, PluginConfigResolverProvider } from './plugin-config.resolver'
 import { LOADED_PLUGINS } from './types'
 import { PluginInstance } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
-import {
-	PluginIntegrationPermissionService,
-	PluginUserPermissionService
-} from './permissions'
+import { PluginIntegrationPermissionService, PluginUserPermissionService } from './permissions'
 
 @Global()
 @Module({
 	imports: [ConfigModule, TypeOrmModule.forFeature([PluginInstance])],
 	controllers: [PluginController],
-	exports: [StrategyBus],
+	exports: [StrategyBus, PluginConfigResolver, PLUGIN_CONFIG_RESOLVER_TOKEN],
 	providers: [
 		{ provide: LOADED_PLUGINS, useValue: loaded },
+		PluginConfigResolverProvider,
 		{ provide: INTEGRATION_PERMISSION_SERVICE_TOKEN, useExisting: PluginIntegrationPermissionService },
 		{ provide: USER_PERMISSION_SERVICE_TOKEN, useExisting: PluginUserPermissionService },
+		PluginConfigResolver,
 		PluginInstanceService,
 		PluginIntegrationPermissionService,
 		PluginUserPermissionService,
-		StrategyBus,
+		StrategyBus
 	]
 })
 export class PluginModule implements OnModuleInit, OnModuleDestroy {
@@ -98,7 +99,7 @@ export class PluginModule implements OnModuleInit, OnModuleDestroy {
 
 		// Loop through each plugin module asynchronously
 		for await (const pluginModule of pluginsModules) {
-			let pluginInstance: ClassDecorator;
+			let pluginInstance: ClassDecorator
 
 			try {
 				// Attempt to retrieve an instance of the current plugin module

@@ -22,6 +22,7 @@ import {
   TChatMessageStep,
   TChatOptions,
   TChatRequest,
+  TThreadContextUsageEvent,
   TInterruptCommand,
   TMessageAppendContext,
   TMessageContent,
@@ -38,6 +39,7 @@ import {
 } from '../@core/services'
 import { AppService } from '../app.service'
 import { XpertHomeService } from './home.service'
+import { isThreadContextUsageEvent, upsertThreadContextUsage } from '../@shared/chat/context/thread-context-usage'
 import { TCopilotChatMessage } from './types'
 
 function getCreatedAtMs(value: unknown): number {
@@ -160,6 +162,7 @@ export abstract class ChatService {
   readonly toolsets = signal<IXpertToolset[]>([])
 
   readonly answering = signal<boolean>(false)
+  readonly contextUsageByAgentKey = signal<Record<string, TThreadContextUsageEvent>>({})
   protected chatSubscription: Subscription = null
   private readonly messageAppendContextTracker = createMessageAppendContextTracker()
 
@@ -314,6 +317,7 @@ export abstract class ChatService {
       () => {
         if (!this.conversationId()) {
           this.suggestionQuestions.set([])
+          this.contextUsageByAgentKey.set({})
         }
       },
       { allowSignalWrites: true }
@@ -328,11 +332,13 @@ export abstract class ChatService {
     return this.conversationService.getById(id, {
       relations: [
         'xpert',
+        'xpert.copilotModel',
         'xpert.agent',
         'xpert.agents',
         'xpert.knowledgebases',
         'xpert.toolsets',
         'messages',
+        'messages.execution',
         'messages.attachments',
         'task'
       ]
@@ -508,6 +514,11 @@ export abstract class ChatService {
                   break
                 }
                 case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
+                  if (isThreadContextUsageEvent(event.data)) {
+                    this.setContextUsage(event.data)
+                    break
+                  }
+
                   if (event.data?.type === 'sandbox') {
                     this.conversation.update((conversation) => {
                       return {
@@ -625,8 +636,13 @@ export abstract class ChatService {
       if (this.answering() && this.conversation()?.id) {
         this.cancelMessage()
       }
+      this.contextUsageByAgentKey.set({})
       this.conversationId.set(id)
     }
+  }
+
+  setContextUsage(event: TThreadContextUsageEvent) {
+    this.contextUsageByAgentKey.update((state) => upsertThreadContextUsage(state, event))
   }
 
   updateConversation(data: Partial<IChatConversation>) {

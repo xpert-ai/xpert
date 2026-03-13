@@ -10,7 +10,11 @@ import { XpertToolsetModule } from '../xpert-toolset/'
 import { XpertProjectModule } from '../xpert-project/project.module'
 
 @Module({
-	imports: [CqrsModule, CopilotModule, CopilotCheckpointModule, KnowledgebaseModule, 
+	imports: [
+		CqrsModule,
+		CopilotModule,
+		CopilotCheckpointModule,
+		KnowledgebaseModule,
 		XpertToolsetModule,
 		XpertProjectModule
 	],

@@ -2,18 +2,36 @@
 
 ## Add plugins during development
 
-When adding plugins in development, make sure all three places are updated:
+When adding a plugin in development, update all three places:
 
-- Add the plugin to the built-in `preBootstrapPlugins` list.
-- Add the plugin package to `apps/api/package.json` dependencies.
-- Add the plugin package to `.deploy/api/package-prod.json` dependencies.
+- add the plugin to the built-in `preBootstrapPlugins` list if it should always ship with the app
+- add the plugin package to `apps/api/package.json`
+- add the plugin package to `.deploy/api/package.json` or the deployment package manifest in use
 
 ## Add plugins during deployment
 
 For deployment-time plugin injection, set the `PLUGINS` environment variable.
 
-- Use a comma-separated list when there are multiple plugins.
+- use a comma-separated list for multiple plugins
 
-## Related guide
+## Plugin configuration support
 
-- See [Agent Middleware](/en/guides/agent-middleware) for middleware strategy registration and wiring.
+If a plugin needs user-managed configuration:
+
+1. define `config.schema` for runtime validation
+2. optionally define `config.formSchema` for the frontend dialog
+3. read runtime config through the host `PluginConfigResolver`
+
+When `config.formSchema` is present:
+
+- the Installed Plugins page shows a `Configure` action
+- the frontend renders the form with `JSONSchemaFormComponent`
+- the host stores the config in `PluginInstance.config`
+- the stored value is encrypted at rest before persistence
+
+## Related guides
+
+- [Unified File Upload Architecture](/en/guides/file-upload-architecture)
+- [MinIO File Storage Plugin](/en/guides/minio-file-storage)
+- [RustFS File Storage Plugin](/en/guides/rustfs-file-storage)
+- [Agent Middleware](/en/guides/agent-middleware)

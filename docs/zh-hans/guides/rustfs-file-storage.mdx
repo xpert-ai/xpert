@@ -1,0 +1,132 @@
+# RustFS 文件存储插件
+
+## 概览
+
+RustFS 现在作为 `@xpert-ai/plugin-draft` 中的一个插件型 `IFileStorageProvider` 接入。
+
+它以 `RUSTFS` 名称注册，并复用了与 MinIO、S3、Wasabi 相同的 S3-compatible 运行链路。
+
+如果你希望接入一个自托管的 S3-compatible 对象存储后端，同时又不改统一上传协议，RustFS 是一个合适的 provider 选项。
+
+## 代码位置
+
+- 插件入口：`packages/plugins/draft/src/index.ts`
+- Nest 模块：`packages/plugins/draft/src/lib/draft.ts`
+- Provider 实现：`packages/plugins/draft/src/lib/rustfs.provider.ts`
+- 共用的 S3-compatible 基类：`packages/plugins/draft/src/lib/s3-compatible.provider.ts`
+- 插件 env 默认配置：`packages/plugins/draft/src/lib/file-storage.config.ts`
+- 插件校验与表单 schema：`packages/plugins/draft/src/lib/file-storage.types.ts`
+
+## 配置模型
+
+RustFS 运行时配置按以下优先级解析，越靠前优先级越高：
+
+1. 加密存储在 `PluginInstance.config` 中的配置
+2. 插件通过 `registerAs('plugins.file-storage.draft', ...)` 提供的 env 默认值
+3. provider 内部默认值
+
+当前内部默认值：
+
+- `region = us-east-1`
+- `forcePathStyle = true`
+- `signedUrlExpires = 3600`
+
+RustFS 的配置位于 `config.rustfs`。
+
+## 在前端中配置
+
+安装 draft 插件后：
+
+1. 打开 `Settings -> Plugins`
+2. 找到 `Draft File Storage Providers`
+3. 点击 `Configure`
+4. 在弹出的 JSON Schema dialog 中填写 `RustFS` 分组
+5. 保存
+
+宿主会把整段插件配置保存到 `PluginInstance.config`，并在持久化前加密。
+
+## 通过插件 API 配置
+
+```bash
+curl -X PUT http://localhost:3000/api/plugin/configuration \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "pluginName": "@xpert-ai/plugin-draft",
+    "config": {
+      "rustfs": {
+        "endpoint": "http://127.0.0.1:9000",
+        "bucket": "xpert-files",
+        "accessKeyId": "rustfsadmin",
+        "secretAccessKey": "rustfsadmin",
+        "region": "us-east-1",
+        "publicUrl": "http://localhost:9000",
+        "forcePathStyle": true
+      }
+    }
+  }'
+```
+
+## 环境变量默认值
+
+RustFS 的环境变量默认值是插件内部能力，可选使用。
+
+支持的变量：
+
+- `RUSTFS_ROOT_PATH`
+- `RUSTFS_ACCESS_KEY_ID`
+- `RUSTFS_SECRET_ACCESS_KEY`
+- `RUSTFS_REGION`
+- `RUSTFS_BUCKET`
+- `RUSTFS_ENDPOINT`
+- `RUSTFS_PUBLIC_URL`
+- `RUSTFS_FORCE_PATH_STYLE`
+- `RUSTFS_SIGNED_URL_EXPIRES`
+
+示例：
+
+```env
+RUSTFS_ENDPOINT=http://127.0.0.1:9000
+RUSTFS_BUCKET=xpert-files
+RUSTFS_ACCESS_KEY_ID=rustfsadmin
+RUSTFS_SECRET_ACCESS_KEY=rustfsadmin
+RUSTFS_REGION=us-east-1
+RUSTFS_PUBLIC_URL=http://localhost:9000
+RUSTFS_FORCE_PATH_STYLE=true
+RUSTFS_SIGNED_URL_EXPIRES=3600
+```
+
+## 在统一上传里使用 RustFS
+
+```bash
+curl -X POST http://localhost:3000/api/files/upload \
+  -F 'file=@./README.md' \
+  -F 'targets=[{"kind":"storage","provider":"RUSTFS","directory":"files","prefix":"docs"}]'
+```
+
+对应 target 示例：
+
+```json
+[
+  {
+    "kind": "storage",
+    "provider": "RUSTFS",
+    "directory": "files",
+    "prefix": "docs"
+  }
+]
+```
+
+## 将 RustFS 设为默认存储后端
+
+```env
+FILE_PROVIDER=RUSTFS
+```
+
+前提是 draft 插件已经安装，并且在当前作用域中可用。
+
+## 说明
+
+- RustFS 当前通过 `@xpert-ai/plugin-draft` 提供
+- RustFS 配置位于 `config.rustfs`
+- `RUSTFS` 现在是插件 provider 名称，而不是宿主内建 enum 成员
+- 默认启用 path-style URL，适合 RustFS 常见的单 endpoint 部署方式

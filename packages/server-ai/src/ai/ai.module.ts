@@ -55,8 +55,7 @@ import { RedisSseStreamService } from './stream/redis-sse.service'
 		AssistantsController,
 		ThreadsController,
 		ConversationsController,
-		StoreController,
-		
+		StoreController
 	],
 	providers: [AiService, RedisSseStreamService, ...CommandHandlers, ...QueryHandlers]
 })

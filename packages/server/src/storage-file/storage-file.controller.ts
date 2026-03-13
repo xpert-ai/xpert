@@ -1,30 +1,36 @@
-import { FileStorageProviderEnum, IScreenshot, IStorageFile, UploadedFile } from '@metad/contracts'
+import { IScreenshot, IStorageFile } from '@metad/contracts'
 import {
 	BadRequestException,
 	Body,
 	Controller,
 	Delete,
-	ExecutionContext,
 	HttpStatus,
 	Param,
 	Post,
+	UploadedFile,
 	UseInterceptors,
 	UsePipes,
 	ValidationPipe
 } from '@nestjs/common'
+import { CommandBus } from '@nestjs/cqrs'
+import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import axios from 'axios'
 import path from 'path'
 import { StorageFileService } from './storage-file.service'
-import { FileStorage, UploadedFileStorage } from '../core/file-storage'
+import { FileStorage } from '../file/file-storage/file-storage'
 import { StorageFile } from './storage-file.entity'
 import { UUIDValidationPipe } from '../shared/pipes'
-import { LazyFileInterceptor } from '../core/interceptors'
+import { UploadFileCommand } from '../file/file-upload/upload-file.command'
+import { getStorageFileFromAsset } from '../file/file-upload/types'
 
 @ApiTags('StorageFile')
 @Controller()
 export class StorageFileController {
-	constructor(private readonly storageFileService: StorageFileService) {}
+	constructor(
+		private readonly storageFileService: StorageFileService,
+		private readonly commandBus: CommandBus
+	) {}
 
 	@ApiOperation({ summary: 'Add storage file' })
 	@ApiResponse({
@@ -36,38 +42,48 @@ export class StorageFileController {
 		description: 'Invalid input, The response body may contain clues as to what went wrong'
 	})
 	@Post()
-	@UseInterceptors(
-		LazyFileInterceptor('file', {
-			storage: (request: ExecutionContext) => {
-                return new FileStorage().storage({
-					dest: path.join('files'),
-					prefix: 'files'
-				})
-            }
-        })
-	  )
-	async create(@Body() entity: StorageFile, @UploadedFileStorage() file: UploadedFile) {
-		return await this.storageFileService.createStorageFile(file)
+	@UseInterceptors(FileInterceptor('file'))
+	async create(@Body() entity: StorageFile, @UploadedFile() file: Express.Multer.File) {
+		const asset = await this.commandBus.execute(
+			new UploadFileCommand({
+				source: {
+					kind: 'multipart',
+					file
+				},
+				targets: [
+					{
+						kind: 'storage',
+						directory: path.join('files'),
+						prefix: 'files'
+					}
+				]
+			})
+		)
+		const storageFile = getStorageFileFromAsset(asset)
+		if (!storageFile) {
+			throw new BadRequestException('Failed to upload storage file')
+		}
+		return storageFile
 	}
 
 	@Post('url')
-	async createUrl(@Body() entity: StorageFile,) {
+	async createUrl(@Body() entity: StorageFile) {
 		const { url } = entity
 
 		try {
 			// Download the file from the URL
-			const response = await axios.get(url, { responseType: 'arraybuffer' });
+			const response = await axios.get(url, { responseType: 'arraybuffer' })
 
 			// 将 ArrayBuffer 转换为 Node.js 的 Buffer 类型
-			const buffer = Buffer.from(response.data);
+			const buffer = Buffer.from(response.data)
 
 			// Save the file using FileStorage
-			const provider = new FileStorage().getProvider();
-			const file = await provider.putFile(url);
+			const provider = new FileStorage().getProvider()
+			const file = await provider.putFile(url)
 
-			const { key, url: _url, originalname, size, mimetype, encoding } = file;
+			const { key, url: _url, originalname, size, mimetype, encoding } = file
 
-			const decodedOriginalName = Buffer.from(originalname, 'latin1').toString('utf8');
+			const decodedOriginalName = Buffer.from(originalname, 'latin1').toString('utf8')
 			return await this.storageFileService.create({
 				file: key,
 				url: _url,
@@ -75,11 +91,11 @@ export class StorageFileController {
 				encoding,
 				size,
 				mimetype,
-				storageProvider: (provider.name).toUpperCase() as FileStorageProviderEnum,
-				recordedAt: new Date(),
+				storageProvider: `${provider.name}`.toUpperCase(),
+				recordedAt: new Date()
 			})
 		} catch (error) {
-			throw new BadRequestException(`Failed to download and store file from URL: ${error.message}`);
+			throw new BadRequestException(`Failed to download and store file from URL: ${error.message}`)
 		}
 	}
 

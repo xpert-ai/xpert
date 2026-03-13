@@ -1,5 +1,7 @@
 @if (task(); as task) {
-  <div class="max-w-3xl @md:px-4 mb-4 mx-auto rounded-2xl bg-components-card-bg p-4 border flex flex-col gap-1 w-full whitespace-normal break-all">
+  <div
+    class="max-w-3xl @md:px-4 mb-4 mx-auto rounded-2xl bg-components-card-bg p-4 border flex flex-col gap-1 w-full whitespace-normal break-all"
+  >
     <div class="flex flex-col gap-0.5">
       <h1 class="font-semibold">{{ task.name }}</h1>
     </div>
@@ -12,7 +14,8 @@
         class="inline-flex items-center justify-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none border border-border-l2 text-fg-primary hover:bg-button-ghost-hover [&amp;_svg]:hover:text-fg-primary disabled:hover:bg-transparent h-10 rounded-xl px-3.5 py-2 text-sm font-semibold"
         type="button"
         (click)="chatService.gotoTask(task.id)"
-      >{{'PAC.Chat.GoToTask' | translate: {Default: 'Go to Task'} }}
+      >
+        {{ 'PAC.Chat.GoToTask' | translate: { Default: 'Go to Task' } }}
       </button>
     </div>
   </div>
@@ -20,9 +23,7 @@
 
 @if (conversation()?.id) {
   @if (parameters()?.length) {
-    <xpert-parameters-card class="w-full mb-4" [parameters]="parameters()"
-      [(ngModel)]="parametersValue"
-    />
+    <xpert-parameters-card class="w-full mb-4" [parameters]="parameters()" [(ngModel)]="parametersValue" />
   }
 }
 
@@ -47,22 +48,24 @@
       <emoji-avatar [avatar]="xpert().avatar" large class="rounded-xl overflow-hidden shadow-sm" />
 
       <div class="w-full flex flex-col items-center gap-2">
-        <p class="text-xl">{{xpert().title || xpert().name}}</p>
-        <p class="w-96 text-center text-text-secondary line-clamp-5" [title]="xpert().description">{{xpert().description}}</p>
+        <p class="text-xl">{{ xpert().title || xpert().name }}</p>
+        <p class="w-96 text-center text-text-secondary line-clamp-5" [title]="xpert().description">
+          {{ xpert().description }}
+        </p>
       </div>
 
       <div class="mx-3 mt-12 flex max-w-3xl flex-wrap items-stretch justify-center gap-4 mb-8">
         @for (statement of xpert().starters; track statement) {
           @if (statement) {
-            <button class="relative flex w-40 flex-col gap-2 rounded-xl border border-token-border-light px-2 pb-3 pt-2 text-start align-top text-sm shadow-sm
-              md:text-base md:px-3 md:pt-3 md:pb-4 md:rounded-2xl
-              transition enabled:hover:bg-token-main-surface-secondary disabled:cursor-not-allowed"
+            <button
+              class="relative flex w-40 flex-col gap-2 rounded-xl border border-token-border-light px-2 pb-3 pt-2 text-start align-top text-sm shadow-sm md:text-base md:px-3 md:pt-3 md:pb-4 md:rounded-2xl transition enabled:hover:bg-token-main-surface-secondary disabled:cursor-not-allowed"
               (click)="onChat(statement)"
             >
-              <div class="line-clamp-3 max-w-full text-balance font-light text-neutral-500 dark:text-neutral-500 break-word"
+              <div
+                class="line-clamp-3 max-w-full text-balance font-light text-neutral-500 dark:text-neutral-500 break-word"
                 [title]="statement"
               >
-                {{statement}}
+                {{ statement }}
               </div>
             </button>
           }
@@ -70,9 +73,7 @@
       </div>
 
       @if (parameters()?.length) {
-        <xpert-parameters-card class="w-full mb-4" [parameters]="parameters()"
-          [(ngModel)]="parametersValue"
-        />
+        <xpert-parameters-card class="w-full mb-4" [parameters]="parameters()" [(ngModel)]="parametersValue" />
       }
     </div>
   }
@@ -82,23 +83,26 @@
   @if (suggesting()) {
     <div class="flex cursor-pointer justify-center items-center">
       <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
-      <div class="text-text-tertiary ml-2">
-        {{ 'PAC.Xpert.Suggesting' | translate: {Default: 'Suggesting'} }}...
-      </div>
+      <div class="text-text-tertiary ml-2">{{ 'PAC.Xpert.Suggesting' | translate: { Default: 'Suggesting' } }}...</div>
     </div>
   } @else if (suggestionQuestions()?.length) {
     <div class="mb-2 py-2">
       <div class="mb-2.5 flex items-center justify-between gap-2">
         <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow rotate-180"></div>
         <div class="shrink-0 text-text-tertiary">
-          {{ 'PAC.Xpert.TryAsking' | translate: {Default: 'Try asking'} }}
+          {{ 'PAC.Xpert.TryAsking' | translate: { Default: 'Try asking' } }}
         </div>
         <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow"></div>
       </div>
       <div class="flex flex-wrap justify-center">
         @for (question of suggestionQuestions(); track question) {
-          <button type="button" class="btn disabled:btn-disabled btn-secondary btn-small mb-1 mr-1 last:mr-0"
-            (click)="onSelectSuggestionQuestion(question)">{{question}}</button>
+          <button
+            type="button"
+            class="btn disabled:btn-disabled btn-secondary btn-small mb-1 mr-1 last:mr-0"
+            (click)="onSelectSuggestionQuestion(question)"
+          >
+            {{ question }}
+          </button>
         }
       </div>
     </div>
@@ -106,21 +110,24 @@
 }
 
 @if (conversationStatus() === eExecutionStatusEnum.ERROR) {
-  <div class="w-full flex items-start gap-2 p-4 rounded-3xl text-orange-500 bg-orange-50 border border-solid border-orange-200">
-    <div >
+  <div
+    class="w-full flex items-start gap-2 p-4 rounded-3xl text-orange-500 bg-orange-50 border border-solid border-orange-200"
+  >
+    <div>
       <i class="ri-information-2-line text-xl"></i>
     </div>
-    <div class="flex-1 py-1 break-all">{{error()}}</div>
+    <div class="flex-1 py-1 break-all">{{ error() }}</div>
 
     <button type="button" class="btn btn-small text-text-primary" (click)="onRetry()">
-      {{ 'PAC.KEY_WORDS.Retry' | translate: {Default: 'Retry'} }}
+      {{ 'PAC.KEY_WORDS.Retry' | translate: { Default: 'Retry' } }}
     </button>
   </div>
 }
 
 @if (conversationStatus() === eExecutionStatusEnum.INTERRUPTED && operation() && showOperationPanel()) {
   <!-- Operation panel appears only when inputs are required -->
-  <xp-xpert-agent-operation class="w-full max-w-xl mx-auto mb-8 bg-components-card-bg"
+  <xp-xpert-agent-operation
+    class="w-full max-w-xl mx-auto mb-8 bg-components-card-bg"
     [projectId]="project()?.id"
     [conversationId]="conversation()?.id"
     [operation]="operation()"
