@@ -4,7 +4,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
 import { linkedModel } from '@metad/core'
 import { NgmRadioSelectComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -24,7 +23,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     DragDropModule,
     TranslateModule,
     ...ZardTooltipImports,
-    MatSliderModule,
     NgmRadioSelectComponent,
     XpertVariableInputComponent
   ]

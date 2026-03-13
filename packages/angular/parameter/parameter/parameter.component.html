@@ -1,16 +1,16 @@
 @switch (paramType) {
   @case(eCubeParameterEnum.Input) {
     @if (options()?.slider) {
-      <mat-slider class="w-full"
+      <z-slider class="w-full"
         [step]="options()?.sliderStep || 1"
         [min]="options()?.sliderMin || 0"
         [max]="options()?.sliderMax || 100"
-        [discrete]="options()?.showThumbLabel"
+        [showValueLabel]="options()?.showThumbLabel"
         [showTickMarks]="options()?.showTickMarks"
-        [color]="options()?.sliderColor"
-        >
-        <input matSliderThumb [ngModel]="parameterValue()" (dragEnd)="onSlicerEnd($event)">
-      </mat-slider>
+        [ngModel]="parameterValue()"
+        (changeEnd)="onSlicerEnd($event)"
+      >
+      </z-slider>
     } @else {
       <ngm-input class="block w-full px-2" [ngModel]="parameterValue()" [type]="parameter().dataType ?? 'string'"
         (blur)="onBlur($event)"

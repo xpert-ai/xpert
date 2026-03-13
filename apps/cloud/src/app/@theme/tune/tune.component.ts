@@ -4,7 +4,6 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
 import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatSliderModule } from '@angular/material/slider'
 import { NgFilterPipeModule } from '@metad/core'
 import { ButtonGroupDirective, DensityDirective, NgmDSCacheService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
@@ -14,7 +13,7 @@ import { environment } from 'apps/cloud/src/environments/environment'
 import { Observable, of } from 'rxjs'
 import { AbstractAgent, LocalAgent, ServerSocketAgent, Store, ToastrService } from '../../@core'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { ZardButtonComponent, ZardIconComponent, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardSliderComponent, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-tune',
@@ -32,7 +31,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardTabsImports, ZardTooltipImp
     ...ZardTooltipImports,
     ZardButtonComponent,
     ...ZardTabsImports,
-    MatSliderModule,
+    ZardSliderComponent,
     MatProgressBarModule,
     ButtonGroupDirective,
     DensityDirective,

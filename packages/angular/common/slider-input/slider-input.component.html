@@ -5,17 +5,20 @@
         [disabled]="disabled" 
         [(ngModel)]="model"
         (ngModelChange)="onValueChange($event)"
-        (blur)="changeEnd.emit(model)"
+        (blur)="onInputBlur()"
     >
     <span *ngIf="unit">{{unit}}</span>
 </div>
-<mat-slider [disabled]="disabled"
-    [color]="color"
-    [displayWith]="displayWith ?? defaultDisplayWith"
-    [max]="max"
+<z-slider
+    [disabled]="disabled"
+    [formatValue]="displayWith ?? defaultDisplayWith"
+    [max]="currentMax()"
     [min]="min"
     [step]="step"
-    [discrete]="discrete"
+    [showTickMarks]="showTickMarks"
+    [showValueLabel]="discrete"
+    [ngModel]="model"
+    (ngModelChange)="onSliderValueChange($event)"
+    (changeEnd)="onSliderChangeEnd($event)"
 >
-    <input matSliderThumb [(ngModel)]="model" (dragEnd)="onSlicerEnd($event)">
-</mat-slider>
+</z-slider>

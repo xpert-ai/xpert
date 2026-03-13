@@ -19,9 +19,14 @@
       ></i>
     </div>
 
-    <mat-slider class="w-[200px] grow" ngm-density small color="accent" [min]="1" [max]="10" discrete>
-      <input matSliderThumb [value]="stopAfterAttempt()" (dragEnd)="stopAfterAttempt.set($event.value)" />
-    </mat-slider>
+    <z-slider
+      class="w-[200px] grow"
+      [min]="1"
+      [max]="10"
+      [showValueLabel]="true"
+      [value]="stopAfterAttempt()"
+      (changeEnd)="setStopAfterAttempt($event)"
+    ></z-slider>
 
     <input
       class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-gray-100 text-[13px] text-gra-900"
@@ -44,9 +49,14 @@
       ></i>
     </div>
 
-    <mat-slider class="w-[200px] grow" ngm-density small color="accent" [min]="1" [max]="10" discrete>
-      <input matSliderThumb [value]="retryInterval()" (dragEnd)="retryInterval.set($event.value)" />
-    </mat-slider>
+    <z-slider
+      class="w-[200px] grow"
+      [min]="1"
+      [max]="10"
+      [showValueLabel]="true"
+      [value]="retryInterval()"
+      (changeEnd)="setRetryInterval($event)"
+    ></z-slider>
 
     <input
       class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-gray-100 text-[13px] text-gra-900"

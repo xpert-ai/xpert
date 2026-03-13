@@ -1,18 +1,9 @@
 import { CommonModule } from '@angular/common'
-import {
-  ChangeDetectionStrategy,
-  Component,
-  HostBinding,
-  Input,
-  ViewChild,
-  forwardRef,
-  output,
-  signal
-} from '@angular/core'
+import { ChangeDetectionStrategy, Component, HostBinding, Input, OnChanges, forwardRef, output, signal } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatSlider, MatSliderDragEvent, MatSliderModule } from '@angular/material/slider'
-import { NgmFieldColor } from "@metad/ocap-angular/core";
+import { ZardInputDirective, ZardSliderComponent } from '@xpert-ai/headless-ui'
+import type { ZardSliderValue } from '@xpert-ai/headless-ui'
+import { NgmFieldColor } from '@metad/ocap-angular/core'
 
 /**
  * @deprecated use headless components instead
@@ -34,9 +25,9 @@ import { NgmFieldColor } from "@metad/ocap-angular/core";
       useExisting: forwardRef(() => NgmSliderInputComponent)
     }
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ZardInputDirective, MatSliderModule]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ZardInputDirective, ZardSliderComponent]
 })
-export class NgmSliderInputComponent implements ControlValueAccessor {
+export class NgmSliderInputComponent implements ControlValueAccessor, OnChanges {
   @Input() disabled = false
   @Input() disableRipple = false
   @Input() color: NgmFieldColor = null
@@ -44,86 +35,131 @@ export class NgmSliderInputComponent implements ControlValueAccessor {
 
   @Input() label: string
   @Input() unit: string
-  @Input() displayWith: MatSlider['displayWith']
-  @Input() max: MatSlider['max']
-  @Input() min: MatSlider['min']
-  @Input() step: MatSlider['step']
-  @Input() discrete: MatSlider['discrete']
+  @Input() displayWith: (value: number) => string
+  @Input() max: number = 100
+  @Input() min: number = 0
+  @Input() step: number = 1
+  @Input() discrete: boolean = false
+  @Input() showTickMarks: boolean = false
   @Input() autoScale = false
-
-  @ViewChild(MatSlider, { static: true }) slider!: MatSlider
 
   readonly changeEnd = output<number>()
 
+  readonly currentMax = signal(100)
+
   defaultDisplayWith = (value: number) => `${value}`
 
-  private _model = signal<number | string>(null)
-  get model() {
+  private _model = signal<number | string | null>(null)
+  private originalMaxValue: number | null = null
+
+  get model(): number | null {
     const value = this._model()
-    if (this.unit && typeof value === 'string') {
-      if (value.endsWith(this.unit)) {
-        const number = value.slice(0, -this.unit.length)
-        return Number(number)
-      }
+    if (this.unit && typeof value === 'string' && value.endsWith(this.unit)) {
+      return Number(value.slice(0, -this.unit.length))
     }
-    return typeof value === 'string' ? Number(value) : value
+    return value == null ? null : typeof value === 'string' ? Number(value) : value
   }
 
-  set model(value) {
-    const result = this.unit ? value + this.unit : value
+  set model(value: number | string) {
+    const numericValue = value == null || value === '' ? null : Number(value)
+    const result = this.unit && numericValue != null ? `${numericValue}${this.unit}` : numericValue
     this._model.set(result)
     this.onChange?.(result)
   }
 
-  originalMaxValue = null
-
   onChange: (input: any) => void
   onTouched: () => void
 
-  ngAfterContentInit(): void {
-    if (this.autoScale) {
-      this.originalMaxValue = this.slider.max
-      if (this.model >= this.slider.max) {
-        this.slider.max = this.model * 2
-      }
+  ngOnChanges(): void {
+    const normalizedMax = this.normalizeNumber(this.max, 100)
+    const model = this.model
+    this.originalMaxValue = normalizedMax
+
+    if (!this.autoScale || this.currentMax() < normalizedMax) {
+      this.currentMax.set(normalizedMax)
+    }
+
+    if (this.autoScale && model != null && model >= normalizedMax) {
+      this.currentMax.set(this.expandMax(model))
     }
   }
 
   writeValue(obj: any): void {
-    if (obj) {
+    if (obj !== undefined) {
       this._model.set(obj)
-      this.onValueChange(this.model)
+      const model = this.model
+      if (model != null) {
+        this.onValueChange(model)
+      }
     }
   }
+
   registerOnChange(fn: any): void {
     this.onChange = fn
   }
+
   registerOnTouched(fn: any) {
     this.onTouched = fn
   }
+
   setDisabledState?(isDisabled: boolean): void {
     this.disabled = isDisabled
   }
 
-  onSlicerEnd(event: MatSliderDragEvent) {
-    this.changeEnd.emit(event.value)
-    this.onValueChange(event.value)
+  onSliderValueChange(value: ZardSliderValue) {
+    const numericValue = this.sliderValue(value)
+    this.model = numericValue
+    this.onValueChange(numericValue)
+  }
+
+  onSliderChangeEnd(value: ZardSliderValue) {
+    const numericValue = this.sliderValue(value)
+    this.changeEnd.emit(numericValue)
+    this.onTouched?.()
+    this.onValueChange(numericValue)
+  }
+
+  onInputBlur() {
+    this.changeEnd.emit(this.model ?? this.min)
+    this.onTouched?.()
   }
 
   onValueChange(value: number) {
-    if (this.autoScale && this.slider) {
-      if (value > this.slider.max) {
-        this.slider.max = value
-      } else if (value === this.slider.max) {
-        this.originalMaxValue = this.originalMaxValue ?? this.slider.max
-        this.slider.max = this.slider.max * 2
-      } else if (this.originalMaxValue !== null && this.slider.max !== this.originalMaxValue) {
-        if (value < this.originalMaxValue) {
-          this.slider.max = this.originalMaxValue
-        } else if (value < this.slider.max / 2) {
-          this.slider.max = this.slider.max / 2
-        }
+    if (!this.autoScale || value == null) {
+      if (!this.autoScale) {
+        this.currentMax.set(this.normalizeNumber(this.max, 100))
+      }
+      return
+    }
+
+    const originalMax = this.originalMaxValue ?? this.normalizeNumber(this.max, 100)
+    let nextMax = this.currentMax()
+
+    if (value > nextMax) {
+      nextMax = this.expandMax(value)
+    } else if (value === nextMax) {
+      nextMax = this.expandMax(value)
+    } else if (nextMax !== originalMax) {
+      if (value < originalMax) {
+        nextMax = originalMax
+      } else if (value < nextMax / 2) {
+        nextMax = Math.max(originalMax, nextMax / 2)
       }
     }
+
+    this.currentMax.set(Math.max(originalMax, nextMax))
+  }
+
+  private normalizeNumber(value: number, fallback: number): number {
+    return Number.isFinite(value) ? Number(value) : fallback
+  }
+
+  private expandMax(value: number): number {
+    const originalMax = this.originalMaxValue ?? this.normalizeNumber(this.max, 100)
+    return Math.max(originalMax, value * 2)
+  }
+
+  private sliderValue(value: ZardSliderValue): number {
+    return typeof value === 'number' ? value : value[0]
   }
 }

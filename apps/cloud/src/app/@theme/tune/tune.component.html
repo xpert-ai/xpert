@@ -40,18 +40,16 @@
       </h5>
 
       <div class="flex px-4">
-        <mat-slider
+        <z-slider
           class="flex-1"
-          color="accent"
           [max]="5"
           [min]="0"
           [step]="1"
-          showTickMarks
-          discrete
-          [displayWith]="cacheLevelFormatter"
-        >
-          <input matSliderThumb [(ngModel)]="cacheLevel" />
-        </mat-slider>
+          [showTickMarks]="true"
+          [showValueLabel]="true"
+          [formatValue]="cacheLevelFormatter"
+          [(ngModel)]="cacheLevel"
+        ></z-slider>
       </div>
 
       <div class="flex justify-start">

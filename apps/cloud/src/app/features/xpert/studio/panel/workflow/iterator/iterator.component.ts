@@ -1,6 +1,5 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSliderModule } from '@angular/material/slider'
 import {
   genXpertStartKey,
   getVariableSchema,
@@ -16,13 +15,14 @@ import {
 } from '@cloud/app/@core'
 import { StateVariableSelectComponent, TXpertVariablesOptions } from '@cloud/app/@shared/agent'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { NgmDensityDirective, TSelectOption } from '@metad/ocap-angular/core'
+import { TSelectOption } from '@metad/ocap-angular/core'
 import { attrModel, linkedModel } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardSliderComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import type { ZardSliderValue } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-panel-workflow-iterator',
   templateUrl: './iterator.component.html',
@@ -33,10 +33,9 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     FormsModule,
     ...ZardTooltipImports,
     TranslateModule,
-    MatSliderModule,
-    NgmDensityDirective,
     NgmSelectComponent,
     StateVariableSelectComponent,
+    ZardSliderComponent,
     ZardSwitchComponent
   ],
   host: {
@@ -154,6 +153,10 @@ export class XpertStudioPanelWorkflowIteratorComponent extends XpertWorkflowBase
     })
   }
 
+  updateMaximum(value: ZardSliderValue) {
+    this.updateEntity('maximum', this.sliderValue(value))
+  }
+
   addOutput() {
     this.outputParams.update((params) => [...(params ?? []), { name: '', variable: '' }])
   }
@@ -184,5 +187,9 @@ export class XpertStudioPanelWorkflowIteratorComponent extends XpertWorkflowBase
     this.outputParams.update((params) => {
       return params?.filter((_) => _.name !== name)
     })
+  }
+
+  private sliderValue(value: ZardSliderValue) {
+    return typeof value === 'number' ? value : value[0]
   }
 }

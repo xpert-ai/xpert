@@ -24,9 +24,7 @@
         zPosition="top"
       ></i>
 
-      <mat-slider class="grow" min="0" max="100" step="1" showTickMarks discrete [displayWith]="formatLabel">
-        <input matSliderThumb [(ngModel)]="afterSeconds" />
-      </mat-slider>
+      <z-slider class="grow" min="0" max="100" step="1" [showTickMarks]="true" [showValueLabel]="true" [formatValue]="formatLabel" [(ngModel)]="afterSeconds"></z-slider>
     </div>
 
     <copilot-prompt-editor

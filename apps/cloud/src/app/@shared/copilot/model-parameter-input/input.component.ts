@@ -1,9 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { ZardInputDirective, ZardSwitchComponent } from '@xpert-ai/headless-ui'
-import { MatSliderModule } from '@angular/material/slider'
-import { NgmDensityDirective } from '@metad/ocap-angular/core'
+import { ZardInputDirective, ZardSliderComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { ParameterRule, ParameterType } from '../../../@core'
 
@@ -12,7 +10,7 @@ import { ParameterRule, ParameterType } from '../../../@core'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, MatSliderModule, ZardInputDirective, NgmDensityDirective, ZardSwitchComponent],
+  imports: [CommonModule, FormsModule, ZardInputDirective, ZardSliderComponent, ZardSwitchComponent],
   selector: 'copilot-model-parameter-input',
   templateUrl: 'input.component.html',
   styleUrls: ['input.component.scss'],

@@ -6,9 +6,7 @@
   >{{ 'Copilot.RecursionLimit' | translate: { Default: 'Recursion Limit' } }}:
   <span class="font-notoColorEmoji" zTooltip="Maximum number of loop calls" zPosition="top">💡</span>
 </label>
-<mat-slider color="accent" min="1" max="100" step="1" value="20" discrete>
-  <input matSliderThumb [(ngModel)]="recursionLimit" />
-</mat-slider>
+<z-slider min="1" max="100" step="1" [showValueLabel]="true" [(ngModel)]="recursionLimit"></z-slider>
 
 <z-checkbox [(ngModel)]="interactive" color="accent" labelPosition="before">
   {{ 'Copilot.Interactive' | translate: { Default: 'Interactive' } }}

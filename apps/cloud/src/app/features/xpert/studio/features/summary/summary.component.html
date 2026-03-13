@@ -28,10 +28,17 @@
   >
 </div>
 
-<mat-slider class="w-full" [step]="2" showTickMarks discrete min="0" max="200" ngm-density small color="accent">
-  <input [ngModel]="summarizeMessages()" matSliderStartThumb (dragEnd)="summarizeMessages.set($event.value)" />
-  <input [ngModel]="maxMessages()" matSliderEndThumb (dragEnd)="maxMessages.set($event.value)" />
-</mat-slider>
+<z-slider
+  class="w-full"
+  mode="range"
+  [step]="2"
+  [showTickMarks]="true"
+  [showValueLabel]="true"
+  min="0"
+  max="200"
+  [value]="[summarizeMessages(), maxMessages()]"
+  (valueChange)="updateRange($event)"
+></z-slider>
 
 <copilot-prompt-editor
   class="relative ngm-card-border-gradient self-stretch"
