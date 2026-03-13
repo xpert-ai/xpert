@@ -10,9 +10,9 @@ English | [中文](./README_zh.md)
 </p>
 
 <p align="center">
-  <a href="https://app.mtda.cloud/">XpertAI Cloud</a> ·
-  <a href="https://xpertai.cn/en/docs/getting-started/community/">Self-hosting</a> ·
-  <a href="https://xpertai.cn/en/docs/">Documentation</a> ·
+  <a href="https://app.xpertai.cn/">XpertAI Cloud</a> ·
+  <a href="https://docs.xpertai.cn/en/ai/getting-started/community">Self-hosting</a> ·
+  <a href="https://docs.xpertai.cn/en/">Documentation</a> ·
   <a href="https://xpertai.cn/en/#connect">Enterprise inquiry</a>
 </p>
 
@@ -53,13 +53,13 @@ In today’s rapidly evolving AI landscape, enterprises face a key challenge: **
 
 [Blog - Agent-Workflow Hybrid Architecture](https://xpertai.cn/en/blog/agent-workflow-hybrid-architecture)
 
-### [Agent Orchestration Platform](https://xpertai.cn/en/docs/ai/)
+### [Agent Orchestration Platform](https://docs.xpertai.cn/en/ai/)
 
 By coordinating the collaboration of multiple intelligent agents, Xpert can handle complex tasks. Xpert integrates different types of AI agents through efficient management mechanisms, leveraging their capabilities to address multidimensional problems.
 
 [Xpert Agent](https://github.com/user-attachments/assets/e21f8b35-2f72-4b81-a245-f36759df7c27)
 
-### [Data Analysis Platform](https://xpertai.cn/en/docs/models/)
+### [Data Analysis Platform](https://docs.xpertai.cn/en/bi/)
 
 A cloud-based agile data analysis platform supporting multidimensional modeling, metrics management, and BI visualization. The platform connects to various data sources, enabling efficient and flexible data analysis and visualization, and offers multiple intelligent analysis tools to help enterprises quickly and accurately uncover business value and make operational decisions.
 
@@ -90,7 +90,7 @@ Please check our [Wiki - Development](https://github.com/xpert-ai/xpert/wiki/Dev
 
 ### Demo
 
-Xpert AI Platform Demo at <https://app.mtda.cloud>.
+Xpert AI Platform Demo at <https://app.xpertai.cn>.
 
 Notes:
 
@@ -98,7 +98,7 @@ Notes:
 
 ### Production (SaaS)
 
-Xpert AI Platform SaaS is available at <https://app.mtda.cloud>.
+Xpert AI Platform SaaS is available at <https://app.xpertai.cn>.
 
 Note: it's currently in Alpha version / in testing mode, please use it with caution!
 
