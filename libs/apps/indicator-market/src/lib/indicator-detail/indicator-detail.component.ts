@@ -14,7 +14,6 @@ import {
 } from '@angular/core'
 import { Dialog } from '@angular/cdk/dialog'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MAT_BOTTOM_SHEET_DATA, MatBottomSheetRef } from '@angular/material/bottom-sheet'
 import { CommentsService, Store, ToastrService } from '@metad/cloud/state'
 import { BusinessAreaRole, IBusinessAreaUser, IComment } from '@metad/contracts'
 import { NgmCopilotService } from '@metad/copilot-angular'
@@ -60,6 +59,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { graphic } from 'echarts/core'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { Z_SHEET_DATA, ZardSheetRef } from '@xpert-ai/headless-ui'
 import {
   BehaviorSubject,
   combineLatest,
@@ -95,8 +95,8 @@ export class IndicatorDetailComponent {
   private store = inject(IndicatorsStore)
   private indicatoryMarketComponent = inject(IndicatoryMarketComponent)
   readonly #logger = inject(NGXLogger)
-  private data? = inject<{ id: string }>(MAT_BOTTOM_SHEET_DATA, { optional: true })
-  private _bottomSheetRef? = inject<MatBottomSheetRef<IndicatorDetailComponent>>(MatBottomSheetRef, { optional: true })
+  private data? = inject<{ id: string }>(Z_SHEET_DATA, { optional: true })
+  private _bottomSheetRef? = inject<ZardSheetRef<IndicatorDetailComponent>>(ZardSheetRef, { optional: true })
   private _cdr = inject(ChangeDetectorRef)
   private toastrService = inject(ToastrService)
   private copilotService = inject(NgmCopilotService)
@@ -675,7 +675,7 @@ export class IndicatorDetailComponent {
   }
 
   onClose(event) {
-    this._bottomSheetRef.dismiss()
+    this._bottomSheetRef?.close()
     event.preventDefault()
   }
 

@@ -19,13 +19,11 @@
 
   .pac-indicator-market__detail-container {
     --ngm-indicator-app-bottom-sheet-height: calc(100vh - 50px);
-    .mat-bottom-sheet-container {
-      display: flex;
-      background: unset;
-      padding: 0;
-      height: var(--ngm-indicator-app-bottom-sheet-height);
-      max-height: var(--ngm-indicator-app-bottom-sheet-height);
-    }
+    display: flex;
+    background: unset;
+    padding: 0;
+    height: var(--ngm-indicator-app-bottom-sheet-height);
+    max-height: var(--ngm-indicator-app-bottom-sheet-height);
   }
 
   .pac-indicator-market__infinite-container.cdk-virtual-scroll-orientation-vertical

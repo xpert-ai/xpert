@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
-import { MatBottomSheetModule } from '@angular/material/bottom-sheet'
 
 import { MatDatepickerModule } from '@angular/material/datepicker'
 import { C_URI_API_MODELS } from '@metad/cloud/state'
@@ -30,7 +29,6 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     PublicRoutingModule,
     ZardIconComponent,
     ZardButtonComponent,
-    MatBottomSheetModule,
     MatDatepickerModule,
     ContentLoaderModule,
     NgxEchartsModule.forRoot({

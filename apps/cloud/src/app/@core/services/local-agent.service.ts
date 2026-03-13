@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core'
-import { MatBottomSheet } from '@angular/material/bottom-sheet'
 import { AgentEvent, AgentEventType, AuthenticationEnum } from '@metad/contracts'
 import {
   Agent,
@@ -16,6 +15,7 @@ import { DataSourceService, UsersService } from '@metad/cloud/state'
 import { BehaviorSubject, firstValueFrom, Observable, of, Subject, Subscription, throwError, timer } from 'rxjs'
 import { filter, finalize, mergeMap, retryWhen, switchMap, tap, timeout } from 'rxjs/operators'
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket'
+import { ZardSheetService } from '@xpert-ai/headless-ui'
 import { uuid } from '../types'
 import { AgentService } from './agent.service'
 import { Store } from './store.service'
@@ -54,7 +54,7 @@ export class LocalAgent extends AbstractAgent implements Agent {
     private readonly usersService: UsersService,
     private translateService: TranslateService,
     dataSourceService: DataSourceService,
-    _bottomSheet: MatBottomSheet
+    _bottomSheet: ZardSheetService
   ) {
     super(dataSourceService, _bottomSheet)
 

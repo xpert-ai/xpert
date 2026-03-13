@@ -1,6 +1,5 @@
 import { HttpClient, HttpParams, HttpRequest, HttpResponse } from '@angular/common/http'
 import { Inject, Injectable, InjectionToken } from '@angular/core'
-import { MatBottomSheet } from '@angular/material/bottom-sheet'
 import { AgentEvent, AuthenticationEnum, IDataSource, IDataSourceAuthentication, ISemanticModel } from '@metad/contracts'
 import { Agent, AgentStatus, AgentType, DataSourceOptions, UUID } from '@metad/ocap-core'
 import { API_DATA_SOURCE, C_URI_API_MODELS, DataSourceService } from '@metad/cloud/state'
@@ -17,6 +16,7 @@ import {
   of,
   Subject,
 } from 'rxjs'
+import { ZardSheetService } from '@xpert-ai/headless-ui'
 import { getErrorMessage, uuid } from '../types'
 import { AbstractAgent, AuthInfoType } from '../auth'
 
@@ -61,7 +61,7 @@ export class ServerAgent extends AbstractAgent implements Agent {
     private options: PacServerAgentDefaultOptions,
     private httpClient: HttpClient,
     dataSourceService: DataSourceService,
-    _bottomSheet: MatBottomSheet) {
+    _bottomSheet: ZardSheetService) {
     super(dataSourceService, _bottomSheet)
 
     this.request$
