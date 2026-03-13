@@ -121,14 +121,13 @@
 </div>
 
 <div class="flex flex-col overflow-hidden relative">
-  <mat-progress-bar
+  <z-progress-bar
     *ngIf="isLoading"
-    mode="determinate"
-    [value]="progress"
-    color="accent"
-    class="absolute w-full top-0 left-0"
-    style="position: absolute"
-  ></mat-progress-bar>
+    zShape="square"
+    zType="accent"
+    [progress]="progress"
+    class="absolute left-0 top-0 w-full"
+  />
 
   <div
     *ngIf="stepper.selectedIndex === 0"

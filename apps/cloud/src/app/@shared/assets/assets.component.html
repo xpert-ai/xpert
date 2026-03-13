@@ -1,10 +1,5 @@
 @if (searching$ | async) {
-  <mat-progress-bar
-    mode="query"
-    color="accent"
-    class="top-0 left-0 w-full"
-    style="position: absolute; height: 2px;"
-  />
+  <z-progress-bar zIndeterminate zShape="square" zSize="sm" zType="accent" class="absolute left-0 top-0 w-full" />
 }
 
 @if (!search) {

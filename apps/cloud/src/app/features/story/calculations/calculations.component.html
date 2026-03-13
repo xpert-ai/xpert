@@ -171,12 +171,7 @@
   <div z-menu-content class="ngm-menu__copilot-context-popper ngm-density__compact relative p-0">
     <ngm-search class="m-2 mb-0" (click)="$event.stopPropagation()" [(ngModel)]="entitySearch" />
     @if (loadingCubes$ | async) {
-      <mat-progress-bar
-        mode="query"
-        role="progressbar"
-        color="accent"
-        class="absolute left-0 top-0 h-[2px] w-full"
-      />
+      <z-progress-bar zIndeterminate zShape="square" zSize="sm" zType="accent" class="absolute left-0 top-0 w-full" />
     } @else if (cubes$ | async) {
       <cdk-virtual-scroll-viewport minBufferPx="200" maxBufferPx="400" [style.height.px]="240" [itemSize]="30">
         <button

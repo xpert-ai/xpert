@@ -3,7 +3,6 @@ import { Component, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
-import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { NgFilterPipeModule } from '@metad/core'
 import { ButtonGroupDirective, DensityDirective, NgmDSCacheService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
@@ -32,7 +31,6 @@ import { ZardButtonComponent, ZardIconComponent, ZardSliderComponent, ZardTabsIm
     ZardButtonComponent,
     ...ZardTabsImports,
     ZardSliderComponent,
-    MatProgressBarModule,
     ButtonGroupDirective,
     DensityDirective,
     NgFilterPipeModule

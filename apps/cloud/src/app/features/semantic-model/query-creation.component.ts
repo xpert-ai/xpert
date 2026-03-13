@@ -5,7 +5,6 @@ import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 
 import { MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -15,7 +14,7 @@ import { ModelQueryService, uuid } from '../../@core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MatDialogModule, TranslateModule, FormsModule, ReactiveFormsModule, ...ZardFormImports, DragDropModule, ZardButtonComponent, ZardInputDirective, MatProgressBarModule, ButtonGroupDirective, DensityDirective, NgmSelectComponent],
+  imports: [CommonModule, MatDialogModule, TranslateModule, FormsModule, ReactiveFormsModule, ...ZardFormImports, DragDropModule, ZardButtonComponent, ZardInputDirective, ButtonGroupDirective, DensityDirective, NgmSelectComponent],
   selector: 'pac-query-creation',
   template: `<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
       <h4 style="pointer-events: none;">

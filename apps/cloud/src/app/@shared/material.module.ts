@@ -19,7 +19,6 @@ import {
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { MatExpansionModule } from '@angular/material/expansion'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatSnackBarModule } from '@angular/material/snack-bar'
@@ -44,7 +43,6 @@ const MATERIAL_MODULES = [
   MatStepperModule,
   MatSnackBarModule,
   ZardInputDirective,
-  MatProgressBarModule,
   MatSidenavModule,
   ZardCheckboxComponent,
   MatExpansionModule,

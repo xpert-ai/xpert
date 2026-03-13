@@ -3,7 +3,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { ActivatedRoute, Router } from '@angular/router'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
@@ -46,7 +45,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     CdkListboxModule,
     ...ZardTooltipImports,
-    MatProgressBarModule,
     WaIntersectionObserver,
 
     KnowledgeDocumentCreateStep1Component,

@@ -3,7 +3,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { ActivatedRoute, Router } from '@angular/router'
 import { SafePipe } from '@metad/core'
 import { NgmCheckboxComponent } from '@metad/ocap-angular/common'
@@ -48,7 +47,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     CdkListboxModule,
     ...ZardTooltipImports,
-    MatProgressBarModule,
     ContentLoaderModule,
     NgmI18nPipe,
     SafePipe,

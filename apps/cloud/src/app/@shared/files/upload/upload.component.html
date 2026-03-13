@@ -44,7 +44,7 @@
             <z-icon zType="close"></z-icon> 
           </button>
         </div>
-        <mat-progress-bar mode="determinate" [value]="item.progress" />
+        <z-progress-bar zShape="square" [progress]="item.progress ?? 0" />
       }
     </div>
   </div>

@@ -97,7 +97,7 @@
       </form>
 
       <div class="flex justify-center items-center w-full h-24">
-        <mat-progress-bar *ngIf="loading()" class="w-full" mode="query"></mat-progress-bar>
+        <z-progress-bar *ngIf="loading()" zIndeterminate zShape="square" />
         <z-form-message zType="error" *ngIf="demoError()" class="max-h-full max-w-full overflow-auto">{{demoError()}}</z-form-message>
       </div>
 
