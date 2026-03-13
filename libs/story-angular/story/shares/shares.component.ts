@@ -7,8 +7,6 @@ import {
   Component,
   Inject,
   OnInit,
-  TemplateRef,
-  ViewChild,
   computed,
   inject,
   model,
@@ -23,9 +21,9 @@ import {
   ZardIconComponent,
   ZardInputDirective,
   ZardSliderComponent,
+  ZardToastService,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser'
 import { AccessEnum, ISemanticModel, Visibility } from '@metad/contracts'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -57,7 +55,7 @@ export class StorySharesComponent implements OnInit {
   Visibility = Visibility
   AccessEnum = AccessEnum
 
-  private readonly _snackBar = inject(MatSnackBar)
+  private readonly toast = inject(ZardToastService)
 
   readonly visibilities = [Visibility.Public, Visibility.Private]
   _applicationBaseUrl = window.location.origin
@@ -93,9 +91,6 @@ export class StorySharesComponent implements OnInit {
   get isStory() {
     return !(this.data?.point || this.data?.widget)
   }
-
-  @ViewChild('copyMessage') copyMessage: TemplateRef<any>
-
   private readonly pages = this.storyService.displayPoints
   public readonly pagesSelectOptions = computed(() => {
     const pages = [
@@ -158,11 +153,10 @@ export class StorySharesComponent implements OnInit {
     if (this.visibility() !== this.data.visibility) {
       // Check semantic model visibility first
       if (this.visibility() === Visibility.Public && this.data.models.some((m) => m.visibility !== Visibility.Public)) {
-        this._snackBar.open(
+        this.toast.error(
           this.getTranslation('Story.Shares.SemanticModelPublicFirst', {
             Default: 'Change semantic model to public visibility first!'
           }),
-          '',
           {
             duration: 5000
           }
@@ -175,7 +169,7 @@ export class StorySharesComponent implements OnInit {
         })
       )
       const changedText = this.getTranslation('Story.Shares.VisibilityChanged', { Default: 'Visibility changed' })
-      this._snackBar.open(changedText + '!', '', { duration: 2000 })
+      this.toast.success(changedText + '!', { duration: 2000 })
       this.storyService.updateStory({
         visibility: this.visibility()
       })
@@ -213,7 +207,9 @@ export class StorySharesComponent implements OnInit {
 
   copy(text: string) {
     this.clipboard.copy(text)
-    this._snackBar.openFromTemplate(this.copyMessage, { duration: 2000 })
+    this.toast.success(this.getTranslation('Story.Shares.CopyURLSuccess', { Default: 'Copy URL Success' }), {
+      duration: 2000
+    })
   }
 
   getTranslation(key: string, params?: any) {

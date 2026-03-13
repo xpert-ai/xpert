@@ -69,7 +69,6 @@ import { HierarchyTableDataType } from '../types'
 import { ModelHierarchyService } from './hierarchy.service'
 import { CommonModule } from '@angular/common'
 import { FormsModule } from '@angular/forms'
-import { MatToolbarModule } from '@angular/material/toolbar'
 import { 
   ZardButtonComponent, 
   ZardCheckboxComponent,
@@ -99,7 +98,6 @@ import {
     ZardButtonComponent,
     ZardToggleGroupComponent,
     ZardToggleGroupItemComponent,
-    MatToolbarModule,
     OcapCoreModule,
     ResizerModule,
     SplitterModule,

@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import {
   ID,
   NxStoryStore,
@@ -11,11 +10,12 @@ import {
   StoryWidget,
   StoryWidgetKey
 } from '@metad/story/core'
+import { ZardToastService } from '@xpert-ai/headless-ui'
 import { Observable, of } from 'rxjs'
 
 @Injectable()
 export class StoryStoreMockService implements NxStoryStore {
-  constructor(private snackBar: MatSnackBar) {}
+  constructor(private toast: ZardToastService) {}
 
   getNotificationDestinations(): Observable<StoryNotificationDestination[]> {
     throw new Error('Method not implemented.')
@@ -53,7 +53,7 @@ export class StoryStoreMockService implements NxStoryStore {
     throw new Error('Method not implemented.')
   }
   updateStoryWidget(storyWidget: StoryWidget): Observable<void> {
-    this.snackBar.open('模拟更新成功!', '', { duration: 2000 })
+    this.toast.success('模拟更新成功!', { duration: 2000 })
     return of(null)
   }
   removeStory(id: ID): Observable<void> {

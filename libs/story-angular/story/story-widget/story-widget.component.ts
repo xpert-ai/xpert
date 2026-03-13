@@ -31,7 +31,6 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { MatDialog } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { ActivatedRoute, Params, Router } from '@angular/router'
 import {
   Intent,
@@ -72,7 +71,7 @@ import { NxSettingsPanelService } from '@metad/story/designer'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { select } from '@ngneat/elf'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardDividerComponent } from '@xpert-ai/headless-ui'
+import { ZardDividerComponent, ZardToastService } from '@xpert-ai/headless-ui'
 import { cloneDeep, isEmpty, isEqual, pick } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, combineLatest, EMPTY, firstValueFrom, from, Observable, of } from 'rxjs'
@@ -372,7 +371,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
     @Optional()
     @Inject(STORY_WIDGET_COMPONENT)
     private readonly _widgetComponents?: Array<StoryWidgetComponentProvider>,
-    @Optional() private readonly _snackBar?: MatSnackBar
+    @Optional() private readonly toast?: ZardToastService
   ) {
     effect(() => {
       if (this.key()) {
@@ -591,7 +590,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
   }
 
   onCommentchange(event) {
-    this._snackBar.open(event.editor.getContent(), 'dismiss', { duration: 1000 })
+    this.toast?.info(event.editor.getContent(), { duration: 1000 })
   }
 
   onCreateComment({ text, dataRelated }) {
@@ -747,7 +746,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
     try {
       await this.storyService.copyWidgetToNewPage(type, this.widget().key)
     } catch (err) {
-      this._snackBar.open(`Error: ${(<Error>err).message}`, `Dismiss`, { duration: 2000 })
+      this.toast?.error(`Error: ${(<Error>err).message}`, { duration: 2000 })
     }
   }
 
@@ -767,7 +766,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
     try {
       await this.storyService.moveWidgetToNewPage(this.storyPointService.storyPoint.key, this.widget().key, type)
     } catch (err) {
-      this._snackBar.open(`Error: ${(<Error>err).message}`, `Dismiss`, { duration: 2000 })
+      this.toast?.error(`Error: ${(<Error>err).message}`, { duration: 2000 })
     }
   }
 

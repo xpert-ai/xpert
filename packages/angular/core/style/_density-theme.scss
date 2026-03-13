@@ -54,20 +54,4 @@
     }
   }
 
-  // For toolbar
-  .mat-toolbar.ngm-density__compact {
-    &.mat-toolbar-multiple-rows {
-      // min-height: 58px;
-    }
-    &.mat-toolbar-row,
-    &.mat-toolbar-single-row {
-      height: 33px;
-      padding: 0 6px;
-      font-size: 1rem;
-    }
-
-    .mat-toolbar-row {
-      padding: 0 6px;
-    }
-  }
 }

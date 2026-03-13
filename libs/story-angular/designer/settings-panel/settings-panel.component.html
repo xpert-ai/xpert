@@ -25,7 +25,7 @@
 
 @if (drawerOpened()) {
   <div class="absolute top-8 left-0 bottom-0 overflow-y-auto">
-    <mat-toolbar
+    <div
       class="ngm-settings-panel__drawer-drawer flex justify-start items-center gap-2 sticky top-0 bg-components-card-bg"
     >
       <button
@@ -73,7 +73,7 @@
       >
         <z-icon zType="delete"></z-icon>
       </button>
-    </mat-toolbar>
+    </div>
 
     <div style="flex: 1; max-height: 100%; overflow: auto">
       <ng-template [cdkPortalOutlet]="drawerPortal"></ng-template>

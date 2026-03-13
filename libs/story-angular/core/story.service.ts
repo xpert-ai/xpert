@@ -2,7 +2,6 @@ import { BreakpointObserver, Breakpoints, BreakpointState } from '@angular/cdk/l
 import { computed, inject, Inject, Injectable, Injector, Optional, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { MatDialog } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { ID, IStoryTemplate, StoryTemplateType } from '@metad/contracts'
 import {
   createSubStore,
@@ -38,6 +37,7 @@ import {
 } from '@metad/ocap-core'
 import { createStore, Query, select, Store, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
+import { ZardToastService } from '@xpert-ai/headless-ui'
 import { TranslateService } from '@ngx-translate/core'
 import { cloneDeep, findKey, includes, isEmpty, isEqual, negate, omit, some, sortBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
@@ -439,7 +439,7 @@ export class NxStoryService {
     @Inject(NX_STORY_STORE)
     private storyStore?: NxStoryStore,
     @Optional() protected logger?: NGXLogger,
-    @Optional() private _snackBar?: MatSnackBar,
+    @Optional() private toast?: ZardToastService,
     @Optional() private _dialog?: MatDialog
   ) {}
 
@@ -494,7 +494,7 @@ export class NxStoryService {
         next: (result) => {
           if (result) {
             const successMessage = this.getTranslation('Story.Story.SaveSuccess', 'Save success')
-            this._snackBar.open(successMessage, '', {
+            this.toast?.success(successMessage, {
               duration: 2000
             })
           }
@@ -502,7 +502,8 @@ export class NxStoryService {
         },
         error: (error) => {
           const errorMessage = this.getTranslation('Story.Story.SaveFailed', 'Save failed')
-          this._snackBar.open(errorMessage, getErrorMessage(error.statusText), {
+          this.toast?.error(errorMessage, {
+            description: getErrorMessage(error.statusText),
             duration: 2000
           })
         }
@@ -897,7 +898,8 @@ export class NxStoryService {
                 this.#removeStoryPoint(state.key)
               },
               error: (error) => {
-                this._snackBar.open('删除失败', error.status, {
+                this.toast?.error('删除失败', {
+                  description: error.status,
                   duration: 2000
                 })
               }

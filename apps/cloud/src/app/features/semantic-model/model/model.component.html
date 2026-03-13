@@ -118,10 +118,7 @@
         (cdkDropListDropped)="dropEntity($event)"
         [cdkDropListEnterPredicate]="entityPredicate"
       >
-        <div
-          displayDensity="compact"
-          class="shrink-0 h-10 flex justify-between items-center sticky top-0 z-10 bg-(--ngm-shell-primary-container-bg-color)"
-        >
+        <div class="shrink-0 h-10 flex justify-between items-center sticky top-0 z-10 bg-(--ngm-shell-primary-container-bg-color)">
           <button z-button zType="ghost" zSize="icon" zShape="circle" class="text-neutral-600" (click)="closeSidebar()">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -280,7 +277,7 @@
       </ngm-splitter-pane>
 
       <ngm-splitter-pane class="relative flex flex-col justify-start items-stretch">
-        <div displayDensity="compact" class="shrink-0">
+        <div class="shrink-0">
           <div class="flex justify-between items-center px-0.5 pt-1">
             <span>{{ 'PAC.MODEL.MODEL.TABLES' | translate: { Default: 'Tables' } }}</span>
 

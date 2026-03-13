@@ -1,11 +1,10 @@
 import { Injectable, inject } from '@angular/core'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { ActivatedRouteSnapshot, CanDeactivateFn } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
-import { Observable, defer, isObservable, merge, of } from 'rxjs'
-import { map, switchMap, take } from 'rxjs/operators'
+import { Observable, defer, isObservable, of } from 'rxjs'
+import { switchMap, take } from 'rxjs/operators'
 import { IsDirty } from '@metad/core'
-import { NgmConfirmSnackBar } from '@metad/ocap-angular/common'
+import { ZardAlertDialogService } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use dirtyCheckGuard
@@ -13,7 +12,7 @@ import { NgmConfirmSnackBar } from '@metad/ocap-angular/common'
 @Injectable()
 export class DirtyCheckGuard  {
   private translateService = inject(TranslateService)
-  private _snackBar = inject(MatSnackBar)
+  private readonly alertDialog = inject(ZardAlertDialogService)
 
   canDeactivate(component: IsDirty, currentRoute: ActivatedRouteSnapshot): Observable<boolean> {
     let dirty$: Observable<boolean>
@@ -37,19 +36,11 @@ export class DirtyCheckGuard  {
   }
 
   confirmChanges(currentRoute: ActivatedRouteSnapshot): Observable<boolean> | boolean {
-    const confirm = this._snackBar.openFromComponent(NgmConfirmSnackBar, {
-      verticalPosition: 'top',
-      horizontalPosition: 'center',
-      duration: 3* 1000,
-      data: {
-        message: this.getTranslation('PAC.MESSAGE.ConfirmExitDirtyData', {Default: 'Has dirty data, confirm exit?'}),
-        action: this.getTranslation('PAC.MESSAGE.Sure', {Default: 'Sure'})
-      }
+    return this.alertDialog.confirm({
+      description: this.getTranslation('PAC.MESSAGE.ConfirmExitDirtyData', {Default: 'Has dirty data, confirm exit?'}),
+      actionText: this.getTranslation('PAC.MESSAGE.Sure', {Default: 'Sure'}),
+      cancelText: this.getTranslation('COMPONENTS.COMMON.CANCEL', { Default: 'Cancel' })
     })
-
-    return merge(confirm.afterDismissed().pipe(map(() => false)), confirm.onAction().pipe(map(() => true))).pipe(
-      take(1)
-    )
   }
 
   getTranslation(key: string, params?: any): string {
@@ -62,14 +53,14 @@ export const dirtyCheckGuard: CanDeactivateFn<IsDirty> = (
   currentRoute: ActivatedRouteSnapshot
 ): Observable<boolean> => {
   const translateService = inject(TranslateService);
-  const snackBar = inject(MatSnackBar);
+  const alertDialog = inject(ZardAlertDialogService);
 
   return toObservable(component.isDirty()).pipe(
     switchMap((isDirty) => {
       if (!isDirty) {
         return of(true);
       }
-      return toObservable(confirmChanges(currentRoute, snackBar, translateService));
+      return toObservable(confirmChanges(currentRoute, alertDialog, translateService));
     }),
     take(1)
   );
@@ -77,23 +68,14 @@ export const dirtyCheckGuard: CanDeactivateFn<IsDirty> = (
 
 function confirmChanges(
   currentRoute: ActivatedRouteSnapshot,
-  snackBar: MatSnackBar,
+  alertDialog: ZardAlertDialogService,
   translateService: TranslateService
 ): Observable<boolean> | boolean {
-  const confirm = snackBar.openFromComponent(NgmConfirmSnackBar, {
-    verticalPosition: 'top',
-    horizontalPosition: 'center',
-    duration: 3 * 1000,
-    data: {
-      message: translateService.instant('PAC.MESSAGE.ConfirmExitDirtyData', { Default: 'Has dirty data, confirm exit?' }),
-      action: translateService.instant('PAC.MESSAGE.Sure', { Default: 'Sure' })
-    }
+  return alertDialog.confirm({
+    description: translateService.instant('PAC.MESSAGE.ConfirmExitDirtyData', { Default: 'Has dirty data, confirm exit?' }),
+    actionText: translateService.instant('PAC.MESSAGE.Sure', { Default: 'Sure' }),
+    cancelText: translateService.instant('COMPONENTS.COMMON.CANCEL', { Default: 'Cancel' })
   });
-
-  return merge(
-    confirm.afterDismissed().pipe(map(() => false)),
-    confirm.onAction().pipe(map(() => true))
-  ).pipe(take(1));
 }
 
 function toObservable<T>(source: T | Observable<T>): Observable<T> {

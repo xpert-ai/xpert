@@ -1,4 +1,4 @@
-<mat-toolbar class="pac-nav-toolbar flex" displayDensity="compact">
+<div class="pac-nav-toolbar flex shrink-0 items-center">
   @if (!modelSideMenuOpened()) {
     <button z-button zType="ghost" zSize="icon" zShape="circle" class="text-neutral-600" (click)="openSideMenu()">
       <svg
@@ -83,7 +83,7 @@
   >
     <i class="ri-user-add-line"></i>
   </button>
-</mat-toolbar>
+</div>
 
 <z-tab-nav-panel #tabPanel class="overflow-hidden">
   <router-outlet #o="outlet"></router-outlet>

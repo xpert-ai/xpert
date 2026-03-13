@@ -4,7 +4,6 @@ import { Component, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, Validators } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { ActivatedRoute } from '@angular/router'
 import { calcEntityTypePrompt, nonBlank } from '@metad/core'
 import { NgmCommonModule, NgmSelectComponent, ResizerModule } from '@metad/ocap-angular/common'
@@ -21,10 +20,9 @@ import {
   VirtualCubeDimension
 } from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
-import { NgmNotificationComponent } from 'apps/cloud/src/app/@theme'
 import { NGXLogger } from 'ngx-logger'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
-import type { ZardSwitchChange } from '@xpert-ai/headless-ui'
+import { ZardToastService, type ZardSwitchChange } from '@xpert-ai/headless-ui'
 import { SemanticModelService } from '../model.service'
 import { CdkDragDropContainers, SemanticModelEntityType } from '../types'
 import { VirtualCubeStateService } from './virtual-cube.service'
@@ -59,7 +57,7 @@ export class VirtualCubeComponent {
   private modelState = inject(SemanticModelService)
   private virtualCubeState = inject(VirtualCubeStateService)
   private route = inject(ActivatedRoute)
-  readonly #snackBar = inject(MatSnackBar)
+  readonly #toast = inject(ZardToastService)
   readonly #translate = inject(TranslateService)
   readonly #logger = inject(NGXLogger)
 
@@ -337,17 +335,11 @@ ${calcEntityTypePrompt(this.entityType())}
   }
 
   openNeedSaveMessage() {
-    this.#snackBar.openFromComponent(NgmNotificationComponent, {
-      data: {
-        color: 'primary',
-        message: this.#translate.instant('PAC.MODEL.VirtualCube.PleaseSave', { Default: 'Please Save' }),
-        description: this.#translate.instant('PAC.MODEL.VirtualCube.PleaseSaveTheCorrectVirtualCube', {
-          Default: 'Please save the correct virtual cube configuration before editing the formula.'
-        })
-      },
-      duration: 5 * 1000,
-      horizontalPosition: 'end',
-      verticalPosition: 'bottom'
+    this.#toast.warning(this.#translate.instant('PAC.MODEL.VirtualCube.PleaseSave', { Default: 'Please Save' }), {
+      description: this.#translate.instant('PAC.MODEL.VirtualCube.PleaseSaveTheCorrectVirtualCube', {
+        Default: 'Please save the correct virtual cube configuration before editing the formula.'
+      }),
+      duration: 5 * 1000
     })
   }
 }

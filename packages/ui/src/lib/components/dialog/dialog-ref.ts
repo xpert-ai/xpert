@@ -2,7 +2,7 @@ import type { OverlayRef } from '@angular/cdk/overlay';
 import { isPlatformBrowser } from '@angular/common';
 import { EventEmitter, Inject, PLATFORM_ID } from '@angular/core';
 
-import { filter, fromEvent, Subject, takeUntil } from 'rxjs';
+import { filter, fromEvent, ReplaySubject, Subject, takeUntil } from 'rxjs';
 
 import type { ZardDialogComponent, ZardDialogOptions } from './dialog.component';
 
@@ -12,6 +12,7 @@ const enum eTriggerAction {
 }
 
 export class ZardDialogRef<T = any, R = any, U = any> {
+  private readonly afterClosed$ = new ReplaySubject<R | undefined>(1);
   private destroy$ = new Subject<void>();
   private isClosing = false;
   protected result?: R;
@@ -23,10 +24,14 @@ export class ZardDialogRef<T = any, R = any, U = any> {
     private containerInstance: ZardDialogComponent<T, U>,
     @Inject(PLATFORM_ID) private platformId: object,
   ) {
+    if (!this.containerInstance) {
+      return;
+    }
+
     this.containerInstance.cancelTriggered.subscribe(() => this.trigger(eTriggerAction.CANCEL));
     this.containerInstance.okTriggered.subscribe(() => this.trigger(eTriggerAction.OK));
 
-    if ((this.config.zMaskClosable ?? true) && isPlatformBrowser(this.platformId)) {
+    if ((this.config.zMaskClosable ?? true) && isPlatformBrowser(this.platformId) && this.overlayRef) {
       this.overlayRef
         .outsidePointerEvents()
         .pipe(takeUntil(this.destroy$))
@@ -51,7 +56,7 @@ export class ZardDialogRef<T = any, R = any, U = any> {
     this.isClosing = true;
     this.result = result;
 
-    if (isPlatformBrowser(this.platformId)) {
+    if (isPlatformBrowser(this.platformId) && this.containerInstance) {
       const hostElement = this.containerInstance.getNativeElement();
       hostElement.classList.add('dialog-leave');
     }
@@ -64,11 +69,18 @@ export class ZardDialogRef<T = any, R = any, U = any> {
         this.overlayRef.dispose();
       }
 
+      this.afterClosed$.next(this.result);
+      this.afterClosed$.complete();
+
       if (!this.destroy$.closed) {
         this.destroy$.next();
         this.destroy$.complete();
       }
     }, 150);
+  }
+
+  afterClosed() {
+    return this.afterClosed$.asObservable();
   }
 
   private trigger(action: eTriggerAction) {

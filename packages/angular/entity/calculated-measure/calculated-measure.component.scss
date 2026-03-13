@@ -81,11 +81,11 @@
 
 .mat-drawer-content {
   @apply relative overflow-hidden flex flex-col;
+}
 
-  .mat-toolbar {
-    height: 44px;
-    font-size: 1rem;
-  }
+.ngm-calculated-measure__toolbar {
+  height: 44px;
+  font-size: 1rem;
 }
 
 .ngm-calculated-measure__helpers {

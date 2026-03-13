@@ -3,6 +3,6 @@ import { provideZard } from '@xpert-ai/headless-ui'
  
 export const appConfig: ApplicationConfig = {
   providers: [
-    ...provideZard(),
+    provideZard(),
   ]
 };

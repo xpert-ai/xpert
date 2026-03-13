@@ -3,7 +3,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { NgModule } from '@angular/core'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatChipsModule } from '@angular/material/chips'
-import { MatNativeDateModule, MatRippleModule } from '@angular/material/core'
+import { MatNativeDateModule } from '@angular/material/core'
 import { MatDialogModule } from '@angular/material/dialog'
 import {
   ZardBadgeComponent,
@@ -21,10 +21,8 @@ import {
 import { MatExpansionModule } from '@angular/material/expansion'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatSnackBarModule } from '@angular/material/snack-bar'
 import { MatStepperModule } from '@angular/material/stepper'
 import { MatTableModule } from '@angular/material/table'
-import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatTreeModule } from '@angular/material/tree'
 import { MatDatepickerModule } from '@angular/material/datepicker'
 
@@ -35,13 +33,11 @@ const MATERIAL_MODULES = [
   ZardDividerComponent,
   ...ZardMenuImports,
   MatDialogModule,
-  MatToolbarModule,
   ZardButtonComponent,
   ...ZardFormImports,
   ...ZardTabsImports,
   ...ZardCardImports,
   MatStepperModule,
-  MatSnackBarModule,
   ZardInputDirective,
   MatSidenavModule,
   ZardCheckboxComponent,
@@ -49,7 +45,6 @@ const MATERIAL_MODULES = [
   MatAutocompleteModule,
   MatChipsModule,
   ...ZardTooltipImports,
-  MatRippleModule,
   MatTreeModule,
   ZardBadgeComponent,
   MatTableModule,

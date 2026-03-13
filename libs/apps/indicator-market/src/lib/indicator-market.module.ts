@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatChipsModule } from '@angular/material/chips'
-import { MatRippleModule } from '@angular/material/core'
 import { MatDatepickerModule } from '@angular/material/datepicker'
 import {
   ZardButtonComponent,
@@ -18,7 +17,6 @@ import {
   ZardSliderComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { MatListModule } from '@angular/material/list'
 import { MatMenuModule } from '@angular/material/menu'
 import { FavoritesService, IndicatorsService } from '@metad/cloud/state'
 import { ReversePipe } from '@metad/core'
@@ -56,12 +54,10 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     DragDropModule,
     CdkMenuModule,
     ZardDividerComponent,
-    MatListModule,
     ...ZardCardImports,
     ZardCheckboxComponent,
     ZardButtonComponent,
     ZardIconComponent,
-    MatRippleModule,
     MatMenuModule,
     MatDatepickerModule,
     MatChipsModule,

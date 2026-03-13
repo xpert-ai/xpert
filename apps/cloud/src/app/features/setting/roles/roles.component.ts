@@ -1,6 +1,5 @@
 import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core'
 import { MatDialog } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { isNil } from '@metad/ocap-core'
 import { BehaviorSubject, firstValueFrom, Subject } from 'rxjs'
 import { debounceTime, filter, map, shareReplay, switchMap, tap } from 'rxjs/operators'
@@ -57,7 +56,6 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
     private readonly rolesService: RoleService,
     private readonly store: Store,
     private _cdr: ChangeDetectorRef,
-    private readonly _snackBar: MatSnackBar,
     private readonly _dialog: MatDialog,
     private readonly _toastr: ToastrService
   ) {
@@ -140,13 +138,11 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
             })
           )
 
-      this._snackBar.open(
+      this._toastr.success(
         this.getTranslation(`PAC.NOTES.ROLES.PERMISSION_UPDATED`, {
           Default: `Permission '{{name}}' Updated`,
           name: this.role.name
         }),
-        '',
-        { duration: 2000 }
       )
     } catch (error) {
       // this.toastrService.danger(

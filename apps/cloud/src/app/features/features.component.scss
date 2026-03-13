@@ -27,8 +27,8 @@ $prefix: (ngm, shell);
 }
 
 @include token-utils.use-tokens($prefix, get-token-slots()) {
-  .mat-toolbar.pac__shell-bar {
-    --mat-toolbar-container-background-color: var(#{token-utils.get-token-variable(bg-color)});
+  .pac__shell-bar {
+    background-color: var(#{token-utils.get-token-variable(bg-color)});
   }
   :host {
     --ngm-copilot-bg-color: var(#{token-utils.get-token-variable(copilot-bg-color)});

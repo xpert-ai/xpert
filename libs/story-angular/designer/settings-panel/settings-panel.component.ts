@@ -17,7 +17,6 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 
-import { MatToolbarModule } from '@angular/material/toolbar'
 import { nonNullable } from '@metad/core'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -35,7 +34,6 @@ import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpe
     PortalModule,
     ZardButtonComponent,
     ZardIconComponent,
-    MatToolbarModule,
     ...ZardTooltipImports,
     TranslateModule,
     OcapCoreModule
