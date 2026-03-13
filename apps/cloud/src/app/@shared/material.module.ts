@@ -3,7 +3,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { NgModule } from '@angular/core'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatChipsModule } from '@angular/material/chips'
-import { MatNativeDateModule, MatRippleModule } from '@angular/material/core'
+import { MatNativeDateModule } from '@angular/material/core'
 import { MatDialogModule } from '@angular/material/dialog'
 import {
   ZardBadgeComponent,
@@ -48,7 +48,6 @@ const MATERIAL_MODULES = [
   MatAutocompleteModule,
   MatChipsModule,
   ...ZardTooltipImports,
-  MatRippleModule,
   MatTreeModule,
   ZardBadgeComponent,
   MatTableModule,

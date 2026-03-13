@@ -208,6 +208,11 @@ export class IndicatoryMarketComponent extends ComponentStore<{ id?: string }> {
     })
   }
 
+  onItemKeydown(event: KeyboardEvent, item: IndicatorState) {
+    event.preventDefault()
+    this.click(item)
+  }
+
   onTimeGranularity(event: TimeGranularity) {
     this.indicatorsStore.resetData()
     this.indicatorsStore.updateTimeGranularity(event)

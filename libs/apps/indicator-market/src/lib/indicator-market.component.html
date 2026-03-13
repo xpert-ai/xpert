@@ -42,12 +42,19 @@
       </button>
     </div>
 
-    <mat-list class="pac-indicator-list" cdkDropList (cdkDropListDropped)="dropOrder($event)">
+    <div class="pac-indicator-list" cdkDropList (cdkDropListDropped)="dropOrder($event)">
       <ng-container *cdkVirtualFor="let item of indicators$ | async; trackBy: trackById; templateCacheSize: 0">
-        <mat-list-item matRipple [class.selected]="selected$() === item.id"
+        <div
+          class="pac-indicator-list__item relative flex min-h-[70px] cursor-pointer select-none items-center rounded-xl px-4 py-3 transition-all outline-none hover:bg-black/5 focus-visible:ring-2 focus-visible:ring-primary-500/40 focus-visible:ring-offset-2 active:scale-[0.99] active:bg-black/10 data-[selected=true]:bg-black/5 dark:hover:bg-white/10 dark:active:bg-white/15 dark:data-[selected=true]:bg-white/10"
+          role="button"
+          tabindex="0"
+          [attr.aria-selected]="selected$() === item.id"
+          [attr.data-selected]="selected$() === item.id"
           (click)="click(item)"
+          (keydown.enter)="onItemKeydown($event, item)"
+          (keydown.space)="onItemKeydown($event, item)"
           cdkDrag [cdkDragStartDelay]="200"
-          >
+        >
 
           <ngm-indicator [dataSettings]="item.dataSettings" [indicatorCode]="item.code" [lookBack]="lookBack()" 
             [tagType]="tagType()"
@@ -62,10 +69,10 @@
 
           <!-- <pac-indicator-item class="flex-1 overflow-hidden" [indicator]="item" [tag]="tagType()"/> -->
           <div class="pac-indicator__placeholder" *cdkDragPlaceholder></div>
-        </mat-list-item>
-        <z-divider></z-divider>
+        </div>
+        <z-divider class="mx-2 border-black/5 dark:border-white/5"></z-divider>
       </ng-container>
-    </mat-list>
+    </div>
   </cdk-virtual-scroll-viewport>
 
   @if (isEmpty()) {
