@@ -89,21 +89,21 @@
 <ng-template #options>
   <div cdkMenu class="cdk-menu__medium pac-indicator-app__options flex flex-col gap-2">
     <label>{{ 'IndicatorApp.TimeGranularity' | translate: {Default: 'Time Granularity'} }}</label>
-    <mat-button-toggle-group ngmAppearance="hero" color="accent" displayDensity="cosy"
+    <z-toggle-group ngmAppearance="hero" color="accent" displayDensity="cosy"
       [ngModel]="timeGranularity()" (ngModelChange)="onTimeGranularity($event)" (click)="$event.stopPropagation()">
-      <mat-button-toggle [value]="TIME_GRANULARITY.Year">
+      <z-toggle-group-item [value]="TIME_GRANULARITY.Year">
         {{ 'IndicatorApp.DatePicker.Year' | translate: {Default: 'Year'} }}
-      </mat-button-toggle>
-      <mat-button-toggle [value]="TIME_GRANULARITY.Quarter">
+      </z-toggle-group-item>
+      <z-toggle-group-item [value]="TIME_GRANULARITY.Quarter">
         {{ 'IndicatorApp.DatePicker.Quarter' | translate: {Default: 'Quarter'} }}
-      </mat-button-toggle>
-      <mat-button-toggle [value]="TIME_GRANULARITY.Month">
+      </z-toggle-group-item>
+      <z-toggle-group-item [value]="TIME_GRANULARITY.Month">
         {{ 'IndicatorApp.DatePicker.Month' | translate: {Default: 'Month'} }}
-      </mat-button-toggle>
-      <mat-button-toggle [value]="TIME_GRANULARITY.Day">
+      </z-toggle-group-item>
+      <z-toggle-group-item [value]="TIME_GRANULARITY.Day">
         {{ 'IndicatorApp.DatePicker.Day' | translate: {Default: 'Day'} }}
-      </mat-button-toggle>
-    </mat-button-toggle-group>
+      </z-toggle-group-item>
+    </z-toggle-group>
 
     <z-divider></z-divider>
 

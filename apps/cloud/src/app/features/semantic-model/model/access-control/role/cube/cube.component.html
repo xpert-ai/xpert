@@ -34,141 +34,78 @@
 </div>
 
 <div class="pac-model-access-cube__hierarchy-list">
-  <mat-accordion class="pac-model__accordion">
-    <mat-expansion-panel
-      hideToggle
-      class="mat-elevation-z"
-      [class.pac-model-access__hierarchy-hidden]="hierarchyGrant.access === Access.none"
-      *ngFor="let hierarchyGrant of hierarchyGrants$ | async; trackBy: trackByName"
-      [disabled]="hierarchyGrant.access === Access.none"
-      [expanded]="hierarchyGrant.access !== Access.none"
-      (opened)="openedHierarchy(hierarchyGrant.hierarchy)"
-    >
-      <mat-expansion-panel-header>
-        <mat-panel-title class="text-base">
-          <ngm-display-behaviour
-            [option]="{ value: hierarchyGrant.hierarchy, label: hierarchyGrant.caption }"
-          ></ngm-display-behaviour>
-        </mat-panel-title>
-        <mat-panel-description class="flex justify-end items-center gap-4 text-base">
-          <div class="flex justify-end items-center gap-2">
-            <span class="whitespace-nowrap hidden md:inline-block">
-              {{ 'PAC.MODEL.AccessControl.RollupPolicy' | translate: { Default: 'Rollup Policy' } }}:
-            </span>
-            <mat-button-toggle-group
-              name="rollupPolicy"
-              displayDensity="compact"
-              ngmAppearance="color"
-              color="primary"
-              [disabled]="hierarchyGrant.access === Access.none"
-              [ngModel]="hierarchyGrant.rollupPolicy"
-              (change)="changeRollupPolicy($event, hierarchyGrant.hierarchy)"
-              (click)="$event.stopPropagation()"
-            >
-              <mat-button-toggle [value]="RollupPolicy.full">{{
-                'PAC.MODEL.AccessControl.RollupPolicy_full' | translate: { Default: 'Full' }
-              }}</mat-button-toggle>
-              <mat-button-toggle [value]="RollupPolicy.partial">{{
-                'PAC.MODEL.AccessControl.RollupPolicy_partial' | translate: { Default: 'Partial' }
-              }}</mat-button-toggle>
-              <mat-button-toggle [value]="RollupPolicy.hidden">{{
-                'PAC.MODEL.AccessControl.RollupPolicy_hidden' | translate: { Default: 'Hidden' }
-              }}</mat-button-toggle>
-            </mat-button-toggle-group>
-          </div>
 
-          <div class="flex justify-end items-center gap-2">
-            <span class="whitespace-nowrap hidden md:inline-block">
-              {{ 'PAC.MODEL.AccessControl.DefaultAccess' | translate: { Default: 'Default Access' } }}:
-            </span>
-            <mat-button-toggle-group
-              name="access"
-              displayDensity="compact"
-              ngmAppearance="color"
-              color="primary"
-              [ngModel]="hierarchyGrant.access"
-              (change)="changeHierarchyAccess($event, hierarchyGrant.hierarchy)"
-              (click)="$event.stopPropagation()"
-            >
-              <mat-button-toggle [value]="Access.all">{{
-                'PAC.MODEL.AccessControl.Access_all' | translate: { Default: 'All' }
-              }}</mat-button-toggle>
-              <mat-button-toggle [value]="Access.custom">{{
-                'PAC.MODEL.AccessControl.Access_custom' | translate: { Default: 'Custom' }
-              }}</mat-button-toggle>
-              <mat-button-toggle [value]="Access.none">{{
-                'PAC.MODEL.AccessControl.Access_none' | translate: { Default: 'None' }
-              }}</mat-button-toggle>
-            </mat-button-toggle-group>
-          </div>
+    <mat-accordion class="pac-model__accordion">
+        <mat-expansion-panel hideToggle class="mat-elevation-z" [class.pac-model-access__hierarchy-hidden]="hierarchyGrant.access===Access.none"
+            *ngFor="let hierarchyGrant of hierarchyGrants$ | async; trackBy: trackByName"
+            [disabled]="hierarchyGrant.access===Access.none"
+            [expanded]="hierarchyGrant.access!==Access.none"
+            (opened)="openedHierarchy(hierarchyGrant.hierarchy)"
+        >
+            <mat-expansion-panel-header>
+                <mat-panel-title class="text-base">
+                    <ngm-display-behaviour [option]="{value: hierarchyGrant.hierarchy, label: hierarchyGrant.caption}"></ngm-display-behaviour>
+                </mat-panel-title>
+                <mat-panel-description class="flex justify-end items-center gap-4 text-base">
+                    <div class="flex justify-end items-center gap-2">
+                        <span class="whitespace-nowrap hidden md:inline-block">
+                            {{ 'PAC.MODEL.AccessControl.RollupPolicy' | translate: {Default: 'Rollup Policy'} }}:
+                        </span>
+                        <z-toggle-group name="rollupPolicy" displayDensity="compact" ngmAppearance="color" color="primary"
+                            [disabled]="hierarchyGrant.access===Access.none"
+                            [ngModel]="hierarchyGrant.rollupPolicy"
+                            (change)="changeRollupPolicy($event, hierarchyGrant.hierarchy)"
+                            (click)="$event.stopPropagation()">
+                            <z-toggle-group-item [value]="RollupPolicy.full">{{ 'PAC.MODEL.AccessControl.RollupPolicy_full' | translate: {Default: 'Full'} }}</z-toggle-group-item>
+                            <z-toggle-group-item [value]="RollupPolicy.partial">{{ 'PAC.MODEL.AccessControl.RollupPolicy_partial' | translate: {Default: 'Partial'} }}</z-toggle-group-item>
+                            <z-toggle-group-item [value]="RollupPolicy.hidden">{{ 'PAC.MODEL.AccessControl.RollupPolicy_hidden' | translate: {Default: 'Hidden'} }}</z-toggle-group-item>
+                        </z-toggle-group>
+                    </div>
 
-          <button
-            z-button
-            zType="ghost"
-            zSize="icon"
-            zShape="circle"
-            displayDensity="cosy"
-            ngmAppearance="danger"
-            class="pac-nav-tab__close"
-            (click)="removeHierarchy(hierarchyGrant.hierarchy)"
-          >
-            <z-icon zType="cancel"></z-icon>
-          </button>
-        </mat-panel-description>
-      </mat-expansion-panel-header>
-      <ng-container *ngIf="hierarchyGrant.access === Access.custom">
-        <div class="w-full flex justify-start items-center gap-4">
-          <div
-            class="pac-model-access__level pac-cdk-drop__list pac-cdk-drop__area flex-1 flex items-center h-8"
-            cdkDropList
-            [cdkDropListEnterPredicate]="getDropLevelPredicate(hierarchyGrant.hierarchy)"
-            (cdkDropListDropped)="dropLevel($event, 'topLevel', hierarchyGrant.hierarchy)"
-          >
-            <label>{{ 'PAC.MODEL.AccessControl.TopLevel' | translate: { Default: 'Top Level' } }}:</label>
-            <div *ngIf="hierarchyGrant.topLevel" class="flex-1 flex justify-around items-center">
-              <ngm-display-behaviour
-                style="flex: 1"
-                [option]="{ value: hierarchyGrant.topLevel, label: hierarchyGrant.topLevelCaption }"
-              ></ngm-display-behaviour>
-              <button
-                z-button
-                zType="ghost"
-                zSize="icon"
-                zShape="circle"
-                displayDensity="cosy"
-                ngmAppearance="danger"
-                (click)="removeTopLevel(hierarchyGrant.hierarchy)"
-              >
-                <z-icon zType="cancel"></z-icon>
-              </button>
-            </div>
-          </div>
-          <div
-            class="pac-model-access__level pac-cdk-drop__list pac-cdk-drop__area flex-1 flex items-center h-8"
-            cdkDropList
-            [cdkDropListEnterPredicate]="getDropLevelPredicate(hierarchyGrant.hierarchy)"
-            (cdkDropListDropped)="dropLevel($event, 'bottomLevel', hierarchyGrant.hierarchy)"
-          >
-            <label>{{ 'PAC.MODEL.AccessControl.BottomLevel' | translate: { Default: 'Bottom Level' } }}:</label>
-            <div *ngIf="hierarchyGrant.bottomLevel" class="flex-1 flex justify-around items-center">
-              <ngm-display-behaviour
-                [option]="{ value: hierarchyGrant.bottomLevel, label: hierarchyGrant.bottomLevelCaption }"
-                style="flex: 1"
-              ></ngm-display-behaviour>
-              <button
-                z-button
-                zType="ghost"
-                zSize="icon"
-                zShape="circle"
-                displayDensity="cosy"
-                ngmAppearance="danger"
-                (click)="removeBottomLevel(hierarchyGrant.hierarchy)"
-              >
-                <z-icon zType="cancel"></z-icon>
-              </button>
-            </div>
-          </div>
-        </div>
+                    <div class="flex justify-end items-center gap-2">
+                        <span class="whitespace-nowrap hidden md:inline-block">
+                            {{ 'PAC.MODEL.AccessControl.DefaultAccess' | translate: {Default: 'Default Access'} }}:
+                        </span>
+                        <z-toggle-group name="access" displayDensity="compact" ngmAppearance="color" color="primary"
+                            [ngModel]="hierarchyGrant.access"
+                            (change)="changeHierarchyAccess($event, hierarchyGrant.hierarchy)"
+                            (click)="$event.stopPropagation()">
+                            <z-toggle-group-item [value]="Access.all">{{ 'PAC.MODEL.AccessControl.Access_all' | translate: {Default: 'All'} }}</z-toggle-group-item>
+                            <z-toggle-group-item [value]="Access.custom">{{ 'PAC.MODEL.AccessControl.Access_custom' | translate: {Default: 'Custom'} }}</z-toggle-group-item>
+                            <z-toggle-group-item [value]="Access.none">{{ 'PAC.MODEL.AccessControl.Access_none' | translate: {Default: 'None'} }}</z-toggle-group-item>
+                        </z-toggle-group>
+                    </div>
+                    
+                    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeHierarchy(hierarchyGrant.hierarchy)">
+                        <z-icon zType="cancel"></z-icon>
+                    </button>
+                </mat-panel-description>
+            </mat-expansion-panel-header>
+            <ng-container *ngIf="hierarchyGrant.access===Access.custom">
+                <div class="w-full flex justify-start items-center gap-4">
+                    <div class="pac-model-access__level pac-cdk-drop__list pac-cdk-drop__area flex-1 flex items-center h-8"
+                        cdkDropList
+                        [cdkDropListEnterPredicate]="getDropLevelPredicate(hierarchyGrant.hierarchy)"
+                        (cdkDropListDropped)="dropLevel($event, 'topLevel', hierarchyGrant.hierarchy)">
+                        <label>{{ 'PAC.MODEL.AccessControl.TopLevel' | translate: {Default: 'Top Level'} }}:</label>
+                        <div *ngIf="hierarchyGrant.topLevel" class="flex-1 flex justify-around items-center">
+                            <ngm-display-behaviour style="flex: 1;" [option]="{value: hierarchyGrant.topLevel, label: hierarchyGrant.topLevelCaption}"></ngm-display-behaviour>
+                            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="removeTopLevel(hierarchyGrant.hierarchy)">
+                                <z-icon zType="cancel"></z-icon></button>
+                        </div>
+                    </div>
+                    <div class="pac-model-access__level pac-cdk-drop__list pac-cdk-drop__area flex-1 flex items-center h-8"
+                        cdkDropList
+                        [cdkDropListEnterPredicate]="getDropLevelPredicate(hierarchyGrant.hierarchy)"
+                        (cdkDropListDropped)="dropLevel($event, 'bottomLevel', hierarchyGrant.hierarchy)">
+                        <label>{{ 'PAC.MODEL.AccessControl.BottomLevel' | translate: {Default: 'Bottom Level'} }}:</label>
+                        <div *ngIf="hierarchyGrant.bottomLevel" class="flex-1 flex justify-around items-center">
+                            <ngm-display-behaviour [option]="{value: hierarchyGrant.bottomLevel, label: hierarchyGrant.bottomLevelCaption}" style="flex: 1;"></ngm-display-behaviour>
+                            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="removeBottomLevel(hierarchyGrant.hierarchy)">
+                                <z-icon zType="cancel"></z-icon></button>
+                        </div>
+                    </div>
+                </div>
 
         <div
           class="pac-model-access__members pac-cdk-drop__list"

@@ -5,10 +5,10 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MatCardModule } from '@angular/material/card'
 import { MatDialogModule } from '@angular/material/dialog'
 import {
   ZardButtonComponent,
+  ZardCardImports,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
@@ -42,7 +42,7 @@ const MAT_MODULES = [
   PortalModule,
   LayoutModule,
   MatProgressSpinnerModule,
-  MatCardModule,
+  ...ZardCardImports,
   MatExpansionModule
 ]
 @NgModule({

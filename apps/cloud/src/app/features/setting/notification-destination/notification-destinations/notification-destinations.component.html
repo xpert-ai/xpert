@@ -9,22 +9,24 @@
 
 <div>
     <div *ngFor="let destination of destinations$ | async" fxFlex.xs="100" fxFlex="33" [ngClass]="routeAnimationsElements">
-        <mat-card class="pac-sketch-card">
-            <mat-card-header (click)="edit(destination)">
-                <div mat-card-avatar>
-                    <img src="{{IMG_ROOT}}/{{destination.type}}.png">
+        <z-card class="pac-sketch-card relative bg-[var(--ngm-color-surface-container-low)] active:scale-[0.98]">
+            <z-card-header class="overflow-hidden" (click)="edit(destination)">
+                <div z-card-avatar class="h-[50px] w-[50px] overflow-hidden">
+                    <img class="h-full w-full object-cover" src="{{IMG_ROOT}}/{{destination.type}}.png">
                 </div>
-                <mat-card-title>
-                    <a (click)="edit(destination)">{{destination.name}}</a>
-                </mat-card-title>
-                <mat-card-subtitle fxLayout="row" fxLayoutAlign="start end">
-                    {{destination.type}}
-                </mat-card-subtitle>
-            </mat-card-header>
+                <div class="min-w-0 flex flex-1 flex-col overflow-hidden">
+                    <z-card-title class="truncate">
+                        <a (click)="edit(destination)">{{destination.name}}</a>
+                    </z-card-title>
+                    <z-card-subtitle class="mb-0" fxLayout="row" fxLayoutAlign="start end">
+                        {{destination.type}}
+                    </z-card-subtitle>
+                </div>
+            </z-card-header>
 
             <button z-button zType="ghost" zSize="icon" zShape="circle" color="warn" class="pac-sketch-card__remove" (click)="remove(destination)">
                 <z-icon zType="remove"></z-icon>
             </button>
-        </mat-card>
+        </z-card>
     </div>
 </div>

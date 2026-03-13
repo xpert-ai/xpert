@@ -306,23 +306,15 @@
     </div>
     <z-divider class="w-full"></z-divider>
     <div class="w-full flex justify-between items-center p-2">
-      <mat-button-toggle-group displayDensity="cosy" ngmAppearance="hero" color="accent" [(ngModel)]="visualPanel">
-        <mat-button-toggle *ngIf="component().component === ComponentType.AnalyticalCard" value="visual">
+      <z-toggle-group displayDensity="cosy" ngmAppearance="hero" color="accent" [(ngModel)]="visualPanel">
+        <z-toggle-group-item *ngIf="component().component === ComponentType.AnalyticalCard" value="visual">
           {{ 'Story.Explorer.Visual' | translate: { Default: 'Visual' } }}
-        </mat-button-toggle>
-        <mat-button-toggle value="options">
+        </z-toggle-group-item>
+        <z-toggle-group-item value="options">
           <z-icon zSize="sm" zType="settings"></z-icon>
-        </mat-button-toggle>
-      </mat-button-toggle-group>
+        </z-toggle-group-item>
+      </z-toggle-group>
 
-      <mat-button-toggle-group displayDensity="cosy" ngmAppearance="hero" color="accent" [(ngModel)]="view">
-        <mat-button-toggle value="table">
-          {{ 'Story.Explorer.Table' | translate: { Default: 'Table' } }}
-        </mat-button-toggle>
-        <mat-button-toggle *ngIf="component().component === ComponentType.AnalyticalCard" value="chart">
-          {{ 'Story.Explorer.Chart' | translate: { Default: 'Chart' } }}
-        </mat-button-toggle>
-      </mat-button-toggle-group>
 
       <div ngmButtonGroup>
         <button z-button zType="ghost" (click)="openExplain()">

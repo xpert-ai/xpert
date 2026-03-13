@@ -16,13 +16,13 @@ import {
 } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import {
   ZardButtonComponent,
   ZardDividerComponent,
   ZardIconComponent,
   ZardTabsImports,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { nonBlank } from '@metad/core'
@@ -84,10 +84,11 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
     TranslateModule,
     CdkListboxModule,
     ZardButtonComponent,
-    MatButtonToggleModule,
     ZardDividerComponent,
     ...ZardTooltipImports,
     ZardIconComponent,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent,
     ...ZardTabsImports,
     DragDropModule,
     OcapCoreModule,

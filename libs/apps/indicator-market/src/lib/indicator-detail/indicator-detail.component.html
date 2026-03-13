@@ -1,12 +1,14 @@
 @if (indicator(); as indicator) {
-  <mat-card class="w-full h-full flex flex-col justify-start items-stretch">
-    <mat-card-header>
-      <mat-card-title class="text-lg">
-        {{ indicator.code }}
-      </mat-card-title>
-      <mat-card-subtitle class="text-base">
-        {{ indicator.name }}
-      </mat-card-subtitle>
+  <z-card class="w-full h-full max-w-full flex flex-col justify-start items-stretch gap-0 p-0 shadow-none">
+    <z-card-header class="px-[10px] pt-[10px]">
+      <div class="min-w-0 flex flex-1 flex-col items-start overflow-hidden whitespace-nowrap text-ellipsis">
+        <z-card-title class="max-w-full overflow-hidden text-ellipsis text-lg font-bold">
+          {{ indicator.code }}
+        </z-card-title>
+        <z-card-subtitle class="mb-2 max-w-full overflow-hidden text-ellipsis text-base">
+          {{ indicator.name }}
+        </z-card-subtitle>
+      </div>
 
       <ng-template #indicators>
         <div class="flex flex-col justify-start items-end">
@@ -85,11 +87,11 @@
           </button>
         }
       </div>
-    </mat-card-header>
+    </z-card-header>
 
     <z-divider></z-divider>
 
-    <mat-card-content class="flex-1 overflow-y-auto">
+    <z-card-content class="flex-1 overflow-y-auto p-[10px]">
       @if (isMobile$ | async) {
         <div class="flex justify-end items-center gap-4 py-2">
           <ng-container *ngTemplateOutlet="indicators"></ng-container>
@@ -312,6 +314,6 @@
           </span>
         </div>
       </div>
-    </mat-card-content>
-  </mat-card>
+    </z-card-content>
+  </z-card>
 }

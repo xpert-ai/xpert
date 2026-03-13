@@ -40,21 +40,6 @@ $prefix-color: (ngm, color);
   }
 }
 
-.mat-mdc-card {
-  max-width: 100%;
-  display: flex;
-  flex-direction: column;
-  padding: 0;
-
-  .mat-mdc-card-header {
-    padding: 10px 10px 0 10px;
-  }
-
-  .mat-mdc-card-content {
-    padding: 10px;
-  }
-}
-
 .pac-indicator-app__close {
   @apply bg-white/10;
 }

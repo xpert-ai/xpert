@@ -1,12 +1,16 @@
 import { FormsModule } from '@angular/forms'
 
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { Meta, moduleMetadata } from '@storybook/angular'
 import { OcapCoreModule } from '../core.module'
 import { ButtonGroupDirective } from './button-group.directive'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardToggleGroupComponent,
+  ZardToggleGroupItemComponent
+} from '@xpert-ai/headless-ui'
 
 export default {
   title: 'Core/ButtonGroupDirective',
@@ -18,7 +22,8 @@ export default {
         OcapCoreModule,
         ZardIconComponent,
         ZardButtonComponent,
-        MatButtonToggleModule,
+        ZardToggleGroupComponent,
+        ZardToggleGroupItemComponent,
         MatChipsModule,
         MatSlideToggleModule,
         ButtonGroupDirective,
@@ -56,57 +61,57 @@ export const Primary = {
   </div>
   
   <div>
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="color" color="primary">
-      <mat-button-toggle value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+    <z-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="color" color="primary">
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="color" color="accent">
-      <mat-button-toggle value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+    <z-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="color" color="accent">
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" displayDensity="compact"
+    <z-toggle-group name="fontStyle" aria-label="Font Style" displayDensity="compact"
       ngmAppearance="color" color="accent"
       [value]="'italic'">
-      <mat-button-toggle disableRipple value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle disableRipple value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle disableRipple value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" multiple="true" displayDensity="compact"
+    <z-toggle-group name="fontStyle" aria-label="Font Style" multiple="true" displayDensity="compact"
       ngmAppearance="color" color="accent">
-      <mat-button-toggle disableRipple value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle disableRipple value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle disableRipple value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" vertical ngmAppearance="color" color="primary">
-      <mat-button-toggle value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+    <z-toggle-group name="fontStyle" aria-label="Font Style" vertical ngmAppearance="color" color="primary">
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" vertical multiple="true" displayDensity="compact"
+    <z-toggle-group name="fontStyle" aria-label="Font Style" vertical multiple="true" displayDensity="compact"
       ngmAppearance="color" color="accent">
-      <mat-button-toggle disableRipple value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle disableRipple value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle disableRipple value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="outline" color="primary">
-      <mat-button-toggle value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+    <z-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="outline" color="primary">
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   
-    <mat-button-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="outline" color="primary" displayDensity="compact">
-      <mat-button-toggle value="bold">Bold</mat-button-toggle>
-      <mat-button-toggle value="italic">Italic</mat-button-toggle>
-      <mat-button-toggle value="underline">Underline</mat-button-toggle>
-    </mat-button-toggle-group>
+    <z-toggle-group name="fontStyle" aria-label="Font Style" ngmAppearance="outline" color="primary" displayDensity="compact">
+      <z-toggle-group-item value="bold">Bold</z-toggle-group-item>
+      <z-toggle-group-item value="italic">Italic</z-toggle-group-item>
+      <z-toggle-group-item value="underline">Underline</z-toggle-group-item>
+    </z-toggle-group>
   </div>
   
   <div>

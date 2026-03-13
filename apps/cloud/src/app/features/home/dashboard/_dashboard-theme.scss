@@ -18,12 +18,6 @@
     min-height: 100px;
   }
 
-  .pac-home__assets-types.mat-button-toggle-group {
-    .mat-button-toggle-label-content {
-      padding: 0 22px;
-    }
-  }
-
   .assets-list {
     .mat-mdc-list-item {
       &:hover {
@@ -35,9 +29,6 @@
   .pac-home__widget {
     height: 100%;
     border-radius: 3px;
-    .mat-card-title {
-      font-size: 1rem;
-    }
 
     .line {
       display: flex;

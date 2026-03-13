@@ -7,9 +7,9 @@ import { FieldType } from '@ngx-formly/core'
   standalone: false,
   template: `
 <label class="text-sm">{{to.label}}</label>
-<mat-button-toggle-group [formControl]="_formControl" [multiple]="to?.multiple" ngmAppearance="outline" color="accent" displayDensity="compact">
-    <mat-button-toggle *ngFor="let option of $any(to?.options)" [value]="option.value">{{ option.label }}</mat-button-toggle>
-</mat-button-toggle-group>`,
+<z-toggle-group [formControl]="_formControl" [multiple]="to?.multiple" ngmAppearance="outline" color="accent" displayDensity="compact">
+    <z-toggle-group-item *ngFor="let option of $any(to?.options)" [value]="option.value">{{ option.label }}</z-toggle-group-item>
+</z-toggle-group>`,
   host: {
     class: 'pac-formly-button-toggle'
   },

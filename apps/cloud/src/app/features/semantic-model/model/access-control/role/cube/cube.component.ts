@@ -10,7 +10,7 @@ import { EntitySchemaType } from '@metad/ocap-angular/entity'
 import { AggregationRole, C_MEASURES, EntityType, getEntityHierarchy } from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
-import type { ZardRadioGroupChange, ZardSwitchChange } from '@xpert-ai/headless-ui'
+import type { ZardRadioGroupChange, ZardSwitchChange, ZardToggleGroupChange } from '@xpert-ai/headless-ui'
 import { SemanticModelService } from '../../../model.service'
 import { RoleComponent } from '../role.component'
 import { CubeStateService } from './cube.service'
@@ -143,18 +143,18 @@ export class CubeComponent {
     }
   }
 
-  changeRollupPolicy(event: MatButtonToggleChange, hierarchy: string) {
+  changeRollupPolicy(event: ZardToggleGroupChange, hierarchy: string) {
     this.#cubeState.updateHierarchy({
       hierarchy,
       entity: {
-        rollupPolicy: event.value
+        rollupPolicy: event.value as MDX.RollupPolicy
       }
     })
   }
 
-  changeHierarchyAccess(event: MatButtonToggleChange, hierarchy: string) {
+  changeHierarchyAccess(event: ZardToggleGroupChange, hierarchy: string) {
     const entity = {
-      access: event.value
+      access: event.value as MDX.Access
     } as MDX.HierarchyGrant
 
     if (entity.access !== MDX.Access.custom) {

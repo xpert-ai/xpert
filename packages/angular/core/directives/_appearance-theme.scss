@@ -1,37 +1,11 @@
-@use 'sass:map';
 @use 'sass:color';
+@use 'sass:map';
 @use '@angular/material' as mat;
-
-// Applies a property to button-like elements for each of the supported palettes.
-@mixin _theme-property($theme, $property, $hue) {
-  $primary: map.get($theme, primary);
-  $accent: map.get($theme, accent);
-  $warn: map.get($theme, warn);
-  $background: map.get($theme, background);
-  $foreground: map.get($theme, foreground);
-
-  &.mat-primary {
-    .mat-button-toggle.mat-button-toggle-checked {
-      #{$property}: mat.m2-get-color-from-palette($primary, $hue);
-    }
-  }
-  &.mat-accent {
-    .mat-button-toggle.mat-button-toggle-checked {
-      #{$property}: mat.m2-get-color-from-palette($accent, $hue);
-    }
-  }
-  &.mat-warn {
-    .mat-button-toggle.mat-button-toggle-checked {
-      #{$property}: mat.m2-get-color-from-palette($warn, $hue);
-    }
-  }
-}
 
 @mixin _theme-outline($theme, $border) {
   $primary: map.get($theme, primary);
   $accent: map.get($theme, accent);
   $warn: map.get($theme, warn);
-  $background: map.get($theme, background);
   $foreground: map.get($theme, foreground);
   
   border: 1px #{$border} mat.m2-get-color-from-palette($foreground, divider);
@@ -81,13 +55,20 @@
   }
 }
 
+@mixin _legacy-toggle-group-color($name, $palette) {
+  .z-toggle-group[data-color='#{$name}'],
+  z-toggle-group[data-color='#{$name}'] {
+    --z-toggle-group-item-checked-bg: #{mat.m2-get-color-from-palette($palette)};
+    --z-toggle-group-item-checked-color: #{mat.m2-get-color-from-palette($palette, default-contrast)};
+  }
+}
+
 @mixin color($config-or-theme) {
   $color-config: mat.m2-get-color-config($config-or-theme);
   $primary: map.get($color-config, 'primary');
   $accent: map.get($color-config, 'accent');
   $warn: map.get($color-config, 'warn');
   $foreground: map.get($color-config, 'foreground');
-  $background: map.get($color-config, background);
 
   .ngm-appearance-acrylic {
     position: relative;
@@ -108,12 +89,10 @@
     }
 
     &::after {
-      // background-color: white;
       opacity: 0.5;
     }
   }
 
-  // appearance dashed
   [z-button],
   z-button,
   .mat-mdc-menu-item,
@@ -137,7 +116,6 @@
     border-top-style: dashed;
   }
 
-  // danger
   [z-button],
   z-button,
   .mat-mdc-menu-item,
@@ -150,14 +128,12 @@
   @include _legacy-button-color('primary', $primary);
   @include _legacy-button-color('accent', $accent);
   @include _legacy-button-color('warn', $warn);
+  @include _legacy-toggle-group-color('primary', $primary);
+  @include _legacy-toggle-group-color('accent', $accent);
+  @include _legacy-toggle-group-color('warn', $warn);
 
   .ngm-appearance-opacity {
     opacity: 0.5;
-  }
-
-  .mat-button-toggle-group.mat-button-toggle-group-appearance-standard {
-    @include _theme-property($color-config, 'color', '500-contrast');
-    @include _theme-property($color-config, 'background-color', 500);
   }
 
   .mat-chip-list {
@@ -187,21 +163,27 @@
 }
 
 @mixin density($config-or-theme) {
-  .ngm-density__compact .mat-button-toggle-group, .ngm-density__compact.mat-button-toggle-group{
+  .ngm-density__compact .z-toggle-group,
+  .ngm-density__compact.z-toggle-group {
     --border-radius: 10px;
     --box-shadow-radius: 5px;
     line-height: normal;
-    .mat-button-toggle-label-content {
+
+    .z-toggle-group-item {
+      @apply h-8 px-2.5 text-xs;
       line-height: 16px;
       font-size: .75em;
     }
   }
 
-  .ngm-density__cosy .mat-button-toggle-group, .ngm-density__cosy.mat-button-toggle-group{
+  .ngm-density__cosy .z-toggle-group,
+  .ngm-density__cosy.z-toggle-group {
     --border-radius: 1rem;
     --box-shadow-radius: 6px;
     line-height: normal;
-    .mat-button-toggle-label-content {
+
+    .z-toggle-group-item {
+      @apply h-9 px-3;
       line-height: 24px;
       font-size: .85em;
     }

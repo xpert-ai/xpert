@@ -1,7 +1,7 @@
-import { MatCardModule } from '@angular/material/card'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { Meta, StoryObj, moduleMetadata } from '@storybook/angular'
+import { ZardCardImports } from '@xpert-ai/headless-ui'
 import { ResizerBarDirective } from './resizer.directive'
 import { ResizerModule } from './resizer.module'
 
@@ -10,7 +10,7 @@ export default {
   component: ResizerBarDirective,
   decorators: [
     moduleMetadata({
-      imports: [BrowserAnimationsModule, MatSidenavModule, MatCardModule, ResizerModule]
+      imports: [BrowserAnimationsModule, MatSidenavModule, ...ZardCardImports, ResizerModule]
     })
   ],
   render: (args: Partial<ResizerBarDirective>) => ({
@@ -49,10 +49,10 @@ export const Top: Story = {
   },
   render: (args: any) => ({
     template: `
-    <mat-card ngmResizer [resizerHeight]="200">
+    <z-card ngmResizer [resizerHeight]="200">
 Simple card
   <div ngmResizerBar [resizerBarPosition]="barPosition" cdkDrag></div>
-</mat-card>`
+</z-card>`
   })
 };
 
@@ -62,9 +62,9 @@ export const Bottom: Story = {
   },
   render: (args: any) => ({
     template: `
-    <mat-card ngmResizer [resizerHeight]="200">
+    <z-card ngmResizer [resizerHeight]="200">
 Simple card
   <div ngmResizerBar [resizerBarPosition]="barPosition" cdkDrag></div>
-</mat-card>`
+</z-card>`
   })
 };

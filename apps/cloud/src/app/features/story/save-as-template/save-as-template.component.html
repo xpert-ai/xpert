@@ -23,20 +23,20 @@
         <label for="templateType" class="mr-2">
           {{ 'Story.Template.Type' | translate: { Default: 'Type' } }}
         </label>
-        <mat-button-toggle-group
+        <z-toggle-group
           name="templateType"
           formControlName="type"
           ngmAppearance="outline"
           color="accent"
           displayDensity="compact"
         >
-          <mat-button-toggle [value]="StoryTemplateType.Theme">
+          <z-toggle-group-item [value]="StoryTemplateType.Theme">
             {{ 'Story.Template.Theme' | translate: { Default: 'Theme' } }}
-          </mat-button-toggle>
-          <mat-button-toggle [value]="StoryTemplateType.Template">
+          </z-toggle-group-item>
+          <z-toggle-group-item [value]="StoryTemplateType.Template">
             {{ 'Story.Template.Template' | translate: { Default: 'Template' } }}
-          </mat-button-toggle>
-        </mat-button-toggle-group>
+          </z-toggle-group-item>
+        </z-toggle-group>
       </div>
 
       <section class="pac-section p-2 mb-4">

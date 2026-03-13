@@ -85,13 +85,13 @@
         <div class="flex flex-col justify-start items-start">
           <label class="ngm-input-label">{{ 'FORMLY.CHART.Orient' | translate: { Default: 'Orient' } }}</label>
 
-          <mat-button-toggle-group [(ngModel)]="orient" ngmAppearance="hero" color="accent" class="self-start">
+          <z-toggle-group [(ngModel)]="orient" ngmAppearance="hero" color="accent" class="self-start">
             @for (orient of ORIENTS; track orient.value) {
-              <mat-button-toggle [value]="orient.value">
+              <z-toggle-group-item [value]="orient.value">
                 {{ 'FORMLY.CHART.' + orient.label | translate: { Default: orient.label } }}
-              </mat-button-toggle>
+              </z-toggle-group-item>
             }
-          </mat-button-toggle-group>
+          </z-toggle-group>
         </div>
       }
 
@@ -99,13 +99,13 @@
         <div class="flex flex-col justify-start items-start">
           <label class="ngm-input-label">{{ 'FORMLY.CHART.Variant' | translate: { Default: 'Variant' } }}</label>
 
-          <mat-button-toggle-group [(ngModel)]="variant" ngmAppearance="hero" color="accent" class="self-start">
+          <z-toggle-group [(ngModel)]="variant" ngmAppearance="hero" color="accent" class="self-start">
             @for (option of VARIANTS[type]; track option.value) {
-              <mat-button-toggle [value]="option.value">
+              <z-toggle-group-item [value]="option.value">
                 {{ 'FORMLY.CHART.' + option.label | translate: { Default: option.label } }}
-              </mat-button-toggle>
+              </z-toggle-group-item>
             }
-          </mat-button-toggle-group>
+          </z-toggle-group>
         </div>
       }
     </div>

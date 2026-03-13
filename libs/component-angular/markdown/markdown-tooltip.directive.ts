@@ -53,11 +53,11 @@ export class MarkdownTooltipDirective {
 @Component({
   selector: 'ngm-markdown-tooltip',
   standalone: false,
-  template: `<mat-card>
-    <mat-card-content>
+  template: `<z-card>
+    <z-card-content>
       <div [innerHTML]="markdown | markdown"></div>
-    </mat-card-content>
-  </mat-card>`,
+    </z-card-content>
+  </z-card>`,
   styles: [],
 })
 export class MarkdownTooltipComponent {

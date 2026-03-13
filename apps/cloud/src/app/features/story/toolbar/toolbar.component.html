@@ -593,40 +593,41 @@
   </div>
 
   <div class="w-full flex justify-center items-center">
-    <mat-button-toggle-group
-      ngmAppearance="outline"
-      displayDensity="compact"
-      color="accent"
-      [ngModel]="orientation"
-      (ngModelChange)="toggleOrientation($event)"
+    <z-toggle-group ngmAppearance="outline" displayDensity="compact" color="accent"
+        [ngModel]="orientation"
+        (ngModelChange)="toggleOrientation($event)"
     >
-      <mat-button-toggle [value]="DeviceOrientation.landscape">
-        <z-icon zSize="sm" zType="stay_primary_landscape"></z-icon>
-      </mat-button-toggle>
-      <mat-button-toggle [value]="DeviceOrientation.portrait">
-        <z-icon zSize="sm" zType="stay_primary_portrait"></z-icon>
-      </mat-button-toggle>
-    </mat-button-toggle-group>
-  </div>
+        <z-toggle-group-item [value]="DeviceOrientation.landscape">
+            <z-icon zSize="sm" zType="stay_primary_landscape"></z-icon>
+        </z-toggle-group-item>
+        <z-toggle-group-item [value]="DeviceOrientation.portrait">
+            <z-icon zSize="sm" zType="stay_primary_portrait"></z-icon>
+        </z-toggle-group-item>
+    </z-toggle-group>
 
-  <ng-container *ngIf="emulatedDevice?.isFold">
-    <z-divider></z-divider>
-    <div class="text-base text-center my-2">
-      {{ 'Story.Toolbar.DeviceFold' | translate: { Default: 'Device Fold' } }}
-    </div>
-    <div class="w-full flex justify-center items-center">
-      <button
-        z-button
-        zType="ghost"
-        [color]="deviceFold ? 'accent' : ''"
-        [zTooltip]=""
-        zPosition="right"
-        (click)="toggleDeviceFold()"
-      >
-        <z-icon zType="flip"></z-icon>
-      </button>
-    </div>
-  </ng-container>
+    <ng-container *ngIf="emulatedDevice?.isFold">
+      <z-divider></z-divider>
+      <div class="text-base text-center my-2">
+        {{ 'Story.Toolbar.DeviceFold' | translate: { Default: 'Device Fold' } }}
+      </div>
+      <div class="w-full flex justify-center items-center">
+        <z-toggle-group
+          ngmAppearance="outline"
+          displayDensity="compact"
+          color="accent"
+          [ngModel]="orientation"
+          (ngModelChange)="toggleOrientation($event)"
+        >
+          <z-toggle-group-item [value]="DeviceOrientation.landscape">
+            <z-icon zSize="sm" zType="stay_primary_landscape"></z-icon>
+          </z-toggle-group-item>
+          <z-toggle-group-item [value]="DeviceOrientation.portrait">
+            <z-icon zSize="sm" zType="stay_primary_portrait"></z-icon>
+          </z-toggle-group-item>
+        </z-toggle-group>
+      </div>
+    </ng-container>
+  </div>
 </div>
 
 <ng-template #fileMenu>
@@ -662,7 +663,7 @@
       {{ 'Story.Toolbar.SAVE.SAVE' | translate: { Default: 'Save' } }}
     </button>
 
-    <!-- <button cdkMenuItem (click)="openSaveAs()">
+      <!-- <button cdkMenuItem (click)="openSaveAs()">
             {{ 'Story.Toolbar.SAVE.SAVE_AS' | translate: {Default: "Save As"} }}...
         </button>
         <button cdkMenuItem>
@@ -773,7 +774,7 @@
   </div>
 </ng-template>
 
-<!-- <mat-menu #pageMenu="matMenu" class="ngm-density__compact">
+  <!-- <mat-menu #pageMenu="matMenu" class="ngm-density__compact">
     <button mat-menu-item (click)="storyService.createStoryPoint(STORY_POINT_TYPE.Canvas)">
         {{ 'Story.Toolbar.New_Canvas_Page' | translate: {Default: "New Canvas Page"} }}
     </button>

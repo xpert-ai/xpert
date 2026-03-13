@@ -2,7 +2,6 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, effect, inject, signal } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective, effectAction } from '@metad/ocap-angular/core'
@@ -10,6 +9,7 @@ import { IntersectionObserverModule } from '@ng-web-apis/intersection-observer'
 import { TranslateModule } from '@ngx-translate/core'
 import { StoriesService } from '@metad/cloud/state'
 import { debounceTime, distinctUntilChanged, switchMap, tap } from 'rxjs'
+import { ZardToggleGroupComponent, ZardToggleGroupItemComponent } from '@xpert-ai/headless-ui'
 import { IStory, listAnimation } from '../../../@core'
 import { StoryCardComponent } from '../../../@shared/story'
 
@@ -22,7 +22,8 @@ import { StoryCardComponent } from '../../../@shared/story'
     DragDropModule,
     RouterModule,
     IntersectionObserverModule,
-    MatButtonToggleModule,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent,
 
     TranslateModule,
     NgmCommonModule,

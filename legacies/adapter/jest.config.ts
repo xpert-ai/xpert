@@ -12,5 +12,5 @@ export default {
     ]
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
-  coverageDirectory: '../../coverage/packages/adapter'
+  coverageDirectory: '../../coverage/legacies/adapter'
 }

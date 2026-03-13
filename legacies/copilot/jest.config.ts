@@ -12,5 +12,5 @@ export default {
     ]
   },
   moduleFileExtensions: ['ts', 'js', 'html'],
-  coverageDirectory: '../../coverage/packages/copilot'
+  coverageDirectory: '../../coverage/legacies/copilot'
 }

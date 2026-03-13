@@ -14,8 +14,6 @@ import {
   ValidatorFn,
   Validators
 } from '@angular/forms'
-
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import {
   ZardButtonComponent,
   ZardFormImports,
@@ -61,7 +59,6 @@ import { filter, map, startWith } from 'rxjs'
     ZardInputDirective,
     ZardButtonComponent,
     ...ZardFormImports,
-    MatButtonToggleModule,
     ZardIconComponent,
     ZardCheckboxComponent,
     TranslateModule,

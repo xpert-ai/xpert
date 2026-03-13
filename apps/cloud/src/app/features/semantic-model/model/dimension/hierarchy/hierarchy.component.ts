@@ -68,15 +68,17 @@ import { HierarchyTableComponent } from '../hierarchy-table/hierarchy-table.comp
 import { HierarchyTableDataType } from '../types'
 import { ModelHierarchyService } from './hierarchy.service'
 import { CommonModule } from '@angular/common'
-import { MatButtonToggleModule } from '@angular/material/button-toggle'
 import { FormsModule } from '@angular/forms'
 import { MatToolbarModule } from '@angular/material/toolbar'
-import {
-  ZardButtonComponent,
-  ZardIconComponent,
+import { 
+  ZardButtonComponent, 
   ZardCheckboxComponent,
-  ZardTooltipImports
+  ZardIconComponent,
+  ZardToggleGroupComponent,
+  ZardTooltipImports,
+  ZardToggleGroupItemComponent
 } from '@xpert-ai/headless-ui'
+
 @Component({
   standalone: true,
   selector: 'pac-model-hierarchy',
@@ -92,10 +94,11 @@ import {
     ContentLoaderModule,
     FormsModule,
     ZardCheckboxComponent,
-    MatButtonToggleModule,
     ...ZardTooltipImports,
     ZardIconComponent,
     ZardButtonComponent,
+    ZardToggleGroupComponent,
+    ZardToggleGroupItemComponent,
     MatToolbarModule,
     OcapCoreModule,
     ResizerModule,
