@@ -6,7 +6,6 @@ import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
   Component,
-  Injectable,
   Injector,
   afterNextRender,
   effect,
@@ -18,84 +17,25 @@ import {
   signal,
   viewChild
 } from '@angular/core'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import {
   ZardButtonComponent,
   ZardIconComponent,
   ZardInputDirective,
-  ZardCheckboxComponent
+  ZardCheckboxComponent,
+  ZardPaginatorComponent,
+  type ZardPaginatorLike
 } from '@xpert-ai/headless-ui'
-import {
-  MatPaginator,
-  MatPaginatorDefaultOptions,
-  MatPaginatorIntl,
-  MatPaginatorModule
-} from '@angular/material/paginator'
 import { MatSort, MatSortModule } from '@angular/material/sort'
 import { MatTableDataSource, MatTableModule } from '@angular/material/table'
 import { DisplayDensity, OcapCoreModule } from '@metad/ocap-angular/core'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { TranslateModule } from '@ngx-translate/core'
 import get from 'lodash-es/get'
-import { Subject } from 'rxjs'
 import { TableColumn } from '../types'
 
-@Injectable()
-export class MyCustomPaginatorIntl implements MatPaginatorIntl {
-  #translateService = inject(TranslateService)
-
-  changes = new Subject<void>()
-
-  #tranSub = this.#translateService
-    .stream('Ngm.Table', {
-      Default: {
-        firstPageLabel: 'First page',
-        itemsPerPageLabel: 'Items per page:',
-        lastPageLabel: 'Last page',
-        nextPageLabel: 'Next page',
-        previousPageLabel: 'Previous page',
-        rangeLabel0: 'Page 1 of 1',
-        pageLabel: 'Page',
-        ofLabel: 'of'
-      }
-    })
-    .pipe(takeUntilDestroyed())
-    .subscribe((table) => {
-      if (table) {
-        this.firstPageLabel = table.firstPageLabel
-        this.itemsPerPageLabel = table.itemsPerPageLabel
-        this.lastPageLabel = table.lastPageLabel
-        this.nextPageLabel = table.nextPageLabel
-        this.previousPageLabel = table.previousPageLabel
-        this.rangeLabel0 = table.rangeLabel0
-        this.pageLabel = table.pageLabel
-        this.ofLabel = table.ofLabel
-      }
-    })
-
-  // For internationalization, the `$localize` function from
-  // the `@angular/localize` package can be used.
-  firstPageLabel = `First page`
-  itemsPerPageLabel = `Items per page:`
-  lastPageLabel = `Last page`
-
-  // You can set labels to an arbitrary string too, or dynamically compute
-  // it through other third-party internationalization libraries.
-  nextPageLabel = 'Next page'
-  previousPageLabel = 'Previous page'
-
-  rangeLabel0 = `Page 1 of 1`
-  pageLabel = 'Page'
-  ofLabel = 'of'
-
-  getRangeLabel(page: number, pageSize: number, length: number): string {
-    if (length === 0) {
-      return this.rangeLabel0
-    }
-    const amountPages = Math.ceil(length / pageSize)
-    return `${this.pageLabel} ${page + 1} ${this.ofLabel} ${amountPages}`
-  }
+type PagedTableDataSource<T> = Omit<MatTableDataSource<T>, 'paginator'> & {
+  paginator: ZardPaginatorLike | null
 }
 
 /**
@@ -117,7 +57,7 @@ export class MyCustomPaginatorIntl implements MatPaginatorIntl {
     ReactiveFormsModule,
     ZardCheckboxComponent,
     MatTableModule,
-    MatPaginatorModule,
+    ZardPaginatorComponent,
     ZardIconComponent,
     ZardButtonComponent,
     MatSortModule,
@@ -127,7 +67,6 @@ export class MyCustomPaginatorIntl implements MatPaginatorIntl {
     //OCAP Modules
     OcapCoreModule
   ]
-  // providers: [{provide: MatPaginatorIntl, useClass: MyCustomPaginatorIntl}],
 })
 export class NgmTableComponent {
   readonly #injector = inject(Injector)
@@ -148,7 +87,7 @@ export class NgmTableComponent {
     transform: coerceBooleanProperty
   })
 
-  readonly pageSizeOptions = input<MatPaginatorDefaultOptions['pageSizeOptions']>([20, 50, 100])
+  readonly pageSizeOptions = input<number[]>([20, 50, 100])
 
   readonly grid = input<boolean, boolean | string>(false, {
     transform: coerceBooleanProperty
@@ -170,7 +109,7 @@ export class NgmTableComponent {
   | Child Components
   |--------------------------------------------------------------------------
   */
-  readonly paginator = viewChild(MatPaginator)
+  readonly paginator = viewChild(ZardPaginatorComponent)
   readonly sort = viewChild(MatSort)
 
   /**
@@ -180,7 +119,7 @@ export class NgmTableComponent {
   */
   readonly displayedColumns = signal<string[]>([])
 
-  dataSource = new MatTableDataSource<any>()
+  dataSource = new MatTableDataSource<any>() as PagedTableDataSource<any>
 
   searchControl = new FormControl<string>('')
   searchingColumn = ''
@@ -197,7 +136,7 @@ export class NgmTableComponent {
     })
 
     afterNextRender(() => {
-      this.dataSource.paginator = this.paginator()
+      this.dataSource.paginator = this.paginator() ?? null
       this.dataSource.sort = this.sort()
       // If the user changes the sort order, reset back to the first page.
       this.sort()?.sortChange.subscribe((sort) => {

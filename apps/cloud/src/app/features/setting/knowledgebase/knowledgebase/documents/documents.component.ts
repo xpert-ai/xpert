@@ -3,7 +3,7 @@ import { afterNextRender, Component, effect, inject, model, signal, viewChild } 
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
-import { MatPaginator, MatPaginatorModule } from '@angular/material/paginator'
+import { ZardPaginatorComponent } from '@xpert-ai/headless-ui'
 import { MatSort, MatSortModule } from '@angular/material/sort'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import {
@@ -55,7 +55,7 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
     TranslateModule,
     MaterialModule,
     MatSortModule,
-    MatPaginatorModule,
+    ZardPaginatorComponent,
     NgmCommonModule
   ],
   animations: [
@@ -75,7 +75,7 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   readonly #route = inject(ActivatedRoute)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
 
-  readonly paginator = viewChild(MatPaginator)
+  readonly paginator = viewChild(ZardPaginatorComponent)
   readonly sort = viewChild(MatSort)
 
   readonly pageSize = model(10)

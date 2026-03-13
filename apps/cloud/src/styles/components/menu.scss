@@ -8,18 +8,17 @@
 //   }
 // }
 
-.cdk-menu-trigger[aria-expanded='true'] {
+.cdk-menu-trigger[aria-expanded='true'],
+[z-menu][data-state='open'] {
   @apply bg-black/10 dark:bg-gray-100/20 text-neutral-600 dark:text-neutral-400;
 }
 
-.mat-mdc-menu-panel .mat-mdc-menu-content {
-  .mat-mdc-menu-item {
+.cdk-menu,
+[z-menu-content] {
+  .cdk-menu-item,
+  [z-menu-item] {
     .z-icon {
       @apply shrink-0;
-    }
-
-    .mat-mdc-menu-item-text {
-      @apply overflow-hidden whitespace-nowrap text-ellipsis;
     }
   }
 }

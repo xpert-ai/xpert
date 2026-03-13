@@ -33,7 +33,6 @@ import {
   ZardCheckboxComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -121,7 +120,6 @@ export interface SmartFilterState {
     MatAutocompleteModule,
     ZardInputDirective,
     ...ZardTooltipImports,
-    MatMenuModule,
     ZardCheckboxComponent,
     ScrollingModule,
     OcapCoreModule,

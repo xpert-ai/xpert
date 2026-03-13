@@ -752,12 +752,6 @@
   </div>
 </ng-template>
 
-<mat-menu #share2Menu="matMenu" class="ngm-density__compact">
-  <button mat-menu-item>飞书</button>
-  <button mat-menu-item>钉钉</button>
-  <button mat-menu-item>微信</button>
-</mat-menu>
-
 <ng-template #copyToMenu>
   <div cdkMenu displayDensity="cosy">
     <button cdkMenuItem (click)="onCopyToNew(STORY_POINT_TYPE.Canvas)">
@@ -773,15 +767,6 @@
     }
   </div>
 </ng-template>
-
-  <!-- <mat-menu #pageMenu="matMenu" class="ngm-density__compact">
-    <button mat-menu-item (click)="storyService.createStoryPoint(STORY_POINT_TYPE.Canvas)">
-        {{ 'Story.Toolbar.New_Canvas_Page' | translate: {Default: "New Canvas Page"} }}
-    </button>
-    <button mat-menu-item (click)="storyService.createStoryPoint(STORY_POINT_TYPE.Responsive)">
-        {{ 'Story.Toolbar.New_Responsive_Page' | translate: {Default: "New Responsive Page"} }}
-    </button>
-</mat-menu> -->
 
 <ng-template #devicesMenu>
   <div cdkMenu displayDensity="cosy">

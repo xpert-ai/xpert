@@ -25,7 +25,7 @@ import {
   ViewChild
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MatPaginator } from '@angular/material/paginator'
+import { ZardPaginatorComponent, type ZardPaginatorLike } from '@xpert-ai/headless-ui'
 import { MatSort, SortDirection } from '@angular/material/sort'
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
 import { csvDownload, DisplayDensity, mergeSelectedValues, NgmAppearance } from '@metad/ocap-angular/core'
@@ -154,11 +154,11 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
   @Output() explain = new EventEmitter<any[]>()
   @Output() entityTypeChange = new EventEmitter<EntityType>()
 
-  @ViewChild(MatPaginator)
-  set paginator(v: MatPaginator) {
+  @ViewChild(ZardPaginatorComponent)
+  set paginator(v: ZardPaginatorComponent) {
     this._paginator.set(v)
   }
-  private readonly _paginator = signal<MatPaginator>(null)
+  private readonly _paginator = signal<ZardPaginatorComponent>(null)
 
   // @ViewChild(MatSort) sort: MatSort
   readonly sort = viewChild(MatSort)
@@ -196,7 +196,9 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
   virtualScrollItemSize = 48
 
   // Flat Table
-  flatDataSource = new NgmFlatTableDataSource([])
+  flatDataSource = new NgmFlatTableDataSource([]) as Omit<NgmFlatTableDataSource<any>, 'paginator'> & {
+    paginator: ZardPaginatorLike | null
+  }
   // isRowHierarchy = false
   rowRecursiveHierarchy = null
   readonly rowTreeProperty = signal<string>(null)

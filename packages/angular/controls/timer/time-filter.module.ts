@@ -11,10 +11,10 @@ import {
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
-  ZardCheckboxComponent
+  ZardCheckboxComponent,
+  ZardMenuImports
 } from '@xpert-ai/headless-ui'
 import { MatExpansionModule } from '@angular/material/expansion'
-import { MatMenuModule } from '@angular/material/menu'
 import { MatTableModule } from '@angular/material/table'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -48,7 +48,7 @@ import {
     ZardIconComponent,
     ZardDividerComponent,
     MatDatepickerModule,
-    MatMenuModule,
+    ...ZardMenuImports,
     DragDropModule,
     TranslateModule,
     DensityDirective,

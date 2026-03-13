@@ -62,5 +62,11 @@
 </div>
 
 @if (paging()) {
-  <mat-paginator class="ngm-density__compact" [pageSizeOptions]="pageSizeOptions()" showFirstLastButtons></mat-paginator>
+  <z-paginator
+    class="border-t border-[var(--mat-table-row-item-outline-color)] px-2 py-1"
+    displayDensity="compact"
+    [hidePageSizeLabel]="true"
+    [pageSizeOptions]="pageSizeOptions()"
+    showFirstLastButtons
+  ></z-paginator>
 }

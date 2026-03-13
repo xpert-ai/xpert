@@ -4,7 +4,6 @@ import { Component, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
-import { MatMenuModule } from '@angular/material/menu'
 import { DensityDirective, NgmAgentService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { TranslateModule } from '@ngx-translate/core'
@@ -26,7 +25,6 @@ import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpe
     ZardIconComponent,
     ...ZardTooltipImports,
     ZardButtonComponent,
-    MatMenuModule,
     DensityDirective
   ]
 })
