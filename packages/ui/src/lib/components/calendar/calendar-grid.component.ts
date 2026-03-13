@@ -10,10 +10,11 @@ import {
   ViewEncapsulation,
 } from '@angular/core';
 
+import { injectUiI18nService } from '@/src/lib/core/i18n/ui-i18n.service';
 import { mergeClasses } from '@/shared/utils/merge-classes';
 
 import type { CalendarDay } from './calendar.types';
-import { calendarWeekdays, getDayAriaLabel, getDayId } from './calendar.utils';
+import { getDayAriaLabel, getDayId, getWeekdayNames } from './calendar.utils';
 import { calendarDayButtonVariants, calendarDayVariants, calendarWeekdayVariants } from './calendar.variants';
 
 @Component({
@@ -22,7 +23,7 @@ import { calendarDayButtonVariants, calendarDayVariants, calendarWeekdayVariants
     <div #gridContainer>
       <!-- Weekdays Header -->
       <div class="grid w-fit grid-cols-7 text-center" role="row">
-        @for (weekday of weekdays; track weekday) {
+        @for (weekday of weekdays(); track weekday) {
           <div [class]="weekdayClasses()" role="columnheader">
             {{ weekday }}
           </div>
@@ -63,6 +64,7 @@ import { calendarDayButtonVariants, calendarDayVariants, calendarWeekdayVariants
 })
 export class ZardCalendarGridComponent {
   private readonly gridContainer = viewChild.required<ElementRef<HTMLElement>>('gridContainer');
+  private readonly i18n = injectUiI18nService();
 
   // Inputs
   readonly calendarDays = input.required<CalendarDay[]>();
@@ -74,7 +76,16 @@ export class ZardCalendarGridComponent {
   readonly nextMonth = output<{ position: string; dayOfWeek: number }>();
   readonly navigateYear = output<number>();
 
-  readonly weekdays = calendarWeekdays;
+  protected readonly weekdays = computed(() => getWeekdayNames(this.i18n.language(), 'short'));
+  protected readonly ariaTranslations = computed(() => ({
+    today: this.i18n.t('datePicker.today', { Default: 'Today' }),
+    selected: this.i18n.t('datePicker.selected', { Default: 'Selected' }),
+    rangeStart: this.i18n.t('datePicker.rangeStart', { Default: 'Range start' }),
+    rangeEnd: this.i18n.t('datePicker.rangeEnd', { Default: 'Range end' }),
+    inRange: this.i18n.t('datePicker.inRange', { Default: 'In range' }),
+    outsideMonth: this.i18n.t('datePicker.outsideMonth', { Default: 'Outside month' }),
+    disabled: this.i18n.t('datePicker.disabled', { Default: 'Disabled' }),
+  }));
 
   private readonly focusedDayIndex = signal<number>(-1);
 
@@ -109,7 +120,7 @@ export class ZardCalendarGridComponent {
   }
 
   protected getDayAriaLabel(day: CalendarDay): string {
-    return getDayAriaLabel(day);
+    return getDayAriaLabel(day, this.i18n.language(), this.ariaTranslations());
   }
 
   protected getFocusedDayIndex(): number {

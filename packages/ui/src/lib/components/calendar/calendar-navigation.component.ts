@@ -1,13 +1,14 @@
 import { ChangeDetectionStrategy, Component, computed, input, output, ViewEncapsulation } from '@angular/core';
 
-import { calendarMonths } from '@/src/lib/components/calendar/calendar.utils';
+import { getMonthNames } from '@/src/lib/components/calendar/calendar.utils';
+import { injectUiI18nService } from '@/src/lib/core/i18n/ui-i18n.service';
 import { mergeClasses } from '@/shared/utils/merge-classes';
 
 import { calendarNavVariants } from './calendar.variants';
 import { ZardButtonComponent } from '@/src/lib/components/button/button.component';
 import { ZardIconComponent } from '@/src/lib/components/icon/icon.component';
 import { ZardSelectItemComponent } from '@/src/lib/components/select/select-item.component';
-import { ZardSelectComponent } from '@/src/lib/components/select/select.component';
+import { ZardSelectComponent, type ZardSelectValue } from '@/src/lib/components/select/select.component';
 
 @Component({
   selector: 'z-calendar-navigation',
@@ -21,7 +22,7 @@ import { ZardSelectComponent } from '@/src/lib/components/select/select.componen
         zSize="sm"
         (click)="onPreviousClick()"
         [disabled]="isPreviousDisabled()"
-        aria-label="Previous month"
+        [attr.aria-label]="previousMonthLabel()"
         class="size-7 p-0"
       >
         <z-icon zType="chevron-left" />
@@ -31,7 +32,7 @@ import { ZardSelectComponent } from '@/src/lib/components/select/select.componen
       <div class="flex items-center space-x-2">
         <!-- Month Select -->
         <z-select [zValue]="currentMonth()" [zLabel]="currentMonthName()" (zSelectionChange)="onMonthChange($event)">
-          @for (month of months; track month) {
+          @for (month of months(); track month) {
             <z-select-item [zValue]="$index.toString()">{{ month }}</z-select-item>
           }
         </z-select>
@@ -51,7 +52,7 @@ import { ZardSelectComponent } from '@/src/lib/components/select/select.componen
         zSize="sm"
         (click)="onNextClick()"
         [disabled]="isNextDisabled()"
-        aria-label="Next month"
+        [attr.aria-label]="nextMonthLabel()"
         class="size-7 p-0"
       >
         <z-icon zType="chevron-right" />
@@ -63,6 +64,8 @@ import { ZardSelectComponent } from '@/src/lib/components/select/select.componen
   exportAs: 'zCalendarNavigation',
 })
 export class ZardCalendarNavigationComponent {
+  private readonly i18n = injectUiI18nService();
+
   // Inputs
   readonly currentMonth = input.required<string>();
   readonly currentYear = input.required<string>();
@@ -75,7 +78,13 @@ export class ZardCalendarNavigationComponent {
   readonly yearChange = output<string>();
   readonly previousMonth = output<void>();
   readonly nextMonth = output<void>();
-  readonly months = calendarMonths;
+  protected readonly months = computed(() => getMonthNames(this.i18n.language(), 'short'));
+  protected readonly previousMonthLabel = computed(() =>
+    this.i18n.t('datePicker.previousMonth', { Default: 'Previous month' }),
+  );
+  protected readonly nextMonthLabel = computed(() =>
+    this.i18n.t('datePicker.nextMonth', { Default: 'Next month' }),
+  );
 
   protected readonly navClasses = computed(() => mergeClasses(calendarNavVariants()));
 
@@ -91,10 +100,11 @@ export class ZardCalendarNavigationComponent {
 
   protected readonly currentMonthName = computed(() => {
     const selectedMonth = Number.parseInt(this.currentMonth());
-    if (!Number.isNaN(selectedMonth) && this.months[selectedMonth]) {
-      return this.months[selectedMonth];
+    const months = this.months();
+    if (!Number.isNaN(selectedMonth) && months[selectedMonth]) {
+      return months[selectedMonth];
     }
-    return this.months[new Date().getMonth()];
+    return months[new Date().getMonth()];
   });
 
   protected readonly isPreviousDisabled = computed(() => {
@@ -139,19 +149,19 @@ export class ZardCalendarNavigationComponent {
     this.nextMonth.emit();
   }
 
-  protected onMonthChange(month: string | string[]): void {
+  protected onMonthChange(month: ZardSelectValue | ZardSelectValue[]): void {
     if (Array.isArray(month)) {
       console.warn('Calendar navigation received array for month selection, expected single value. Ignoring:', month);
       return;
     }
-    this.monthChange.emit(month);
+    this.monthChange.emit(month.toString());
   }
 
-  protected onYearChange(year: string | string[]): void {
+  protected onYearChange(year: ZardSelectValue | ZardSelectValue[]): void {
     if (Array.isArray(year)) {
       console.warn('Calendar navigation received array for year selection, expected single value. Ignoring:', year);
       return;
     }
-    this.yearChange.emit(year);
+    this.yearChange.emit(year.toString());
   }
 }

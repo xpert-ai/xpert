@@ -2,19 +2,9 @@
   <label>{{label()}}</label>
 }
 
-<div class="group-month relative flex items-center">
-  <input z-input class="ngm-input-element w-full"
-    [matDatepicker]="dp" [formControl]="date"
-    (dateChange)="onDateChange($event)" />
-  <mat-datepicker
-    #dp
-    startView="multi-year"
-    (yearSelected)="chosenYearHandler($event)"
-    (monthSelected)="chosenMonthHandler($event, dp)"
-  />
-
-  <div class="absolute right-0 h-full flex items-center opacity-50 group-hover/month:opacity-100">
-    <mat-datepicker-toggle [for]="dp" />
-    <ng-content select="[ngmSuffix]"></ng-content>
+<div class="flex items-center gap-2">
+  <div class="flex-1">
+    <z-month-picker [formControl]="date" zFormat="yyyyMM" />
   </div>
+  <ng-content select="[ngmSuffix]"></ng-content>
 </div>

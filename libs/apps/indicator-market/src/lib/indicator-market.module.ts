@@ -4,17 +4,20 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatChipsModule } from '@angular/material/chips'
-import { MatDatepickerModule } from '@angular/material/datepicker'
 import {
   ZardButtonComponent,
   ZardCardImports,
+  ZardDatePickerComponent,
   ZardDividerComponent,
   ZardIconComponent,
   ZardInputDirective,
+  ZardMonthPickerComponent,
+  ZardQuarterPickerComponent,
   ZardCheckboxComponent,
   ZardToggleGroupComponent,
   ZardToggleGroupItemComponent,
   ZardSliderComponent,
+  ZardYearPickerComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
@@ -57,14 +60,17 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     ...ZardCardImports,
     ZardCheckboxComponent,
     ZardButtonComponent,
+    ZardDatePickerComponent,
     ZardIconComponent,
     MatMenuModule,
-    MatDatepickerModule,
     MatChipsModule,
     ZardInputDirective,
+    ZardMonthPickerComponent,
+    ZardQuarterPickerComponent,
     ZardToggleGroupComponent,
     ZardToggleGroupItemComponent,
     ZardSliderComponent,
+    ZardYearPickerComponent,
     ...ZardTooltipImports,
     MarkdownModule,
     AppearanceDirective,

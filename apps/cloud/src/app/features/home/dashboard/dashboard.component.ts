@@ -12,6 +12,7 @@ import { NxStoryModule } from '@metad/story/story'
 import { TranslateModule } from '@ngx-translate/core'
 import { GridType, Gridster, GridsterConfig, GridsterItem as GridsterItemComponent, GridsterItemConfig } from 'angular-gridster2'
 import { cloneDeep, compact, isEqual, pick } from 'lodash-es'
+import { ZardDatePickerComponent } from '@xpert-ai/headless-ui'
 import {
   BehaviorSubject,
   combineLatest,
@@ -69,6 +70,7 @@ const QuickGuidesInit = {
     Gridster,
     GridsterItemComponent,
     NxStoryModule,
+    ZardDatePickerComponent,
 
     StoryWidgetFeedComponent,
     UserVisitComponent,

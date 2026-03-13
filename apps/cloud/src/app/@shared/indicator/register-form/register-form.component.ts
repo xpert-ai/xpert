@@ -29,6 +29,7 @@ import {
 } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ISemanticModel, ITag, registerModel, TagCategoryEnum } from 'apps/cloud/src/app/@core'
+import { format, parseISO } from 'date-fns'
 import { isEqual } from 'lodash-es'
 import {
   BehaviorSubject,
@@ -47,9 +48,9 @@ import {
 } from 'rxjs'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
 
-import { MatDatepickerModule } from '@angular/material/datepicker'
 import {
   ZardButtonComponent,
+  ZardDatePickerComponent,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
@@ -57,7 +58,6 @@ import {
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '../types'
-import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
 
 @Component({
   standalone: true,
@@ -73,7 +73,7 @@ import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
     ZardButtonComponent,
     ...ZardTooltipImports,
     ...ZardFormImports,
-    MatDatepickerModule,
+    ZardDatePickerComponent,
     ZardInputDirective,
     ZardCheckboxComponent,
     NgmMatSelectComponent,
@@ -88,18 +88,7 @@ import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
       provide: NG_VALUE_ACCESSOR,
       multi: true,
       useExisting: forwardRef(() => XpIndicatorRegisterFormComponent)
-    },
-    provideDateFnsAdapter({
-      parse: {
-        dateInput: 'yyyy-MM-dd'
-      },
-      display: {
-        dateInput: 'yyyy-MM-dd',
-        monthYearLabel: 'LLL y',
-        dateA11yLabel: 'MMMM d y',
-        monthYearA11yLabel: 'MMMM y'
-      }
-    })
+    }
   ]
 })
 export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
@@ -151,6 +140,7 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
     }),
     tags: new FormControl<ITag[]>([])
   })
+  readonly validityControl = new FormControl<Date | null>(null)
 
   get id() {
     return this.formGroup.get('id').value
@@ -287,6 +277,23 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
     .subscribe((value) => this._onChange?.(value))
 
   constructor() {
+    this.formGroup
+      .get('validity')
+      .valueChanges.pipe(startWith(this.formGroup.get('validity').value), distinctUntilChanged(), takeUntilDestroyed())
+      .subscribe((value) => {
+        if (!value) {
+          this.validityControl.setValue(null, { emitEvent: false })
+          return
+        }
+
+        const date = parseISO(value)
+        this.validityControl.setValue(Number.isNaN(date.getTime()) ? null : date, { emitEvent: false })
+      })
+
+    this.validityControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
+      this.formGroup.get('validity').setValue(value ? format(value, 'yyyy-MM-dd') : null)
+    })
+
     effect(
       () => {
         const indicator = this.indicator()

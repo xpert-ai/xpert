@@ -28,11 +28,8 @@
     </div>
 
     @if (!frequency() || frequency() === eTaskFrequency.Once || frequency() === eTaskFrequency.Yearly) {
-      <div class="border rounded-xl flex justify-between items-center pl-3 grow min-h-11">
-        <input class="text-base text-text-secondary font-medium grow outline-none" [matDatepicker]="dp" [(ngModel)]="date" >
-
-        <mat-datepicker-toggle [for]="dp" class="inline-flex scale-75" type="button" />
-        <mat-datepicker #dp></mat-datepicker>
+      <div class="grow min-h-11">
+        <z-date-picker [(ngModel)]="date" zFormat="MM-dd" />
       </div>
     }
 

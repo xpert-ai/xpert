@@ -17,7 +17,6 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
-import { MatDatepicker } from '@angular/material/datepicker'
 import { Router } from '@angular/router'
 import { Store } from '@metad/cloud/state'
 import { NgmDSCoreService, NgmLanguageEnum } from '@metad/ocap-angular/core'
@@ -183,20 +182,6 @@ export class IndicatoryMarketComponent extends ComponentStore<{ id?: string }> {
 
   prevDatesFilter = (d: Date | null): boolean => {
     return d <= new Date()
-  }
-
-  chosenYearHandler(event: Date | null, datepicker: MatDatepicker<any>) {
-    if (this.timeGranularity() === TimeGranularity.Year) {
-      this.dateControl.setValue(event)
-      datepicker.close()
-    }
-  }
-
-  chosenMonthHandler(event, datepicker: MatDatepicker<any>) {
-    if (this.timeGranularity() === TimeGranularity.Month || this.timeGranularity() === TimeGranularity.Quarter) {
-      this.dateControl.setValue(event)
-      datepicker.close()
-    }
   }
 
   click(item: IndicatorState) {

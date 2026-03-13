@@ -1,4 +1,20 @@
 {
+  "datePicker": {
+    "chooseDate": "Choose date",
+    "chooseMonth": "Choose month",
+    "chooseQuarter": "Choose quarter",
+    "chooseYear": "Choose year",
+    "previousMonth": "Previous month",
+    "nextMonth": "Next month",
+    "today": "Today",
+    "selected": "Selected",
+    "rangeStart": "Range start",
+    "rangeEnd": "Range end",
+    "inRange": "In range",
+    "outsideMonth": "Outside month",
+    "disabled": "Disabled",
+    "quarter": "Q{{quarter}}"
+  },
   "confirm": {
     "delete": "Confirm Delete",
     "confirm": "Confirm",

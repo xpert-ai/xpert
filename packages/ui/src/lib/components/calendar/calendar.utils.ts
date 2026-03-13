@@ -1,21 +1,25 @@
 import type { CalendarDay, CalendarDayConfig, CalendarMode, CalendarValue } from './calendar.types';
 
-export const calendarMonths = [
-  'Jan',
-  'Feb',
-  'Mar',
-  'Apr',
-  'May',
-  'Jun',
-  'Jul',
-  'Aug',
-  'Sep',
-  'Oct',
-  'Nov',
-  'Dec',
-] as const;
+export type CalendarAriaTranslations = {
+  today: string;
+  selected: string;
+  rangeStart: string;
+  rangeEnd: string;
+  inRange: string;
+  outsideMonth: string;
+  disabled: string;
+};
 
-export const calendarWeekdays = ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'] as const;
+export function getMonthNames(locale: string, month: 'short' | 'long' = 'short'): string[] {
+  const formatter = new Intl.DateTimeFormat(locale, { month, timeZone: 'UTC' });
+  return Array.from({ length: 12 }, (_, index) => formatter.format(new Date(Date.UTC(2024, index, 1))));
+}
+
+export function getWeekdayNames(locale: string, weekday: 'short' | 'narrow' = 'short'): string[] {
+  const formatter = new Intl.DateTimeFormat(locale, { weekday, timeZone: 'UTC' });
+  const sunday = Date.UTC(2024, 0, 7);
+  return Array.from({ length: 7 }, (_, index) => formatter.format(new Date(sunday + index * 24 * 60 * 60 * 1000)));
+}
 
 /**
  * Checks if two dates represent the same day (ignoring time)
@@ -150,8 +154,12 @@ export function getDayId(index: number): string {
 /**
  * Generates an accessible ARIA label for a calendar day
  */
-export function getDayAriaLabel(day: CalendarDay): string {
-  const dateStr = day.date.toLocaleDateString('en-US', {
+export function getDayAriaLabel(
+  day: CalendarDay,
+  locale: string,
+  translations: CalendarAriaTranslations,
+): string {
+  const dateStr = day.date.toLocaleDateString(locale, {
     weekday: 'long',
     year: 'numeric',
     month: 'long',
@@ -160,13 +168,13 @@ export function getDayAriaLabel(day: CalendarDay): string {
 
   const labels = [
     dateStr,
-    day.isToday && 'Today',
-    day.isSelected && 'Selected',
-    day.isRangeStart && 'Range start',
-    day.isRangeEnd && 'Range end',
-    day.isInRange && 'In range',
-    !day.isCurrentMonth && 'Outside month',
-    day.isDisabled && 'Disabled',
+    day.isToday && translations.today,
+    day.isSelected && translations.selected,
+    day.isRangeStart && translations.rangeStart,
+    day.isRangeEnd && translations.rangeEnd,
+    day.isInRange && translations.inRange,
+    !day.isCurrentMonth && translations.outsideMonth,
+    day.isDisabled && translations.disabled,
   ].filter(Boolean);
 
   return labels.join(', ');

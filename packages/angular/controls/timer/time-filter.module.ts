@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MatDatepickerModule } from '@angular/material/datepicker'
 import { MatDialogModule } from '@angular/material/dialog'
 import {
   ZardButtonComponent,
@@ -47,7 +46,6 @@ import {
     MatExpansionModule,
     ZardIconComponent,
     ZardDividerComponent,
-    MatDatepickerModule,
     ...ZardMenuImports,
     DragDropModule,
     TranslateModule,

@@ -1,4 +1,20 @@
 {
+  "datePicker": {
+    "chooseDate": "选择日期",
+    "chooseMonth": "选择月份",
+    "chooseQuarter": "选择季度",
+    "chooseYear": "选择年份",
+    "previousMonth": "上个月",
+    "nextMonth": "下个月",
+    "today": "今天",
+    "selected": "已选择",
+    "rangeStart": "范围开始",
+    "rangeEnd": "范围结束",
+    "inRange": "范围内",
+    "outsideMonth": "非当前月份",
+    "disabled": "不可用",
+    "quarter": "第{{quarter}}季度"
+  },
   "confirm": {
     "delete": "确认删除",
     "confirm": "确认",

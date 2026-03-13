@@ -1,30 +1,15 @@
 import { CommonModule } from '@angular/common'
 import { Component, forwardRef, input } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
-import { MatDatepicker, MatDatepickerInputEvent, MatDatepickerModule } from '@angular/material/datepicker'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
-import { getMonth, getYear, setMonth, setYear } from 'date-fns'
+import { ZardMonthPickerComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MatDatepickerModule, ZardInputDirective, OcapCoreModule],
+  imports: [CommonModule, ReactiveFormsModule, ZardMonthPickerComponent],
   selector: 'ngm-monthpicker',
   templateUrl: './monthpicker.component.html',
-  styleUrls: ['./monthpicker.component.scss'],
   providers: [
-    provideDateFnsAdapter({
-      parse: {
-        dateInput: `yyyyMM`
-      },
-      display: {
-        dateInput: `yyyyMM`,
-        monthYearLabel: 'LLL y',
-        dateA11yLabel: 'MMMM d, y',
-        monthYearA11yLabel: 'MMMM y'
-      }
-    }),
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => NgmMonthpickerComponent),
@@ -36,7 +21,7 @@ export class NgmMonthpickerComponent implements ControlValueAccessor {
 
   readonly label = input<string>('')
   
-  date = new FormControl(new Date())
+  date = new FormControl<Date | null>(null)
 
   /**
    * Invoked when the model has been changed
@@ -47,20 +32,15 @@ export class NgmMonthpickerComponent implements ControlValueAccessor {
    */
   onTouched: () => void = () => {}
 
-  chosenYearHandler(event) {
-    const ctrlValue = this.date.value ?? new Date()
-    this.date.setValue(setYear(ctrlValue, getYear(event)))
-  }
-
-  chosenMonthHandler(event, datepicker: MatDatepicker<any>) {
-    const ctrlValue = this.date.value ?? new Date()
-    this.date.setValue(setMonth(ctrlValue, getMonth(event)))
-    datepicker.close()
-    this.onChange(this.date.value)
+  constructor() {
+    this.date.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
+      this.onChange(value)
+      this.onTouched()
+    })
   }
 
   writeValue(obj: any): void {
-    this.date.setValue(obj)
+    this.date.setValue(obj, { emitEvent: false })
   }
   registerOnChange(fn: any): void {
     this.onChange = fn
@@ -70,9 +50,5 @@ export class NgmMonthpickerComponent implements ControlValueAccessor {
   }
   setDisabledState?(isDisabled: boolean): void {
     isDisabled ? this.date.disable() : this.date.enable()
-  }
-
-  onDateChange(event: MatDatepickerInputEvent<any>) {
-    this.onChange(event.value)
   }
 }

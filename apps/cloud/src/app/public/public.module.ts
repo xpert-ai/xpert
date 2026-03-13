@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 
-import { MatDatepickerModule } from '@angular/material/datepicker'
 import { C_URI_API_MODELS } from '@metad/cloud/state'
 import { NgmTransformScaleDirective } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
@@ -29,7 +28,6 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     PublicRoutingModule,
     ZardIconComponent,
     ZardButtonComponent,
-    MatDatepickerModule,
     ContentLoaderModule,
     NgxEchartsModule.forRoot({
       echarts: () => import('echarts')

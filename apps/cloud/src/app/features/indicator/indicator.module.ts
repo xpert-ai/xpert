@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatNativeDateModule } from '@angular/material/core'
 import { ToastrService } from '@metad/cloud/state'
 import { NgmDialogComponent } from '@metad/components/dialog'
 import { IsNilPipe, NxCoreModule } from '@metad/core'
@@ -22,7 +21,6 @@ import { MaterialModule } from '../../@shared/material.module'
     ReactiveFormsModule,
     SharedModule,
     MaterialModule,
-    MatNativeDateModule,
 
     NxCoreModule,
     NgmSelectionModule,

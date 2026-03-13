@@ -18,6 +18,7 @@ import type { ClassValue } from 'clsx';
 
 import { ZardButtonComponent, type ZardButtonTypeVariants } from '@/src/lib/components/button';
 import { ZardCalendarComponent } from '@/src/lib/components/calendar';
+import { injectUiI18nService } from '@/src/lib/core/i18n/ui-i18n.service';
 import type { ZardDatePickerSizeVariants } from '@/src/lib/components/date-picker/date-picker.variants';
 import { ZardIconComponent } from '@/src/lib/components/icon';
 import { ZardPopoverComponent, ZardPopoverDirective } from '@/src/lib/components/popover';
@@ -60,7 +61,7 @@ const HEIGHT_BY_SIZE: Record<ZardDatePickerSizeVariants, string> = {
       (zVisibleChange)="onPopoverVisibilityChange($event)"
       [attr.aria-expanded]="false"
       [attr.aria-haspopup]="true"
-      aria-label="Choose date"
+      [attr.aria-label]="chooseDateAriaLabel()"
     >
       <z-icon zType="calendar" />
       <span [class]="textClasses()">
@@ -99,6 +100,7 @@ const HEIGHT_BY_SIZE: Record<ZardDatePickerSizeVariants, string> = {
 })
 export class ZardDatePickerComponent implements ControlValueAccessor {
   private readonly datePipe = inject(DatePipe);
+  private readonly i18n = injectUiI18nService();
 
   readonly calendarTemplate = viewChild.required<TemplateRef<unknown>>('calendarTemplate');
   readonly popoverDirective = viewChild.required<ZardPopoverDirective>('popoverDirective');
@@ -118,6 +120,9 @@ export class ZardDatePickerComponent implements ControlValueAccessor {
 
   private onChange: (value: Date | null) => void = noopFn;
   private onTouched: () => void = noopFn;
+  protected readonly chooseDateAriaLabel = computed(() =>
+    this.i18n.t('datePicker.chooseDate', { Default: 'Choose date' }),
+  );
 
   protected readonly buttonClasses = computed(() => {
     const hasValue = !!this.value();
@@ -127,7 +132,7 @@ export class ZardDatePickerComponent implements ControlValueAccessor {
       'justify-start text-left font-normal',
       !hasValue && 'text-muted-foreground',
       height,
-      'min-w-[240px]',
+      'w-full min-w-[240px]',
     );
   });
 
@@ -168,7 +173,7 @@ export class ZardDatePickerComponent implements ControlValueAccessor {
   }
 
   private formatDate(date: Date, format: string): string {
-    return this.datePipe.transform(date, format) ?? '';
+    return this.datePipe.transform(date, format, undefined, this.i18n.language()) ?? '';
   }
 
   writeValue(value: Date | null): void {

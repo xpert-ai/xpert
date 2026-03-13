@@ -3,7 +3,6 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { NgModule } from '@angular/core'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatChipsModule } from '@angular/material/chips'
-import { MatNativeDateModule } from '@angular/material/core'
 import { MatDialogModule } from '@angular/material/dialog'
 import {
   ZardBadgeComponent,
@@ -25,7 +24,6 @@ import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatStepperModule } from '@angular/material/stepper'
 import { MatTableModule } from '@angular/material/table'
 import { MatTreeModule } from '@angular/material/tree'
-import { MatDatepickerModule } from '@angular/material/datepicker'
 
 const MATERIAL_MODULES = [
   DragDropModule,
@@ -50,9 +48,7 @@ const MATERIAL_MODULES = [
   MatTreeModule,
   ZardBadgeComponent,
   MatTableModule,
-  MatProgressSpinnerModule,
-  MatDatepickerModule,
-  MatNativeDateModule
+  MatProgressSpinnerModule
 ]
 
 /**
