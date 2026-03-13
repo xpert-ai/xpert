@@ -28,7 +28,6 @@ import { MatTableModule } from '@angular/material/table'
 import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatTreeModule } from '@angular/material/tree'
 import { MatDatepickerModule } from '@angular/material/datepicker'
-import { MatBottomSheetModule } from '@angular/material/bottom-sheet'
 
 const MATERIAL_MODULES = [
   DragDropModule,
@@ -58,7 +57,6 @@ const MATERIAL_MODULES = [
   MatTableModule,
   MatProgressSpinnerModule,
   MatDatepickerModule,
-  MatBottomSheetModule,
   MatNativeDateModule
 ]
 

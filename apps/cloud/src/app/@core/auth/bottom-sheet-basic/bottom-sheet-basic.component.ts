@@ -1,14 +1,13 @@
 import { CommonModule } from '@angular/common'
-import { Component, Inject, inject } from '@angular/core'
+import { Component, inject } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MAT_BOTTOM_SHEET_DATA, MatBottomSheetRef } from '@angular/material/bottom-sheet'
 
 import { ToastrService } from '@metad/cloud/state'
 import { NgmInputComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { AuthInfoType } from '../types'
-import { ZardButtonComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
+import { Z_SHEET_DATA, ZardButtonComponent, ZardCheckboxComponent, ZardSheetRef } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -30,6 +29,8 @@ import { ZardButtonComponent, ZardCheckboxComponent } from '@xpert-ai/headless-u
 export class BottomSheetBasicAuthComponent {
   readonly #formBuilder = inject(FormBuilder)
   readonly #translate = inject(TranslateService)
+  readonly data = inject<{ name: string; ping: (auth: AuthInfoType) => Promise<any> }>(Z_SHEET_DATA)
+  readonly #sheetRef = inject(ZardSheetRef<BottomSheetBasicAuthComponent, AuthInfoType | undefined>)
 
   form = this.#formBuilder.group<AuthInfoType>({
     username: '',
@@ -37,17 +38,12 @@ export class BottomSheetBasicAuthComponent {
     remeberMe: true
   })
 
-  constructor(
-    @Inject(MAT_BOTTOM_SHEET_DATA)
-    public data: { name: string; ping: (auth: AuthInfoType) => Promise<any> },
-    private _bottomSheetRef: MatBottomSheetRef<BottomSheetBasicAuthComponent>,
-    private toastrService: ToastrService
-  ) {}
+  constructor(private toastrService: ToastrService) {}
 
   async onSubmit() {
     try {
       await this.data.ping({ ...this.form.value } as AuthInfoType)
-      this._bottomSheetRef.dismiss(this.form.value)
+      this.#sheetRef.close(this.form.value as AuthInfoType)
     } catch (err) {
       this.toastrService.error(
         this.#translate.instant('PAC.MESSAGE.UserAuthenticationFailure', { Default: 'User authentication failure' })
@@ -56,6 +52,6 @@ export class BottomSheetBasicAuthComponent {
   }
 
   onCancel() {
-    this._bottomSheetRef.dismiss()
+    this.#sheetRef.close()
   }
 }

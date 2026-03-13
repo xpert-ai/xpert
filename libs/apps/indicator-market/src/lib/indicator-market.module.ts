@@ -3,7 +3,6 @@ import { ScrollingModule } from '@angular/cdk/scrolling'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatBottomSheetModule } from '@angular/material/bottom-sheet'
 import { MatChipsModule } from '@angular/material/chips'
 import { MatRippleModule } from '@angular/material/core'
 import { MatDatepickerModule } from '@angular/material/datepicker'
@@ -64,7 +63,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     ZardIconComponent,
     MatRippleModule,
     MatMenuModule,
-    MatBottomSheetModule,
     MatDatepickerModule,
     MatChipsModule,
     ZardInputDirective,
