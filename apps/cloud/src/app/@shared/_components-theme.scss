@@ -134,19 +134,6 @@
     }
   }
 
-  .mat-toolbar.ngm-density__compact {
-    &.mat-toolbar-row,
-    &.mat-toolbar-single-row {
-      height: 33px;
-      padding: 0 6px;
-      font-size: 1rem;
-    }
-
-    .mat-toolbar-row {
-      padding: 0 6px;
-    }
-  }
-
   // [z-button][data-icon-only]:hover:not([disabled]):not(.cdk-menu-item) {
   //   @apply bg-gray-400/20;
   // }

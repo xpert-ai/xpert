@@ -4,7 +4,6 @@ import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatToolbarModule } from '@angular/material/toolbar'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -22,7 +21,6 @@ import { ZardButtonComponent, ZardIconComponent, ZardTabsImports, ZardTooltipImp
     ZardButtonComponent,
     ZardIconComponent,
     ...ZardTabsImports,
-    MatToolbarModule,
     ...ZardTooltipImports,
     FormlyModule,
     TranslateModule,
