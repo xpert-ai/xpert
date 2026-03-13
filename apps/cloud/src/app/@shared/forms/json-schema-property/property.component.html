@@ -204,7 +204,7 @@
             </div>
           }
           @case ('boolean') {
-            <ngm-slide-toggle
+            <z-switch
               [disabled]="readonly()"
               [ngModel]="value$()"
               [ngModelOptions]="{ standalone: true }"
@@ -216,7 +216,7 @@
                   [matTooltip]="meta().description | i18n"
                 ></i>
               }
-            </ngm-slide-toggle>
+            </z-switch>
           }
           @case ('object') {
             <div class="rounded-lg border border-divider-regular px-2">

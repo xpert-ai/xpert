@@ -1,7 +1,7 @@
 import { CdkDrag, CdkDragDrop } from '@angular/cdk/drag-drop'
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { MatSlideToggleChange } from '@angular/material/slide-toggle'
+import { MatButtonToggleChange } from '@angular/material/button-toggle'
 import { ActivatedRoute, Router } from '@angular/router'
 import { MDX } from '@metad/contracts'
 import { nonBlank } from '@metad/core'
@@ -10,7 +10,7 @@ import { EntitySchemaType } from '@metad/ocap-angular/entity'
 import { AggregationRole, C_MEASURES, EntityType, getEntityHierarchy } from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
-import type { ZardRadioGroupChange, ZardToggleGroupChange } from '@xpert-ai/headless-ui'
+import type { ZardRadioGroupChange, ZardSwitchChange, ZardToggleGroupChange } from '@xpert-ai/headless-ui'
 import { SemanticModelService } from '../../../model.service'
 import { RoleComponent } from '../role.component'
 import { CubeStateService } from './cube.service'
@@ -259,7 +259,7 @@ export class CubeComponent {
     })
   }
 
-  changeMemberAccess(event: MatSlideToggleChange, hierarchy: string, member: string) {
+  changeMemberAccess(event: ZardSwitchChange, hierarchy: string, member: string) {
     this.#cubeState.updateMember({
       hierarchy,
       member,

@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { MatTooltipModule } from '@angular/material/tooltip'
-import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
@@ -18,10 +17,9 @@ import { XpertVariableInputComponent } from '../../agent'
 import { NgmSelectComponent } from '../../common'
 import { XpertRemoteSelectComponent } from '../../form-fields'
 import { TWorkflowVarGroup } from '../../../@core'
-import {
-  JsonSchemaWidgetOutletComponent
-} from './json-schema-widget-outlet.component'
+import { JsonSchemaWidgetOutletComponent } from './json-schema-widget-outlet.component'
 import { JsonSchemaWidgetStrategyRegistry } from './json-schema-widget-registry.service'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 /**
  *
@@ -33,19 +31,19 @@ import { JsonSchemaWidgetStrategyRegistry } from './json-schema-widget-registry.
     FormsModule,
     TranslateModule,
     MatTooltipModule,
-    NgmSlideToggleComponent,
     NgmI18nPipe,
     NgmSelectComponent,
     XpertVariableInputComponent,
     XpertRemoteSelectComponent,
-    JsonSchemaWidgetOutletComponent
+    JsonSchemaWidgetOutletComponent,
+    ZardSwitchComponent
   ],
   selector: 'json-schema-property',
   templateUrl: 'property.component.html',
   styleUrls: ['property.component.scss'],
   hostDirectives: [NgxControlValueAccessor],
   host: {
-    '[class]': `xUiSpan() ? 'col-span-' + xUiSpan() : ''`,
+    '[class]': `xUiSpan() ? 'col-span-' + xUiSpan() : ''`
   }
 })
 export class JSONSchemaPropertyComponent {
@@ -111,19 +109,23 @@ export class JSONSchemaPropertyComponent {
   // x-ui
   readonly xUi = computed(() => (this.meta() as any)?.['x-ui'] || {})
   readonly xUiComponent = computed(() => this.xUi()?.component)
-  readonly xUiInputType = computed(() => ['secretInput', 'password'].includes(this.xUi()?.component) ? 'password' : 'text')
+  readonly xUiInputType = computed(() =>
+    ['secretInput', 'password'].includes(this.xUi()?.component) ? 'password' : 'text'
+  )
   readonly xUiRevealable = computed(() => this.xUi()?.revealable)
   readonly xUiHelp = computed(() => this.xUi()?.help)
   readonly xUiSpan = computed(() => this.xUi()?.span)
   readonly xUiStyles = computed(() => this.xUi()?.styles)
   readonly hasCustomWidget = computed(() => this.widgetRegistry?.has(this.xUiComponent()))
-  readonly depends = computed(() => (this.xUi()?.depends ?? []).map((_) => {
-    if (typeof _ === 'string') {
-      return { name: _, value: this.value$()?.[_] }
-    } else if (typeof _ === 'object' && 'name' in _) {
-      return { name: _.alias || _.name, value: this.value$()?.[_.name] }
-    }
-  }))
+  readonly depends = computed(() =>
+    (this.xUi()?.depends ?? []).map((_) => {
+      if (typeof _ === 'string') {
+        return { name: _, value: this.value$()?.[_] }
+      } else if (typeof _ === 'object' && 'name' in _) {
+        return { name: _.alias || _.name, value: this.value$()?.[_.name] }
+      }
+    })
+  )
 
   constructor() {
     // Waiting NgxControlValueAccessor has been initialized

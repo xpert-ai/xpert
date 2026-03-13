@@ -16,11 +16,11 @@ import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { XpertWorkflowErrorHandlingComponent } from '@cloud/app/@shared/workflow'
 import { XpertWorkflowCodeEditorComponent } from '@cloud/app/@shared/xpert'
-import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-studio-panel-workflow-code',
@@ -34,9 +34,9 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
     MatSliderModule,
     XpertWorkflowCodeEditorComponent,
     NgmSelectComponent,
-    NgmSlideToggleComponent,
     XpertWorkflowErrorHandlingComponent,
-    StateVariableSelectComponent
+    StateVariableSelectComponent,
+    ZardSwitchComponent
   ],
   host: {
     tabindex: '-1'

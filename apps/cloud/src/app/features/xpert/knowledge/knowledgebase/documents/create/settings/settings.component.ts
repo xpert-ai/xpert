@@ -1,22 +1,31 @@
-import { CdkMenuModule } from "@angular/cdk/menu";
-import { CommonModule } from "@angular/common";
-import { Component, computed, effect, inject, model, signal } from "@angular/core";
-import { toSignal } from "@angular/core/rxjs-interop";
-import { FormsModule } from "@angular/forms";
-import { MatTooltipModule } from "@angular/material/tooltip";
-import { AiModelTypeEnum, DocumentTextParserConfig, IKnowledgeDocument, KBDocumentCategoryEnum, KDocumentSourceType, KnowledgebaseService, ModelFeature } from "@cloud/app/@core";
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { CommonModule } from '@angular/common'
+import { Component, computed, effect, inject, model, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
+import { FormsModule } from '@angular/forms'
+import { MatTooltipModule } from '@angular/material/tooltip'
+import {
+  AiModelTypeEnum,
+  DocumentTextParserConfig,
+  IKnowledgeDocument,
+  KBDocumentCategoryEnum,
+  KDocumentSourceType,
+  KnowledgebaseService,
+  ModelFeature
+} from '@cloud/app/@core'
 import { JsonSchema7ObjectType } from 'zod-to-json-schema'
-import { attrModel, linkedModel, NgmI18nPipe } from "@metad/ocap-angular/core";
-import { TranslateModule } from "@ngx-translate/core";
-import { NgmSelectComponent } from "@cloud/app/@shared/common";
-import { IconComponent } from "@cloud/app/@shared/avatar";
-import { JSONSchemaFormComponent } from "@cloud/app/@shared/forms";
-import { NgmCheckboxComponent, NgmSlideToggleComponent } from "@metad/ocap-angular/common";
-import { KnowledgeDocIdComponent } from "@cloud/app/@shared/knowledge";
-import { KnowledgeDocumentPreviewComponent } from "../preview/preview.component";
-import { IntegrationSelectComponent } from "@cloud/app/@shared/integration";
-import { CopilotModelSelectComponent } from "@cloud/app/@shared/copilot";
-import { KnowledgebaseComponent } from "../../../knowledgebase.component";
+import { attrModel, linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
+import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { IconComponent } from '@cloud/app/@shared/avatar'
+import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
+import { NgmCheckboxComponent } from '@metad/ocap-angular/common'
+import { KnowledgeDocIdComponent } from '@cloud/app/@shared/knowledge'
+import { KnowledgeDocumentPreviewComponent } from '../preview/preview.component'
+import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
+import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
+import { KnowledgebaseComponent } from '../../../knowledgebase.component'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -31,7 +40,6 @@ import { KnowledgebaseComponent } from "../../../knowledgebase.component";
     MatTooltipModule,
     NgmI18nPipe,
     NgmCheckboxComponent,
-    NgmSlideToggleComponent,
     NgmSelectComponent,
     IconComponent,
     JSONSchemaFormComponent,
@@ -39,6 +47,7 @@ import { KnowledgebaseComponent } from "../../../knowledgebase.component";
     KnowledgeDocIdComponent,
     IntegrationSelectComponent,
     KnowledgeDocumentPreviewComponent,
+    ZardSwitchComponent
   ]
 })
 export class KnowledgeDocumentCreateSettingsComponent {
@@ -55,7 +64,7 @@ export class KnowledgeDocumentCreateSettingsComponent {
   readonly parserConfig = model<DocumentTextParserConfig>()
 
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
-  
+
   // Strategies
   readonly #textSplitterStrategies = toSignal(this.knowledgebaseAPI.getTextSplitterStrategies())
   readonly #documentTransformerStrategies = toSignal(this.knowledgebaseAPI.getDocumentTransformerStrategies())
@@ -66,31 +75,43 @@ export class KnowledgeDocumentCreateSettingsComponent {
   readonly textSplitterType = attrModel(this.parserConfig, 'textSplitterType', 'recursive-character')
   readonly textSplitter = attrModel(this.parserConfig, 'textSplitter')
 
-  readonly textSplitterStrategies = computed(() => this.#textSplitterStrategies()?.map((strategy) => ({
-    value: strategy.name,
-    label: strategy.label,
-    description: strategy.description,
-    _icon: strategy.icon
-  })))
+  readonly textSplitterStrategies = computed(() =>
+    this.#textSplitterStrategies()?.map((strategy) => ({
+      value: strategy.name,
+      label: strategy.label,
+      description: strategy.description,
+      _icon: strategy.icon
+    }))
+  )
 
-  readonly textSplitterStrategy = computed(() => this.#textSplitterStrategies()?.find((strategy) => strategy.name === this.textSplitterType()))
-  readonly textSplitterConfigSchema = computed(() => this.textSplitterStrategy()?.configSchema || {} as JsonSchema7ObjectType)
+  readonly textSplitterStrategy = computed(() =>
+    this.#textSplitterStrategies()?.find((strategy) => strategy.name === this.textSplitterType())
+  )
+  readonly textSplitterConfigSchema = computed(
+    () => this.textSplitterStrategy()?.configSchema || ({} as JsonSchema7ObjectType)
+  )
 
   // Document Transformer
   readonly transformerType = attrModel(this.parserConfig, 'transformerType', 'default')
   readonly transformer = attrModel(this.parserConfig, 'transformer')
   readonly transformerIntegrationId = attrModel(this.parserConfig, 'transformerIntegration')
-  readonly transformerStrategy = computed(() => this.#documentTransformerStrategies()?.find((strategy) => strategy.meta.name === this.transformerType()))
-  readonly transformerConfigSchema = computed(() => this.transformerStrategy()?.meta.configSchema || {} as JsonSchema7ObjectType)
+  readonly transformerStrategy = computed(() =>
+    this.#documentTransformerStrategies()?.find((strategy) => strategy.meta.name === this.transformerType())
+  )
+  readonly transformerConfigSchema = computed(
+    () => this.transformerStrategy()?.meta.configSchema || ({} as JsonSchema7ObjectType)
+  )
   readonly transformerIntegration = computed(() => this.transformerStrategy()?.integration)
   readonly transformerIntegrationProvider = computed(() => this.transformerIntegration()?.service)
 
-  readonly documentTransformerStrategies = computed(() => this.#documentTransformerStrategies()?.map((strategy) => ({
-    value: strategy.meta.name,
-    label: strategy.meta.label,
-    description: strategy.meta.description,
-    _icon: strategy.meta.icon
-  })))
+  readonly documentTransformerStrategies = computed(() =>
+    this.#documentTransformerStrategies()?.map((strategy) => ({
+      value: strategy.meta.name,
+      label: strategy.meta.label,
+      description: strategy.meta.description,
+      _icon: strategy.meta.icon
+    }))
+  )
 
   // Image Understanding
   readonly imageUnderstandingType = attrModel(this.parserConfig, 'imageUnderstandingType', 'vlm-default')
@@ -116,19 +137,25 @@ export class KnowledgeDocumentCreateSettingsComponent {
     }
   })
 
-  readonly imageUnderstandingStrategies = computed(() => this.#understandingStrategies()?.map(({meta: strategy}) => ({
-    value: strategy.name,
-    label: strategy.label,
-    description: strategy.description,
-    _icon: strategy.icon
-  })))
+  readonly imageUnderstandingStrategies = computed(() =>
+    this.#understandingStrategies()?.map(({ meta: strategy }) => ({
+      value: strategy.name,
+      label: strategy.label,
+      description: strategy.description,
+      _icon: strategy.icon
+    }))
+  )
 
-  readonly imageUnderstandingStrategy = computed(() => this.#understandingStrategies()?.find((strategy) => strategy.meta.name === this.imageUnderstandingType()))
-  readonly imageUnderstandingConfigSchema = computed(() => this.imageUnderstandingStrategy()?.meta.configSchema || {} as JsonSchema7ObjectType)
+  readonly imageUnderstandingStrategy = computed(() =>
+    this.#understandingStrategies()?.find((strategy) => strategy.meta.name === this.imageUnderstandingType())
+  )
+  readonly imageUnderstandingConfigSchema = computed(
+    () => this.imageUnderstandingStrategy()?.meta.configSchema || ({} as JsonSchema7ObjectType)
+  )
   readonly imageUnderstandingIntegration = computed(() => this.imageUnderstandingStrategy()?.integration)
   readonly imageUnderstandingIntegrationProvider = computed(() => this.imageUnderstandingIntegration()?.service)
   readonly requireVisionModel = computed(() => this.imageUnderstandingStrategy()?.requireVisionModel)
-  readonly kbVisionModel = computed(() => this.knowledgebase()?.visionModel);
+  readonly kbVisionModel = computed(() => this.knowledgebase()?.visionModel)
 
   readonly delimiter = attrModel(this.parserConfig, 'delimiter', '\n\n')
   readonly chunkSize = attrModel(this.parserConfig, 'chunkSize', 1000)

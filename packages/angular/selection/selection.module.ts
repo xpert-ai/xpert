@@ -6,9 +6,14 @@ import { ReactiveFormsModule } from '@angular/forms'
 
 import { MatChipsModule } from '@angular/material/chips'
 import { MatDialogModule } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardDividerComponent,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardSwitchComponent
+} from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
@@ -33,7 +38,6 @@ import { SlicersComponent } from './slicers/slicers.component'
     ZardButtonComponent,
     ZardInputDirective,
     MatChipsModule,
-    MatSlideToggleModule,
     MatTooltipModule,
     ZardDividerComponent,
     MatMenuModule,
@@ -47,7 +51,8 @@ import { SlicersComponent } from './slicers/slicers.component'
     NgmParameterModule,
     NgmEntityModule,
 
-    NgmAdvancedSlicerComponent
+    NgmAdvancedSlicerComponent,
+    ZardSwitchComponent
   ],
   exports: [SlicerComponent, SlicersComponent, SlicerBarComponent]
 })

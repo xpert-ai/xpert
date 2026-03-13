@@ -6,9 +6,14 @@ import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angul
 
 import { MatChipsModule } from '@angular/material/chips'
 import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardDividerComponent,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardSwitchComponent
+} from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
@@ -97,7 +102,6 @@ const ADVANCED_SLICER_OPERATORS = [
     ZardButtonComponent,
     ZardInputDirective,
     MatChipsModule,
-    MatSlideToggleModule,
     MatTooltipModule,
     ZardDividerComponent,
     MatMenuModule,
@@ -105,7 +109,8 @@ const ADVANCED_SLICER_OPERATORS = [
 
     NgmCommonModule,
     NgmEntityModule,
-    NgmParameterModule
+    NgmParameterModule,
+    ZardSwitchComponent
   ],
   selector: 'ngm-advanced-slicer',
   templateUrl: './advanced-slicer.component.html',

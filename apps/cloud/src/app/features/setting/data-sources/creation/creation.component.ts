@@ -6,7 +6,13 @@ import { AuthenticationEnum, IDataSource, IDataSourceType } from '@cloud/app/@co
 import { isEmpty, omit } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, firstValueFrom, map } from 'rxjs'
-import { LocalAgent, ServerAgent, ToastrService, convertConfigurationSchema, getErrorMessage } from '@cloud/app/@core/index'
+import {
+  LocalAgent,
+  ServerAgent,
+  ToastrService,
+  convertConfigurationSchema,
+  getErrorMessage
+} from '@cloud/app/@core/index'
 import { environment } from '@cloud/environments/environment'
 import { CommonModule } from '@angular/common'
 import { DragDropModule } from '@angular/cdk/drag-drop'
@@ -14,12 +20,11 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 
 import { NgmInputComponent } from '@metad/ocap-angular/common'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { FormlyModule } from '@ngx-formly/core'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { ZardButtonComponent, ZardToggleGroupComponent, ZardToggleGroupItemComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardToggleGroupComponent, ZardSwitchComponent, ZardToggleGroupItemComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -34,13 +39,13 @@ import { ZardButtonComponent, ZardToggleGroupComponent, ZardToggleGroupItemCompo
     ZardButtonComponent,
     ZardToggleGroupComponent,
     ZardToggleGroupItemComponent,
-    MatSlideToggleModule,
     MatTooltipModule,
     ContentLoaderModule,
     NgmInputComponent,
     ButtonGroupDirective,
     AppearanceDirective,
-    DensityDirective
+    DensityDirective,
+    ZardSwitchComponent
   ],
   selector: 'pac-data-source-creation',
   templateUrl: './creation.component.html',

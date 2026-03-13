@@ -40,8 +40,8 @@ import { XpertStudioConfigureODataComponent } from '../odata'
 import { XpertStudioConfigureToolComponent } from '../openapi/'
 import { XpertToolsetToolTestComponent } from '../tool-test/'
 import { XpertConfigureToolComponent } from './types'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MCPServerFormComponent } from 'apps/cloud/src/app/@shared/mcp'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -50,7 +50,6 @@ import { MCPServerFormComponent } from 'apps/cloud/src/app/@shared/mcp'
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
-    MatSlideToggleModule,
     MatTooltipModule,
     TranslateModule,
     NgmI18nPipe,
@@ -61,7 +60,8 @@ import { MCPServerFormComponent } from 'apps/cloud/src/app/@shared/mcp'
     XpertStudioConfigureMCPComponent,
     XpertToolsetToolTestComponent,
     XpertToolNameInputComponent,
-    MCPServerFormComponent
+    MCPServerFormComponent,
+    ZardSwitchComponent
   ],
   selector: 'pac-xpert-api-tool',
   templateUrl: './api-tool.component.html',
@@ -100,17 +100,24 @@ export class XpertStudioAPIToolComponent {
   readonly testResult = signal(null)
 
   readonly tools = computed(() => {
-    return this.toolset()?.tools ? this.toolset().tools.filter((_) => !_.deletedAt).sort((a, b) => (a.disabled === b.disabled ? 0 : a.disabled ? 1 : -1)) : []
+    return this.toolset()?.tools
+      ? this.toolset()
+          .tools.filter((_) => !_.deletedAt)
+          .sort((a, b) => (a.disabled === b.disabled ? 0 : a.disabled ? 1 : -1))
+      : []
   })
 
-  readonly mcpServer = computed(() => {
-    if (!this.toolset()?.schema) {
-      return null
-    }
-    const schema = JSON.parse(this.toolset().schema) as TMCPSchema
+  readonly mcpServer = computed(
+    () => {
+      if (!this.toolset()?.schema) {
+        return null
+      }
+      const schema = JSON.parse(this.toolset().schema) as TMCPSchema
 
-    return schema.mcpServers?.['']
-  }, { equal: isEqual })
+      return schema.mcpServers?.['']
+    },
+    { equal: isEqual }
+  )
 
   readonly toolsDirty = signal(false)
   readonly isDirty = computed(() => {
@@ -314,19 +321,21 @@ export class XpertStudioAPIToolComponent {
 
   deleteToolset() {
     const toolset = this.toolset()
-    this.confirmDelete({
-      value: toolset.name,
-      information: this.#translate.instant('PAC.Xpert.DeleteAllTools', { Default: 'Delete all tools of toolset' })
-    }, this.toolsetService.delete(toolset.id))
-      .subscribe({
-        next: () => {
-          this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, toolset.name)
-          this.close()
-        },
-        error: (error) => {
-          this.#toastr.error(getErrorMessage(error))
-        }
-      })
+    this.confirmDelete(
+      {
+        value: toolset.name,
+        information: this.#translate.instant('PAC.Xpert.DeleteAllTools', { Default: 'Delete all tools of toolset' })
+      },
+      this.toolsetService.delete(toolset.id)
+    ).subscribe({
+      next: () => {
+        this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully!' }, toolset.name)
+        this.close()
+      },
+      error: (error) => {
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
   }
 
   close() {
@@ -342,7 +351,7 @@ export class XpertStudioAPIToolComponent {
     this.toolset.update((toolset) => {
       return {
         ...toolset,
-        schema: JSON.stringify({mcpServers: {'': event}})
+        schema: JSON.stringify({ mcpServers: { '': event } })
       }
     })
     // Mark basic info as dirty

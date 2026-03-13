@@ -1,20 +1,33 @@
-<div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white group">
-  <div class="w-full flex justify-start items-center p-4 mb-4 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<div
+  class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white group"
+>
+  <div
+    class="w-full flex justify-start items-center p-4 mb-4 cursor-move"
+    cdkDrag
+    cdkDragRootElement=".cdk-overlay-pane"
+    cdkDragHandle
+  >
     <i class="ri-draggable -ml-2 opacity-0 group-hover:opacity-80"></i>
     <span class="text-xl pointer-events-none">
-      {{ 'PAC.ACTIONS.NEW' | translate: {Default: 'New'} }} {{ 'PAC.KEY_WORDS.DataSource' | translate: {Default: 'Data Source'} }}
+      {{ 'PAC.ACTIONS.NEW' | translate: { Default: 'New' } }}
+      {{ 'PAC.KEY_WORDS.DataSource' | translate: { Default: 'Data Source' } }}
     </span>
   </div>
 
   <form [formGroup]="typeFormGroup" class="flex-1 pl-4 overflow-auto">
-    <ul class="pac-ds-creation__types ngm-nav-list ngm-cdk-listbox" cdkListbox formControlName="type"
-      [cdkListboxMultiple]="false" [cdkListboxCompareWith]="compareFn">
+    <ul
+      class="pac-ds-creation__types ngm-nav-list ngm-cdk-listbox"
+      cdkListbox
+      formControlName="type"
+      [cdkListboxMultiple]="false"
+      [cdkListboxCompareWith]="compareFn"
+    >
       @if (listboxConnectionTypes(); as connectionTypes) {
         @for (item of connectionTypes; track item.id) {
           <li [cdkOption]="item" class="ngm-cdk-option rounded-lg mb-1 flex items-center gap-3">
             <span class="flex items-center gap-3">
-              <img src="assets/images/db-logos/{{item.type}}.png" width="32" height="32" class="m-0 inline-block">
-              {{item.name}}
+              <img src="assets/images/db-logos/{{ item.type }}.png" width="32" height="32" class="m-0 inline-block" />
+              {{ item.name }}
             </span>
           </li>
         }
@@ -26,17 +39,30 @@
 
   <div class="flex justify-between items-center p-4">
     <div ngmButtonGroup>
-      <button z-button zType="default" color="accent" [disabled]="loading() || formGroup.pristine || formGroup.invalid" (click)="ping()">
-        {{ 'PAC.ACTIONS.PING' | translate: {Default: 'Ping'} }}
+      <button
+        z-button
+        zType="default"
+        color="accent"
+        [disabled]="loading() || formGroup.pristine || formGroup.invalid"
+        (click)="ping()"
+      >
+        {{ 'PAC.ACTIONS.PING' | translate: { Default: 'Ping' } }}
       </button>
     </div>
-    
+
     <div ngmButtonGroup>
       <button z-button zType="secondary" (click)="onCancel()">
-        {{ 'PAC.ACTIONS.CANCEL' | translate: {Default: 'Cancel'} }}
+        {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
-      <button z-button zType="default" color="accent" cdkFocusInitial [disabled]="formGroup.pristine || formGroup.invalid" (click)="onSave()">
-        {{ 'PAC.ACTIONS.CREATE' | translate: {Default: 'Create'} }}
+      <button
+        z-button
+        zType="default"
+        color="accent"
+        cdkFocusInitial
+        [disabled]="formGroup.pristine || formGroup.invalid"
+        (click)="onSave()"
+      >
+        {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
       </button>
     </div>
   </div>
@@ -44,30 +70,34 @@
 
 <div class="w-[500px] shrink-0 flex flex-col overflow-y-auto">
   <div class="text-lg sticky top-0 z-10 px-6 py-4 bg-white">
-    {{ 'PAC.MENU.DATA_SOURCES.CONFIGURATION' | translate: {Default: 'Configuration'} }}
+    {{ 'PAC.MENU.DATA_SOURCES.CONFIGURATION' | translate: { Default: 'Configuration' } }}
   </div>
 
   @if (dataSourceType(); as type) {
     <form [formGroup]="formGroup" class="flex flex-col justify-start items-stretch p-6">
       <div class="flex justify-center items-center text-lg my-2">
-        <img src="assets/images/db-logos/{{type.type}}.png" width="64" height="64" class="m-0 inline-block">
-        {{type.name}}
+        <img src="assets/images/db-logos/{{ type.type }}.png" width="64" height="64" class="m-0 inline-block" />
+        {{ type.name }}
       </div>
 
-      <ngm-input [ngClass]="{'ngm-input-error': nameCtrl.invalid}" [label]="'PAC.MENU.DATA_SOURCES.NAME' | translate: {Default: 'Name'}"
-        formControlName="name" required>
+      <ngm-input
+        [ngClass]="{ 'ngm-input-error': nameCtrl.invalid }"
+        [label]="'PAC.MENU.DATA_SOURCES.NAME' | translate: { Default: 'Name' }"
+        formControlName="name"
+        required
+      >
         @if (nameCtrl.invalid) {
           <span ngmError>
-          {{ 'PAC.MENU.DATA_SOURCES.NAME_REQUIRED' | translate: {Default: 'Name Required'} }}
+            {{ 'PAC.MENU.DATA_SOURCES.NAME_REQUIRED' | translate: { Default: 'Name Required' } }}
           </span>
         }
       </ngm-input>
 
       <div class="flex justify-between items-center mx-2 mb-6">
         @if (enableLocalAgent) {
-          <mat-slide-toggle formControlName="useLocalAgent" disableRipple labelPosition="before">
-            {{ 'PAC.MENU.DATA_SOURCES.USE_LOCAL_AGENT' | translate: {Default: 'Use Local Agent'} }}
-          </mat-slide-toggle>
+          <z-switch formControlName="useLocalAgent" labelPosition="before">
+            {{ 'PAC.MENU.DATA_SOURCES.USE_LOCAL_AGENT' | translate: { Default: 'Use Local Agent' } }}
+          </z-switch>
         }
 
         @if (isXmla()) {
@@ -85,19 +115,14 @@
         }
       </div>
 
-      <formly-form
-        [form]="options"
-        [fields]="fields$ | async"
-        [model]="model"
-        (modelChange)="onModelChange($event)"
-        >
+      <formly-form [form]="options" [fields]="fields$ | async" [model]="model" (modelChange)="onModelChange($event)">
       </formly-form>
     </form>
   } @else {
     <div class="flex-1 w-full flex flex-col justify-center items-center">
       <i class="ri-database-2-line text-[3rem]"></i>
       <span class="text-text-secondary">
-        {{ 'PAC.MENU.DATA_SOURCES.SelectTypeToCreate' | translate: {Default: 'Select a data source type to create'} }}
+        {{ 'PAC.MENU.DATA_SOURCES.SelectTypeToCreate' | translate: { Default: 'Select a data source type to create' } }}
       </span>
     </div>
   }

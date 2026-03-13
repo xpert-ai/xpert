@@ -2,12 +2,22 @@ import { Clipboard } from '@angular/cdk/clipboard'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { HttpParams } from '@angular/common/http'
-import { ChangeDetectionStrategy, Component, Inject, OnInit, TemplateRef, ViewChild, computed, inject, model, signal } from '@angular/core'
+import {
+  ChangeDetectionStrategy,
+  Component,
+  Inject,
+  OnInit,
+  TemplateRef,
+  ViewChild,
+  computed,
+  inject,
+  model,
+  signal
+} from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { MAT_DIALOG_DATA } from '@angular/material/dialog'
 import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatSnackBar } from '@angular/material/snack-bar'
 import { MatTooltipModule } from '@angular/material/tooltip'
@@ -20,7 +30,19 @@ import { firstValueFrom } from 'rxjs'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, DragDropModule, ...ZardFormImports, ZardInputDirective, ZardButtonComponent, ZardIconComponent, MatTooltipModule, MatSlideToggleModule, MatSliderModule, TranslateModule, NgmCommonModule],
+  imports: [
+    CommonModule,
+    FormsModule,
+    DragDropModule,
+    ...ZardFormImports,
+    ZardInputDirective,
+    ZardButtonComponent,
+    ZardIconComponent,
+    MatTooltipModule,
+    MatSliderModule,
+    TranslateModule,
+    NgmCommonModule
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-story-shares-dialog',
   templateUrl: 'shares.component.html',

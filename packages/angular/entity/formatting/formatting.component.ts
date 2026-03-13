@@ -8,8 +8,7 @@ import { NgmCommonModule, NgmSelectModule } from '@metad/ocap-angular/common'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmEntityPropertyComponent } from '../property/property.component'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -21,12 +20,11 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     ZardIconComponent,
     MatTooltipModule,
     MatDialogModule,
-    MatSlideToggleModule,
-
     NgmCommonModule,
     NgmSelectModule,
     DensityDirective,
-    NgmEntityPropertyComponent
+    NgmEntityPropertyComponent,
+    ZardSwitchComponent
   ],
   selector: 'ngm-formatting',
   templateUrl: './formatting.component.html',
@@ -44,7 +42,7 @@ export class NgmFormattingComponent implements OnInit {
     decimal: new FormControl<number>(null),
     unit: new FormControl<string>(null),
     useUnderlyingUnit: new FormControl<boolean>(false),
-    digitsInfo: new FormControl<string>(null),
+    digitsInfo: new FormControl<string>(null)
   })
 
   ngOnInit(): void {

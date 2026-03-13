@@ -1,23 +1,36 @@
 <div class="flex flex-col px-4 py-2">
-    <div class="text-lg">
-        <label class="text-xl">{{ 'PAC.KEY_WORDS.Cube' | translate: {Default: 'Cube'} }}</label>
+  <div class="text-lg">
+    <label class="text-xl">{{ 'PAC.KEY_WORDS.Cube' | translate: { Default: 'Cube' } }}</label>
+  </div>
+  <div class="flex justify-between">
+    <div class="opacity-80">
+      <span>{{ entityType?.caption }}</span
+      >(<span>{{ cubeGrant.cube }}</span
+      >)
     </div>
-    <div class="flex justify-between">
-        <div class="opacity-80"><span>{{entityType?.caption}}</span>(<span>{{ cubeGrant.cube }}</span>)</div>
-        <div class="flex justify-end items-center text-sm">
-            <label class="text-sm">
-                {{ 'PAC.MODEL.AccessControl.DefaultAccess' | translate: {Default: 'Default Access'} }}:
-            </label>
-            <z-radio-group class="ngm-radio-group__horizontal text-sm text-bluegray-800" displayDensity="compact"
-                [ngModel]="cubeGrant.access"
-                (change)="changeCubeAccess($event)"
-                (click)="$event.stopPropagation()">
-                <z-radio [value]="Access.all">{{ 'PAC.MODEL.AccessControl.Access_all' | translate: {Default: 'All'} }}</z-radio>
-                <z-radio [value]="Access.custom">{{ 'PAC.MODEL.AccessControl.Access_custom' | translate: {Default: 'Custom'} }}</z-radio>
-                <z-radio [value]="Access.none">{{ 'PAC.MODEL.AccessControl.Access_none' | translate: {Default: 'None'} }}</z-radio>
-            </z-radio-group>
-        </div>
+    <div class="flex justify-end items-center text-sm">
+      <label class="text-sm">
+        {{ 'PAC.MODEL.AccessControl.DefaultAccess' | translate: { Default: 'Default Access' } }}:
+      </label>
+      <z-radio-group
+        class="ngm-radio-group__horizontal text-sm text-bluegray-800"
+        displayDensity="compact"
+        [ngModel]="cubeGrant.access"
+        (change)="changeCubeAccess($event)"
+        (click)="$event.stopPropagation()"
+      >
+        <z-radio [value]="Access.all">{{
+          'PAC.MODEL.AccessControl.Access_all' | translate: { Default: 'All' }
+        }}</z-radio>
+        <z-radio [value]="Access.custom">{{
+          'PAC.MODEL.AccessControl.Access_custom' | translate: { Default: 'Custom' }
+        }}</z-radio>
+        <z-radio [value]="Access.none">{{
+          'PAC.MODEL.AccessControl.Access_none' | translate: { Default: 'None' }
+        }}</z-radio>
+      </z-radio-group>
     </div>
+  </div>
 </div>
 
 <div class="pac-model-access-cube__hierarchy-list">
@@ -94,64 +107,100 @@
                     </div>
                 </div>
 
-                <div class="pac-model-access__members pac-cdk-drop__list"
-                    cdkDropList
-                    [cdkDropListEnterPredicate]="dropMemberPredicate(hierarchyGrant.hierarchy)"
-                    (cdkDropListDropped)="dropMember($event, hierarchyGrant)">
-                    <div class="flex justify-between items-center p-2">
-                        <div class="flex items-center">
-                            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="clearMembers(hierarchyGrant.hierarchy)">
-                                <z-icon zType="clear_all"></z-icon>
-                            </button>
-                            <span >{{ 'PAC.KEY_WORDS.Member' | translate: {Default: 'Member'} }}</span>
-                        </div>
-                        <span>{{ 'PAC.MODEL.AccessControl.Access' | translate: {Default: 'Access'} }}</span>
-                    </div>
-                    <z-divider></z-divider>
-                    <ul role="list" class="ngm-list pac-cdk-drop__list"
-                        cdkDropList
-                        (cdkDropListDropped)="dropSortMember($event, hierarchyGrant)">
-                        @for (memberGrant of hierarchyGrant.memberGrants; track memberGrant.member) {
-                        <li role="listitem" class="pac-cdk-drop-item" [class.pac-model-access__member-hidden]="memberGrant.access===Access.none"
-                            cdkDrag>
-                            <div class="flex justify-between items-center">
-                                <div class="flex-1 flex justify-between items-center mr-4">
-                                    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" class="pac-nav-tab__close" (click)="removeMember(hierarchyGrant.hierarchy, memberGrant.member)">
-                                        <z-icon zType="cancel"></z-icon>
-                                    </button>
-                                    <ngm-display-behaviour class="flex-1"
-                                        [option]="{
-                                            value: memberGrant.member,
-                                            label: memberGrant.caption
-                                        }">
-                                    </ngm-display-behaviour>
-                                </div>
+        <div
+          class="pac-model-access__members pac-cdk-drop__list"
+          cdkDropList
+          [cdkDropListEnterPredicate]="dropMemberPredicate(hierarchyGrant.hierarchy)"
+          (cdkDropListDropped)="dropMember($event, hierarchyGrant)"
+        >
+          <div class="flex justify-between items-center p-2">
+            <div class="flex items-center">
+              <button
+                z-button
+                zType="ghost"
+                zSize="icon"
+                zShape="circle"
+                displayDensity="cosy"
+                ngmAppearance="danger"
+                class="pac-nav-tab__close"
+                (click)="clearMembers(hierarchyGrant.hierarchy)"
+              >
+                <z-icon zType="clear_all"></z-icon>
+              </button>
+              <span>{{ 'PAC.KEY_WORDS.Member' | translate: { Default: 'Member' } }}</span>
+            </div>
+            <span>{{ 'PAC.MODEL.AccessControl.Access' | translate: { Default: 'Access' } }}</span>
+          </div>
+          <z-divider></z-divider>
+          <ul
+            role="list"
+            class="ngm-list pac-cdk-drop__list"
+            cdkDropList
+            (cdkDropListDropped)="dropSortMember($event, hierarchyGrant)"
+          >
+            @for (memberGrant of hierarchyGrant.memberGrants; track memberGrant.member) {
+              <li
+                role="listitem"
+                class="pac-cdk-drop-item"
+                [class.pac-model-access__member-hidden]="memberGrant.access === Access.none"
+                cdkDrag
+              >
+                <div class="flex justify-between items-center">
+                  <div class="flex-1 flex justify-between items-center mr-4">
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon"
+                      zShape="circle"
+                      displayDensity="cosy"
+                      ngmAppearance="danger"
+                      class="pac-nav-tab__close"
+                      (click)="removeMember(hierarchyGrant.hierarchy, memberGrant.member)"
+                    >
+                      <z-icon zType="cancel"></z-icon>
+                    </button>
+                    <ngm-display-behaviour
+                      class="flex-1"
+                      [option]="{
+                        value: memberGrant.member,
+                        label: memberGrant.caption
+                      }"
+                    >
+                    </ngm-display-behaviour>
+                  </div>
 
-                                <mat-slide-toggle [ngModel]="memberGrant.access===Access.all"
-                                    (change)="changeMemberAccess($event, hierarchyGrant.hierarchy, memberGrant.member)">
-                                </mat-slide-toggle>
-                            </div>
-                        </li>
-                        }
-                    </ul>
-
+                  <z-switch
+                    [ngModel]="memberGrant.access === Access.all"
+                    (change)="changeMemberAccess($event, hierarchyGrant.hierarchy, memberGrant.member)"
+                  >
+                  </z-switch>
                 </div>
-            </ng-container>
-        </mat-expansion-panel>
-    </mat-accordion>
-
-    <div class="pac-cdk-drop__list pac-cdk-drop__area h-52 min-h-[120px] w-full mt-4 border-2 border-dashed rounded-lg"
-        cdkDropList
-        [cdkDropListEnterPredicate]="dropHierarchyPredicate"
-        (cdkDropListDropped)="dropHierarchy($event)">
-        <div class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center">
-            <svg width="100" height="100">
-                <circle cx="50" cy="50" r="40" fill="#80808050"/>
-                <rect x="25" y="48" width="50" height="4" fill="white"/>
-                <rect x="48" y="25" width="4" height="50" fill="white"/>
-            </svg>
-
-            <p class="mb-2 text-sm">{{ 'PAC.MODEL.AccessControl.DragandDropAddDimension' | translate: {Default: 'Drag and drop to add dimension'} }}</p>
+              </li>
+            }
+          </ul>
         </div>
+      </ng-container>
+    </mat-expansion-panel>
+  </mat-accordion>
+
+  <div
+    class="pac-cdk-drop__list pac-cdk-drop__area h-52 min-h-[120px] w-full mt-4 border-2 border-dashed rounded-lg"
+    cdkDropList
+    [cdkDropListEnterPredicate]="dropHierarchyPredicate"
+    (cdkDropListDropped)="dropHierarchy($event)"
+  >
+    <div class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center">
+      <svg width="100" height="100">
+        <circle cx="50" cy="50" r="40" fill="#80808050" />
+        <rect x="25" y="48" width="50" height="4" fill="white" />
+        <rect x="48" y="25" width="4" height="50" fill="white" />
+      </svg>
+
+      <p class="mb-2 text-sm">
+        {{
+          'PAC.MODEL.AccessControl.DragandDropAddDimension' | translate: { Default: 'Drag and drop to add dimension' }
+        }}
+      </p>
     </div>
+  </div>
 </div>

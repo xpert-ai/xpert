@@ -2,7 +2,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { IfAnimations } from '@metad/core'
 import { attrModel, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
@@ -20,6 +19,7 @@ import { XpertStudioFeaturesMemoryReplyComponent } from './memory-reply/memory-r
 import { XpertStudioFeaturesSandboxComponent } from './sandbox/sandbox.component'
 import { linkedXpertFeaturesModel } from './types'
 import { injectHelpWebsite } from '@cloud/app/@core'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 type ViewType =
   | 'summarize'
@@ -41,7 +41,6 @@ type ViewType =
     FormsModule,
     CdkMenuModule,
     TranslateModule,
-    MatSlideToggleModule,
     MatTooltipModule,
     NgmDensityDirective,
     XpertStudioFeaturesSummaryComponent,
@@ -53,7 +52,8 @@ type ViewType =
     XpertStudioFeaturesTTSComponent,
     XpertStudioFeaturesSTTComponent,
     XpertStudioFeaturesMemoryReplyComponent,
-    XpertStudioFeaturesSandboxComponent
+    XpertStudioFeaturesSandboxComponent,
+    ZardSwitchComponent
   ],
   templateUrl: './features.component.html',
   styleUrl: './features.component.scss',

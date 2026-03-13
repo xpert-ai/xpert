@@ -2,12 +2,12 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, input } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { routeAnimations } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IBuiltinTool, XpertToolsetService } from 'apps/cloud/src/app/@core'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -18,8 +18,8 @@ import { IBuiltinTool, XpertToolsetService } from 'apps/cloud/src/app/@core'
     TranslateModule,
     MatDialogModule,
     MatTooltipModule,
-    MatSlideToggleModule,
-    NgmI18nPipe
+    NgmI18nPipe,
+    ZardSwitchComponent
   ],
   selector: 'xpert-tool-builtin-parameters',
   templateUrl: './parameters.component.html',

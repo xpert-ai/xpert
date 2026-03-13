@@ -1,36 +1,48 @@
-<mat-accordion class="ngm-accordion" [displayMode]="props.displayMode" [hideToggle]="props.hideToggle"
+<mat-accordion
+  class="ngm-accordion"
+  [displayMode]="props.displayMode"
+  [hideToggle]="props.hideToggle"
   [multi]="props.expandedMulti"
-  [togglePosition]="props.togglePosition ?? 'before'">
+  [togglePosition]="props.togglePosition ?? 'before'"
+>
   @for (item of field.fieldGroup; track item.key) {
-    <mat-expansion-panel #expansionPanel [class.mat-elevation-z]="props.elevationZ"
+    <mat-expansion-panel
+      #expansionPanel
+      [class.mat-elevation-z]="props.elevationZ"
       [expanded]="!item.props.disabled && item.props.expanded"
       [disabled]="(item.hideExpression || item.props.toggleable) && !isShow(item)"
-      >
+    >
       <mat-expansion-panel-header>
         <mat-panel-title>
-          <span>{{item.props.label}}</span>
+          <span>{{ item.props.label }}</span>
 
           @if (item.props?.help) {
-            <a [href]="item.props.help" target="_blank" rel="noopener noreferrer" class="group ml-2 self-end text-xs leading-5 font-light text-primary-400 hover:text-primary-600 hover:underline hover:font-normal">
-              {{ 'FORMLY.COMMON.Help' | translate: {Default: 'Help'} }}
+            <a
+              [href]="item.props.help"
+              target="_blank"
+              rel="noopener noreferrer"
+              class="group ml-2 self-end text-xs leading-5 font-light text-primary-400 hover:text-primary-600 hover:underline hover:font-normal"
+            >
+              {{ 'FORMLY.COMMON.Help' | translate: { Default: 'Help' } }}
               <i class="ri-external-link-line inline-block group-hover:translate-x-1 transition-transform"></i>
             </a>
           }
         </mat-panel-title>
         <mat-panel-description class="flex-1">
           @if (item.hideExpression || item.props.toggleable) {
-            <mat-slide-toggle labelPosition="before" ngm-density small
+            <z-switch
+              labelPosition="before"
               [checked]="isShow(item)"
               (change)="onToggle($event, item, expansionPanel)"
-              (click)="$event.stopPropagation();">
-            </mat-slide-toggle>
+              (click)="$event.stopPropagation()"
+              zSize="sm"
+            >
+            </z-switch>
           }
         </mat-panel-description>
-        
       </mat-expansion-panel-header>
 
       <formly-field [field]="item"></formly-field>
-      
     </mat-expansion-panel>
   }
 </mat-accordion>

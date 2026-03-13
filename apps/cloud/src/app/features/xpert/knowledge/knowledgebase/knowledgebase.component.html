@@ -1,28 +1,28 @@
-<div class="flex flex-col w-16 max-w-[240px] shrink-0 transition-all bg-neutral-50"
+<div
+  class="flex flex-col w-16 max-w-[240px] shrink-0 transition-all bg-neutral-50"
   [class.w-[240px]]="sideMenuOpened()"
 >
-  <div class="group flex flex-col p-2 mx-2 mt-2 ">
+  <div class="group flex flex-col p-2 mx-2 mt-2">
     <div class="flex justify-between items-center gap-2" [class.flex-col]="!sideMenuOpened()">
-      <div class="relative shrink-0" >
+      <div class="relative shrink-0">
         <emoji-avatar large [avatar]="avatar()" [small]="!sideMenuOpened()" class="rounded-xl overflow-hidden" />
       </div>
-  
+
       <div class="ml-auto">
         <button type="button" class="action-btn action-btn-m size-8 rounded-lg" [cdkMenuTriggerFor]="menu">
           <i class="ri-more-fill"></i>
         </button>
       </div>
-      
     </div>
 
     @if (sideMenuOpened()) {
       <div class="grow mt-2">
         <div class="flex justify-between items-center text-base leading-5 font-medium text-text-secondary">
-          <div class="truncate" >{{knowledgebase()?.name}}</div>
+          <div class="truncate">{{ knowledgebase()?.name }}</div>
         </div>
         @if (type(); as type) {
           <div class="flex items-center text-xs leading-[18px] font-medium text-gray-500 gap-1">
-            <div class="shrink-0 px-1 border uppercase rounded-[5px] truncate">{{type}}</div>
+            <div class="shrink-0 px-1 border uppercase rounded-[5px] truncate">{{ type }}</div>
           </div>
         }
       </div>
@@ -33,7 +33,8 @@
 
   <nav class="grow space-y-1 px-2 py-4">
     @if (!external()) {
-      <a class="router-menu-item"
+      <a
+        class="router-menu-item"
         title=""
         [routerLink]="['./', 'documents']"
         [routerLinkActiveOptions]="{ exact: false }"
@@ -43,11 +44,12 @@
       >
         <i class="ri-file-text-line mr-2 text-xl"></i>
         @if (sideMenuOpened()) {
-          {{ 'PAC.Knowledgebase.Documents' | translate: {Default: 'Documents'} }}
+          {{ 'PAC.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}
         }
       </a>
 
-      <a class="router-menu-item"
+      <a
+        class="router-menu-item"
         title=""
         [routerLink]="pipelineId() ? ['./', 'xpert', pipelineId()] : ['./', 'xpert']"
         [routerLinkActiveOptions]="{ exact: false }"
@@ -57,11 +59,12 @@
       >
         <i class="ri-robot-2-line mr-2 text-xl"></i>
         @if (sideMenuOpened()) {
-          {{ 'PAC.Knowledgebase.Pipeline' | translate: {Default: 'Pipeline'} }}
+          {{ 'PAC.Knowledgebase.Pipeline' | translate: { Default: 'Pipeline' } }}
         }
       </a>
     }
-    <a class="router-menu-item"
+    <a
+      class="router-menu-item"
       title=""
       [routerLink]="['./', 'test']"
       [routerLinkActiveOptions]="{ exact: false }"
@@ -71,11 +74,12 @@
     >
       <i class="ri-focus-2-line mr-2 text-xl"></i>
       @if (sideMenuOpened()) {
-        {{ 'PAC.Knowledgebase.Test' | translate: {Default: 'Test'} }}
+        {{ 'PAC.Knowledgebase.Test' | translate: { Default: 'Test' } }}
       }
     </a>
 
-    <a class="router-menu-item"
+    <a
+      class="router-menu-item"
       title=""
       [routerLink]="['./', 'configuration']"
       [routerLinkActiveOptions]="{ exact: false }"
@@ -85,13 +89,16 @@
     >
       <i class="ri-equalizer-2-line mr-2 text-xl"></i>
       @if (sideMenuOpened()) {
-        {{ 'PAC.Knowledgebase.Configuration' | translate: {Default: 'Configuration'} }}
+        {{ 'PAC.Knowledgebase.Configuration' | translate: { Default: 'Configuration' } }}
       }
     </a>
   </nav>
 
   <div class="shrink-0 py-3 px-4 ml-auto">
-    <div class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 hover:bg-hover-bg" (click)="toggleSideMenu()">
+    <div
+      class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 hover:bg-hover-bg"
+      (click)="toggleSideMenu()"
+    >
       @if (sideMenuOpened()) {
         <i class="ri-sidebar-fold-line text-2xl"></i>
       } @else {
@@ -105,7 +112,7 @@
       <div class="flex grow flex-col px-2 pb-1.5 pt-1">
         <div class="system-md-semibold-uppercase text-text-secondary">{{ documentNum() }}</div>
         <div class="text-xs font-medium uppercase text-text-tertiary">
-          {{ 'PAC.Knowledgebase.Documents' | translate: {Default: 'Documents'} }}
+          {{ 'PAC.Knowledgebase.Documents' | translate: { Default: 'Documents' } }}
         </div>
       </div>
       <div class="py-2 pl-0.5 pr-1.5">
@@ -117,7 +124,7 @@
           class="text-xs font-medium uppercase flex cursor-pointer items-center gap-x-0.5 text-text-tertiary"
           [cdkMenuTriggerFor]="xpertsMenu"
         >
-          <span>{{ 'PAC.Knowledgebase.LinkedExperts' | translate: {Default: 'Linked Experts'} }}</span>
+          <span>{{ 'PAC.Knowledgebase.LinkedExperts' | translate: { Default: 'Linked Experts' } }}</span>
           <i class="ri-information-line"></i>
         </div>
       </div>
@@ -127,7 +134,7 @@
   <div class="p-3 pt-2">
     <div
       class="relative w-full flex h-9 cursor-pointer items-center gap-2 rounded-xl border border-components-panel-border px-3 hover:bg-state-base-hover"
-       [cdkMenuTriggerFor]="serviceApiMenu"
+      [cdkMenuTriggerFor]="serviceApiMenu"
     >
       <svg
         width="16"
@@ -144,64 +151,63 @@
       </svg>
       @if (sideMenuOpened()) {
         <div class="system-sm-medium grow text-text-secondary">
-          {{'PAC.KEY_WORDS.Service' | translate: {Default: 'Service'} }}
-          API</div>
+          {{ 'PAC.KEY_WORDS.Service' | translate: { Default: 'Service' } }}
+          API
+        </div>
       }
       @if (apiEnabled()) {
-        <div class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm
-          bg-green-500 border-green-600 shadow-green-300 shrink-0"
+        <div
+          class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm bg-green-500 border-green-600 shadow-green-300 shrink-0"
           [ngClass]="sideMenuOpened() ? '' : 'absolute -right-1 -top-1'"
         ></div>
       } @else {
-        <div class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm
-          bg-neutral-500 border-neutral-600 shadow-neutral-300 shrink-0"
+        <div
+          class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm bg-neutral-500 border-neutral-600 shadow-neutral-300 shrink-0"
           [ngClass]="sideMenuOpened() ? '' : 'absolute -right-1 -top-1'"
         ></div>
       }
     </div>
   </div>
-
 </div>
 
 @if (loading()) {
   <ngm-spin class="absolute left-0 top-0 w-full h-full z-10" />
 }
 
-<div class="flex-1 relative flex overflow-hidden bg-components-card-bg" [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
+<div
+  class="flex-1 relative flex overflow-hidden bg-components-card-bg"
+  [@routeAnimations]="o.isActivated && o.activatedRouteData?.title"
+>
   <router-outlet #o="outlet"></router-outlet>
 </div>
 
 <ng-template #menu>
   <div cdkMenu class="cdk-menu__large">
     @if (pipelineId(); as pipelineId) {
-      <button cdkMenuItem
-        type="button"
-        (click)="downloadPipeline(pipelineId)"
-      >
+      <button cdkMenuItem type="button" (click)="downloadPipeline(pipelineId)">
         <i class="ri-download-2-line mr-1"></i>
-        <span>
-          {{ 'PAC.Knowledgebase.DownloadPipeline' | translate: {Default: 'Download Pipeline'} }}</span>
+        <span> {{ 'PAC.Knowledgebase.DownloadPipeline' | translate: { Default: 'Download Pipeline' } }}</span>
       </button>
     }
-    
-    <button cdkMenuItem
-      type="button" class="danger"
-      (click)="deleteKnowledgebase()"
-    >
+
+    <button cdkMenuItem type="button" class="danger" (click)="deleteKnowledgebase()">
       <i class="ri-delete-bin-6-line mr-1"></i>
-      <span>{{'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'} }}</span>
+      <span>{{ 'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' } }}</span>
     </button>
   </div>
 </ng-template>
 
-<ng-template #serviceApiMenu >
-  <div cdkMenu @overlayAnimation1 class="flex w-[360px] flex-col rounded-xl border border-components-panel-border bg-components-panel-bg shadow-lg shadow-shadow-shadow-1">
+<ng-template #serviceApiMenu>
+  <div
+    cdkMenu
+    @overlayAnimation1
+    class="flex w-[360px] flex-col rounded-xl border border-components-panel-border bg-components-panel-bg shadow-lg shadow-shadow-shadow-1"
+  >
     <div class="flex flex-col gap-y-3 p-4">
       <div class="flex items-center gap-x-3">
         <div class="flex grow items-center gap-x-2">
           <div
-            class="flex size-8 shrink-0 items-center justify-center rounded-lg border-[0.5px] border-divider-subtle 
-              bg-primary-500 shadow-md"
+            class="flex size-8 shrink-0 items-center justify-center rounded-lg border-[0.5px] border-divider-subtle bg-primary-500 shadow-md"
           >
             <svg
               width="16"
@@ -218,31 +224,31 @@
             </svg>
           </div>
           <div class="system-sm-semibold grow truncate text-text-secondary">
-            {{ 'PAC.Knowledgebase.ServiceAPI' | translate: {Default: 'Backend Service API'} }}
+            {{ 'PAC.Knowledgebase.ServiceAPI' | translate: { Default: 'Backend Service API' } }}
           </div>
         </div>
         <div class="flex items-center gap-x-1">
           @if (apiEnabled()) {
-            <div class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm
-              bg-green-500 border-green-600 shadow-green-300 shrink-0"
+            <div
+              class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm bg-green-500 border-green-600 shadow-green-300 shrink-0"
             ></div>
             <div class="system-xs-semibold-uppercase text-text-success">
-              {{ 'PAC.Knowledgebase.InService' | translate: {Default: 'In Service'} }}
+              {{ 'PAC.Knowledgebase.InService' | translate: { Default: 'In Service' } }}
             </div>
           } @else {
-            <div class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm
-              bg-neutral-500 border-neutral-600 shadow-neutral-300 shrink-0"
+            <div
+              class="h-2.5 w-2.5 rounded-[3px] border border-solid shadow-sm bg-neutral-500 border-neutral-600 shadow-neutral-300 shrink-0"
             ></div>
             <div class="system-xs-semibold-uppercase text-text-secondary">
-              {{ 'PAC.Knowledgebase.OutofService' | translate: {Default: 'Out of Service'} }}
+              {{ 'PAC.Knowledgebase.OutofService' | translate: { Default: 'Out of Service' } }}
             </div>
           }
         </div>
-        <ngm-slide-toggle [(ngModel)]="apiEnabled" />
+        <z-switch [(ngModel)]="apiEnabled" />
       </div>
       <div class="flex flex-col">
         <div class="system-xs-regular leading-6 text-text-tertiary">
-          {{ 'PAC.Knowledgebase.ServiceAPIEndpoint' | translate: {Default: 'Service API Endpoint'} }}
+          {{ 'PAC.Knowledgebase.ServiceAPIEndpoint' | translate: { Default: 'Service API Endpoint' } }}
         </div>
         <div class="flex h-8 items-center gap-0.5 rounded-lg bg-components-input-bg-normal p-1 pl-2">
           <div class="flex h-4 min-w-0 flex-1 items-start justify-start gap-2 px-1">
@@ -253,12 +259,13 @@
       </div>
     </div>
     <div class="flex gap-x-1 border-t-[0.5px] border-divider-subtle p-4">
-      <button type="button"
+      <button
+        type="button"
         class="btn disabled:btn-disabled btn-ghost btn-small gap-x-px text-text-tertiary hover:text-text-primary"
         (click)="openApiKey()"
       >
         <i class="ri-key-2-line"></i>
-        <span class="system-xs-medium px-[3px]">{{ 'PAC.Xpert.APIKey' | translate: {Default: 'API Key'} }}</span>
+        <span class="system-xs-medium px-[3px]">{{ 'PAC.Xpert.APIKey' | translate: { Default: 'API Key' } }}</span>
       </button>
       <button
         type="button"
@@ -266,7 +273,9 @@
         (click)="openApiReference()"
       >
         <i class="ri-book-open-line"></i>
-        <span class="system-xs-medium px-[3px]">{{ 'PAC.Xpert.APIReference' | translate: {Default: 'API Reference'} }}</span>
+        <span class="system-xs-medium px-[3px]">{{
+          'PAC.Xpert.APIReference' | translate: { Default: 'API Reference' }
+        }}</span>
       </button>
     </div>
   </div>
@@ -274,7 +283,9 @@
 
 <ng-template #xpertsMenu>
   <div cdkMenu @overlayAnimation1 class="cdk-menu__large">
-    <div class="p-2">{{xperts()?.length ?? 0}} {{ 'PAC.Knowledgebase.RelatedExperts' | translate: {Default: 'related experts'} }}</div>
+    <div class="p-2">
+      {{ xperts()?.length ?? 0 }} {{ 'PAC.Knowledgebase.RelatedExperts' | translate: { Default: 'related experts' } }}
+    </div>
     @for (item of xperts(); track item.id) {
       <div cdkMenuItem class="group" (click)="openXpert(item)">
         <xpert-inline-profile [xpert]="item" class="grow" />

@@ -5,7 +5,6 @@ import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angul
 
 import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'
 import { MatListModule } from '@angular/material/list'
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { LinkedAnalysisSettings, LinkedInteractionApplyTo } from '@metad/story/core'
@@ -23,7 +22,6 @@ import { ZardButtonComponent, ZardFormImports } from '@xpert-ai/headless-ui'
     ...ZardFormImports,
     ButtonGroupDirective,
     MatListModule,
-    MatSlideToggleModule,
     TranslateModule
   ],
   selector: 'pac-story-linked-analysis',

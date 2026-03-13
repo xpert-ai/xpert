@@ -5,11 +5,11 @@ import { FormsModule } from '@angular/forms'
 import { MatSliderModule } from '@angular/material/slider'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { linkedModel } from '@metad/core'
-import { NgmSlideToggleComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite } from 'apps/cloud/src/app/@core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { TWorkflowRetry } from '../../../@core/types'
+import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'xpert-workflow-retry',
@@ -24,7 +24,7 @@ import { TWorkflowRetry } from '../../../@core/types'
     TranslateModule,
     MatTooltipModule,
     MatSliderModule,
-    NgmSlideToggleComponent
+    ZardSwitchComponent
   ],
   hostDirectives: [NgxControlValueAccessor]
 })
