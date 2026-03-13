@@ -208,7 +208,7 @@ export class IndicatoryMarketComponent extends ComponentStore<{ id?: string }> {
     })
   }
 
-  onItemKeydown(event: KeyboardEvent, item: IndicatorState) {
+  onItemKeydown(event: Event, item: IndicatorState) {
     event.preventDefault()
     this.click(item)
   }
