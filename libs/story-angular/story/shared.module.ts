@@ -21,7 +21,6 @@ import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTableModule } from '@angular/material/table'
-import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatExpansionModule } from '@angular/material/expansion'
 
 const MAT_MODULES = [
@@ -35,7 +34,6 @@ const MAT_MODULES = [
   MatSidenavModule,
   MatTableModule,
   ZardCheckboxComponent,
-  MatToolbarModule,
   ...ZardTooltipImports,
   MatProgressBarModule,
   DragDropModule,

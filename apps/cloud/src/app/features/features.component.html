@@ -47,7 +47,7 @@
   </z-sidebar>
 
   <z-content class="max-h-full min-w-0 flex-1 overflow-auto" cdkDropListGroup>
-    <!-- <mat-toolbar class="pac__shell-bar flex justify-between items-center md:gap-2">
+    <!-- <header class="pac__shell-bar flex justify-between items-center md:gap-2">
       <div class="flex justify-start items-center gap-2">
         @if (navigation$ | async; as navigation) {
           <div class="flex items-center text-sm overflow-hidden">
@@ -103,7 +103,7 @@
       @if (isAuthenticated$ | async; as user) {
         <pac-header-user [user]="user" />
       }
-    </mat-toolbar> -->
+    </header> -->
 
     <div class="min-h-full h-full flex-1 relative flex" [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
       <router-outlet #o="outlet"></router-outlet>

@@ -1,7 +1,7 @@
 <mat-drawer-container class="flex-1 w-full" [hasBackdrop]="false" [autosize]="true">
   <mat-drawer #drawer opened mode="side" ngmResizer [resizerWidth]="230">
     <div class="h-full flex flex-col justify-start items-stretch">
-      <mat-toolbar class="pac-sub-toolbar flex justify-between items-center gap-2" displayDensity="compact">
+      <div class="pac-sub-toolbar flex shrink-0 justify-between items-center gap-2">
         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="drawer.toggle()">
           <z-icon zType="segment"></z-icon>
         </button>
@@ -30,7 +30,7 @@
         >
           <z-icon color="warn" zType="delete"></z-icon>
         </button>
-      </mat-toolbar>
+      </div>
 
       <div
         id="pac-model__query-entities"
@@ -54,10 +54,7 @@
   <mat-drawer-content>
     <ngm-splitter class="ngm-layout-container-secondary flex-1 w-full h-full" [type]="1">
       <ngm-splitter-pane size="50%" class="flex flex-col justify-end items-stretch z-[101]">
-        <mat-toolbar
-          class="pac-sub-toolbar pac-toolbar__editor flex justify-start items-center gap-2"
-          displayDensity="compact"
-        >
+        <div class="pac-sub-toolbar pac-toolbar__editor flex shrink-0 justify-start items-center gap-2">
           <button
             z-button
             zType="ghost"
@@ -179,7 +176,7 @@
           >
             <z-icon zType="format_indent_increase"></z-icon>
           </button>
-        </mat-toolbar>
+        </div>
 
         @if (isMDX()) {
           <ngm-mdx-editor
@@ -211,7 +208,7 @@
         }
       </ngm-splitter-pane>
       <ngm-splitter-pane class="relative flex flex-col justify-start items-stretch">
-        <mat-toolbar class="pac-nav-toolbar" displayDensity="compact">
+        <div class="pac-nav-toolbar flex shrink-0 items-center">
           @if (!results?.length) {
             <div>{{ 'PAC.MODEL.QUERY.QueryResults' | translate: { Default: 'Query Results' } }}</div>
           } @else {
@@ -265,7 +262,7 @@
               </button>
             </span>
           </nav>
-        </mat-toolbar>
+        </div>
         @if (loading$ | async) {
           <div
             class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center z-[101] bg-gray-500/10 backdrop-blur-lg"

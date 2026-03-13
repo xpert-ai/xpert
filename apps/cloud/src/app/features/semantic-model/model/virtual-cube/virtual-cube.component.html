@@ -1,4 +1,4 @@
-<mat-toolbar displayDensity="compact">
+<header class="pac-sub-toolbar flex shrink-0 items-center gap-2">
   <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="drawer.toggle()">
     <z-icon zType="segment"></z-icon>
   </button>
@@ -14,12 +14,12 @@
   >
     <z-icon zType="edit"></z-icon>
   </button>
-</mat-toolbar>
+</header>
 
 <mat-drawer-container class="flex-1" [hasBackdrop]="false" [autosize]="true">
   <mat-drawer #drawer opened mode="side" ngmResizer [resizerWidth]="230" class="flex flex-col">
     <div class="h-full flex-1 flex flex-col justify-start items-stretch overflow-y-auto">
-      <mat-toolbar class="pac-sub-toolbar flex justify-between items-center gap-2" displayDensity="compact">
+      <div class="pac-sub-toolbar flex shrink-0 justify-between items-center gap-2">
         <span>{{ 'PAC.MODEL.VirtualCube.CubeUsages' | translate: { Default: 'Cube Usages' } }}</span>
         <span class="flex-1 flex"></span>
         <button
@@ -36,7 +36,7 @@
         >
           <z-icon color="warn" zType="delete"></z-icon>
         </button>
-      </mat-toolbar>
+      </div>
 
       <div
         class="pac-model-access__cubes pac-cdk-drop__list flex-1 flex flex-col overflow-y-auto"

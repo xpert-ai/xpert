@@ -30,7 +30,6 @@ $prefix: (ngm, model);
 :host {
   @include token-utils.create-token-values($prefix, get-token-slots());
   --mdc-list-list-item-container-shape: #{theme('borderRadius.lg')};
-  --mat-toolbar-standard-height: 30px;
   --ngm-model-toolbar-background-color: linear-gradient(0.25turn, var(--mat-sidenav-content-background-color), var(--ngm-model-color-surface));
 
   display: flex;
@@ -63,7 +62,7 @@ $prefix: (ngm, model);
   }
   .pac-model__shell-bar {
     --mat-icon-color: theme('colors.gray.500');
-    --mat-toolbar-container-background-color: var(#{token-utils.get-token-variable(toolbar-background-color)});
+    background-color: var(#{token-utils.get-token-variable(toolbar-background-color)});
   }
   .pac-model-content {
     --mat-sidenav-content-background-color: var(#{token-utils.get-token-variable(color-surface)});
@@ -75,21 +74,17 @@ $prefix: (ngm, model);
     --mat-icon-color: theme('colors.gray.500');
   }
 
-  .mat-drawer-container {
-    --mat-toolbar-container-background-color: transparent;
-  }
-
   .mat-drawer-container ngm-splitter {
     --ngm-splitter-background-color: transparent;
   }
 
   // Toolbar styles
-  .mat-toolbar.pac-sub-toolbar {
-    &.ngm-density__compact.mat-toolbar-row,
-    &.ngm-density__compact.mat-toolbar-single-row {
+  .pac-sub-toolbar {
+    @apply shrink-0 text-base;
+
+    &:not(.p-2) {
       height: 33px;
       padding: 0 6px;
-      font-size: 1rem;
     }
   }
 

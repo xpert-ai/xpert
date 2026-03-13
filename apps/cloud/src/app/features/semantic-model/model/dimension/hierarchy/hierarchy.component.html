@@ -2,7 +2,7 @@
   <ngm-splitter-pane size="230px">
     <ngm-splitter class="w-full h-full" [type]="1">
       <ngm-splitter-pane size="15rem" class="flex flex-col justify-items-stretch items-stretch">
-        <mat-toolbar class="pac-sub-toolbar flex justify-between items-center" displayDensity="compact">
+        <div class="pac-sub-toolbar flex shrink-0 justify-between items-center">
           <span>
             {{ 'PAC.MODEL.DIMENSION.Levels' | translate: { Default: 'Levels' } }}
           </span>
@@ -22,7 +22,7 @@
           >
             <z-icon color="warn" zType="delete"></z-icon>
           </button>
-        </mat-toolbar>
+        </div>
         <div
           id="pac-model-dimension__hierarchy-levels"
           class="pac-cdk-drop__list flex-1"
@@ -57,7 +57,7 @@
       </ngm-splitter-pane>
 
       <ngm-splitter-pane class="flex flex-col">
-        <mat-toolbar class="pac-sub-toolbar flex justify-between items-center" displayDensity="compact">
+        <div class="pac-sub-toolbar flex shrink-0 justify-between items-center">
           <span>
             {{ 'PAC.MODEL.DIMENSION.DimensionTables' | translate: { Default: 'Dimension Tables' } }}
           </span>
@@ -76,7 +76,7 @@
           >
             <z-icon color="warn" zType="delete"></z-icon>
           </button>
-        </mat-toolbar>
+        </div>
         <div
           [id]="HierarchyTableId"
           class="pac-cdk-drop__list flex-1 overflow-y-auto"
@@ -103,7 +103,7 @@
       [type]="SplitterType.Vertical"
     >
       <ngm-splitter-pane class="pac-model-hierarchy__preview flex flex-col justify-items-stretch items-stretch">
-        <mat-toolbar class="pac-sub-toolbar flex justify-between items-center" displayDensity="compact">
+        <div class="pac-sub-toolbar flex shrink-0 justify-between items-center">
           <div class="flex items-center gap-2">
             <span class="text-lg">
               {{ 'PAC.MODEL.DIMENSION.DataPreview' | translate: { Default: 'Data Preview' } }}
@@ -149,7 +149,7 @@
               <z-icon zType="refresh"></z-icon>
             </button>
           </div>
-        </mat-toolbar>
+        </div>
         <div style="flex: 1; max-height: calc(100% - 34px)" class="flex relative">
           @switch (viewMode()) {
             @case ('table') {

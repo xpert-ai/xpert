@@ -25,7 +25,6 @@ import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatSnackBarModule } from '@angular/material/snack-bar'
 import { MatStepperModule } from '@angular/material/stepper'
 import { MatTableModule } from '@angular/material/table'
-import { MatToolbarModule } from '@angular/material/toolbar'
 import { MatTreeModule } from '@angular/material/tree'
 import { MatDatepickerModule } from '@angular/material/datepicker'
 import { MatPaginatorModule } from '@angular/material/paginator'
@@ -37,7 +36,6 @@ const MATERIAL_MODULES = [
   ZardDividerComponent,
   MatMenuModule,
   MatDialogModule,
-  MatToolbarModule,
   ZardButtonComponent,
   ...ZardFormImports,
   ...ZardTabsImports,
