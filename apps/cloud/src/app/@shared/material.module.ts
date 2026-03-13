@@ -22,7 +22,6 @@ import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatSnackBarModule } from '@angular/material/snack-bar'
 import { MatStepperModule } from '@angular/material/stepper'
 import { MatTableModule } from '@angular/material/table'
 import { MatToolbarModule } from '@angular/material/toolbar'
@@ -43,7 +42,6 @@ const MATERIAL_MODULES = [
   ...ZardTabsImports,
   ...ZardCardImports,
   MatStepperModule,
-  MatSnackBarModule,
   ZardInputDirective,
   MatProgressBarModule,
   MatSidenavModule,

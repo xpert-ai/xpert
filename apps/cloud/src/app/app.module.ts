@@ -2,7 +2,6 @@ import { PlatformModule } from '@angular/cdk/platform'
 import { HTTP_INTERCEPTORS, HttpClientModule, provideHttpClient, withInterceptorsFromDi } from '@angular/common/http'
 import { APP_INITIALIZER, LOCALE_ID, NgModule } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
-import { MatSnackBarModule } from '@angular/material/snack-bar'
 import { BrowserModule, HammerModule } from '@angular/platform-browser'
 import { provideAnimations } from '@angular/platform-browser/animations'
 import { RouteReuseStrategy } from '@angular/router'
@@ -11,7 +10,7 @@ import { Ability, PureAbility } from '@casl/ability'
 import { NxCoreModule } from '@metad/core'
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
 import { NgxPermissionsModule } from 'ngx-permissions'
-import { provideUiI18nAdapterFactory, type UiI18nAdapter } from '@xpert-ai/headless-ui'
+import { provideUiI18nAdapterFactory, provideZard, type UiI18nAdapter, ZardToastComponent } from '@xpert-ai/headless-ui'
 import {
   APIInterceptor,
   AppInitService,
@@ -48,8 +47,8 @@ function detectSubjectType(subject) {
     PlatformModule,
     HammerModule,
     ReactiveFormsModule,
+    ZardToastComponent,
     AppRoutingModule,
-    MatSnackBarModule,
     CoreModule.forRoot(),
     AuthModule,
     NgxPermissionsModule.forRoot(),
@@ -70,6 +69,7 @@ function detectSubjectType(subject) {
   providers: [
     provideHttpClient(withInterceptorsFromDi()),
     provideAnimations(),
+    provideZard(),
     // UpdateService,
     {
       provide: LOCALE_ID,

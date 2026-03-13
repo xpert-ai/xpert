@@ -1,11 +1,10 @@
 import { Component, HostBinding, OnInit } from '@angular/core'
 import { UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms'
 import { MatDialogRef } from '@angular/material/dialog'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { mergeSelectedValues } from '@metad/ocap-angular/core'
 import { isEmpty } from 'lodash-es'
 import { BehaviorSubject, combineLatest, map, startWith } from 'rxjs'
-import { convertConfigurationSchema, IMG_ROOT, PACNotificationDestinationsService } from '../../../../@core'
+import { convertConfigurationSchema, IMG_ROOT, PACNotificationDestinationsService, ToastrService } from '../../../../@core'
 
 @Component({
   selector: 'pac-new-notification-destination',
@@ -47,7 +46,7 @@ export class NewNotificationDestinationComponent implements OnInit {
   constructor(
     private destinationService: PACNotificationDestinationsService,
     private _dialogRef: MatDialogRef<NewNotificationDestinationComponent>,
-    private _snakBar: MatSnackBar
+    private readonly toastrService: ToastrService
   ) {}
 
   ngOnInit(): void {
@@ -70,7 +69,7 @@ export class NewNotificationDestinationComponent implements OnInit {
         type: this.type.type
       })
       .subscribe(() => {
-        this._snakBar.open('创建成功', '', { duration: 1000 })
+        this.toastrService.success('创建成功')
         this._dialogRef.close()
       })
   }

@@ -372,7 +372,7 @@ export class ModelVirtualCubeComponent extends ModelDraftBaseComponent {
   }
 
   // openNeedSaveMessage() {
-  //   this.#snackBar.openFromComponent(NgmNotificationComponent, {
+  //   This notification now uses the shared toast service.
   //     data: {
   //       color: 'primary',
   //       message: this.#translate.instant('PAC.MODEL.VirtualCube.PleaseSave', { Default: 'Please Save' }),

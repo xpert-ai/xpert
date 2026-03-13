@@ -1,7 +1,6 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { DestroyRef, Inject, Injectable, Optional, effect, inject } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { createSubStore, dirtyCheckWith, isNotEmpty, isNotEqual, write } from '@metad/core'
 import { effectAction } from '@metad/ocap-angular/core'
 import { ISlicer, isAdvancedFilter, isTimeRangesSlicer, nonNullable } from '@metad/ocap-core'
@@ -26,6 +25,7 @@ import { FlexItemType, FlexLayout } from '@metad/story/responsive'
 import { ISmartFilterBarOptions } from '@metad/story/widgets/filter-bar'
 import { select, withProps } from '@ngneat/elf'
 import { TranslateService } from '@ngx-translate/core'
+import { ZardToastService } from '@xpert-ai/headless-ui'
 import { GridsterConfig } from 'angular-gridster2'
 import { assign, cloneDeep, compact, isEmpty, isEqual, isNil, merge, negate, omit, sortBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
@@ -152,7 +152,7 @@ export class NxStoryPointService {
     @Optional()
     @Inject(NX_STORY_FEED)
     private feedService?: NxStoryFeedService,
-    @Optional() private _snackBar?: MatSnackBar,
+    @Optional() private toast?: ZardToastService,
     @Optional() protected logger?: NGXLogger,
     @Optional() private translateService?: TranslateService
   ) {
@@ -495,7 +495,7 @@ export class NxStoryPointService {
       tap((point) => {
         if (point) {
           const saveSuccess = this.getTranslation('Story.StoryPoint.SaveSuccess', 'Story page save success')
-          this._snackBar.open(saveSuccess, '', {
+          this.toast?.success(saveSuccess, {
             duration: 2000
           })
         }
@@ -504,7 +504,8 @@ export class NxStoryPointService {
       }),
       catchError((err, cah) => {
         const storyPointSaveFail = this.getTranslation('Story.StoryPoint.SaveFailed', 'Story page save failed')
-        this._snackBar.open(storyPointSaveFail, err.status, {
+        this.toast?.error(storyPointSaveFail, {
+          description: err.status,
           duration: 2000
         })
         return EMPTY
@@ -550,7 +551,8 @@ export class NxStoryPointService {
               return this.storyStore.updateStoryWidget(update).pipe(
                 catchError((err) => {
                   const widgetUpdateFail = this.getTranslation('Story.Widget.UpdateFailed', 'Widget update failed')
-                  this._snackBar.open(widgetUpdateFail, err.status, {
+                  this.toast?.error(widgetUpdateFail, {
+                    description: err.status,
                     duration: 2000
                   })
                   return EMPTY
@@ -579,7 +581,7 @@ export class NxStoryPointService {
         return combineLatest(requests).pipe(
           tap(() => {
             const widgetSaveSuccess = this.getTranslation('Story.Widget.SaveSuccess', 'Widget save success')
-            this._snackBar.open(widgetSaveSuccess, '', {
+            this.toast?.success(widgetSaveSuccess, {
               duration: 2000
             })
           })

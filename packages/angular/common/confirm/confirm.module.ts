@@ -8,14 +8,13 @@ import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmConfirmDeleteComponent } from './confirm-delete/confirm-delete.component'
-import { NgmConfirmSnackBar } from './confirm-snackbar/confirm-snack-bar.component'
 import { NgmCountdownConfirmationComponent } from './countdown/countdown.component'
 import { NgmCountdownModule } from '../countdown'
 import { NgmConfirmOptionsComponent } from './confirm-options/confirm-options.component'
 
 @NgModule({
-  declarations: [ NgmConfirmDeleteComponent, NgmCountdownConfirmationComponent, NgmConfirmSnackBar ],
+  declarations: [ NgmConfirmDeleteComponent, NgmCountdownConfirmationComponent ],
   imports: [CommonModule, FormsModule, DragDropModule, MatDialogModule, ZardButtonComponent, ...ZardFormImports, ZardInputDirective, NgmCountdownModule, TranslateModule, ButtonGroupDirective, NgmConfirmOptionsComponent],
-  exports: [ NgmConfirmDeleteComponent, NgmCountdownConfirmationComponent, NgmConfirmSnackBar, NgmConfirmOptionsComponent ]
+  exports: [ NgmConfirmDeleteComponent, NgmCountdownConfirmationComponent, NgmConfirmOptionsComponent ]
 })
 export class NgmConfirmModule {}
