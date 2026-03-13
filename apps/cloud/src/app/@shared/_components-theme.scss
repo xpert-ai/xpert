@@ -99,13 +99,16 @@
     }
   }
 
-  .mat-mdc-menu-panel {
-    .selected.mat-menu-item {
+  .cdk-menu,
+  [z-menu-content] {
+    .selected.cdk-menu-item,
+    .selected[z-menu-item] {
       font-weight: 600;
     }
 
-    &.mat-color-accent {
-      .selected.mat-menu-item {
+    &.ngm-menu-accent {
+      .selected.cdk-menu-item,
+      .selected[z-menu-item] {
         color: mat.m2-get-color-from-palette($accent);
       }
     }
@@ -314,7 +317,8 @@
     }
   }
 
-  .active.mat-menu-item {
+  .active.cdk-menu-item,
+  .active[z-menu-item] {
     color: mat.m2-get-color-from-palette($accent);
     font-weight: 600;
   }
@@ -327,8 +331,10 @@
     }
   }
 
-  .mat-mdc-menu-panel {
-    .mat-mdc-menu-item {
+  .cdk-menu,
+  [z-menu-content] {
+    .cdk-menu-item,
+    [z-menu-item] {
       &.ngm-appearance-danger:hover {
         @apply bg-red-400 text-white;
       }

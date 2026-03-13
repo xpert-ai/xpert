@@ -6,7 +6,6 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialogModule } from '@angular/material/dialog'
 import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardTabsImports } from '@xpert-ai/headless-ui'
-import { MatMenuModule } from '@angular/material/menu'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -17,7 +16,7 @@ import { AppService } from '../../app.service'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DragDropModule, RouterModule, ...ZardTabsImports, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, MatMenuModule, MatDialogModule, ZardInputDirective, MatSidenavModule, TranslateModule, DensityDirective, ButtonGroupDirective, NgmCommonModule, AppearanceDirective],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DragDropModule, RouterModule, ...ZardTabsImports, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, MatDialogModule, ZardInputDirective, MatSidenavModule, TranslateModule, DensityDirective, ButtonGroupDirective, NgmCommonModule, AppearanceDirective],
   selector: 'pac-home',
   template: `
     <nav

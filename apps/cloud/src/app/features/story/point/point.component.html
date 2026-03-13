@@ -14,7 +14,8 @@
     displayDensity="cosy"
     zTooltip="{{ 'PAC.Story.AutoRefresh' | translate: { Default: 'Auto Refresh' } }}"
     zPosition="right"
-    [matMenuTriggerFor]="timerMenu"
+    z-menu
+    [zMenuTriggerFor]="timerMenu"
   >
     <z-icon zType="update"></z-icon>
   </button>
@@ -98,18 +99,27 @@
   />
 </div>
 
-<mat-menu #timerMenu="matMenu" class="ngm-density__compact mat-color-accent">
-  <div class="text-xs uppercase px-4 py-2">
-    {{ 'PAC.KEY_WORDS.AutoRefresh' | translate: { Default: 'Auto Refresh' } }}
+<ng-template #timerMenu>
+  <div z-menu-content class="ngm-density__compact ngm-menu-accent">
+    <div class="px-4 py-2 text-xs uppercase">
+      {{ 'PAC.KEY_WORDS.AutoRefresh' | translate: { Default: 'Auto Refresh' } }}
+    </div>
+    <button type="button" z-menu-item [class.selected]="!timer" (click)="timerUpdate(null)">
+      <z-icon *ngIf="!timer" zSize="sm" zType="done"></z-icon>
+      {{ 'PAC.KEY_WORDS.Off' | translate: { Default: 'Off' } }}
+    </button>
+    <button
+      type="button"
+      z-menu-item
+      *ngFor="let t of Schedulers"
+      [class.selected]="timer === t"
+      (click)="timerUpdate(t)"
+    >
+      <z-icon *ngIf="timer === t" zSize="sm" zType="done"></z-icon>{{ t }}
+      {{ 'PAC.KEY_WORDS.Minute' | translate: { Default: 'Minutes' } }}
+    </button>
   </div>
-  <button mat-menu-item (click)="timerUpdate(null)">
-    <z-icon *ngIf="!timer" zSize="sm" zType="done"></z-icon> {{ 'PAC.KEY_WORDS.Off' | translate: { Default: 'Off' } }}
-  </button>
-  <button mat-menu-item *ngFor="let t of Schedulers" (click)="timerUpdate(t)">
-    <z-icon *ngIf="timer === t" zSize="sm" zType="done"></z-icon>{{ t }}
-    {{ 'PAC.KEY_WORDS.Minute' | translate: { Default: 'Minutes' } }}
-  </button>
-</mat-menu>
+</ng-template>
 
 <ng-template #scaleMenu>
   <div cdkMenu displayDensity="cosy">

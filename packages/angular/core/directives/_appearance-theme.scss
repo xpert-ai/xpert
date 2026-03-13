@@ -95,7 +95,7 @@
 
   [z-button],
   z-button,
-  .mat-mdc-menu-item,
+  .cdk-menu-item,
   .mat-mdc-option {
     &.ngm-appearance-dashed {
       border: 1px dashed mat.m2-get-color-from-palette($foreground, divider);
@@ -104,7 +104,7 @@
 
   [z-button]:not([disabled]):not([data-disabled]),
   z-button:not([disabled]):not([data-disabled]),
-  .mat-mdc-menu-item,
+  .cdk-menu-item,
   .mat-mdc-option {
     &.ngm-appearance-dashed:hover,
     &.ngm-appearance-dashed:focus {
@@ -118,7 +118,7 @@
 
   [z-button],
   z-button,
-  .mat-mdc-menu-item,
+  .cdk-menu-item,
   .mat-mdc-option {
     &.ngm-appearance-danger:hover {
       color: mat.m2-get-color-from-palette($warn);

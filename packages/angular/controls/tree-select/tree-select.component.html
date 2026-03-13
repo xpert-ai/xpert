@@ -27,7 +27,18 @@
       <mat-spinner [color]="appearance?.color" strokeWidth="1" diameter="20"></mat-spinner>
     }
     @if (hierarchies()?.length > 1) {
-      <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-actionable-opacity" [matMenuTriggerFor]="hierarchiesMenu" #mt="matMenuTrigger" [class.active]="mt.menuOpen" (click)="$event.stopPropagation();$event.preventDefault();">
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        class="ngm-actionable-opacity"
+        z-menu
+        [zMenuTriggerFor]="hierarchiesMenu"
+        #mt="zMenuTrigger"
+        [class.active]="mt.menuOpen"
+        (click)="$event.stopPropagation();$event.preventDefault();"
+      >
         <z-icon zType="account_tree"></z-icon>
       </button>
     }
@@ -39,14 +50,19 @@
 </ngm-tree-select>
 
 <z-radio-group [(ngModel)]="hierarchy">
-  <mat-menu #hierarchiesMenu="matMenu" class="ngm-radio-menu">
+  <ng-template #hierarchiesMenu>
+    <div z-menu-content class="ngm-radio-menu">
     @for (property of hierarchies(); track property.name) {
-      <button mat-menu-item disableRipple
+      <button
+        type="button"
+        z-menu-item
+        class="w-full"
         (click)="$event.stopPropagation();">
         <z-radio class="flex-1" [value]="property.name">
           <ngm-property class="flex-1" hiddenIcon [property]="property" [displayBehaviour]="DisplayBehaviour.auto" />
         </z-radio>
       </button>
     }
-  </mat-menu>
+    </div>
+  </ng-template>
 </z-radio-group>

@@ -6,11 +6,28 @@
   </ngm-select>
 
   <div zFormSuffix>
-    <button z-button zType="ghost" zSize="icon" zShape="circle" [matMenuTriggerFor]="operatorMenu" (click)="$event.stopPropagation();$event.preventDefault();">
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      z-menu
+      [zMenuTriggerFor]="operatorMenu"
+      (click)="$event.stopPropagation();$event.preventDefault();"
+    >
         <z-icon zType="drag_handle"></z-icon>
     </button>
 
-    <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix [matMenuTriggerFor]="slicerMenu" (click)="$event.stopPropagation();$event.preventDefault();">
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      zFormSuffix
+      z-menu
+      [zMenuTriggerFor]="slicerMenu"
+      (click)="$event.stopPropagation();$event.preventDefault();"
+    >
         <z-icon zType="more_vert"></z-icon>
     </button>
 
@@ -19,35 +36,39 @@
   
 </z-form-field>
 
-<mat-menu #operatorMenu="matMenu" class="ngm-density__compact">
-    <button mat-menu-item disableRipple >
+<ng-template #operatorMenu>
+  <div z-menu-content class="ngm-density__compact">
+    <button type="button" z-menu-item>
       <z-icon zType="dvr"></z-icon>
       <span>Equal</span>
     </button>
-    <button mat-menu-item disableRipple >
+    <button type="button" z-menu-item>
         <z-icon zType="chevron_left"></z-icon>
         <span>Less than</span>
     </button>
 
-    <button mat-menu-item disableRipple >
+    <button type="button" z-menu-item>
         <z-icon zType="first_page"></z-icon>
         <span>Less Equal</span>
     </button>
 
-    <button mat-menu-item disableRipple >
+    <button type="button" z-menu-item>
         <z-icon zType="chevron_right"></z-icon>
         <span>Greater than</span>
     </button>
     
-    <button mat-menu-item disableRipple >
+    <button type="button" z-menu-item>
         <z-icon zType="last_page"></z-icon>
         <span>Greater Equal</span>
     </button>
-</mat-menu>
+  </div>
+</ng-template>
 
-<mat-menu #slicerMenu="matMenu" class="ngm-density__compact">
-    <button mat-menu-item disableRipple >
+<ng-template #slicerMenu>
+  <div z-menu-content class="ngm-density__compact">
+    <button type="button" z-menu-item>
       <z-icon zType="dvr"></z-icon>
       <span>显示为...</span>
     </button>
-</mat-menu>
+  </div>
+</ng-template>

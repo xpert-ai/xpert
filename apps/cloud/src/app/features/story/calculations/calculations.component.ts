@@ -7,8 +7,13 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { MatMenuModule } from '@angular/material/menu'
+import {
+  ZardButtonComponent,
+  ZardDividerComponent,
+  ZardIconComponent,
+  ZardMenuImports,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { CommandDialogComponent } from '@metad/copilot-angular'
@@ -31,7 +36,7 @@ import { BehaviorSubject, combineLatestWith, firstValueFrom, map, of, shareRepla
     ZardButtonComponent,
     ZardIconComponent,
     ZardDividerComponent,
-    MatMenuModule,
+    ...ZardMenuImports,
     MatProgressBarModule,
     ...ZardTooltipImports,
     TranslateModule,

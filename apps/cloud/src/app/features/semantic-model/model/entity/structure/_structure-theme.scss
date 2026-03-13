@@ -10,32 +10,6 @@
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
 
-  .pac-cube__join-menu.mat-mdc-menu-panel {
-    width: 500px;
-    max-width: 500px;
-
-    .table-join {
-      display: flex;
-      justify-content: center;
-      align-items: center;
-      flex: 1;
-      padding: 1rem;
-      cursor: pointer;
-
-      &:hover {
-        background-color: color.adjust(mat.m2-get-color-from-palette($primary-palette, 100), $alpha: 0.8);
-      }
-
-      &.selected {
-        background-color: color.adjust(mat.m2-get-color-from-palette($primary-palette, 300), $alpha: 0.8);
-      }
-    }
-
-    .join-fields-form {
-      margin-top: 1rem;
-    }
-  }
-
   .pac-model-cube-structure {
     .pac-cube__join-table-container {
       .join-table {

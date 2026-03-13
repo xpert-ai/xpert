@@ -14,7 +14,6 @@ import {
   ZardSwitchComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { MatMenuModule } from '@angular/material/menu'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
@@ -104,7 +103,6 @@ const ADVANCED_SLICER_OPERATORS = [
     MatChipsModule,
     ...ZardTooltipImports,
     ZardDividerComponent,
-    MatMenuModule,
     TranslateModule,
 
     NgmCommonModule,

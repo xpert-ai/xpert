@@ -25,6 +25,7 @@ export type ZardMenuTrigger = 'click' | 'hover';
 
 @Directive({
   selector: '[z-menu]',
+  exportAs: 'zMenuTrigger',
   host: {
     role: 'button',
     '[attr.tabindex]': "'0'",
@@ -54,6 +55,7 @@ export class ZardMenuDirective implements OnInit, OnDestroy {
   private readonly cleanupFunctions: Array<() => void> = [];
 
   readonly zMenuTriggerFor = input.required<TemplateRef<void>>();
+  readonly zMenuTriggerData = input<unknown>(undefined);
   readonly zDisabled = input<boolean, BooleanInput>(false, { transform: booleanAttribute });
   readonly zTrigger = input<ZardMenuTrigger>('click');
   readonly zHoverDelay = input<number>(100);
@@ -61,11 +63,22 @@ export class ZardMenuDirective implements OnInit, OnDestroy {
 
   private readonly menuPositions = computed(() => this.getPositionsByPlacement(this.zPlacement()));
 
+  get menuOpen(): boolean {
+    return this.cdkTrigger.isOpen();
+  }
+
   constructor() {
     effect(() => {
       const positions = this.menuPositions();
       untracked(() => {
         this.cdkTrigger.menuPosition = positions;
+      });
+    });
+
+    effect(() => {
+      const menuData = this.zMenuTriggerData();
+      untracked(() => {
+        this.cdkTrigger.menuData = menuData;
       });
     });
   }
@@ -94,6 +107,12 @@ export class ZardMenuDirective implements OnInit, OnDestroy {
   close(): void {
     this.cancelScheduledClose();
     this.cdkTrigger.close();
+  }
+
+  open(): void {
+    if (!this.zDisabled()) {
+      this.cdkTrigger.open();
+    }
   }
 
   private initializeHoverBehavior(): void {

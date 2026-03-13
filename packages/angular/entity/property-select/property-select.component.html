@@ -54,8 +54,9 @@
           zSize="icon"
           zShape="circle"
           [displayDensity]="displayDensity()"
-          [matMenuTriggerFor]="dimensionMenu"
-          #mt="matMenuTrigger"
+          z-menu
+          [zMenuTriggerFor]="dimensionMenu"
+          #mt="zMenuTrigger"
           [class.active]="mt.menuOpen"
           (click)="$event.stopPropagation(); $event.preventDefault()"
         >
@@ -84,8 +85,9 @@
           zSize="icon"
           zShape="circle"
           [displayDensity]="displayDensity()"
-          [matMenuTriggerFor]="membersMenu"
-          #mt="matMenuTrigger"
+          z-menu
+          [zMenuTriggerFor]="membersMenu"
+          #mt="zMenuTrigger"
           [class.active]="mt.menuOpen"
           (click)="$event.stopPropagation(); $event.preventDefault()"
         >
@@ -113,110 +115,129 @@
   }
 </div>
 
-<mat-menu #dimensionMenu="matMenu" class="ngm-formly ngm-density__compact">
-  @if (showDisplayAs()) {
-    <button mat-menu-item disableRipple [matMenuTriggerFor]="displayMenu">
-      <z-icon class="shrink-0" zType="dvr"></z-icon>
-      <span>{{ 'Ngm.Property.DisplayAs' | translate: { Default: 'Display As' } }}...</span>
-    </button>
-  }
-
-  @if (labels$ | async; as labels) {
-    <button mat-menu-item disableRipple [matMenuTriggerFor]="labelMenu">
-      <z-icon class="shrink-0" zType="label"></z-icon>
-      <span>{{ 'Ngm.Property.Label' | translate: { Default: 'Label' } }}</span>
-    </button>
-  }
-
-  <button mat-menu-item (click)="$event.stopPropagation(); $event.preventDefault()">
-    <ngm-input
-      class="w-full flex-row"
-      style="flex-direction: row; align-items: center"
-      label="{{ 'Ngm.Property.Caption' | translate: { Default: 'Caption' } }}"
-      [(ngModel)]="caption"
-      (keydown.space)="$event.stopPropagation(); $event.preventDefault()"
-    ></ngm-input>
-  </button>
-
-  @if (isMeasure$ | async) {
-    @if (showMeasureAttributes()) {
-      <button mat-menu-item (click)="openFormatting($event)">
-        <z-icon class="shrink-0" zType="monetization_on"></z-icon>
-        <span>{{ 'Ngm.Property.Formatter' | translate: { Default: 'Formatter' } }}</span>
+<ng-template #dimensionMenu>
+  <div z-menu-content class="ngm-formly ngm-density__compact">
+    @if (showDisplayAs()) {
+      <button type="button" z-menu-item z-menu [zMenuTriggerFor]="displayMenu">
+        <z-icon class="shrink-0" zType="dvr"></z-icon>
+        <span class="flex-1">{{ 'Ngm.Property.DisplayAs' | translate: { Default: 'Display As' } }}...</span>
+        <z-icon class="ml-auto opacity-60" zType="chevron_right"></z-icon>
       </button>
     }
 
-    @if (calculationProperty(); as calculationProperty) {
-      <button mat-menu-item (click)="$event.preventDefault(); openEditCalculation(calculationProperty)">
-        <z-icon class="shrink-0" zType="functions"></z-icon>
-        <span>
-          {{ 'Ngm.Property.EditFormula' | translate: { Default: 'Edit Formula' } }}
-        </span>
+    @if (labels$ | async; as labels) {
+      <button type="button" z-menu-item z-menu [zMenuTriggerFor]="labelMenu">
+        <z-icon class="shrink-0" zType="label"></z-icon>
+        <span class="flex-1">{{ 'Ngm.Property.Label' | translate: { Default: 'Label' } }}</span>
+        <z-icon class="ml-auto opacity-60" zType="chevron_right"></z-icon>
       </button>
     }
-  }
 
-  @if (isParameter()) {
-    <button mat-menu-item (click)="openEditParameter()">
-      <z-icon class="shrink-0" zType="edit"></z-icon>
-      <span>{{ 'Ngm.Property.PARAMETER' | translate: { Default: 'Parameter' } }}</span>
-    </button>
-  }
+    <div
+      class="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none"
+      (click)="$event.stopPropagation(); $event.preventDefault()"
+    >
+      <ngm-input
+        class="w-full flex-row"
+        style="flex-direction: row; align-items: center"
+        label="{{ 'Ngm.Property.Caption' | translate: { Default: 'Caption' } }}"
+        [(ngModel)]="caption"
+        (keydown.space)="$event.stopPropagation(); $event.preventDefault()"
+      ></ngm-input>
+    </div>
 
-  @if (isDimension()) {
-    <button mat-menu-item disableRipple (click)="$event.stopPropagation()">
-      <z-checkbox [(ngModel)]="unbookedData">
-        {{ 'Ngm.Property.UnbookedData' | translate: { Default: 'Unbooked Data' } }}
-      </z-checkbox>
-    </button>
-  }
-  @if (isDimension() || showMeasureAttributes()) {
-    <button mat-menu-item disableRipple (click)="$event.stopPropagation()">
-      <z-checkbox [(ngModel)]="zeroSuppression">
-        {{ 'Ngm.Property.ZeroSuppression' | translate: { Default: 'Zero Suppression' } }}
-      </z-checkbox>
-    </button>
-  }
+    @if (isMeasure$ | async) {
+      @if (showMeasureAttributes()) {
+        <button type="button" z-menu-item (click)="openFormatting($event)">
+          <z-icon class="shrink-0" zType="monetization_on"></z-icon>
+          <span>{{ 'Ngm.Property.Formatter' | translate: { Default: 'Formatter' } }}</span>
+        </button>
+      }
 
-  @if (showOrder()) {
-    <button mat-menu-item disableRipple [matMenuTriggerFor]="orderMenu">
-      <z-icon class="shrink-0" zType="sort_by_alpha"></z-icon>
-      <span>{{ 'Ngm.Property.Order' | translate: { Default: 'Order' } }}</span>
-    </button>
-  }
-</mat-menu>
+      @if (calculationProperty(); as calculationProperty) {
+        <button type="button" z-menu-item (click)="$event.preventDefault(); openEditCalculation(calculationProperty)">
+          <z-icon class="shrink-0" zType="functions"></z-icon>
+          <span>
+            {{ 'Ngm.Property.EditFormula' | translate: { Default: 'Edit Formula' } }}
+          </span>
+        </button>
+      }
+    }
+
+    @if (isParameter()) {
+      <button type="button" z-menu-item (click)="openEditParameter()">
+        <z-icon class="shrink-0" zType="edit"></z-icon>
+        <span>{{ 'Ngm.Property.PARAMETER' | translate: { Default: 'Parameter' } }}</span>
+      </button>
+    }
+
+    @if (isDimension()) {
+      <div
+        class="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none"
+        (click)="$event.stopPropagation()"
+      >
+        <z-checkbox [(ngModel)]="unbookedData">
+          {{ 'Ngm.Property.UnbookedData' | translate: { Default: 'Unbooked Data' } }}
+        </z-checkbox>
+      </div>
+    }
+    @if (isDimension() || showMeasureAttributes()) {
+      <div
+        class="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none"
+        (click)="$event.stopPropagation()"
+      >
+        <z-checkbox [(ngModel)]="zeroSuppression">
+          {{ 'Ngm.Property.ZeroSuppression' | translate: { Default: 'Zero Suppression' } }}
+        </z-checkbox>
+      </div>
+    }
+
+    @if (showOrder()) {
+      <button type="button" z-menu-item z-menu [zMenuTriggerFor]="orderMenu">
+        <z-icon class="shrink-0" zType="sort_by_alpha"></z-icon>
+        <span class="flex-1">{{ 'Ngm.Property.Order' | translate: { Default: 'Order' } }}</span>
+        <z-icon class="ml-auto opacity-60" zType="chevron_right"></z-icon>
+      </button>
+    }
+  </div>
+</ng-template>
 
 <z-radio-group [(ngModel)]="displayBehaviour">
-  <mat-menu #displayMenu="matMenu" class="ngm-formly ngm-density__compact">
-    <button
-      mat-menu-item
-      disableRipple
-      *ngFor="let behaviour of DISPLAY_BEHAVIOUR_LIST"
-      (click)="$event.stopPropagation()"
-    >
-      <z-radio [value]="behaviour.value">
-        {{ 'Ngm.Property.' + behaviour.label | translate: { Default: behaviour.label } }}
-      </z-radio>
-    </button>
-  </mat-menu>
+  <ng-template #displayMenu>
+    <div z-menu-content class="ngm-formly ngm-density__compact">
+      <button
+        type="button"
+        z-menu-item
+        class="w-full"
+        *ngFor="let behaviour of DISPLAY_BEHAVIOUR_LIST"
+        (click)="$event.stopPropagation()"
+      >
+        <z-radio [value]="behaviour.value">
+          {{ 'Ngm.Property.' + behaviour.label | translate: { Default: behaviour.label } }}
+        </z-radio>
+      </button>
+    </div>
+  </ng-template>
 </z-radio-group>
 
 <z-radio-group [(ngModel)]="memberCaption">
-  <mat-menu #labelMenu="matMenu" class="ngm-formly ngm-density__compact">
-    <button mat-menu-item disableRipple (click)="$event.stopPropagation()">
-      <z-radio class="ngm-radio-button__property" [value]="null">
-        {{ 'Ngm.Property.Auto' | translate: { Default: 'Auto' } }}
-      </z-radio>
-    </button>
-
-    @for (item of labels$ | async; track item.name) {
-      <button mat-menu-item disableRipple (click)="$event.stopPropagation()">
-        <z-radio class="ngm-radio-button__property" [value]="item.name" [title]="item.caption">
-          {{ item.caption }}
+  <ng-template #labelMenu>
+    <div z-menu-content class="ngm-formly ngm-density__compact">
+      <button type="button" z-menu-item class="w-full" (click)="$event.stopPropagation()">
+        <z-radio class="ngm-radio-button__property" [value]="null">
+          {{ 'Ngm.Property.Auto' | translate: { Default: 'Auto' } }}
         </z-radio>
       </button>
-    }
-  </mat-menu>
+
+      @for (item of labels$ | async; track item.name) {
+        <button type="button" z-menu-item class="w-full" (click)="$event.stopPropagation()">
+          <z-radio class="ngm-radio-button__property" [value]="item.name" [title]="item.caption">
+            {{ item.caption }}
+          </z-radio>
+        </button>
+      }
+    </div>
+  </ng-template>
 </z-radio-group>
 
 <z-radio-group [(ngModel)]="level">
@@ -305,24 +326,29 @@
   </div>
 </ng-template>
 
-<mat-menu #membersMenu="matMenu" class="ngm-density__compact">
-  @for (property of membersSignal(); track property.name) {
-    <button mat-menu-item class="w-full" disableRipple (click)="$event.stopPropagation()">
-      <z-checkbox
-        class="ngm-checkbox__property"
-        [ngModel]="$any(property).selected"
-        (checkChange)="toggleMember(property.name, $event)"
+<ng-template #membersMenu>
+  <div z-menu-content class="ngm-density__compact">
+    @for (property of membersSignal(); track property.name) {
+      <div
+        class="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none"
+        (click)="$event.stopPropagation()"
       >
-        <ngm-entity-property
-          class="w-full"
-          hiddenIcon
-          [property]="property"
-          [displayBehaviour]="DISPLAY_BEHAVIOUR.auto"
-        />
-      </z-checkbox>
-    </button>
-  }
-</mat-menu>
+        <z-checkbox
+          class="ngm-checkbox__property"
+          [ngModel]="$any(property).selected"
+          (checkChange)="toggleMember(property.name, $event)"
+        >
+          <ngm-entity-property
+            class="w-full"
+            hiddenIcon
+            [property]="property"
+            [displayBehaviour]="DISPLAY_BEHAVIOUR.auto"
+          />
+        </z-checkbox>
+      </div>
+    }
+  </div>
+</ng-template>
 
 <ng-template #propertiesMenu>
   <div cdkMenu class="cdk-menu__large">
@@ -387,22 +413,24 @@
 </ng-template>
 
 <z-radio-group [(ngModel)]="order">
-  <mat-menu #orderMenu="matMenu" class="ngm-density__compact">
-    <button mat-menu-item disableRipple (click)="$event.stopPropagation()">
-      <z-radio class="ngm-radio-button__property" [value]="null">
-        {{ 'Ngm.Property.None' | translate: { Default: 'None' } }}
-      </z-radio>
-    </button>
+  <ng-template #orderMenu>
+    <div z-menu-content class="ngm-density__compact">
+      <button type="button" z-menu-item class="w-full" (click)="$event.stopPropagation()">
+        <z-radio class="ngm-radio-button__property" [value]="null">
+          {{ 'Ngm.Property.None' | translate: { Default: 'None' } }}
+        </z-radio>
+      </button>
 
-    <button mat-menu-item disableRipple (click)="$event.stopPropagation()">
-      <z-radio class="ngm-radio-button__property" value="ASC">
-        {{ 'Ngm.Property.Order_ASC' | translate: { Default: 'ASC' } }}
-      </z-radio>
-    </button>
-    <button mat-menu-item disableRipple (click)="$event.stopPropagation()">
-      <z-radio class="ngm-radio-button__property" value="DESC">
-        {{ 'Ngm.Property.Order_DESC' | translate: { Default: 'DESC' } }}
-      </z-radio>
-    </button>
-  </mat-menu>
+      <button type="button" z-menu-item class="w-full" (click)="$event.stopPropagation()">
+        <z-radio class="ngm-radio-button__property" value="ASC">
+          {{ 'Ngm.Property.Order_ASC' | translate: { Default: 'ASC' } }}
+        </z-radio>
+      </button>
+      <button type="button" z-menu-item class="w-full" (click)="$event.stopPropagation()">
+        <z-radio class="ngm-radio-button__property" value="DESC">
+          {{ 'Ngm.Property.Order_DESC' | translate: { Default: 'DESC' } }}
+        </z-radio>
+      </button>
+    </div>
+  </ng-template>
 </z-radio-group>

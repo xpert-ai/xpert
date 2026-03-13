@@ -1,15 +1,20 @@
-import { MatMenuModule } from '@angular/material/menu'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { Meta, StoryObj, moduleMetadata } from '@storybook/angular'
-import { ZardButtonComponent, ZardIconComponent, ZardTabGroupComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardIconComponent,
+  ZardMenuImports,
+  ZardTabGroupComponent,
+  ZardTabsImports
+} from '@xpert-ai/headless-ui'
 
 export default {
   title: 'Common/ZardTabs',
   component: ZardTabGroupComponent,
   decorators: [
     moduleMetadata({
-      imports: [BrowserAnimationsModule, ZardButtonComponent, MatMenuModule, ZardIconComponent, ...ZardTabsImports, OcapCoreModule]
+      imports: [BrowserAnimationsModule, ZardButtonComponent, ...ZardMenuImports, ZardIconComponent, ...ZardTabsImports, OcapCoreModule]
     })
   ]
 } as Meta<ZardTabGroupComponent>
@@ -27,7 +32,7 @@ export const CloseButton = ((args: any) => ({
 <z-tab-group class="ngm-appearance-desktop" disableRipple>
   <z-tab label="First">
     <ng-template zTabLabel>First
-      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-appearance-desktop ngm-tab-button-right" [matMenuTriggerFor]="pointMenu" [matMenuTriggerData]="{point: point}">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="ngm-appearance-desktop ngm-tab-button-right" z-menu [zMenuTriggerFor]="pointMenu" [zMenuTriggerData]="{point: point}" zPlacement="leftTop">
           <z-icon zType="more_vert"></z-icon>
       </button>
     </ng-template>
@@ -35,10 +40,12 @@ export const CloseButton = ((args: any) => ({
   <z-tab label="Second"> Content 2 </z-tab>
   <z-tab label="Third"> Content 3 </z-tab>
 </z-tab-group>
-<mat-menu #pointMenu="matMenu" xPosition="before">
-  <button mat-menu-item>Item 1</button>
-  <button mat-menu-item>Item 2</button>
-</mat-menu>
+<ng-template #pointMenu>
+  <div z-menu-content>
+    <button type="button" z-menu-item>Item 1</button>
+    <button type="button" z-menu-item>Item 2</button>
+  </div>
+</ng-template>
   `,
   styles: [``]
 })).bind({})
