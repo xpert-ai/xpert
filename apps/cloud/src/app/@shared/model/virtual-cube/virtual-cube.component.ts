@@ -2,9 +2,8 @@ import { CdkDrag, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-
-import { MatExpansionModule } from '@angular/material/expansion'
 import {
+  ZardAccordionImports,
   ZardButtonComponent,
   ZardDividerComponent,
   ZardFormImports,
@@ -59,7 +58,7 @@ import { ChecklistComponent } from '../../common'
     ZardIconComponent,
     MatSidenavModule,
     ...ZardFormImports,
-    MatExpansionModule,
+    ...ZardAccordionImports,
     ZardInputDirective,
     TranslateModule,
     OcapCoreModule,

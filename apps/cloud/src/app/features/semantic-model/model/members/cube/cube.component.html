@@ -1,9 +1,9 @@
-<mat-expansion-panel class="mat-elevation-z" displayDensity="cosy">
-  <mat-expansion-panel-header class="whitespace-nowrap">
-    <mat-panel-title>
+<z-accordion-item class="mat-elevation-z rounded-[1rem]" displayDensity="cosy">
+  <z-accordion-header class="whitespace-nowrap">
+    <z-accordion-title>
       {{ cube().caption }} <span class="text-sm italic ml-2">({{ cube().name }})</span>
-    </mat-panel-title>
-    <mat-panel-description>
+    </z-accordion-title>
+    <z-accordion-description class="gap-1">
       @if (entity()?.job?.endAt) {
         <span class="text-sm">{{ 'PAC.MODEL.LastSyncTime' | translate: { Default: 'Last sync time' } }}:</span>
         <span class="text-sm font-mono">{{ entity().job.endAt | date: 'short' }}</span>
@@ -129,8 +129,8 @@
       >
         <i class="ri-git-repository-commits-line"></i>
       </button>
-    </mat-panel-description>
-  </mat-expansion-panel-header>
+    </z-accordion-description>
+  </z-accordion-header>
 
   <div class="relative overflow-x-auto sm:rounded-lg">
     <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
@@ -257,4 +257,4 @@
       </tbody>
     </table>
   </div>
-</mat-expansion-panel>
+</z-accordion-item>

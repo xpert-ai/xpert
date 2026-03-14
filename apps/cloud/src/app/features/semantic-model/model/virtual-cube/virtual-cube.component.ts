@@ -22,7 +22,7 @@ import {
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
-import { ZardToastService, type ZardSwitchChange } from '@xpert-ai/headless-ui'
+import { ZardAccordionImports, ZardToastService, type ZardSwitchChange } from '@xpert-ai/headless-ui'
 import { SemanticModelService } from '../model.service'
 import { CdkDragDropContainers, SemanticModelEntityType } from '../types'
 import { VirtualCubeStateService } from './virtual-cube.service'
@@ -39,6 +39,7 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
     CommonModule,
     SharedModule,
     MaterialModule,
+    ...ZardAccordionImports,
     NgmSelectComponent,
 
     OcapCoreModule,

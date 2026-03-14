@@ -1,8 +1,7 @@
 import { Component } from '@angular/core'
-import { MatExpansionPanel } from '@angular/material/expansion'
 import { FieldWrapper, FormlyFieldConfig } from '@ngx-formly/core'
 import { isNil } from 'lodash-es'
-import type { ZardSwitchChange } from '@xpert-ai/headless-ui'
+import type { ZardAccordionItemLike, ZardSwitchChange } from '@xpert-ai/headless-ui'
 
 @Component({
   selector: 'ngm-formly-accordion',
@@ -14,7 +13,7 @@ import type { ZardSwitchChange } from '@xpert-ai/headless-ui'
   }
 })
 export class NgmFormlyAccordionComponent<F extends FormlyFieldConfig = FormlyFieldConfig> extends FieldWrapper<F> {
-  onToggle(event: ZardSwitchChange, field: FormlyFieldConfig, expansionPanel: MatExpansionPanel) {
+  onToggle(event: ZardSwitchChange, field: FormlyFieldConfig, expansionPanel: ZardAccordionItemLike) {
     this.formControl.patchValue({
       [field.props.keyShow]: event.checked
     })

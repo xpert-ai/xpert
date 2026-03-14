@@ -1,4 +1,4 @@
-<mat-accordion
+<z-accordion
   class="ngm-accordion"
   [displayMode]="props.displayMode"
   [hideToggle]="props.hideToggle"
@@ -6,14 +6,14 @@
   [togglePosition]="props.togglePosition ?? 'before'"
 >
   @for (item of field.fieldGroup; track item.key) {
-    <mat-expansion-panel
-      #expansionPanel
+    <z-accordion-item
+      #expansionPanel="zAccordionItem"
       [class.mat-elevation-z]="props.elevationZ"
       [expanded]="!item.props.disabled && item.props.expanded"
       [disabled]="(item.hideExpression || item.props.toggleable) && !isShow(item)"
     >
-      <mat-expansion-panel-header>
-        <mat-panel-title>
+      <z-accordion-header>
+        <z-accordion-title class="overflow-visible">
           <span>{{ item.props.label }}</span>
 
           @if (item.props?.help) {
@@ -27,8 +27,8 @@
               <i class="ri-external-link-line inline-block group-hover:translate-x-1 transition-transform"></i>
             </a>
           }
-        </mat-panel-title>
-        <mat-panel-description class="flex-1">
+        </z-accordion-title>
+        <z-accordion-description class="!flex-none">
           @if (item.hideExpression || item.props.toggleable) {
             <z-switch
               labelPosition="before"
@@ -39,10 +39,10 @@
             >
             </z-switch>
           }
-        </mat-panel-description>
-      </mat-expansion-panel-header>
+        </z-accordion-description>
+      </z-accordion-header>
 
       <formly-field [field]="item"></formly-field>
-    </mat-expansion-panel>
+    </z-accordion-item>
   }
-</mat-accordion>
+</z-accordion>

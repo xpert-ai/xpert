@@ -7,15 +7,12 @@
   border: 1px dashed var(--ngm-color-outline);
 }
 .cdk-drop-list.ngm-property-modeling__empty {
-    min-height: 50px;
-    margin-bottom: 1rem;
-  }
-  .mat-expansion-panel-body {
-    padding: 0 16px;
-  }
+  min-height: 50px;
+  margin-bottom: 1rem;
+}
 
-.mat-expansion-panel {
-  background: transparent;
+[data-slot='accordion-body'] > div {
+  padding: 0 16px;
 }
 
 .pac-model-calculation__preview-table {
@@ -41,17 +38,6 @@
     width: 100%;
     height: 100%;
   }
-}
-
-.mat-expansion-panel-header {
-  [z-button][data-icon-only],
-  z-button[data-icon-only] {
-    opacity: 0.6;
-  }
-}
-
-.mat-accordion.mat-accordion-multi {
-  overflow-y: auto;
 }
 
 .ngm-analytical-grid {

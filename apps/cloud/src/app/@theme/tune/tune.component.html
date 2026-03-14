@@ -72,13 +72,10 @@
             <span></span>
             <span>{{ 'PAC.KEY_WORDS.Progress' | translate: { Default: 'Progress' } }}: {{ progress() }}%</span>
           </div>
-          <mat-progress-bar
-            class="w-full"
-            [color]="progress() > 90 ? 'primary' : 'accent'"
-            mode="buffer"
-            [bufferValue]="90"
-            [value]="progress()"
-          />
+          <div class="relative h-1 w-full overflow-hidden" [ngClass]="progress() > 90 ? 'bg-primary/20' : 'bg-chart-1/20'">
+            <div class="absolute inset-y-0 left-0 w-[90%]" [ngClass]="progress() > 90 ? 'bg-primary/35' : 'bg-chart-1/35'"></div>
+            <div class="absolute inset-y-0 left-0 transition-all duration-200" [ngClass]="progress() > 90 ? 'bg-primary' : 'bg-chart-1'" [style.width.%]="progress()"></div>
+          </div>
           <div class="flex justify-between items-center">
             <span
               ><span>{{ 'PAC.KEY_WORDS.Complete' | translate: { Default: 'Complete' } }}:</span>

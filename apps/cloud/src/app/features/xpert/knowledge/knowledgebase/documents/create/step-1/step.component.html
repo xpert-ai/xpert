@@ -85,7 +85,7 @@
                 </button>
               }
 
-              <mat-progress-bar class="absolute bottom-0 left-0 w-full" mode="determinate" [value]="item.progress" [color]="item.progress === 100 ? 'primary' : 'accent'" />
+              <z-progress-bar class="absolute bottom-0 left-0 w-full" zShape="square" zSize="sm" [progress]="item.progress" [zType]="item.progress === 100 ? 'default' : 'accent'" />
             </div>
           }
         </div>

@@ -5,6 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialogModule } from '@angular/material/dialog'
 import {
+  ZardAccordionImports,
   ZardButtonComponent,
   ZardDividerComponent,
   ZardFormImports,
@@ -13,7 +14,6 @@ import {
   ZardCheckboxComponent,
   ZardMenuImports
 } from '@xpert-ai/headless-ui'
-import { MatExpansionModule } from '@angular/material/expansion'
 import { MatTableModule } from '@angular/material/table'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -43,7 +43,7 @@ import {
     ZardInputDirective,
     ...ZardFormImports,
     ZardButtonComponent,
-    MatExpansionModule,
+    ...ZardAccordionImports,
     ZardIconComponent,
     ZardDividerComponent,
     ...ZardMenuImports,

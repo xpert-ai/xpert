@@ -8,11 +8,11 @@ import { TranslateModule } from '@ngx-translate/core'
 import { sortBy } from 'lodash-es'
 import { BehaviorSubject, debounceTime, distinctUntilChanged, map, shareReplay, switchMap } from 'rxjs'
 import { FeedsService, VisitsService } from '../../@core'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
+import { ZardProgressBarComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslateModule, MatProgressBarModule, OcapCoreModule],
+  imports: [CommonModule, RouterModule, TranslateModule, ZardProgressBarComponent, OcapCoreModule],
   selector: 'pac-assets',
   templateUrl: './assets.component.html',
   styleUrls: ['./assets.component.scss'],

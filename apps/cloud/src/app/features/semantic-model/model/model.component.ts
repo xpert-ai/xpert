@@ -40,7 +40,6 @@ import { OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { ScrollingModule } from '@angular/cdk/scrolling'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
 import { lowerCase, snakeCase, sortBy, uniqBy } from 'lodash-es'
@@ -115,7 +114,6 @@ import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpe
     ZardButtonComponent,
     MatSidenavModule,
     ...ZardTooltipImports,
-    MatProgressBarModule,
     MatProgressSpinnerModule,
 
     // OCAP Modules

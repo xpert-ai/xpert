@@ -3,7 +3,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { ActivatedRoute, Router } from '@angular/router'
 import { linkedModel } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -36,7 +35,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     CdkListboxModule,
     ...ZardTooltipImports,
-    MatProgressBarModule,
     KnowledgeDocumentCreateSettingsComponent
   ]
 })

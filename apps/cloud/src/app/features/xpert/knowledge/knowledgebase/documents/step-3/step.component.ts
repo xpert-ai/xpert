@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, input, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { ActivatedRoute, Router } from '@angular/router'
 import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
@@ -24,7 +23,7 @@ import {
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
 import { KnowledgeDocumentsComponent } from '../documents.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardProgressBarComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -38,8 +37,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     CdkListboxModule,
     ContentLoaderModule,
+    ZardProgressBarComponent,
     ...ZardTooltipImports,
-    MatProgressBarModule,
     KnowledgeDocIdComponent
   ]
 })

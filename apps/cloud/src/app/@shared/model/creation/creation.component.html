@@ -102,7 +102,7 @@
       >{{ 'PAC.MENU.MODEL.SELECT_CATALOG' | translate: { Default: 'Select Catalog' } }}
     </label>
     @if (catalogsLoading()) {
-      <mat-progress-bar mode="query" />
+      <z-progress-bar zIndeterminate zShape="square" />
     }
     <div class="relative flex flex-col">
       <ngm-selection-table

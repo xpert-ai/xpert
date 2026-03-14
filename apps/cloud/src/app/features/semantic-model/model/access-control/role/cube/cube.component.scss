@@ -1,13 +1,11 @@
 @reference "../../../../../../../styles/tailwind-reference.css";
 :host {
-  --mat-expansion-container-background-color: var(--ngm-color-surface-container-low);
-
   @apply w-full flex-1 overflow-auto flex flex-col max-h-full h-full;
 }
 
 // 成员不可见样式
 .pac-model-access__hierarchy-hidden {
-  .mat-expansion-panel-header-title {
+  [data-slot='accordion-title'] {
     text-decoration: line-through;
   }
 }
@@ -20,10 +18,6 @@
   width: 100%;
   overflow-y: auto;
   overflow-x: hidden;
-}
-
-.mat-expansion-panel-header {
-  padding: 0 0 0 24px;
 }
 
 label {

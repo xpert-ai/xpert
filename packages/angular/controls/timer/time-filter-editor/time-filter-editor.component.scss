@@ -1,18 +1,9 @@
 @reference "../../../../../tailwind-workspace-reference.css";
 :host {
-  .mat-expansion-panel-header-description {
-    justify-content: flex-end;
-    margin-right: 0;
-  }
-  
   .ngm-timer-editor__header {
     display: flex;
     justify-content: space-between;
   }
-}
-
-.mat-expansion-panel-header {
-  @apply pr-0;
 }
 
 .ngm-timer-editor__add {

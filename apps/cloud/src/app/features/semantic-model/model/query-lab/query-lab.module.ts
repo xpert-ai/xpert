@@ -12,12 +12,14 @@ import { QueryComponent } from './query/query.component'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import { CdkMenuModule } from '@angular/cdk/menu'
+import { ZardProgressBarComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   imports: [
     SharedModule,
     MaterialModule,
     CdkMenuModule,
+    ZardProgressBarComponent,
     ReactiveFormsModule,
 
     NgmTableComponent,

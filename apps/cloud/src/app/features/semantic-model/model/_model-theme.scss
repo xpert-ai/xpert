@@ -162,18 +162,21 @@
     }
   }
 
-  .pac-model__accordion.mat-accordion {
-    .mat-expansion-panel {
+  .pac-model__accordion[data-slot='accordion'] {
+    > [data-slot='accordion-item'] {
       border-radius: 1rem;
     }
-    .mat-expansion-panel:first-of-type {
+
+    > [data-slot='accordion-item']:first-of-type {
       border-top-right-radius: 1rem;
       border-top-left-radius: 1rem;
     }
-    .mat-expansion-panel:last-of-type {
+
+    > [data-slot='accordion-item']:last-of-type {
       border-bottom-right-radius: 1rem;
       border-bottom-left-radius: 1rem;
     }
+
     .mat-mdc-list-item {
       border-radius: 5px;
 

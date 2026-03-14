@@ -1,11 +1,10 @@
 import { CommonModule } from '@angular/common'
 import { Component, booleanAttribute, input, output } from '@angular/core'
 
-import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { NgmDndDirective } from '@metad/core'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardProgressBarComponent } from '@xpert-ai/headless-ui'
 
 export type UploadFile = {
   file: File
@@ -20,7 +19,7 @@ export type UploadFile = {
     TranslateModule,
     ZardButtonComponent,
     ZardIconComponent,
-    MatProgressBarModule,
+    ZardProgressBarComponent,
     AppearanceDirective,
     DensityDirective,
     NgmDndDirective

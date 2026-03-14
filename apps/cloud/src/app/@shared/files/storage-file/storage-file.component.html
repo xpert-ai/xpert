@@ -10,5 +10,10 @@
   <i class="ri-close-line"></i>
 </button>
 
-<mat-progress-bar class="absolute bottom-0 left-0 w-full" mode="determinate" [value]="progress()"
-  [color]="progress() === 100 ? 'primary' : 'accent'" />
+<z-progress-bar
+  zShape="square"
+  zSize="sm"
+  [progress]="progress() ?? 0"
+  [zType]="progress() === 100 ? 'default' : 'accent'"
+  class="absolute bottom-0 left-0 w-full"
+/>

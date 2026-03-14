@@ -12,9 +12,9 @@ import {
   ZardDividerComponent,
   ZardIconComponent,
   ZardMenuImports,
+  ZardProgressBarComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { NgmCommonModule, NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
@@ -36,8 +36,8 @@ import { BehaviorSubject, combineLatestWith, firstValueFrom, map, of, shareRepla
     ZardButtonComponent,
     ZardIconComponent,
     ZardDividerComponent,
+    ZardProgressBarComponent,
     ...ZardMenuImports,
-    MatProgressBarModule,
     ...ZardTooltipImports,
     TranslateModule,
     ScrollingModule,

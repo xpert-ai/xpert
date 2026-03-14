@@ -3,7 +3,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { myRxResource, NgmI18nPipe, omitBlank } from '@metad/ocap-angular/core'
@@ -52,7 +51,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     CdkListboxModule,
     ...ZardTooltipImports,
-    MatProgressBarModule,
     ContentLoaderModule,
     MarkdownModule,
     NgmI18nPipe,

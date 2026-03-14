@@ -4,7 +4,6 @@ import { Dialog } from '@angular/cdk/dialog'
 import { Component, computed, effect, HostListener, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatExpansionModule, MatExpansionPanel } from '@angular/material/expansion'
 import { injectOrganizationId } from '@metad/cloud/state'
 import { AiProviderRole, ICopilot } from '@metad/contracts'
 import { CapitalizePipe, DisappearAnimations } from '@metad/core'
@@ -17,7 +16,7 @@ import { capitalize } from 'lodash-es'
 import { map, Observable, switchMap } from 'rxjs'
 import { PACCopilotService } from '../../../services'
 import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardAccordionImports, type ZardAccordionItemLike, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-settings-copilot-basic',
@@ -29,7 +28,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     FormsModule,
     ReactiveFormsModule,
     CdkMenuModule,
-    MatExpansionModule,
+    ...ZardAccordionImports,
     ...ZardTooltipImports,
     NgmDensityDirective,
     NgmSpinComponent,
@@ -97,7 +96,7 @@ export class CopilotBasicComponent {
     })
   }
 
-  onToggle(copilot: ICopilot, role: AiProviderRole, current: boolean, expansion: MatExpansionPanel) {
+  onToggle(copilot: ICopilot, role: AiProviderRole, current: boolean, expansion: ZardAccordionItemLike) {
     let updateObs: Observable<unknown>
     if (copilot) {
       updateObs = this.copilotServer.update(copilot.id, { enabled: !current })

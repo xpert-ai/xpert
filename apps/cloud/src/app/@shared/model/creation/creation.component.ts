@@ -13,8 +13,7 @@ import {
   Validators
 } from '@angular/forms'
 
-import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
+import { ZardButtonComponent, ZardCheckboxComponent, ZardFormImports, ZardInputDirective, ZardProgressBarComponent } from '@xpert-ai/headless-ui'
 import { RouterModule } from '@angular/router'
 import { BusinessAreasService, DataSourceService, ISemanticModel } from '@metad/cloud/state'
 import { nonBlank } from '@metad/core'
@@ -40,7 +39,7 @@ import { IDataSource, getErrorMessage } from '../../../@core'
     TranslateModule,
     DragDropModule,
     ...ZardFormImports,
-    MatProgressBarModule,
+    ZardProgressBarComponent,
     ZardButtonComponent,
     ZardInputDirective,
     ZardCheckboxComponent,

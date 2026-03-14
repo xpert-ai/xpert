@@ -4,8 +4,14 @@ import { ChangeDetectionStrategy, Component, HostBinding, Input, OnInit, inject 
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatExpansionModule } from '@angular/material/expansion'
+import {
+  ZardAccordionImports,
+  ZardButtonComponent,
+  ZardDividerComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective
+} from '@xpert-ai/headless-ui'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { ISelectOption, NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
@@ -26,7 +32,7 @@ import { BehaviorSubject, combineLatest, map, Observable, shareReplay, startWith
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DragDropModule, MatDialogModule, ...ZardFormImports, MatExpansionModule, ZardIconComponent, ZardDividerComponent, ZardInputDirective, ZardButtonComponent, OcapCoreModule, NgmSelectComponent],
+  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DragDropModule, MatDialogModule, ...ZardFormImports, ...ZardAccordionImports, ZardIconComponent, ZardDividerComponent, ZardInputDirective, ZardButtonComponent, OcapCoreModule, NgmSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-time-filter-editor',
   templateUrl: './time-filter-editor.component.html',

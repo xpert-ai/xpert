@@ -108,11 +108,11 @@
         <ng-template zTabContent>
           <div class="flex-1 flex flex-col justify-start items-stretch overflow-auto">
             <ngm-search class="m-2" [formControl]="fnSearchControl" />
-            <mat-accordion id="ngm-calculated-functions" cdkDropList [cdkDropListData]="FUNCTIONS">
+            <z-accordion id="ngm-calculated-functions" cdkDropList [cdkDropListData]="FUNCTIONS">
               @for (f of functions$ | async; track f) {
-                <mat-expansion-panel hideToggle class="mat-elevation-z" style="background: transparent">
-                  <mat-expansion-panel-header>
-                    <mat-panel-title cdkDrag [cdkDragData]="f.insertText">
+                <z-accordion-item hideToggle class="mat-elevation-z bg-transparent">
+                  <z-accordion-header>
+                    <z-accordion-title cdkDrag [cdkDragData]="f.insertText">
                       <span
                         [ngmHighlight]="fnHighlight"
                         [caseSensitive]="false"
@@ -120,18 +120,18 @@
                         [content]="f.label"
                       >
                       </span>
-                    </mat-panel-title>
-                  </mat-expansion-panel-header>
+                    </z-accordion-title>
+                  </z-accordion-header>
 
-                  <ng-template matExpansionPanelContent>
+                  <ng-template zAccordionContent>
                     <div class="my-2 text-xs font-mono italic">
                       {{ f.expression }}
                     </div>
                     <markdown [textContent]="f.documentation" class=""></markdown>
                   </ng-template>
-                </mat-expansion-panel>
+                </z-accordion-item>
               }
-            </mat-accordion>
+            </z-accordion>
           </div>
         </ng-template>
       </z-tab>
