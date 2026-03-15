@@ -22,48 +22,47 @@
   <div class="pac-cdk-drop__list pac-table-container flex-1 h-1/2 overflow-auto rounded-lg border pb-4"
     cdkDropList
     (cdkDropListDropped)="dropRole($event)">
-    <table mat-table [dataSource]="roleUsages$" style="min-width: 100%;" class="ngm-density__compact" >
-      <!-- Drag indicator -->
-      <ng-container matColumnDef="sort" sticky>
-        <th mat-header-cell *matHeaderCellDef style="width: 3rem;"></th>
-        <td mat-cell *matCellDef="let element">
-          <z-icon cdkDragHandle zSize="sm" class="pac-model-role-usage__drag" zType="drag_indicator"></z-icon>
-        </td>
-      </ng-container>
-      <!-- Name Column -->
-      <ng-container matColumnDef="name">
-        <th mat-header-cell *matHeaderCellDef> {{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }} </th>
-        <td mat-cell *matCellDef="let element">
-          <a href [routerLink]="['../../', element.key, 'overview']">{{ element.name}}</a>
-        </td>
-      </ng-container>
-      <ng-container matColumnDef="type">
-        <th mat-header-cell *matHeaderCellDef> {{ 'PAC.KEY_WORDS.Type' | translate: {Default: 'Type'} }} </th>
-        <td mat-cell *matCellDef="let element">
-          <z-radio-group [ngModel]="element.type" disabled class="ngm-radio-group__horizontal" displayDensity="compact">
-            <z-radio >{{ 'PAC.MODEL.AccessControl.SingleRole' | translate: {Default: 'Single Role'} }}</z-radio>
-            <!-- <z-radio [value]="RoleTypeEnum.single">Single</z-radio> -->
-            <z-radio [value]="RoleTypeEnum.union">
-              {{ 'PAC.MODEL.AccessControl.UnionRole' | translate: {Default: 'Union Role'} }}
-            </z-radio>
-          </z-radio-group>
-        </td>
-      </ng-container>
-      <ng-container matColumnDef="action">
-        <th mat-header-cell *matHeaderCellDef> {{ 'PAC.KEY_WORDS.Action' | translate: {Default: 'Action'} }} </th>
-        <td mat-cell *matCellDef="let element">
-          <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" ngmAppearance="danger" (click)="removeRoleUsage(element.name)">
-            <z-icon zType="close"></z-icon>
-          </button>
-        </td>
-      </ng-container>
-      <tr mat-header-row *matHeaderRowDef="roleUsagesColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: roleUsagesColumns;" cdkDrag></tr>
-      <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell text-center" colspan="4">
-          {{ 'PAC.KEY_WORDS.NoData' | translate: {Default: 'No data'} }}
-        </td>
-      </tr>
+    <table z-table style="min-width: 100%;" class="ngm-density__compact">
+      <thead z-table-header>
+        <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+          <th z-table-head zTableStickyStart [zTableStickyStart]="0" [zTableStickyZIndex]="5" class="w-12"></th>
+          <th z-table-head>{{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}</th>
+          <th z-table-head>{{ 'PAC.KEY_WORDS.Type' | translate: {Default: 'Type'} }}</th>
+          <th z-table-head>{{ 'PAC.KEY_WORDS.Action' | translate: {Default: 'Action'} }}</th>
+        </tr>
+      </thead>
+
+      <tbody z-table-body>
+        @for (element of (roleUsages$ | async) ?? []; track element?.name || $index) {
+          <tr z-table-row cdkDrag>
+            <td z-table-cell zTableStickyStart [zTableStickyStart]="0" [zTableStickyZIndex]="4" class="w-12">
+              <z-icon cdkDragHandle zSize="sm" class="pac-model-role-usage__drag" zType="drag_indicator"></z-icon>
+            </td>
+            <td z-table-cell>
+              <a href [routerLink]="['../../', element.key, 'overview']">{{ element.name}}</a>
+            </td>
+            <td z-table-cell>
+              <z-radio-group [ngModel]="element.type" disabled class="ngm-radio-group__horizontal" displayDensity="compact">
+                <z-radio >{{ 'PAC.MODEL.AccessControl.SingleRole' | translate: {Default: 'Single Role'} }}</z-radio>
+                <z-radio [value]="RoleTypeEnum.union">
+                  {{ 'PAC.MODEL.AccessControl.UnionRole' | translate: {Default: 'Union Role'} }}
+                </z-radio>
+              </z-radio-group>
+            </td>
+            <td z-table-cell class="w-20">
+              <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" ngmAppearance="danger" (click)="removeRoleUsage(element.name)">
+                <z-icon zType="close"></z-icon>
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr z-table-row>
+            <td z-table-cell colspan="4" class="py-8 text-center">
+              {{ 'PAC.KEY_WORDS.NoData' | translate: {Default: 'No data'} }}
+            </td>
+          </tr>
+        }
+      </tbody>
     </table>
   </div>
 }
@@ -80,35 +79,36 @@
     </div>
   </div>
   <div class="pac-table-container mt-4 flex-1 overflow-auto rounded-lg border pb-4">
-    <table mat-table [dataSource]="users$" class="ngm-density__compact w-full">
-      <!-- Name Column -->
-      <ng-container matColumnDef="user">
-        <th mat-header-cell *matHeaderCellDef> {{ 'PAC.KEY_WORDS.User' | translate: {Default: 'User'} }} </th>
-        <td mat-cell *matCellDef="let element">
-          <pac-user-profile-inline [user]="element"></pac-user-profile-inline>
-        </td>
-      </ng-container>
+    <table z-table class="ngm-density__compact w-full">
+      <thead z-table-header>
+        <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+          <th z-table-head>{{ 'PAC.KEY_WORDS.User' | translate: {Default: 'User'} }}</th>
+          <th z-table-head>{{ 'PAC.KEY_WORDS.Action' | translate: {Default: 'Action'} }}</th>
+        </tr>
+      </thead>
 
-      <ng-container matColumnDef="action">
-        <th mat-header-cell *matHeaderCellDef> {{ 'PAC.KEY_WORDS.Action' | translate: {Default: 'Action'} }} </th>
-        <td mat-cell *matCellDef="let element">
-
-          <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="removeUser(element.id)">
-            <div class="flex justify-center items-center">
-              <z-icon zType="close"></z-icon>
-            </div>
-          </button>
-        </td>
-      </ng-container>
-
-      <tr mat-header-row *matHeaderRowDef="displayedColumns"></tr>
-      <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
-
-      <tr class="mat-row" *matNoDataRow>
-        <td class="mat-cell text-center" colspan="4">
-          {{ 'PAC.KEY_WORDS.NoData' | translate: {Default: 'No data'} }}
-        </td>
-      </tr>
+      <tbody z-table-body>
+        @for (element of (users$ | async) ?? []; track element.id) {
+          <tr z-table-row>
+            <td z-table-cell>
+              <pac-user-profile-inline [user]="element"></pac-user-profile-inline>
+            </td>
+            <td z-table-cell class="w-20">
+              <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="removeUser(element.id)">
+                <div class="flex justify-center items-center">
+                  <z-icon zType="close"></z-icon>
+                </div>
+              </button>
+            </td>
+          </tr>
+        } @empty {
+          <tr z-table-row>
+            <td z-table-cell colspan="2" class="py-8 text-center">
+              {{ 'PAC.KEY_WORDS.NoData' | translate: {Default: 'No data'} }}
+            </td>
+          </tr>
+        }
+      </tbody>
     </table>
   </div>
 

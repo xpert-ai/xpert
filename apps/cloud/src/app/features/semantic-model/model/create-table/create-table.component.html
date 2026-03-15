@@ -207,33 +207,42 @@
       @for (sheet of activedSheets; track sheet) {
         <div class="flex w-full">
           <div class="w-full overflow-auto" displayDensity="compact">
-            <table mat-table [dataSource]="sheet.preview" class="mat-elevation-z">
-              @for (header of sheet.columns; track header) {
-                <ng-container [matColumnDef]="header.name">
-                  <th mat-header-cell *matHeaderCellDef>
-                    <div class="p-2 flex flex-col justify-start items-start">
-                      <ngm-select
-                        [(ngModel)]="header.type"
-                        class="ngm-select p-2"
-                  [selectOptions]="[
-                    { value: 'String', label: 'String' },
-                    { value: 'Number', label: 'Integer' },
-                    { value: 'Numeric', label: 'Numeric' },
-                    { value: 'Date', label: 'Date' }
-                  ]"
+            <table z-table>
+              <thead z-table-header>
+                <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+                  @for (header of sheet.columns; track header.name) {
+                    <th z-table-head class="sticky top-0 z-10 bg-background">
+                      <div class="p-2 flex flex-col justify-start items-start">
+                        <ngm-select
+                          [(ngModel)]="header.type"
+                          class="ngm-select p-2"
+                          [selectOptions]="[
+                            { value: 'String', label: 'String' },
+                            { value: 'Number', label: 'Integer' },
+                            { value: 'Numeric', label: 'Numeric' },
+                            { value: 'Date', label: 'Date' }
+                          ]"
                         />
-                      <input
-                        z-input
-                        [(ngModel)]="header.fieldName"
-                        class="ngm-input hover:bg-slate-100 dark:hover:bg-neutral-700"
+                        <input
+                          z-input
+                          [(ngModel)]="header.fieldName"
+                          class="ngm-input hover:bg-slate-100 dark:hover:bg-neutral-700"
                         />
-                    </div>
-                  </th>
-                  <td mat-cell *matCellDef="let element">{{ element[header.name] }}</td>
-                </ng-container>
-              }
-              <tr mat-header-row *matHeaderRowDef="sheet.displayedColumns; sticky: true" class="bg-gray-100"></tr>
-              <tr mat-row *matRowDef="let row; columns: sheet.displayedColumns"></tr>
+                      </div>
+                    </th>
+                  }
+                </tr>
+              </thead>
+
+              <tbody z-table-body>
+                @for (element of sheet.preview; track $index) {
+                  <tr z-table-row>
+                    @for (header of sheet.columns; track header.name) {
+                      <td z-table-cell>{{ element[header.name] }}</td>
+                    }
+                  </tr>
+                }
+              </tbody>
             </table>
           </div>
         </div>

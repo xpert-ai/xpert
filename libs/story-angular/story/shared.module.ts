@@ -13,6 +13,7 @@ import {
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
+  ZardTableImports,
   ZardTabsImports,
   ZardCheckboxComponent,
   ZardTooltipImports
@@ -20,7 +21,6 @@ import {
 import { MatListModule } from '@angular/material/list'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatTableModule } from '@angular/material/table'
 
 const MAT_MODULES = [
   ZardIconComponent,
@@ -31,7 +31,7 @@ const MAT_MODULES = [
   ZardInputDirective,
   MatDialogModule,
   MatSidenavModule,
-  MatTableModule,
+  ...ZardTableImports,
   ZardCheckboxComponent,
   ...ZardTooltipImports,
   MatProgressBarModule,

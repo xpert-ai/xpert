@@ -1,109 +1,137 @@
 <div class="ngm-table__container flex-1 h-full flex flex-col overflow-auto">
   <table
-    mat-table
-    [dataSource]="dataSource"
-    matSort
+    z-table
+    [zSize]="tableSize()"
     [class.ngm-table-grid]="grid()"
-    class="min-w-full"
+    class="min-w-full text-sm"
     [displayDensity]="displayDensity()"
   >
-    <!-- Checkbox Column -->
-    <ng-container matColumnDef="select">
-      <th mat-header-cell *matHeaderCellDef>
-        <z-checkbox
-          class="mx-2"
-          (checkChange)="$event ? toggleAllRows() : null"
-          [ngModel]="selection.hasValue() && isAllSelected()"
-          [indeterminate]="selection.hasValue() && !isAllSelected()"
-          [aria-label]="checkboxLabel()"
-        >
-        </z-checkbox>
-      </th>
-      <td mat-cell *matCellDef="let row">
-        <z-checkbox
-          class="mx-2"
-          (click)="$event.stopPropagation()"
-          (checkChange)="$event ? selection.toggle(row) : null"
-          [ngModel]="selection.isSelected(row)"
-          [aria-label]="checkboxLabel(row)"
-        >
-        </z-checkbox>
-      </td>
-    </ng-container>
+    <thead z-table-header>
+      <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+        @if (selectable()) {
+          <th z-table-head zTableStickyStart [zTableStickyStart]="0" [zTableStickyZIndex]="6" class="w-14 min-w-14">
+            <z-checkbox
+              class="mx-2"
+              (checkChange)="$event ? toggleAllRows() : null"
+              [ngModel]="selection.hasValue() && isAllSelected()"
+              [indeterminate]="selection.hasValue() && !isAllSelected()"
+              [aria-label]="checkboxLabel()"
+            />
+          </th>
+        }
 
-    <!-- Columns -->
-    @for (column of columns(); track column.name) {
-      <ng-container [matColumnDef]="column.name" [sticky]="column.sticky" [stickyEnd]="column.stickyEnd">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>
-          <div class="ngm-header-cell flex-1 flex justify-between items-center whitespace-nowrap">
-            <span>
-              {{ column.caption || column.name }}
-            </span>
-
-            <div
-              class="searchable flex-1 flex justify-between items-center"
-              [class.searching]="searchingColumn === column.name"
-            >
-              <input
-                z-input
-                zBorderless
-                placeholder="{{ 'PAC.KEY_WORDS.SEARCH' | translate: { Default: 'Search' } }}"
-                type="text"
-                class="flex-1 text-left text-sm"
-                value=""
-                [formControl]="searchControl"
-                (click)="$event.stopPropagation()"
-                (keyup)="escapeSearching($event)"
-              />
-              <span
-                role="img"
-                aria-label="search"
-                class="searchable-icon"
-                (click)="
-                  $event.stopPropagation(); searchingColumn = searchingColumn === column.name ? null : column.name
-                "
-              >
-                <svg
-                  viewBox="64 64 896 896"
-                  focusable="false"
-                  class=""
-                  data-icon="search"
-                  width="1em"
-                  height="1em"
-                  fill="currentColor"
-                  aria-hidden="true"
+        @for (column of columns(); track column.name) {
+          <th
+            z-table-head
+            [zTableStickyStart]="column.sticky ? stickyStartOffset(column.name) : null"
+            [zTableStickyEnd]="column.stickyEnd ? stickyEndOffset(column.name) : null"
+            [zTableStickyZIndex]="stickyZIndex(column, true)"
+            [style.width]="column.width || null"
+            [style.max-width]="column.width || null"
+            [attr.aria-sort]="
+              sortDirection(column.name) === 'asc' ? 'ascending' : sortDirection(column.name) === 'desc' ? 'descending' : 'none'
+            "
+          >
+            <div class="flex min-w-0 flex-col gap-2">
+              <div class="flex min-w-0 items-center gap-1">
+                <button
+                  z-table-sort-header
+                  class="min-w-0 flex-1"
+                  [zDirection]="sortDirection(column.name)"
+                  (zSortChange)="onSortChange(column.name, $event)"
                 >
-                  <path
-                    d="M909.6 854.5L649.9 594.8C690.2 542.7 712 479 712 412c0-80.2-31.3-155.4-87.9-212.1-56.6-56.7-132-87.9-212.1-87.9s-155.5 31.3-212.1 87.9C143.2 256.5 112 331.8 112 412c0 80.1 31.3 155.5 87.9 212.1C256.5 680.8 331.8 712 412 712c67 0 130.6-21.8 182.7-62l259.7 259.6a8.2 8.2 0 0011.6 0l43.6-43.5a8.2 8.2 0 000-11.6zM570.4 570.4C528 612.7 471.8 636 412 636s-116-23.3-158.4-65.6C211.3 528 188 471.8 188 412s23.3-116.1 65.6-158.4C296 211.3 352.2 188 412 188s116.1 23.2 158.4 65.6S636 352.2 636 412s-23.3 116.1-65.6 158.4z"
-                  ></path>
-                </svg>
-              </span>
-            </div>
-          </div>
-        </th>
-        <td mat-cell *matCellDef="let data" [style.max-width]="column.width">
-          @if (isSignal(column.cellTemplate)) {
-            <ng-container *ngTemplateOutlet="column.cellTemplate(); context: _context(data, column)"></ng-container>
-          } @else if (column.cellTemplate) {
-            <ng-container *ngTemplateOutlet="column.cellTemplate; context: _context(data, column)"></ng-container>
-          } @else {
-            {{ column.pipe ? column.pipe(getValue(data, column.name)) : getValue(data, column.name) }}
-          }
-        </td>
-      </ng-container>
-    }
+                  {{ column.caption || column.name }}
+                </button>
 
-    <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky: true"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns()"></tr>
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon-sm"
+                  zShape="circle"
+                  class="shrink-0 opacity-60 hover:opacity-100"
+                  [ngClass]="{ 'opacity-100': searchingColumn() === column.name }"
+                  [zTooltip]="'PAC.KEY_WORDS.SEARCH' | translate: { Default: 'Search' }"
+                  (click)="$event.stopPropagation(); toggleSearchingColumn(column.name)"
+                >
+                  <z-icon zType="search" />
+                </button>
+              </div>
+
+              @if (searchingColumn() === column.name) {
+                <input
+                  z-input
+                  zBorderless
+                  placeholder="{{ 'PAC.KEY_WORDS.SEARCH' | translate: { Default: 'Search' } }}"
+                  type="text"
+                  class="h-8 w-full text-left text-sm"
+                  [formControl]="searchControl"
+                  (click)="$event.stopPropagation()"
+                  (keyup)="escapeSearching($event)"
+                />
+              }
+            </div>
+          </th>
+        }
+      </tr>
+    </thead>
+
+    <tbody z-table-body>
+      @if (rows().length) {
+        @for (row of rows(); track row) {
+          <tr z-table-row>
+            @if (selectable()) {
+              <td z-table-cell zTableStickyStart [zTableStickyStart]="0" [zTableStickyZIndex]="4" class="w-14 min-w-14">
+                <z-checkbox
+                  class="mx-2"
+                  (click)="$event.stopPropagation()"
+                  (checkChange)="$event ? selection.toggle(row) : null"
+                  [ngModel]="selection.isSelected(row)"
+                  [aria-label]="checkboxLabel(row)"
+                />
+              </td>
+            }
+
+            @for (column of columns(); track column.name) {
+              <td
+                z-table-cell
+                [zTableStickyStart]="column.sticky ? stickyStartOffset(column.name) : null"
+                [zTableStickyEnd]="column.stickyEnd ? stickyEndOffset(column.name) : null"
+                [zTableStickyZIndex]="stickyZIndex(column)"
+                [style.width]="column.width || null"
+                [style.max-width]="column.width || null"
+              >
+                @if (isSignal(column.cellTemplate)) {
+                  <ng-container *ngTemplateOutlet="column.cellTemplate(); context: _context(row, column)"></ng-container>
+                } @else if (column.cellTemplate) {
+                  <ng-container *ngTemplateOutlet="column.cellTemplate; context: _context(row, column)"></ng-container>
+                } @else {
+                  {{ column.pipe ? column.pipe(getValue(row, column.name)) : getValue(row, column.name) }}
+                }
+              </td>
+            }
+          </tr>
+        }
+      } @else {
+        <tr z-table-row>
+          <td z-table-cell class="py-8 text-center text-muted-foreground" [attr.colspan]="displayedColumns().length">
+            {{ 'PAC.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
+          </td>
+        </tr>
+      }
+    </tbody>
   </table>
 </div>
 
 @if (paging()) {
   <z-paginator
-    class="border-t border-[var(--mat-table-row-item-outline-color)] px-2 py-1"
+    class="border-t border-border px-2 py-1"
     [displayDensity]="displayDensity()"
     [hidePageSizeLabel]="true"
+    [length]="processedRows().length"
+    [pageIndex]="pageIndex()"
+    [pageSize]="pageSize()"
     [pageSizeOptions]="pageSizeOptions()"
     showFirstLastButtons
+    (page)="onPage($event)"
   />
 }

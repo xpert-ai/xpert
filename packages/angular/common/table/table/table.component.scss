@@ -4,7 +4,7 @@
   flex-direction: column;
 
   ::ng-deep {
-    .cdk-header-cell {
+    [z-table-head] {
       .searchable-icon {
         opacity: 0;
         transition: all 200ms;
@@ -36,10 +36,6 @@
         }
       }
     }
-
-    .cdk-cell.mat-mdc-table-sticky {
-      @apply bg-components-panel-bg;
-    }
   }
 }
 
@@ -47,7 +43,7 @@
   @apply bg-transparent;
 }
 
-.mat-mdc-cell, .mat-mdc-header-cell {
+[z-table-cell], [z-table-head] {
   white-space: nowrap;
 
   &.number {

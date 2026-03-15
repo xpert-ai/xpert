@@ -14,13 +14,13 @@ import {
   ZardIconComponent,
   ZardInputDirective,
   ZardMenuImports,
+  ZardTableImports,
   ZardTabsImports,
   ZardCheckboxComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatStepperModule } from '@angular/material/stepper'
-import { MatTableModule } from '@angular/material/table'
 import { MatTreeModule } from '@angular/material/tree'
 
 const MATERIAL_MODULES = [
@@ -44,7 +44,7 @@ const MATERIAL_MODULES = [
   ...ZardTooltipImports,
   MatTreeModule,
   ZardBadgeComponent,
-  MatTableModule,
+  ...ZardTableImports,
 ]
 
 /**

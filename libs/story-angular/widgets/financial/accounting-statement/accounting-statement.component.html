@@ -47,60 +47,60 @@
   <div class="flex-1 overflow-auto">
     @if (columnConfig$ | async; as columnConfig) {
       <table
-        mat-table
-        class="mat-elevation-z w-full"
+        z-table
+        class="w-full"
         [displayDensity]="styling?.appearance?.displayDensity"
-        [dataSource]="tableData$ | async"
-        >
-        <!-- Group Column -->
-        @if (columnConfig.hasGroup) {
-          <ng-container matColumnDef="_group_">
-            <th mat-header-cell *matHeaderCellDef></th>
-            <td mat-cell *matCellDef="let row">
-              {{ row.groupName }}
-            </td>
-          </ng-container>
-        }
-        <!-- Name Column -->
-        <ng-container matColumnDef="_name_">
-          <th mat-header-cell *matHeaderCellDef></th>
-          <td mat-cell *matCellDef="let row" [class.text-right]="row.isItalic">{{ row.name }}</td>
-        </ng-container>
-        @for (col of columnConfig.columns; track col) {
-          <ng-container [matColumnDef]="col.name">
-            <th mat-header-cell *matHeaderCellDef>{{ col.label }}</th>
-            <td mat-cell *matCellDef="let row">
-              @if (col.isRatio) {
-                <span
-          [semanticColor]="
-            row.reverseSemanticColor || col.reverseSemanticColor ? -row.data[col.name] : row.data[col.name]
-          "
-                  >{{ row.data[col.name] * 100 | number: col.digitsInfo }}%</span
-                  >
-                }
-                @if (!col.isRatio) {
-                  @if (!IsNil(row.data?.[col.name])) {
-                    <span>{{
-                      row.data[col.name] / (options.denominator || 1) | number: col.digitsInfo || options?.digitsInfo
-                    }}</span>
+      >
+        <thead z-table-header>
+          <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+            @if (columnConfig.hasGroup) {
+              <th z-table-head></th>
+            }
+            <th z-table-head></th>
+            @for (col of columnConfig.columns; track col.name) {
+              <th z-table-head>{{ col.label }}</th>
+            }
+          </tr>
+        </thead>
+
+        <tbody z-table-body>
+          @for (row of (tableData$ | async) ?? []; track row.name) {
+            <tr
+              z-table-row
+              [ngClass]="{
+                'pac-widget-accounting-statement__underline': row.isUnderline,
+                'pac-widget-accounting-statement__italic': row.isItalic
+              }"
+            >
+              @if (columnConfig.hasGroup) {
+                <td z-table-cell>{{ row.groupName }}</td>
+              }
+              <td z-table-cell [class.text-right]="row.isItalic">{{ row.name }}</td>
+              @for (col of columnConfig.columns; track col.name) {
+                <td z-table-cell>
+                  @if (col.isRatio) {
+                    <span
+                      [semanticColor]="
+                        row.reverseSemanticColor || col.reverseSemanticColor ? -row.data[col.name] : row.data[col.name]
+                      "
+                    >{{ row.data[col.name] * 100 | number: col.digitsInfo }}%</span>
                   }
-                  @if (IsNil(row.data?.[col.name])) {
-                    <span class="empty">-</span>
+                  @if (!col.isRatio) {
+                    @if (!IsNil(row.data?.[col.name])) {
+                      <span>{{
+                        row.data[col.name] / (options.denominator || 1) | number: col.digitsInfo || options?.digitsInfo
+                      }}</span>
+                    }
+                    @if (IsNil(row.data?.[col.name])) {
+                      <span class="empty">-</span>
+                    }
                   }
-                }
-              </td>
-            </ng-container>
+                </td>
+              }
+            </tr>
           }
-          <tr mat-header-row *matHeaderRowDef="columnConfig.displayedColumns"></tr>
-          <tr
-            mat-row
-            *matRowDef="let row; columns: columnConfig.displayedColumns"
-      [ngClass]="{
-        'pac-widget-accounting-statement__underline': row.isUnderline,
-        'pac-widget-accounting-statement__italic': row.isItalic
-      }"
-          ></tr>
-        </table>
+        </tbody>
+      </table>
       }
     </div>
 

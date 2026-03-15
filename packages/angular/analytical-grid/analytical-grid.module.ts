@@ -14,12 +14,11 @@ import {
   ZardInputDirective,
   ZardPaginatorComponent,
   ZardCheckboxComponent,
+  ZardTableImports,
   ZardMenuImports,
   ZardTooltipImports,
   ZardLoaderComponent
 } from '@xpert-ai/headless-ui'
-import { MatSortModule } from '@angular/material/sort'
-import { MatTableModule } from '@angular/material/table'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -33,15 +32,14 @@ import { AnalyticalGridComponent } from './analytical-grid.component'
     FormsModule,
     A11yModule,
     CdkMenuModule,
-    MatTableModule,
     ZardPaginatorComponent,
     ZardButtonComponent,
     ZardIconComponent,
+    ...ZardTableImports,
     ...ZardMenuImports,
     ZardLoaderComponent,
     ZardDividerComponent,
     ...ZardTooltipImports,
-    MatSortModule,
     OverlayModule,
     ...ZardCardImports,
     CdkListboxModule,

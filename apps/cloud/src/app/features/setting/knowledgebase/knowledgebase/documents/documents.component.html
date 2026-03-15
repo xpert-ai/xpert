@@ -16,198 +16,209 @@
 </div>
 
 <div class="flex-1 overflow-y-auto">
-  <table
-    mat-table
-    class="flex-1"
-    [dataSource]="data()"
-    multiTemplateDataRows
-    matSort
-    matSortActive="createdAt"
-    matSortDisableClear
-    matSortDirection="desc"
-  >
-    @for (column of columnsToDisplay; track column.name) {
-      <ng-container matColumnDef="{{ column.name }}">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>
-          {{ 'PAC.KEY_WORDS.' + column.caption | translate: { Default: column.caption } }}
-        </th>
-        <td mat-cell *matCellDef="let element">
-          @if (column.name === 'name') {
-            <a [routerLink]="['.', element.id]">{{ element.storageFile.originalName }}</a>
-          } @else {
-            {{ getValue(element, column.name) }}
-          }
-        </td>
-      </ng-container>
-    }
-
-    <ng-container matColumnDef="progress">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>
-        {{ 'PAC.Knowledgebase.ParsingProgress' | translate: { Default: 'Parsing Progress' } }}
-      </th>
-      <td mat-cell *matCellDef="let element">
-        @switch (element.status) {
-          @case ('running') {
-            <div class="flex items-center gap-1">
-              <z-progress-circle zType="accent" diameter="24" [value]="element.progress" />
-
-              <span>{{ element.progress }}%</span>
-            </div>
-          }
-          @case ('finish') {
-            <ngm-tags
-              class="text-sm"
-              [tags]="[{ caption: 'PAC.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }]"
-              color="green"
-            />
-          }
-          @case ('error') {
-            <ngm-tags
-              class="text-sm"
-              [tags]="[{ caption: 'PAC.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }]"
-              color="red"
-            />
-          }
-          @default {
-            <ngm-tags
-              class="text-sm"
-              [tags]="[{ caption: 'PAC.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' } }]"
-              color="gray"
-            />
-          }
+  <table z-table class="flex-1 min-w-full">
+    <thead z-table-header>
+      <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+        @for (column of columnsToDisplay; track column.name) {
+          <th z-table-head class="sticky top-0 z-10 bg-background">
+            <button
+              z-table-sort-header
+              [zDirection]="sortDirection(column.name)"
+              [zDisableClear]="true"
+              (zSortChange)="onSortChange(column.name, $event)"
+            >
+              {{ 'PAC.KEY_WORDS.' + column.caption | translate: { Default: column.caption } }}
+            </button>
+          </th>
         }
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="expand">
-      <th mat-header-cell *matHeaderCellDef aria-label="row actions">&nbsp;</th>
-      <td mat-cell *matCellDef="let element">
-        <div class="flex items-center gap-2" displayDensity="cosy">
+        <th z-table-head class="sticky top-0 z-10 bg-background">
           <button
-            z-button
-            zType="ghost"
-            zSize="icon"
-            zShape="circle"
-            aria-label="expand row"
-            (click)="expandedElement = expandedElement?.id === element.id ? null : element; $event.stopPropagation()"
+            z-table-sort-header
+            [zDirection]="sortDirection('progress')"
+            [zDisableClear]="true"
+            (zSortChange)="onSortChange('progress', $event)"
           >
-            @if (expandedElement?.id === element.id) {
-              <z-icon zType="keyboard_arrow_up"></z-icon>
-            } @else {
-              <z-icon zType="keyboard_arrow_down"></z-icon>
-            }
+            {{ 'PAC.Knowledgebase.ParsingProgress' | translate: { Default: 'Parsing Progress' } }}
           </button>
+        </th>
+        <th z-table-head class="sticky top-0 z-10 bg-background" aria-label="row actions">&nbsp;</th>
+      </tr>
+    </thead>
 
-          @if (element.status === 'finish') {
-            <button
-              z-button
-              zType="ghost"
-              zSize="icon"
-              zShape="circle"
-              [zTooltip]="'PAC.Knowledgebase.RestartParsing' | translate: { Default: 'Restart parsing' }"
-              zPosition="top"
-              (click)="restartParsing(element.id)"
-            >
-              <z-icon zType="restart_alt"></z-icon>
-            </button>
-          } @else if (element.status === 'running') {
-            <button
-              z-button
-              zType="ghost"
-              zSize="icon"
-              zShape="circle"
-              [zTooltip]="'PAC.Knowledgebase.StopParsing' | translate: { Default: 'Stop parsing' }"
-              zPosition="top"
-              (click)="stopParsing(element.id)"
-            >
-              <z-icon zType="stop_circle"></z-icon>
-            </button>
-          } @else {
-            <button
-              z-button
-              zType="ghost"
-              zSize="icon"
-              zShape="circle"
-              [zTooltip]="'PAC.Knowledgebase.StartParsing' | translate: { Default: 'Start parsing' }"
-              zPosition="top"
-              (click)="startParsing(element)"
-            >
-              <z-icon zType="play_circle"></z-icon>
-            </button>
+    <tbody z-table-body>
+      @for (element of data(); track element.id) {
+        <tr
+          z-table-row
+          class="example-element-row"
+          [class.example-expanded-row]="expandedElement?.id === element.id"
+        >
+          @for (column of columnsToDisplay; track column.name) {
+            <td z-table-cell>
+              @if (column.name === 'name') {
+                <a [routerLink]="['.', element.id]">{{ element.storageFile.originalName }}</a>
+              } @else {
+                {{ getValue(element, column.name) }}
+              }
+            </td>
           }
 
-          <z-divider vertical style="height: 20px" />
-          <button
-            z-button
-            zType="ghost"
-            zSize="icon"
-            zShape="circle"
-            ngmAppearance="danger"
-            [zTooltip]="
-              'PAC.Knowledgebase.DeleteKnowledgeDocument' | translate: { Default: 'Delete Knowledge Document' }
-            "
-            zPosition="top"
-            (click)="deleteDocument(element.id, element.storageFile)"
-          >
-            <z-icon zType="delete"></z-icon>
-          </button>
-        </div>
-      </td>
-    </ng-container>
+          <td z-table-cell>
+            @switch (element.status) {
+              @case ('running') {
+                <div class="flex items-center gap-1">
+                  <z-progress-circle zType="accent" diameter="24" [value]="element.progress" />
+                  <span>{{ element.progress }}%</span>
+                </div>
+              }
+              @case ('finish') {
+                <ngm-tags
+                  class="text-sm"
+                  [tags]="[{ caption: 'PAC.Knowledgebase.Status_Finish' | translate: { Default: 'Finish' } }]"
+                  color="green"
+                />
+              }
+              @case ('error') {
+                <ngm-tags
+                  class="text-sm"
+                  [tags]="[{ caption: 'PAC.Knowledgebase.Status_Error' | translate: { Default: 'Error' } }]"
+                  color="red"
+                />
+              }
+              @default {
+                <ngm-tags
+                  class="text-sm"
+                  [tags]="[{ caption: 'PAC.Knowledgebase.Status_NotStart' | translate: { Default: 'Not Start' } }]"
+                  color="gray"
+                />
+              }
+            }
+          </td>
 
-    <!-- Expanded Content Column - The detail row is made up of this one column that spans across all columns -->
-    <ng-container matColumnDef="expandedDetail">
-      <td mat-cell *matCellDef="let element" [attr.colspan]="columnsToDisplayWithExpand.length">
-        <div
-          class="example-element-detail"
-          displayDensity="compact"
-          [@detailExpand]="element.id === expandedElement?.id ? 'expanded' : 'collapsed'"
-        >
-          <div
-            class="example-element-diagram flex flex-col justify-center items-center border-2 border-solid border-neutral-500"
-          >
-            <div class="uppercase text-lg">{{ element.type }}</div>
-          </div>
-          <div class="example-element-description flex-1 flex flex-wrap gap-2">
-            <ngm-slider-input
-              [label]="'PAC.Knowledgebase.ChunkSize' | translate: { Default: 'Chunk Size' }"
-              class="w-[300px]"
-              [ngModel]="element.parserConfig.chunkSize"
-              (ngModelChange)="element.parserConfig.chunkSize = $event"
-              (changeEnd)="updateParserConfig(element, { chunkSize: element.parserConfig.chunkSize })"
-              [min]="0"
-              [max]="10000"
-            />
+          <td z-table-cell class="w-32">
+            <div class="flex items-center gap-2" displayDensity="cosy">
+              <button
+                z-button
+                zType="ghost"
+                zSize="icon"
+                zShape="circle"
+                aria-label="expand row"
+                (click)="expandedElement = expandedElement?.id === element.id ? null : element; $event.stopPropagation()"
+              >
+                @if (expandedElement?.id === element.id) {
+                  <z-icon zType="keyboard_arrow_up"></z-icon>
+                } @else {
+                  <z-icon zType="keyboard_arrow_down"></z-icon>
+                }
+              </button>
 
-            <ngm-slider-input
-              [label]="'PAC.Knowledgebase.ChunkOverlap' | translate: { Default: 'Chunk Overlap' }"
-              class="w-[300px]"
-              [ngModel]="element.parserConfig.chunkOverlap"
-              (ngModelChange)="element.parserConfig.chunkOverlap = $event"
-              (changeEnd)="updateParserConfig(element, { chunkOverlap: element.parserConfig.chunkOverlap })"
-              [min]="0"
-              [max]="1000"
-            />
+              @if (element.status === 'finish') {
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  [zTooltip]="'PAC.Knowledgebase.RestartParsing' | translate: { Default: 'Restart parsing' }"
+                  zPosition="top"
+                  (click)="restartParsing(element.id)"
+                >
+                  <z-icon zType="restart_alt"></z-icon>
+                </button>
+              } @else if (element.status === 'running') {
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  [zTooltip]="'PAC.Knowledgebase.StopParsing' | translate: { Default: 'Stop parsing' }"
+                  zPosition="top"
+                  (click)="stopParsing(element.id)"
+                >
+                  <z-icon zType="stop_circle"></z-icon>
+                </button>
+              } @else {
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  [zTooltip]="'PAC.Knowledgebase.StartParsing' | translate: { Default: 'Start parsing' }"
+                  zPosition="top"
+                  (click)="startParsing(element)"
+                >
+                  <z-icon zType="play_circle"></z-icon>
+                </button>
+              }
 
-            <ngm-input
-              [label]="'PAC.Knowledgebase.Delimiter' | translate: { Default: 'Delimiter' }"
-              class="w-[200px]"
-              [ngModel]="element.parserConfig.delimiter"
-              (ngModelChange)="updateParserConfig(element, { delimiter: $event })"
-            />
-          </div>
-        </div>
-      </td>
-    </ng-container>
+              <z-divider vertical style="height: 20px" />
+              <button
+                z-button
+                zType="ghost"
+                zSize="icon"
+                zShape="circle"
+                ngmAppearance="danger"
+                [zTooltip]="
+                  'PAC.Knowledgebase.DeleteKnowledgeDocument' | translate: { Default: 'Delete Knowledge Document' }
+                "
+                zPosition="top"
+                (click)="deleteDocument(element.id, element.storageFile)"
+              >
+                <z-icon zType="delete"></z-icon>
+              </button>
+            </div>
+          </td>
+        </tr>
 
-    <tr mat-header-row *matHeaderRowDef="columnsToDisplayWithExpand"></tr>
-    <tr
-      mat-row
-      *matRowDef="let element; columns: columnsToDisplayWithExpand"
-      class="example-element-row"
-      [class.example-expanded-row]="expandedElement?.id === element.id"
-    ></tr>
-    <tr mat-row *matRowDef="let row; columns: ['expandedDetail']" class="example-detail-row"></tr>
+        <tr z-table-row class="example-detail-row">
+          <td z-table-cell [attr.colspan]="columnsToDisplayWithExpand.length" class="p-0">
+            <div
+              class="example-element-detail"
+              displayDensity="compact"
+              [@detailExpand]="element.id === expandedElement?.id ? 'expanded' : 'collapsed'"
+            >
+              <div
+                class="example-element-diagram flex flex-col justify-center items-center border-2 border-solid border-neutral-500"
+              >
+                <div class="uppercase text-lg">{{ element.type }}</div>
+              </div>
+              <div class="example-element-description flex-1 flex flex-wrap gap-2">
+                <ngm-slider-input
+                  [label]="'PAC.Knowledgebase.ChunkSize' | translate: { Default: 'Chunk Size' }"
+                  class="w-[300px]"
+                  [ngModel]="element.parserConfig.chunkSize"
+                  (ngModelChange)="element.parserConfig.chunkSize = $event"
+                  (changeEnd)="updateParserConfig(element, { chunkSize: element.parserConfig.chunkSize })"
+                  [min]="0"
+                  [max]="10000"
+                />
+
+                <ngm-slider-input
+                  [label]="'PAC.Knowledgebase.ChunkOverlap' | translate: { Default: 'Chunk Overlap' }"
+                  class="w-[300px]"
+                  [ngModel]="element.parserConfig.chunkOverlap"
+                  (ngModelChange)="element.parserConfig.chunkOverlap = $event"
+                  (changeEnd)="updateParserConfig(element, { chunkOverlap: element.parserConfig.chunkOverlap })"
+                  [min]="0"
+                  [max]="1000"
+                />
+
+                <ngm-input
+                  [label]="'PAC.Knowledgebase.Delimiter' | translate: { Default: 'Delimiter' }"
+                  class="w-[200px]"
+                  [ngModel]="element.parserConfig.delimiter"
+                  (ngModelChange)="updateParserConfig(element, { delimiter: $event })"
+                />
+              </div>
+            </div>
+          </td>
+        </tr>
+      } @empty {
+        <tr z-table-row>
+          <td z-table-cell [attr.colspan]="columnsToDisplayWithExpand.length" class="py-8 text-center text-muted-foreground">
+            {{ 'PAC.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
+          </td>
+        </tr>
+      }
+    </tbody>
   </table>
 </div>
 <z-paginator class="py-2" [length]="total()" [pageSize]="pageSize()" [pageSizeOptions]="[10, 20, 50, 100]" />

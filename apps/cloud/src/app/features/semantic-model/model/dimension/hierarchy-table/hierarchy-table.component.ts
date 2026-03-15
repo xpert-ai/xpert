@@ -1,7 +1,6 @@
-import { Component, afterNextRender, booleanAttribute, effect, input, signal, viewChild } from '@angular/core'
-import { ZardButtonComponent, ZardIconComponent, ZardPaginatorComponent, type ZardPaginatorLike } from '@xpert-ai/headless-ui'
+import { Component, booleanAttribute, computed, effect, input, signal } from '@angular/core'
+import { ZardButtonComponent, ZardIconComponent, ZardPaginatorComponent, type ZardPageEvent, ZardTableImports } from '@xpert-ai/headless-ui'
 
-import { MatTableDataSource, MatTableModule } from '@angular/material/table'
 import { NgmDisplayBehaviourComponent, TableColumn } from '@metad/ocap-angular/common'
 import { DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
@@ -12,9 +11,7 @@ import { CommonModule } from '@angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 
 type LevelTableColumn = TableColumn & { captionName: string }
-type PagedTableDataSource<T> = Omit<MatTableDataSource<T>, 'paginator'> & {
-  paginator: ZardPaginatorLike | null
-}
+const DEFAULT_PAGE_SIZE_OPTIONS = [100, 200, 500, 1000]
 
 @Component({
   standalone: true,
@@ -27,7 +24,7 @@ type PagedTableDataSource<T> = Omit<MatTableDataSource<T>, 'paginator'> & {
   providers: [],
   imports: [
     CommonModule,
-    MatTableModule,
+    ...ZardTableImports,
     ZardIconComponent,
     ZardButtonComponent,
     ZardPaginatorComponent,
@@ -60,26 +57,34 @@ export class HierarchyTableComponent<T> {
 
   /**
   |--------------------------------------------------------------------------
-  | Child Components
-  |--------------------------------------------------------------------------
-  */
-  readonly paginator = viewChild(ZardPaginatorComponent)
-
-  /**
-  |--------------------------------------------------------------------------
   | Signals
   |--------------------------------------------------------------------------
   */
   readonly _data = signal<HierarchyTableDataType<T>[]>([])
   readonly displayedColumns = signal<string[]>([])
+  readonly pageIndex = signal(0)
+  readonly pageSize = signal(DEFAULT_PAGE_SIZE_OPTIONS[0])
+  readonly rows = computed(() => {
+    const data = this._data()
+    if (!this.paging()) {
+      return data
+    }
 
-  readonly dataSource = new MatTableDataSource<any>() as PagedTableDataSource<any>
+    const start = this.pageIndex() * this.pageSize()
+    return data.slice(start, start + this.pageSize())
+  })
+  readonly tableSize = computed(() => {
+    switch (this.displayDensity()) {
+      case DisplayDensity.comfortable:
+        return 'comfortable'
+      case DisplayDensity.compact:
+        return 'compact'
+      default:
+        return 'default'
+    }
+  })
 
   constructor() {
-    afterNextRender(() => {
-      this.dataSource.paginator = this.paginator() ?? null
-    })
-
     effect(
       () => {
         const data = this.data()
@@ -107,7 +112,25 @@ export class HierarchyTableComponent<T> {
 
     effect(
       () => {
-        this.dataSource.data = this._data()
+        const pageSizeOptions = this.pageSizeOptions()
+        if (!pageSizeOptions?.length) {
+          this.pageSize.set(DEFAULT_PAGE_SIZE_OPTIONS[0])
+          return
+        }
+
+        if (!pageSizeOptions.includes(this.pageSize())) {
+          this.pageSize.set(pageSizeOptions[0])
+        }
+      },
+      { allowSignalWrites: true }
+    )
+
+    effect(
+      () => {
+        const maxPageIndex = Math.max(Math.ceil(this._data().length / this.pageSize()) - 1, 0)
+        if (this.pageIndex() > maxPageIndex) {
+          this.pageIndex.set(maxPageIndex)
+        }
       },
       { allowSignalWrites: true }
     )
@@ -151,5 +174,10 @@ export class HierarchyTableComponent<T> {
       rows.splice(index + 1, 0, ...node.children.map((child) => ({ ...child, expanded: false })))
       return [...rows]
     })
+  }
+
+  onPage(event: ZardPageEvent) {
+    this.pageIndex.set(event.pageIndex)
+    this.pageSize.set(event.pageSize)
   }
 }

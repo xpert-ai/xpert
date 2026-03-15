@@ -4,12 +4,11 @@ import { ChangeDetectionStrategy, Component, OnInit, TemplateRef, ViewChild, Vie
 import { FormArray, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
-import { MatTableModule } from '@angular/material/table'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { cloneDeep } from '@metad/ocap-core'
 import { FieldArrayType, FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardTableImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -28,7 +27,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     MatDialogModule,
     ZardButtonComponent,
     ZardIconComponent,
-    MatTableModule,
+    ...ZardTableImports,
     FormlyModule,
 
     TranslateModule,

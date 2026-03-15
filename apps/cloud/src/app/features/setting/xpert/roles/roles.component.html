@@ -16,115 +16,117 @@
 </div>
 
 <div class="flex-1 overflow-auto">
-  <table mat-table [dataSource]="dataSource()">
-    <ng-container matColumnDef="avatar">
-      <th mat-header-cell *matHeaderCellDef>{{ 'PAC.Copilot.Roles.Avatar' | translate: { Default: 'Avatar' } }}</th>
-      <td mat-cell *matCellDef="let element">
-        <pac-avatar [imageUrl]="element.avatar" class="w-10 h-10 overflow-hidden rounded-full" />
-      </td>
-    </ng-container>
-    <!-- Name Column -->
-    <ng-container matColumnDef="name">
-      <th mat-header-cell *matHeaderCellDef>{{ 'PAC.Copilot.Roles.Name' | translate: { Default: 'Name' } }}</th>
-      <td mat-cell *matCellDef="let element">
-        @if (element.__edit__) {
-          <ngm-input [(ngModel)]="element.name" class="mt-4" />
-        } @else {
-          {{ element.name }}
-        }
-      </td>
-    </ng-container>
+  <table z-table class="min-w-full text-sm">
+    <thead z-table-header>
+      <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+        <th z-table-head class="sticky top-0 z-10 bg-background">
+          {{ 'PAC.Copilot.Roles.Avatar' | translate: { Default: 'Avatar' } }}
+        </th>
+        <th z-table-head class="sticky top-0 z-10 bg-background">
+          {{ 'PAC.Copilot.Roles.Name' | translate: { Default: 'Name' } }}
+        </th>
+        <th z-table-head class="sticky top-0 z-10 bg-background">
+          {{ 'PAC.Copilot.Roles.Title' | translate: { Default: 'Title' } }}
+        </th>
+        <th z-table-head class="sticky top-0 z-10 bg-background">
+          {{ 'PAC.Copilot.Roles.TitleCN' | translate: { Default: 'Title (CN)' } }}
+        </th>
+        <th z-table-head class="sticky top-0 z-10 bg-background">
+          {{ 'PAC.Copilot.Roles.Description' | translate: { Default: 'Description' } }}
+        </th>
+        <th z-table-head zTableStickyEnd [zTableStickyEnd]="0" [zTableStickyZIndex]="5" class="sticky top-0 z-10 w-32 bg-background">
+          {{ 'PAC.Copilot.Roles.Actions' | translate: { Default: 'Actions' } }}
+        </th>
+      </tr>
+    </thead>
 
-    <!-- Title Column -->
-    <ng-container matColumnDef="title">
-      <th mat-header-cell *matHeaderCellDef>{{ 'PAC.Copilot.Roles.Title' | translate: { Default: 'Title' } }}</th>
-      <td mat-cell *matCellDef="let element">
-        @if (element.__edit__) {
-          <ngm-input [(ngModel)]="element.title" class="mt-4" />
-        } @else {
-          {{ element.title }}
-        }
-      </td>
-    </ng-container>
+    <tbody z-table-body>
+      @for (element of dataSource(); track element.id || $index) {
+        <tr z-table-row>
+          <td z-table-cell>
+            <pac-avatar [imageUrl]="element.avatar" class="w-10 h-10 overflow-hidden rounded-full" />
+          </td>
+          <td z-table-cell>
+            @if (element.__edit__) {
+              <ngm-input [(ngModel)]="element.name" class="mt-4" />
+            } @else {
+              {{ element.name }}
+            }
+          </td>
+          <td z-table-cell>
+            @if (element.__edit__) {
+              <ngm-input [(ngModel)]="element.title" class="mt-4" />
+            } @else {
+              {{ element.title }}
+            }
+          </td>
+          <td z-table-cell>
+            @if (element.__edit__) {
+              <ngm-input [(ngModel)]="element.titleCN" class="mt-4" />
+            } @else {
+              {{ element.titleCN }}
+            }
+          </td>
+          <td z-table-cell>
+            @if (element.__edit__) {
+              <ngm-input [(ngModel)]="element.description" class="mt-4" />
+            } @else {
+              {{ element.description }}
+            }
+          </td>
+          <td z-table-cell zTableStickyEnd [zTableStickyEnd]="0" [zTableStickyZIndex]="4" class="w-32">
+            <div class="flex items-center gap-2" displayDensity="cosy">
+              @if (element.__edit__) {
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  class="opacity-50 hover:opacity-100"
+                  [zTooltip]="'PAC.KEY_WORDS.Save' | translate: { Default: 'Save' }"
+                  (click)="saveEdit(element)"
+                >
+                  <z-icon zType="save"></z-icon>
+                </button>
+              } @else {
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  class="opacity-50 hover:opacity-100"
+                  [zTooltip]="'PAC.KEY_WORDS.Edit' | translate: { Default: 'Edit' }"
+                  (click)="startEdit(element)"
+                >
+                  <z-icon zType="edit"></z-icon>
+                </button>
+              }
 
-    <!-- Title CN Column -->
-    <ng-container matColumnDef="titleCN">
-      <th mat-header-cell *matHeaderCellDef>
-        {{ 'PAC.Copilot.Roles.TitleCN' | translate: { Default: 'Title (CN)' } }}
-      </th>
-      <td mat-cell *matCellDef="let element">
-        @if (element.__edit__) {
-          <ngm-input [(ngModel)]="element.titleCN" class="mt-4" />
-        } @else {
-          {{ element.titleCN }}
-        }
-      </td>
-    </ng-container>
+              <z-divider vertical style="height: 20px" />
 
-    <!-- Desc Column -->
-    <ng-container matColumnDef="description">
-      <th mat-header-cell *matHeaderCellDef>
-        {{ 'PAC.Copilot.Roles.Description' | translate: { Default: 'Description' } }}
-      </th>
-      <td mat-cell *matCellDef="let element">
-        @if (element.__edit__) {
-          <ngm-input [(ngModel)]="element.description" class="mt-4" />
-        } @else {
-          {{ element.description }}
-        }
-      </td>
-    </ng-container>
-
-    <ng-container matColumnDef="actions" stickyEnd>
-      <th mat-header-cell *matHeaderCellDef>{{ 'PAC.Copilot.Roles.Actions' | translate: { Default: 'Actions' } }}</th>
-      <td mat-cell *matCellDef="let element">
-        <div class="flex items-center gap-2" displayDensity="cosy">
-          @if (element.__edit__) {
-            <button
-              z-button
-              zType="ghost"
-              zSize="icon"
-              zShape="circle"
-              class="opacity-50 hover:opacity-100"
-              [zTooltip]="'PAC.KEY_WORDS.Save' | translate: { Default: 'Save' }"
-              (click)="saveEdit(element)"
-            >
-              <z-icon zType="save"></z-icon>
-            </button>
-          } @else {
-            <button
-              z-button
-              zType="ghost"
-              zSize="icon"
-              zShape="circle"
-              class="opacity-50 hover:opacity-100"
-              [zTooltip]="'PAC.KEY_WORDS.Edit' | translate: { Default: 'Edit' }"
-              (click)="startEdit(element)"
-            >
-              <z-icon zType="edit"></z-icon>
-            </button>
-          }
-
-          <z-divider vertical style="height: 20px" />
-
-          <button
-            z-button
-            zType="ghost"
-            zSize="icon"
-            zShape="circle"
-            class="opacity-50 hover:opacity-100"
-            ngmAppearance="danger"
-            [zTooltip]="'PAC.KEY_WORDS.Delete' | translate: { Default: 'Delete' }"
-            (click)="deleteRole(element)"
-          >
-            <z-icon zType="delete"></z-icon>
-          </button>
-        </div>
-      </td>
-    </ng-container>
-
-    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
+              <button
+                z-button
+                zType="ghost"
+                zSize="icon"
+                zShape="circle"
+                class="opacity-50 hover:opacity-100"
+                ngmAppearance="danger"
+                [zTooltip]="'PAC.KEY_WORDS.Delete' | translate: { Default: 'Delete' }"
+                (click)="deleteRole(element)"
+              >
+                <z-icon zType="delete"></z-icon>
+              </button>
+            </div>
+          </td>
+        </tr>
+      } @empty {
+        <tr z-table-row>
+          <td z-table-cell colspan="6" class="py-8 text-center text-muted-foreground">
+            {{ 'PAC.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
+          </td>
+        </tr>
+      }
+    </tbody>
   </table>
 </div>
 
