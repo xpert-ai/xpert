@@ -1,16 +1,22 @@
-import { FlatTreeControl } from '@angular/cdk/tree'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, effect, inject, input, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MatTreeFlatDataSource, MatTreeFlattener, MatTreeModule } from '@angular/material/tree'
 import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
 import { AggregationRole, assign, DisplayBehaviour, isNil, isVisible, omit, PropertyDimension } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ModelEntityService } from '../../entity.service'
 import { mapDimensionToTreeItemNode, TreeItemFlatNode, TreeItemNode } from '../types'
-import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardFlatTreeControl,
+  ZardIconComponent,
+  ZardTooltipImports,
+  ZardTreeFlatDataSource,
+  ZardTreeFlattener,
+  ZardTreeImports
+} from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-inline-dimension',
@@ -24,7 +30,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpe
     FormsModule,
     TranslateModule,
     DragDropModule,
-    MatTreeModule,
+    ...ZardTreeImports,
     ZardButtonComponent,
     ZardIconComponent,
     ...ZardTooltipImports,
@@ -65,16 +71,16 @@ export class InlineDimensionComponent {
   getLevel = (node: TreeItemFlatNode) => node.level
   getChildren = (node: TreeItemNode): TreeItemNode[] => node.children
   isExpandable = (node: TreeItemFlatNode) => node.expandable
-  readonly treeFlattener: MatTreeFlattener<TreeItemNode, TreeItemFlatNode, string> = new MatTreeFlattener(
+  readonly treeFlattener: ZardTreeFlattener<TreeItemNode, TreeItemFlatNode, string> = new ZardTreeFlattener(
     this.transformer,
     this.getLevel,
     this.isExpandable,
     this.getChildren
   )
-  readonly treeControl = new FlatTreeControl<TreeItemFlatNode, string>(this.getLevel, this.isExpandable, {
+  readonly treeControl = new ZardFlatTreeControl<TreeItemFlatNode, string>(this.getLevel, this.isExpandable, {
     trackBy: (dataNode: TreeItemFlatNode) => dataNode.id
   })
-  readonly dataSource: MatTreeFlatDataSource<TreeItemNode, TreeItemFlatNode, string> = new MatTreeFlatDataSource(
+  readonly dataSource: ZardTreeFlatDataSource<TreeItemNode, TreeItemFlatNode, string> = new ZardTreeFlatDataSource(
     this.treeControl,
     this.treeFlattener
   )

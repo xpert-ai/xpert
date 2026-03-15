@@ -1,6 +1,5 @@
 import { FocusableOption, FocusMonitor, FocusOrigin } from '@angular/cdk/a11y'
 import { coerceBooleanProperty } from '@angular/cdk/coercion'
-import { FlatTreeControl } from '@angular/cdk/tree'
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -22,8 +21,13 @@ import {
   SimpleChanges
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { type ZardPageEvent, type ZardTableSortDirection } from '@xpert-ai/headless-ui'
-import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
+import {
+  type ZardPageEvent,
+  type ZardTableSortDirection,
+  ZardFlatTreeControl,
+  ZardTreeFlatDataSource,
+  ZardTreeFlattener
+} from '@xpert-ai/headless-ui'
 import { csvDownload, DisplayDensity, mergeSelectedValues, NgmAppearance } from '@metad/ocap-angular/core'
 import {
   AggregationRole,
@@ -324,13 +328,13 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
   public readonly querySchemaColumns$ = new BehaviorSubject([])
 
   // for Tree Table
-  public columnTreeControl = new FlatTreeControl<AnalyticalGridColumn>(
+  public columnTreeControl = new ZardFlatTreeControl<AnalyticalGridColumn>(
     (node) => node.treeLevel,
     (node) => node.expandable
   )
-  public readonly columnsDataSource = new MatTreeFlatDataSource(
+  public readonly columnsDataSource = new ZardTreeFlatDataSource(
     this.columnTreeControl,
-    new MatTreeFlattener(
+    new ZardTreeFlattener(
       (node: TreeNodeInterface<PivotColumn>, level: number): AnalyticalGridColumn => {
         return {
           ...omit(node.raw, 'label'),
@@ -347,13 +351,13 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
     []
   )
 
-  public rowTreeControl = new FlatTreeControl<FlatTreeNode<T>>(
+  public rowTreeControl = new ZardFlatTreeControl<FlatTreeNode<T>>(
     (node) => node.level,
     (node) => node.expandable
   )
   public readonly rowDataSource = new NgmTreeFlatDataSource(
     this.rowTreeControl,
-    new MatTreeFlattener(
+    new ZardTreeFlattener(
       (node: TreeNodeInterface<T>, level: number): FlatTreeNode<T> => {
         return {
           ...(node.raw ?? node),

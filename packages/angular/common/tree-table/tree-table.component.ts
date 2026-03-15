@@ -1,7 +1,6 @@
 import { coerceBooleanProperty } from '@angular/cdk/coercion'
-import { FlatTreeControl } from '@angular/cdk/tree'
 import { Component, Input, OnChanges, OnInit, signal, SimpleChanges, TemplateRef } from '@angular/core'
-import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
+import { ZardFlatTreeControl, ZardTreeFlatDataSource, ZardTreeFlattener } from '@xpert-ai/headless-ui'
 import { DisplayDensity } from '@metad/ocap-angular/core'
 import { FlatTreeNode, Property, TreeNodeInterface } from '@metad/ocap-core'
 import { displayDensityToTableSize, parseTableWidthToPx } from '../table/table.utils'
@@ -75,19 +74,19 @@ export class TreeTableComponent<T> implements OnInit, OnChanges {
     }
   }
 
-  treeControl = new FlatTreeControl<FlatTreeNode<T>>(
+  treeControl = new ZardFlatTreeControl<FlatTreeNode<T>>(
     (node) => node.level,
     (node) => node.expandable
   )
 
-  treeFlattener = new MatTreeFlattener(
+  treeFlattener = new ZardTreeFlattener(
     this.transformer,
     (node) => node.level,
     (node) => node.expandable,
     (node) => node.children
   )
 
-  dataSource = new MatTreeFlatDataSource(this.treeControl, this.treeFlattener)
+  dataSource = new ZardTreeFlatDataSource(this.treeControl, this.treeFlattener)
 
   unfold = false
   ngOnInit() {

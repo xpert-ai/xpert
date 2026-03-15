@@ -1,6 +1,5 @@
 @reference "../../../../styles/tailwind-reference.css";
 :host {
-  --mat-tree-container-background-color: transparent;
   @apply flex flex-col overflow-hidden;
 }
 

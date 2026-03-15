@@ -1,5 +1,4 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
-import { CdkTreeModule, FlatTreeControl } from '@angular/cdk/tree'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectorRef,
@@ -16,7 +15,6 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatDialog, MatDialogRef } from '@angular/material/dialog'
-import { MatTreeFlatDataSource } from '@angular/material/tree'
 import { Router, RouterModule } from '@angular/router'
 import { FavoritesService, StoriesService, convertStory } from '@metad/cloud/state'
 import { NgmCopilotContextService, NgmCopilotContextToken } from '@metad/copilot-angular'
@@ -65,6 +63,7 @@ import { MaterialModule } from '../../../@shared/material.module'
 import { StoryCreationComponent } from '../../../@shared/story'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { injectFetchModelDetails } from '@cloud/app/@shared/indicator'
+import { ZardFlatTreeControl, ZardTreeFlatDataSource, ZardTreeImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -74,7 +73,6 @@ import { injectFetchModelDetails } from '@cloud/app/@shared/indicator'
     ReactiveFormsModule,
     DragDropModule,
     CdkMenuModule,
-    CdkTreeModule,
     RouterModule,
     MaterialModule,
     TranslateModule,
@@ -82,7 +80,8 @@ import { injectFetchModelDetails } from '@cloud/app/@shared/indicator'
     ButtonGroupDirective,
     NgmCommonModule,
     AppearanceDirective,
-    NgmTreeSelectComponent
+    NgmTreeSelectComponent,
+    ...ZardTreeImports
   ],
   selector: 'pac-project',
   templateUrl: 'project.component.html',
@@ -121,8 +120,8 @@ export class ProjectComponent extends TranslationBaseComponent {
 
   private dialogRef: MatDialogRef<ElementRef<any>, any>
 
-  dataSource: MatTreeFlatDataSource<TreeNodeInterface<any>, FlatTreeNode<any>>
-  treeControl: FlatTreeControl<FlatTreeNode<any>>
+  dataSource: ZardTreeFlatDataSource<TreeNodeInterface<any>, FlatTreeNode<any>>
+  treeControl: ZardFlatTreeControl<FlatTreeNode<any>>
 
   /**
    * @deprecated use projectService

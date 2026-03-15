@@ -8,7 +8,7 @@
   $accent: map.get($config, 'accent');
 
   .ngm-entity-schema {
-    .mat-tree-node {
+    [data-slot='tree-node'] {
       padding-right: 1rem;
 
       .z-icon-rtl-mirror {

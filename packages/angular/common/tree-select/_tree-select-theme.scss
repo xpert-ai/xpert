@@ -18,15 +18,15 @@
     }
   }
 
-  .ngm-tree-select__panel.cdk-tree {
+  z-tree.ngm-tree-select__panel {
     background-color: transparent;
 
-    .cdk-tree-node {
+    [data-slot='tree-node'] {
       padding-right: 10px;
     }
 
     &.selection {
-      .cdk-tree-node {
+      [data-slot='tree-node'] {
         cursor: pointer;
 
         &:hover,
@@ -45,11 +45,11 @@
 
   .ngm-tree-select {
     &.mat-accent {
-      .cdk-tree.selection {
+      z-tree.selection {
         .z-icon-rtl-mirror {
           color: color.change(mat.m2-get-color-from-palette($accent), $alpha: 0.3);
         }
-        .cdk-tree-node {
+        [data-slot='tree-node'] {
           &:hover,
           &:focus {
             background-color: color.change(mat.m2-get-color-from-palette($accent), $alpha: 0.03);
@@ -65,11 +65,11 @@
     }
 
     &.mat-primary {
-      .cdk-tree.selection {
+      z-tree.selection {
         .z-icon-rtl-mirror {
           color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.3);
         }
-        .cdk-tree-node {
+        [data-slot='tree-node'] {
           &:hover,
           &:focus {
             background-color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.03);
@@ -155,14 +155,14 @@
     }
   }
 
-  .ngm-tree-select__panel.cdk-tree {
+  z-tree.ngm-tree-select__panel {
     &.ngm-density__cosy {
-      .mat-tree-node {
+      [data-slot='tree-node'] {
         min-height: 34px;
       }
     }
     &.ngm-density__compact {
-      .mat-tree-node {
+      [data-slot='tree-node'] {
         min-height: 28px;
         font-size: 12px;
       }

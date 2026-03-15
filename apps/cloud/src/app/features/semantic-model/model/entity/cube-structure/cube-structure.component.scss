@@ -18,7 +18,7 @@
 
 ::ng-deep {
   .pac-property-dimension.ngm-density__compact {
-    .cdk-tree-node {
+    [data-slot='tree-node'] {
       @apply rounded-lg;
     }
   }

@@ -1,6 +1,5 @@
 import { COMMA, ENTER } from '@angular/cdk/keycodes'
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling'
-import { FlatTreeControl } from '@angular/cdk/tree'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
@@ -32,9 +31,11 @@ import {
   ZardInputDirective,
   ZardCheckboxComponent,
   ZardTooltipImports,
-  ZardLoaderComponent
+  ZardLoaderComponent,
+  ZardFlatTreeControl,
+  ZardTreeFlatDataSource,
+  ZardTreeFlattener
 } from '@xpert-ai/headless-ui'
-import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import {
   DateVariableEnum,
@@ -204,17 +205,17 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
       raw: node.raw
     }
   }
-  treeControl = new FlatTreeControl<FlatTreeNode<any>>(
+  treeControl = new ZardFlatTreeControl<FlatTreeNode<any>>(
     (node) => node.level,
     (node) => node.expandable
   )
-  private treeFlattener = new MatTreeFlattener(
+  private treeFlattener = new ZardTreeFlattener(
     this.transformer,
     (node) => node.level,
     (node) => node.expandable,
     (node) => node.children
   )
-  private dataSource = new MatTreeFlatDataSource(this.treeControl, this.treeFlattener)
+  private dataSource = new ZardTreeFlatDataSource(this.treeControl, this.treeFlattener)
   public readonly selectOptions$ = this.dataSource.connect({ viewChange: of() })
 
   private readonly entityType = toSignal(this.smartFilterService.selectEntityType())

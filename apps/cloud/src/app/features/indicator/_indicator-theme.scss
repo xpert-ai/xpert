@@ -13,7 +13,7 @@
     .ngm-tree-select {
       // background-color: mat.m2-get-color-from-palette($background, card);
 
-      .mat-tree.ngm-tree-select__panel {
+      z-tree.ngm-tree-select__panel {
         overflow-y: auto;
       }
 

@@ -45,7 +45,7 @@
           color: mat.m2-get-color-from-palette($primary);
         }
 
-        &.cdk-tree-node {
+        &[data-slot='tree-node'] {
           padding-right: 16px;
         }
 
@@ -72,7 +72,7 @@
     .ngm-mdx-cube__add {
       visibility: hidden;
     }
-    .cdk-tree-node.mat-tree-node,
+    [data-slot='tree-node'],
     [data-slot='accordion-header'] {
       &:hover {
         .ngm-mdx-cube__add {

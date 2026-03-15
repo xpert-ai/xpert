@@ -196,14 +196,14 @@
   .pac-model-access-control {
     .pac-model-access__cubes {
       .ngm-entity-schema {
-        .mat-tree {
+        z-tree[data-slot='tree'] {
           background: unset;
         }
         &.selected {
           background-color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.05);
         }
 
-        .mat-tree-node.selected {
+        [data-slot='tree-node'].selected {
           background-color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.1);
         }
       }

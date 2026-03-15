@@ -21,7 +21,6 @@ import {
 } from '@xpert-ai/headless-ui'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatStepperModule } from '@angular/material/stepper'
-import { MatTreeModule } from '@angular/material/tree'
 
 const MATERIAL_MODULES = [
   DragDropModule,
@@ -42,7 +41,6 @@ const MATERIAL_MODULES = [
   MatAutocompleteModule,
   MatChipsModule,
   ...ZardTooltipImports,
-  MatTreeModule,
   ZardBadgeComponent,
   ...ZardTableImports,
 ]

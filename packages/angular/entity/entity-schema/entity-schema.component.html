@@ -1,8 +1,8 @@
-<mat-tree [dataSource]="dataSource" [treeControl]="treeControl">
-  <mat-tree-node
-    *matTreeNodeDef="let node"
-    matTreeNodePadding
-    matTreeNodePaddingIndent="20"
+<z-tree [dataSource]="dataSource" [treeControl]="treeControl">
+  <div
+    *zTreeNodeDef="let node"
+    zTreeNodePadding
+    zTreeNodePaddingIndent="20"
     class="group/member"
     [cdkDragDisabled]="dragDisabled()"
     cdkDrag
@@ -38,11 +38,11 @@
       ></i>
     }
     <div class="ngm-entity-schema__drag-placeholder" *cdkDragPlaceholder></div>
-  </mat-tree-node>
-  <mat-tree-node
-    *matTreeNodeDef="let node; when: hasChild"
-    matTreeNodePadding
-    matTreeNodePaddingIndent="20"
+  </div>
+  <div
+    *zTreeNodeDef="let node; when: hasChild"
+    zTreeNodePadding
+    zTreeNodePaddingIndent="20"
     class="group/member bg-components-card-bg"
     [ngClass]="node.item.type === EntitySchemaType.Entity ? 'sticky top-0' : ''"
     [cdkDragDisabled]="dragDisabled()"
@@ -65,7 +65,7 @@
         zSize="icon"
         zShape="circle"
         [attr.aria-label]="'Toggle ' + node.item"
-        matTreeNodeToggle
+        zTreeNodeToggle
       >
         <z-icon
           class="z-icon-rtl-mirror"
@@ -99,5 +99,5 @@
     }
 
     <div class="ngm-entity-schema__drag-placeholder" *cdkDragPlaceholder></div>
-  </mat-tree-node>
-</mat-tree>
+  </div>
+</z-tree>

@@ -38,13 +38,13 @@
 
 <cdk-virtual-scroll-viewport class="flex-1" [itemSize]="itemSize">
   <ng-container *cdkVirtualFor="let node of dataSource">
-    <!-- Note that the [style.padding-left] is essentially what cdkTreeNodePadding is doing under the hood -->
+    <!-- Keep indentation aligned with the shared tree component -->
     <div
       class="tree-node group/member rounded-md"
       [style.padding-left]="node.level * treeNodePaddingIndent + 'px'"
       [displayDensity]="appearance()?.displayDensity"
     >
-      <!-- Note that treeControl.toggle(node) is essentially what cdkTreeNodeToggle is doing under the hood -->
+      <!-- Toggle expand state inline to match the shared tree behaviour -->
       @if (node.expandable) {
         <button
           z-button

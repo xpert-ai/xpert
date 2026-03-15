@@ -103,12 +103,12 @@
         </button>
       </div>
 
-      <cdk-tree [dataSource]="dataSource" [treeControl]="treeControl" class="flex flex-col">
+      <z-tree [dataSource]="dataSource" [treeControl]="treeControl" class="flex flex-col">
         <!-- This is the tree node template for leaf nodes -->
-        <cdk-tree-node
-          *cdkTreeNodeDef="let node"
-          cdkTreeNodePadding
-          cdkTreeNodePaddingIndent="10px"
+        <div
+          *zTreeNodeDef="let node"
+          zTreeNodePadding
+          zTreeNodePaddingIndent="10px"
           class="pac-project__router-link flex items-center group cursor-pointer rounded-md"
           [routerLink]="node.raw.__type__ === 'story' ? ['/project', node.key] : null"
           routerLinkActive
@@ -175,12 +175,12 @@
               </button>
             }
           }
-        </cdk-tree-node>
+        </div>
         <!-- This is the tree node template for expandable nodes -->
-        <cdk-tree-node
-          *cdkTreeNodeDef="let node; when: hasChild"
-          cdkTreeNodePadding
-          cdkTreeNodePaddingIndent="20px"
+        <div
+          *zTreeNodeDef="let node; when: hasChild"
+          zTreeNodePadding
+          zTreeNodePaddingIndent="20px"
           class="flex items-center group cursor-pointer rounded-md"
           >
           <button
@@ -188,11 +188,10 @@
             zType="ghost"
             zSize="icon"
             zShape="circle"
-            cdkTreeNodeToggle
+            zTreeNodeToggle
             displayDensity="cosy"
             class="ml-2"
             [attr.aria-label]="'Toggle ' + node.caption"
-            (click)="node.isExpanded = !node.isExpanded"
             [style.visibility]="node.expandable ? 'visible' : 'hidden'"
             >
             <z-icon
@@ -227,8 +226,8 @@
               <i class="ri-more-line"></i>
             </button>
           }
-        </cdk-tree-node>
-      </cdk-tree>
+        </div>
+      </z-tree>
 
       <div class="p-2 pr-0 flex justify-between items-center">
         <span class="">

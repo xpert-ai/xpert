@@ -52,7 +52,7 @@ $dialog-container-padding: 0;
         }
       }
 
-      .mat-tree {
+      z-tree[data-slot='tree'] {
         background: unset;
       }
     }

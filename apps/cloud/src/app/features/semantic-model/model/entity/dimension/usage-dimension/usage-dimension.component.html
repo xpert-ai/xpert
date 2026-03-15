@@ -1,9 +1,9 @@
-<mat-tree [dataSource]="dataSource" [treeControl]="treeControl" class="ngm-tree_selection" id="pac-entity-dimension">
-  <mat-tree-node
-    *matTreeNodeDef="let node"
-    matTreeNodeToggle
-    matTreeNodePaddingIndent="20"
-    matTreeNodePadding
+<z-tree [dataSource]="dataSource" [treeControl]="treeControl" class="ngm-tree_selection" id="pac-entity-dimension">
+  <div
+    *zTreeNodeDef="let node"
+    zTreeNodeToggle
+    zTreeNodePaddingIndent="20"
+    zTreeNodePadding
     class="ngm-list-item group/item relative"
     [ngClass]="isSelected(node) ? 'selected' : ''"
     (click)="onSelect(node)"
@@ -31,19 +31,19 @@
         </button>
       }
     </div>
-  </mat-tree-node>
+  </div>
 
-  <mat-tree-node
-    *matTreeNodeDef="let node; when: hasChild"
-    matTreeNodePaddingIndent="20"
-    matTreeNodePadding
+  <div
+    *zTreeNodeDef="let node; when: hasChild"
+    zTreeNodePaddingIndent="20"
+    zTreeNodePadding
     class="ngm-list-item group/item relative"
     [ngClass]="isSelected(node) ? 'selected' : ''"
     (click)="onSelect(node)"
     cdkDrag
     [cdkDragData]="node"
   >
-    <button z-button zType="ghost" zSize="icon" zShape="circle" matTreeNodeToggle displayDensity="cosy">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" zTreeNodeToggle displayDensity="cosy">
       <z-icon
         class="z-icon-rtl-mirror"
         [zType]="treeControl.isExpanded(node) ? 'arrow_drop_down' : 'arrow_right'"
@@ -87,5 +87,5 @@
         </button>
       }
     </div>
-  </mat-tree-node>
-</mat-tree>
+  </div>
+</z-tree>

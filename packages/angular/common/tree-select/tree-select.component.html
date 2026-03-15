@@ -224,20 +224,15 @@
     <ngm-search class="w-full shrink-0 p-2" [formControl]="autoControl"></ngm-search>
   }
 
-  <mat-tree
-    class="selection ngm-tree-select__panel flex-1"
-    [dataSource]="dataSource"
-    [treeControl]="treeControl"
-    [displayDensity]="displayDensity"
-    >
+  <z-tree class="selection ngm-tree-select__panel flex-1" [dataSource]="dataSource" [treeControl]="treeControl">
     <!-- This is the tree node template for leaf nodes -->
-    <mat-tree-node
-      *matTreeNodeDef="let node"
+    <div
+      *zTreeNodeDef="let node"
       class="rounded-lg"
-      matTreeNodePadding
-      [matTreeNodePaddingIndent]="treeNodePaddingIndent"
+      zTreeNodePadding
+      [zTreeNodePaddingIndent]="treeNodePaddingIndent"
       [ngClass]="isSelected(node) ? 'selected' : ''"
-      [disabled]="disabled()"
+      [attr.disabled]="disabled() || null"
       (click)="disabled() || toggleNode(node)"
       >
       <!-- use a disabled button to provide padding for tree leaf -->
@@ -250,15 +245,15 @@
         [highlight]="autoHighlight"
         >
       </ngm-display-behaviour>
-    </mat-tree-node>
+    </div>
     <!-- This is the tree node template for expandable nodes -->
-    <mat-tree-node
-      *matTreeNodeDef="let node; when: hasChild"
+    <div
+      *zTreeNodeDef="let node; when: hasChild"
       class="rounded-lg"
-      matTreeNodePadding
-      [matTreeNodePaddingIndent]="treeNodePaddingIndent"
+      zTreeNodePadding
+      [zTreeNodePaddingIndent]="treeNodePaddingIndent"
       [ngClass]="isSelected(node) ? 'selected' : ''"
-      [disabled]="disabled()"
+      [attr.disabled]="disabled() || null"
       (click)="disabled() || toggleNode(node)"
       >
       <button
@@ -266,7 +261,7 @@
         zType="ghost"
         zSize="icon"
         zShape="circle"
-        matTreeNodeToggle
+        zTreeNodeToggle
         [displayDensity]="displayDensity"
         [attr.aria-label]="'Toggle ' + node.name"
         >
@@ -283,6 +278,6 @@
         [highlight]="autoHighlight"
         >
       </ngm-display-behaviour>
-    </mat-tree-node>
-  </mat-tree>
+    </div>
+  </z-tree>
 }

@@ -1,6 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { ScrollingModule } from '@angular/cdk/scrolling'
-import { FlatTreeControl } from '@angular/cdk/tree'
 import { A11yModule } from '@angular/cdk/a11y'
 import { CommonModule } from '@angular/common'
 import {
@@ -23,9 +22,10 @@ import {
   ZardInputDirective,
   ZardCheckboxComponent,
   ZardTooltipImports,
-  ZardLoaderComponent
+  ZardLoaderComponent,
+  ZardFlatTreeControl,
+  ZardTreeImports
 } from '@xpert-ai/headless-ui'
-import { MatTreeModule } from '@angular/material/tree'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmAppearance, NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import { DataSettings, DIMENSION_MEMBER_FIELDS, DisplayBehaviour, IDimensionMember } from '@metad/ocap-core'
@@ -39,7 +39,6 @@ import { EntityCapacity, EntitySchemaType } from './types'
     CommonModule,
     ReactiveFormsModule,
     A11yModule,
-    MatTreeModule,
     ...ZardFormImports,
     ZardInputDirective,
     ZardIconComponent,
@@ -49,6 +48,7 @@ import { EntityCapacity, EntitySchemaType } from './types'
     TranslateModule,
     ZardCheckboxComponent,
     ZardLoaderComponent,
+    ...ZardTreeImports,
     ...ZardTooltipImports,
     NgmCommonModule,
     OcapCoreModule
@@ -102,7 +102,7 @@ export class NgmEntitySchemaComponent implements OnInit {
     if (this.dsCoreService) {
       this._dsCoreService = this.dsCoreService
     }
-    this.treeControl = new FlatTreeControl<EntitySchemaFlatNode>(this.getLevel, this.isExpandable)
+    this.treeControl = new ZardFlatTreeControl<EntitySchemaFlatNode>(this.getLevel, this.isExpandable)
     this.dataSource = new EntitySchemaDataSource(
       this.treeControl,
       this._dsCoreService,
@@ -113,7 +113,7 @@ export class NgmEntitySchemaComponent implements OnInit {
     this.dataSource.data = []
   }
 
-  treeControl: FlatTreeControl<EntitySchemaFlatNode>
+  treeControl: ZardFlatTreeControl<EntitySchemaFlatNode>
 
   dataSource: EntitySchemaDataSource
 

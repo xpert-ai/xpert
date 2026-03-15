@@ -1,3 +1,4 @@
+import { NgTemplateOutlet } from '@angular/common';
 import { CdkFixedSizeVirtualScroll, CdkVirtualForOf, CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import {
   booleanAttribute,
@@ -5,30 +6,67 @@ import {
   Component,
   computed,
   contentChild,
+  contentChildren,
   effect,
   ElementRef,
   inject,
   input,
   numberAttribute,
   output,
+  signal,
   type TemplateRef,
   ViewEncapsulation,
 } from '@angular/core';
 
 import type { ClassValue } from 'clsx';
+import { NEVER } from 'rxjs';
 
 import { mergeClasses } from '@/shared/utils/merge-classes';
 
+import { ZardFlatTreeControl } from './tree-control';
+import { ZardTreeNodeContextDirective } from './tree-node-context.directive';
+import { ZardTreeNodeDefDirective } from './tree-node-def.directive';
 import { ZardTreeNodeComponent } from './tree-node.component';
 import { ZardTreeService } from './tree.service';
-import type { FlatTreeNode, TreeNode, TreeNodeTemplateContext } from './tree.types';
+import type {
+  FlatTreeNode,
+  TreeNode,
+  TreeNodeTemplateContext,
+  ZardTreeCompatibleDataSource,
+  ZardTreeNodeOutletContext,
+} from './tree.types';
 import { treeVariants } from './tree.variants';
 
 @Component({
   selector: 'z-tree',
-  imports: [ZardTreeNodeComponent, CdkVirtualScrollViewport, CdkFixedSizeVirtualScroll, CdkVirtualForOf],
+  imports: [
+    NgTemplateOutlet,
+    ZardTreeNodeComponent,
+    ZardTreeNodeContextDirective,
+    CdkVirtualScrollViewport,
+    CdkFixedSizeVirtualScroll,
+    CdkVirtualForOf,
+  ],
   template: `
-    @if (zVirtualScroll()) {
+    @if (hasProjectedNodeDefs()) {
+      @for (node of renderedNodes(); track trackByNode($index, node); let index = $index) {
+        <div
+          class="contents"
+          zTreeNodeContext
+          [zTreeNodeContextNode]="node"
+          [zTreeNodeContextLevel]="getNodeLevel(node)"
+          [zTreeNodeContextIndex]="index"
+          [zTreeNodeContextExpandable]="isNodeExpandable(node)"
+          [zTreeNodeContextTreeControl]="resolvedTreeControl()"
+          [attr.data-tree-node-index]="index"
+        >
+          <ng-container
+            [ngTemplateOutlet]="resolveNodeTemplate(index, node)"
+            [ngTemplateOutletContext]="createTemplateContext(index, node)"
+          />
+        </div>
+      }
+    } @else if (zVirtualScroll()) {
       <cdk-virtual-scroll-viewport [itemSize]="zVirtualItemSize()" class="size-full">
         <z-tree-node
           *cdkVirtualFor="let flatNode of flattenedNodes(); trackBy: trackByKey"
@@ -71,16 +109,20 @@ import { treeVariants } from './tree.variants';
   encapsulation: ViewEncapsulation.None,
   host: {
     role: 'tree',
+    'data-slot': 'tree',
     '[class]': 'classes()',
     '(keydown)': 'onKeydown($event)',
   },
   exportAs: 'zTree',
 })
-export class ZardTreeComponent<T = any> {
+export class ZardTreeComponent<T = any, F = unknown> {
   readonly treeService = inject(ZardTreeService<T>);
   private readonly elementRef = inject(ElementRef);
+  private readonly nodeDefs = contentChildren(ZardTreeNodeDefDirective, { descendants: true });
 
   readonly class = input<ClassValue>('');
+  readonly dataSource = input<ZardTreeCompatibleDataSource<F> | F[] | null>(null);
+  readonly treeControl = input<ZardFlatTreeControl<F> | null>(null);
   readonly zData = input<TreeNode<T>[]>([]);
   readonly zSelectable = input(false, { transform: booleanAttribute });
   readonly zCheckable = input(false, { transform: booleanAttribute });
@@ -97,25 +139,24 @@ export class ZardTreeComponent<T = any> {
   readonly customNodeTemplate = contentChild<TemplateRef<TreeNodeTemplateContext<T>>>('nodeTemplate');
 
   protected readonly classes = computed(() => mergeClasses(treeVariants(), this.class()));
-
   protected readonly flattenedNodes = computed(() => this.treeService.flattenedNodes());
+  protected readonly renderedNodes = signal<F[]>([]);
+  protected readonly hasProjectedNodeDefs = computed(() => this.nodeDefs().length > 0);
+  protected readonly resolvedTreeControl = computed(() => this.treeControl());
 
   private focusedIndex = 0;
 
   constructor() {
-    // Sync data to service
     effect(() => {
       this.treeService.setData(this.zData());
     });
 
-    // Expand all on init if requested
     effect(() => {
       if (this.zExpandAll()) {
         this.treeService.expandAll();
       }
     });
 
-    // Emit node click from tree-node interactions
     effect(() => {
       const clicked = this.treeService.clickedNode();
       if (clicked) {
@@ -123,7 +164,6 @@ export class ZardTreeComponent<T = any> {
       }
     });
 
-    // Emit selection changes
     effect(() => {
       const keys = this.treeService.selectedKeys();
       if (keys.size > 0) {
@@ -131,17 +171,76 @@ export class ZardTreeComponent<T = any> {
       }
     });
 
-    // Emit check changes
     effect(() => {
       const keys = this.treeService.checkedKeys();
       if (keys.size > 0) {
         this.zCheckChange.emit(this.treeService.getCheckedNodes());
       }
     });
+
+    effect(onCleanup => {
+      const dataSource = this.dataSource();
+      if (!dataSource) {
+        this.renderedNodes.set([]);
+        return;
+      }
+
+      if (Array.isArray(dataSource)) {
+        this.renderedNodes.set(dataSource);
+        return;
+      }
+
+      const subscription = dataSource.connect({ viewChange: NEVER }).subscribe(nodes => {
+        this.renderedNodes.set(nodes ?? []);
+      });
+
+      onCleanup(() => {
+        subscription.unsubscribe();
+        dataSource.disconnect?.({ viewChange: NEVER });
+      });
+    });
   }
 
   trackByKey(_index: number, item: FlatTreeNode<T>): string {
     return item.node.key;
+  }
+
+  trackByNode(index: number, node: F) {
+    return this.resolvedTreeControl()?.trackBy(node) ?? index;
+  }
+
+  getRenderedNode(index: number): F | undefined {
+    return this.renderedNodes()[index];
+  }
+
+  getRenderedTreeControl() {
+    return this.resolvedTreeControl();
+  }
+
+  getNodeLevel(node: F): number {
+    return this.resolvedTreeControl()?.getLevel(node) ?? 0;
+  }
+
+  isNodeExpandable(node: F): boolean {
+    return this.resolvedTreeControl()?.isExpandable(node) ?? false;
+  }
+
+  resolveNodeTemplate(index: number, node: F) {
+    const definitions = this.nodeDefs();
+    return (
+      definitions.find(definition => definition.when()?.(index, node))?.template ??
+      definitions.find(definition => !definition.when())?.template ??
+      null
+    );
+  }
+
+  createTemplateContext(index: number, node: F): ZardTreeNodeOutletContext<F> {
+    return {
+      $implicit: node,
+      index,
+      level: this.getNodeLevel(node),
+      expandable: this.isNodeExpandable(node),
+    };
   }
 
   onKeydown(event: KeyboardEvent) {
@@ -185,8 +284,6 @@ export class ZardTreeComponent<T = any> {
         break;
     }
   }
-
-  // --- Keyboard helpers ---
 
   private getFocusedNode(): FlatTreeNode<T> | undefined {
     return this.treeService.flattenedNodes()[this.focusedIndex];
@@ -234,7 +331,7 @@ export class ZardTreeComponent<T = any> {
   }
 
   private focusDomNode(key: string) {
-    const el = (this.elementRef.nativeElement as HTMLElement).querySelector<HTMLElement>(`[data-key="${key}"]`);
-    el?.focus();
+    const element = (this.elementRef.nativeElement as HTMLElement).querySelector<HTMLElement>(`[data-key="${key}"]`);
+    element?.focus();
   }
 }
