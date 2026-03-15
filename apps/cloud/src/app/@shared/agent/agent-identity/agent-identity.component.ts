@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -7,7 +7,7 @@ import { EmojiAvatarComponent } from '../../avatar'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, EmojiAvatarComponent],
+  imports: [FormsModule, TranslateModule, EmojiAvatarComponent],
   selector: 'xpert-agent-identity',
   templateUrl: 'agent-identity.component.html',
   styleUrls: ['agent-identity.component.scss']

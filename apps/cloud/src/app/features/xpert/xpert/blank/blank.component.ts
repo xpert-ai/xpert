@@ -1,6 +1,6 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
@@ -24,15 +24,14 @@ import { NgmSpinComponent } from '@metad/ocap-angular/common'
   selector: 'xpert-new-blank',
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     DragDropModule,
     ZardInputDirective,
     FormsModule,
     CdkListboxModule,
     NgmSpinComponent,
-    XpertBasicFormComponent,
-  ],
+    XpertBasicFormComponent
+],
   templateUrl: './blank.component.html',
   styleUrl: './blank.component.scss'
 })

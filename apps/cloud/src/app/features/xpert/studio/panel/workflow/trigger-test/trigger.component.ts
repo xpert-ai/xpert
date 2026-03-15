@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -34,7 +34,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   styleUrls: ['./trigger.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ...ZardTooltipImports, TranslateModule, ChatConversationPreviewComponent]
+  imports: [FormsModule, ...ZardTooltipImports, TranslateModule, ChatConversationPreviewComponent]
 })
 export class XpertWorkflowTriggerTestComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

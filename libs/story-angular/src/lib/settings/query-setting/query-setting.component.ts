@@ -1,5 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, HostBinding, OnInit } from '@angular/core'
 
 import { MatDialogModule } from '@angular/material/dialog'
@@ -18,7 +18,6 @@ import { TranslateModule } from '@ngx-translate/core'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     DragDropModule,
     MatDialogModule,
     ZardButtonComponent,
@@ -30,7 +29,7 @@ import { TranslateModule } from '@ngx-translate/core'
     ZardInputDirective,
     TranslateModule,
     NgmCommonModule
-  ],
+],
   selector: 'ngm-settings-query-setting',
   templateUrl: './query-setting.component.html',
   styleUrls: ['./query-setting.component.scss']

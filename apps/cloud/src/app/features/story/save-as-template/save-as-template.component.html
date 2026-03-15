@@ -1,6 +1,6 @@
 <div
   class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group"
->
+  >
   <div class="w-full flex justify-start items-center mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-lg pointer-events-none">
@@ -29,7 +29,7 @@
           ngmAppearance="outline"
           color="accent"
           displayDensity="compact"
-        >
+          >
           <z-toggle-group-item [value]="StoryTemplateType.Theme">
             {{ 'Story.Template.Theme' | translate: { Default: 'Theme' } }}
           </z-toggle-group-item>
@@ -63,18 +63,24 @@
         cdkFocusInitial
         [zDisabled]="(formGroup.invalid || formGroup.pristine) && !file"
         (click)="save()"
-      >
-        <z-loader *ngIf="uploading" diameter="20" class="m-2" />
-        <span *ngIf="!uploading">
-          {{ 'Story.Common.Save' | translate: { Default: 'Save' } }}
-        </span>
+        >
+        @if (uploading) {
+          <z-loader diameter="20" class="m-2" />
+        }
+        @if (!uploading) {
+          <span>
+            {{ 'Story.Common.Save' | translate: { Default: 'Save' } }}
+          </span>
+        }
       </button>
     </div>
   </div>
 </div>
 
 <div class="flex-1 relative flex content-center">
-  <img *ngIf="!!imagePreview" [src]="imagePreview" alt="Image Preview" class="object-contain mx-auto h-auto" />
+  @if (!!imagePreview) {
+    <img [src]="imagePreview" alt="Image Preview" class="object-contain mx-auto h-auto" />
+  }
 
   <div class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center">
     <input
@@ -84,10 +90,12 @@
       accept="image/*"
       (checkChange)="onFileSelected($event)"
       (click)="fileUpload.value = null"
-    />
-    <label *ngIf="!imagePreview" class="text-base flex p-2">
-      {{ 'Story.Template.Preview' | translate: { Default: 'Preview' } }}
-    </label>
+      />
+    @if (!imagePreview) {
+      <label class="text-base flex p-2">
+        {{ 'Story.Template.Preview' | translate: { Default: 'Preview' } }}
+      </label>
+    }
 
     <div class="flex flex-col justify-center items-center backdrop-blur-md bg-white/10 rounded-lg p-4">
       <div class="flex justify-center items-center">
@@ -98,35 +106,42 @@
           displayDensity="cosy"
           color="accent"
           (click)="fileUpload.click()"
-        >
+          >
           <div class="flex justify-start items-center">
             <z-icon zType="upload"></z-icon>
-            <span *ngIf="!!imagePreview">
-              {{ 'Story.Common.ReUpload' | translate: { Default: 'Re-upload' } }}
-            </span>
-            <span *ngIf="!imagePreview">
-              {{ 'Story.Common.Upload' | translate: { Default: 'Upload' } }}
-            </span>
+            @if (!!imagePreview) {
+              <span>
+                {{ 'Story.Common.ReUpload' | translate: { Default: 'Re-upload' } }}
+              </span>
+            }
+            @if (!imagePreview) {
+              <span>
+                {{ 'Story.Common.Upload' | translate: { Default: 'Upload' } }}
+              </span>
+            }
           </div>
         </button>
 
-        <button
-          z-button
-          zType="ghost"
-          zSize="icon"
-          zShape="circle"
-          *ngIf="imagePreview"
-          displayDensity="cosy"
-          ngmAppearance="danger"
-          (click)="deletePreview()"
-        >
-          <z-icon zType="delete_forever"></z-icon>
-        </button>
+        @if (imagePreview) {
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            displayDensity="cosy"
+            ngmAppearance="danger"
+            (click)="deletePreview()"
+            >
+            <z-icon zType="delete_forever"></z-icon>
+          </button>
+        }
       </div>
 
-      <z-form-message zType="error" *ngIf="error">
-        {{ error }}
-      </z-form-message>
+      @if (error) {
+        <z-form-message zType="error">
+          {{ error }}
+        </z-form-message>
+      }
     </div>
   </div>
 </div>

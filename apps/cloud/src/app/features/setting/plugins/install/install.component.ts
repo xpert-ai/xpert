@@ -1,5 +1,5 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectHelpWebsite, injectToastr } from '@cloud/app/@core'
@@ -11,7 +11,7 @@ import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, FormsModule, NgmSpinComponent, PluginComponent],
+  imports: [TranslateModule, FormsModule, NgmSpinComponent, PluginComponent],
   selector: 'xp-settings-plugin-install',
   templateUrl: './install.component.html',
   styleUrls: ['./install.component.scss'],

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -18,17 +18,15 @@ import { CreatedByPipe } from '../../../@shared/pipes'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
     MaterialModule,
     TranslateModule,
-
     CreatedByPipe,
     NgmSelectionModule,
     IndicatorTypeComponent,
     TagViewerComponent
-  ],
+],
   selector: 'pac-viewer',
   templateUrl: './viewer.component.html',
   styleUrls: ['./viewer.component.scss']

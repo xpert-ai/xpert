@@ -1,13 +1,17 @@
-<div class="ngm-formly__title" *ngIf="props?.title">{{ props.title }}</div>
+@if (props?.title) {
+  <div class="ngm-formly__title">{{ props.title }}</div>
+}
 
-<ng-container *ngIf="props?.type === 'inline'">
+@if (props?.type === 'inline') {
   <ng-container *ngTemplateOutlet="inlineTable"></ng-container>
-</ng-container>
+}
 
-<button z-button zType="ghost" *ngIf="props?.type !== 'inline'" ngmAppearance="dashed" displayDensity="cosy" [color]="data.length ? 'accent' : null" (click)="open()">
-  <z-icon zType="edit"></z-icon>{{props?.title ?? ('FORMLY.TABLE.Open' | translate:
-  {Default: 'Open'} ) }}
-</button>
+@if (props?.type !== 'inline') {
+  <button z-button zType="ghost" ngmAppearance="dashed" displayDensity="cosy" [color]="data.length ? 'accent' : null" (click)="open()">
+    <z-icon zType="edit"></z-icon>{{props?.title ?? ('FORMLY.TABLE.Open' | translate:
+    {Default: 'Open'} ) }}
+  </button>
+}
 
 <ng-template #inlineTable>
   <div class="overflow-auto w-full">
@@ -18,7 +22,7 @@
       cdkDropList
       [cdkDropListData]="data"
       (cdkDropListDropped)="drop($event)"
-    >
+      >
       <ng-container matColumnDef="_sort_">
         <th mat-header-cell *matHeaderCellDef></th>
         <td mat-cell *matCellDef="let element" cdkDragHandle class="pac-formly-table__drag-handle">
@@ -31,7 +35,7 @@
             p-id="2318"
             width="20"
             height="20"
-          >
+            >
             <path
               d="M469.333333 256a85.333333 85.333333 0 1 1-85.333333-85.333333 85.333333 85.333333 0 0 1 85.333333 85.333333z m-85.333333 170.666667a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z m0 256a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z m256-341.333334a85.333333 85.333333 0 1 0-85.333333-85.333333 85.333333 85.333333 0 0 0 85.333333 85.333333z m0 85.333334a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z m0 256a85.333333 85.333333 0 1 0 85.333333 85.333333 85.333333 85.333333 0 0 0-85.333333-85.333333z"
               p-id="2319"

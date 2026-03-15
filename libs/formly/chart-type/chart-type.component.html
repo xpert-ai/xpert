@@ -3,7 +3,7 @@
 }}</label>
 <div
   class="ngm-formly-chart-type__container flex flex-col p-1 rounded-lg ring-offset-1 ring-offset-transparent ring-2 ring-transparent"
->
+  >
   <div class="flex items-center w-full max-w-full text-xs">
     <div class="pac-formly-chart-type__prefix">
       <ng-content class="ngm-prefix"></ng-content>
@@ -20,182 +20,178 @@
         [formControl]="chartTypeControl"
         [groups]="chartTypeOptionGroups"
         [placeholder]="'-- ' + ('FORMLY.CHART.None' | translate: { Default: 'None' }) + ' --'"
-      />
+        />
     </div>
 
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      *ngIf="type && type !== ChartTypeEnum.Custom"
-      displayDensity="compact"
-      (click)="$event.stopPropagation(); $event.preventDefault(); showMore.set(!showMore())"
-    >
-      <z-icon *ngIf="!showMore()" zType="expand_more"></z-icon>
-      <z-icon *ngIf="showMore()" zType="expand_less"></z-icon>
-    </button>
-
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      *ngIf="type === ChartTypeEnum.Custom"
-      displayDensity="compact"
-      (click)="$event.stopPropagation(); $event.preventDefault(); showCustomCode.set(!showCustomCode())"
-    >
-      <z-icon [color]="showCustomCode() ? 'accent' : ''" zType="code"></z-icon>
-    </button>
-
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      zFormSuffix
-      *ngIf="removable"
-      class="ngm-formly__remove"
-      displayDensity="compact"
-      color="warn"
-      (click)="$event.stopPropagation(); $event.preventDefault(); killMyself()"
-    >
-      <z-icon zType="clear"></z-icon>
-    </button>
-  </div>
-
-  <div
-    *ngIf="showMore()"
-    class="min-h-12 w-full flex flex-col justify-start items-stretch gap-1 mt-2"
-    displayDensity="compact"
-  >
-    <div class="surface-content flex flex-col justify-start items-start gap-2 rounded-lg p-2">
-      <div class="flex items-center text-sm">
-        <z-icon zSize="sm" zType="edit_attributes"></z-icon>
-        <span>{{ 'FORMLY.CHART.ChartType' | translate: { Default: 'Chart Type' } }}</span>
-      </div>
-
-      <ngm-input
-        class="w-full"
-        [label]="'FORMLY.CHART.ChartName' | translate: { Default: 'Chart Name' }"
-        [formControl]="name"
-      ></ngm-input>
-
-      @if (HAS_ORIENTS[type]) {
-        <div class="flex flex-col justify-start items-start">
-          <label class="ngm-input-label">{{ 'FORMLY.CHART.Orient' | translate: { Default: 'Orient' } }}</label>
-
-          <z-toggle-group [(ngModel)]="orient" ngmAppearance="hero" color="accent" class="self-start">
-            @for (orient of ORIENTS; track orient.value) {
-              <z-toggle-group-item [value]="orient.value">
-                {{ 'FORMLY.CHART.' + orient.label | translate: { Default: orient.label } }}
-              </z-toggle-group-item>
-            }
-          </z-toggle-group>
-        </div>
-      }
-
-      @if (VARIANTS[type]) {
-        <div class="flex flex-col justify-start items-start">
-          <label class="ngm-input-label">{{ 'FORMLY.CHART.Variant' | translate: { Default: 'Variant' } }}</label>
-
-          <z-toggle-group [(ngModel)]="variant" ngmAppearance="hero" color="accent" class="self-start">
-            @for (option of VARIANTS[type]; track option.value) {
-              <z-toggle-group-item [value]="option.value">
-                {{ 'FORMLY.CHART.' + option.label | translate: { Default: option.label } }}
-              </z-toggle-group-item>
-            }
-          </z-toggle-group>
-        </div>
-      }
-    </div>
-
-    <form
-      *ngIf="type === ChartTypeEnum.GeoMap"
-      class="surface-content flex flex-col justify-start items-start gap-2 rounded-lg p-2"
-      [formGroup]="mapFormGroup"
-    >
-      <div class="flex items-center text-sm">
-        <z-icon zSize="sm" class="text-slate-900" zType="map"></z-icon>
-        <span>{{ 'FORMLY.CHART.GeoMapConfig' | translate: { Default: 'GeoMap Config' } }}</span>
-      </div>
-
-      <ngm-input
-        class="self-stretch"
-        [label]="'FORMLY.CHART.MapName' | translate: { Default: 'Map Name' }"
-        formControlName="map"
-      ></ngm-input>
-
-      <ngm-input
-        class="self-stretch"
-        [label]="'FORMLY.CHART.MapUrl' | translate: { Default: 'Map Url' }"
-        formControlName="mapUrl"
-      ></ngm-input>
-
-      <z-checkbox formControlName="isTopoJSON">
-        {{ 'FORMLY.CHART.IsTopoJSON' | translate: { Default: 'Is TopoJSON' } }}
-      </z-checkbox>
-
-      <ngm-input
-        *ngIf="mapFormGroup.value.isTopoJSON"
-        class="self-stretch"
-        [label]="'FORMLY.CHART.FeatureObjectNames' | translate: { Default: 'Feature Object Names' }"
-        formControlName="features"
-      ></ngm-input>
-
-      <ngm-select
-        [label]="'FORMLY.CHART.MapProjection' | translate: { Default: 'Map Projection' }"
-        formControlName="projection"
-        valueKey="key"
-        [selectOptions]="GeoProjections"
-      >
-      </ngm-select>
-
-      <div ngmButtonGroup class="self-end">
-        <button z-button zType="secondary" [zDisabled]="mapFormGroup.pristine" (click)="confirmMap()">
-          {{ 'FORMLY.COMMON.Reset' | translate: { Default: 'Reset' } }}
-        </button>
-        <button
-          z-button
-          zType="default"
-          color="primary"
-          [zDisabled]="mapFormGroup.invalid || mapFormGroup.pristine"
-          (click)="confirmMap(true)"
+    @if (type && type !== ChartTypeEnum.Custom) {
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="compact"
+        (click)="$event.stopPropagation(); $event.preventDefault(); showMore.set(!showMore())"
         >
-          {{ 'FORMLY.COMMON.Apply' | translate: { Default: 'Apply' } }}
-        </button>
-      </div>
-    </form>
+        @if (!showMore()) {
+          <z-icon zType="expand_more"></z-icon>
+        }
+        @if (showMore()) {
+          <z-icon zType="expand_less"></z-icon>
+        }
+      </button>
+    }
 
-    <div class="surface-content w-full rounded-lg">
-      <div class="flex items-center text-sm p-2">
-        <z-icon zSize="sm" class="text-slate-900" zType="analytics"></z-icon>
-        <span>{{ 'FORMLY.CHART.ChartOptions' | translate: { Default: 'Chart Options' } }}</span>
-      </div>
+    @if (type === ChartTypeEnum.Custom) {
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="compact"
+        (click)="$event.stopPropagation(); $event.preventDefault(); showCustomCode.set(!showCustomCode())"
+        >
+        <z-icon [color]="showCustomCode() ? 'accent' : ''" zType="code"></z-icon>
+      </button>
+    }
 
-      <textarea
-        class="w-full min-h-28 p-2 text-xs font-mono bg-transparent border-0 outline-none resize-y"
-        [ngModel]="chartOptionsJsonText"
-        (ngModelChange)="onChartOptionsJsonChange($event)"
-        name="chartOptions"
-        spellcheck="false"
-      ></textarea>
-    </div>
+    @if (removable) {
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        zFormSuffix
+        class="ngm-formly__remove"
+        displayDensity="compact"
+        color="warn"
+        (click)="$event.stopPropagation(); $event.preventDefault(); killMyself()"
+        >
+        <z-icon zType="clear"></z-icon>
+      </button>
+    }
   </div>
+
+  @if (showMore()) {
+    <div
+      class="min-h-12 w-full flex flex-col justify-start items-stretch gap-1 mt-2"
+      displayDensity="compact"
+      >
+      <div class="surface-content flex flex-col justify-start items-start gap-2 rounded-lg p-2">
+        <div class="flex items-center text-sm">
+          <z-icon zSize="sm" zType="edit_attributes"></z-icon>
+          <span>{{ 'FORMLY.CHART.ChartType' | translate: { Default: 'Chart Type' } }}</span>
+        </div>
+        <ngm-input
+          class="w-full"
+          [label]="'FORMLY.CHART.ChartName' | translate: { Default: 'Chart Name' }"
+          [formControl]="name"
+        ></ngm-input>
+        @if (HAS_ORIENTS[type]) {
+          <div class="flex flex-col justify-start items-start">
+            <label class="ngm-input-label">{{ 'FORMLY.CHART.Orient' | translate: { Default: 'Orient' } }}</label>
+            <z-toggle-group [(ngModel)]="orient" ngmAppearance="hero" color="accent" class="self-start">
+              @for (orient of ORIENTS; track orient.value) {
+                <z-toggle-group-item [value]="orient.value">
+                  {{ 'FORMLY.CHART.' + orient.label | translate: { Default: orient.label } }}
+                </z-toggle-group-item>
+              }
+            </z-toggle-group>
+          </div>
+        }
+        @if (VARIANTS[type]) {
+          <div class="flex flex-col justify-start items-start">
+            <label class="ngm-input-label">{{ 'FORMLY.CHART.Variant' | translate: { Default: 'Variant' } }}</label>
+            <z-toggle-group [(ngModel)]="variant" ngmAppearance="hero" color="accent" class="self-start">
+              @for (option of VARIANTS[type]; track option.value) {
+                <z-toggle-group-item [value]="option.value">
+                  {{ 'FORMLY.CHART.' + option.label | translate: { Default: option.label } }}
+                </z-toggle-group-item>
+              }
+            </z-toggle-group>
+          </div>
+        }
+      </div>
+      @if (type === ChartTypeEnum.GeoMap) {
+        <form
+          class="surface-content flex flex-col justify-start items-start gap-2 rounded-lg p-2"
+          [formGroup]="mapFormGroup"
+          >
+          <div class="flex items-center text-sm">
+            <z-icon zSize="sm" class="text-slate-900" zType="map"></z-icon>
+            <span>{{ 'FORMLY.CHART.GeoMapConfig' | translate: { Default: 'GeoMap Config' } }}</span>
+          </div>
+          <ngm-input
+            class="self-stretch"
+            [label]="'FORMLY.CHART.MapName' | translate: { Default: 'Map Name' }"
+            formControlName="map"
+          ></ngm-input>
+          <ngm-input
+            class="self-stretch"
+            [label]="'FORMLY.CHART.MapUrl' | translate: { Default: 'Map Url' }"
+            formControlName="mapUrl"
+          ></ngm-input>
+          <z-checkbox formControlName="isTopoJSON">
+            {{ 'FORMLY.CHART.IsTopoJSON' | translate: { Default: 'Is TopoJSON' } }}
+          </z-checkbox>
+          @if (mapFormGroup.value.isTopoJSON) {
+            <ngm-input
+              class="self-stretch"
+              [label]="'FORMLY.CHART.FeatureObjectNames' | translate: { Default: 'Feature Object Names' }"
+              formControlName="features"
+            ></ngm-input>
+          }
+          <ngm-select
+            [label]="'FORMLY.CHART.MapProjection' | translate: { Default: 'Map Projection' }"
+            formControlName="projection"
+            valueKey="key"
+            [selectOptions]="GeoProjections"
+            >
+          </ngm-select>
+          <div ngmButtonGroup class="self-end">
+            <button z-button zType="secondary" [zDisabled]="mapFormGroup.pristine" (click)="confirmMap()">
+              {{ 'FORMLY.COMMON.Reset' | translate: { Default: 'Reset' } }}
+            </button>
+            <button
+              z-button
+              zType="default"
+              color="primary"
+              [zDisabled]="mapFormGroup.invalid || mapFormGroup.pristine"
+              (click)="confirmMap(true)"
+              >
+              {{ 'FORMLY.COMMON.Apply' | translate: { Default: 'Apply' } }}
+            </button>
+          </div>
+        </form>
+      }
+      <div class="surface-content w-full rounded-lg">
+        <div class="flex items-center text-sm p-2">
+          <z-icon zSize="sm" class="text-slate-900" zType="analytics"></z-icon>
+          <span>{{ 'FORMLY.CHART.ChartOptions' | translate: { Default: 'Chart Options' } }}</span>
+        </div>
+        <textarea
+          class="w-full min-h-28 p-2 text-xs font-mono bg-transparent border-0 outline-none resize-y"
+          [ngModel]="chartOptionsJsonText"
+          (ngModelChange)="onChartOptionsJsonChange($event)"
+          name="chartOptions"
+          spellcheck="false"
+        ></textarea>
+      </div>
+    </div>
+  }
 
   @if (showCustomCode()) {
     <div
       class="surface-content flex flex-col justify-start items-stretch relative mt-2 rounded-lg overflow-hidden"
       ngmResizer
       [resizerHeight]="500"
-    >
+      >
       <header class="flex justify-between items-center px-2">
         <ngm-input
           [formControl]="name"
           [label]="'FORMLY.CHART.ChartName' | translate: { Default: 'Chart name' }"
           displayDensity="compact"
           placeholder="{{ 'FORMLY.CHART.CustomCode' | translate: { Default: 'Custom Code' } }}"
-        />
+          />
 
         <div class="flex items-center gap-2">
           <button
@@ -211,7 +207,7 @@
                 | translate: { Default: 'Automatically generate code by comments' }
             "
             (click)="aiGenerate()"
-          >
+            >
             <z-icon zType="auto_awesome"></z-icon>
           </button>
         </div>

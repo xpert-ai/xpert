@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -32,7 +32,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     },
     NgxControlValueAccessor
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, CdkListboxModule, ...ZardTooltipImports, NgmI18nPipe]
+  imports: [FormsModule, ReactiveFormsModule, CdkListboxModule, ...ZardTooltipImports, NgmI18nPipe]
 })
 export class NgmRadioSelectComponent {
   protected cva = inject<NgxControlValueAccessor<any | null>>(NgxControlValueAccessor)

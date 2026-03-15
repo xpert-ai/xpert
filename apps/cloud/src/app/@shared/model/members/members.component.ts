@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -40,14 +40,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   templateUrl: 'members.component.html',
   styleUrls: ['members.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     DragDropModule,
     ...ZardTooltipImports,
     TranslateModule,
     ModelCubeComponent,
     ModelMemberEditComponent
-  ],
+],
   host: {
     class: 'xp-model-members'
   },

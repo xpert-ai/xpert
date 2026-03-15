@@ -2,7 +2,7 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, ElementRef, HostListener, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
@@ -47,7 +47,6 @@ export type TXpertMCPManageComponentRet =
   selector: 'xpert-mcp-manage',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -63,7 +62,7 @@ export type TXpertMCPManageComponentRet =
     MCPToolsetToolTestComponent,
     XpertToolNameInputComponent,
     ZardSwitchComponent
-  ],
+],
   templateUrl: './manage.component.html',
   styleUrl: './manage.component.scss',
   animations: [ListSlideStaggerAnimation]

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { RouterModule } from '@angular/router'
@@ -21,7 +21,7 @@ import { AppService } from '../../app.service'
 import { ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterModule, ...ZardTooltipImports, ZardIconComponent, TranslateModule, NgmCommonModule],
+  imports: [RouterModule, ...ZardTooltipImports, ZardIconComponent, TranslateModule, NgmCommonModule],
   selector: 'pac-settings',
   templateUrl: `settings.component.html`,
   styleUrl: './settings.component.scss',

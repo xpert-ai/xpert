@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
@@ -22,7 +22,6 @@ import { toSignal } from '@angular/core/rxjs-interop'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -33,7 +32,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
     ZardInputDirective,
     NgmCommonModule,
     ButtonGroupDirective
-  ],
+],
   selector: 'copilot-knowledge',
   templateUrl: 'knowledge.component.html',
   styleUrls: ['knowledge.component.scss'],

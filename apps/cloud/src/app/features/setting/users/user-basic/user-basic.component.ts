@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, input, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
@@ -27,7 +27,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
       }
     `
   ],
-  imports: [CommonModule, FormsModule, TranslateModule, ZardButtonComponent, NgmCommonModule, UserFormsModule]
+  imports: [FormsModule, TranslateModule, ZardButtonComponent, NgmCommonModule, UserFormsModule]
 })
 export class UserBasicComponent {
   // Inputs

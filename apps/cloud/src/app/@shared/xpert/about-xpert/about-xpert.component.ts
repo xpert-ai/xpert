@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
@@ -15,7 +15,6 @@ import { EmojiAvatarComponent } from "../../avatar/emoji-avatar/avatar.component
   templateUrl: './about-xpert.component.html',
   styleUrls: ['about-xpert.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MaterialModule,

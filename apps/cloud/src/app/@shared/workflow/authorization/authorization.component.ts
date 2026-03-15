@@ -1,7 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { linkedModel } from '@metad/core'
@@ -17,7 +17,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     DragDropModule,
@@ -25,7 +24,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     NgmRadioSelectComponent,
     XpertVariableInputComponent
-  ]
+]
 })
 export class XpertWorkflowAuthorizationComponent {
   eApiProviderAuthType = ApiAuthType

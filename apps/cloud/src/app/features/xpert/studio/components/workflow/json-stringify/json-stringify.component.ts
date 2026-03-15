@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
 import { PlusSvgComponent } from '@metad/ocap-angular/common'
@@ -12,7 +12,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   styleUrls: ['./json-stringify.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FFlowModule, ...ZardTooltipImports, TranslateModule, PlusSvgComponent],
+  imports: [FFlowModule, ...ZardTooltipImports, TranslateModule, PlusSvgComponent],
   host: {
     tabindex: '-1'
   }

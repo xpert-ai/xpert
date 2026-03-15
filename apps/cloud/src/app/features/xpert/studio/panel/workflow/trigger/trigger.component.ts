@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { XpertParametersEditComponent } from '@cloud/app/@shared/xpert'
@@ -29,14 +29,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     ...ZardTooltipImports,
     TranslateModule,
     JSONSchemaFormComponent,
     XpertParametersEditComponent
-  ]
+]
 })
 export class XpertWorkflowTriggerComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

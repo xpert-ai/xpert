@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, ReactiveFormsModule, Validators } from '@angular/forms'
@@ -24,14 +24,13 @@ import { ChatBIModelsComponent } from '../models/models.component'
   templateUrl: './model.component.html',
   styleUrls: ['./model.component.scss'],
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     RouterModule,
     TranslateModule,
     NgmCommonModule,
     ZardButtonComponent,
     ZardInputDirective
-  ],
+],
   animations: [routeAnimations]
 })
 export class ChatBIModelComponent implements IsDirty {

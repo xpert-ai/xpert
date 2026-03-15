@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, forwardRef, inject, input, OnInit } from '@angular/core'
 import {
   ControlValueAccessor,
@@ -46,7 +46,6 @@ import { ZardCheckboxComponent } from '@xpert-ai/headless-ui'
     }
   ],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     ZardCheckboxComponent,
@@ -55,7 +54,7 @@ import { ZardCheckboxComponent } from '@xpert-ai/headless-ui'
     NgmParameterSelectComponent,
     NgmMeasureSelectComponent,
     NgmPropertyArrayComponent
-  ]
+]
 })
 export class NgmConditionalAggregationComponent implements ControlValueAccessor, OnInit {
   DISPLAY_BEHAVIOUR = DisplayBehaviour

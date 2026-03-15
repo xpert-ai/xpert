@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -23,13 +23,12 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     ...ZardTooltipImports,
     MarkdownModule,
     ChatConversationPreviewComponent
-  ],
+],
   selector: 'xpert-studio-panel-preview',
   templateUrl: 'preview.component.html',
   styleUrls: ['preview.component.scss']

@@ -20,7 +20,7 @@
       [zDisabled]="isDisabled"
       [zPlaceholder]="placeholder() || ''"
       [zMultiple]="multiple()"
-    >
+      >
       @for (option of selectOptions(); track option[valueKey()]) {
         <z-select-item [zValue]="option[valueKey()]">
           <ng-container *ngTemplateOutlet="optionTemplate; context: { $implicit: option }"></ng-container>
@@ -47,7 +47,7 @@
       (ngModelChange)="onAutoInput($event)"
       (blur)="onBlur($event)"
       (keydown)="onKeydown($event)"
-    />
+      />
 
     <div class="absolute right-0 top-0 h-full flex items-center mr-1">
       <ng-container *ngTemplateOutlet="suffixTemplate"></ng-container>
@@ -56,7 +56,7 @@
           type="button"
           class="ngm-input-element__clear w-8 h-8 flex justify-center items-center rounded-lg border border-transparent text-center text-sm transition-all active:scale-95 disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none opacity-30 hover:opacity-100 hover:bg-white focus:bg-neutral-50 active:bg-neutral-50 dark:hover:bg-neutral-600 dark:focus:bg-neutral-700 dark:active:bg-neutral-700"
           (click)="clear()"
-        >
+          >
           <i class="ri-close-line"></i>
         </button>
       }
@@ -76,7 +76,7 @@
   [panelWidth]="panelWidth() || null"
   [displayWith]="displayWith"
   (optionSelected)="onOptionSelected($event)"
->
+  >
   @if (virtualScroll()) {
     <cdk-virtual-scroll-viewport
       class="nx-formly__virtual-scroll-viewport"
@@ -84,7 +84,7 @@
       maxBufferPx="400"
       [style.height.px]="240"
       [itemSize]="30"
-    >
+      >
       <mat-option *cdkVirtualFor="let option of options$(); trackBy: trackByValue" [value]="option">
         <ng-container *ngTemplateOutlet="optionTemplate; context: { $implicit: option }"></ng-container>
       </mat-option>
@@ -109,7 +109,7 @@
 </div>
 
 <ng-template #optionTemplate let-option>
-  <ng-template [ngIf]="_explicitContent" [ngIfElse]="optionTextLabel">
+  @if (_explicitContent) {
     <ng-container
       *ngTemplateOutlet="
         _explicitContent;
@@ -121,19 +121,18 @@
           highlight: highlight()
         }
       "
-    ></ng-container>
-  </ng-template>
-  <ng-template #optionTextLabel>
-    @if (option.icon) {
-      <z-icon [zType]="option.icon"></z-icon>
-    }
-    <ngm-display-behaviour
-      class="flex-1 overflow-hidden"
-      [displayBehaviour]="displayBehaviour()"
-      [option]="option"
-      [highlight]="highlight()"
+  ></ng-container>
+} @else {
+  @if (option.icon) {
+    <z-icon [zType]="option.icon"></z-icon>
+  }
+  <ngm-display-behaviour
+    class="flex-1 overflow-hidden"
+    [displayBehaviour]="displayBehaviour()"
+    [option]="option"
+    [highlight]="highlight()"
     />
-  </ng-template>
+}
 </ng-template>
 
 <ng-template #suffixTemplate>

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -30,7 +30,7 @@ import { HiddenLLM, MeasureExpressionAccordion } from '../../../schema'
   selector: 'xp-cube-studio-measure-settings',
   templateUrl: 'measure.component.html',
   styleUrls: ['measure.component.scss'],
-  imports: [CommonModule, FormsModule, TranslateModule, FormlyModule, DensityDirective],
+  imports: [FormsModule, TranslateModule, FormlyModule, DensityDirective],
   host: {
     class: 'xp-cube-studio-measure-settings'
   }

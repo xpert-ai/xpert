@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmI18nPipe, TSelectOption } from '@metad/ocap-angular/core'
@@ -16,14 +16,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
     NgmI18nPipe,
     XpertParametersFormComponent
-  ],
+],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertWorkflowErrorHandlingComponent {

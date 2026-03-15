@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, ElementRef, TemplateRef, ViewChild, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -22,15 +22,13 @@ import { ManageEntityBaseComponent } from '../../../@shared/directives'
   animations: [routeAnimations],
   imports: [
     SharedModule,
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     MaterialModule,
     NgmCommonModule,
-
     BusinessAreasComponent
-  ]
+]
 })
 export class BusinessAreaComponent extends ManageEntityBaseComponent<IBusinessArea> {
   SplitterType = SplitterType

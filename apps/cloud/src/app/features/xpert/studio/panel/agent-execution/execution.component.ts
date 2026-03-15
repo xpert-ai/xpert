@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -60,7 +60,6 @@ function extractPromptVariables(promptText: string): string[] {
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     MarkdownModule,
@@ -68,7 +67,7 @@ function extractPromptVariables(promptText: string): string[] {
     XpertAgentExecutionStatusComponent,
     XpertParametersCardComponent,
     XpertAgentOperationComponent
-  ],
+],
   host: {
     tabindex: '-1',
     '[class.selected]': 'isSelected'

@@ -1,5 +1,5 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, inject, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -16,7 +16,7 @@ import {
 @Component({
   selector: 'xpert-workspace-settings-general',
   standalone: true,
-  imports: [CommonModule, FormsModule, CdkListboxModule, TranslateModule, NgmSpinComponent],
+  imports: [FormsModule, CdkListboxModule, TranslateModule, NgmSpinComponent],
   templateUrl: './general.component.html',
   styleUrl: './general.component.scss',
   animations: [IfAnimation]

@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -16,7 +16,6 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     DragDropModule,
@@ -24,7 +23,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmDensityDirective,
     XpertToolNameInputComponent,
     ZardSwitchComponent
-  ],
+],
   selector: 'mcp-config-tools',
   templateUrl: 'tools.component.html',
   styleUrls: ['tools.component.scss'],

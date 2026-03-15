@@ -5,7 +5,7 @@
 </header>
 
 <mat-dialog-content class="mat-typography">
-  <ng-container *ngFor="let slicer of slicers$ | async; index as i">
+  @for (slicer of slicers$ | async; track slicer; let i = $index) {
     <ngm-slicer [slicer]="slicer"
       [dataSettings]="dataSettings"
       [entityType]="entityType"
@@ -14,7 +14,7 @@
       (removed)="remove(i)">
     </ngm-slicer>
     <z-divider></z-divider>
-  </ng-container>
+  }
 </mat-dialog-content>
 
 <mat-dialog-actions style="display: flex; justify-content: space-between; align-items: center;">
@@ -39,58 +39,59 @@
       <ngm-search [formControl]="searchControl"></ngm-search>
     </div>
 
-    <ng-container *ngFor="let property of dimensions$ | async">
-      <button
-        *ngIf="isSemanticCalendar(property); else menuItem"
-        type="button"
-        z-menu-item
-        z-menu
-        [zMenuTriggerFor]="calendarMenu"
-        [zMenuTriggerData]="{property: property}"
-        (click)="openSlicerCreator(property)"
-      >
-        <ngm-entity-property
-          class="flex-1"
-          [property]="property"
-          [displayBehaviour]="DisplayBehaviour.auto"
-          [highlight]="highlight"
-        >
-        </ngm-entity-property>
-        <z-icon class="ml-auto opacity-60" zType="chevron_right"></z-icon>
-      </button>
-
-      <ng-template #menuItem>
+    @for (property of dimensions$ | async; track property) {
+      @if (isSemanticCalendar(property)) {
+        <button
+          type="button"
+          z-menu-item
+          z-menu
+          [zMenuTriggerFor]="calendarMenu"
+          [zMenuTriggerData]="{property: property}"
+          (click)="openSlicerCreator(property)"
+          >
+          <ngm-entity-property
+            class="flex-1"
+            [property]="property"
+            [displayBehaviour]="DisplayBehaviour.auto"
+            [highlight]="highlight"
+            >
+          </ngm-entity-property>
+          <z-icon class="ml-auto opacity-60" zType="chevron_right"></z-icon>
+        </button>
+      } @else {
         <button type="button" z-menu-item (click)="openValueHelp(property)">
           <ngm-entity-property
             class="flex-1"
             [property]="property"
             [displayBehaviour]="DisplayBehaviour.auto"
             [highlight]="highlight"
-          >
+            >
           </ngm-entity-property>
         </button>
-      </ng-template>
-    </ng-container>
+      }
+    }
 
-    <button
-      *ngIf="showCombinationSlicer"
-      type="button"
-      z-menu-item
-      (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.CombinationSlicer)"
-    >
-      <z-icon zType="tune"></z-icon>
-      {{ 'Ngm.Selection.CombinationSlicer' | translate: {Default: 'Combination Slicer'} }}
-    </button>
+    @if (showCombinationSlicer) {
+      <button
+        type="button"
+        z-menu-item
+        (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.CombinationSlicer)"
+        >
+        <z-icon zType="tune"></z-icon>
+        {{ 'Ngm.Selection.CombinationSlicer' | translate: {Default: 'Combination Slicer'} }}
+      </button>
+    }
 
-    <button
-      *ngIf="showAdvancedSlicer"
-      type="button"
-      z-menu-item
-      (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.AdvancedSlicer)"
-    >
-      <z-icon zType="data_array"></z-icon>
-      {{ 'Ngm.Selection.AdvancedSlicer' | translate: {Default: 'Advanced Slicer'} }}
-    </button>
+    @if (showAdvancedSlicer) {
+      <button
+        type="button"
+        z-menu-item
+        (click)="$event.preventDefault();openSlicerCreator(SlicersCapacity.AdvancedSlicer)"
+        >
+        <z-icon zType="data_array"></z-icon>
+        {{ 'Ngm.Selection.AdvancedSlicer' | translate: {Default: 'Advanced Slicer'} }}
+      </button>
+    }
   </div>
 </ng-template>
 
@@ -101,13 +102,14 @@
       {{ 'Ngm.Selection.DimensionMembers' | translate: {Default: 'Dimension Members'} }}
     </button>
 
-    <button
-      type="button"
-      z-menu-item
-      *ngFor="let variable of dateVariables"
-      (click)="openDynamicDateHelp(property, variable.dateRange)"
-    >
-      {{variable.name}}
-    </button>
+    @for (variable of dateVariables; track variable) {
+      <button
+        type="button"
+        z-menu-item
+        (click)="openDynamicDateHelp(property, variable.dateRange)"
+        >
+        {{variable.name}}
+      </button>
+    }
   </div>
 </ng-template>

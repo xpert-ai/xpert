@@ -8,8 +8,8 @@
     }
     <span>
       {{
-        'Ngm.Property.' + (label?.label ?? 'DIMENSION_MEASURE')
-          | translate: { Default: label?.label ?? 'Dimension/Measure' }
+      'Ngm.Property.' + (label?.label ?? 'DIMENSION_MEASURE')
+      | translate: { Default: label?.label ?? 'Dimension/Measure' }
       }}
     </span>
   }
@@ -17,7 +17,7 @@
 
 <div
   class="select-container flex flex-col items-stretch gap-2 w-full max-w-full p-1 text-xs rounded-lg ring-offset-1 ring-offset-transparent ring-2 ring-transparent hover:ring-yellow-500/50"
->
+  >
   <form [formGroup]="formGroup" class="relative flex-1 max-w-full flex justify-start items-center">
     <div class="flex items-center">
       <ng-content select="[ngmPrefix]"></ng-content>
@@ -30,7 +30,7 @@
       [placeholder]="
         selectTrigger()?.caption || ('Ngm.Property.DIMENSION_MEASURE' | translate: { Default: 'Dimension/Measure' })
       "
-    />
+      />
 
     <div class="ml-2 flex items-center" displayDensity="compact">
       <button
@@ -40,7 +40,7 @@
         zShape="circle"
         zFormSuffix
         (click)="$event.stopPropagation(); $event.preventDefault(); showMore.set(!showMore())"
-      >
+        >
         @if (showMore()) {
           <z-icon zType="expand_less"></z-icon>
         } @else {
@@ -59,7 +59,7 @@
           #mt="zMenuTrigger"
           [class.active]="mt.menuOpen"
           (click)="$event.stopPropagation(); $event.preventDefault()"
-        >
+          >
           <z-icon zType="more_vert"></z-icon>
         </button>
       }
@@ -74,7 +74,7 @@
           #mt="cdkMenuTriggerFor"
           [class.active]="mt.isOpen()"
           (click)="$event.stopPropagation(); $event.preventDefault()"
-        >
+          >
           <z-icon zType="account_tree"></z-icon>
         </button>
       }
@@ -90,7 +90,7 @@
           #mt="zMenuTrigger"
           [class.active]="mt.menuOpen"
           (click)="$event.stopPropagation(); $event.preventDefault()"
-        >
+          >
           <z-icon zType="straighten"></z-icon>
         </button>
       }
@@ -136,7 +136,7 @@
     <div
       class="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none"
       (click)="$event.stopPropagation(); $event.preventDefault()"
-    >
+      >
       <ngm-input
         class="w-full flex-row"
         style="flex-direction: row; align-items: center"
@@ -175,7 +175,7 @@
       <div
         class="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none"
         (click)="$event.stopPropagation()"
-      >
+        >
         <z-checkbox [(ngModel)]="unbookedData">
           {{ 'Ngm.Property.UnbookedData' | translate: { Default: 'Unbooked Data' } }}
         </z-checkbox>
@@ -185,7 +185,7 @@
       <div
         class="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none"
         (click)="$event.stopPropagation()"
-      >
+        >
         <z-checkbox [(ngModel)]="zeroSuppression">
           {{ 'Ngm.Property.ZeroSuppression' | translate: { Default: 'Zero Suppression' } }}
         </z-checkbox>
@@ -205,17 +205,18 @@
 <z-radio-group [(ngModel)]="displayBehaviour">
   <ng-template #displayMenu>
     <div z-menu-content class="ngm-formly ngm-density__compact">
-      <button
-        type="button"
-        z-menu-item
-        class="w-full"
-        *ngFor="let behaviour of DISPLAY_BEHAVIOUR_LIST"
-        (click)="$event.stopPropagation()"
-      >
-        <z-radio [value]="behaviour.value">
-          {{ 'Ngm.Property.' + behaviour.label | translate: { Default: behaviour.label } }}
-        </z-radio>
-      </button>
+      @for (behaviour of DISPLAY_BEHAVIOUR_LIST; track behaviour) {
+        <button
+          type="button"
+          z-menu-item
+          class="w-full"
+          (click)="$event.stopPropagation()"
+          >
+          <z-radio [value]="behaviour.value">
+            {{ 'Ngm.Property.' + behaviour.label | translate: { Default: behaviour.label } }}
+          </z-radio>
+        </button>
+      }
     </div>
   </ng-template>
 </z-radio-group>
@@ -260,13 +261,13 @@
             cdkMenuItemRadio
             [cdkMenuItemChecked]="level === property.name"
             (cdkMenuItemTriggered)="level = property.name"
-          >
+            >
             <ngm-entity-property
               class="w-full"
               hiddenIcon
               [property]="property"
               [displayBehaviour]="DISPLAY_BEHAVIOUR.auto"
-            />
+              />
           </button>
         }
       </div>
@@ -314,13 +315,13 @@
         cdkMenuItemRadio
         [cdkMenuItemChecked]="hierarchy === property.name"
         (cdkMenuItemTriggered)="hierarchy = property.name"
-      >
+        >
         <ngm-entity-property
           class="w-full"
           hiddenIcon
           [property]="property"
           [displayBehaviour]="DISPLAY_BEHAVIOUR.auto"
-        />
+          />
       </div>
     }
   </div>
@@ -332,18 +333,18 @@
       <div
         class="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none"
         (click)="$event.stopPropagation()"
-      >
+        >
         <z-checkbox
           class="ngm-checkbox__property"
           [ngModel]="$any(property).selected"
           (checkChange)="toggleMember(property.name, $event)"
-        >
+          >
           <ngm-entity-property
             class="w-full"
             hiddenIcon
             [property]="property"
             [displayBehaviour]="DISPLAY_BEHAVIOUR.auto"
-          />
+            />
         </z-checkbox>
       </div>
     }
@@ -358,16 +359,16 @@
       [cdkListboxMultiple]="true"
       [cdkListboxValue]="properties ?? []"
       (cdkListboxValueChange)="properties = $event.value"
-    >
+      >
       @for (property of propertiesOptions(); track property.value) {
         <li
           class="ngm-cdk-option"
           [cdkOption]="property.value ?? property.name"
           (click)="$event.stopPropagation()"
-        >
+          >
           {{ property.caption ?? property.value }}
         </li>
-      } @empty {
+        } @empty {
         <div class="text-sm text-text-secondary">
           {{ 'Ngm.Property.NoProperties' | translate: { Default: 'No Properties' } }}
         </div>
@@ -388,7 +389,7 @@
         cdkMenuItemRadio
         [cdkMenuItemChecked]="parameter === option.name"
         (cdkMenuItemTriggered)="parameter = option.name"
-      >
+        >
         <span class="grow">{{ option.caption || option.name }}</span>
         <button
           z-button
@@ -397,7 +398,7 @@
           zShape="circle"
           displayDensity="cosy"
           (click)="openEditParameter(option.name)"
-        >
+          >
           <z-icon zType="edit"></z-icon>
         </button>
       </button>

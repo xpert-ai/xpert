@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, input, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { MatDialog } from '@angular/material/dialog'
@@ -14,7 +14,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workspace-members',
   standalone: true,
-  imports: [CommonModule, UserPipe, TranslateModule, ...ZardTooltipImports, UserProfileInlineComponent],
+  imports: [UserPipe, TranslateModule, ...ZardTooltipImports, UserProfileInlineComponent],
   templateUrl: './members.component.html',
   styleUrl: './members.component.scss'
 })

@@ -1,6 +1,6 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardFormImports, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -27,7 +27,6 @@ import { NgmSelectComponent } from '../../common'
   styleUrls: ['./form.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -39,7 +38,7 @@ import { NgmSelectComponent } from '../../common'
     NgmDensityDirective,
     NgmI18nPipe,
     NgmSelectComponent
-  ],
+],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class CopilotCredentialFormComponent {

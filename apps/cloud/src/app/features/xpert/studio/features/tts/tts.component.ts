@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { attrModel, linkedModel, OverlayAnimations } from '@metad/core'
@@ -11,7 +11,7 @@ import { linkedXpertFeaturesModel } from '../types'
 @Component({
   selector: 'xpert-studio-features-tts',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, CopilotModelSelectComponent],
+  imports: [FormsModule, TranslateModule, CopilotModelSelectComponent],
   templateUrl: './tts.component.html',
   styleUrl: './tts.component.scss',
   animations: [...OverlayAnimations]

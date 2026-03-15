@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectorRef, Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -33,7 +33,6 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
   templateUrl: './configuration.component.html',
   styleUrls: ['./configuration.component.scss'],
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
     ReactiveFormsModule,
@@ -44,7 +43,7 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     KnowledgeRetrievalSettingsComponent
-  ],
+],
   animations: [routeAnimations]
 })
 export class KnowledgeConfigurationComponent {

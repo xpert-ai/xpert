@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, input, ViewContainerRef } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -45,7 +45,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   templateUrl: 'cube.component.html',
   styleUrls: ['cube.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     DragDropModule,
@@ -58,7 +57,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CubeStudioMeasureSettingsComponent,
     CubeStudioCalculatedSettingsComponent,
     CubeStudioContextMenuComponent
-  ],
+],
   host: {
     class: 'xp-cube-studio-cube'
   },

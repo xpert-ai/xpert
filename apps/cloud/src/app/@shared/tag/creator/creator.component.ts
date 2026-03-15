@@ -1,5 +1,5 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MatDialogRef } from '@angular/material/dialog'
@@ -12,14 +12,13 @@ import { MaterialModule } from '../../material.module'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     TranslateModule,
     MaterialModule,
     CdkListboxModule,
     NgxFloatUiModule,
     ButtonGroupDirective
-  ],
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tag-creator',
   templateUrl: './creator.component.html',

@@ -9,20 +9,20 @@
   <ngm-search class="my-2" [formControl]="searchControl"></ngm-search>
 
   <ul class="ngm-nav-list flex-1">
-     <li class="mb-2" [class.active]="activedLink === c_suggested" (click)="activeLink(c_suggested)">
+    <li class="mb-2" [class.active]="activedLink === c_suggested" (click)="activeLink(c_suggested)">
       <div class="flex items-center">
         <z-icon  zType="star"></z-icon>
         <span > {{ 'Story.Common.Suggested' | translate: {Default: 'Suggested'} }} </span>
       </div>
-     </li>
+    </li>
 
-     <li [class.active]="activedLink === c_my"
+    <li [class.active]="activedLink === c_my"
       (click)="activeLink(c_my)">
       <div class="flex items-center">
         <z-icon></z-icon>
         <span > {{ 'Story.Common.My' | translate: {Default: 'My'} }} </span>
       </div>
-      </li>
+    </li>
   </ul>
 
 </div>
@@ -46,7 +46,7 @@
         [(ngModel)]="templateTypes"
       ></ngm-tags>
     </div>
-  
+
     <div class="flex items-center gap-2">
       <label class="w-10 shrink-0">{{ 'Story.Template.Tags' | translate: {Default: 'Tags'} }}</label>
       <pac-tags class="flex-1 " [tags]="tags" [selectable]="true"
@@ -57,33 +57,32 @@
 
   <div class="p-4 pt-0 flex-1 overflow-auto grid grid-cols-3 gap-4" [@listAnimation]="(templates$ | async)?.length">
 
-    <div *ngFor="let template of templates$ | async; trackBy: trackById" class="pac-template h-64 overflow-hidden flex flex-col" [class.active]="template.id === appliedTemplateId">
+    @for (template of templates$ | async; track trackById($index, template)) {
+      <div class="pac-template h-64 overflow-hidden flex flex-col" [class.active]="template.id === appliedTemplateId">
       <div class="pac-template__preview flex-1 m-1 rounded-lg border-2 overflow-hidden relative group
       border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-700">
-        <img [src]="template.preview?.url ?? template.thumbnail" class="w-full h-44 object-cover" loading="lazy"/>
-
-        <pac-tags [tags]="template.tags" [selectable]="true" (selectedChange)="onTagsChange($event)" class="absolute bottom-0 left-0 w-full p-2 z-10"></pac-tags>
-
-        <div class="w-full h-full absolute top-0 left-0 flex flex-col justify-center items-center gap-2 opacity-0 bg-slate-500/20 group-hover:opacity-100 group-hover:backdrop-blur-lg rounded-md overflow-hidden">
-          <button z-button zType="default" color="primary" class="w-20" (click)="useTemplate(template.id)">
-            {{ 'Story.Template.Use' | translate: {Default: "Use"} }}
-          </button>
-          <!-- <button z-button zType="default" class="w-20">Preview</button> -->
-
-          <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="activedLink === 'my'" class="pac-template__remove absolute right-2 top-2 text-white" displayDensity="cosy" ngmAppearance="danger" (click)="deleteTemplate(template)">
-            <z-icon zType="close"></z-icon>
-          </button>
+          <img [src]="template.preview?.url ?? template.thumbnail" class="w-full h-44 object-cover" loading="lazy"/>
+          <pac-tags [tags]="template.tags" [selectable]="true" (selectedChange)="onTagsChange($event)" class="absolute bottom-0 left-0 w-full p-2 z-10"></pac-tags>
+          <div class="w-full h-full absolute top-0 left-0 flex flex-col justify-center items-center gap-2 opacity-0 bg-slate-500/20 group-hover:opacity-100 group-hover:backdrop-blur-lg rounded-md overflow-hidden">
+            <button z-button zType="default" color="primary" class="w-20" (click)="useTemplate(template.id)">
+              {{ 'Story.Template.Use' | translate: {Default: "Use"} }}
+            </button>
+            <!-- <button z-button zType="default" class="w-20">Preview</button> -->
+            @if (activedLink === 'my') {
+              <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-template__remove absolute right-2 top-2 text-white" displayDensity="cosy" ngmAppearance="danger" (click)="deleteTemplate(template)">
+                <z-icon zType="close"></z-icon>
+              </button>
+            }
+          </div>
         </div>
-
-      </div>
-      
-      <div class="flex flex-col justify-start items-start h-20">
-        <div class="text-base overflow-hidden text-ellipsis" [ngmHighlight]="highlight" [content]="template.name" customClasses="bg-transparent font-semibold text-amber-500">{{ template.name }}</div>
-        <div class="text-sm overflow-hidden text-ellipsis">
-          {{ template.createdBy | user}}
+        <div class="flex flex-col justify-start items-start h-20">
+          <div class="text-base overflow-hidden text-ellipsis" [ngmHighlight]="highlight" [content]="template.name" customClasses="bg-transparent font-semibold text-amber-500">{{ template.name }}</div>
+          <div class="text-sm overflow-hidden text-ellipsis">
+            {{ template.createdBy | user}}
+          </div>
         </div>
       </div>
-    </div>
+    }
 
   </div>
 </div>

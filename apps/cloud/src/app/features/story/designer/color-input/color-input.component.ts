@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, Input, forwardRef, signal } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -8,7 +8,7 @@ import { DensityDirective } from '@metad/ocap-angular/core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, MaterialModule, NgmColorInputComponent, DensityDirective],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, MaterialModule, NgmColorInputComponent, DensityDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-color-input',
   templateUrl: './color-input.component.html',

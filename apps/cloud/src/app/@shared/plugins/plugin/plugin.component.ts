@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { I18nObject, IconDefinition, injectHelpWebsite } from '@cloud/app/@core'
@@ -27,12 +27,11 @@ export type TPlugin = {
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     FormsModule,
     NgmI18nPipe,
-    IconComponent,
-  ],
+    IconComponent
+],
   selector: 'xp-plugin',
   templateUrl: './plugin.component.html',
   styleUrls: ['./plugin.component.scss'],

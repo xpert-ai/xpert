@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, input } from '@angular/core'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -13,13 +13,12 @@ import { ZardIconComponent } from '@xpert-ai/headless-ui'
   templateUrl: './avatar-editor.component.html',
   styles: [``],
   imports: [
-    CommonModule,
     ZardIconComponent,
     CdkMenuModule,
     TranslateModule,
     DensityDirective,
     AppearanceDirective
-  ]
+]
 })
 export class OrgAvatarEditorComponent {
   private readonly screenshotService = inject(ScreenshotService)

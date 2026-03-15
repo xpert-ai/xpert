@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { DateRelativePipe, getErrorMessage, injectToastr } from '@cloud/app/@core'
@@ -18,7 +18,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   templateUrl: 'list-indicators.component.html',
   styleUrls: ['list-indicators.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
@@ -27,7 +26,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     DateRelativePipe,
     XpIndicatorFormComponent
-  ],
+],
   animations: [IfAnimation]
 })
 export class XpListIndicatorsComponent {

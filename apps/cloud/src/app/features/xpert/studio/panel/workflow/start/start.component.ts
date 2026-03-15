@@ -1,6 +1,6 @@
 import { Clipboard, ClipboardModule } from '@angular/cdk/clipboard'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { attrModel, linkedModel } from '@metad/ocap-angular/core'
@@ -18,7 +18,7 @@ import { XpertWorkflowBaseComponent } from '../workflow-base.component'
   styleUrls: ['./start.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, ClipboardModule, CdkMenuModule, TranslateModule]
+  imports: [FormsModule, ClipboardModule, CdkMenuModule, TranslateModule]
 })
 export class XpertWorkflowStartComponent extends XpertWorkflowBaseComponent {
 

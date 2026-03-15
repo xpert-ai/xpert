@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { HttpClient } from '@angular/common/http'
 import { Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -11,7 +11,7 @@ import { of } from 'rxjs'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, EmojiAvatarComponent],
+  imports: [FormsModule, TranslateModule, EmojiAvatarComponent],
   selector: 'chat-message-step-icon',
   templateUrl: 'icon.component.html',
   styleUrls: ['icon.component.scss']

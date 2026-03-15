@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -15,7 +15,7 @@ import { ChatHomeComponent } from '../home/home.component'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterModule, FormsModule, CdkMenuModule, TranslateModule],
+  imports: [RouterModule, FormsModule, CdkMenuModule, TranslateModule],
   selector: 'pac-chat-project',
   templateUrl: './project.component.html',
   styleUrl: 'project.component.scss',

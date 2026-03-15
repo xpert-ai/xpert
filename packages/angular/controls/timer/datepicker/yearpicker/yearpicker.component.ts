@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, forwardRef, input } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
@@ -6,7 +6,7 @@ import { ZardYearPickerComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ZardYearPickerComponent],
+  imports: [ReactiveFormsModule, ZardYearPickerComponent],
   selector: 'ngm-yearpicker',
   templateUrl: './yearpicker.component.html',
   providers: [

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, ElementRef, forwardRef, inject, ViewChild } from '@angular/core'
 import { ControlValueAccessor, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { AuthService } from '@metad/cloud/state'
@@ -12,7 +12,7 @@ import { Store } from '../../../../@core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule],
   selector: 'pac-user-change-password-form',
   templateUrl: 'change-password.component.html',
   styleUrls: ['change-password.component.scss'],

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TSelectOption, TVariableAssigner, TWorkflowVarGroup, TXpertParameter } from '@metad/contracts'
@@ -14,14 +14,13 @@ import { TXpertVariablesOptions } from '@cloud/app/@core'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
     NgmSelectComponent,
     StateVariableSelectComponent,
     CopilotPromptEditorComponent
-  ],
+],
   selector: 'xpert-memory-assigner',
   templateUrl: './memory-assigner.component.html',
   styleUrls: ['./memory-assigner.component.scss'],

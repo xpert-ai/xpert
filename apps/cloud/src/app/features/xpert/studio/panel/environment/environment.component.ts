@@ -2,7 +2,7 @@ import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { XpertEnvironmentManageComponent, XpertEnvVariableFormComponent } from '@cloud/app/@shared/environment'
@@ -23,7 +23,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -34,7 +33,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     AsteriskPipe,
     XpertEnvVariableFormComponent
-  ]
+]
 })
 export class XpertStudioPanelEnvironmentComponent {
   eVariableOperationEnum = VariableOperationEnum

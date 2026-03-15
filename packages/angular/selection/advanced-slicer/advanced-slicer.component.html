@@ -20,7 +20,7 @@
       formControlName="operator"
       [label]="'Ngm.AdvancedSlicer.OPERATOR' | translate: { Default: 'Operator' }"
       [selectOptions]="advancedSlicerOperators()"
-    >
+      >
       <ng-template ngmOptionContent let-operator>
         <ngm-display-behaviour
           class="flex-1"
@@ -28,9 +28,11 @@
           [displayBehaviour]="DisplayBehaviour.auto"
         ></ngm-display-behaviour>
       </ng-template>
-      <z-switch ngmSuffix *ngIf="hasOther()" formControlName="other" (click)="$event.stopPropagation()">
-        {{ 'Ngm.AdvancedSlicer.ENABLE_OTHER' | translate: { Default: 'Enable Other' } }}
-      </z-switch>
+      @if (hasOther()) {
+        <z-switch ngmSuffix formControlName="other" (click)="$event.stopPropagation()">
+          {{ 'Ngm.AdvancedSlicer.ENABLE_OTHER' | translate: { Default: 'Enable Other' } }}
+        </z-switch>
+      }
     </ngm-select>
 
     <div class="flex justify-start items-center gap-2" formArrayName="value">
@@ -43,16 +45,17 @@
         [dataSettings]="dataSettings"
         [entityType]="entityType$ | async"
         formControlName="0"
-      >
+        >
       </ngm-parameter-select>
-      <ngm-parameter-select
-        *ngIf="to()"
-        [label]="'Ngm.AdvancedSlicer.VALUE_TO' | translate: { Default: 'To' }"
-        [dataSettings]="dataSettings"
-        [entityType]="entityType$ | async"
-        formControlName="1"
-      >
-      </ngm-parameter-select>
+      @if (to()) {
+        <ngm-parameter-select
+          [label]="'Ngm.AdvancedSlicer.VALUE_TO' | translate: { Default: 'To' }"
+          [dataSettings]="dataSettings"
+          [entityType]="entityType$ | async"
+          formControlName="1"
+          >
+        </ngm-parameter-select>
+      }
     </div>
 
     <ngm-measure-select
@@ -63,7 +66,7 @@
         'Ngm.AdvancedSlicer.MeasureSelectPlaceholder' | translate: { Default: 'select or create a measure' }
       "
       [dataSettings]="dataSettings"
-    >
+      >
     </ngm-measure-select>
   </form>
 </mat-dialog-content>

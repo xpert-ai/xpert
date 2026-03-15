@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -19,7 +19,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     ReactiveFormsModule,
     FormsModule,
@@ -29,7 +28,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     NgmDndDirective,
     ChatFileListComponent
-  ],
+],
   selector: 'chat-project-files',
   templateUrl: './files.component.html',
   styleUrl: 'files.component.scss',

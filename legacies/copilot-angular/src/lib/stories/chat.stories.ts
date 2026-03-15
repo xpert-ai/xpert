@@ -34,7 +34,7 @@ class StorybookCopilotEngine extends NgmCopilotEngineService {}
   selector: 'ngm-sb-copilot-user',
   template: `<h1>Create a user</h1>`,
   styles: [''],
-  imports: [CommonModule]
+  imports: []
 })
 export class NgmSBCopilotUserComponent {
   #myCommand = injectCopilotCommand({

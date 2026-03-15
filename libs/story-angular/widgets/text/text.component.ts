@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, ElementRef, HostBinding, HostListener, ViewChild, computed, effect, inject, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { PropertyMeasure, QueryReturn, formatting, getEntityProperty, indicatorFormatter } from '@metad/ocap-core'
@@ -14,7 +14,7 @@ export interface TextWidgetOptions {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [TranslateModule],
   selector: 'ngm-story-widget-text',
   templateUrl: './text.component.html',
   styleUrls: ['./text.component.scss'],

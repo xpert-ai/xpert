@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
 import { FormGroup, FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -13,7 +13,7 @@ import { JSONSchemaPropertyComponent } from '../json-schema-property/property.co
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, JSONSchemaPropertyComponent],
+  imports: [FormsModule, TranslateModule, JSONSchemaPropertyComponent],
   selector: 'json-schema-form',
   templateUrl: 'form.component.html',
   styleUrls: ['form.component.scss'],

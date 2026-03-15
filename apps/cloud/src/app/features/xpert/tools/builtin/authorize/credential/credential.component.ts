@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialogModule } from '@angular/material/dialog'
@@ -13,7 +13,6 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -24,7 +23,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmDensityDirective,
     CopilotModelSelectComponent,
     ZardSwitchComponent
-  ],
+],
   selector: 'xpert-tool-builtin-credential',
   templateUrl: './credential.component.html',
   styleUrl: 'credential.component.scss',

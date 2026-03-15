@@ -1,6 +1,6 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, computed, effect, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { FileTypePipe } from '@metad/core'
@@ -34,7 +34,6 @@ export type TFileDirectoryItem = TFileDirectory & {
   templateUrl: `file-list.component.html`,
   styleUrl: `file-list.component.scss`,
   imports: [
-    CommonModule,
     FormsModule,
     DragDropModule,
     CdkMenuModule,
@@ -43,7 +42,7 @@ export type TFileDirectoryItem = TFileDirectory & {
     DateRelativePipe,
     FileTypePipe,
     FileIconComponent
-  ]
+]
 })
 export class ChatFileListComponent {
   readonly #conversation = inject(ChatConversationService)

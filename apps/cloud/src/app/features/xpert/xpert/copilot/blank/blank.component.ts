@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -9,7 +9,7 @@ import { XpertComponent } from '../../xpert.component'
 @Component({
   selector: 'xpert-copilot-knowledge-blank',
   standalone: true,
-  imports: [CommonModule, TranslateModule, FormsModule, CopilotKnowledgeComponent],
+  imports: [TranslateModule, FormsModule, CopilotKnowledgeComponent],
   templateUrl: './blank.component.html',
   styleUrl: './blank.component.scss',
 })

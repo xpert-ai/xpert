@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, DestroyRef, computed, effect, inject } from '@angular/core'
 
 import { MatDialogModule } from '@angular/material/dialog'
@@ -18,15 +18,13 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     MatDialogModule,
     ZardButtonComponent,
     ZardIconComponent,
     TranslateModule,
-
     NgmCalculationEditorComponent
-  ],
+],
   selector: 'pac-story-calculation',
   templateUrl: 'calculation.component.html',
   styleUrls: ['calculation.component.scss'],

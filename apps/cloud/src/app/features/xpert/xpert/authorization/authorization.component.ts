@@ -1,6 +1,6 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -27,7 +27,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   styleUrls: ['./authorization.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -36,7 +35,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     NgmSpinComponent,
     UserProfileInlineComponent
-  ]
+]
 })
 export class XpertAuthorizationComponent {
   readonly xpertService = injectXpertAPI()

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -29,7 +29,7 @@ import { ModelStudioService } from '../../../model.service'
   selector: 'xp-cube-studio-dimension-usage',
   templateUrl: 'usage.component.html',
   styleUrls: ['usage.component.scss'],
-  imports: [CommonModule, FormsModule, TranslateModule, FormlyModule, DensityDirective],
+  imports: [FormsModule, TranslateModule, FormlyModule, DensityDirective],
   host: {
     class: 'xp-cube-studio-dimension-usage'
   }

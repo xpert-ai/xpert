@@ -1,5 +1,5 @@
 // Angular standalone component
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
@@ -25,7 +25,6 @@ import { TagEditorComponent } from '../../../@shared/tag'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     ZardLoaderComponent,
     ReactiveFormsModule,
@@ -34,7 +33,7 @@ import { TagEditorComponent } from '../../../@shared/tag'
     AppearanceDirective,
     DensityDirective,
     TagEditorComponent
-  ],
+],
   selector: 'pac-save-as-template',
   templateUrl: './save-as-template.component.html',
   styleUrls: ['./save-as-template.component.scss']

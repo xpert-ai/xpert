@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { KnowledgebaseService } from '@cloud/app/@core'
@@ -24,14 +24,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FFlowModule,
     ...ZardTooltipImports,
     TranslateModule,
     IconComponent,
     PlusSvgComponent,
     NgmI18nPipe
-  ],
+],
   host: {
     tabindex: '-1'
   }

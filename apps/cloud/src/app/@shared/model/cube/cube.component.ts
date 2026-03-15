@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { injectToastr, TMessageContentCube } from '@cloud/app/@core'
@@ -19,7 +19,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   templateUrl: 'cube.component.html',
   styleUrls: ['cube.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
@@ -27,7 +26,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     ChecklistComponent,
     CubeStudioComponent
-  ],
+],
   host: {
     class: 'xp-model-cube'
   },

@@ -1,6 +1,6 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { attrModel, write } from '@metad/core'
@@ -25,7 +25,6 @@ type TXpertParameterAttr = {
   templateUrl: './input.component.html',
   styleUrl: 'input.component.scss',
   imports: [
-    CommonModule,
     TranslateModule,
     FormsModule,
     CdkMenuModule,
@@ -34,7 +33,7 @@ type TXpertParameterAttr = {
     NgmI18nPipe,
     XpertParameterIconComponent,
     XpertParameterFormComponent
-  ],
+],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertParameterInputComponent {

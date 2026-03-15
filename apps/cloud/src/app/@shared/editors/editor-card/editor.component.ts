@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   booleanAttribute,
   Component,
@@ -18,7 +18,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ...ZardTooltipImports, TranslateModule, CodeEditorComponent, Copy2Component],
+  imports: [FormsModule, ...ZardTooltipImports, TranslateModule, CodeEditorComponent, Copy2Component],
   selector: 'pac-code-editor-card',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss'],

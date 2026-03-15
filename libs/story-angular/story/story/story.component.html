@@ -4,7 +4,7 @@
   [ngStyle]="storySizeStyles()"
   ngmTransformScale
   [ngmTransformDisabled]="editable()"
->
+  >
   <z-tab-group
     #pageTabs="zTabGroup"
     class="ngm-story__point-tab-group w-full h-full"
@@ -19,7 +19,7 @@
     [fitInkBarToContent]="pageHeaderFitInkBarToContent()"
     (selectedTabChange)="onSelectedTabChange($event)"
     (click)="onSelectedIndex(pageTabs.selectedIndex)"
-  >
+    >
     @for (point of displayPoints(); track point.key; let i = $index; let isLast = $last; let isFirst = $first) {
       <z-tab bodyClass="ngm-story__point-tab">
         <ng-template zTabLabel>
@@ -30,22 +30,23 @@
 
             <span [ngClass]="{ 'ngm-story--point-hidden': point.hidden && editable() }">{{ point.name }}</span>
 
-            <button
-              z-button
-              zType="ghost"
-              zSize="icon"
-              zShape="circle"
-              *ngIf="editable()"
-              displayDensity="cosy"
-              class="ngm-story-point__tab-menu-trigger"
-              (click)="$event.preventDefault(); $event.stopPropagation()"
-              [cdkMenuTriggerFor]="pageMenu"
-              [cdkMenuTriggerData]="{ point: point, component: story_point }"
-              #mt="cdkMenuTriggerFor"
-              [class.active]="mt.isOpen()"
-            >
-              <z-icon zType="more_vert"></z-icon>
-            </button>
+            @if (editable()) {
+              <button
+                z-button
+                zType="ghost"
+                zSize="icon"
+                zShape="circle"
+                displayDensity="cosy"
+                class="ngm-story-point__tab-menu-trigger"
+                (click)="$event.preventDefault(); $event.stopPropagation()"
+                [cdkMenuTriggerFor]="pageMenu"
+                [cdkMenuTriggerData]="{ point: point, component: story_point }"
+                #mt="cdkMenuTriggerFor"
+                [class.active]="mt.isOpen()"
+                >
+                <z-icon zType="more_vert"></z-icon>
+              </button>
+            }
           </div>
         </ng-template>
 
@@ -64,16 +65,16 @@
           [isFirst]="isFirst"
           [isLast]="isLast"
           (navToPointIndex)="onSelectedIndex($event)"
-        >
+          >
         </ngm-story-point>
       </z-tab>
     }
   </z-tab-group>
 
   <!-- 暂时没时间实现 global filters 功能
-    <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-story__global-filter z-[100]" [popper]="gFilters" [popperTrigger]="NgxPopperjsTriggers.click" [popperHideOnClickOutside]="true" [popperHideOnScroll]="true" [popperHideOnMouseLeave]="false" [popperPlacement]="NgxPopperjsPlacements.TOPEND">
-        <z-icon zType="filter"></z-icon>
-    </button> -->
+  <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-story__global-filter z-[100]" [popper]="gFilters" [popperTrigger]="NgxPopperjsTriggers.click" [popperHideOnClickOutside]="true" [popperHideOnScroll]="true" [popperHideOnMouseLeave]="false" [popperPlacement]="NgxPopperjsPlacements.TOPEND">
+    <z-icon zType="filter"></z-icon>
+  </button> -->
 </div>
 
 @if (enableWatermark$()) {
@@ -87,7 +88,7 @@
       class="disabled:opacity-50"
       [disabled]="!component?.dirtySignal()"
       (click)="saveStoryPoint(point.key)"
-    >
+      >
       <z-icon class="mr-1" zType="save"></z-icon>
       {{ 'Story.Story.Save' | translate: { Default: 'Save' } }}
     </button>
@@ -103,14 +104,18 @@
 
     <z-divider></z-divider>
 
-    <button cdkMenuItem *ngIf="!point.hidden" (click)="toggleStoryPointHidden(point.key)">
-      <z-icon class="mr-1" zType="flip_to_back"></z-icon>
-      {{ 'Story.Story.Hidden' | translate: { Default: 'Hidden' } }}
-    </button>
-    <button cdkMenuItem *ngIf="point.hidden" (click)="toggleStoryPointHidden(point.key)">
-      <z-icon class="mr-1" zType="flip_to_front"></z-icon>
-      {{ 'Story.Story.Visiable' | translate: { Default: 'Visiable' } }}
-    </button>
+    @if (!point.hidden) {
+      <button cdkMenuItem (click)="toggleStoryPointHidden(point.key)">
+        <z-icon class="mr-1" zType="flip_to_back"></z-icon>
+        {{ 'Story.Story.Hidden' | translate: { Default: 'Hidden' } }}
+      </button>
+    }
+    @if (point.hidden) {
+      <button cdkMenuItem (click)="toggleStoryPointHidden(point.key)">
+        <z-icon class="mr-1" zType="flip_to_front"></z-icon>
+        {{ 'Story.Story.Visiable' | translate: { Default: 'Visiable' } }}
+      </button>
+    }
     <button cdkMenuItem class="disabled:opacity-50" [disabled]="component?.isFirst" (click)="move(point, 'left')">
       <z-icon class="mr-1" zType="chevron_left"></z-icon>
       {{ 'Story.Story.MOVE_LEFT' | translate: { Default: 'Move Left' } }}
@@ -130,73 +135,74 @@
 
     <z-divider></z-divider>
     <!-- <button cdkMenuItem >
-        <z-icon zType="comment"></z-icon>
-        {{ 'Story.Story.COMMENT' | translate: {Default: "Comment"} }}
-    </button> -->
-    <button cdkMenuItem (click)="openShare(point)">
-      <z-icon class="mr-1" zType="share"></z-icon>
-      {{ 'Story.Story.Share' | translate: { Default: 'Share' } }}
-    </button>
+    <z-icon zType="comment"></z-icon>
+    {{ 'Story.Story.COMMENT' | translate: {Default: "Comment"} }}
+  </button> -->
+  <button cdkMenuItem (click)="openShare(point)">
+    <z-icon class="mr-1" zType="share"></z-icon>
+    {{ 'Story.Story.Share' | translate: { Default: 'Share' } }}
+  </button>
 
-    <z-divider></z-divider>
+  <z-divider></z-divider>
 
-    <button
-      cdkMenuItem
-      class="ngm-cdk-menu__danger"
-      color="warn"
-      ngmAppearance="danger"
-      (click)="removeStoryPoint(point)"
+  <button
+    cdkMenuItem
+    class="ngm-cdk-menu__danger"
+    color="warn"
+    ngmAppearance="danger"
+    (click)="removeStoryPoint(point)"
     >
-      <z-icon class="mr-1" zType="delete_forever"></z-icon>
-      {{ 'Story.Story.Delete' | translate: { Default: 'Delete' } }}
-    </button>
-  </div>
+    <z-icon class="mr-1" zType="delete_forever"></z-icon>
+    {{ 'Story.Story.Delete' | translate: { Default: 'Delete' } }}
+  </button>
+</div>
 </ng-template>
 
-<div
-  *ngIf="tabIsPoint()"
-  class="ngm-story__pagination ngm-story__pagination-bullets px-8"
-  [class.ngm-story__pagination-header-below]="pageHeaderPosition() === 'below'"
-  [attr.data-tab-align]="pageHeaderAlignTabs()"
-  [attr.data-stretch-tabs]="pageHeaderStretchTabs() ? 'true' : null"
->
+@if (tabIsPoint()) {
   <div
-    class="ngm-story__pagination-horizontal overflow-auto whitespace-nowrap pointer-events-auto flex flex-wrap justify-start items-center rounded-lg px-2 py-1 bg-slate-500/10 backdrop-blur-md"
-  >
-    @for (point of displayPoints(); track point.id; let index = $index) {
-      <div
-        class="ngm-story__pagination-page flex items-center cursor-pointer group hover:underline pointer-events-auto"
-        (click)="storyService.setCurrentPageKey(point.key)"
+    class="ngm-story__pagination ngm-story__pagination-bullets px-8"
+    [class.ngm-story__pagination-header-below]="pageHeaderPosition() === 'below'"
+    [attr.data-tab-align]="pageHeaderAlignTabs()"
+    [attr.data-stretch-tabs]="pageHeaderStretchTabs() ? 'true' : null"
+    >
+    <div
+      class="ngm-story__pagination-horizontal overflow-auto whitespace-nowrap pointer-events-auto flex flex-wrap justify-start items-center rounded-lg px-2 py-1 bg-slate-500/10 backdrop-blur-md"
       >
+      @for (point of displayPoints(); track point.id; let index = $index) {
         <div
-          class="ngm-story__pagination-bullet shrink-0 inline-block w-4 h-4 rounded-full mx-1 opacity-50 group-hover:opacity-100"
-          [class.ngm-story__pagination-bullet-active]="point.key === currentPageKey()"
-          [zTooltip]="point.name"
-        ></div>
-        @if (
-          ((!pageHeaderShowLabel() || pageHeaderShowLabel() === PageHeaderLabelEnum.auto) &&
-            point.key === currentPageKey()) ||
-          pageHeaderShowLabel() === PageHeaderLabelEnum.always ||
-          pageHeaderShowLabel() === true
-        ) {
-          <div class="inline-block dark:text-white">
-            {{ point.name }}
-          </div>
-        }
-        @if (editable() && point.key === currentPageKey()) {
-          <button
-            class="px-1 rounded-md hover:bg-hover-bg"
-            [cdkMenuTriggerFor]="pageMenu"
-            [cdkMenuTriggerData]="{ point: point }"
-            #mt="cdkMenuTriggerFor"
-            [class.active]="mt.isOpen()"
+          class="ngm-story__pagination-page flex items-center cursor-pointer group hover:underline pointer-events-auto"
+          (click)="storyService.setCurrentPageKey(point.key)"
           >
-            <i class="ri-more-line"></i>
-          </button>
-        }
-      </div>
-    }
+          <div
+            class="ngm-story__pagination-bullet shrink-0 inline-block w-4 h-4 rounded-full mx-1 opacity-50 group-hover:opacity-100"
+            [class.ngm-story__pagination-bullet-active]="point.key === currentPageKey()"
+            [zTooltip]="point.name"
+          ></div>
+          @if (
+            ((!pageHeaderShowLabel() || pageHeaderShowLabel() === PageHeaderLabelEnum.auto) &&
+            point.key === currentPageKey()) ||
+            pageHeaderShowLabel() === PageHeaderLabelEnum.always ||
+            pageHeaderShowLabel() === true
+            ) {
+            <div class="inline-block dark:text-white">
+              {{ point.name }}
+            </div>
+          }
+          @if (editable() && point.key === currentPageKey()) {
+            <button
+              class="px-1 rounded-md hover:bg-hover-bg"
+              [cdkMenuTriggerFor]="pageMenu"
+              [cdkMenuTriggerData]="{ point: point }"
+              #mt="cdkMenuTriggerFor"
+              [class.active]="mt.isOpen()"
+              >
+              <i class="ri-more-line"></i>
+            </button>
+          }
+        </div>
+      }
+    </div>
   </div>
-</div>
+}
 
 <ng-content></ng-content>

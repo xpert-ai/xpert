@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
@@ -10,14 +10,13 @@ import { MaterialModule } from '../../material.module'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MaterialModule,
     TranslateModule,
     ButtonGroupDirective,
     EmojiAvatarComponent
-  ],
+],
   selector: 'pac-knowledgebase-card',
   templateUrl: 'knowledgebase.component.html',
   styleUrls: ['knowledgebase.component.scss']

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, forwardRef, input } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
@@ -7,10 +7,9 @@ import { ZardDatePickerComponent } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    ZardDatePickerComponent,
-  ],
+    ZardDatePickerComponent
+],
   selector: 'ngm-datepicker',
   templateUrl: './datepicker.component.html',
   providers: [

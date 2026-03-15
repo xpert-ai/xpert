@@ -1,5 +1,5 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { Component, ViewChild, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
@@ -39,7 +39,7 @@ import { FeatureCategoryComponent } from '@cloud/app/@shared/features'
   selector: 'ngm-tenant-details',
   templateUrl: './tenant-details.component.html',
   styleUrls: ['./tenant-details.component.scss'],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, CdkListboxModule, MatStepperModule, ...ZardFormImports, ZardInputDirective, ZardProgressBarComponent, FormlyModule, FeatureCategoryComponent, NgmCommonModule],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, CdkListboxModule, MatStepperModule, ...ZardFormImports, ZardInputDirective, ZardProgressBarComponent, FormlyModule, FeatureCategoryComponent, NgmCommonModule],
   providers: [FeatureService]
 })
 export class TenantDetailsComponent {

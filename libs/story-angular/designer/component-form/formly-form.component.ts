@@ -1,5 +1,5 @@
 import { animate, style, transition, trigger } from '@angular/animations'
-import { CommonModule } from '@angular/common'
+
 import { Component, DestroyRef, Output, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -33,7 +33,7 @@ import {
   selector: 'ngm-component-settings',
   templateUrl: 'formly-form.component.html',
   styleUrls: ['formly-form.component.scss'],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, FormlyModule],
+  imports: [FormsModule, ReactiveFormsModule, FormlyModule],
   animations: [
     trigger('settingsComponent', [
       transition(':enter', [

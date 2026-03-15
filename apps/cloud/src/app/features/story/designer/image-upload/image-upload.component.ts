@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, forwardRef, inject } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { AppearanceDirective } from '@metad/ocap-angular/core'
@@ -10,7 +10,7 @@ import { MaterialModule } from '../../../../@shared/material.module'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, MaterialModule, AppearanceDirective],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, MaterialModule, AppearanceDirective],
   // changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-image-upload',
   templateUrl: './image-upload.component.html',
@@ -71,7 +71,7 @@ export class ImageUploadComponent implements ControlValueAccessor {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormlyModule, TranslateModule, ReactiveFormsModule, ImageUploadComponent],
+  imports: [FormlyModule, TranslateModule, ReactiveFormsModule, ImageUploadComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-formly-image-upload',
   template: `<label class="ngm-input-label shrink-0">

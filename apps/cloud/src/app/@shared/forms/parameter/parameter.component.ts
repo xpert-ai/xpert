@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmCheckboxComponent } from '@metad/ocap-angular/common'
@@ -13,14 +13,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     ...ZardTooltipImports,
     NgmI18nPipe,
     NgmSelectComponent,
     NgmCheckboxComponent
-  ],
+],
   selector: 'parameter',
   templateUrl: 'parameter.component.html',
   styleUrls: ['parameter.component.scss'],

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, forwardRef, HostBinding, inject, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
@@ -13,7 +13,6 @@ import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardMenuImport
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -21,8 +20,8 @@ import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardMenuImport
     ZardIconComponent,
     ...ZardFormImports,
     ...ZardMenuImports,
-    NgmMemberDatepickerModule,
-  ],
+    NgmMemberDatepickerModule
+],
   selector: 'ngm-today-filter',
   templateUrl: './today-filter.component.html',
   styleUrls: ['./today-filter.component.scss'],

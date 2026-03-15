@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -34,14 +34,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
     NgmSelectPanelComponent,
     XpertKnowledgeConditionFormComponent
-  ]
+]
 })
 export class XpertKnowledgeCaseFormComponent {
   eWorkflowLogicalOperator = WorkflowLogicalOperator

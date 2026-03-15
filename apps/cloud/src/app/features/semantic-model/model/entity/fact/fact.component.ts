@@ -1,5 +1,5 @@
 import { CdkDrag, CdkDragDrop, CdkDragRelease, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -52,7 +52,6 @@ import { ZardIconComponent, ZardCheckboxComponent, ZardTooltipImports } from '@x
   templateUrl: './fact.component.html',
   styleUrls: ['./fact.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     ZardIconComponent,
@@ -60,7 +59,7 @@ import { ZardIconComponent, ZardCheckboxComponent, ZardTooltipImports } from '@x
     ZardCheckboxComponent,
     NgmCommonModule,
     NgmEntityPropertyComponent
-  ]
+]
 })
 export class ModelCubeFactComponent {
   @HostBinding('class.pac-model-cube-structure') _isModelCubeStructure = true

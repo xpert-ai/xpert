@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, Inject, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
@@ -16,17 +16,15 @@ import { MaterialModule } from '../../material.module'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
     MaterialModule,
-
     ButtonGroupDirective,
     NgmTreeSelectComponent,
     DensityDirective,
     InlineSearchComponent
-  ],
+],
   selector: 'pac-story-creation',
   templateUrl: './creation.component.html',
   styles: [

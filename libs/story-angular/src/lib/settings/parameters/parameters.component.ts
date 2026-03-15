@@ -1,5 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, ViewContainerRef, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 
@@ -22,7 +22,6 @@ import { Dialog } from '@angular/cdk/dialog'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     DragDropModule,
     MatDialogModule,
     ZardButtonComponent,
@@ -31,7 +30,7 @@ import { Dialog } from '@angular/cdk/dialog'
     ZardDividerComponent,
     TranslateModule,
     NgmCommonModule
-  ],
+],
   selector: 'pac-story-parameters',
   templateUrl: 'parameters.component.html',
   styleUrls: ['parameters.component.scss']

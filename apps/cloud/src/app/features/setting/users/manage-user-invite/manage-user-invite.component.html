@@ -59,10 +59,18 @@
 </ng-template>
 
 <ng-template #statusTempl let-status="status" let-statusText="statusText">
-  <span [ngSwitch]="status" class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-1.5 rounded-lg dark:bg-gray-700 dark:text-gray-300">
-    <span *ngSwitchCase="'INVITED'" class="inline-block w-2 h-2 bg-blue-400 rounded-full"></span>
-    <span *ngSwitchCase="'ACCEPTED'" class="inline-block w-2 h-2 bg-green-400 rounded-full"></span>
-    <span *ngSwitchCase="'EXPIRED'" class="inline-block w-2 h-2 bg-yellow-400 rounded-full"></span>
+  <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-1.5 rounded-lg dark:bg-gray-700 dark:text-gray-300">
+    @switch (status) {
+      @case ('INVITED') {
+        <span class="inline-block w-2 h-2 bg-blue-400 rounded-full"></span>
+      }
+      @case ('ACCEPTED') {
+        <span class="inline-block w-2 h-2 bg-green-400 rounded-full"></span>
+      }
+      @case ('EXPIRED') {
+        <span class="inline-block w-2 h-2 bg-yellow-400 rounded-full"></span>
+      }
+    }
     {{ statusText }}
   </span>
 </ng-template>

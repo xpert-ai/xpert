@@ -1,6 +1,6 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -11,14 +11,13 @@ import { XpertBasicFormComponent } from '../basic-form/basic-form.component'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     RouterModule,
     DragDropModule,
     XpertBasicFormComponent
-  ],
+],
   selector: 'xpert-basic-dialog',
   templateUrl: 'basic-dialog.component.html',
   styleUrl: 'basic-dialog.component.scss',

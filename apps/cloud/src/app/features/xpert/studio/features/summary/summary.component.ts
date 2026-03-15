@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { attrModel, linkedModel, OverlayAnimations } from '@metad/core'
@@ -11,14 +11,13 @@ import { ZardSliderComponent, type ZardSliderValue, ZardTooltipImports } from '@
   selector: 'xpert-studio-features-summary',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     TranslateModule,
     ZardSliderComponent,
     ...ZardTooltipImports,
     CopilotPromptEditorComponent
-  ],
+],
   templateUrl: './summary.component.html',
   styleUrl: './summary.component.scss',
   animations: [...OverlayAnimations]

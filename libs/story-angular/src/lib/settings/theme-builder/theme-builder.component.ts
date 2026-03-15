@@ -1,5 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
@@ -14,7 +14,6 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     DragDropModule,
     TranslateModule,
@@ -24,7 +23,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     ZardIconComponent,
     MonacoEditorModule,
     ButtonGroupDirective
-  ],
+],
   selector: 'ngm-theme-builder',
   templateUrl: './theme-builder.component.html',
   styleUrls: ['./theme-builder.component.scss']

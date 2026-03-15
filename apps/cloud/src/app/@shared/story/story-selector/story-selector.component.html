@@ -7,13 +7,14 @@
       <ngm-select [formControl]="projectControl" [selectOptions]="projectOptions$ | async">
         <ng-template ngmOptionContent let-project>
           <div class="flex items-center">
-            <z-icon
-              *ngIf="project.modelNotInProject"
-              zSize="sm"
-              class="shrink-0"
-              zTooltip="Semantic model not in this project"
-              zType="block"
-            ></z-icon>
+            @if (project.modelNotInProject) {
+              <z-icon
+                zSize="sm"
+                class="shrink-0"
+                zTooltip="Semantic model not in this project"
+                zType="block"
+              ></z-icon>
+            }
             {{ project.label }}
           </div>
         </ng-template>
@@ -27,24 +28,27 @@
       <ngm-select [formControl]="storyControl" [selectOptions]="storyOptions$ | async">
         <ng-template ngmOptionContent let-story>
           <div class="flex items-center">
-            <z-icon
-              *ngIf="story.modelNotInStory"
-              zSize="sm"
-              class="shrink-0"
-              zTooltip="Semantic model not in this story"
-              zType="block"
-            ></z-icon>
+            @if (story.modelNotInStory) {
+              <z-icon
+                zSize="sm"
+                class="shrink-0"
+                zTooltip="Semantic model not in this story"
+                zType="block"
+              ></z-icon>
+            }
             {{ story.label }}
           </div>
         </ng-template>
       </ngm-select>
     </z-form-field>
 
-    <z-form-field *ngIf="points$ | async as points" appearance="fill">
-      <z-form-label>
-        {{ 'PAC.KEY_WORDS.StoryPoint' | translate: { Default: 'Story Point' } }}
-      </z-form-label>
-      <ngm-select [formControl]="pointControl" [selectOptions]="pointOptions$ | async" />
-    </z-form-field>
+    @if (points$ | async; as points) {
+      <z-form-field appearance="fill">
+        <z-form-label>
+          {{ 'PAC.KEY_WORDS.StoryPoint' | translate: { Default: 'Story Point' } }}
+        </z-form-label>
+        <ngm-select [formControl]="pointControl" [selectOptions]="pointOptions$ | async" />
+      </z-form-field>
+    }
   </div>
 </ngm-dialog>

@@ -14,7 +14,7 @@ import { filter, map, Observable, of as observableOf } from 'rxjs';
 import { tap } from 'rxjs/operators';
 import { IRole, IUser, RolesEnum } from '@metad/contracts';
 import { RoleService, Store } from './../../../../../@core/services';
-import { CommonModule } from '@angular/common';
+
 import { TranslateModule } from '@ngx-translate/core';
 import { NgmSelectComponent } from '@metad/ocap-angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -23,7 +23,7 @@ import { ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
 	standalone: true,
-	imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, NgmSelectComponent],
+	imports: [FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, NgmSelectComponent],
 	selector: 'pac-role-form-field',
 	templateUrl: './role.component.html',
 	styleUrls: [],

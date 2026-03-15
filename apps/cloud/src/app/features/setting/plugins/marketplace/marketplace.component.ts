@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -15,7 +15,7 @@ import { SettingsPluginComponent } from '../plugin/plugin.component'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, CdkMenuModule, CdkListboxModule, TranslateModule, FormsModule, NgmSelectComponent, SettingsPluginComponent],
+  imports: [CdkMenuModule, CdkListboxModule, TranslateModule, FormsModule, NgmSelectComponent, SettingsPluginComponent],
   selector: 'xp-plugins-marketplace',
   templateUrl: './marketplace.component.html',
   styleUrls: ['./marketplace.component.scss'],

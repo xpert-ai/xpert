@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, model, computed, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -16,14 +16,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   selector: 'xpert-copilot-knowledge-testing',
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     FormsModule,
     ...ZardTooltipImports,
     NgmSelectComponent,
     NgmSpinComponent,
     NgmSliderInputComponent
-  ],
+],
   templateUrl: './testing.component.html',
   styleUrl: './testing.component.scss'
 })

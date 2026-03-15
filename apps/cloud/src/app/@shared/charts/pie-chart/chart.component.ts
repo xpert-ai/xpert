@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule, DecimalPipe } from '@angular/common'
+import { CommonModule, DecimalPipe } from '@angular/common';
 import { ChangeDetectionStrategy, Component, computed, inject, input, LOCALE_ID } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'

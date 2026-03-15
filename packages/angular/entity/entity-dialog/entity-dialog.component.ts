@@ -1,7 +1,7 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { ScrollingModule } from '@angular/cdk/scrolling'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, OnInit, inject, model, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -28,7 +28,6 @@ export type EntitySelectDataType = {
   templateUrl: './entity-dialog.component.html',
   styleUrls: ['./entity-dialog.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
@@ -41,11 +40,10 @@ export type EntitySelectDataType = {
     ZardIconComponent,
     ZardLoaderComponent,
     ...ZardTooltipImports,
-
     NgmSearchComponent,
     ButtonGroupDirective,
     NgmDisplayBehaviourComponent
-  ]
+]
 })
 export class NgmEntityDialogComponent implements OnInit {
   public readonly data = inject<EntitySelectDataType>(MAT_DIALOG_DATA)

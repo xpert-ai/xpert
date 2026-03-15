@@ -1,5 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, ElementRef, OnInit, ViewChild, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -26,7 +26,6 @@ import { NgmHighlightDirective, NgmSelectComponent } from '@metad/ocap-angular/c
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -42,7 +41,7 @@ import { NgmHighlightDirective, NgmSelectComponent } from '@metad/ocap-angular/c
     OcapCoreModule,
     NgmHighlightDirective,
     NgmSelectComponent
-  ],
+],
   selector: 'ngm-story-details',
   templateUrl: './story-details.component.html',
   styleUrls: ['./story-details.component.scss']

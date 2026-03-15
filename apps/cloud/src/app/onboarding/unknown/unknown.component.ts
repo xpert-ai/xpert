@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -10,7 +10,7 @@ import { injectHelpWebsite } from '../../@core'
   selector: 'onboarding-unknown',
   templateUrl: './unknown.component.html',
   styleUrls: ['./unknown.component.scss'],
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule, NgmCommonModule]
+  imports: [ReactiveFormsModule, TranslateModule, NgmCommonModule]
 })
 export class OnboardingUnknownComponent {
   readonly helpWebsite = injectHelpWebsite()

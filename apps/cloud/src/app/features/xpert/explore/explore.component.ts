@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -20,18 +20,16 @@ import { XpertInstallComponent } from './install/install.component'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     RouterModule,
     CdkMenuModule,
     CdkListboxModule,
-
     NgmCommonModule,
     NgmHighlightDirective,
     DynamicGridDirective,
     EmojiAvatarComponent
-  ],
+],
   selector: 'xpert-explore',
   templateUrl: 'explore.component.html',
   styleUrl: 'explore.component.scss',

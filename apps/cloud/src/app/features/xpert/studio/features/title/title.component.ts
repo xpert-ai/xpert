@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { attrModel, IfAnimations, linkedModel, OverlayAnimations } from '@metad/core'
@@ -13,7 +13,6 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
   selector: 'xpert-studio-features-title',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     TranslateModule,
@@ -21,7 +20,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmDensityDirective,
     CopilotPromptEditorComponent,
     ZardSwitchComponent
-  ],
+],
   templateUrl: './title.component.html',
   styleUrl: './title.component.scss',
   animations: [...IfAnimations]

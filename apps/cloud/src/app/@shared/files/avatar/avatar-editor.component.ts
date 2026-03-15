@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, effect, forwardRef, inject, input, output, signal } from '@angular/core'
 import { AppearanceDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -15,7 +15,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
   selector: 'pac-avatar-editor',
   templateUrl: './avatar-editor.component.html',
   styles: [``],
-  imports: [CommonModule, CdkMenuModule, TranslateModule, AppearanceDirective],
+  imports: [CdkMenuModule, TranslateModule, AppearanceDirective],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,

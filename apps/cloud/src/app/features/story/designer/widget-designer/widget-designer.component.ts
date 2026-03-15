@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -14,17 +14,14 @@ import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     MaterialModule,
     InlineSearchComponent,
-
     AppearanceDirective,
-
     DesignerWidgetComponent
-  ],
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-widget-designer',
   templateUrl: './widget-designer.component.html',

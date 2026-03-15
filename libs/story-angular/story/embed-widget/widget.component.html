@@ -1,5 +1,7 @@
-<ngm-story-widget *ngIf="story && widget" class="w-full h-full" disableStyles
+@if (story && widget) {
+  <ngm-story-widget class="w-full h-full" disableStyles
     [key]="widget.key"
     [editable]="false"
     [standalone]="true"
-></ngm-story-widget>
+  ></ngm-story-widget>
+}

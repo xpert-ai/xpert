@@ -1,11 +1,11 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, input } from '@angular/core'
 import { TMessageContent, TMessageContentComplex } from '@cloud/app/@core/types'
 import { MarkdownModule } from 'ngx-markdown'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MarkdownModule,],
+  imports: [MarkdownModule],
   selector: 'copilot-message-content',
   templateUrl: 'content.component.html',
   styleUrls: ['content.component.scss']

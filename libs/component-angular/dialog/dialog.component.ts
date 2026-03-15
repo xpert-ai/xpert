@@ -5,19 +5,18 @@ import { MatDialogModule } from '@angular/material/dialog'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { FormGroup } from '@angular/forms'
-import { CommonModule } from '@angular/common'
+
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     MatDialogModule,
     ZardButtonComponent,
     DragDropModule,
     TranslateModule,
     ButtonGroupDirective
-  ],
+],
   selector: 'ngm-dialog',
   template: `<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
       <span style="pointer-events: none;">{{ title }}</span>

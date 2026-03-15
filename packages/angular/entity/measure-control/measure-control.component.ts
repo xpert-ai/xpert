@@ -1,6 +1,6 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { Component, Input, forwardRef } from '@angular/core'
 import {
   ControlValueAccessor,
@@ -29,7 +29,7 @@ import { ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, DragDropModule, CdkListboxModule, ...ZardFormImports, NgmPropertyComponent, NgmSelectComponent],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, DragDropModule, CdkListboxModule, ...ZardFormImports, NgmPropertyComponent, NgmSelectComponent],
   selector: 'ngm-measure-control',
   templateUrl: './measure-control.component.html',
   styleUrl: './measure-control.component.scss',

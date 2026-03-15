@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, forwardRef, inject } from '@angular/core'
 import { ControlValueAccessor, FormBuilder, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { NgmInputComponent, NgmSelectComponent, NgmSliderInputComponent } from '@metad/ocap-angular/common'
@@ -12,20 +12,18 @@ import { MaterialModule } from '../../../../@shared/material.module'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     FormlyModule,
     MaterialModule,
-
     AppearanceDirective,
     DensityDirective,
     NgmSliderInputComponent,
     NgmInputComponent,
     NgmSelectComponent,
     ColorInputComponent
-  ],
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-designer-text',
   templateUrl: './text.component.html',
@@ -146,11 +144,11 @@ export class DesignerTextComponent implements ControlValueAccessor {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormlyModule, TranslateModule, ReactiveFormsModule, DesignerTextComponent],
+  imports: [FormlyModule, TranslateModule, ReactiveFormsModule, DesignerTextComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-formly-text-designer',
   template: `
-<!-- <div *ngIf="props?.label" class="p-4">{{props.label}}</div> -->
+<!-- Optional field label rendered by the designer wrapper. -->
 <pac-designer-text class="ngm-density__compact" [formControl]="$any(formControl)" />`,
   styles: [
     `

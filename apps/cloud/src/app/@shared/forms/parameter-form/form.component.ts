@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input } from '@angular/core'
 import { FormGroup, FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -15,7 +15,7 @@ import { JSONSchemaFormComponent } from '../json-schema-form/form.component'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, FormlyModule, JSONSchemaFormComponent, ParameterComponent],
+  imports: [FormsModule, TranslateModule, FormlyModule, JSONSchemaFormComponent, ParameterComponent],
   selector: 'parameter-form',
   templateUrl: 'form.component.html',
   styleUrls: ['form.component.scss'],

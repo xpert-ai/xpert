@@ -47,13 +47,17 @@
 
 <ng-template #orgMenu >
   <div cdkMenu class="cdk-menu__medium">
-    <button cdkMenuItem *ngFor="let org of organizations()" (click)="addOrg(org)">
-      {{org.name}}
-    </button>
-  
-    <div *ngIf="!organizations()?.length" class="p-4">
-      {{ 'PAC.Users.NoMoreOrganizations' | translate: { Default: 'No more organizations can be added' } }}
-    </div>
+    @for (org of organizations(); track org) {
+      <button cdkMenuItem (click)="addOrg(org)">
+        {{org.name}}
+      </button>
+    }
+
+    @if (!organizations()?.length) {
+      <div class="p-4">
+        {{ 'PAC.Users.NoMoreOrganizations' | translate: { Default: 'No more organizations can be added' } }}
+      </div>
+    }
   </div>
 </ng-template>
 

@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -16,7 +16,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -27,7 +26,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSelectComponent,
     StatisticsChartComponent,
     StatisticsTokenUsageComponent
-  ],
+],
   selector: 'xpert-statistics',
   templateUrl: './statistics.component.html',
   styleUrl: 'statistics.component.scss',

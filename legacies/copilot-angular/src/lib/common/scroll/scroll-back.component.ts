@@ -1,6 +1,6 @@
 import { Direction, Directionality } from '@angular/cdk/bidi'
 import { Platform, normalizePassiveListenerOptions } from '@angular/cdk/platform'
-import { CommonModule, DOCUMENT } from '@angular/common'
+import { CommonModule, DOCUMENT } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,

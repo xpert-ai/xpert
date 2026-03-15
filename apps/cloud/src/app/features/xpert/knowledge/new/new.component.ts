@@ -1,6 +1,6 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
@@ -19,7 +19,7 @@ import {
 @Component({
   selector: 'xpert-new-knowledge',
   standalone: true,
-  imports: [CommonModule, TranslateModule, DragDropModule, FormsModule, CopilotModelSelectComponent],
+  imports: [TranslateModule, DragDropModule, FormsModule, CopilotModelSelectComponent],
   templateUrl: './new.component.html',
   styleUrl: './new.component.scss'
 })

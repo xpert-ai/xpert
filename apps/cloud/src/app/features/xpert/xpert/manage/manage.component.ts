@@ -2,7 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, signal, ViewContainerRef } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
@@ -23,19 +23,17 @@ import { XpertComponent } from '../xpert.component'
   selector: 'xpert-basic-manage',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     CdkMenuModule,
     CdkListboxModule,
     DragDropModule,
-
     NgmSpinComponent,
     EmojiAvatarComponent,
     XpertAppComponent,
     XpertAPIComponent
-  ],
+],
   templateUrl: './manage.component.html',
   styleUrl: './manage.component.scss',
   animations: [IfAnimation]

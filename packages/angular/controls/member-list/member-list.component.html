@@ -1,44 +1,52 @@
-<ngm-search *ngIf="options?.searchable" class="shrink-0 my-2" [formControl]="searchControl"></ngm-search>
+@if (options?.searchable) {
+  <ngm-search class="shrink-0 my-2" [formControl]="searchControl"></ngm-search>
+}
 
-<cdk-virtual-scroll-viewport *ngIf="multiple()" class="ngm-member-list__members" [itemSize]="itemSize">
-  <ul cdkListbox class="max-w-full ngm-cdk-listbox"
-    [cdkListboxMultiple]="true"
-    [cdkListboxCompareWith]="compareWith"
-    [cdkListboxValue]="members ?? []"
-    (cdkListboxValueChange)="onSelectionChange($event)">
-    <li role="listitem" *cdkVirtualFor="let item of listboxOptions(); trackBy: trackByValue" class="ngm-cdk-option rounded-lg flex items-start gap-2"
-      [cdkOption]="item">
-      <input type="checkbox" class="mt-1 h-4 w-4 rounded border border-gray-300 bg-gray-50"
-        [checked]="isSelected(item)">
-      <ngm-display-behaviour class="flex-1"
-        [displayBehaviour]="displayBehaviour"
-        [option]="item"
-        [highlight]="searchControl.value"
-      ></ngm-display-behaviour>
-    </li>
-  </ul>
-</cdk-virtual-scroll-viewport>
+@if (multiple()) {
+  <cdk-virtual-scroll-viewport class="ngm-member-list__members" [itemSize]="itemSize">
+    <ul cdkListbox class="max-w-full ngm-cdk-listbox"
+      [cdkListboxMultiple]="true"
+      [cdkListboxCompareWith]="compareWith"
+      [cdkListboxValue]="members ?? []"
+      (cdkListboxValueChange)="onSelectionChange($event)">
+      <li role="listitem" *cdkVirtualFor="let item of listboxOptions(); trackBy: trackByValue" class="ngm-cdk-option rounded-lg flex items-start gap-2"
+        [cdkOption]="item">
+        <input type="checkbox" class="mt-1 h-4 w-4 rounded border border-gray-300 bg-gray-50"
+          [checked]="isSelected(item)">
+        <ngm-display-behaviour class="flex-1"
+          [displayBehaviour]="displayBehaviour"
+          [option]="item"
+          [highlight]="searchControl.value"
+        ></ngm-display-behaviour>
+      </li>
+    </ul>
+  </cdk-virtual-scroll-viewport>
+}
 
-<cdk-virtual-scroll-viewport *ngIf="!multiple()" class="ngm-member-list__members" [itemSize]="itemSize">
-  <ul cdkListbox class="max-w-full ngm-cdk-listbox"
-    [cdkListboxMultiple]="false"
-    [cdkListboxCompareWith]="compareWith"
-    [cdkListboxValue]="members ?? []"
-    (cdkListboxValueChange)="onSelectionChange($event)">
-    <li role="listitem" *cdkVirtualFor="let item of listboxOptions(); trackBy: trackByValue" class="ngm-cdk-option rounded-lg flex items-start gap-2"
-      [cdkOption]="item">
-      @if (!hideSingleSelectionIndicator()) {
-        <input type="radio" class="mt-1 h-4 w-4 border border-gray-300 bg-gray-50" [checked]="isSelected(item)">
-      }
-      <ngm-display-behaviour class="flex-1"
-        [displayBehaviour]="displayBehaviour"
-        [option]="item"
-        [highlight]="searchControl.value"
-      ></ngm-display-behaviour>
-    </li>
-  </ul>
-</cdk-virtual-scroll-viewport>
+@if (!multiple()) {
+  <cdk-virtual-scroll-viewport class="ngm-member-list__members" [itemSize]="itemSize">
+    <ul cdkListbox class="max-w-full ngm-cdk-listbox"
+      [cdkListboxMultiple]="false"
+      [cdkListboxCompareWith]="compareWith"
+      [cdkListboxValue]="members ?? []"
+      (cdkListboxValueChange)="onSelectionChange($event)">
+      <li role="listitem" *cdkVirtualFor="let item of listboxOptions(); trackBy: trackByValue" class="ngm-cdk-option rounded-lg flex items-start gap-2"
+        [cdkOption]="item">
+        @if (!hideSingleSelectionIndicator()) {
+          <input type="radio" class="mt-1 h-4 w-4 border border-gray-300 bg-gray-50" [checked]="isSelected(item)">
+        }
+        <ngm-display-behaviour class="flex-1"
+          [displayBehaviour]="displayBehaviour"
+          [option]="item"
+          [highlight]="searchControl.value"
+        ></ngm-display-behaviour>
+      </li>
+    </ul>
+  </cdk-virtual-scroll-viewport>
+}
 
-<div *ngIf="loading$ | async" class="absolute top-0 left-0 w-full h-full flex justify-center items-center">
-  <z-loader diameter="30" />
-</div>
+@if (loading$ | async) {
+  <div class="absolute top-0 left-0 w-full h-full flex justify-center items-center">
+    <z-loader diameter="30" />
+  </div>
+}

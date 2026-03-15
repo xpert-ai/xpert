@@ -1,5 +1,5 @@
 import { Clipboard } from '@angular/cdk/clipboard'
-import { CommonModule } from '@angular/common'
+
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -30,7 +30,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   styleUrls: ['./editor.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, FormsModule, TranslateModule, MonacoEditorModule, ...ZardTooltipImports]
+  imports: [FormsModule, TranslateModule, MonacoEditorModule, ...ZardTooltipImports]
 })
 export class CopilotInstructionEditorComponent {
   agentLabel = agentLabel

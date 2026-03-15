@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   afterNextRender,
   booleanAttribute,
@@ -48,7 +48,7 @@ const DEFAULT_DECISIONS: InterruptDecision[] = ['approve', 'edit', 'reject']
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule],
+  imports: [FormsModule, TranslateModule],
   selector: 'xp-agent-interrupt-on',
   templateUrl: 'interrupt-on.component.html',
   styleUrls: ['interrupt-on.component.scss'],

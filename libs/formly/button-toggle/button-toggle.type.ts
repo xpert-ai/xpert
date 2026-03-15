@@ -8,7 +8,9 @@ import { FieldType } from '@ngx-formly/core'
   template: `
 <label class="text-sm">{{to.label}}</label>
 <z-toggle-group [formControl]="_formControl" [multiple]="to?.multiple" ngmAppearance="outline" color="accent" displayDensity="compact">
-    <z-toggle-group-item *ngFor="let option of $any(to?.options)" [value]="option.value">{{ option.label }}</z-toggle-group-item>
+  @for (option of $any(to?.options); track option) {
+    <z-toggle-group-item [value]="option.value">{{ option.label }}</z-toggle-group-item>
+  }
 </z-toggle-group>`,
   host: {
     class: 'pac-formly-button-toggle'

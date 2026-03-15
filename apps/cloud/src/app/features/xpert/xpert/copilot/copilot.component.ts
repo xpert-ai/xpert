@@ -1,5 +1,5 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
@@ -11,7 +11,7 @@ import { XpertComponent } from '../xpert.component'
 @Component({
   selector: 'xpert-copilot',
   standalone: true,
-  imports: [CommonModule, RouterModule, TranslateModule, FormsModule, CdkListboxModule, CopilotKnowledgesComponent],
+  imports: [RouterModule, TranslateModule, FormsModule, CdkListboxModule, CopilotKnowledgesComponent],
   templateUrl: './copilot.component.html',
   styleUrl: './copilot.component.scss',
   animations: [IfAnimation]

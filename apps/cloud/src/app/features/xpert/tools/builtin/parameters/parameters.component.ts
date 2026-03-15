@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, input } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatDialog, MatDialogModule } from '@angular/material/dialog'
@@ -10,7 +10,6 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -18,7 +17,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     NgmI18nPipe,
     ZardSwitchComponent
-  ],
+],
   selector: 'xpert-tool-builtin-parameters',
   templateUrl: './parameters.component.html',
   styleUrl: 'parameters.component.scss',

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, forwardRef, inject, input, model } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
@@ -28,7 +28,6 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     }
   ],
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     ReactiveFormsModule,
@@ -36,7 +35,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     ZardButtonComponent,
     OcapCoreModule,
     NgmCommonModule
-  ]
+]
 })
 export class NgmVariableComponent implements ControlValueAccessor {
   private smartFilterService = inject(NgmSmartFilterService)

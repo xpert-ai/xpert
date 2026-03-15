@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -44,7 +44,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     ...ZardTooltipImports,
@@ -54,7 +53,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     KnowledgeLocalFileComponent,
     ContentLoaderModule,
     NgmCheckboxComponent
-  ]
+]
 })
 export class XpertWorkflowSourceTestComponent extends XpertWorkflowBaseComponent {
   eDocumentSourceProviderCategoryEnum = DocumentSourceProviderCategoryEnum

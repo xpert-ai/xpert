@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, ViewContainerRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
@@ -27,14 +27,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
     CdkMenuModule,
     ...ZardTooltipImports,
     TranslateModule,
     XpertChatAppComponent
-  ],
+],
   selector: 'pac-chat-project-conv',
   templateUrl: './conversation.component.html',
   styleUrl: 'conversation.component.scss',

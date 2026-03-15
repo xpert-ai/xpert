@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -17,7 +17,6 @@ import { MaterialModule } from '../../material.module'
   styleUrls: ['project-files.component.scss'],
   providers: [],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MaterialModule,
@@ -26,7 +25,7 @@ import { MaterialModule } from '../../material.module'
     AppearanceDirective,
     DensityDirective,
     NgmSearchComponent
-  ],
+],
   animations: [listAnimation]
 })
 export class ProjectFilesDialogComponent {

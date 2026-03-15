@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TKBRecallParams } from '@metad/contracts'
@@ -13,13 +13,12 @@ import type { ZardSliderValue } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     CdkMenuModule,
     FormsModule,
     TranslateModule,
     ...ZardTooltipImports,
     ZardSliderComponent
-  ],
+],
   selector: 'knowledge-recall-params',
   templateUrl: 'recall-params.component.html',
   styleUrls: ['recall-params.component.scss'],

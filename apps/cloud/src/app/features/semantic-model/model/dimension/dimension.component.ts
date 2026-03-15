@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, effect, inject, model } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { MatSidenavModule } from '@angular/material/sidenav'
@@ -33,7 +33,6 @@ import { ModelDimensionService } from './dimension.service'
   changeDetection: ChangeDetectionStrategy.OnPush,
   providers: [ModelDimensionService, NxSettingsPanelService],
   imports: [
-    CommonModule,
     RouterModule,
     CdkMenuModule,
     ContentLoaderModule,
@@ -41,14 +40,12 @@ import { ModelDimensionService } from './dimension.service'
     ...ZardTooltipImports,
     MatSidenavModule,
     TranslateModule,
-
     NxDesignerModule,
-
     OcapCoreModule,
     ResizerModule,
     SplitterModule,
     NgmCommonModule
-  ]
+]
 })
 export class ModelDimensionComponent implements OnInit {
   public appService = inject(AppService)

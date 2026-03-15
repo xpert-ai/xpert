@@ -1,4 +1,4 @@
-import { CommonModule, getCurrencySymbol } from '@angular/common'
+import { CommonModule, getCurrencySymbol } from '@angular/common';
 import { Component, Input, LOCALE_ID, OnChanges, SimpleChanges, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 

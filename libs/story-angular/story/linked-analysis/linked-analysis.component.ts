@@ -1,5 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, Inject } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
@@ -13,7 +13,6 @@ import { ZardButtonComponent, ZardFormImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
@@ -23,7 +22,7 @@ import { ZardButtonComponent, ZardFormImports } from '@xpert-ai/headless-ui'
     ButtonGroupDirective,
     MatListModule,
     TranslateModule
-  ],
+],
   selector: 'pac-story-linked-analysis',
   templateUrl: 'linked-analysis.component.html',
   styleUrls: ['linked-analysis.component.scss']

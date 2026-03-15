@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -25,7 +25,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     ReactiveFormsModule,
     FormsModule,
@@ -33,7 +32,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     ChatAttachmentComponent
-  ],
+],
   selector: 'chat-attachments',
   templateUrl: './attachments.component.html',
   styleUrl: 'attachments.component.scss',

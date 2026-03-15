@@ -1,7 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -15,7 +15,6 @@ import { XpertWorkspaceModelsComponent } from './models/models.component'
   selector: 'xpert-workspace-settings',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     CdkListboxModule,
     DragDropModule,
@@ -23,7 +22,7 @@ import { XpertWorkspaceModelsComponent } from './models/models.component'
     XpertWorkspaceModelsComponent,
     XpertWorkspaceMembersComponent,
     XpertWorkspaceSettingsGeneralComponent
-  ],
+],
   templateUrl: './settings.component.html',
   styleUrl: './settings.component.scss',
   animations: [IfAnimation]

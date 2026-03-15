@@ -1,5 +1,5 @@
 import { CdkDrag, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import {
@@ -48,7 +48,6 @@ import { ChecklistComponent } from '../../common'
   templateUrl: 'virtual-cube.component.html',
   styleUrls: ['virtual-cube.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     CdkMenuModule,
@@ -68,7 +67,7 @@ import { ChecklistComponent } from '../../common'
     NgmCalculatedMeasureComponent,
     ChecklistComponent,
     NgmSelectComponent
-  ],
+],
   providers: [NgmDSCoreService, ModelStudioService]
 })
 export class ModelVirtualCubeComponent extends ModelDraftBaseComponent {

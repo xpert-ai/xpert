@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+
 import { Component, inject } from '@angular/core';
 
 import { Router } from '@angular/router';
@@ -11,10 +11,9 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   styleUrls: ['./not-found.component.scss'],
   templateUrl: './not-found.component.html',
   imports: [
-    CommonModule,
     TranslateModule,
     ZardButtonComponent
-  ]
+]
 })
 export class NotFoundComponent {
   readonly #router = inject(Router)

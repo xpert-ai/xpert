@@ -1,11 +1,11 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, input } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, NgxJsonViewerModule],
+  imports: [TranslateModule, NgxJsonViewerModule],
   selector: 'copilot-message-tool-call',
   templateUrl: 'tool-call.component.html',
   styleUrls: ['tool-call.component.scss']

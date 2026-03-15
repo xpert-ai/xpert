@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -18,7 +18,7 @@ import { ZardFormImports } from '@xpert-ai/headless-ui'
   host: {
     class: 'pac-formly-input'
   },
-  imports: [CommonModule, FormsModule, TranslateModule, ...ZardFormImports, FormlyModule, DensityDirective, NgmInputComponent]
+  imports: [FormsModule, TranslateModule, ...ZardFormImports, FormlyModule, DensityDirective, NgmInputComponent]
 })
 export class PACFormlyInputComponent extends FieldType implements OnInit {
   readonly #destroyRef = inject(DestroyRef)

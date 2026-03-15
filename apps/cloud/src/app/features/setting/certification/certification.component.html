@@ -4,7 +4,7 @@
       <div class="pac-page-title">{{ 'PAC.KEY_WORDS.Certification' | translate: {Default: 'Certification'} }}</div>
       <div class="pac-page-subtitle">{{ 'PAC.KEY_WORDS.DigitalAssetCertificationTypes' | translate: {Default: 'Digital Asset Certification Types'} }}</div>
     </div>
-  
+
     <div class="flex justify-start">
       <div ngmButtonGroup>
         <button z-button zType="default" color="primary" (click)="createCertification()">
@@ -16,12 +16,12 @@
 
   <nav z-tab-nav-bar class="pac-tab-nav-bar max-w-full" color="accent" alignTabs="start" stretchTabs="false" disableRipple displayDensity="cosy"
     [tabPanel]="tabPanel"
-  >
+    >
     <span z-tab-link [routerLink]="['.']"
       routerLinkActive #rla="routerLinkActive"
       [routerLinkActiveOptions]="{exact: true}"
       [active]="rla.isActive"
-    >
+      >
 
       <z-icon class="mr-1" zSize="default" zType="account_tree"></z-icon>
       {{ 'PAC.BUSINESS_AREA.All' | translate: {Default: "All"} }}
@@ -64,38 +64,36 @@
       }
     </div>
 
-    <div *ngIf="certification" class="w-[400px] px-8 flex flex-col justify-start items-start">
-      <div class="text-lg my-4">
-        {{ 'PAC.ACTIONS.Edit' | translate: {Default: 'Edit'} }}
-      </div>
-      <form [formGroup]="formGroup" class="w-full flex flex-col items-stretch" (ngSubmit)="onSubmit()">
-        <z-form-field appearance="fill">
-          <z-form-label>{{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}</z-form-label>
-          <input z-input formControlName="name"/>
-        </z-form-field>
-
-        <z-form-field appearance="fill">
-          <z-form-label>{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</z-form-label>
-          <textarea z-input formControlName="description"></textarea>
-        </z-form-field>
-
-        <ngm-mat-select appearance="fill"
-          formControlName="ownerId"
-          displayBehaviour="descriptionOnly"
-          [label]=" 'PAC.KEY_WORDS.Owner' | translate: {Default: 'Owner'} "
-          [selectOptions]="users$ | async">
-        </ngm-mat-select>
-
-        <div class="flex items-center gap-2">
-          <button z-button zType="default" color="primary">
-            {{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}
-          </button>
-          <button z-button zType="ghost" (click)="cancel($event)">
-            {{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}
-          </button>
+    @if (certification) {
+      <div class="w-[400px] px-8 flex flex-col justify-start items-start">
+        <div class="text-lg my-4">
+          {{ 'PAC.ACTIONS.Edit' | translate: {Default: 'Edit'} }}
         </div>
-        
-      </form>
-    </div>
+        <form [formGroup]="formGroup" class="w-full flex flex-col items-stretch" (ngSubmit)="onSubmit()">
+          <z-form-field appearance="fill">
+            <z-form-label>{{ 'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}</z-form-label>
+            <input z-input formControlName="name"/>
+          </z-form-field>
+          <z-form-field appearance="fill">
+            <z-form-label>{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</z-form-label>
+            <textarea z-input formControlName="description"></textarea>
+          </z-form-field>
+          <ngm-mat-select appearance="fill"
+            formControlName="ownerId"
+            displayBehaviour="descriptionOnly"
+            [label]=" 'PAC.KEY_WORDS.Owner' | translate: {Default: 'Owner'} "
+            [selectOptions]="users$ | async">
+          </ngm-mat-select>
+          <div class="flex items-center gap-2">
+            <button z-button zType="default" color="primary">
+              {{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}
+            </button>
+            <button z-button zType="ghost" (click)="cancel($event)">
+              {{ 'PAC.ACTIONS.Cancel' | translate: {Default: 'Cancel'} }}
+            </button>
+          </div>
+        </form>
+      </div>
+    }
   </div>
 </z-tab-nav-panel>

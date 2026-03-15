@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -30,7 +30,7 @@ import { SemanticsAccordionWrapper } from '../../../schema'
   selector: 'xp-cube-studio-dimension-settings',
   templateUrl: 'dimension.component.html',
   styleUrls: ['dimension.component.scss'],
-  imports: [CommonModule, FormsModule, TranslateModule, FormlyModule, DensityDirective],
+  imports: [FormsModule, TranslateModule, FormlyModule, DensityDirective],
   host: {
     class: 'xp-cube-studio-dimension-settings'
   }

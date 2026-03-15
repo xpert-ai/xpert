@@ -1,11 +1,13 @@
 @if (_widget$ | async; as widget) {
-    <ngm-story-widget class="pac-story-widget-viewer w-full h-full"
-      [key]="widget.key"
-      [editable]="false"
-      [standalone]="true"
-    ></ngm-story-widget>
+  <ngm-story-widget class="pac-story-widget-viewer w-full h-full"
+    [key]="widget.key"
+    [editable]="false"
+    [standalone]="true"
+  ></ngm-story-widget>
 }
 
-<div *ngIf="error$ | async as error">
+@if (error$ | async; as error) {
+  <div>
     {{error | json}}
-</div>
+  </div>
+}

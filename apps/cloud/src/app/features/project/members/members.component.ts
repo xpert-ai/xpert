@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 
@@ -21,7 +21,6 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     ZardIconComponent,
     ZardButtonComponent,
@@ -32,7 +31,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     DensityDirective,
     AppearanceDirective,
     NgmTableComponent
-  ],
+],
   selector: 'pac-project-members',
   templateUrl: 'members.component.html',
   styles: [

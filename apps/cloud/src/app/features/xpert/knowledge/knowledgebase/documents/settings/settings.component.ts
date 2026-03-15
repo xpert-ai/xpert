@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
@@ -27,7 +27,6 @@ import { KnowledgeDocumentPipelineSettingsComponent } from '../pipeline/settings
   templateUrl: './settings.component.html',
   styleUrls: ['./settings.component.scss'],
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
     TranslateModule,
@@ -35,7 +34,7 @@ import { KnowledgeDocumentPipelineSettingsComponent } from '../pipeline/settings
     NgmSpinComponent,
     KnowledgeDocumentCreateSettingsComponent,
     KnowledgeDocumentPipelineSettingsComponent
-  ]
+]
 })
 export class KnowledgeDocumentSettingsComponent {
   eKDocumentSourceType = KDocumentSourceType

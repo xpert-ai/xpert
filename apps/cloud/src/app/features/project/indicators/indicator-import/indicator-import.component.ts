@@ -1,6 +1,6 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -24,7 +24,6 @@ import { ZardButtonComponent, ZardIconComponent, ZardLoaderComponent } from '@xp
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     DragDropModule,
     ZardIconComponent,
@@ -34,7 +33,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardLoaderComponent } from '@xp
     AppearanceDirective,
     ButtonGroupDirective,
     XpIndicatorRegisterFormComponent
-  ],
+],
   selector: 'pac-indicator-import',
   templateUrl: 'indicator-import.component.html',
   styleUrls: ['indicator-import.component.scss']

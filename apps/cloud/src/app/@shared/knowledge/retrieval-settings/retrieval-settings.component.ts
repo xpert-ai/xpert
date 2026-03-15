@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, KnowledgebaseService } from '@cloud/app/@core'
@@ -17,14 +17,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     CdkMenuModule,
     FormsModule,
     TranslateModule,
     ...ZardTooltipImports,
     NgmCommonModule,
     CopilotModelSelectComponent
-  ],
+],
   selector: 'xp-knowledge-retrieval-settings',
   templateUrl: 'retrieval-settings.component.html',
   styleUrls: ['retrieval-settings.component.scss'],

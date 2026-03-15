@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, HostBinding, Input, forwardRef, signal } from '@angular/core'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
@@ -10,7 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ZardInputDirective],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, ZardInputDirective],
   selector: 'ngm-search',
   templateUrl: 'search.component.html',
   styleUrls: ['search.component.scss'],

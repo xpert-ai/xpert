@@ -12,11 +12,11 @@ import { EditOrganizationComponent } from '../edit-organization.component'
 import { FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
 import { FORMLY_W_FULL } from '@metad/formly'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
-import { CommonModule } from '@angular/common'
+
 
 @Component({
   standalone: true,
-  imports: [SharedModule, CommonModule, FormlyModule],
+  imports: [SharedModule, FormlyModule],
   selector: 'pac-edit-org-main',
   templateUrl: './edit-organization-main.component.html',
   styleUrls: ['./edit-organization-main.component.scss']

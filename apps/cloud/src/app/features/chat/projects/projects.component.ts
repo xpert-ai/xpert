@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
 import { getErrorMessage, injectProjectService, injectToastr, IXpertProject, OrderTypeEnum } from '@cloud/app/@core'
@@ -16,7 +16,7 @@ import { EMPTY, map, startWith, switchMap } from 'rxjs'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, RouterModule, CdkMenuModule, TranslatePipe, NgmSpinComponent, EmojiAvatarComponent],
+  imports: [RouterModule, CdkMenuModule, TranslatePipe, NgmSpinComponent, EmojiAvatarComponent],
   selector: 'pac-chat-projects',
   templateUrl: './projects.component.html',
   styleUrl: 'projects.component.scss',

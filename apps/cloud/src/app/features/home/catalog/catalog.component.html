@@ -16,24 +16,26 @@
                 >
                 <z-icon zType="business_center"></z-icon>
                 {{area.name}}</a
-              >
-            </li>
-            
-            @if (!last) {
-              <li>
-                <span class="mx-2 text-neutral-500 dark:text-neutral-400">/</span>
+                >
               </li>
-            }
-          }
-        </ol>
-      </nav>
 
-      <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" [@listAnimation]="group.stories?.length">
-        <pac-story-card *ngFor="let story of group.stories; trackBy: trackById"
-          [story]="story"
-          [highlight]="highlight">
-        </pac-story-card>
+              @if (!last) {
+                <li>
+                  <span class="mx-2 text-neutral-500 dark:text-neutral-400">/</span>
+                </li>
+              }
+            }
+          </ol>
+        </nav>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" [@listAnimation]="group.stories?.length">
+          @for (story of group.stories; track trackById($index, story)) {
+            <pac-story-card
+              [story]="story"
+              [highlight]="highlight">
+            </pac-story-card>
+          }
+        </div>
       </div>
-    </div>
-  }
-</div>
+    }
+  </div>

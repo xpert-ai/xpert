@@ -1,5 +1,5 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -14,12 +14,11 @@ export type TStep = {
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkListboxModule,
     NgmI18nPipe
-  ],
+],
   selector: 'ngm-stepper',
   templateUrl: 'stepper.component.html',
   styleUrls: ['stepper.component.scss'],

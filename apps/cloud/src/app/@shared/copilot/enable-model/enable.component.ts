@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { RouterModule } from '@angular/router'
@@ -13,7 +13,7 @@ import { TranslatePipe } from '@metad/core'
   templateUrl: './enable.component.html',
   styleUrls: ['./enable.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, TranslatePipe, RouterModule],
+  imports: [TranslatePipe, RouterModule],
   host: {
     '[class.active]': 'show()'
   }

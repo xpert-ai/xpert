@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
@@ -13,17 +13,14 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     DialogModule,
     DragDropModule,
     ZardButtonComponent,
-
     NgmI18nPipe,
-
-    MCPToolsetToolTestComponent,
-  ],
+    MCPToolsetToolTestComponent
+],
   selector: 'mcp-tool-test',
   templateUrl: './tool.component.html',
   styleUrl: 'tool.component.scss',

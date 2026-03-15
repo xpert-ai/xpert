@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -10,7 +10,6 @@ import { MaterialModule } from '../../material.module'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MaterialModule,
@@ -18,7 +17,7 @@ import { MaterialModule } from '../../material.module'
     ButtonGroupDirective,
     DensityDirective,
     AvatarComponent
-  ],
+],
   selector: 'pac-toolset-card',
   templateUrl: 'toolset.component.html',
   styleUrls: ['toolset.component.scss']

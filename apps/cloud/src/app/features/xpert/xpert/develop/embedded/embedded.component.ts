@@ -1,5 +1,5 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { Clipboard } from '@angular/cdk/clipboard'
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -15,14 +15,13 @@ export type EmbeddedType = 'iframe' | 'scripts' | 'chromeplugin'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     RouterModule,
     ...ZardTooltipImports,
     NgmI18nPipe
-  ],
+],
   selector: 'xpert-develop-embedded',
   templateUrl: './embedded.component.html',
   styleUrl: 'embedded.component.scss',

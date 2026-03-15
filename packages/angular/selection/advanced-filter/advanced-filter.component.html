@@ -1,193 +1,199 @@
 <header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <h4 class="pac-typography__h6" style="pointer-events: none;">
-        {{ 'Ngm.AdvancedFilter.Title' | translate: {Default: 'Combination Slicer'} }}
-    </h4>
-    <div class="pac-filter-legend">
-        <div class="pac-filter-legend__item pac-filter-legend__item--and">
-            <span>{{ 'Ngm.AdvancedFilter.AND' | translate: {Default: 'AND'} }}</span>
-        </div>
-        <div class="pac-filter-legend__item pac-filter-legend__item--or">
-            <span>{{ 'Ngm.AdvancedFilter.OR' | translate: {Default: 'OR'} }}</span>
-        </div>
+  <h4 class="pac-typography__h6" style="pointer-events: none;">
+    {{ 'Ngm.AdvancedFilter.Title' | translate: {Default: 'Combination Slicer'} }}
+  </h4>
+  <div class="pac-filter-legend">
+    <div class="pac-filter-legend__item pac-filter-legend__item--and">
+      <span>{{ 'Ngm.AdvancedFilter.AND' | translate: {Default: 'AND'} }}</span>
     </div>
+    <div class="pac-filter-legend__item pac-filter-legend__item--or">
+      <span>{{ 'Ngm.AdvancedFilter.OR' | translate: {Default: 'OR'} }}</span>
+    </div>
+  </div>
 </header>
 
 <mat-dialog-content class="mat-typography">
-    <ng-container *ngIf="!rootGroup">
-        <div class="flex gap-2">
-            <button z-button zType="outline" #addRootAndGroupButton color="accent" ngmAppearance="dashed" (click)="addAndGroup()">
-                <z-icon zType="add"></z-icon>
-                <span>"{{ 'Ngm.AdvancedFilter.AND' | translate: {Default: 'AND'} }}" {{ 'Ngm.AdvancedFilter.GROUP' | translate: {Default: 'GROUP'} }}</span>
+  @if (!rootGroup) {
+    <div class="flex gap-2">
+      <button z-button zType="outline" #addRootAndGroupButton color="accent" ngmAppearance="dashed" (click)="addAndGroup()">
+        <z-icon zType="add"></z-icon>
+        <span>"{{ 'Ngm.AdvancedFilter.AND' | translate: {Default: 'AND'} }}" {{ 'Ngm.AdvancedFilter.GROUP' | translate: {Default: 'GROUP'} }}</span>
+      </button>
+      <button z-button zType="outline" color="accent" ngmAppearance="dashed" (click)="addOrGroup()">
+        <z-icon zType="add"></z-icon>
+        <span>"{{ 'Ngm.AdvancedFilter.OR' | translate: {Default: 'OR'} }}" {{ 'Ngm.AdvancedFilter.GROUP' | translate: {Default: 'GROUP'} }}</span>
+      </button>
+    </div>
+    <div class="pac-filter-empty">
+      <h6 class="pac-filter-empty__title">
+        {{ 'Ngm.AdvancedFilter.Tips' | translate: {Default: 'Start with creating a group of conditions linked with "And" or "Or"'} }}
+      </h6>
+    </div>
+  }
+
+  <ng-template #filterOperandTemplate let-expressionItem>
+    @if (!expressionItem.inEditMode) {
+      <div
+        class="pac-filter-tree__expression-item"
+        (mouseenter)="expressionItem.hovered = true"
+        (mouseleave)="expressionItem.hovered = false"
+        >
+        <mat-chip-listbox >
+          <mat-chip-option [value]="expressionItem" [selected]="expressionItem.selected" removable selectable
+            (removed)="onChipRemove(expressionItem)">
+            <mat-chip-avatar>
+              <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="enterExpressionEdit(expressionItem)">
+                <z-icon zType="edit"></z-icon>
+              </button>
+            </mat-chip-avatar>
+            <span class="pac-filter-tree__expression-column">{{ expressionItem.columnHeader || expressionItem.expression.dimension?.dimension }}</span>
+            <span class="pac-filter-tree__expression-condition">
+              {{ getConditionFriendlyName(expressionItem.expression.operator) }}
+            </span>
+            <span >
+              {{ isDate(expressionItem.expression.members?.[0].value) ? (expressionItem.expression.members?.[0].value | date) : expressionItem.expression.members?.[0].value }}
+            </span>
+            @if (expressionItem.expression.operator === FilterOperator.BT) {
+              <span>
+                =>
+                {{ isDate(expressionItem.expression.members?.[1]?.value) ? (expressionItem.expression.members?.[1]?.value | date) : expressionItem.expression.members?.[1]?.value }}
+              </span>
+            }
+            <button matChipRemove>
+              <z-icon zType="cancel"></z-icon>
             </button>
+          </mat-chip-option>
+        </mat-chip-listbox>
+        @if ((expressionItem.selected && selectedExpressions.length === 1) || expressionItem.hovered) {
+          <div class="pac-filter-tree__expression-actions"
+            >
+          </div>
+        }
+      </div>
+    }
 
-            <button z-button zType="outline" color="accent" ngmAppearance="dashed" (click)="addOrGroup()">
-                <z-icon zType="add"></z-icon>
-                <span>"{{ 'Ngm.AdvancedFilter.OR' | translate: {Default: 'OR'} }}" {{ 'Ngm.AdvancedFilter.GROUP' | translate: {Default: 'GROUP'} }}</span>
+    @if (expressionItem.inEditMode) {
+      <div
+        #editingInputsContainer
+        class="pac-filter-tree__inputs flex gap-2"
+        >
+        <ngm-property-select #columnSelect floatLabel="always" displayDensity="cosy"
+          required
+          [entityType]="entityType"
+          [capacities]="[PropertyCapacity.Dimension]"
+          [ngModel]="selectedDimension"
+          (ngModelChange)="selectedDimension=$event">
+        </ngm-property-select>
+        <z-form-field appearance="fill" floatLabel="always" displayDensity="cosy">
+          <z-form-label>
+            {{ 'Ngm.AdvancedFilter.Operator' | translate: {Default: 'Operator'} }}
+          </z-form-label>
+          <ngm-select
+            required
+            [(ngModel)]="selectedCondition"
+            [disabled]="!selectedDimension"
+            [selectOptions]="operators">
+          </ngm-select>
+        </z-form-field>
+        @if (selectedDimension) {
+          <z-form-field appearance="fill" floatLabel="always" displayDensity="cosy">
+            <z-form-label>{{ 'Ngm.AdvancedFilter.Value' | translate: {Default: 'Value'} }}</z-form-label>
+            <input z-input [(ngModel)]="searchValue" [disabled]="!selectedDimension" required>
+            <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix [disabled]="!selectedDimension" (click)="openLowValueHelp(selectedDimension)">
+              <z-icon zType="help_outline"></z-icon>
             </button>
+          </z-form-field>
+        }
+        @if (selectedDimension && selectedCondition === FilterOperator.BT) {
+          <z-form-field appearance="fill" floatLabel="always" displayDensity="cosy">
+            <z-form-label>{{ 'Ngm.AdvancedFilter.Value' | translate: {Default: 'Value'} }}</z-form-label>
+            <input z-input [(ngModel)]="highValue" [disabled]="!selectedDimension" required>
+            <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix [disabled]="!selectedDimension" (click)="openHighValueHelp(selectedDimension)">
+              <z-icon zType="help_outline"></z-icon>
+            </button>
+          </z-form-field>
+        }
+        <div class="pac-filter-tree__inputs-actions">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" color="primary" [disabled]="!operandCanBeCommitted()" (click)="commitOperandEdit()">
+            <z-icon zType="check"></z-icon>
+          </button>
+          <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" (click)="cancelOperandEdit()">
+            <z-icon zType="close"></z-icon>
+          </button>
         </div>
-        
-        <div class="pac-filter-empty">
-            <h6 class="pac-filter-empty__title">
-                {{ 'Ngm.AdvancedFilter.Tips' | translate: {Default: 'Start with creating a group of conditions linked with "And" or "Or"'} }}
-            </h6>
-        </div>
-    </ng-container>
+      </div>
+    }
+  </ng-template>
 
-    <ng-template #filterOperandTemplate let-expressionItem>
-        <div *ngIf="!expressionItem.inEditMode"
-            class="pac-filter-tree__expression-item"
-            (mouseenter)="expressionItem.hovered = true"
-            (mouseleave)="expressionItem.hovered = false"
-            >
+  <ng-template #addExpressionsTemplate let-expressionItem let-afterExpression="afterExpression">
+    <button z-button zType="outline" #addConditionButton color="accent" ngmAppearance="dashed" [disabled]="!!editedExpression" (click)="addCondition(expressionItem, afterExpression)">
+      <z-icon zType="add"></z-icon>
+      <span>{{ 'Ngm.AdvancedFilter.Condition' | translate: {Default: 'Condition'} }}</span>
+    </button>
 
-            <mat-chip-listbox >
-                <mat-chip-option [value]="expressionItem" [selected]="expressionItem.selected" removable selectable
-                    (removed)="onChipRemove(expressionItem)">
-                    <mat-chip-avatar>
-                        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="enterExpressionEdit(expressionItem)">
-                            <z-icon zType="edit"></z-icon>
-                        </button>
-                    </mat-chip-avatar>
-                    <span class="pac-filter-tree__expression-column">{{ expressionItem.columnHeader || expressionItem.expression.dimension?.dimension }}</span>
-                    <span class="pac-filter-tree__expression-condition">
-                        {{ getConditionFriendlyName(expressionItem.expression.operator) }}
-                    </span>
-                    <span >
-                        {{ isDate(expressionItem.expression.members?.[0].value) ? (expressionItem.expression.members?.[0].value | date) : expressionItem.expression.members?.[0].value }}
-                    </span>
-                    <span *ngIf="expressionItem.expression.operator === FilterOperator.BT">
-                        =>
-                        {{ isDate(expressionItem.expression.members?.[1]?.value) ? (expressionItem.expression.members?.[1]?.value | date) : expressionItem.expression.members?.[1]?.value }}
-                    </span>
+    <button z-button zType="outline" color="accent" ngmAppearance="dashed" [disabled]="!!editedExpression" (click)="addAndGroup(expressionItem, afterExpression)">
+      <z-icon zType="add"></z-icon>
+      <span>{{ 'Ngm.AdvancedFilter.AddGroup' | translate: {Default: '"ADD" GROUP'} }}</span>
+    </button>
 
-                    <button matChipRemove>
-                        <z-icon zType="cancel"></z-icon>
-                    </button>
-                </mat-chip-option>
-              </mat-chip-listbox>
+    <button z-button zType="outline" color="accent" ngmAppearance="dashed" [disabled]="!!editedExpression" (click)="addOrGroup(expressionItem, afterExpression)">
+      <z-icon zType="add"></z-icon>
+      <span>{{ 'Ngm.AdvancedFilter.OrGroup' | translate: {Default: '"OR" GROUP'} }}</span>
+    </button>
+  </ng-template>
 
-            <div class="pac-filter-tree__expression-actions"
-                *ngIf="(expressionItem.selected && selectedExpressions.length === 1) || expressionItem.hovered">
-            </div>
-        </div>
-
-        <div *ngIf="expressionItem.inEditMode"
-             #editingInputsContainer
-             class="pac-filter-tree__inputs flex gap-2"
-            >
-
-            <ngm-property-select #columnSelect floatLabel="always" displayDensity="cosy"
-                required
-                [entityType]="entityType"
-                [capacities]="[PropertyCapacity.Dimension]"
-                [ngModel]="selectedDimension"
-                (ngModelChange)="selectedDimension=$event">
-            </ngm-property-select>
-
-            <z-form-field appearance="fill" floatLabel="always" displayDensity="cosy">
-                <z-form-label>
-                    {{ 'Ngm.AdvancedFilter.Operator' | translate: {Default: 'Operator'} }}
-                </z-form-label>
-                <ngm-select
-                    required
-                    [(ngModel)]="selectedCondition"
-                    [disabled]="!selectedDimension"
-                    [selectOptions]="operators">
-                </ngm-select>
-            </z-form-field>
-            
-            <z-form-field *ngIf="selectedDimension" appearance="fill" floatLabel="always" displayDensity="cosy">
-                <z-form-label>{{ 'Ngm.AdvancedFilter.Value' | translate: {Default: 'Value'} }}</z-form-label>
-                <input z-input [(ngModel)]="searchValue" [disabled]="!selectedDimension" required>
-                <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix [disabled]="!selectedDimension" (click)="openLowValueHelp(selectedDimension)">
-                    <z-icon zType="help_outline"></z-icon>
-                </button>
-            </z-form-field>
-
-            <z-form-field *ngIf="selectedDimension && selectedCondition === FilterOperator.BT" appearance="fill" floatLabel="always" displayDensity="cosy">
-                <z-form-label>{{ 'Ngm.AdvancedFilter.Value' | translate: {Default: 'Value'} }}</z-form-label>
-                <input z-input [(ngModel)]="highValue" [disabled]="!selectedDimension" required>
-                <button z-button zType="ghost" zSize="icon" zShape="circle" zFormSuffix [disabled]="!selectedDimension" (click)="openHighValueHelp(selectedDimension)">
-                    <z-icon zType="help_outline"></z-icon>
-                </button>
-            </z-form-field>
-
-            <div class="pac-filter-tree__inputs-actions">
-                <button z-button zType="ghost" zSize="icon" zShape="circle" color="primary" [disabled]="!operandCanBeCommitted()" (click)="commitOperandEdit()">
-                    <z-icon zType="check"></z-icon>
-                </button>
-                <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" (click)="cancelOperandEdit()">
-                    <z-icon zType="close"></z-icon>
-                </button>
-            </div>
-        </div>
-    </ng-template>
-    
-    <ng-template #addExpressionsTemplate let-expressionItem let-afterExpression="afterExpression">
-        <button z-button zType="outline" #addConditionButton color="accent" ngmAppearance="dashed" [disabled]="!!editedExpression" (click)="addCondition(expressionItem, afterExpression)">
-            <z-icon zType="add"></z-icon>
-            <span>{{ 'Ngm.AdvancedFilter.Condition' | translate: {Default: 'Condition'} }}</span>
-        </button>
-
-        <button z-button zType="outline" color="accent" ngmAppearance="dashed" [disabled]="!!editedExpression" (click)="addAndGroup(expressionItem, afterExpression)">
-                <z-icon zType="add"></z-icon>
-            <span>{{ 'Ngm.AdvancedFilter.AddGroup' | translate: {Default: '"ADD" GROUP'} }}</span>
-        </button>
-
-        <button z-button zType="outline" color="accent" ngmAppearance="dashed" [disabled]="!!editedExpression" (click)="addOrGroup(expressionItem, afterExpression)">
-            <z-icon zType="add"></z-icon>
-            <span>{{ 'Ngm.AdvancedFilter.OrGroup' | translate: {Default: '"OR" GROUP'} }}</span>
-        </button>
-    </ng-template>
-
-    <ng-template #expressionTreeTemplate let-expressionItem>
-        <div class="pac-filter-tree">
-            <div tabindex="0"
-                 class="pac-filter-tree__line"
+  <ng-template #expressionTreeTemplate let-expressionItem>
+    <div class="pac-filter-tree">
+      <div tabindex="0"
+        class="pac-filter-tree__line"
                  [ngClass]="{
                     'pac-filter-tree__line--and': expressionItem.operator === 0,
                     'pac-filter-tree__line--or': expressionItem.operator === 1,
                     'pac-filter-tree__line--selected': expressionItem.selected
                  }"
-                 (keydown)="invokeClick($event)"
-                 (click)="onGroupClick(expressionItem)"
-            ></div>
+        (keydown)="invokeClick($event)"
+        (click)="onGroupClick(expressionItem)"
+      ></div>
 
-            <div class="pac-filter-tree__expression">
-                <ng-container *ngFor="let expr of expressionItem.children">
-                    <ng-container *ngTemplateOutlet="isExpressionGroup(expr) ? expressionTreeTemplate : filterOperandTemplate; context: context(expr)"></ng-container>
-                </ng-container>
-                <div *ngIf="currentGroup === expressionItem" class="pac-filter-tree__buttons flex gap-4"
-                    #currentGroupButtonsContainer
-                >
-                    <ng-container *ngTemplateOutlet="addExpressionsTemplate; context: context(expressionItem)"></ng-container>
-                    <button z-button zType="outline" color="accent"
-                            *ngIf="expressionItem !== rootGroup"
-                            [disabled]="!!editedExpression || expressionItem.children.length < 2"
-                            (click)="endGroup(expressionItem)">
-                        <span>{{ 'Ngm.AdvancedFilter.EndGroup' | translate: {Default: 'END GROUP'} }}</span>
-                    </button>
+      <div class="pac-filter-tree__expression">
+        @for (expr of expressionItem.children; track expr) {
+          <ng-container *ngTemplateOutlet="isExpressionGroup(expr) ? expressionTreeTemplate : filterOperandTemplate; context: context(expr)"></ng-container>
+        }
+        @if (currentGroup === expressionItem) {
+          <div class="pac-filter-tree__buttons flex gap-4"
+            #currentGroupButtonsContainer
+            >
+            <ng-container *ngTemplateOutlet="addExpressionsTemplate; context: context(expressionItem)"></ng-container>
+            @if (expressionItem !== rootGroup) {
+              <button z-button zType="outline" color="accent"
+                [disabled]="!!editedExpression || expressionItem.children.length < 2"
+                (click)="endGroup(expressionItem)">
+                <span>{{ 'Ngm.AdvancedFilter.EndGroup' | translate: {Default: 'END GROUP'} }}</span>
+              </button>
+            }
+            @if (expressionItem !== rootGroup) {
+              <button z-button zType="outline" color="accent" ngmAppearance="danger" [disabled]="!!editedExpression" (click)="onChipRemove(expressionItem)">
+                <span>{{ 'Ngm.AdvancedFilter.DeleteGroup' | translate: {Default: 'DELETE GROUP'} }}</span>
+              </button>
+            }
+          </div>
+        }
+      </div>
+    </div>
 
-                    <button z-button zType="outline" color="accent" ngmAppearance="danger" *ngIf="expressionItem !== rootGroup" [disabled]="!!editedExpression" (click)="onChipRemove(expressionItem)">
-                        <span>{{ 'Ngm.AdvancedFilter.DeleteGroup' | translate: {Default: 'DELETE GROUP'} }}</span>
-                    </button>
-                </div>
-            </div>
-        </div>
+  </ng-template>
 
-    </ng-template>
-
-    <ng-container *ngIf="rootGroup">
-        <ng-container *ngTemplateOutlet="expressionTreeTemplate; context: context(rootGroup)"></ng-container>
-    </ng-container>
+  @if (rootGroup) {
+    <ng-container *ngTemplateOutlet="expressionTreeTemplate; context: context(rootGroup)"></ng-container>
+  }
 
 </mat-dialog-content>
 <mat-dialog-actions>
-    <button z-button zType="ghost" (click)="onClearButtonClick($event)">
-        {{ 'Ngm.Common.Clear' | translate: {Default: 'Clear'} }}
-    </button>
-    <div ngmButtonGroup>
-        <button z-button zType="ghost" mat-dialog-close>{{ 'Ngm.Common.Cancel' | translate: {Default: 'Cancel'} }}</button>
-        <button z-button zType="default" color="accent" (click)="onApply()" cdkFocusInitial>{{ 'Ngm.Common.Apply' | translate: {Default: 'Apply'} }}</button>
-    </div>
+  <button z-button zType="ghost" (click)="onClearButtonClick($event)">
+    {{ 'Ngm.Common.Clear' | translate: {Default: 'Clear'} }}
+  </button>
+  <div ngmButtonGroup>
+    <button z-button zType="ghost" mat-dialog-close>{{ 'Ngm.Common.Cancel' | translate: {Default: 'Cancel'} }}</button>
+    <button z-button zType="default" color="accent" (click)="onApply()" cdkFocusInitial>{{ 'Ngm.Common.Apply' | translate: {Default: 'Apply'} }}</button>
+  </div>
 </mat-dialog-actions>

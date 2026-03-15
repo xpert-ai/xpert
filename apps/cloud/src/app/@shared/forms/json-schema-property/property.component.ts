@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -25,7 +25,6 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     ...ZardTooltipImports,
@@ -35,7 +34,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     XpertRemoteSelectComponent,
     JsonSchemaWidgetOutletComponent,
     ZardSwitchComponent
-  ],
+],
   selector: 'json-schema-property',
   templateUrl: 'property.component.html',
   styleUrls: ['property.component.scss'],

@@ -1,74 +1,78 @@
 <div class="content flex flex-col">
-    <span class="ngm-indicator__kpi-title">{{ titleSignal() }}</span>
+  <span class="ngm-indicator__kpi-title">{{ titleSignal() }}</span>
 
-    <ng-container *ngIf="headIndicatorData() as headData">
-        <div class="ngm-indicator__kpi-maxnum-xauto">
-            <span class="ngm-indicator__kpi-maxnum">{{ headData.currentValue }}</span>&nbsp;
-            <span class="ngm-indicator__kpi-maxnum-text">{{headData.shortUnit}}{{ headData.unit }}</span>
-        </div>
-
-        <div *ngIf="!options.disabledYoy" class="pac-indicator-card__indicator flex justify-between items-center">
-            <span class="ngm-indicator__kpi-text">
-                {{ 'Story.Widgets.IndicatorCard.YearOnYear' | translate: {Default: 'Year On Year'} }}
-            </span>
-
+  @if (headIndicatorData(); as headData) {
+    <div class="ngm-indicator__kpi-maxnum-xauto">
+      <span class="ngm-indicator__kpi-maxnum">{{ headData.currentValue }}</span>&nbsp;
+      <span class="ngm-indicator__kpi-maxnum-text">{{headData.shortUnit}}{{ headData.unit }}</span>
+    </div>
+    @if (!options.disabledYoy) {
+      <div class="pac-indicator-card__indicator flex justify-between items-center">
+        <span class="ngm-indicator__kpi-text">
+          {{ 'Story.Widgets.IndicatorCard.YearOnYear' | translate: {Default: 'Year On Year'} }}
+        </span>
             <div class="flex justify-end items-center" [ngClass]="{
                 'semantic-color_positive': headData.yoyArrow === ArrowDirection.UP,
                 'semantic-color_negative': headData.yoyArrow === ArrowDirection.DOWN
             }">
-                <span class="value">{{headData.yoyValue }}</span>
-                <span class="unit">{{headData.yoyUnit }}</span>
-
-                <z-icon [zType]="headData.yoyArrow === ArrowDirection.UP ? 'arrow_drop_up' : 'arrow_drop_down'"></z-icon>
-            </div>
+          <span class="value">{{headData.yoyValue }}</span>
+          <span class="unit">{{headData.yoyUnit }}</span>
+          <z-icon [zType]="headData.yoyArrow === ArrowDirection.UP ? 'arrow_drop_up' : 'arrow_drop_down'"></z-icon>
         </div>
-    </ng-container>
-    
-    <div class="pac-indicator-card__sub-indicators overflow-y-auto">
-        <div *ngFor="let indicator of subIndicators()" class="pac-indicator-card__indicator flex justify-between items-center">
-            <div class="flex-auto w-8/12 flex justify-between items-center">
-                <span class="ngm-indicator__kpi-text">{{indicator.title }}</span>
-                <div>
-                    <span class="ngm-indicator__kpi-text">{{indicator.currentValue}}</span>
-                    <span class="ngm-indicator__kpi-text">{{indicator.shortUnit}}{{indicator.unit}}</span>
-                </div>
-            </div>
-    
-            <div class="flex-auto w-4/12 flex justify-end items-center"
+      </div>
+    }
+  }
+
+  <div class="pac-indicator-card__sub-indicators overflow-y-auto">
+    @for (indicator of subIndicators(); track indicator) {
+      <div class="pac-indicator-card__indicator flex justify-between items-center">
+        <div class="flex-auto w-8/12 flex justify-between items-center">
+          <span class="ngm-indicator__kpi-text">{{indicator.title }}</span>
+          <div>
+            <span class="ngm-indicator__kpi-text">{{indicator.currentValue}}</span>
+            <span class="ngm-indicator__kpi-text">{{indicator.shortUnit}}{{indicator.unit}}</span>
+          </div>
+        </div>
+        <div class="flex-auto w-4/12 flex justify-end items-center"
                 [ngClass]="{
                     'semantic-color_positive': indicator.yoyArrow === ArrowDirection.UP,
                     'semantic-color_negative': indicator.yoyArrow === ArrowDirection.DOWN
                 }">
-                <span class="value">{{ indicator.yoyValue }}</span>
-                <span class="unit">{{ indicator.yoyUnit }}</span>
-                <z-icon [zType]="indicator.yoyArrow === ArrowDirection.UP ? 'arrow_drop_up' : 'arrow_drop_down'"></z-icon>
-            </div>
+          <span class="value">{{ indicator.yoyValue }}</span>
+          <span class="unit">{{ indicator.yoyUnit }}</span>
+          <z-icon [zType]="indicator.yoyArrow === ArrowDirection.UP ? 'arrow_drop_up' : 'arrow_drop_down'"></z-icon>
         </div>
-    </div>
+      </div>
+    }
+  </div>
 
-    <ng-container *ngIf="chartOptions()">
-        <ng-container *ngIf="chartOptions().show">
-            <div echarts [options]="chartOptions().option" [autoResize]="true" [loading]="true" class="echarts"></div>
-        </ng-container>
-    </ng-container>
+  @if (chartOptions()) {
+    @if (chartOptions().show) {
+      <div echarts [options]="chartOptions().option" [autoResize]="true" [loading]="true" class="echarts"></div>
+    }
+  }
 
 </div>
 
-<div *ngIf="error$ | async as error" class="pac-indicator-card__error ngm-card-error flex flex-col justify-center items-center backdrop-blur-md bg-white/10">
+@if (error$ | async; as error) {
+  <div class="pac-indicator-card__error ngm-card-error flex flex-col justify-center items-center backdrop-blur-md bg-white/10">
     <span class="text-2xl font-notoColorEmoji">🐞</span>
     <div class="overflow-auto whitespace-pre-wrap">
-        {{ error }}
+      {{ error }}
     </div>
-</div>
+  </div>
+}
 
 <!-- Loading spinner icon -->
 <z-loader class="pac-indicator-card__loading"
-    [style.opacity]="(isLoading$ | async) ? '1' : '0'"
-    [style.visibility]="(isLoading$ | async) ? 'visible' : 'hidden'"
-    [diameter]="18"
-/>
+  [style.opacity]="(isLoading$ | async) ? '1' : '0'"
+  [style.visibility]="(isLoading$ | async) ? 'visible' : 'hidden'"
+  [diameter]="18"
+  />
 
-<div *ngIf="editable && (placeholder$ | async)" class="ngm-story-widget__placeholder absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center">
+@if (editable && (placeholder$ | async)) {
+  <div class="ngm-story-widget__placeholder absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center">
     <pac-placeholder-add></pac-placeholder-add>
     <span class="ngm-story-widget__placeholder-title">{{ 'Story.Widgets.IndicatorCard.Title' | translate: {Default: 'Indicator Card'} }}</span>
-</div>
+  </div>
+}

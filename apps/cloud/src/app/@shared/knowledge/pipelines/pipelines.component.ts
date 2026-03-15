@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, input, model, output, signal } from '@angular/core'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { parseYAML } from '@metad/core'
@@ -31,7 +31,7 @@ import { injectI18nService } from '../../i18n'
   selector: 'xp-pipelines',
   templateUrl: './pipelines.component.html',
   styleUrls: ['./pipelines.component.scss'],
-  imports: [CommonModule, RouterModule, TranslateModule, NgmSpinComponent, IconComponent],
+  imports: [RouterModule, TranslateModule, NgmSpinComponent, IconComponent],
   animations: [routeAnimations]
 })
 export class XpertPipelinesComponent {

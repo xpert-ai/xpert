@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule, DatePipe } from '@angular/common'
+import { CommonModule, DatePipe } from '@angular/common';
 import { Component, computed, inject, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'

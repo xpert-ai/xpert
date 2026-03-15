@@ -1,24 +1,26 @@
 <div class="flex justify-start items-center text-sm p-1" [title]="label">
-    <label class="flex-1 whitespace-nowrap overflow-hidden text-ellipsis">{{label}}<ng-content></ng-content></label>
-  
-    <input z-input zBorderless type="number" class="bg-transparent hover:bg-neutral-100 focus:bg-neutral-100 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800"
-        [disabled]="disabled" 
-        [(ngModel)]="model"
-        (ngModelChange)="onValueChange($event)"
-        (blur)="onInputBlur()"
+  <label class="flex-1 whitespace-nowrap overflow-hidden text-ellipsis">{{label}}<ng-content></ng-content></label>
+
+  <input z-input zBorderless type="number" class="bg-transparent hover:bg-neutral-100 focus:bg-neutral-100 dark:hover:bg-neutral-800 dark:focus:bg-neutral-800"
+    [disabled]="disabled"
+    [(ngModel)]="model"
+    (ngModelChange)="onValueChange($event)"
+    (blur)="onInputBlur()"
     >
-    <span *ngIf="unit">{{unit}}</span>
+  @if (unit) {
+    <span>{{unit}}</span>
+  }
 </div>
 <z-slider
-    [disabled]="disabled"
-    [formatValue]="displayWith ?? defaultDisplayWith"
-    [max]="currentMax()"
-    [min]="min"
-    [step]="step"
-    [showTickMarks]="showTickMarks"
-    [showValueLabel]="discrete"
-    [ngModel]="model"
-    (ngModelChange)="onSliderValueChange($event)"
-    (changeEnd)="onSliderChangeEnd($event)"
->
+  [disabled]="disabled"
+  [formatValue]="displayWith ?? defaultDisplayWith"
+  [max]="currentMax()"
+  [min]="min"
+  [step]="step"
+  [showTickMarks]="showTickMarks"
+  [showValueLabel]="discrete"
+  [ngModel]="model"
+  (ngModelChange)="onSliderValueChange($event)"
+  (changeEnd)="onSliderChangeEnd($event)"
+  >
 </z-slider>

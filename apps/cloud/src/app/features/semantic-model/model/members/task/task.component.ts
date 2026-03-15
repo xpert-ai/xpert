@@ -1,7 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import {
@@ -21,7 +21,6 @@ import { omit } from 'lodash-es'
   selector: 'model-sync-task',
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     DragDropModule,
     FormsModule,
@@ -29,7 +28,7 @@ import { omit } from 'lodash-es'
     CdkMenuModule,
     NgmSpinComponent,
     ScheduleFormComponent
-  ],
+],
   templateUrl: './task.component.html',
   styleUrl: './task.component.scss'
 })

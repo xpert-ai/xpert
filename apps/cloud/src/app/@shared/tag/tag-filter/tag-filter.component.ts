@@ -1,6 +1,6 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, forwardRef, input, model } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { SafePipe } from '@metad/core'
@@ -10,7 +10,7 @@ import { ITag } from '../../../@core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, CdkListboxModule, CdkMenuModule, NgmI18nPipe, SafePipe],
+  imports: [FormsModule, TranslateModule, CdkListboxModule, CdkMenuModule, NgmI18nPipe, SafePipe],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tag-filter',
   templateUrl: './tag-filter.component.html',

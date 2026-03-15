@@ -1,5 +1,5 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
@@ -26,7 +26,6 @@ import { ChatBIModelService, ToastrService, getErrorMessage, routeAnimations } f
   templateUrl: './models.component.html',
   styleUrls: ['./models.component.scss'],
   imports: [
-    CommonModule,
     RouterModule,
     TranslateModule,
     ReactiveFormsModule,
@@ -37,7 +36,7 @@ import { ChatBIModelService, ToastrService, getErrorMessage, routeAnimations } f
     AppearanceDirective,
     NgmTableComponent,
     NgmSearchComponent
-  ],
+],
   animations: [routeAnimations]
 })
 export class ChatBIModelsComponent extends TranslationBaseComponent {

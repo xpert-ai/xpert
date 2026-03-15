@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { afterNextRender, booleanAttribute, ChangeDetectorRef, Component, computed, inject, input, signal } from '@angular/core'
 import { ControlValueAccessor, FormsModule } from '@angular/forms'
 import { NgmResizableDirective } from '@metad/ocap-angular/common'
@@ -9,7 +9,7 @@ import { distinctUntilChanged } from 'rxjs'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, MonacoEditorModule, NgmResizableDirective],
+  imports: [FormsModule, TranslateModule, MonacoEditorModule, NgmResizableDirective],
   selector: 'pac-code-editor',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss'],

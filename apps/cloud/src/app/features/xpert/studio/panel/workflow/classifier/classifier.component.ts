@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
@@ -24,14 +24,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     ...ZardTooltipImports,
     TranslateModule,
     CopilotModelSelectComponent,
     StateVariableSelectComponent,
     CopilotPromptEditorComponent
-  ],
+],
   host: {
     tabindex: '-1'
   }

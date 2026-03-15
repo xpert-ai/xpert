@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { SelectionModel } from '@angular/cdk/collections'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -34,14 +34,13 @@ import { KnowledgeDocumentCreateStep3Component } from '../step-3/step.component'
   templateUrl: './pipeline.component.html',
   styleUrls: ['./pipeline.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     RouterModule,
     KnowledgeDocumentPipelineStep1Component,
     KnowledgeDocumentPipelineStep2Component,
     KnowledgeDocumentCreateStep3Component
-  ]
+]
 })
 export class KnowledgeDocumentPipelineComponent {
   eKDocumentSourceType = KDocumentSourceType

@@ -1,6 +1,6 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -31,7 +31,6 @@ import { ZardProgressBarComponent, ZardTooltipImports } from '@xpert-ai/headless
   templateUrl: './step.component.html',
   styleUrls: ['./step.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
@@ -40,7 +39,7 @@ import { ZardProgressBarComponent, ZardTooltipImports } from '@xpert-ai/headless
     ZardProgressBarComponent,
     ...ZardTooltipImports,
     KnowledgeDocIdComponent
-  ]
+]
 })
 export class KnowledgeDocumentCreateStep3Component {
   eKDocumentSourceType = KDocumentSourceType

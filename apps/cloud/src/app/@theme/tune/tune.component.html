@@ -7,29 +7,29 @@
   [zTooltip]="'PAC.KEY_WORDS.Tune' | translate: { Default: 'Tune' }"
   zPosition="right"
   [cdkMenuTriggerFor]="menus"
->
+  >
   <z-icon zType="tune"></z-icon>
 </button>
 
 <ng-template #menus>
   <div cdkMenu class="cdk-menu__large">
     <!-- <button cdkMenuItem [cdkMenuTriggerFor]="cacheMenu">
-      <z-icon class="mr-2" zType="layers_clear"></z-icon>
-      {{ 'PAC.KEY_WORDS.CACHE' | translate: {Default: 'Cache'} }}
-    </button> -->
-    <button cdkMenuItem [cdkMenuTriggerFor]="agentMenu">
-      <z-icon class="mr-2" zType="assistant_direction"></z-icon>
-      {{ 'PAC.KEY_WORDS.DataAgent' | translate: { Default: 'Data Agent' } }}
-    </button>
-    <button cdkMenuItem [cdkMenuTriggerFor]="wasmMenu">
-      <z-icon
-        class="mr-2"
-        [color]="wasmAgentStatus()?.status === AgentStatusEnum.OFFLINE ? '' : 'success'"
-        zType="memory"
-      ></z-icon>
-      {{ 'WASM' }}
-    </button>
-  </div>
+    <z-icon class="mr-2" zType="layers_clear"></z-icon>
+    {{ 'PAC.KEY_WORDS.CACHE' | translate: {Default: 'Cache'} }}
+  </button> -->
+  <button cdkMenuItem [cdkMenuTriggerFor]="agentMenu">
+    <z-icon class="mr-2" zType="assistant_direction"></z-icon>
+    {{ 'PAC.KEY_WORDS.DataAgent' | translate: { Default: 'Data Agent' } }}
+  </button>
+  <button cdkMenuItem [cdkMenuTriggerFor]="wasmMenu">
+    <z-icon
+      class="mr-2"
+      [color]="wasmAgentStatus()?.status === AgentStatusEnum.OFFLINE ? '' : 'success'"
+      zType="memory"
+    ></z-icon>
+    {{ 'WASM' }}
+  </button>
+</div>
 </ng-template>
 
 <ng-template #cacheMenu>
@@ -80,104 +80,106 @@
             <span
               ><span>{{ 'PAC.KEY_WORDS.Complete' | translate: { Default: 'Complete' } }}:</span>
               {{ serverAgent.completeSize() }}</span
-            >
-            <span
-              ><span>{{ 'PAC.KEY_WORDS.Request' | translate: { Default: 'Request' } }}:</span
-              >{{ serverAgent.bufferSize() }}</span
-            >
-          </div>
-        </z-tab>
-
-        @if (enableLocalAgent) {
-          <z-tab bodyClass="p-4" [label]="'PAC.MENU.LOCAL_AGENT' | translate: { Default: 'Local Agent' }">
-            <div>
-              {{ 'PAC.KEY_WORDS.STATUS' | translate: { Default: 'Status' } }}: {{ localStatus()?.icon }}
-              {{ localStatus()?.status | translate }}
-            </div>
-
-            <div class="flex-1"></div>
-
-            <div class="flex justify-start">
-              <div ngmButtonGroup displayDensity="compact">
-                <button z-button zType="outline" displayDensity="compact" (click)="tryConnectLocalAgent()">
-                  {{ 'PAC.ACTIONS.Connect' | translate: { Default: 'Connect' } }}
-                </button>
-
-                <button z-button zType="outline" displayDensity="compact" ngmAppearance="dashed">
-                  {{ 'PAC.ACTIONS.DOWNLOAD_AGENT' | translate }}
-                </button>
-              </div>
-            </div>
-          </z-tab>
-        }
-
-        <z-tab [label]="'PAC.MENU.Authentication' | translate: { Default: 'Authentication' }">
-          <ul role="list" class="space-y-1">
-            @if (enableLocalAgent && localAgent) {
-              @for (item of localAgent.auth() | keyvalue | filter: valueIsNotNil; track $index) {
-                <li
-                  role="listitem"
-                  class="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/5"
+              >
+              <span
+                ><span>{{ 'PAC.KEY_WORDS.Request' | translate: { Default: 'Request' } }}:</span
+                >{{ serverAgent.bufferSize() }}</span
                 >
-                  <span class="min-w-0 flex-1 truncate">{{ item.value[0] }}</span>
-                  <button
-                    z-button
-                    zType="ghost"
-                    zSize="icon"
-                    zShape="circle"
-                    displayDensity="compact"
-                    ngmAppearance="danger"
+              </div>
+            </z-tab>
+
+            @if (enableLocalAgent) {
+              <z-tab bodyClass="p-4" [label]="'PAC.MENU.LOCAL_AGENT' | translate: { Default: 'Local Agent' }">
+                <div>
+                  {{ 'PAC.KEY_WORDS.STATUS' | translate: { Default: 'Status' } }}: {{ localStatus()?.icon }}
+                  {{ localStatus()?.status | translate }}
+                </div>
+
+                <div class="flex-1"></div>
+
+                <div class="flex justify-start">
+                  <div ngmButtonGroup displayDensity="compact">
+                    <button z-button zType="outline" displayDensity="compact" (click)="tryConnectLocalAgent()">
+                      {{ 'PAC.ACTIONS.Connect' | translate: { Default: 'Connect' } }}
+                    </button>
+
+                    <button z-button zType="outline" displayDensity="compact" ngmAppearance="dashed">
+                      {{ 'PAC.ACTIONS.DOWNLOAD_AGENT' | translate }}
+                    </button>
+                  </div>
+                </div>
+              </z-tab>
+            }
+
+            <z-tab [label]="'PAC.MENU.Authentication' | translate: { Default: 'Authentication' }">
+              <ul role="list" class="space-y-1">
+                @if (enableLocalAgent && localAgent) {
+                  @for (item of localAgent.auth() | keyvalue | filter: valueIsNotNil; track $index) {
+                    <li
+                      role="listitem"
+                      class="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/5"
+                      >
+                      <span class="min-w-0 flex-1 truncate">{{ item.value[0] }}</span>
+                      <button
+                        z-button
+                        zType="ghost"
+                        zSize="icon"
+                        zShape="circle"
+                        displayDensity="compact"
+                        ngmAppearance="danger"
                     [zTooltip]="
                       'PAC.MENU.STATUS_BAR.ClearAuthentication' | translate: { Default: 'Clear Authentication' }
                     "
-                    (click)="deleteAuth(localAgent, item.key)"
-                  >
-                    <z-icon zType="close"></z-icon>
-                  </button>
-                </li>
-              }
-            }
+                        (click)="deleteAuth(localAgent, item.key)"
+                        >
+                        <z-icon zType="close"></z-icon>
+                      </button>
+                    </li>
+                  }
+                }
 
-            @for (item of serverAgent.auth() | keyvalue | filter: valueIsNotNil; track $index) {
-              <li
-                role="listitem"
-                class="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/5"
-              >
-                <span class="min-w-0 flex-1 truncate">{{ item.value[0] }}</span>
-                <button
-                  z-button
-                  zType="ghost"
-                  zSize="icon"
-                  zShape="circle"
-                  displayDensity="compact"
-                  ngmAppearance="danger"
+                @for (item of serverAgent.auth() | keyvalue | filter: valueIsNotNil; track $index) {
+                  <li
+                    role="listitem"
+                    class="flex items-center justify-between gap-2 rounded-lg px-2 py-1.5 hover:bg-black/5 dark:hover:bg-white/5"
+                    >
+                    <span class="min-w-0 flex-1 truncate">{{ item.value[0] }}</span>
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon"
+                      zShape="circle"
+                      displayDensity="compact"
+                      ngmAppearance="danger"
                   [zTooltip]="
                     'PAC.MENU.STATUS_BAR.ClearAuthentication' | translate: { Default: 'Clear Authentication' }
                   "
-                  (click)="deleteAuth(serverAgent, item.key)"
-                >
-                  <z-icon zType="close"></z-icon>
-                </button>
-              </li>
-            }
-          </ul>
-        </z-tab>
-      </z-tab-group>
-    </div>
-  </div>
-</ng-template>
-
-<ng-template #wasmMenu>
-  <div cdkMenu class="cdk-menu__large">
-    <div class="pac-status-bar__local-agent w-60 h-60 px-4 flex flex-col" (click)="$event.stopPropagation()">
-      <h5 class="mb-2 text-lg font-bold tracking-tight">
-        {{ 'PAC.MENU.WASM_DB' | translate: { Default: 'WASM Database' } }}
-      </h5>
-
-      <div *ngIf="wasmStatus()" class="flex-1 flex flex-col overflow-auto">
-        {{ 'PAC.KEY_WORDS.STATUS' | translate: { Default: 'Status' } }}: {{ wasmStatus().icon }}
-        {{ wasmStatus().status | translate }}
+                      (click)="deleteAuth(serverAgent, item.key)"
+                      >
+                      <z-icon zType="close"></z-icon>
+                    </button>
+                  </li>
+                }
+              </ul>
+            </z-tab>
+          </z-tab-group>
+        </div>
       </div>
-    </div>
-  </div>
-</ng-template>
+    </ng-template>
+
+    <ng-template #wasmMenu>
+      <div cdkMenu class="cdk-menu__large">
+        <div class="pac-status-bar__local-agent w-60 h-60 px-4 flex flex-col" (click)="$event.stopPropagation()">
+          <h5 class="mb-2 text-lg font-bold tracking-tight">
+            {{ 'PAC.MENU.WASM_DB' | translate: { Default: 'WASM Database' } }}
+          </h5>
+
+          @if (wasmStatus()) {
+            <div class="flex-1 flex flex-col overflow-auto">
+              {{ 'PAC.KEY_WORDS.STATUS' | translate: { Default: 'Status' } }}: {{ wasmStatus().icon }}
+              {{ wasmStatus().status | translate }}
+            </div>
+          }
+        </div>
+      </div>
+    </ng-template>

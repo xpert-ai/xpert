@@ -1,6 +1,6 @@
 <div
   class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group"
->
+  >
   <div class="w-full flex justify-start items-center my-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-lg pointer-events-none">
@@ -15,7 +15,7 @@
     (checkChange)="onFileSelected($event)"
     (click)="fileUpload.value = null"
     accept="image/*"
-  />
+    />
 
   <ul class="ngm-nav-list">
     <li class="mt-2 rounded-lg px-3 py-2 cursor-pointer" [class.active]="activeLink === c_details" (click)="activeLink = c_details">
@@ -28,28 +28,29 @@
   </ul>
 
   <div class="flex-1">
-    <div *ngIf="activeLink === c_thumbnail" class="flex-1 flex flex-col justify-start items-end gap-2 my-2">
-      <button
-        z-button
-        zType="outline"
-        ngmAppearance="dashed"
-        displayDensity="cosy"
-        color="accent"
-        (click)="fileUpload.click()"
-      >
-        <div class="flex justify-start items-center">
-          <z-icon zType="upload"></z-icon>
-          {{ 'Story.Common.Upload' | translate: { Default: 'Upload' } }}
-        </div>
-      </button>
-
-      <z-form-field appearance="fill" color="accent" class="w-full">
-        <z-form-label>
-          {{ 'Story.StoryDetails.ThumbnailUrl' | translate: { Default: 'Thumbnail Url' } }}
-        </z-form-label>
-        <input z-input [(ngModel)]="thumbnail" (ngModelChange)="onThumbnailChange($event)" />
-      </z-form-field>
-    </div>
+    @if (activeLink === c_thumbnail) {
+      <div class="flex-1 flex flex-col justify-start items-end gap-2 my-2">
+        <button
+          z-button
+          zType="outline"
+          ngmAppearance="dashed"
+          displayDensity="cosy"
+          color="accent"
+          (click)="fileUpload.click()"
+          >
+          <div class="flex justify-start items-center">
+            <z-icon zType="upload"></z-icon>
+            {{ 'Story.Common.Upload' | translate: { Default: 'Upload' } }}
+          </div>
+        </button>
+        <z-form-field appearance="fill" color="accent" class="w-full">
+          <z-form-label>
+            {{ 'Story.StoryDetails.ThumbnailUrl' | translate: { Default: 'Thumbnail Url' } }}
+          </z-form-label>
+          <input z-input [(ngModel)]="thumbnail" (ngModelChange)="onThumbnailChange($event)" />
+        </z-form-field>
+      </div>
+    }
   </div>
   <div class="flex justify-between">
     <div ngmButtonGroup>
@@ -64,114 +65,116 @@
 </div>
 
 <div>
-  <div *ngIf="activeLink === c_details" class="grid grid-cols-1 gap-x-4 sm:grid-cols-2 p-8">
-    <z-form-field appearance="fill" class="grid-cols-1 sm:col-span-2">
-      <z-form-label>
-        {{ 'Story.StoryDetails.StoryName' | translate: { Default: 'Story Name' } }}
-      </z-form-label>
-      <input z-input [(ngModel)]="name" />
-    </z-form-field>
-
-    <z-form-field appearance="fill" floatLabel="always" class="grid-cols-1 sm:col-span-2">
-      <z-form-label>
-        {{ 'Story.StoryDetails.Description' | translate: { Default: 'Description' } }}
-      </z-form-label>
-      <textarea
-        z-input
-        [(ngModel)]="description"
+  @if (activeLink === c_details) {
+    <div class="grid grid-cols-1 gap-x-4 sm:grid-cols-2 p-8">
+      <z-form-field appearance="fill" class="grid-cols-1 sm:col-span-2">
+        <z-form-label>
+          {{ 'Story.StoryDetails.StoryName' | translate: { Default: 'Story Name' } }}
+        </z-form-label>
+        <input z-input [(ngModel)]="name" />
+      </z-form-field>
+      <z-form-field appearance="fill" floatLabel="always" class="grid-cols-1 sm:col-span-2">
+        <z-form-label>
+          {{ 'Story.StoryDetails.Description' | translate: { Default: 'Description' } }}
+        </z-form-label>
+        <textarea
+          z-input
+          [(ngModel)]="description"
         placeholder="{{
           'Story.StoryDetails.DescriptionPlaceholder' | translate: { Default: 'Optional, desciption of the story' }
         }}"
-      ></textarea>
-    </z-form-field>
-
-    <z-form-field appearance="fill" floatLabel="always" class="col-span-2">
-      <z-form-label>
-        {{ 'Story.StoryDetails.Models' | translate: { Default: 'Models' } }}
-      </z-form-label>
-      <mat-chip-grid #chipGrid>
-        <mat-chip-row *ngFor="let model of models()" color="primary" highlighted (removed)="removeModel(model)">
-          {{ model.name }}
-          <button matChipRemove [attr.aria-label]="'remove ' + model.name">
-            <z-icon zType="cancel"></z-icon>
-          </button>
-        </mat-chip-row>
-      </mat-chip-grid>
-      <input
-        type="text"
-        #modelInput
-        placeholder="{{ 'Story.StoryDetails.AddSemanticModels' | translate: { Default: 'Add semantic models' } }}"
-        z-input
-        [formControl]="modelCtrl"
-        [matChipInputFor]="chipGrid"
-        [matAutocomplete]="auto"
-      />
-      <mat-autocomplete
-        autoActiveFirstOption
-        #auto="matAutocomplete"
-        [displayWith]="displayWithName"
-        (optionSelected)="modelSelected($event)"
-      >
-        <mat-option *ngFor="let option of models$()" [value]="option">
-          <div class="flex items-center">
-            <button
-              z-button
-              zType="ghost"
-              zSize="icon"
-              zShape="circle"
-              displayDensity="cosy"
-              (click)="openSemanticModel(option.id)"
-            >
-              <z-icon zType="open_in_new"></z-icon>
-            </button>
-            <span
-              [ngmHighlight]="highlight"
-              [caseSensitive]="false"
-              customClasses="bg-transparent font-semibold text-amber-500"
-              [content]="option.name"
-            >
-            </span>
-          </div>
-        </mat-option>
-      </mat-autocomplete>
-    </z-form-field>
-
-    <z-form-field appearance="fill" class="col-span-1">
-      <z-form-label>
-        {{ 'Story.StoryDetails.LOCALE' | translate: { Default: 'Locale' } }}
-      </z-form-label>
-      <ngm-select
-        [(ngModel)]="details.locale"
+        ></textarea>
+      </z-form-field>
+      <z-form-field appearance="fill" floatLabel="always" class="col-span-2">
+        <z-form-label>
+          {{ 'Story.StoryDetails.Models' | translate: { Default: 'Models' } }}
+        </z-form-label>
+        <mat-chip-grid #chipGrid>
+          @for (model of models(); track model) {
+            <mat-chip-row color="primary" highlighted (removed)="removeModel(model)">
+              {{ model.name }}
+              <button matChipRemove [attr.aria-label]="'remove ' + model.name">
+                <z-icon zType="cancel"></z-icon>
+              </button>
+            </mat-chip-row>
+          }
+        </mat-chip-grid>
+        <input
+          type="text"
+          #modelInput
+          placeholder="{{ 'Story.StoryDetails.AddSemanticModels' | translate: { Default: 'Add semantic models' } }}"
+          z-input
+          [formControl]="modelCtrl"
+          [matChipInputFor]="chipGrid"
+          [matAutocomplete]="auto"
+          />
+        <mat-autocomplete
+          autoActiveFirstOption
+          #auto="matAutocomplete"
+          [displayWith]="displayWithName"
+          (optionSelected)="modelSelected($event)"
+          >
+          @for (option of models$(); track option) {
+            <mat-option [value]="option">
+              <div class="flex items-center">
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  displayDensity="cosy"
+                  (click)="openSemanticModel(option.id)"
+                  >
+                  <z-icon zType="open_in_new"></z-icon>
+                </button>
+                <span
+                  [ngmHighlight]="highlight"
+                  [caseSensitive]="false"
+                  customClasses="bg-transparent font-semibold text-amber-500"
+                  [content]="option.name"
+                  >
+                </span>
+              </div>
+            </mat-option>
+          }
+        </mat-autocomplete>
+      </z-form-field>
+      <z-form-field appearance="fill" class="col-span-1">
+        <z-form-label>
+          {{ 'Story.StoryDetails.LOCALE' | translate: { Default: 'Locale' } }}
+        </z-form-label>
+        <ngm-select
+          [(ngModel)]="details.locale"
         [selectOptions]="[
           { value: 'en', label: ('Story.StoryDetails.LOCALE_en' | translate: { Default: 'en' }) },
           { value: 'zh-Hans', label: ('Story.StoryDetails.LOCALE_zhHans' | translate: { Default: 'zh-Hans' }) }
         ]"
-      />
-    </z-form-field>
-
-    <z-checkbox [(ngModel)]="details.fullscreen" class="col-span-1 my-2">
-      {{ 'Story.StoryDetails.DISPLAY_AS_FULLSCREEN' | translate: { Default: 'Display as Fullscreen' } }}
-    </z-checkbox>
-
-    <!-- <z-checkbox [(ngModel)]="details.showFullscreenButton" class="col-span-1 my-2">
+          />
+      </z-form-field>
+      <z-checkbox [(ngModel)]="details.fullscreen" class="col-span-1 my-2">
+        {{ 'Story.StoryDetails.DISPLAY_AS_FULLSCREEN' | translate: { Default: 'Display as Fullscreen' } }}
+      </z-checkbox>
+      <!-- <z-checkbox [(ngModel)]="details.showFullscreenButton" class="col-span-1 my-2">
       {{ 'Story.StoryDetails.SHOW_FULLSCREEN_BUTTON' | translate: {Default: "Show Fullscreen Button"} }}
     </z-checkbox>
-
     <z-checkbox [(ngModel)]="details.hideStoryFilterBar" class="col-span-1 my-2">
       {{ 'Story.StoryDetails.HIDE_STORY_FILTER_BAR' | translate: {Default: "Hide Story Filter Bar"} }}
     </z-checkbox> -->
   </div>
+}
 
-  <div *ngIf="activeLink === c_thumbnail" class="min-h-[500px] min-w-[600px] relative">
-    <img *ngIf="imagePreview" [src]="imagePreview" alt="Image Preview" class="object-contain mx-auto h-auto" />
-
-    <div
-      *ngIf="error"
-      class="absolute w-full h-full left-0 top-0 flex justify-center items-center p-8 backdrop-blur-sm bg-white/10 rounded-md"
-    >
-      <z-form-message zType="error">{{ error }}</z-form-message>
-    </div>
-
+@if (activeLink === c_thumbnail) {
+  <div class="min-h-[500px] min-w-[600px] relative">
+    @if (imagePreview) {
+      <img [src]="imagePreview" alt="Image Preview" class="object-contain mx-auto h-auto" />
+    }
+    @if (error) {
+      <div
+        class="absolute w-full h-full left-0 top-0 flex justify-center items-center p-8 backdrop-blur-sm bg-white/10 rounded-md"
+        >
+        <z-form-message zType="error">{{ error }}</z-form-message>
+      </div>
+    }
     <button
       z-button
       zType="ghost"
@@ -181,8 +184,9 @@
       displayDensity="cosy"
       ngmAppearance="danger"
       (click)="deleteThumbnail()"
-    >
+      >
       <z-icon zType="close"></z-icon>
     </button>
   </div>
+}
 </div>

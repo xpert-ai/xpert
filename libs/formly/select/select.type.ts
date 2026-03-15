@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, effect, inject, isSignal, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -27,7 +27,6 @@ const isNonNullable = <T>(value: T | null | undefined): value is T => value !== 
     class: 'pac-formly-select'
   },
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     ...ZardFormImports,
@@ -38,7 +37,7 @@ const isNonNullable = <T>(value: T | null | undefined): value is T => value !== 
     TranslateModule,
     OcapCoreModule,
     NgmSelectComponent
-  ]
+]
 })
 export class PACFormlySelectComponent extends FieldType implements OnInit {
   DisplayDensity = DisplayDensity

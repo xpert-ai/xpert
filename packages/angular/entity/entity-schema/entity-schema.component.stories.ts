@@ -1,5 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, Input } from '@angular/core'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { BrowserAnimationsModule, provideAnimations } from '@angular/platform-browser/animations'
@@ -20,26 +20,28 @@ import { EntityCapacity } from './types'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MatSidenavModule, DragDropModule, NgmEntitySchemaComponent],
+  imports: [MatSidenavModule, DragDropModule, NgmEntitySchemaComponent],
   selector: 'ngm-story-component-drag',
   template: `<mat-drawer-container class="example-container" autosize cdkDropListGroup>
-    <mat-drawer mode="side" opened cdkDropList>
-      <ngm-entity-schema [dataSettings]="dataSettings"></ngm-entity-schema>
-      <ngm-entity-schema
+      <mat-drawer mode="side" opened cdkDropList>
+        <ngm-entity-schema [dataSettings]="dataSettings"></ngm-entity-schema>
+        <ngm-entity-schema
         [dataSettings]="{
           dataSource: dataSettings.dataSource,
           entitySet: 'sales_fact'
         }"
-      ></ngm-entity-schema>
-    </mat-drawer>
-    <mat-drawer-content cdkDropList [cdkDropListData]="drops" (cdkDropListDropped)="drop($event)">
-      <ul>
-        <li *ngFor="let item of drops">
-          {{ item.entity }}/{{ item.name || item.raw.memberKey }}/{{ item.type }}/{{ item.dataType }}/{{ item.dbType }}
-        </li>
-      </ul>
-    </mat-drawer-content>
-  </mat-drawer-container>`,
+        ></ngm-entity-schema>
+      </mat-drawer>
+      <mat-drawer-content cdkDropList [cdkDropListData]="drops" (cdkDropListDropped)="drop($event)">
+        <ul>
+          @for (item of drops; track item) {
+            <li>
+              {{ item.entity }}/{{ item.name || item.raw.memberKey }}/{{ item.type }}/{{ item.dataType }}/{{ item.dbType }}
+            </li>
+          }
+        </ul>
+      </mat-drawer-content>
+    </mat-drawer-container>`,
   styles: [
     `
       .mat-drawer-container {

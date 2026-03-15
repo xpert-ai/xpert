@@ -2,7 +2,7 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
@@ -19,7 +19,6 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     CdkListboxModule,
@@ -34,7 +33,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     NgmVariableComponent,
     NgmSelectComponent,
     NgmCheckboxComponent
-  ],
+],
   selector: 'model-cube-variable-form',
   templateUrl: 'variable.component.html',
   styleUrls: ['variable.component.scss']

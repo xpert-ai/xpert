@@ -1,5 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop';
-import { CommonModule } from '@angular/common';
+
 import { Component, HostBinding, inject, signal } from '@angular/core';
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 
@@ -17,11 +17,13 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   imports: [
     MatDialogModule,
     ZardButtonComponent,
-    CommonModule, FormsModule, ReactiveFormsModule, FormlyModule, TranslateModule,
+    FormsModule,
+    ReactiveFormsModule,
+    FormlyModule,
+    TranslateModule,
     DragDropModule,
-
     ButtonGroupDirective
-  ],
+],
   selector: 'ngm-confirm-options',
   templateUrl: './confirm-options.component.html',
   styleUrls: ['./confirm-options.component.scss']

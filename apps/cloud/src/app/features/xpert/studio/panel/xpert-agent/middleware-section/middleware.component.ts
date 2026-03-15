@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -18,7 +18,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
@@ -26,7 +25,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     DragDropModule,
     IconComponent,
     NgmI18nPipe
-  ]
+]
 })
 export class XpertStudioPanelMiddlewareSectionComponent {
   readonly elementRef = inject(ElementRef)

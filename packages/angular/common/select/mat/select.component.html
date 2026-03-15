@@ -14,78 +14,89 @@
       (displayDensity === 'cosy' ? 'ngm-density__cosy' : '')
     "
     [displayWith]="displayWith"
-  >
-    <cdk-virtual-scroll-viewport
-      *ngIf="virtualScroll; else nonVirtualScroll"
-      [itemSize]="virtualScrollItemSize"
-      minBufferPx="200"
-      maxBufferPx="400"
-      class="ngm-select-form-field__viewport"
     >
-      <mat-option *cdkVirtualFor="let option of options$ | async" [value]="option" class="flex items-center">
-        <z-checkbox
-          *ngIf="multiple"
-          [ngModel]="isSelect(option)"
-          (click)="$event.stopPropagation()"
-          (checkChange)="onSelect($event, option)"
+    @if (virtualScroll) {
+      <cdk-virtual-scroll-viewport
+        [itemSize]="virtualScrollItemSize"
+        minBufferPx="200"
+        maxBufferPx="400"
+        class="ngm-select-form-field__viewport"
         >
-          <ngm-display-behaviour
-            [option]="option"
-            [displayBehaviour]="displayBehaviour"
-            [highlight]="highlight"
-          ></ngm-display-behaviour>
-        </z-checkbox>
-        <ngm-display-behaviour
-          *ngIf="!multiple"
-          class="flex-1"
-          [option]="option"
-          [displayBehaviour]="displayBehaviour"
-          [highlight]="highlight"
-        ></ngm-display-behaviour>
-      </mat-option>
-    </cdk-virtual-scroll-viewport>
+        <mat-option *cdkVirtualFor="let option of options$ | async" [value]="option" class="flex items-center">
+          @if (multiple) {
+            <z-checkbox
+              [ngModel]="isSelect(option)"
+              (click)="$event.stopPropagation()"
+              (checkChange)="onSelect($event, option)"
+              >
+              <ngm-display-behaviour
+                [option]="option"
+                [displayBehaviour]="displayBehaviour"
+                [highlight]="highlight"
+              ></ngm-display-behaviour>
+            </z-checkbox>
+          }
+          @if (!multiple) {
+            <ngm-display-behaviour
+              class="flex-1"
+              [option]="option"
+              [displayBehaviour]="displayBehaviour"
+              [highlight]="highlight"
+            ></ngm-display-behaviour>
+          }
+        </mat-option>
+      </cdk-virtual-scroll-viewport>
+    } @else {
+      @for (option of options$ | async; track option) {
+        <mat-option [value]="option" class="flex items-center">
+          @if (multiple) {
+            <z-checkbox
+              [ngModel]="isSelect(option)"
+              (click)="$event.stopPropagation()"
+              (checkChange)="onSelect($event, option)"
+              >
+              <ngm-display-behaviour
+                [option]="option"
+                [displayBehaviour]="displayBehaviour"
+                [highlight]="highlight"
+              ></ngm-display-behaviour>
+            </z-checkbox>
+          }
+          @if (!multiple) {
+            <ngm-display-behaviour
+              class="flex-1"
+              [option]="option"
+              [displayBehaviour]="displayBehaviour"
+              [highlight]="highlight"
+            ></ngm-display-behaviour>
+          }
+        </mat-option>
+      }
+    }
 
-    <ng-template #nonVirtualScroll>
-      <mat-option *ngFor="let option of options$ | async" [value]="option" class="flex items-center">
-        <z-checkbox
-          *ngIf="multiple"
-          [ngModel]="isSelect(option)"
-          (click)="$event.stopPropagation()"
-          (checkChange)="onSelect($event, option)"
-        >
-          <ngm-display-behaviour
-            [option]="option"
-            [displayBehaviour]="displayBehaviour"
-            [highlight]="highlight"
-          ></ngm-display-behaviour>
-        </z-checkbox>
-        <ngm-display-behaviour
-          *ngIf="!multiple"
-          class="flex-1"
-          [option]="option"
-          [displayBehaviour]="displayBehaviour"
-          [highlight]="highlight"
-        ></ngm-display-behaviour>
-      </mat-option>
-    </ng-template>
   </mat-autocomplete>
 
   <div zFormSuffix class="flex items-center">
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      *ngIf="isNotInitial"
-      class="opacity-0 group-hover:opacity-100"
-      [zDisabled]="formControl.disabled"
-      ngmAppearance="danger"
-      (click)="clear()"
-    >
-      <z-icon zType="close"></z-icon>
-    </button>
-    <z-loader *ngIf="loading()" class="m-2" diameter="24" />
+    @if (isNotInitial) {
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        class="opacity-0 group-hover:opacity-100"
+        [zDisabled]="formControl.disabled"
+        ngmAppearance="danger"
+        (click)="clear()"
+        >
+        <z-icon zType="close"></z-icon>
+      </button>
+    }
+    @if (loading()) {
+      <z-loader class="m-2" diameter="24" />
+    }
   </div>
 
-  <z-form-message zType="error" *ngIf="formControl.invalid">{{ getErrorMessage() }}</z-form-message>
+  @if (formControl.invalid) {
+    <z-form-message zType="error">{{ getErrorMessage() }}</z-form-message>
+  }
 </z-form-field>

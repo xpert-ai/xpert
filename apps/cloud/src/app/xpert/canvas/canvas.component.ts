@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -12,7 +12,6 @@ import { ChatCanvasFileViewerComponent } from './file-viewer/file-viewer.compone
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     RouterModule,
     CdkMenuModule,
@@ -21,7 +20,7 @@ import { ChatCanvasFileViewerComponent } from './file-viewer/file-viewer.compone
     ChatCanvasComputerComponent,
     ChatCanvasDashboardComponent,
     ChatCanvasFileViewerComponent
-  ],
+],
   selector: 'pac-chat-canvas',
   templateUrl: './canvas.component.html',
   styleUrl: 'canvas.component.scss',

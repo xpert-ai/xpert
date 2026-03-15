@@ -1,5 +1,5 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -48,7 +48,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     ...ZardTooltipImports,
     NgxJsonViewerModule,
@@ -57,7 +56,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NxWidgetKpiComponent,
     ChatComponentIndicatorsComponent,
     ChatToolCallChunkComponent
-  ],
+],
   selector: 'chat-message-dashboard',
   templateUrl: './dashboard.component.html',
   styleUrl: 'dashboard.component.scss',

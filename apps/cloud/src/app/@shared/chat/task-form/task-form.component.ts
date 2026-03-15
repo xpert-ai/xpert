@@ -1,5 +1,5 @@
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, inject, input } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { IXpertTask } from '@metad/contracts'
@@ -11,7 +11,7 @@ import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
   selector: 'xpert-task-form',
   templateUrl: './task-form.component.html',
   styleUrl: `./task-form.component.scss`,
-  imports: [CommonModule, ReactiveFormsModule, TextFieldModule, TranslateModule],
+  imports: [ReactiveFormsModule, TextFieldModule, TranslateModule],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertTaskFormComponent {

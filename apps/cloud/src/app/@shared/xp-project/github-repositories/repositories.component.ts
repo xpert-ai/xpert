@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectGitHubAPI, injectProjectService, injectToastr, Repository } from '@cloud/app/@core'
@@ -8,7 +8,7 @@ import { myRxResource } from '@metad/ocap-angular/core'
 @Component({
   selector: 'xp-project-github-repositories',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgmSpinComponent],
+  imports: [FormsModule, NgmSpinComponent],
   templateUrl: './repositories.component.html',
   styleUrl: './repositories.component.scss'
 })

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, forwardRef } from '@angular/core'
 import { FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { FieldType } from '@ngx-formly/core'
@@ -7,7 +7,7 @@ import { NgmColorsComponent } from '@metad/components/form-field'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, NgmColorsComponent],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, NgmColorsComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-formly-colors',
   templateUrl: './colors.component.html',

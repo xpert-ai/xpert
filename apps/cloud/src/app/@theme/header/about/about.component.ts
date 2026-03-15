@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { Router } from '@angular/router'
 import { I18nService } from '@cloud/app/@shared/i18n'
@@ -13,7 +13,7 @@ import { environment } from '@cloud/environments/environment'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [TranslateModule],
   selector: 'pac-header-about',
   templateUrl: './about.component.html',
   styleUrl: 'about.component.scss',

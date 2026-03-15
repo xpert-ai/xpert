@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
@@ -9,7 +9,7 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, RouterModule, ...ZardTooltipImports],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, RouterModule, ...ZardTooltipImports],
   selector: 'xpert-workspace-welcome',
   templateUrl: './welcome.component.html',
   styleUrl: 'welcome.component.scss',

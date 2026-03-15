@@ -1,7 +1,7 @@
 import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TStateVariable, VariableOperationEnum } from '../../../../../@core/types'
@@ -22,7 +22,6 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -32,7 +31,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     A11yModule,
     XpertVariableFormComponent,
     ZardSwitchComponent
-  ]
+]
 })
 export class XpertStudioPanelVariablesComponent {
   eVariableOperationEnum = VariableOperationEnum

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { AppearanceDirective } from '@metad/ocap-angular/core'
@@ -12,17 +12,14 @@ import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     MaterialModule,
     InlineSearchComponent,
-
     AppearanceDirective,
-
     DesignerWidgetComponent
-  ],
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-page-designer',
   templateUrl: './page-designer.component.html',

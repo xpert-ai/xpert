@@ -1,7 +1,7 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
@@ -24,7 +24,6 @@ import { CopilotModelSelectComponent } from '../../copilot'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     ZardInputDirective,
@@ -33,7 +32,7 @@ import { CopilotModelSelectComponent } from '../../copilot'
     TextFieldModule,
     EmojiAvatarComponent,
     CopilotModelSelectComponent
-  ],
+],
   selector: 'xpert-basic-form',
   templateUrl: 'basic-form.component.html',
   styleUrl: 'basic-form.component.scss',

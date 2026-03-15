@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, Input, OnInit, forwardRef } from '@angular/core'
 import { ControlValueAccessor, FormControl, ReactiveFormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { MatChipInputEvent, MatChipsModule } from '@angular/material/chips'
@@ -8,7 +8,7 @@ import { ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MatChipsModule, ...ZardFormImports, ZardIconComponent, ReactiveFormsModule],
+  imports: [MatChipsModule, ...ZardFormImports, ZardIconComponent, ReactiveFormsModule],
   selector: 'pac-form-field-emails',
   templateUrl: 'emails.component.html',
   providers: [

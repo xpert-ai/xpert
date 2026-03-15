@@ -83,14 +83,7 @@
   <div class="mat-typography flex-1 flex flex-col justify-start items-stretch overflow-hidden" cdkDropListGroup>
     @switch (calculationType.value) {
       @case (CALCULATION_TYPE.Calculated) {
-        <!--
-            <ngm-calculation-sql *ngSwitchCase="SYNTAX.SQL"
-            [dataSettings]="_dataSettings()"
-            [entityType]="entityType()"
-            [coreService]="coreService"
-            [(ngModel)]="calculation"
-        >
-        </ngm-calculation-sql> -->
+        <!-- SQL calculation editor remains disabled in this view. -->
         <ngm-calculated-measure story class="max-w-full h-full min-w-[500px]"
           [dataSettings]="_dataSettings()"
           [entityType]="entityType()"

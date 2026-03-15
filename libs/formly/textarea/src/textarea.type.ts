@@ -19,7 +19,9 @@ export interface FormlyTextAreaFieldConfig extends FormlyFieldConfig<TextAreaPro
   selector: 'pac-formly-textarea',
   standalone: false,
   template: `
-<label *ngIf="props?.label" class="p-1 text-ellipsis whitespace-nowrap overflow-hidden">{{to.label}}</label>
+@if (props?.label) {
+  <label class="p-1 text-ellipsis whitespace-nowrap overflow-hidden">{{to.label}}</label>
+}
 <textarea class="ngm-input-element"
   z-input
   [id]="id"
@@ -40,14 +42,16 @@ export interface FormlyTextAreaFieldConfig extends FormlyFieldConfig<TextAreaPro
   [cdkDropListData]="[]"
   [cdkDropListDisabled]="!props.dropEntity"
   (cdkDropListDropped)="drop($event)"
->
+  >
 </textarea>
 <z-form-message zType="error" class="text-xs h-4">
-  <ng-container *ngIf="formControl.invalid">
-    <span *ngFor="let item of formControl.errors | keyvalue">{{item.value.message}}</span>
-  </ng-container>
+  @if (formControl.invalid) {
+    @for (item of formControl.errors | keyvalue; track item) {
+      <span>{{item.value.message}}</span>
+    }
+  }
 </z-form-message>
-  `,
+`,
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./textarea.type.scss'],
   host: {

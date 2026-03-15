@@ -1,7 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -36,7 +36,6 @@ import { CopilotCredentialFormComponent } from '../credential-form/form.componen
   styleUrls: ['./model.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -47,9 +46,8 @@ import { CopilotCredentialFormComponent } from '../credential-form/form.componen
     NgmI18nPipe,
     KebabToCamelCasePipe,
     NgmSpinComponent,
-
     CopilotCredentialFormComponent
-  ]
+]
 })
 export class CopilotProviderModelComponent {
   readonly #dialogRef = inject(DialogRef)

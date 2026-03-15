@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -32,7 +32,6 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -41,7 +40,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     JSONSchemaFormComponent,
     ZardSwitchComponent
-  ],
+],
   selector: 'mcp-toolset-tool-test',
   templateUrl: './tool.component.html',
   styleUrl: 'tool.component.scss',

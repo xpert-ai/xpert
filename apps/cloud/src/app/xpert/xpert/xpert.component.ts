@@ -1,7 +1,7 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -39,7 +39,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
     ReactiveFormsModule,
@@ -54,7 +53,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ChatCanvasComponent,
     UserPipe,
     ChatConversationComponent
-  ],
+],
   selector: 'xpert-webapp',
   templateUrl: './xpert.component.html',
   styleUrl: 'xpert.component.scss',

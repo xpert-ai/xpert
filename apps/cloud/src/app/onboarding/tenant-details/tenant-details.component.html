@@ -1,5 +1,5 @@
 <div class="w-full p-4 flex justify-center">
-	<img src="/assets/logo.png" class="w-12 h-12 rounded-full">
+  <img src="/assets/logo.png" class="w-12 h-12 rounded-full">
 </div>
 
 <div class="w-full border-b border-solid border-divider-regular"></div>
@@ -35,14 +35,18 @@
         <z-form-field class="col-span-2">
           <z-form-label>{{ 'PAC.Onboarding.CreateAPassword' | translate: {Default: 'Create a password'} }}</z-form-label>
           <input z-input type="password" placeholder="*******" formControlName="password" autocomplete="password" />
-          <z-form-message zType="error" *ngIf="minlengthError() as error">
+          @if (minlengthError(); as error) {
+            <z-form-message zType="error">
             {{ 'PAC.Onboarding.Minlength' | translate: {Default: 'Min length'} }} {{error.requiredLength}} {{ 'PAC.Onboarding.Actuallength' | translate: {Default: 'actual length'} }} {{error.actualLength}}</z-form-message>
+          }
         </z-form-field>
 
         <z-form-field class="col-span-2">
           <z-form-label>{{ 'PAC.Onboarding.ConfirmYourPassword' | translate: {Default: 'Confirm your password'} }}</z-form-label>
           <input z-input type="password" placeholder="*******" formControlName="confirmPassword" autocomplete="password" />
-          <z-form-message zType="error" *ngIf="mustMatchError()">{{ 'PAC.Onboarding.PasswordMustMatch' | translate: {Default: 'Password must match'} }}</z-form-message>
+          @if (mustMatchError()) {
+            <z-form-message zType="error">{{ 'PAC.Onboarding.PasswordMustMatch' | translate: {Default: 'Password must match'} }}</z-form-message>
+          }
         </z-form-field>
 
         @if (loading()) {
@@ -82,7 +86,7 @@
   </mat-step>
 
   @if (hasSemanticModel()) {
-    
+
     <mat-step [stepControl]="demoFormGroup" [editable]="!demoCompleted() && !loading()" >
       <ng-template matStepLabel>{{ 'PAC.Onboarding.WantGenerateDemo' | translate: {Default: 'Do you want to generate samples'} }}?</ng-template>
 
@@ -97,8 +101,12 @@
       </form>
 
       <div class="flex justify-center items-center w-full h-24">
-        <z-progress-bar *ngIf="loading()" zIndeterminate zShape="square" />
-        <z-form-message zType="error" *ngIf="demoError()" class="max-h-full max-w-full overflow-auto">{{demoError()}}</z-form-message>
+        @if (loading()) {
+          <z-progress-bar zIndeterminate zShape="square" />
+        }
+        @if (demoError()) {
+          <z-form-message zType="error" class="max-h-full max-w-full overflow-auto">{{demoError()}}</z-form-message>
+        }
       </div>
 
       <div class="flex items-center gap-4">
@@ -107,7 +115,7 @@
         </button>
         <button type="button" class="btn btn-primary btn-large" [disabled]="demoFormGroup.invalid || loading()"
           (click)="generateDemo()"
-        >
+          >
           @if (demoError()) {
             <span>{{ 'PAC.Onboarding.Retry' | translate: {Default: 'Retry'} }}</span>
           } @else {
@@ -128,10 +136,10 @@
 
         <div class="w-full relative">
           <i class="ri-search-2-line absolute left-1.5 top-1"></i>
-          <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular pl-[26px]" 
+          <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular pl-[26px]"
             [placeholder]="'PAC.KEY_WORDS.SearchTerm' | translate: {Default: 'Search term'}" tabindex="0"
             [formControl]="searchControl"
-          >
+            >
         </div>
         <form [formGroup]="dataSourceTypeFormGroup" class="w-full flex flex-col gap-4">
           <div class="max-h-80 w-full overflow-auto">
@@ -153,13 +161,15 @@
               <div class="text-lg">{{type.name}}</div>
             </div>
             <z-form-field appearance="fill">
-                <z-form-label>
-                    {{ 'PAC.Onboarding.DisplayName' | translate: {Default: 'Display Name'} }}
-                </z-form-label>
-                <input z-input formControlName="name">
-                <z-form-message zType="error" *ngIf="dataSourceNameError()">
-                    {{ 'PAC.Onboarding.NameRequired' | translate: {Default: 'Name Required'} }}
+              <z-form-label>
+                {{ 'PAC.Onboarding.DisplayName' | translate: {Default: 'Display Name'} }}
+              </z-form-label>
+              <input z-input formControlName="name">
+              @if (dataSourceNameError()) {
+                <z-form-message zType="error">
+                  {{ 'PAC.Onboarding.NameRequired' | translate: {Default: 'Name Required'} }}
                 </z-form-message>
+              }
             </z-form-field>
 
             <formly-form
@@ -167,7 +177,7 @@
               [fields]="formlyFields()"
               [model]="model"
               (modelChange)="onModelChange($event)"
-            />
+              />
           }
         </form>
 
@@ -207,6 +217,6 @@
 <div class="p-4 my-8">
   {{ 'PAC.Onboarding.FeelStuck' | translate: {Default: 'If you feel stuck'} }}
   , <a [href]="helpWebsite() + '/docs/getting-started/onboarding/'" class="text-bluegray-500 italic">
-      {{ 'PAC.Onboarding.OurGuide' | translate: {Default: 'our getting started guide'} }}
-      </a> {{ 'PAC.Onboarding.ClickAway' | translate: {Default: 'is just a click away'} }}.
+  {{ 'PAC.Onboarding.OurGuide' | translate: {Default: 'our getting started guide'} }}
+</a> {{ 'PAC.Onboarding.ClickAway' | translate: {Default: 'is just a click away'} }}.
 </div>

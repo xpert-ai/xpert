@@ -1,7 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -20,7 +20,6 @@ import { CopilotCredentialFormComponent } from '../credential-form/form.componen
   styleUrls: ['./authorization.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -29,7 +28,7 @@ import { CopilotCredentialFormComponent } from '../credential-form/form.componen
     NgmI18nPipe,
     NgmSpinComponent,
     CopilotCredentialFormComponent
-  ]
+]
 })
 export class CopilotAiProviderAuthComponent {
   readonly #dialogRef = inject(DialogRef)
