@@ -1,5 +1,5 @@
-<mat-drawer-container class="flex flex-1" [hasBackdrop]="false" autosize>
-  <mat-drawer
+<z-drawer-container class="flex flex-1" [hasBackdrop]="false">
+  <z-drawer
     #drawer
     class="ngm-calculated-measure__drawer"
     mode="side"
@@ -145,9 +145,9 @@
       cdkDrag
       cdkDragLockAxis="x"
     ></div>
-  </mat-drawer>
+  </z-drawer>
 
-  <mat-drawer-content class="flex flex-col justify-between items-stretch">
+  <z-drawer-content class="flex flex-col justify-between items-stretch">
     <div class="ngm-calculated-measure__toolbar p-2 flex justify-between items-center">
       <div class="flex items-center">
         <ng-content select="[icon]"></ng-content>
@@ -217,5 +217,5 @@
       [(opened)]="drawerOpened"
       [zTooltip]="'Ngm.Calculation.ToggleSidebar' | translate: { Default: 'Toggle Sidebar' }"
     />
-  </mat-drawer-content>
-</mat-drawer-container>
+  </z-drawer-content>
+</z-drawer-container>

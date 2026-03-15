@@ -164,7 +164,7 @@ z-button[data-icon-only] {
   }
 }
 
-.ngm-story__designer-drawer.mat-drawer-side.mat-drawer-end {
+z-drawer.ngm-story__designer-drawer[data-mode='side'][data-position='end'] {
   @apply border-l-0;
 }
 
@@ -192,11 +192,9 @@ z-button[data-icon-only] {
 
 ::ng-deep {
   // Story designer pannel
-  .mat-drawer.ngm-story__designer-drawer {
-    .mat-drawer-inner-container {
-      display: flex;
-      flex-direction: column;
-      overflow: hidden;
-    }
+  z-drawer.ngm-story__designer-drawer {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
   }
 }

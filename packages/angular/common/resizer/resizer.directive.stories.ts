@@ -1,7 +1,6 @@
-import { MatSidenavModule } from '@angular/material/sidenav'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { Meta, StoryObj, moduleMetadata } from '@storybook/angular'
-import { ZardCardImports } from '@xpert-ai/headless-ui'
+import { ZardCardImports, ZardDrawerImports } from '@xpert-ai/headless-ui'
 import { ResizerBarDirective } from './resizer.directive'
 import { ResizerModule } from './resizer.module'
 
@@ -10,20 +9,20 @@ export default {
   component: ResizerBarDirective,
   decorators: [
     moduleMetadata({
-      imports: [BrowserAnimationsModule, MatSidenavModule, ...ZardCardImports, ResizerModule]
+      imports: [BrowserAnimationsModule, ...ZardDrawerImports, ...ZardCardImports, ResizerModule]
     })
   ],
   render: (args: Partial<ResizerBarDirective>) => ({
     props: {
       ...args,
     },
-    template: `<mat-drawer-container class="ngm-drawer-container" autosize>
-    <mat-drawer mode="side" [position]="drawerPosition" opened ngmResizer [resizerWidth]="200">Drawer content
+    template: `<z-drawer-container class="ngm-drawer-container">
+    <z-drawer mode="side" [position]="drawerPosition" opened ngmResizer [resizerWidth]="200">Drawer content
       <div ngmResizerBar [resizerBarPosition]="barPosition" cdkDrag></div>
-    </mat-drawer>
-    <mat-drawer-content>Main content</mat-drawer-content>
-  </mat-drawer-container>`,
-  styles: [`.mat-drawer-container {
+    </z-drawer>
+    <z-drawer-content>Main content</z-drawer-content>
+  </z-drawer-container>`,
+  styles: [`z-drawer-container {
     height: 400px;
       }`]
   }),

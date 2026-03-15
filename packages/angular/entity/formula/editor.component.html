@@ -1,5 +1,5 @@
-<mat-drawer-container class="flex-1" [hasBackdrop]="false" autosize cdkDropListGroup>
-  <mat-drawer #drawer mode="side" position="end" ngmResizer [resizerWidth]="330" class="ngm-formula-editor__drawer">
+<z-drawer-container class="flex-1" [hasBackdrop]="false" cdkDropListGroup>
+  <z-drawer #drawer mode="side" position="end" ngmResizer [resizerWidth]="330" class="ngm-formula-editor__drawer">
     <div ngmResizerBar resizerBarPosition="left" cdkDrag style="z-index: 2"></div>
 
     <ngm-entity-schema
@@ -16,8 +16,8 @@
       ]"
       >
     </ngm-entity-schema>
-  </mat-drawer>
-  <mat-drawer-content class="flex flex-col justify-start items-stretch">
+  </z-drawer>
+  <z-drawer-content class="flex flex-col justify-start items-stretch">
     <div class="flex justify-between items-center">
       <span>
         {{ 'Ngm.Formula.Editor.EditFormula' | translate: { Default: 'Edit Formula' } }}
@@ -75,5 +75,5 @@
       (onInit)="onInit($event)"
     ></ngx-monaco-editor>
   </div>
-</mat-drawer-content>
-</mat-drawer-container>
+</z-drawer-content>
+</z-drawer-container>

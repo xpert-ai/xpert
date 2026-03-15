@@ -31,6 +31,6 @@
   margin: 5px 0;
 }
 
-.mat-drawer.mat-drawer-side {
+z-drawer[data-mode='side'] {
   @apply border-0;
 }

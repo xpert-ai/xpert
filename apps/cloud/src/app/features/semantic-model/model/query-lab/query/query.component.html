@@ -1,5 +1,5 @@
-<mat-drawer-container class="flex-1 w-full" [hasBackdrop]="false" [autosize]="true">
-  <mat-drawer #drawer opened mode="side" ngmResizer [resizerWidth]="230">
+<z-drawer-container class="flex-1 w-full" [hasBackdrop]="false">
+  <z-drawer #drawer opened mode="side" ngmResizer [resizerWidth]="230">
     <div class="h-full flex flex-col justify-start items-stretch">
       <div class="pac-sub-toolbar flex shrink-0 justify-between items-center gap-2">
         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="drawer.toggle()">
@@ -49,9 +49,9 @@
     </div>
 
     <div ngmResizerBar resizerBarPosition="right" cdkDrag cdkDragLockAxis="x"></div>
-  </mat-drawer>
+  </z-drawer>
 
-  <mat-drawer-content>
+  <z-drawer-content>
     <ngm-splitter class="ngm-layout-container-secondary flex-1 w-full h-full" [type]="1">
       <ngm-splitter-pane size="50%" class="flex flex-col justify-end items-stretch z-[101]">
         <div class="pac-sub-toolbar pac-toolbar__editor flex shrink-0 justify-start items-center gap-2">
@@ -345,8 +345,8 @@
       </z-tab-nav-panel>
     </ngm-splitter-pane>
   </ngm-splitter>
-</mat-drawer-content>
-</mat-drawer-container>
+</z-drawer-content>
+</z-drawer-container>
 
 <ng-template #menu let-key="key">
   <div cdkMenu class="cdk-menu__medium">

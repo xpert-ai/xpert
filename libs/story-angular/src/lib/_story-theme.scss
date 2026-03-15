@@ -10,7 +10,7 @@
     * for story filter bar
     */
   .ngm-story__filter-bar {
-    &.mat-drawer-side {
+    &[data-mode='side'] {
       border-right: unset;
     }
     .ngm-story__filter-bar-header {

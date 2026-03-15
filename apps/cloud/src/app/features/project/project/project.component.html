@@ -1,5 +1,5 @@
-<mat-drawer-container class="w-full h-full" [autosize]="true">
-  <mat-drawer
+<z-drawer-container class="w-full h-full">
+  <z-drawer
     #drawer
     class="w-64"
     [mode]="isMobile() ? 'over' : 'side'"
@@ -345,8 +345,8 @@
     </div>
 
     <div ngmResizerBar resizerBarPosition="right" cdkDrag cdkDragLockAxis="x"></div>
-  </mat-drawer>
-  <mat-drawer-content
+  </z-drawer>
+  <z-drawer-content
     [ngStyle]="{ 'z-index': isMobile() ? 0 : 10 }"
     [@routeAnimations]="o.isActivated && o.activatedRouteData?.title"
     >
@@ -358,8 +358,8 @@
       [zTooltip]="'PAC.Project.ProjectNavigations' | translate: { Default: 'Project Navigations' }"
       zPosition="right"
       />
-  </mat-drawer-content>
-</mat-drawer-container>
+  </z-drawer-content>
+</z-drawer-container>
 
 <ng-template #collectionsMenu>
   <div cdkMenu class="cdk-menu__large ngm-density__compact">

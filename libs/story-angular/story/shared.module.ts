@@ -10,6 +10,7 @@ import {
   ZardAccordionImports,
   ZardButtonComponent,
   ZardCardImports,
+  ZardDrawerImports,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
@@ -20,7 +21,6 @@ import {
 } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatSidenavModule } from '@angular/material/sidenav'
 
 const MAT_MODULES = [
   ZardIconComponent,
@@ -30,7 +30,7 @@ const MAT_MODULES = [
   ...ZardFormImports,
   ZardInputDirective,
   MatDialogModule,
-  MatSidenavModule,
+  ...ZardDrawerImports,
   ...ZardTableImports,
   ZardCheckboxComponent,
   ...ZardTooltipImports,

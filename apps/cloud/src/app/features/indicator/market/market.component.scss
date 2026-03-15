@@ -28,13 +28,13 @@ $prefix-color: (#{$prefix}, color);
 }
 
 @include token-utils.use-tokens($prefix, get-token-slots()) {
-  .mat-drawer-container {
+  z-drawer-container {
     border-top-left-radius: var(#{token-utils.get-token-variable(primary-container-rounded)});
   }
-  .mat-drawer.mat-drawer-over {
-    --mat-sidenav-container-background-color: var(#{token-utils.get-token-variable(color-surface)});
+  z-drawer[data-mode='over'] {
+    --z-drawer-bg: var(#{token-utils.get-token-variable(color-surface)});
   }
-  .mat-drawer-content {
+  z-drawer-content {
     background-color: var(#{token-utils.get-token-variable(color-surface)});
     border-top-left-radius: var(#{token-utils.get-token-variable(primary-container-rounded)});
     // border-top-right-radius: var(#{token-utils.get-token-variable(primary-container-rounded)});

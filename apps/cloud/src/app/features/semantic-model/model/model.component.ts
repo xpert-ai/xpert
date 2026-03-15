@@ -37,7 +37,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
 
-import { MatSidenavModule } from '@angular/material/sidenav'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
@@ -97,7 +96,7 @@ import {
   TOOLBAR_ACTION_CATEGORY
 } from './types'
 import { markdownTableData, stringifyTableType } from './utils'
-import { ZardButtonComponent, ZardIconComponent, ZardLoaderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDrawerImports, ZardIconComponent, ZardLoaderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -111,7 +110,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardLoaderComponent, ZardToolti
     ScrollingModule,
     ZardIconComponent,
     ZardButtonComponent,
-    MatSidenavModule,
+    ...ZardDrawerImports,
     ...ZardTooltipImports,
     ZardLoaderComponent,
 

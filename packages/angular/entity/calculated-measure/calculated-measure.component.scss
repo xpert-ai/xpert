@@ -1,6 +1,6 @@
 @reference "../../../../tailwind-workspace-reference.css";
 :host {
-  --mat-sidenav-container-divider-color: var(--ngm-color-outline-variant);
+  --z-drawer-border-color: var(--ngm-color-outline-variant);
 
   display: flex;
   flex-direction: row;
@@ -79,7 +79,7 @@
   }
 }
 
-.mat-drawer-content {
+z-drawer-content {
   @apply relative overflow-hidden flex flex-col;
 }
 

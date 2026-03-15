@@ -2,13 +2,12 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, computed, effect, inject, model } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { MatSidenavModule } from '@angular/material/sidenav'
 import { ActivatedRoute, NavigationEnd, Router, RouterModule } from '@angular/router'
 import { nonBlank } from '@metad/core'
 import { NgmCommonModule, ResizerModule, SplitterModule } from '@metad/ocap-angular/common'
 import { OcapCoreModule, effectAction } from '@metad/ocap-angular/core'
 import { NxDesignerModule, NxSettingsPanelService } from '@metad/story/designer'
-import { ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardDrawerImports, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual, uniq } from 'lodash-es'
@@ -36,9 +35,9 @@ import { ModelDimensionService } from './dimension.service'
     RouterModule,
     CdkMenuModule,
     ContentLoaderModule,
+    ...ZardDrawerImports,
     ...ZardTabsImports,
     ...ZardTooltipImports,
-    MatSidenavModule,
     TranslateModule,
     NxDesignerModule,
     OcapCoreModule,

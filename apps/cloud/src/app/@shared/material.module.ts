@@ -10,6 +10,7 @@ import {
   ZardButtonComponent,
   ZardCardImports,
   ZardDividerComponent,
+  ZardDrawerImports,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
@@ -19,7 +20,6 @@ import {
   ZardCheckboxComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { MatSidenavModule } from '@angular/material/sidenav'
 
 const MATERIAL_MODULES = [
   DragDropModule,
@@ -33,7 +33,7 @@ const MATERIAL_MODULES = [
   ...ZardTabsImports,
   ...ZardCardImports,
   ZardInputDirective,
-  MatSidenavModule,
+  ...ZardDrawerImports,
   ZardCheckboxComponent,
   ...ZardAccordionImports,
   MatAutocompleteModule,

@@ -1,7 +1,7 @@
 @reference "../../../../styles/tailwind-reference.css";
 :host {
-  --mat-sidenav-container-width: 16rem;
-  --mat-sidenav-container-divider-color: var(--color-divider-regular);
+  --z-drawer-size: 16rem;
+  --z-drawer-border-color: var(--color-divider-regular);
   border-top-left-radius: var(--ngm-primary-container-rounded);
   @apply relative flex justify-start w-full h-full overflow-hidden;
 }

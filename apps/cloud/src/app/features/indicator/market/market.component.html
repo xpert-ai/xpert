@@ -1,5 +1,5 @@
-<mat-drawer-container autosize class="flex-1">
-  <mat-drawer
+<z-drawer-container class="flex-1">
+  <z-drawer
     #drawer
     class="ngm-sidenav-container-bg-transparent"
     [mode]="isMobile() ? 'over' : 'side'"
@@ -64,9 +64,9 @@
   ></ngm-tree-select>
 
   <div ngmResizerBar resizerBarPosition="right" cdkDrag cdkDragLockAxis="x"></div>
-</mat-drawer>
+</z-drawer>
 
-<mat-drawer-content class="flex flex-col">
+<z-drawer-content class="flex flex-col">
   <div class="flex justify-between items-center px-4 py-2">
     <div class="flex items-center">
       <span class="text-xl">
@@ -218,5 +218,5 @@
     class="absolute -left-1 top-1/2 -translate-y-1/2 z-40"
     [(opened)]="sideMenuOpened"
   ></ngm-drawer-trigger>
-</mat-drawer-content>
-</mat-drawer-container>
+</z-drawer-content>
+</z-drawer-container>

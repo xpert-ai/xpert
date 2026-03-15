@@ -56,15 +56,14 @@
 </pac-story-toolbar>
 
 <div class="flex-1 relative overflow-hidden">
-  <mat-drawer-container
+  <z-drawer-container
     class="ngm-story__container flex-1 h-full w-full"
-    autosize
     [hasBackdrop]="false"
     cdkDropListGroup
   >
-    <mat-drawer
+    <z-drawer
       #drawer
-      class="ngm-story__designer-drawer mat-elevation-z2"
+      class="ngm-story__designer-drawer shadow-xl"
       [mode]="isMobile() ? 'over' : 'side'"
       position="end"
       [(opened)]="designerOpened"
@@ -79,8 +78,8 @@
       />
 
       <div ngmResizerBar resizerBarPosition="left" style="z-index: 1" cdkDrag cdkDragLockAxis="x"></div>
-    </mat-drawer>
-    <mat-drawer-content class="ngm-story__container-content" [ngClass]="{ EmulatedDevice: emulatedDevice() }">
+    </z-drawer>
+    <z-drawer-content class="ngm-story__container-content" [ngClass]="{ EmulatedDevice: emulatedDevice() }">
       @if (emulatedDevice(); as emulatedDevice) {
         <div class="ngm-story__device-size-bar">
           @if (hoverSize(); as hoverSize) {
@@ -188,8 +187,8 @@
         [zTooltip]="'Story.Toolbar.AttributesPanel' | translate: { Default: 'Attributes Panel' }"
         zPosition="left"
       />
-    </mat-drawer-content>
-  </mat-drawer-container>
+    </z-drawer-content>
+  </z-drawer-container>
 
   @if (showExplorer()) {
     <ngm-story-explorer

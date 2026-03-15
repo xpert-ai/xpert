@@ -34,7 +34,7 @@ $prefix: (ngm, story-calculation);
 
 @include token-utils.use-tokens($prefix, get-token-slots()) {
   :host {
-    --mat-sidenav-content-background-color: var(#{token-utils.get-token-variable(color-surface)});
+    --z-drawer-content-bg: var(#{token-utils.get-token-variable(color-surface)});
     background-color: var(#{token-utils.get-token-variable(color-surface)});
   }
 }

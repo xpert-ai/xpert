@@ -1,6 +1,6 @@
 @reference "../../../../../styles/tailwind-reference.css";
 :host {
-  // --mat-sidenav-container-background-color: transparent;
-  --mat-sidenav-content-background-color: transparent;
+  // --z-drawer-bg: transparent;
+  --z-drawer-content-bg: transparent;
   @apply flex flex-col;
 }

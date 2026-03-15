@@ -1,8 +1,8 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 
 import { Component, Input } from '@angular/core'
-import { MatSidenavModule } from '@angular/material/sidenav'
 import { BrowserAnimationsModule, provideAnimations } from '@angular/platform-browser/animations'
+import { ZardDrawerImports } from '@xpert-ai/headless-ui'
 import {
   NgmDSCoreService,
   OCAP_AGENT_TOKEN,
@@ -20,10 +20,10 @@ import { EntityCapacity } from './types'
 
 @Component({
   standalone: true,
-  imports: [MatSidenavModule, DragDropModule, NgmEntitySchemaComponent],
+  imports: [...ZardDrawerImports, DragDropModule, NgmEntitySchemaComponent],
   selector: 'ngm-story-component-drag',
-  template: `<mat-drawer-container class="example-container" autosize cdkDropListGroup>
-      <mat-drawer mode="side" opened cdkDropList>
+  template: `<z-drawer-container class="example-container" cdkDropListGroup>
+      <z-drawer mode="side" opened cdkDropList>
         <ngm-entity-schema [dataSettings]="dataSettings"></ngm-entity-schema>
         <ngm-entity-schema
         [dataSettings]="{
@@ -31,8 +31,8 @@ import { EntityCapacity } from './types'
           entitySet: 'sales_fact'
         }"
         ></ngm-entity-schema>
-      </mat-drawer>
-      <mat-drawer-content cdkDropList [cdkDropListData]="drops" (cdkDropListDropped)="drop($event)">
+      </z-drawer>
+      <z-drawer-content cdkDropList [cdkDropListData]="drops" (cdkDropListDropped)="drop($event)">
         <ul>
           @for (item of drops; track item) {
             <li>
@@ -40,11 +40,11 @@ import { EntityCapacity } from './types'
             </li>
           }
         </ul>
-      </mat-drawer-content>
-    </mat-drawer-container>`,
+      </z-drawer-content>
+    </z-drawer-container>`,
   styles: [
     `
-      .mat-drawer-container {
+      z-drawer-container {
         height: 500px;
       }
     `
@@ -104,7 +104,7 @@ const meta: Meta<NgmEntitySchemaComponent> = {
       ]
     }),
     moduleMetadata({
-      imports: [BrowserAnimationsModule, MatSidenavModule, DragDropModule, NgmEntitySchemaComponent, DragComponent],
+      imports: [BrowserAnimationsModule, ...ZardDrawerImports, DragDropModule, NgmEntitySchemaComponent, DragComponent],
       providers: [NgmDSCoreService]
     })
   ]

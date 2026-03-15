@@ -100,10 +100,10 @@
     </div>
   </div>
 
-  <mat-drawer-container class="flex-1" autosize>
-    <mat-drawer
+  <z-drawer-container class="flex-1">
+    <z-drawer
       #drawer
-      class="ngm-story__designer-drawer ngm-sidenav-container-bg-transparent mat-elevation-z"
+      class="ngm-story__designer-drawer ngm-sidenav-container-bg-transparent shadow-xl"
       [(opened)]="sideMenuOpened"
       [mode]="isMobile() ? 'over' : 'side'"
       ngmResizer
@@ -410,8 +410,8 @@
   </ngm-splitter>
 
   <div ngmResizerBar resizerBarPosition="right" cdkDrag cdkDragLockAxis="x"></div>
-</mat-drawer>
-<mat-drawer-content>
+</z-drawer>
+<z-drawer-content>
   <div class="pac-model-content w-full flex-1 overflow-hidden">
     <router-outlet #o="outlet"></router-outlet>
   </div>
@@ -420,8 +420,8 @@
   [(opened)]="sideMenuOpened"
   [zTooltip]="'PAC.MODEL.MODEL.ModelStructure' | translate: {Default: 'Model Structure'}"
   zPosition="right" /> -->
-</mat-drawer-content>
-</mat-drawer-container>
+</z-drawer-content>
+</z-drawer-container>
 
 <ng-template #mobileMenu>
   <div cdkMenu class="p-2">

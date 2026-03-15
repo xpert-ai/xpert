@@ -30,7 +30,7 @@ $prefix: (ngm, model);
 :host {
   @include token-utils.create-token-values($prefix, get-token-slots());
   --mdc-list-list-item-container-shape: #{theme('borderRadius.lg')};
-  --ngm-model-toolbar-background-color: linear-gradient(0.25turn, var(--mat-sidenav-content-background-color), var(--ngm-model-color-surface));
+  --ngm-model-toolbar-background-color: linear-gradient(0.25turn, var(--z-drawer-content-bg), var(--ngm-model-color-surface));
 
   display: flex;
   flex-direction: column;
@@ -49,13 +49,13 @@ $prefix: (ngm, model);
 }
 
 @include token-utils.use-tokens($prefix, get-token-slots()) {
-  .mat-drawer-container {
+  z-drawer-container {
     border-top-left-radius: var(#{token-utils.get-token-variable(container-rounded)});
   }
-  .mat-drawer.mat-drawer-over {
-    --mat-sidenav-container-background-color: var(#{token-utils.get-token-variable(color-surface)});
+  z-drawer[data-mode='over'] {
+    --z-drawer-bg: var(#{token-utils.get-token-variable(color-surface)});
   }
-  .mat-drawer-content {
+  z-drawer-content {
     background-color: var(#{token-utils.get-token-variable(color-surface)});
     border-top-left-radius: var(#{token-utils.get-token-variable(container-rounded)});
     @apply flex overflow-hidden;
@@ -65,7 +65,7 @@ $prefix: (ngm, model);
     background-color: var(#{token-utils.get-token-variable(toolbar-background-color)});
   }
   .pac-model-content {
-    --mat-sidenav-content-background-color: var(#{token-utils.get-token-variable(color-surface)});
+    --z-drawer-content-bg: var(#{token-utils.get-token-variable(color-surface)});
   }
 }
 
@@ -74,7 +74,7 @@ $prefix: (ngm, model);
     --mat-icon-color: theme('colors.gray.500');
   }
 
-  .mat-drawer-container ngm-splitter {
+  z-drawer-container ngm-splitter {
     --ngm-splitter-background-color: transparent;
   }
 
@@ -98,7 +98,7 @@ $prefix: (ngm, model);
   z-index: 3;
 }
 
-.mat-drawer.ngm-story__designer-drawer {
+z-drawer.ngm-story__designer-drawer {
   width: 200px;
 }
 
@@ -156,7 +156,7 @@ list-content-loader {
   @apply w-full h-full rounded-lg shadow-lg overflow-hidden;
 }
 
-.mat-drawer-content {
+z-drawer-content {
   @apply flex overflow-hidden;
 }
 
