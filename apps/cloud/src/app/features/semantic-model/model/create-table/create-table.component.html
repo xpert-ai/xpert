@@ -8,9 +8,9 @@
     </span>
   </div>
 
-  <mat-horizontal-stepper linear #stepper orientation="vertical" (selectionChange)="onStepChange($event)">
-    <mat-step [stepControl]="form" errorMessage="File is required.">
-      <ng-template matStepLabel>
+  <z-stepper linear #stepper="zStepper" orientation="vertical" (selectionChange)="onStepChange($event)">
+    <z-step [stepControl]="form" errorMessage="File is required.">
+      <ng-template zStepLabel>
         {{ 'PAC.MODEL.CREATE_TABLE.AddFile' | translate: { Default: 'Add File' } }}
       </ng-template>
 
@@ -59,10 +59,10 @@
           <input z-input formControlName="sourceUrl" />
         </z-form-field>
       </form>
-    </mat-step>
+    </z-step>
 
-    <mat-step>
-      <ng-template matStepLabel>
+    <z-step>
+      <ng-template zStepLabel>
         {{ 'PAC.MODEL.CREATE_TABLE.DataPreview' | translate: { Default: 'Data Preview' } }}
       </ng-template>
 
@@ -90,8 +90,8 @@
           </li>
         }
       </ul>
-    </mat-step>
-  </mat-horizontal-stepper>
+    </z-step>
+  </z-stepper>
 
   <div class="flex-1"></div>
 
@@ -102,7 +102,7 @@
         zType="default"
         color="accent"
         cdkFocusInitial
-        [zDisabled]="stepper.selected?.stepControl?.invalid || error"
+        [zDisabled]="stepper.selectedStep?.stepControl?.invalid || error"
         (click)="onAppy()"
         >
         {{ 'COMPONENTS.COMMON.APPLY' | translate: { Default: 'Apply' } }}
@@ -112,7 +112,7 @@
           z-button
           zType="default"
           color="accent"
-          [zDisabled]="stepper.selected?.stepControl?.invalid"
+          [zDisabled]="stepper.selectedStep?.stepControl?.invalid"
           (click)="stepper.next()"
           >
           {{ 'PAC.ACTIONS.NEXT' | translate: { Default: 'Next' } }}

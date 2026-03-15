@@ -5,6 +5,7 @@ import { OrganizationStepFormComponent } from './organization-step-form/organiza
 import { OrganizationsRoutingModule } from './organizations-routing.module'
 import { OrganizationsComponent } from './organizations.component'
 import { NgmTableComponent } from '@metad/ocap-angular/common'
+import { ZardStepperImports } from '@xpert-ai/headless-ui'
 import { OrgAvatarEditorComponent, OrgAvatarComponent } from '../../../@shared/organization'
 import { SharedModule } from '../../../@shared/shared.module'
 
@@ -13,6 +14,7 @@ import { SharedModule } from '../../../@shared/shared.module'
     SharedModule,
     FormsModule,
     ReactiveFormsModule,
+    ...ZardStepperImports,
     OrganizationsRoutingModule,
     OrgAvatarEditorComponent,
     OrgAvatarComponent,

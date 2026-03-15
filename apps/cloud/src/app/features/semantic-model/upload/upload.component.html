@@ -8,8 +8,8 @@
     </span>
   </div>
 
-  <mat-stepper linear #stepper orientation="vertical" class="ngm-stepper flex-1 overflow-auto">
-    <mat-step [label]="'PAC.MODEL.UPLOAD.Files' | translate: { Default: 'Files' }">
+  <z-stepper linear #stepper="zStepper" orientation="vertical" class="ngm-stepper flex-1 overflow-auto">
+    <z-step [label]="'PAC.MODEL.UPLOAD.Files' | translate: { Default: 'Files' }">
       @for (file of fileList; track file; let i = $index) {
         <div class="flex justify-end items-center overflow-hidden">
           <span class="text-ellipsis">
@@ -28,9 +28,9 @@
           </button>
         </div>
       }
-    </mat-step>
+    </z-step>
 
-    <mat-step [label]="'PAC.MODEL.UPLOAD.Preview' | translate: { Default: 'Preview' }">
+    <z-step [label]="'PAC.MODEL.UPLOAD.Preview' | translate: { Default: 'Preview' }">
       @if (error) {
         <div class="ngm-card-error" style="position: relative">
           <span class="title-icon font-notoColorEmoji">🐞</span>
@@ -57,9 +57,9 @@
       <span class="mt-4 flex items-center">
         *{{ 'PAC.MODEL.UPLOAD.Preview50' | translate: { Default: 'Preview Top 50 Records' } }}
       </span>
-    </mat-step>
+    </z-step>
 
-    <mat-step [label]="'PAC.MODEL.UPLOAD.Import' | translate: { Default: 'Import' }">
+    <z-step [label]="'PAC.MODEL.UPLOAD.Import' | translate: { Default: 'Import' }">
       <label class="text-base my-4 flex">{{
         'PAC.MODEL.UPLOAD.ImportMethod' | translate: { Default: 'Import Method' }
       }}</label>
@@ -74,8 +74,8 @@
           {{ 'PAC.MODEL.UPLOAD.Merge' | translate: { Default: 'Merge' } }}
         </z-radio>
       </z-radio-group>
-    </mat-step>
-  </mat-stepper>
+    </z-step>
+  </z-stepper>
 
   <div class="flex justify-between items-center">
     <div>
@@ -96,7 +96,7 @@
           z-button
           zType="default"
           color="accent"
-          [zDisabled]="stepper.selected?.stepControl?.invalid || !fileList.length"
+          [zDisabled]="stepper.selectedStep?.stepControl?.invalid || !fileList.length"
           (click)="stepper.next()"
           >
           {{ 'PAC.ACTIONS.NEXT' | translate: { Default: 'Next' } }}

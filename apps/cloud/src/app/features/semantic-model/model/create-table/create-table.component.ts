@@ -1,4 +1,3 @@
-import { StepperSelectionEvent } from '@angular/cdk/stepper'
 import { CommonModule } from '@angular/common'
 import { HttpEventType, HttpResponse } from '@angular/common/http'
 import { ChangeDetectorRef, Component, Inject, OnInit, inject } from '@angular/core'
@@ -12,7 +11,12 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgmDndDirective } from '@metad/core'
 import { IStorageFile, StorageFileService } from 'apps/cloud/src/app/@core'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { ZardProgressBarComponent, ZardProgressCircleComponent } from '@xpert-ai/headless-ui'
+import {
+  ZardProgressBarComponent,
+  ZardProgressCircleComponent,
+  ZardStepperImports,
+  type ZardStepperSelectionEvent
+} from '@xpert-ai/headless-ui'
 import {
   BehaviorSubject,
   Subscription,
@@ -34,6 +38,7 @@ import { SemanticModelService } from '../model.service'
     ReactiveFormsModule,
     MaterialModule,
     TranslateModule,
+    ...ZardStepperImports,
     ZardProgressBarComponent,
     ZardProgressCircleComponent,
     ButtonGroupDirective,
@@ -199,7 +204,7 @@ export class ModelCreateTableComponent implements OnInit {
     }
   }
 
-  onStepChange(event: StepperSelectionEvent) {
+  onStepChange(event: ZardStepperSelectionEvent) {
     this.previewAction$.next(event.selectedIndex === 1)
   }
 

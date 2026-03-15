@@ -16,7 +16,7 @@ import { CreationTable, getErrorMessage } from '../../../@core'
 import { UploadSheetType, WorkBook, convertExcelDate2ISO, readExcelJson } from '../types'
 import { FilesUploadComponent, UploadFile } from '../../../@shared/files'
 import { MaterialModule } from '../../../@shared/material.module'
-import { ZardProgressCircleComponent } from '@xpert-ai/headless-ui'
+import { ZardProgressCircleComponent, ZardStepperImports } from '@xpert-ai/headless-ui'
 import { createTimer } from '../../../@shared/timer'
 
 @Component({
@@ -30,6 +30,7 @@ import { createTimer } from '../../../@shared/timer'
     CdkMenuModule,
     MaterialModule,
     TranslateModule,
+    ...ZardStepperImports,
     ZardProgressCircleComponent,
     NgmInputComponent,
     OcapCoreModule,

@@ -4,10 +4,10 @@
 
 <div class="w-full border-b border-solid border-divider-regular"></div>
 
-<mat-vertical-stepper class="w-[600px] max-w-full my-4 shadow-lg rounded-lg" [linear]="true" #stepper>
-  <mat-step #step1 [stepControl]="userFormGroup" [editable]="!tenantCompleted() && !loading()">
+<z-stepper class="w-[600px] max-w-full my-4 shadow-lg rounded-lg" [linear]="true" orientation="vertical" #stepper="zStepper">
+  <z-step #step1="zStep" [stepControl]="userFormGroup" [editable]="!tenantCompleted() && !loading()">
     <form [formGroup]="userFormGroup" class="flex flex-col gap-4">
-      <ng-template matStepLabel> {{ 'PAC.Onboarding.WhatCallYou' | translate: {Default: 'What should we call you'} }}?</ng-template>
+      <ng-template zStepLabel> {{ 'PAC.Onboarding.WhatCallYou' | translate: {Default: 'What should we call you'} }}?</ng-template>
 
       <div class="description mb-4">{{ 'PAC.Onboarding.CreateAdminAndOrg' | translate: {Default: 'Create your super admin account and default organization.'} }}</div>
 
@@ -61,10 +61,10 @@
         </button>
       </div>
     </form>
-  </mat-step>
+  </z-step>
 
-  <mat-step [editable]="selectedOrganization() && !loading() && step1.completed">
-    <ng-template matStepLabel>{{ 'PAC.Onboarding.EnableFeatures' | translate: {Default: 'Enable Features'} }}</ng-template>
+  <z-step [editable]="selectedOrganization() && !loading() && step1.completed">
+    <ng-template zStepLabel>{{ 'PAC.Onboarding.EnableFeatures' | translate: {Default: 'Enable Features'} }}</ng-template>
 
     <div class="description">{{ 'PAC.Onboarding.EnableFeaturesDesc' | translate: {Default: 'Select the feature modules you want to enable, which can also be configured later in the system settings.'} }}</div>
 
@@ -83,12 +83,12 @@
         {{ 'PAC.Onboarding.SaveAndNext' | translate: {Default: 'Save and Next'} }}
       </button>
     </div>
-  </mat-step>
+  </z-step>
 
   @if (hasSemanticModel()) {
 
-    <mat-step [stepControl]="demoFormGroup" [editable]="!demoCompleted() && !loading()" >
-      <ng-template matStepLabel>{{ 'PAC.Onboarding.WantGenerateDemo' | translate: {Default: 'Do you want to generate samples'} }}?</ng-template>
+    <z-step [stepControl]="demoFormGroup" [editable]="!demoCompleted() && !loading()" >
+      <ng-template zStepLabel>{{ 'PAC.Onboarding.WantGenerateDemo' | translate: {Default: 'Do you want to generate samples'} }}?</ng-template>
 
       <div class="description my-4">{{ 'PAC.Onboarding.GenerateDemoDescription' | translate: {Default: 'The system will download the demo data file from the server link, import the data into the system database, and create the corresponding samples'} }}.</div>
 
@@ -110,7 +110,7 @@
       </div>
 
       <div class="flex items-center gap-4">
-        <button type="button" class="btn btn-secondary btn-large" matStepperNext>
+        <button type="button" class="btn btn-secondary btn-large" zStepperNext>
           {{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}
         </button>
         <button type="button" class="btn btn-primary btn-large" [disabled]="demoFormGroup.invalid || loading()"
@@ -123,10 +123,10 @@
           }
         </button>
       </div>
-    </mat-step>
+    </z-step>
 
-    <mat-step [editable]="!loading() && !connectionCompleted()">
-      <ng-template matStepLabel>{{ 'PAC.Onboarding.AddYourData' | translate: {Default: 'Add your data'} }}</ng-template>
+    <z-step [editable]="!loading() && !connectionCompleted()">
+      <ng-template zStepLabel>{{ 'PAC.Onboarding.AddYourData' | translate: {Default: 'Add your data'} }}</ng-template>
 
       <div class="w-full flex flex-col gap-4">
         <div class="description">
@@ -183,22 +183,22 @@
 
         @if (type) {
           <div class="flex justify-end items-center gap-4">
-            <button z-button zType="secondary" matStepperNext>{{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}</button>
+            <button z-button zType="secondary" zStepperNext>{{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}</button>
             <button z-button zType="default" color="primary" [disabled]="dataSourceTypeFormGroup.invalid || loading()" (click)="connectDatabase()">{{ 'PAC.Onboarding.ConnectDatabase' | translate: {Default: 'Connect database'} }}</button>
           </div>
         }
 
         <div>
-          <button type="button" class="btn btn-secondary btn-large" matStepperNext>
+          <button type="button" class="btn btn-secondary btn-large" zStepperNext>
             {{ 'PAC.Onboarding.AddDataLater' | translate: {Default: 'I\'ll add my data later'} }}
           </button>
         </div>
       </div>
-    </mat-step>
+    </z-step>
   }
 
-  <mat-step [editable]="!loading()">
-    <ng-template matStepLabel>{{ 'PAC.Onboarding.Done' | translate: {Default: 'Done'} }}</ng-template>
+  <z-step [editable]="!loading()">
+    <ng-template zStepLabel>{{ 'PAC.Onboarding.Done' | translate: {Default: 'Done'} }}</ng-template>
     <div class="flex flex-col justify-start items-center gap-4">
       <div class="text-3xl text-bluegray-500 p-8">{{ 'PAC.Onboarding.AllSetup' | translate: {Default: 'You\'re all set up!'} }} </div>
 
@@ -211,8 +211,8 @@
         </button>
       </div>
     </div>
-  </mat-step>
-</mat-vertical-stepper>
+  </z-step>
+</z-stepper>
 
 <div class="p-4 my-8">
   {{ 'PAC.Onboarding.FeelStuck' | translate: {Default: 'If you feel stuck'} }}

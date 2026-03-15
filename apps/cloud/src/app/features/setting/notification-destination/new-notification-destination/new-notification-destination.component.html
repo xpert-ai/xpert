@@ -3,10 +3,10 @@
 </header>
 
 <div mat-dialog-content>
-  <mat-horizontal-stepper [linear]="true" #stepper>
-    <mat-step [stepControl]="typeFormGroup" >
+  <z-stepper [linear]="true" #stepper="zStepper">
+    <z-step [stepControl]="typeFormGroup" >
       <form [formGroup]="typeFormGroup">
-        <ng-template matStepLabel>Type Selection</ng-template>
+        <ng-template zStepLabel>Type Selection</ng-template>
 
         <ul formControlName="type" class="pac-connection-creation__type-selection ngm-cdk-listbox" cdkListbox
           [cdkListboxMultiple]="false" [cdkListboxCompareWith]="compareWithType"
@@ -24,9 +24,9 @@
           }
         </ul>
       </form>
-    </mat-step>
+    </z-step>
 
-    <mat-step [stepControl]="configurationFormGroup" label="Configuration">
+    <z-step [stepControl]="configurationFormGroup" label="Configuration">
       @if (type) {
         <form [formGroup]="configurationFormGroup" class="pac-connection-creation__configuration">
           <div class="pac-connection-creation__configuration-content">
@@ -50,9 +50,9 @@
           </div>
         </form>
       }
-    </mat-step>
+    </z-step>
 
-  </mat-horizontal-stepper>
+  </z-stepper>
 </div>
 
 <div mat-dialog-actions fxLayout="row" fxLayoutAlign="space-between center">
