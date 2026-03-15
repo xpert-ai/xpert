@@ -24,7 +24,7 @@
   <button z-button zType="default" color="primary" [disabled]="loading() || !source.value && !fileUrl.value" (click)="generate()">
     <div class="flex justify-center items-center">
       @if (loading()) {
-        <mat-spinner color="accent" diameter="18"></mat-spinner>
+        <z-loader diameter="18" />
       }
       
       @if (organization$()?.createdDemo || generated()) {

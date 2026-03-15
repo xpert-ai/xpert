@@ -18,7 +18,6 @@ import {
   ZardCheckboxComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatStepperModule } from '@angular/material/stepper'
 import { MatTableModule } from '@angular/material/table'
@@ -46,7 +45,6 @@ const MATERIAL_MODULES = [
   MatTreeModule,
   ZardBadgeComponent,
   MatTableModule,
-  MatProgressSpinnerModule
 ]
 
 /**

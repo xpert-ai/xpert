@@ -46,11 +46,10 @@
           zPosition="top"
         >
           @if (entity().job.progress < 100) {
-            <mat-progress-spinner
-              [strokeWidth]="2"
-              mode="determinate"
+            <z-progress-circle
+              strokeWidth="2"
+              zType="accent"
               diameter="20"
-              color="accent"
               [value]="entity()?.job.progress"
             />
           } @else {

@@ -2,14 +2,13 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, DestroyRef, OnInit, effect, inject, isSignal, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { DisplayDensity, OcapCoreModule } from '@metad/ocap-angular/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isString } from 'lodash-es'
 import { EMPTY, Observable, catchError, startWith } from 'rxjs'
-import { ZardFormImports, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardFormImports, ZardIconComponent, ZardLoaderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 const isNonNullable = <T>(value: T | null | undefined): value is T => value !== null && value !== undefined
 
 /**
@@ -34,7 +33,7 @@ const isNonNullable = <T>(value: T | null | undefined): value is T => value !== 
     ...ZardFormImports,
     ZardIconComponent,
     ...ZardTooltipImports,
-    MatProgressSpinnerModule,
+    ZardLoaderComponent,
     FormlyModule,
     TranslateModule,
     OcapCoreModule,

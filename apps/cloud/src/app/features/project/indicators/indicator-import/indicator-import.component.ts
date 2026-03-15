@@ -5,7 +5,6 @@ import { Component, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { XpIndicatorRegisterFormComponent } from '@cloud/app/@shared/indicator'
 import {
   IIndicator,
@@ -20,7 +19,7 @@ import { Indicator, assign, isNil, omitBy } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService, getErrorMessage, registerModel } from 'apps/cloud/src/app/@core'
 import { combineLatest, firstValueFrom } from 'rxjs'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -29,7 +28,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     FormsModule,
     DragDropModule,
     ZardIconComponent,
-    MatProgressSpinnerModule,
+    ZardLoaderComponent,
     ZardButtonComponent,
     TranslateModule,
     AppearanceDirective,

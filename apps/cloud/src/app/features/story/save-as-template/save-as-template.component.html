@@ -64,7 +64,7 @@
         [zDisabled]="(formGroup.invalid || formGroup.pristine) && !file"
         (click)="save()"
       >
-        <mat-spinner *ngIf="uploading" diameter="20" strokeWidth="2" class="m-2"></mat-spinner>
+        <z-loader *ngIf="uploading" diameter="20" class="m-2" />
         <span *ngIf="!uploading">
           {{ 'Story.Common.Save' | translate: { Default: 'Save' } }}
         </span>

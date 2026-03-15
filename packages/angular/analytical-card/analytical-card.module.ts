@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { NgmSelectionModule } from '@metad/ocap-angular/selection'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
@@ -16,7 +15,8 @@ import {
   ZardIconComponent,
   ZardToggleGroupComponent, 
   ZardToggleGroupItemComponent,
-  ZardTooltipImports 
+  ZardTooltipImports,
+  ZardLoaderComponent
 } from '@xpert-ai/headless-ui'
 
 @NgModule({
@@ -27,7 +27,7 @@ import {
     ...ZardCardImports,
     ZardButtonComponent,
     ZardIconComponent,
-    MatProgressSpinnerModule,
+    ZardLoaderComponent,
      ...ZardTooltipImports,
     ZardToggleGroupComponent,
     ZardToggleGroupItemComponent,

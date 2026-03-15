@@ -19,6 +19,7 @@ import { UserAvatarComponent } from '../../../../@shared/user'
 import { ProjectComponent } from '../../project/project.component'
 import { NgmTableComponent } from '@metad/ocap-angular/common'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
@@ -33,6 +34,7 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
     MaterialModule,
     ButtonGroupDirective,
     DensityDirective,
+    ZardLoaderComponent,
     UserPipe,
     UserAvatarComponent,
     NgmTableComponent

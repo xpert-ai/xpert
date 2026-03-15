@@ -3,7 +3,7 @@ import { afterNextRender, Component, effect, inject, model, signal, viewChild } 
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatDialog } from '@angular/material/dialog'
-import { ZardPaginatorComponent } from '@xpert-ai/headless-ui'
+import { ZardPaginatorComponent, ZardProgressCircleComponent } from '@xpert-ai/headless-ui'
 import { MatSort, MatSortModule } from '@angular/material/sort'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import {
@@ -56,6 +56,7 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
     MaterialModule,
     MatSortModule,
     ZardPaginatorComponent,
+    ZardProgressCircleComponent,
     NgmCommonModule
   ],
   animations: [

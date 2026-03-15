@@ -16,6 +16,7 @@ import { ComponentStyling } from '@metad/story/core'
 import { debounceTime, distinctUntilChanged, firstValueFrom, map } from 'rxjs'
 import { IScreenshot, ScreenshotService, ToastrService, listAnimation } from '../../../../@core'
 import { MaterialModule } from '../../../../@shared/material.module'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { ColorInputComponent } from '../color-input/color-input.component'
 import { ImageUploadComponent } from '../image-upload/image-upload.component'
 import { ClipboardModule } from '@angular/cdk/clipboard'
@@ -35,7 +36,7 @@ import { DesignerTextComponent } from '../text/text.component'
     FormlyModule,
     ClipboardModule,
     ButtonGroupDirective,
-
+      
     MtxColorpickerModule,
     AppearanceDirective,
     DensityDirective,
@@ -43,7 +44,9 @@ import { DesignerTextComponent } from '../text/text.component'
     ColorInputComponent,
     ImageUploadComponent,
     NgmInputComponent,
-    DesignerTextComponent
+    DesignerTextComponent,
+
+    ZardLoaderComponent
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-designer-widget',

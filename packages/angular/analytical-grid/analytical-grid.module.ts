@@ -15,9 +15,9 @@ import {
   ZardPaginatorComponent,
   ZardCheckboxComponent,
   ZardMenuImports,
-  ZardTooltipImports
+  ZardTooltipImports,
+  ZardLoaderComponent
 } from '@xpert-ai/headless-ui'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSortModule } from '@angular/material/sort'
 import { MatTableModule } from '@angular/material/table'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -38,7 +38,7 @@ import { AnalyticalGridComponent } from './analytical-grid.component'
     ZardButtonComponent,
     ZardIconComponent,
     ...ZardMenuImports,
-    MatProgressSpinnerModule,
+    ZardLoaderComponent,
     ZardDividerComponent,
     ...ZardTooltipImports,
     MatSortModule,

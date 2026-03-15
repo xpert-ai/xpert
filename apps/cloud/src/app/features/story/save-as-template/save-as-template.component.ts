@@ -19,6 +19,7 @@ import {
   uuid
 } from '../../../@core'
 import { MaterialModule } from '../../../@shared/material.module'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { TagEditorComponent } from '../../../@shared/tag'
 
 @Component({
@@ -26,6 +27,7 @@ import { TagEditorComponent } from '../../../@shared/tag'
   imports: [
     CommonModule,
     TranslateModule,
+    ZardLoaderComponent,
     ReactiveFormsModule,
     MaterialModule,
     ButtonGroupDirective,

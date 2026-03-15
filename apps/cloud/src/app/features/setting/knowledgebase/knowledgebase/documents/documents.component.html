@@ -49,8 +49,7 @@
         @switch (element.status) {
           @case ('running') {
             <div class="flex items-center gap-1">
-              <mat-progress-spinner mode="determinate" diameter="24" color="accent" [value]="element.progress">
-              </mat-progress-spinner>
+              <z-progress-circle zType="accent" diameter="24" [value]="element.progress" />
 
               <span>{{ element.progress }}%</span>
             </div>

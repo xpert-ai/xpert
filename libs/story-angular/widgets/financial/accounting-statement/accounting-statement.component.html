@@ -32,14 +32,12 @@
       <z-icon zType="warning"></z-icon>
     </button>
     <!-- Loading spinner icon -->
-    <mat-spinner
+    <z-loader
       class="ngm-analytical-card--loading"
       [style.opacity]="(isLoading$ | async) ? '1' : '0'"
       [style.visibility]="(isLoading$ | async) ? 'visible' : 'hidden'"
       [diameter]="18"
-      [strokeWidth]="1"
-    >
-    </mat-spinner>
+    />
   </div>
 </div>
 

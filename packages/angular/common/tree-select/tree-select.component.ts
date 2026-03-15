@@ -36,9 +36,9 @@ import {
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
-  ZardCheckboxComponent
+  ZardCheckboxComponent,
+  ZardLoaderComponent
 } from '@xpert-ai/headless-ui'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTreeModule } from '@angular/material/tree'
 import {
   DensityDirective,
@@ -89,7 +89,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
     MatAutocompleteModule,
     ScrollingModule,
     ZardCheckboxComponent,
-    MatProgressSpinnerModule,
+    ZardLoaderComponent,
     ZardInputDirective,
     MatChipsModule,
     MatTreeModule,

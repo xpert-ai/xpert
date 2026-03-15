@@ -41,8 +41,7 @@
 </ngm-table>
 
 <div *ngIf="loading" class="absolute top-1/2 left-1/2 -mt-4 -ml-4 z-10">
-    <mat-spinner diameter="30" strokeWidth="2">
-    </mat-spinner>
+    <z-loader diameter="30" />
 </div>
 
 <ng-template #typeTempl let-permissionType="permissionType">

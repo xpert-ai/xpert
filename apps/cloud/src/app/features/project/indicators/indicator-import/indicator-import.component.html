@@ -25,7 +25,7 @@
     <div ngmButtonGroup>
       <button z-button zType="default" color="accent" cdkFocusInitial (click)="bulkCreate()">
         @if (uploading) {
-          <mat-spinner color="accent" diameter="20" strokeWidth="2" class="m-2"></mat-spinner>
+          <z-loader diameter="20" class="m-2" />
         } @else {
           <span>
             {{ 'PAC.INDICATOR.Import' | translate: { Default: 'Import' } }}

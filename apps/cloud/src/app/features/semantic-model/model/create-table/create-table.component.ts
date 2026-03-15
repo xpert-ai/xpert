@@ -12,7 +12,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgmDndDirective } from '@metad/core'
 import { IStorageFile, StorageFileService } from 'apps/cloud/src/app/@core'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
-import { ZardProgressBarComponent } from '@xpert-ai/headless-ui'
+import { ZardProgressBarComponent, ZardProgressCircleComponent } from '@xpert-ai/headless-ui'
 import {
   BehaviorSubject,
   Subscription,
@@ -35,6 +35,7 @@ import { SemanticModelService } from '../model.service'
     MaterialModule,
     TranslateModule,
     ZardProgressBarComponent,
+    ZardProgressCircleComponent,
     ButtonGroupDirective,
     AppearanceDirective,
     DensityDirective,

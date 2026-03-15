@@ -18,7 +18,6 @@ import {
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayDensity, NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
@@ -48,6 +47,7 @@ import {
   ZardButtonComponent,
   ZardIconComponent,
   ZardCheckboxComponent,
+  ZardLoaderComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
@@ -74,7 +74,7 @@ export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
     ReactiveFormsModule,
     ZardIconComponent,
     ZardCheckboxComponent,
-    MatProgressSpinnerModule,
+    ZardLoaderComponent,
     ZardButtonComponent,
     ...ZardTooltipImports,
     ScrollingModule,

@@ -33,9 +33,9 @@ import {
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
-  ZardCheckboxComponent
+  ZardCheckboxComponent,
+  ZardLoaderComponent
 } from '@xpert-ai/headless-ui'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import {
   DisplayDensity,
   ISelectOption,
@@ -76,7 +76,7 @@ import { isEqual } from 'lodash-es'
     ...ZardFormImports,
     MatAutocompleteModule,
     ZardCheckboxComponent,
-    MatProgressSpinnerModule,
+    ZardLoaderComponent,
     ZardIconComponent,
     ZardInputDirective,
     ZardButtonComponent,

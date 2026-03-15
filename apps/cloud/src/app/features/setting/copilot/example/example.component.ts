@@ -12,13 +12,14 @@ import { AiBusinessRole, AiProvider, CopilotExampleService, ToastrService, getEr
 import { CopilotExamplesComponent } from '../examples/examples.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   selector: 'pac-settings-copilot-example',
   templateUrl: './example.component.html',
   styleUrls: ['./example.component.scss'],
-  imports: [TranslateModule, MaterialModule, TextFieldModule, FormsModule, ReactiveFormsModule, NgmCommonModule]
+  imports: [TranslateModule, MaterialModule, TextFieldModule, FormsModule, ReactiveFormsModule, NgmCommonModule, ZardLoaderComponent]
 })
 export class CopilotExampleComponent extends TranslationBaseComponent {
 

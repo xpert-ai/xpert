@@ -19,7 +19,6 @@ import {
 } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { MatSidenavModule } from '@angular/material/sidenav'
 import { MatTableModule } from '@angular/material/table'
 
@@ -39,7 +38,6 @@ const MAT_MODULES = [
   DragDropModule,
   PortalModule,
   LayoutModule,
-  MatProgressSpinnerModule,
   ...ZardCardImports,
   ...ZardAccordionImports
 ]

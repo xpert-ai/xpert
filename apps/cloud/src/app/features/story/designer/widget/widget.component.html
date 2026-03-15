@@ -117,7 +117,7 @@
   </div>
 
   <div class="grid grid-cols-3 gap-1 w-full max-h-80 overflow-auto relative" [@listAnimation]="customImages?.length">
-    <mat-spinner *ngIf="loadingCustomImages" class="absolute inset-0 m-auto" diameter="30"></mat-spinner>
+    <z-loader *ngIf="loadingCustomImages" class="absolute inset-0 m-auto" diameter="30" />
 
     <div
       *ngFor="let bg of customImages"
@@ -354,7 +354,7 @@
         class="grid grid-cols-3 gap-1 py-2 max-h-80 overflow-auto relative"
         [@listAnimation]="customBorderImages?.length"
       >
-        <mat-spinner *ngIf="loadingCustomImages" class="absolute inset-0 m-auto" diameter="30"></mat-spinner>
+        <z-loader *ngIf="loadingCustomImages" class="absolute inset-0 m-auto" diameter="30" />
         <div
           *ngFor="let border of customBorderImages"
           class="pac-image-tile h-20 cursor-pointer m-1 rounded-lg outline outline-2 outline-offset-2 outline-transparent"

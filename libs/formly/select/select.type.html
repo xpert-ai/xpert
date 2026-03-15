@@ -29,7 +29,7 @@
   <span ngmError>{{error()}}</span>
   }
   <div ngmSuffix class="flex items-center">
-    <mat-progress-spinner class="hidden" color="primary" mode="indeterminate" diameter="16" />
+    <z-loader class="hidden" diameter="16" />
     @if (props?.info) {
     <i class="ri-information-2-line opacity-50" [zTooltip]="props.info" zPosition="top"></i>
     }

@@ -84,7 +84,7 @@
     >
       <z-icon zType="close"></z-icon>
     </button>
-    <mat-spinner *ngIf="loading()" class="m-2" color="accent" strokeWidth="2" diameter="24"></mat-spinner>
+    <z-loader *ngIf="loading()" class="m-2" diameter="24" />
   </div>
 
   <z-form-message zType="error" *ngIf="formControl.invalid">{{ getErrorMessage() }}</z-form-message>

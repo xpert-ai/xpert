@@ -394,7 +394,7 @@
             </cdk-virtual-scroll-viewport>
             @if (loadingTables()) {
               <div class="absolute top-1/2 left-1/2 -ml-2 -mt-2 flex">
-                <mat-progress-spinner color="accent" mode="indeterminate" [diameter]="23" [strokeWidth]="2" />
+                <z-loader [diameter]="23" />
               </div>
             }
           } @else {

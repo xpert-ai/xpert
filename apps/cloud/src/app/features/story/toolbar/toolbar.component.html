@@ -7,7 +7,7 @@
 
       @if (saving()) {
         <div class="h-[40px] flex flex-col justify-center items-center">
-          <mat-spinner color="accent" [diameter]="22" [strokeWidth]="2" />
+          <z-loader [diameter]="22" />
         </div>
       } @else {
         <button

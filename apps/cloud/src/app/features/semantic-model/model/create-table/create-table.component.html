@@ -187,15 +187,15 @@
   </div>
 
   <div *ngIf="stepper.selectedIndex === 1" class="flex min-w-[400px] overflow-hidden h-full">
-    <mat-progress-spinner
+    <z-progress-circle
       *ngIf="isLoading"
       strokeWidth="2"
-      color="accent"
+      zType="accent"
       diameter="50"
       [value]="progress"
       class="ngm-card__loading"
       style="margin: auto"
-    ></mat-progress-spinner>
+    />
     <div *ngFor="let sheet of activedSheets" class="flex w-full">
       <div class="w-full overflow-auto" displayDensity="compact">
         <table mat-table [dataSource]="sheet.preview" class="mat-elevation-z">

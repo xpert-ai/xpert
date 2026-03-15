@@ -126,14 +126,14 @@
     }
     @case (1) {
       @if (isLoading()) {
-        <mat-progress-spinner
+        <z-progress-circle
           strokeWidth="2"
-          color="accent"
+          zType="accent"
           diameter="50"
           [value]="progress"
           class="ngm-card__loading"
           style="margin: auto"
-        ></mat-progress-spinner>
+        />
       }
       @for (sheet of activedSheets; track $index) {
         <div class="flex w-full h-full overflow-auto">

@@ -3,14 +3,13 @@ import { CommonModule } from '@angular/common'
 import { Component, DestroyRef, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { IFeature, IFeatureOrganization } from '@metad/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectRouteData } from 'ngxtension/inject-route-data'
 import { of, pipe } from 'rxjs'
 import { map, switchMap, tap } from 'rxjs/operators'
-import { injectConfirm, ZardAccordionImports, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
+import { injectConfirm, ZardAccordionImports, ZardCheckboxComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { environment } from '../../../../environments/environment'
 import { FeatureService, FeatureStoreService, Store } from '../../../@core/services'
 import { injectI18nService } from '../../i18n'
@@ -24,7 +23,7 @@ import { injectI18nService } from '../../i18n'
     CdkMenuModule,
     ...ZardAccordionImports,
     ZardCheckboxComponent,
-    MatProgressSpinnerModule
+    ZardLoaderComponent
   ],
   providers: [FeatureStoreService],
   selector: 'pac-feature-toggle',
