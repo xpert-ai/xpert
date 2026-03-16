@@ -137,31 +137,39 @@
   </div>
 }
 
-<mat-menu #widgetInputControl="matMenu" class="ngm-density__compact">
-  <button mat-menu-item [matMenuTriggerFor]="entityMenu">
-    {{ 'Story.Widgets.InputControl.ENTITY' | translate: {Default: 'Entity'} }}
-  </button>
-  <z-divider></z-divider>
-  <!-- Entity-driven dimension shortcut remains disabled here. -->
-</mat-menu>
-
-<mat-menu #entityMenu="matMenu" class="ngm-density__compact">
-  <!-- Entity quick-pick menu remains disabled here. -->
-</mat-menu>
-
-<mat-menu #Dimensions="matMenu" class="ngm-density__compact">
-  @for (dimension of dimensions$ | async; track dimension) {
-    <button mat-menu-item
-      (click)="setProperty(dimension.name)">
-      <ngm-entity-property [property]="dimension"></ngm-entity-property>
+<ng-template #widgetInputControl>
+  <div z-menu-content class="ngm-density__compact">
+    <button type="button" z-menu-item z-menu [zMenuTriggerFor]="entityMenu">
+      {{ 'Story.Widgets.InputControl.ENTITY' | translate: {Default: 'Entity'} }}
     </button>
-  }
-</mat-menu>
+    <z-divider></z-divider>
+    <!-- Entity-driven dimension shortcut remains disabled here. -->
+  </div>
+</ng-template>
 
-<mat-menu #Measures="matMenu" class="ngm-density__compact">
-  @for (measure of measures$ | async; track measure) {
-    <button mat-menu-item>
-      <ngm-entity-property [property]="measure"></ngm-entity-property>
-    </button>
-  }
-</mat-menu>
+<ng-template #entityMenu>
+  <div z-menu-content class="ngm-density__compact">
+    <!-- Entity quick-pick menu remains disabled here. -->
+  </div>
+</ng-template>
+
+<ng-template #Dimensions>
+  <div z-menu-content class="ngm-density__compact">
+    @for (dimension of dimensions$ | async; track dimension) {
+      <button type="button" z-menu-item
+        (click)="setProperty(dimension.name)">
+        <ngm-entity-property [property]="dimension"></ngm-entity-property>
+      </button>
+    }
+  </div>
+</ng-template>
+
+<ng-template #Measures>
+  <div z-menu-content class="ngm-density__compact">
+    @for (measure of measures$ | async; track measure) {
+      <button type="button" z-menu-item>
+        <ngm-entity-property [property]="measure"></ngm-entity-property>
+      </button>
+    }
+  </div>
+</ng-template>

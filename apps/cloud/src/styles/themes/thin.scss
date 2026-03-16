@@ -1,5 +1,5 @@
-@use 'libs/material-theme/src/styles/material/token-utils-compat' as token-utils;
-@use 'libs/material-theme/src/styles/material/thin.theme' as thin-theme;
+@use 'libs/material-theme/src/styles/token-utils' as token-utils;
+@use 'libs/material-theme/src/styles/themes/thin' as thin-theme;
 @use 'libs/apps/indicator-market/src/lib/indicator-market-theme' as indicator-market;
 @use '../../app/features/features-theme' as features;
 @use '../../app/@shared/components-theme' as shared;

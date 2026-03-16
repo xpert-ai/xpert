@@ -2,7 +2,6 @@
 import { Component, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { MaterialModule } from '../../material.module'
 import { IXpert } from '../../../@core'
 import { KnowledgebaseCardComponent } from '../../copilot'
 import { ToolsetCardComponent } from '../toolset-card/toolset.component'
@@ -17,7 +16,6 @@ import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headle
   imports: [
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
     TranslateModule,
     KnowledgebaseCardComponent,
     ToolsetCardComponent,

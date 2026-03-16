@@ -1,5 +1,5 @@
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 
 @mixin color($theme) {
   $config: mat.m2-get-color-config($theme);
@@ -15,10 +15,6 @@
 
       z-tree.ngm-tree-select__panel {
         overflow-y: auto;
-      }
-
-      .ngm-tree-select__search .mat-form-field-infix {
-        display: inline-flex;
       }
     }
   }

@@ -27,7 +27,7 @@ import {
 } from '../../../../@core'
 import { FORMLY_W_1_2 } from '@metad/story/designer'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 
@@ -39,7 +39,7 @@ import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
   selector: 'pac-settings-copilot-examples',
   templateUrl: './examples.component.html',
   styleUrls: ['./examples.component.scss'],
-  imports: [RouterModule, TranslateModule, MaterialModule, FormsModule, ReactiveFormsModule, NgmCommonModule, ZardLoaderComponent]
+  imports: [RouterModule, TranslateModule, SharedUiModule, FormsModule, ReactiveFormsModule, NgmCommonModule, ZardLoaderComponent]
 })
 export class CopilotExamplesComponent extends TranslationBaseComponent {
   DisplayBehaviour = DisplayBehaviour

@@ -4,7 +4,6 @@ import { Component, ViewContainerRef, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 
 import { ZardButtonComponent, ZardDialogModule, ZardDialogService, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-import { MatListModule } from '@angular/material/list'
 import { NgmCommonModule, NgmConfirmDeleteService } from '@metad/ocap-angular/common'
 import { ISelectOption, NgmDSCacheService } from '@metad/ocap-angular/core'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
@@ -25,7 +24,6 @@ import { Dialog } from '@angular/cdk/dialog'
     ZardDialogModule,
     ZardButtonComponent,
     ZardIconComponent,
-    MatListModule,
     ZardDividerComponent,
     TranslateModule,
     NgmCommonModule

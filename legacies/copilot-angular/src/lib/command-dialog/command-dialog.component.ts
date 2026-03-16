@@ -1,13 +1,13 @@
+import { CdkListboxModule } from '@angular/cdk/listbox'
+import { CdkMenuModule } from '@angular/cdk/menu'
+import { OverlayModule } from '@angular/cdk/overlay'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { TextFieldModule } from '@angular/cdk/text-field'
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatAutocomplete, MatAutocompleteActivatedEvent, MatAutocompleteModule } from '@angular/material/autocomplete'
-import { Z_MODAL_DATA, ZardButtonComponent, ZardChipsImports, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { MatMenuModule } from '@angular/material/menu'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardChipsImports, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardProgressBarComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { CopilotContextItem, CopilotEngine } from '@metad/copilot'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniq } from 'lodash-es'
@@ -36,10 +36,11 @@ import { NgmCopilotEngineService, NgmCopilotService } from '../services'
     ZardInputDirective,
     ...ZardFormImports,
     TextFieldModule,
-    MatProgressBarModule,
-    MatAutocompleteModule,
+    ZardProgressBarComponent,
+    OverlayModule,
+    CdkListboxModule,
+    CdkMenuModule,
     ...ZardTooltipImports,
-    MatMenuModule,
     ZardIconComponent,
     ScrollingModule,
 
@@ -81,6 +82,7 @@ export class CommandDialogComponent {
   readonly commandContext = computed(() => this.commandWithContext()?.context)
   readonly hasContextTrigger = computed(() => this.prompt().includes('@'))
   readonly loadingContext$ = new BehaviorSubject(false)
+  readonly loadingContext = toSignal(this.loadingContext$, { initialValue: false })
   readonly contextItems = derivedAsync(() => {
     const context = this.commandContext()
     const hasContextTrigger = this.hasContextTrigger()
@@ -182,7 +184,7 @@ export class CommandDialogComponent {
     return item?.key
   }
 
-  triggerFun(event: KeyboardEvent, autocomplete: MatAutocomplete) {
+  triggerFun(event: KeyboardEvent) {
     // Enter execute command
     if ((event.metaKey || event.ctrlKey) && !event.isComposing && event.key === 'Enter') {
       this.execute()
@@ -220,8 +222,16 @@ export class CommandDialogComponent {
     }
   }
 
-  onContextActivated(event: MatAutocompleteActivatedEvent) {
-    this.#activatedContext.set(event.option?.value)
+  onContextFocus(item: CopilotContextItem) {
+    this.#activatedContext.set(
+      (this.beforeCurrentWord() ? this.beforeCurrentWord() + ' ' : '') + '@' + item.uKey + ' ' + this.afterCurrentWord()
+    )
+  }
+
+  selectContext(item: CopilotContextItem) {
+    this.prompt.set(
+      (this.beforeCurrentWord() ? this.beforeCurrentWord() + ' ' : '') + '@' + item.uKey + ' ' + this.afterCurrentWord()
+    )
   }
 
   removeContext(item: CopilotContextItem) {

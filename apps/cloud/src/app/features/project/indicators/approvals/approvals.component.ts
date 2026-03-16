@@ -18,7 +18,7 @@ import { userLabel, UserPipe } from '../../../../@shared/pipes/'
 import { UserAvatarComponent } from '../../../../@shared/user'
 import { ProjectComponent } from '../../project/project.component'
 import { NgmTableComponent } from '@metad/ocap-angular/common'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
@@ -31,7 +31,7 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
     CommonModule,
     RouterModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     ButtonGroupDirective,
     DensityDirective,
     ZardLoaderComponent,

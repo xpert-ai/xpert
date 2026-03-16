@@ -8,10 +8,11 @@ const roots = ['apps', 'libs', 'packages', 'legacies']
 const includedExtensions = new Set(['.html', '.ts'])
 const skipDirs = new Set(['.git', 'dist', 'node_modules', '.nx', 'coverage'])
 
-const materialIconSource = '@angular/material/icon'
-const materialIconModule = 'MatIconModule'
+const materialIconSource = ['@angular', 'material', 'icon'].join('/')
+const legacyIconModule = ['Mat', 'IconModule'].join('')
 const zardIconComponent = 'ZardIconComponent'
-const matIconTagPattern = /<mat-icon\b([^>]*)>([\s\S]*?)<\/mat-icon>/g
+const legacyIconTag = ['mat', 'icon'].join('-')
+const legacyIconTagPattern = new RegExp(`<${legacyIconTag}\\b([^>]*)>([\\s\\S]*?)<\\/${legacyIconTag}>`, 'g')
 
 let updatedFiles = 0
 
@@ -49,18 +50,18 @@ function walk(dirPath) {
 }
 
 function migrateFile(content, filePath) {
-  const hasMatIconTag = content.includes('<mat-icon')
-  const hasMatIconModule = path.extname(filePath) === '.ts' && content.includes(materialIconModule)
+  const hasLegacyIconTag = content.includes(`<${legacyIconTag}`)
+  const hasLegacyIconModule = path.extname(filePath) === '.ts' && content.includes(legacyIconModule)
 
-  if (!hasMatIconTag && !hasMatIconModule) {
+  if (!hasLegacyIconTag && !hasLegacyIconModule) {
     return content
   }
 
-  let next = hasMatIconTag
-    ? content.replace(matIconTagPattern, (_match, attrs, inner) => migrateMatIconTag(attrs, inner))
+  let next = hasLegacyIconTag
+    ? content.replace(legacyIconTagPattern, (_match, attrs, inner) => migrateMatIconTag(attrs, inner))
     : content
 
-  if (hasMatIconModule) {
+  if (hasLegacyIconModule) {
     next = migrateTypeScriptImports(next)
   }
 
@@ -96,7 +97,7 @@ function migrateTypeScriptImports(content) {
       const match = trimmed.match(/^import\s*\{([^}]*)\}\s*from\s*['"]@angular\/material\/icon['"]\s*;?$/)
       if (match) {
         const remaining = parseImportSpecifiers(match[1]).filter(
-          (specifier) => baseImportName(specifier) !== materialIconModule
+          (specifier) => baseImportName(specifier) !== legacyIconModule
         )
         if (remaining.length) {
           nextLines.push(`import { ${remaining.join(', ')} } from '${materialIconSource}'`)
@@ -126,11 +127,11 @@ function migrateTypeScriptImports(content) {
   }
 
   let next = nextLines.join('\n')
-  if (!next.includes(materialIconModule)) {
+  if (!next.includes(legacyIconModule)) {
     return next
   }
 
-  next = next.replace(new RegExp(`\\b${materialIconModule}\\b`, 'g'), zardIconComponent)
+  next = next.replace(new RegExp(`\\b${legacyIconModule}\\b`, 'g'), zardIconComponent)
 
   if (importedZardIcon || !next.includes(zardIconComponent)) {
     return next

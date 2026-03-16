@@ -4,7 +4,6 @@ import { ChangeDetectionStrategy, Component, Input, ViewChild, inject } from '@a
 import { FormsModule } from '@angular/forms'
 
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
-import { MtxButtonModule } from '@ng-matero/extensions/button'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage } from '../../../@core'
 import { ToastrService } from '../../../@core/services'
@@ -21,7 +20,6 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     TranslateModule,
     ZardButtonComponent,
     DragDropModule,
-    MtxButtonModule,
     ButtonGroupDirective,
 
     InviteFormsModule

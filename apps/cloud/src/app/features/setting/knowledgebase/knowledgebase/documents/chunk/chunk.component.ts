@@ -19,7 +19,7 @@ import { ZardDialogService } from '@xpert-ai/headless-ui'
   ToastrService
 } from '../../../../../../@core'
 import { KnowledgebaseComponent } from '../../knowledgebase.component'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
 @Component({
@@ -27,7 +27,7 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
   selector: 'pac-settings-knowledgebase-document-chunk',
   templateUrl: './chunk.component.html',
   styleUrls: ['./chunk.component.scss'],
-  imports: [FormsModule, TranslateModule, MaterialModule, WaIntersectionObserver, NgmCommonModule]
+  imports: [FormsModule, TranslateModule, SharedUiModule, WaIntersectionObserver, NgmCommonModule]
 })
 export class KnowledgeDocumentChunkComponent extends TranslationBaseComponent {
   readonly knowledgeDocumentService = inject(KnowledgeDocumentService)

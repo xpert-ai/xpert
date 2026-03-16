@@ -12,7 +12,7 @@ import { shareReplay, switchMap, tap } from 'rxjs/operators'
 import { IBusinessArea, ToastrService, routeAnimations } from '../../../../@core/index'
 import { BusinessAreaComponent } from '../business-area.component'
 import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 
 @Component({
@@ -22,7 +22,7 @@ import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
   styleUrls: ['./areas.component.scss'],
   animations: [routeAnimations],
   imports: [
-    MaterialModule,
+    SharedUiModule,
     SharedModule,
     CommonModule,
     FormsModule,

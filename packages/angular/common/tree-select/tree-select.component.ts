@@ -1,6 +1,7 @@
 import { BooleanInput, coerceBooleanProperty } from '@angular/cdk/coercion'
 import { SelectionModel } from '@angular/cdk/collections'
 import { COMMA, ENTER } from '@angular/cdk/keycodes'
+import { OverlayModule } from '@angular/cdk/overlay'
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling'
 import {
   booleanAttribute,
@@ -15,6 +16,7 @@ import {
   model,
   OnChanges,
   output,
+  signal,
   SimpleChanges,
   ViewChild
 } from '@angular/core'
@@ -26,8 +28,6 @@ import {
   ReactiveFormsModule,
   ValidatorFn
 } from '@angular/forms'
-import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import {
   ZardButtonComponent,
   ZardChipsImports,
@@ -86,7 +86,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
     ZardButtonComponent,
     ZardIconComponent,
     ...ZardFormImports,
-    MatAutocompleteModule,
+    OverlayModule,
     ScrollingModule,
     ZardCheckboxComponent,
     ZardLoaderComponent,
@@ -228,6 +228,7 @@ export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccesso
   get autoHighlight() {
     return typeof this.autoControl.value === 'string' ? this.autoControl.value : null
   }
+  readonly panelOpen = signal(false)
 
   /**
    * Tree expand status
@@ -456,12 +457,13 @@ export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccesso
     }
   }
 
-  onAutocompleteSelected(event: MatAutocompleteSelectedEvent): void {
-    const key = event.option.value?.key
+  onAutocompleteSelected(option: FlatTreeNode<any>): void {
+    const key = option?.key
     if (this.multiple) {
       this.multipleSelection.select(key)
     } else {
       this.singleSelection.select(key)
+      this.closeAutocomplete()
     }
     this.autoInput.nativeElement.value = ''
     this.autoControl.setValue(null)
@@ -516,6 +518,25 @@ export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccesso
 
   onAutocompleteOpened() {
     this.cdkVirtualScrollViewPort?.checkViewportSize()
+  }
+
+  openAutocomplete() {
+    this.panelOpen.set(true)
+    queueMicrotask(() => this.onAutocompleteOpened())
+  }
+
+  closeAutocomplete() {
+    this.panelOpen.set(false)
+  }
+
+  onAutocompleteBlur(event: FocusEvent) {
+    this.blur.emit(event)
+    window.setTimeout(() => {
+      const activeElement = document.activeElement as HTMLElement | null
+      if (!activeElement?.closest('.ngm-tree-select__panel')) {
+        this.closeAutocomplete()
+      }
+    })
   }
 
   toggleExpand() {

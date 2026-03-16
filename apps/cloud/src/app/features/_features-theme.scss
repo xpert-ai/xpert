@@ -1,6 +1,6 @@
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 @use './setting/settings-theme' as settings;
 @use './story/story-theme' as story;
 @use './semantic-model/semantic-models' as semantic-models;

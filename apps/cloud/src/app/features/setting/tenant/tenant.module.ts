@@ -6,13 +6,13 @@ import { DemoComponent } from './demo/demo.component'
 import { SettingsComponent } from './settings/settings.component'
 import { TenantRoutingModule } from './tenant-routing.module'
 import { PACTenantComponent } from './tenant.component'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { SharedModule } from '../../../@shared/shared.module'
 
 @NgModule({
   imports: [
     SharedModule,
-    MaterialModule,
+    SharedUiModule,
     RouterModule,
     TenantRoutingModule,
     OcapCoreModule,

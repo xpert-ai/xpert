@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, forwardRef, inject, input, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatMenuModule } from '@angular/material/menu'
 import { NgmColorsComponent } from '@metad/components/form-field'
 import {
   NgmChromaticInterpolateGroup,
@@ -32,7 +31,7 @@ import { BehaviorSubject, distinctUntilChanged, from, map } from 'rxjs'
 import { NgmChartDimensionComponent } from './chart-dimension.component'
 import { NgmChartMeasureComponent } from './chart-measure.component'
 import { NgmReferenceLineComponent } from './reference-line.component'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardCheckboxComponent, ZardFormImports, ZardIconComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -43,7 +42,7 @@ import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardCheckboxCo
     ZardButtonComponent,
     ZardIconComponent,
     ...ZardFormImports,
-    MatMenuModule,
+    ...ZardMenuImports,
     ZardCheckboxComponent,
     TranslateModule,
 

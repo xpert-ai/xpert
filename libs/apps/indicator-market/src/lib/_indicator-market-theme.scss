@@ -1,7 +1,7 @@
 
 
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 @reference "../../../tailwind-workspace-reference.css";
 @mixin color($config-or-theme) {
   $config: mat.m2-get-color-config($config-or-theme);
@@ -55,7 +55,7 @@ $density-cosy: 12px;
       }
     }
     .pac-indicator-market__infinite-container {
-      .mat-mdc-list-item {
+      .pac-indicator-list__item {
         --mdc-list-list-item-one-line-container-height: 70px;
         padding: $density-cosy 0;
         border-radius: $density-cosy;

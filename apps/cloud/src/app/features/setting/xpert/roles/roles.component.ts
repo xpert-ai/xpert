@@ -9,7 +9,7 @@ import { BehaviorSubject, EMPTY, catchError, map, switchMap, tap } from 'rxjs'
 import { XpertAPIService, IXpertRole, OrderTypeEnum, ToastrService, getErrorMessage, omitSystemProperty } from '../../../../@core'
 import { AvatarComponent } from 'apps/cloud/src/app/@shared/files'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 
 type CopilotRoleRowType = Partial<IXpertRole> & { __edit__?: boolean }
 
@@ -21,7 +21,7 @@ type CopilotRoleRowType = Partial<IXpertRole> & { __edit__?: boolean }
   imports: [
     RouterModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     FormsModule,
     ReactiveFormsModule,
     NgmCommonModule,

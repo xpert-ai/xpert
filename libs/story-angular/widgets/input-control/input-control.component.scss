@@ -9,10 +9,6 @@
     flex-direction: column;
     flex: 1;
     max-width: 100%;
-
-    .mat-selection-list {
-      overflow: auto;
-    }
   }
 }
 
@@ -61,18 +57,8 @@ z-chip-option {
   }
 
   .ngm-parameter {
-    .mat-slider-thumb-label-showing {
-      &.mat-slider-horizontal {
-        margin-top: 1rem;
-        margin-left: 1rem;
-        margin-right: 1rem;
-      }
-
-      &.mat-slider-vertical {
-        margin-left: 1rem;
-        margin-top: 1rem;
-        margin-bottom: 1rem;
-      }
+    z-slider {
+      margin: 1rem;
     }
   }
 }

@@ -5,13 +5,13 @@ import { NewNotificationDestinationComponent } from './new-notification-destinat
 import { NotificationDestinationRoutingModule } from './notification-destination-routing.module'
 import { NotificationDestinationsComponent } from './notification-destinations/notification-destinations.component'
 import { ZardStepperImports } from '@xpert-ai/headless-ui'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { SharedModule } from '../../../@shared/shared.module'
 
 @NgModule({
   imports: [
     SharedModule,
-    MaterialModule,
+    SharedUiModule,
     ...ZardStepperImports,
     FormlyModule,
     NotificationDestinationRoutingModule

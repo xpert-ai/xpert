@@ -2,7 +2,7 @@
 
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 @use './entity/entity-theme' as entity;
 @use './query-lab/query-lab-theme' as query-lab;
 @reference "tailwindcss";
@@ -18,11 +18,10 @@
   @include query-lab.color($config-or-theme);
 
   .pac-model__nav-list {
-
-    .mat-mdc-list-item.selected {
+    > li.selected {
       background-color: mat.m2-get-color-from-palette($background, 'focused-button');
     }
-    .mat-mdc-list-item:hover {
+    > li:hover {
       background-color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.1);
       color: mat.m2-get-color-from-palette($primary);
     }
@@ -32,13 +31,6 @@
       flex-shrink: 0;
     }
 
-    .mat-mdc-list-item-content {
-      overflow: hidden;
-    }
-
-    .mat-mdc-list-item-unscoped-content {
-      @apply flex items-center;
-    }
   }
 
   .ngm-semanctic-model {
@@ -122,7 +114,7 @@
                 0 8px 10px 1px rgba(0, 0, 0, 0.14),
                 0 3px 14px 2px rgba(0, 0, 0, 0.12);
 
-    .mat-mdc-list-item-content {
+    > * {
       flex: 1;
     }
   }
@@ -177,7 +169,8 @@
       border-bottom-left-radius: 1rem;
     }
 
-    .mat-mdc-list-item {
+    .ngm-list > li,
+    .ngm-list-item {
       border-radius: 5px;
 
       &:hover {

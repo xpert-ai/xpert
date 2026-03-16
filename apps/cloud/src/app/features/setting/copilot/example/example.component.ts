@@ -11,7 +11,7 @@ import { EMPTY, pipe, switchMap } from 'rxjs'
 import { AiBusinessRole, AiProvider, CopilotExampleService, ToastrService, getErrorMessage } from '../../../../@core'
 import { CopilotExamplesComponent } from '../examples/examples.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 @Component({
@@ -19,7 +19,7 @@ import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
   selector: 'pac-settings-copilot-example',
   templateUrl: './example.component.html',
   styleUrls: ['./example.component.scss'],
-  imports: [TranslateModule, MaterialModule, TextFieldModule, FormsModule, ReactiveFormsModule, NgmCommonModule, ZardLoaderComponent]
+  imports: [TranslateModule, SharedUiModule, TextFieldModule, FormsModule, ReactiveFormsModule, NgmCommonModule, ZardLoaderComponent]
 })
 export class CopilotExampleComponent extends TranslationBaseComponent {
 

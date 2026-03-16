@@ -3,12 +3,12 @@ import { ChangeDetectionStrategy, Component, Input, forwardRef, signal } from '@
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmColorInputComponent } from '@metad/components/form-field'
-import { MaterialModule } from '../../../../@shared/material.module'
+import { SharedUiModule } from '../../../../@shared/ui.module'
 import { DensityDirective } from '@metad/ocap-angular/core'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, TranslateModule, MaterialModule, NgmColorInputComponent, DensityDirective],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, SharedUiModule, NgmColorInputComponent, DensityDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-color-input',
   templateUrl: './color-input.component.html',

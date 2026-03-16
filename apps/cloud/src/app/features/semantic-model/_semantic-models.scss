@@ -1,7 +1,7 @@
 
 
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 @use './model/entity/structure/structure-theme' as structure;
 @use './model/entity/cube-structure/cube-structure-theme' as cube-structure;
 @use './model/model-theme' as model;
@@ -30,7 +30,7 @@
   @include model.density($theme);
 
   .ngm-tree-table {
-    .mat-mdc-cell {
+    .cdk-cell {
       @apply whitespace-nowrap;
     }
   }

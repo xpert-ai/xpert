@@ -10,7 +10,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocomplete, MatAutocompleteModule } from '@angular/material/autocomplete'
 
 import { ZardButtonComponent, ZardIconComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { Router, RouterModule } from '@angular/router'
@@ -35,7 +34,6 @@ import { CHATBI_COMMAND_NAME } from '../copilot/'
     ZardIconComponent,
     ...ZardTooltipImports,
     ZardButtonComponent,
-    MatAutocompleteModule,
     ZardInputDirective,
 
     CdkMenuTrigger,
@@ -138,7 +136,7 @@ export class ChatbiInputComponent {
     this.answering.set(false)
   }
 
-  triggerFun(event: KeyboardEvent, autocomplete: MatAutocomplete) {
+  triggerFun(event: KeyboardEvent) {
     if ((event.isComposing || event.shiftKey) && event.key === 'Enter') {
       return
     }

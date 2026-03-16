@@ -18,7 +18,7 @@ import {
   getErrorMessage,
   uuid
 } from '../../../@core'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { TagEditorComponent } from '../../../@shared/tag'
 
@@ -28,7 +28,7 @@ import { TagEditorComponent } from '../../../@shared/tag'
     TranslateModule,
     ZardLoaderComponent,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     ButtonGroupDirective,
     AppearanceDirective,
     DensityDirective,

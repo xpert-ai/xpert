@@ -50,7 +50,7 @@ import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'ngm-mat-select',
+  selector: 'ngm-advanced-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss'],
   inputs: ['disabled', 'disableRipple', 'color'],
@@ -61,7 +61,7 @@ import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
     {
       provide: NG_VALUE_ACCESSOR,
       multi: true,
-      useExisting: forwardRef(() => NgmMatSelectComponent)
+      useExisting: forwardRef(() => NgmAdvancedSelectComponent)
     }
   ],
   imports: [
@@ -81,12 +81,12 @@ import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
     OcapCoreModule
   ]
 })
-export class NgmMatSelectComponent implements OnChanges, ControlValueAccessor {
+export class NgmAdvancedSelectComponent implements OnChanges, ControlValueAccessor {
   @Input() disabled = false
   @Input() disableRipple = false
   @Input() color: NgmFieldColor = null
 
-  @HostBinding('class.ngm-mat-select') _isSelectComponent = true
+  @HostBinding('class.ngm-advanced-select') _isSelectComponent = true
 
   @Input() appearance: NgmFieldAppearance
   @Input() displayBehaviour: DisplayBehaviour | string

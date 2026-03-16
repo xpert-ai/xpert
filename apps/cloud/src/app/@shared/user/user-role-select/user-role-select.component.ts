@@ -19,7 +19,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import { catchError, debounceTime, EMPTY, filter, map, of, switchMap, tap } from 'rxjs'
 import { IUser } from '../../../@core'
 import { userLabel, UserPipe } from '../../pipes'
-import { MatAutocompleteModule } from '@angular/material/autocomplete'
 
 @Component({
   standalone: true,

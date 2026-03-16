@@ -2,7 +2,7 @@
 
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 @use './swiper/swiper-theme' as swiper;
 @use './tab-group/tabgroup-theme' as tabgroup;
 @use './financial/accounting-statement/accounting-statement-theme' as statement;
@@ -35,7 +35,8 @@
     max-width: 100%;
   }
 
-  .pac-widget__slicer-menu.mat-mdc-menu-panel {
+  [z-menu-content].pac-widget__slicer-menu,
+  .pac-widget__slicer-menu[z-menu-content] {
     @apply px-4 max-w-[600px];
   }
   .pac-widget__action-toolbar {

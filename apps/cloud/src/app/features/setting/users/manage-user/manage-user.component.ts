@@ -3,7 +3,6 @@ import { ToastrService, UsersService } from '@metad/cloud/state'
 import { IUser, RolesEnum } from '@metad/contracts'
 import { NgmConfirmDeleteService, NgmSearchComponent } from '@metad/ocap-angular/common'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
-import { MtxCheckboxGroupModule } from '@ng-matero/extensions/checkbox-group'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'
@@ -15,6 +14,7 @@ import { CommonModule } from '@angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { RouterModule } from '@angular/router'
 import { CdkMenuModule } from '@angular/cdk/menu'
+import { ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -27,8 +27,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     TranslateModule,
     RouterModule,
     CdkMenuModule,
-    // Standard components
-    MtxCheckboxGroupModule,
+    ZardCheckboxComponent,
     // OCAP Modules
     OcapCoreModule,
     UserProfileInlineComponent,
@@ -57,6 +56,16 @@ export class ManageUserComponent extends TranslationBaseComponent {
   }
   set search(value) {
     this.search$.next(value)
+  }
+
+  onRoleChange(role: string, checked: boolean) {
+    const roles = new Set(this.roles ?? [])
+    if (checked) {
+      roles.add(role)
+    } else {
+      roles.delete(role)
+    }
+    this.roles = [...roles]
   }
 
   private refresh$ = new BehaviorSubject<void>(null)

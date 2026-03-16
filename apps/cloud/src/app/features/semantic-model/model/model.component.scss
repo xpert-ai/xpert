@@ -1,7 +1,7 @@
 
 
-@use 'libs/material-theme/src/styles/material/token-utils-compat' as token-utils;
-@use '@angular/material/core/style/sass-utils';
+@use 'libs/material-theme/src/styles/token-utils' as token-utils;
+@use 'libs/material-theme/src/styles/sass-utils';
 @reference "../../../../styles/tailwind-reference.css";
 // The prefix used to generate the fully qualified name for tokens in this file.
 $prefix: (ngm, model);
@@ -61,7 +61,7 @@ $prefix: (ngm, model);
     @apply flex overflow-hidden;
   }
   .pac-model__shell-bar {
-    --mat-icon-color: theme('colors.gray.500');
+    color: theme('colors.gray.500');
     background-color: var(#{token-utils.get-token-variable(toolbar-background-color)});
   }
   .pac-model-content {
@@ -71,7 +71,7 @@ $prefix: (ngm, model);
 
 :host ::ng-deep {
   .pac-model__shell-bar {
-    --mat-icon-color: theme('colors.gray.500');
+    color: theme('colors.gray.500');
   }
 
   z-drawer-container ngm-splitter {

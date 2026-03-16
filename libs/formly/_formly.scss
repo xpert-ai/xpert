@@ -22,12 +22,6 @@
   .ngm-formly-chart-type__panel {
     @apply mt-2;
   }
-
-  &.mat-mdc-select-panel-above {
-    .ngm-formly-chart-type__panel {
-      @apply mb-2;
-    }
-  }
 }
 
 .ngm-dialog-container.pac-formly__table {
@@ -51,10 +45,7 @@
 /* 为 pac-formly-select 扩大一些 select panel 组件高度 */
 .ngm-select__autocomplete-panel,
 .ngm-select-panel {
-  &.mat-mdc-autocomplete-panel,
-  &.ngm-select-panel {
-    max-height: 450px;
-  }
+  max-height: 450px;
 }
 
 .ngm-formly__row {
@@ -95,7 +86,8 @@
   @apply my-2;
 }
 
-.pac-formly-mat-toggle {
+.ngm-formly-toggle,
+.pac-formly-toggle {
   display: flex;
   z-switch,
   .z-switch {
@@ -114,14 +106,10 @@
 }
 
 .ngm-formly__select-option {
-  .mat-option-text {
+  .ngm-display-behaviour {
     display: inline-flex;
-    align-items: center;
-    .ngm-display-behaviour {
-      display: inline-flex;
-      flex: 1;
-      max-width: 100%;
-    }
+    flex: 1;
+    max-width: 100%;
   }
 
   &.ngm-formly__with-icon {
@@ -139,8 +127,8 @@ formly-group {
   max-width: 100%;
 }
 
-.mat-mdc-menu-panel.ngm-formly {
-  .mat-menu-item {
+[z-menu-content].ngm-formly {
+  [z-menu-item] {
     z-radio {
       max-width: 100%;
       width: 100%;

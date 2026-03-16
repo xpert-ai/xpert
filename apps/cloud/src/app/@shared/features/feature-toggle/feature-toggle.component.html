@@ -1,6 +1,6 @@
 <z-accordion>
   @for (feature of features$ | async; track feature.code) {
-    <z-accordion-item hideToggle class="mat-elevation-z group/item rounded-[1rem]" [disabled]="!enabledFeature(feature)">
+    <z-accordion-item hideToggle class="shadow-sm group/item rounded-[1rem]" [disabled]="!enabledFeature(feature)">
       <z-accordion-header>
         <z-accordion-title>
           <span>

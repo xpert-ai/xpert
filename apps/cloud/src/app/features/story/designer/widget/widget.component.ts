@@ -10,13 +10,12 @@ import {
   ReactiveFormsModule
 } from '@angular/forms'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { MtxColorpickerModule } from '@ng-matero/extensions/colorpicker'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ComponentStyling } from '@metad/story/core'
 import { debounceTime, distinctUntilChanged, firstValueFrom, map } from 'rxjs'
 import { IScreenshot, ScreenshotService, ToastrService, listAnimation } from '../../../../@core'
-import { MaterialModule } from '../../../../@shared/material.module'
+import { SharedUiModule } from '../../../../@shared/ui.module'
 import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { ColorInputComponent } from '../color-input/color-input.component'
 import { ImageUploadComponent } from '../image-upload/image-upload.component'
@@ -32,11 +31,10 @@ import { DesignerTextComponent } from '../text/text.component'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     FormlyModule,
     ClipboardModule,
     ButtonGroupDirective,
-    MtxColorpickerModule,
     AppearanceDirective,
     DensityDirective,
     NgmSliderInputComponent,

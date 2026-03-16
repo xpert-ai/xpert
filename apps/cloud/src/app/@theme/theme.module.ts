@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { MaterialModule } from '../@shared/material.module'
+import { SharedUiModule } from '../@shared/ui.module'
 import { SidenavNavigatorComponent } from './header'
 import { OrganizationSelectorComponent } from './header/organization-selector/organization-selector.component'
 
@@ -12,7 +12,7 @@ import { OrganizationSelectorComponent } from './header/organization-selector/or
 @NgModule({
   imports: [
     CommonModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     DensityDirective,
     SidenavNavigatorComponent,

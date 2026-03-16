@@ -26,7 +26,7 @@ import { SemanticModelService } from '../model.service'
 import { CdkDragDropContainers, SemanticModelEntityType } from '../types'
 import { VirtualCubeStateService } from './virtual-cube.service'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 
 @Component({
   standalone: true,
@@ -37,7 +37,7 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
   imports: [
     CommonModule,
     SharedModule,
-    MaterialModule,
+    SharedUiModule,
     ...ZardAccordionImports,
     NgmSelectComponent,
 

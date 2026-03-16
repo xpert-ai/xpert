@@ -11,7 +11,7 @@ import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/op
 import { AbilityActions, getDateLocale } from '../../../@core'
 import { IndicatorTypeComponent } from '../../../@shared/indicator'
 import { NgmSelectionModule } from '@metad/ocap-angular/selection'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { TagViewerComponent } from '../../../@shared/tag'
 import { CreatedByPipe } from '../../../@shared/pipes'
 
@@ -20,7 +20,7 @@ import { CreatedByPipe } from '../../../@shared/pipes'
   imports: [
     RouterModule,
     FormsModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     CreatedByPipe,
     NgmSelectionModule,

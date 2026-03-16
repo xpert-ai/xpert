@@ -46,14 +46,14 @@ import {
 import { effectStoryTheme, registerStoryThemes } from '../../../@theme'
 import { AppService } from '../../../app.service'
 import { StoryScales, downloadStory } from '../types'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { TranslationBaseComponent } from '../../../@shared/language'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
-    MaterialModule,
+    SharedUiModule,
     DragDropModule,
     CdkMenuModule,
     TranslateModule,

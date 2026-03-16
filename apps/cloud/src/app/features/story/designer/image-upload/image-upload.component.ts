@@ -6,11 +6,11 @@ import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IScreenshot, ScreenshotService } from 'apps/cloud/src/app/@core'
 import { firstValueFrom } from 'rxjs'
-import { MaterialModule } from '../../../../@shared/material.module'
+import { SharedUiModule } from '../../../../@shared/ui.module'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, TranslateModule, MaterialModule, AppearanceDirective],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, SharedUiModule, AppearanceDirective],
   // changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-image-upload',
   templateUrl: './image-upload.component.html',

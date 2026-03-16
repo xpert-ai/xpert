@@ -23,7 +23,7 @@
   <z-accordion-item
     #expansion="zAccordionItem"
     hideToggle
-    class="mat-elevation-z rounded-[1rem]"
+    class="shadow-sm rounded-[1rem]"
     [disabled]="!primary()?.enabled"
     [expanded]="!!primary()?.enabled"
   >
@@ -74,7 +74,7 @@
   </z-accordion-item>
 
   @for (copilot of copilots(); track copilot.id) {
-    <z-accordion-item #expansion="zAccordionItem" hideToggle class="mat-elevation-z rounded-[1rem]" [disabled]="!copilot.enabled">
+    <z-accordion-item #expansion="zAccordionItem" hideToggle class="shadow-sm rounded-[1rem]" [disabled]="!copilot.enabled">
       <z-accordion-header>
         <z-accordion-title>
           <div [zTooltip]="copilot.id" zPosition="left" class="flex">

@@ -1,6 +1,5 @@
 import { FormsModule } from '@angular/forms'
 
-import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { Meta, moduleMetadata } from '@storybook/angular'
 import { OcapCoreModule } from '../core.module'
 import { ButtonGroupDirective } from './button-group.directive'
@@ -9,6 +8,7 @@ import {
   ZardChipComponent,
   ZardChipSetComponent,
   ZardIconComponent,
+  ZardSwitchComponent,
   ZardToggleGroupComponent,
   ZardToggleGroupItemComponent
 } from '@xpert-ai/headless-ui'
@@ -27,7 +27,7 @@ export default {
         ZardChipSetComponent,
         ZardToggleGroupComponent,
         ZardToggleGroupItemComponent,
-        MatSlideToggleModule,
+        ZardSwitchComponent,
         ButtonGroupDirective,
       ],
       providers: []
@@ -38,7 +38,7 @@ export default {
 export const Primary = {
   render: (args: ButtonGroupDirective) => ({
     template: `
-    <mat-slide-toggle>Slide me!</mat-slide-toggle>
+    <z-switch>Slide me!</z-switch>
   
   <div >
   <div >

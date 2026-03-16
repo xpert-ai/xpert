@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { PacMenuComponent } from '@metad/cloud/auth'
-import { NgmFormlyModule, provideFormly, provideFormlyMaterial } from '@metad/formly'
+import { NgmFormlyModule, provideFormly, provideFormlyUi } from '@metad/formly'
 import { registerEChartsThemes } from '@metad/material-theme'
 import { NgmDrawerContentComponent, NgmDrawerTriggerComponent, NgmTableComponent, ResizerModule } from '@metad/ocap-angular/common'
 import { NgmCopilotContextService, NgmCopilotContextToken, NgmCopilotEngineService, NgmCopilotService } from '@metad/copilot-angular'
@@ -83,7 +83,7 @@ registerEChartsThemes()
     // NgmDSCacheService,
     provideLogger(),
     provideFormly(),
-    provideFormlyMaterial(),
+    provideFormlyUi(),
     {
       provide: NGM_WASM_AGENT_WORKER,
       useValue: '/assets/ocap-agent-data-init.worker.js'

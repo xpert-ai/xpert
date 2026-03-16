@@ -1,6 +1,6 @@
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 @use './dimension/dimension-theme' as dimension;
 
 
@@ -24,13 +24,9 @@
       justify-content: flex-end;
     }
 
-    .mat-mdc-list-base .mat-mdc-list-item.mat-mdc-list-item-with-avatar,
-    .mat-mdc-list-base .mat-mdc-list-option.mat-mdc-list-item-with-avatar {
+    .ngm-list-item {
       height: 36px;
       font-size: 1rem;
-    }
-
-    .mat-mdc-list-text {
       white-space: nowrap;
       text-overflow: ellipsis;
       overflow: hidden;

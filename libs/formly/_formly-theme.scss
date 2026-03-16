@@ -1,6 +1,6 @@
 @use 'sass:map';
-@use '@angular/material' as mat;
-@use './mat-table/table-theme' as table-theme;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
+@use './table/table-theme' as table-theme;
 @reference "../../../tailwind-workspace-reference.css";
 @mixin removeable($foreground) {
   border: 1px dashed transparent;
@@ -38,49 +38,10 @@
 
   /* for angular formly components */
   formly-form {
-    formly-wrapper-mat-form-field {
-      flex: 1;
-      max-width: 100%;
-    }
-    .mat-form-field-appearance-standard .mat-form-field-flex {
-      padding-top: unset;
-    }
-
     .pac-formly-select {
       position: relative;
       max-width: 100%;
       flex: 1;
-    }
-  }
-
-  .mat-select-panel.ngm-formly__background-color-panel {
-    display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
-    grid-template-rows: 1fr 1fr 1fr;
-    gap: 0px 0px;
-    grid-template-areas:
-      '. . .'
-      '. . .'
-      '. . .';
-
-    .mat-option {
-      width: 6em;
-      height: 6em;
-      padding: 0;
-      .mat-option-text {
-        height: 100%;
-      }
-      .ngm-color {
-        display: block;
-        width: 100%;
-        height: 100%;
-        border-radius: 3em;
-        line-height: 6em;
-        text-align: center;
-      }
-      .ngm-color.ngm-color__null {
-        border: 1px dashed mat.m2-get-color-from-palette($foreground, divider);
-      }
     }
   }
 }
@@ -97,7 +58,7 @@
     }
   }
 
-  pac-formly-field-mat-slider {
+  pac-formly-slider {
     // slider-density 官方还没实现
     @include mat.slider-density(-1);
     .mdc-slider {

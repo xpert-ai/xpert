@@ -1,5 +1,5 @@
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 @use './entity-schema/entity-schema-theme' as entity-schema;
 
 @mixin color($config-or-theme) {

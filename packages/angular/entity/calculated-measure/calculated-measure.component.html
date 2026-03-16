@@ -110,7 +110,7 @@
             <ngm-search class="m-2" [formControl]="fnSearchControl" />
             <z-accordion id="ngm-calculated-functions" cdkDropList [cdkDropListData]="FUNCTIONS">
               @for (f of functions$ | async; track f) {
-                <z-accordion-item hideToggle class="mat-elevation-z bg-transparent">
+                <z-accordion-item hideToggle class="shadow-sm bg-transparent">
                   <z-accordion-header>
                     <z-accordion-title cdkDrag [cdkDragData]="f.insertText">
                       <span

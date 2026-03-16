@@ -1,9 +1,9 @@
 import { CommonModule } from '@angular/common'
 import { Component, Input, NgModule } from '@angular/core'
 import { FormGroup, ReactiveFormsModule } from '@angular/forms'
+import { NgmFormlyModule } from '@metad/formly'
 
 import { FormlyFormOptions, FormlyModule } from '@ngx-formly/core'
-import { FormlyMaterialModule } from '@ngx-formly/material'
 import { PACFormlyArrayModule } from '../array'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
@@ -43,7 +43,7 @@ export class NxFormlyFormPannelComponent {
     CommonModule,
     ReactiveFormsModule,
     FormlyModule,
-    FormlyMaterialModule,
+    NgmFormlyModule,
     ZardButtonComponent,
     PACFormlyArrayModule
   ],

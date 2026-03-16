@@ -28,11 +28,10 @@ import { RoleStateService } from './role.service'
       .pac-model-access__cubes {
         overflow-y: auto;
       }
-      .mat-mdc-list {
+      .ngm-list {
         margin: 0 5px;
       }
-      .mdc-list-item {
-        --mdc-list-list-item-container-shape: 5px;
+      .ngm-list > li {
         &:hover {
           background-color: var(--ngm-color-primary-container-variant);
         }

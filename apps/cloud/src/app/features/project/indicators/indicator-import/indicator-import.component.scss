@@ -7,7 +7,7 @@
   max-height: 90vh;
 }
 
-.mat-mdc-nav-list .mat-mdc-list-item {
+.ngm-nav-list > li {
   @apply text-white rounded-lg duration-300;
 
   &.active {

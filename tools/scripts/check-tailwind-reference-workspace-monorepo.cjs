@@ -10,7 +10,7 @@ const globalChainReferenceFiles = new Set([
   'libs/apps/indicator-market/src/lib/_indicator-market-theme.scss',
   'libs/formly/_formly-theme.scss',
   'libs/formly/_formly.scss',
-  'libs/formly/mat-table/_table-theme.scss',
+  'libs/formly/table/_table-theme.scss',
   'libs/story-angular/src/lib/explorer/_explorer.component.scss',
   'libs/story-angular/widgets/_widgets-theme.scss',
   'packages/angular/analytical-grid/_analytical-grid.component.scss',
@@ -20,13 +20,11 @@ const globalChainReferenceFiles = new Set([
   'packages/angular/common/table/_table-theme.scss',
   'packages/angular/controls/member-list/_member-list-theme.scss',
   'packages/angular/core/directives/_appearance.scss',
-  'packages/angular/core/style/_mat-list-theme.scss',
   'packages/angular/core/style/card.scss',
   'packages/angular/core/style/cdk-dialog.scss',
   'packages/angular/core/style/common.scss',
   'packages/angular/core/style/input.scss',
   'packages/angular/core/style/list.scss',
-  'packages/angular/core/style/mat-autocomplete.scss',
   'packages/angular/core/style/mat-radio-group.scss',
   'packages/angular/core/style/menu.scss'
 ])

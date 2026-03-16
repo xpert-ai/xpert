@@ -44,33 +44,8 @@
             "
             [(ngModel)]="prompt"
             [disabled]="answering() || !cube()"
-            (keydown)="triggerFun($event, autoPrompts)"
-            [matAutocomplete]="autoPrompts"
-            matAutocompletePosition="above"
+            (keydown)="triggerFun($event)"
           />
-
-          <mat-autocomplete
-            #autoPrompts="matAutocomplete"
-            class="ngm-copilot-chat__autocomplete-panel ngm-autocomplete-panel ngm-density__cosy"
-            autoActiveFirstOption
-            hideSingleSelectionIndicator
-            (opened)="suggestionsOpened$.next(true)"
-            (closed)="suggestionsOpened$.next(false)"
-          >
-            @for (command of prompts(); track command.prompt) {
-              <mat-option [value]="'/' + command.name + ' ' + (command.example || '')" [title]="command.description">
-                <span class="ngm-copilot-chat__command-tag text-xs font-medium me-2 px-1 mr-1 rounded"
-                  >/{{ command.name }}</span
-                >
-                @if (command.alias) {
-                  <span class="ngm-copilot-chat__command-tag text-xs font-medium me-2 px-1 mr-1 rounded"
-                    >/{{ command.alias }}</span
-                  >
-                }
-                <span class="ml-auto opacity-50">{{ command.description }}</span>
-              </mat-option>
-            }
-          </mat-autocomplete>
 
           <div class="grid grid-flow-col items-center">
             @if (answering()) {

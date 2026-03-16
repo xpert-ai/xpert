@@ -24,7 +24,7 @@ import { KnowledgebaseListComponent, ToolsetListComponent } from '../../../../@s
 import { XpertRolesComponent } from '../roles/roles.component'
 import { UpsertEntityComponent } from 'apps/cloud/src/app/@shared/common'
 import { AvatarEditorComponent } from 'apps/cloud/src/app/@shared/files'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 @Component({
@@ -35,7 +35,7 @@ import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
   imports: [
     RouterModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     CdkListboxModule,
     FormsModule,
     ReactiveFormsModule,

@@ -4,8 +4,6 @@ import { PortalModule } from '@angular/cdk/portal'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-
-import { MatDialogModule } from '@angular/material/dialog'
 import {
   ZardAccordionImports,
   ZardButtonComponent,
@@ -18,15 +16,13 @@ import {
   ZardDialogModule,
   ZardTabsImports,
   ZardCheckboxComponent,
+  ZardProgressBarComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { MatListModule } from '@angular/material/list'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
 
-const MAT_MODULES = [
+const SHARED_IMPORTS = [
   ZardIconComponent,
   ZardButtonComponent,
-  MatListModule,
   ...ZardTabsImports,
   ...ZardFormImports,
   ZardInputDirective,
@@ -35,7 +31,7 @@ const MAT_MODULES = [
   ...ZardTableImports,
   ZardCheckboxComponent,
   ...ZardTooltipImports,
-  MatProgressBarModule,
+  ZardProgressBarComponent,
   DragDropModule,
   PortalModule,
   LayoutModule,
@@ -44,7 +40,7 @@ const MAT_MODULES = [
 ]
 @NgModule({
   declarations: [],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ...MAT_MODULES],
-  exports: [CommonModule, FormsModule, ReactiveFormsModule, ...MAT_MODULES]
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ...SHARED_IMPORTS],
+  exports: [CommonModule, FormsModule, ReactiveFormsModule, ...SHARED_IMPORTS]
 })
 export class NxStorySharedModule {}

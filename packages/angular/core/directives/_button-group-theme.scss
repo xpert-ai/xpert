@@ -1,4 +1,4 @@
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 
 
 @mixin color($config-or-theme) {
@@ -17,25 +17,6 @@
     [z-button]:not([data-icon-only]):not([data-z-size='icon']):not([data-z-size='icon-xs']):not([data-z-size='icon-sm']):not([data-z-size='icon-lg']),
     z-button:not([data-icon-only]):not([data-z-size='icon']):not([data-z-size='icon-xs']):not([data-z-size='icon-sm']):not([data-z-size='icon-lg']) {
       border-radius: 1.5rem;
-    }
-
-    .mat-form-field {
-      margin-bottom: -1.34375em;
-    }
-
-    .mat-form-field.mat-form-field-appearance-outline.mat-form-field-can-float.mat-form-field-has-label {
-      .mat-form-field-outline-start {
-        min-width: 15px;
-        border-radius: 15px 0 0 15px;
-      }
-
-      .mat-form-field-outline-end {
-        border-radius: 0 15px 15px 0;
-      }
-
-      .mat-form-field-label {
-        margin-left: 10px;
-      }
     }
   }
 

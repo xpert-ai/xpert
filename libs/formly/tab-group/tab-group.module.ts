@@ -28,4 +28,4 @@ import { ZardIconComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
   declarations: [FormlyTabGroupComponent],
   providers: []
 })
-export class FormlyMatTabGroupModule {}
+export class FormlyTabGroupModule {}

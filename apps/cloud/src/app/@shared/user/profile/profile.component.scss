@@ -1,6 +1,6 @@
 
 
-@use 'libs/material-theme/src/styles/material/token-utils-compat' as token-utils;
+@use 'libs/material-theme/src/styles/token-utils' as token-utils;
 @reference "../../../../styles/tailwind-reference.css";
 $global-prefix: ngm;
 $prefix: (ngm, color);

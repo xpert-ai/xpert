@@ -4,7 +4,7 @@
     min-height: 38px;
   }
 
-  .mat-mdc-header-cell.mat-mdc-table-sticky {
+  th[z-table-head].sticky {
     @apply bg-slate-50 dark:bg-neutral-800;
   }
 }

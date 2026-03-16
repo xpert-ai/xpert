@@ -21,7 +21,7 @@ import {
 } from 'rxjs'
 import { EditBusinessAreaComponent } from '../business-area/business-area.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { userLabel } from 'apps/cloud/src/app/@shared/pipes'
 import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 import { Dialog } from '@angular/cdk/dialog'
@@ -33,7 +33,7 @@ import { Dialog } from '@angular/cdk/dialog'
   styleUrls: ['./area-users.component.scss'],
   imports: [
     CommonModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     UserProfileInlineComponent,
     NgmSearchComponent,

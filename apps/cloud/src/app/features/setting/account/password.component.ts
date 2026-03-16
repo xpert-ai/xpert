@@ -73,14 +73,6 @@ import { UserFormsModule } from '../../../@shared/user/forms'
         </button>
       </div>
     </form>`,
-  styles: [`
-    // Hide Material Design's default required marker (gray asterisk after label)
-    // We use our own red asterisk before the label instead
-    ::ng-deep .mat-form-field-required-marker,
-    ::ng-deep .mat-mdc-form-field-required-marker {
-      display: none !important;
-    }
-  `]
 })
 export class PACAccountPasswordComponent {
   user: User

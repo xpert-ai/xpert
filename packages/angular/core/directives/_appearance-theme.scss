@@ -1,31 +1,6 @@
 @use 'sass:color';
 @use 'sass:map';
-@use '@angular/material' as mat;
-
-@mixin _theme-outline($theme, $border) {
-  $primary: map.get($theme, primary);
-  $accent: map.get($theme, accent);
-  $warn: map.get($theme, warn);
-  $foreground: map.get($theme, foreground);
-  
-  border: 1px #{$border} mat.m2-get-color-from-palette($foreground, divider);
-
-  &.mat-primary {
-    border-color: mat.m2-get-color-from-palette($primary, 100);
-    background-color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.1);
-    color: mat.m2-get-color-from-palette($primary);
-  }
-  &.mat-accent {
-    border-color: mat.m2-get-color-from-palette($accent, 100);
-    background-color: color.change(mat.m2-get-color-from-palette($accent), $alpha: 0.1);
-    color: mat.m2-get-color-from-palette($accent);
-  }
-  &.mat-warn {
-    border-color: mat.m2-get-color-from-palette($warn, 100);
-    background-color: color.change(mat.m2-get-color-from-palette($warn), $alpha: 0.1);
-    color: mat.m2-get-color-from-palette($warn);
-  }
-}
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 
 @mixin _legacy-button-color($name, $palette) {
   [z-button][data-color='#{$name}'][data-z-type='default'],
@@ -96,7 +71,9 @@
   [z-button],
   z-button,
   .cdk-menu-item,
-  .mat-mdc-option {
+  [z-menu-item],
+  [role='option'],
+  .ngm-tree-select__option {
     &.ngm-appearance-dashed {
       border: 1px dashed mat.m2-get-color-from-palette($foreground, divider);
     }
@@ -105,21 +82,26 @@
   [z-button]:not([disabled]):not([data-disabled]),
   z-button:not([disabled]):not([data-disabled]),
   .cdk-menu-item,
-  .mat-mdc-option {
+  [z-menu-item],
+  [role='option'],
+  .ngm-tree-select__option {
     &.ngm-appearance-dashed:hover,
     &.ngm-appearance-dashed:focus {
       border-color: #738187;
     }
   }
 
-  .mat-mdc-divider.ngm-appearance-dashed {
+  z-divider.ngm-appearance-dashed,
+  [data-slot='divider'].ngm-appearance-dashed {
     border-top-style: dashed;
   }
 
   [z-button],
   z-button,
   .cdk-menu-item,
-  .mat-mdc-option {
+  [z-menu-item],
+  [role='option'],
+  .ngm-tree-select__option {
     &.ngm-appearance-danger:hover {
       color: mat.m2-get-color-from-palette($warn);
     }

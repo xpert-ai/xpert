@@ -3,7 +3,6 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Component, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MatListModule } from '@angular/material/list'
 import { ButtonGroupDirective, NgmThemeService, ThemesEnum } from '@metad/ocap-angular/core'
 import { EditorThemeMap } from '@metad/ocap-angular/formula'
 import { TranslateModule } from '@ngx-translate/core'
@@ -17,7 +16,6 @@ import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardIconComponent 
     DragDropModule,
     TranslateModule,
     ZardDialogModule,
-    MatListModule,
     ZardButtonComponent,
     ZardIconComponent,
     MonacoEditorModule,

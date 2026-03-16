@@ -76,8 +76,16 @@
                 <pac-user-profile-inline [user]="element.user"></pac-user-profile-inline>
               </td>
               <td z-table-cell>
-                <mtx-checkbox-group [items]="userRoles.roles" [ngModel]="element.roles"
-                (ngModelChange)="onRolesChange($event, element.user)"></mtx-checkbox-group>
+                <div class="flex flex-wrap items-center gap-4">
+                  @for (role of userRoles.roles; track role) {
+                    <z-checkbox
+                      [ngModel]="hasRole(element.roles, role)"
+                      (ngModelChange)="toggleRole($event, role, element.user, element.roles)"
+                    >
+                      {{ role }}
+                    </z-checkbox>
+                  }
+                </div>
               </td>
               <td z-table-cell class="w-20">
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="removeUser(element.user.id)">

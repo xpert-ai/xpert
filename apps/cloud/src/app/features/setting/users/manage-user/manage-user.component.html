@@ -3,7 +3,16 @@
 
   <div class="flex justify-start items-center gap-4">
     <label class="shrink-0 whitespace-nowrap">{{ 'PAC.KEY_WORDS.Role' | translate: {Default: 'Role'} }}:</label>
-    <mtx-checkbox-group [items]="ROLES" [(ngModel)]="roles" />
+    <div class="flex flex-wrap items-center gap-4">
+      @for (role of ROLES; track role) {
+        <z-checkbox
+          [ngModel]="roles.includes(role)"
+          (ngModelChange)="onRoleChange(role, $event)"
+        >
+          {{ role }}
+        </z-checkbox>
+      }
+    </div>
   </div>
 </div>
 

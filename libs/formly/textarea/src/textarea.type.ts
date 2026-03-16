@@ -1,8 +1,7 @@
-import { Component, ChangeDetectionStrategy, Type } from '@angular/core';
-import { FieldTypeConfig, FormlyFieldConfig } from '@ngx-formly/core';
-import { FieldType, FormlyFieldProps } from '@ngx-formly/material/form-field';
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
+import { ChangeDetectionStrategy, Component, Type } from '@angular/core';
 import { EntitySchemaType } from '@metad/ocap-angular/entity';
+import { FieldType, FieldTypeConfig, FormlyFieldConfig, FormlyFieldProps } from '@ngx-formly/core';
 
 interface TextAreaProps extends FormlyFieldProps {
   autosize?: boolean;
@@ -26,7 +25,7 @@ export interface FormlyTextAreaFieldConfig extends FormlyFieldConfig<TextAreaPro
   z-input
   [id]="id"
   [readonly]="props.readonly"
-  [required]="required"
+  [required]="props.required"
   [formControl]="formControl"
   [cols]="props.cols"
   [rows]="props.rows"

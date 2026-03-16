@@ -1,4 +1,4 @@
-// export * from './material.module'
+// export * from './ui.module'
 // export * from './pipes/index'
 // export * from './shared.module'
 // export * from './user/index'

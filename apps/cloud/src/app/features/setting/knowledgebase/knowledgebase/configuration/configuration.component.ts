@@ -18,7 +18,7 @@ import {
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { EmojiAvatarComponent } from "../../../../../@shared/avatar/emoji-avatar/avatar.component";
 import { PACCopilotService } from '../../../../services'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
@@ -34,7 +34,7 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
     RouterModule,
     ReactiveFormsModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     NgmCommonModule,
     EmojiAvatarComponent,
     CopilotModelSelectComponent

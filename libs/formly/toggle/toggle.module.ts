@@ -21,4 +21,4 @@ import { NgmFormlyToggleComponent } from './toggle.type'
     })
   ]
 })
-export class NgmFormlyMatToggleModule {}
+export class NgmFormlyToggleModule {}

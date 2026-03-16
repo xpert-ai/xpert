@@ -29,49 +29,55 @@
 @if (active && editable) {
   <div class="ngm-responsive__fab-menu" [ngClass]="{rightSide: rightSide}"
     fxLayout="column" fxLayoutAlign="space-around center" fxLayoutGap="0.25rem">
-    <button z-button zType="default" zSize="icon-sm" zShape="circle" [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
+    <button z-button zType="default" zSize="icon-sm" zShape="circle" z-menu [zMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
       <z-icon zType="menu"></z-icon>
     </button>
   </div>
 }
 
-<mat-menu #menu="matMenu" class="ngm-density__compact">
-  <button mat-menu-item [matMenuTriggerFor]="laneMenu">
-    <z-icon  zType="add"></z-icon> Add lane
-  </button>
+<ng-template #menu>
+  <div z-menu-content class="ngm-density__compact">
+    <button type="button" z-menu-item z-menu [zMenuTriggerFor]="laneMenu">
+      <z-icon zType="add"></z-icon> Add lane
+    </button>
 
-  <button mat-menu-item [matMenuTriggerFor]="swapMenu">
-    <z-icon [zType]="parentDirection === 'row' ? 'swap_horiz' : 'swap_vert'"></z-icon>Swap
-  </button>
+    <button type="button" z-menu-item z-menu [zMenuTriggerFor]="swapMenu">
+      <z-icon [zType]="parentDirection === 'row' ? 'swap_horiz' : 'swap_vert'"></z-icon>Swap
+    </button>
 
-  <button mat-menu-item color="warn" class="ngm-button--warn" (click)="removeMyself()">
-    <z-icon color="warn" zType="delete_forever"></z-icon>
-    <span>Delete</span>
-  </button>
-</mat-menu>
+    <button type="button" z-menu-item class="ngm-button--warn" (click)="removeMyself()">
+      <z-icon color="warn" zType="delete_forever"></z-icon>
+      <span>Delete</span>
+    </button>
+  </div>
+</ng-template>
 
-<mat-menu #laneMenu="matMenu" class="ngm-density__compact">
-  <button mat-menu-item (click)="addLaneLeft()">
-    Add lane to left
-  </button>
-  <button mat-menu-item (click)="addLaneRight()">
-    Add lane to right
-  </button>
-  <button mat-menu-item (click)="addLaneAbove()">
-    Add lane to above
-  </button>
-  <button mat-menu-item (click)="addLaneBelow()">
-    Add lane to below
-  </button>
-</mat-menu>
+<ng-template #laneMenu>
+  <div z-menu-content class="ngm-density__compact">
+    <button type="button" z-menu-item (click)="addLaneLeft()">
+      Add lane to left
+    </button>
+    <button type="button" z-menu-item (click)="addLaneRight()">
+      Add lane to right
+    </button>
+    <button type="button" z-menu-item (click)="addLaneAbove()">
+      Add lane to above
+    </button>
+    <button type="button" z-menu-item (click)="addLaneBelow()">
+      Add lane to below
+    </button>
+  </div>
+</ng-template>
 
-<mat-menu #swapMenu="matMenu" class="ngm-density__compact">
-  <button mat-menu-item (click)="swapWithPrev()">
-    <z-icon [zType]="parentDirection === 'row' ? 'arrow_back' : 'arrow_upward'"></z-icon>
-    With Prev
-  </button>
-  <button mat-menu-item (click)="swapWithNext()">
-    <z-icon [zType]="parentDirection === 'row' ? 'arrow_forward' : 'arrow_downward'"></z-icon>
-    With Next
-  </button>
-</mat-menu>
+<ng-template #swapMenu>
+  <div z-menu-content class="ngm-density__compact">
+    <button type="button" z-menu-item (click)="swapWithPrev()">
+      <z-icon [zType]="parentDirection === 'row' ? 'arrow_back' : 'arrow_upward'"></z-icon>
+      With Prev
+    </button>
+    <button type="button" z-menu-item (click)="swapWithNext()">
+      <z-icon [zType]="parentDirection === 'row' ? 'arrow_forward' : 'arrow_downward'"></z-icon>
+      With Next
+    </button>
+  </div>
+</ng-template>

@@ -94,6 +94,21 @@ export class AccessOverviewComponent {
     this.accessControlState.changeUserRoles({ user, roles: event })
   }
 
+  hasRole(roles: string[], role: string) {
+    return roles?.includes(role)
+  }
+
+  toggleRole(checked: boolean, role: string, user: IUser, roles: string[]) {
+    const nextRoles = new Set(roles ?? [])
+    if (checked) {
+      nextRoles.add(role)
+    } else {
+      nextRoles.delete(role)
+    }
+
+    this.onRolesChange([...nextRoles], user)
+  }
+
   removeUser(id: string) {
     this.accessControlState.removeUser(id)
   }

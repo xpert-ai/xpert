@@ -6,11 +6,11 @@ import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { DisplayDensity, OcapCoreModule } from '@metad/ocap-angular/core'
 import { DisplayBehaviour, TreeNodeInterface } from '@metad/ocap-core'
 import { Meta, StoryObj, moduleMetadata } from '@storybook/angular'
-import { NgmMatSelectComponent } from './select.component'
+import { NgmAdvancedSelectComponent } from './select.component'
 
 @Component({
   selector: 'test-select',
-  template: `<ngm-mat-select
+  template: `<ngm-advanced-select
     [label]="label"
     [placeholder]="'Please Select ' + label"
     [selectOptions]="selectOptions"
@@ -22,7 +22,7 @@ import { NgmMatSelectComponent } from './select.component'
     [formControl]="formControl"
     (ngModelChange)="onModelChange($event)"
   >
-  </ngm-mat-select> `
+  </ngm-advanced-select> `
 })
 class TestSelectComponent<T> implements OnChanges {
   @Input() caption: string
@@ -56,19 +56,19 @@ class TestSelectComponent<T> implements OnChanges {
   }
 }
 
-const meta: Meta<NgmMatSelectComponent> = {
+const meta: Meta<NgmAdvancedSelectComponent> = {
   title: 'Common/LegacySelect',
-  component: NgmMatSelectComponent,
+  component: NgmAdvancedSelectComponent,
   decorators: [
     moduleMetadata({
       imports: [CommonModule, BrowserAnimationsModule, FormsModule, ReactiveFormsModule, OcapCoreModule, ...ZardFormImports, ZardInputDirective],
       declarations: [TestSelectComponent]
     })
   ]
-} as Meta<NgmMatSelectComponent>
+} as Meta<NgmAdvancedSelectComponent>
 
 export default meta
-type Story = StoryObj<NgmMatSelectComponent>
+type Story = StoryObj<NgmAdvancedSelectComponent>
 
 const TREE_NODE_DATA = [
   {

@@ -333,12 +333,14 @@
   [class.ngm-colpilot__active]="isFoucs(userInput)"
   (click)="userInput.focus()"
 >
-  <mat-progress-bar
-    mode="buffer"
+  <z-progress-bar
+    zIndeterminate
+    zShape="square"
+    zSize="sm"
     [class.opacity-100]="answering()"
     class="opacity-0 top-0 left-0 w-full transition duration-300"
     style="position: absolute; z-index: 1"
-  ></mat-progress-bar>
+  ></z-progress-bar>
 
   <div class="relative flex flex-col m-1">
     @if (command() || context()) {
@@ -444,10 +446,11 @@
         (keydown)="onSelectCommand($event)"
       >
         @if (loadingContext$ | async) {
-          <mat-progress-bar
-            mode="query"
-            role="progressbar"
-            color="accent"
+          <z-progress-bar
+            zIndeterminate
+            zShape="square"
+            zSize="sm"
+            zType="accent"
             class="top-0 left-0 w-full"
             style="position: absolute; height: 2px"
           />
@@ -615,10 +618,11 @@
     <ngm-search class="mt-2" (click)="$event.stopPropagation()" [(ngModel)]="contextMenuSearch" />
 
     @if (loadingContext$ | async) {
-      <mat-progress-bar
-        mode="query"
-        role="progressbar"
-        color="accent"
+      <z-progress-bar
+        zIndeterminate
+        zShape="square"
+        zSize="sm"
+        zType="accent"
         class="top-0 left-0 w-full"
         style="position: absolute; height: 2px"
       />

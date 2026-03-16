@@ -1,9 +1,9 @@
+import { CdkListboxModule } from '@angular/cdk/listbox'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 
 import { Component, Inject } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MatListModule } from '@angular/material/list'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { LinkedAnalysisSettings, LinkedInteractionApplyTo } from '@metad/story/core'
@@ -14,12 +14,12 @@ import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardFormImports } 
   imports: [
     FormsModule,
     ReactiveFormsModule,
+    CdkListboxModule,
     DragDropModule,
     ZardDialogModule,
     ZardButtonComponent,
     ...ZardFormImports,
     ButtonGroupDirective,
-    MatListModule,
     TranslateModule
 ],
   selector: 'pac-story-linked-analysis',

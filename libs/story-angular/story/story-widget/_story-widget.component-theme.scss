@@ -1,5 +1,5 @@
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 
 
 @mixin ngm-story-widget($config-or-theme) {

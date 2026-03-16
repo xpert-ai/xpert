@@ -6,14 +6,15 @@
     </span>
   </div>
 
-  <mat-nav-list class="ngm-nav-list flex-1 overflow-auto">
+  <ul class="ngm-nav-list flex-1 overflow-auto">
     @for (menu of menus; track menu) {
-      <mat-list-item [class.active]="activeLink === menu.link"
-        (click)="onActive(menu)">
+      <li class="cursor-pointer rounded-lg px-3 py-2 duration-300 hover:bg-white/10" [class.active]="activeLink === menu.link"
+        (click)="onActive(menu)"
+        >
         <span >{{ menu.label }}</span>
-      </mat-list-item>
+      </li>
     }
-  </mat-nav-list>
+  </ul>
 
   <div class="flex justify-start">
     <div ngmButtonGroup>
@@ -22,7 +23,6 @@
       </button>
     </div>
   </div>
-
 </div>
 
 <div class="p-8 flex-1 h-full overflow-auto">

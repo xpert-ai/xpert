@@ -26,10 +26,10 @@ code {
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
 
-.mat-mdc-list.cdk-drop-list-dragging .mat-mdc-list-item:not(.cdk-drag-placeholder) {
+.ngm-list.cdk-drop-list-dragging > li:not(.cdk-drag-placeholder) {
   transition: transform 250ms cubic-bezier(0, 0, 0.2, 1);
 }
 
-.mat-mdc-list-item:hover {
+.ngm-list > li:hover {
   @apply rounded-lg bg-black/5 dark:bg-white/10;
 }

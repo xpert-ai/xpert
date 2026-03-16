@@ -7,14 +7,6 @@
   height: 100%;
 }
 
-.pac-model-hierarchy {
-  #pac-model-dimension__hierarchy-levels {
-    .mat-mdc-list-text {
-      padding: 0;
-    }
-  }
-}
-
 #pac-model-dimension__hierarchy-levels {
   .mdc-list-item.mdc-list-item--activated {
     @apply bg-black/10;

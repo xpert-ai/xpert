@@ -14,7 +14,7 @@ import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { CreationTable, getErrorMessage } from '../../../@core'
 import { UploadSheetType, WorkBook, convertExcelDate2ISO, readExcelJson } from '../types'
 import { FilesUploadComponent, UploadFile } from '../../../@shared/files'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { ZardProgressCircleComponent, ZardStepperImports } from '@xpert-ai/headless-ui'
 import { createTimer } from '../../../@shared/timer'
 
@@ -28,7 +28,7 @@ import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
     CommonModule,
     FormsModule,
     CdkMenuModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     ...ZardStepperImports,
     ZardProgressCircleComponent,

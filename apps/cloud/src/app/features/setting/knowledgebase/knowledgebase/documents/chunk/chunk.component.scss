@@ -1,7 +1,7 @@
 
 
-@use 'libs/material-theme/src/styles/material/token-utils-compat' as token-utils;
-@use '@angular/material/core/style/sass-utils';
+@use 'libs/material-theme/src/styles/token-utils' as token-utils;
+@use 'libs/material-theme/src/styles/sass-utils';
 @reference "../../../../../../../styles/tailwind-reference.css";
 $global-prefix: ngm;
 $prefix: (ngm, document-chunk);

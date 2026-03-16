@@ -1,5 +1,5 @@
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 @use 'libs/formly/formly-theme' as formly;
 @use 'libs/story-angular/responsive/responsive-theme' as responsive;
 @use 'libs/story-angular/story/story-theme' as story;

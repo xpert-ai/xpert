@@ -33,7 +33,7 @@
       searchable
     />
 
-    <ngm-mat-select
+    <ngm-advanced-select
       [appearance]="appearance"
       displayBehaviour="descriptionOnly"
       [label]="'PAC.INDICATOR.REGISTER.AUTHENTICATION' | translate: { Default: 'Authentication' }"
@@ -100,7 +100,7 @@
   </div>
 
   <div class="section grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3">
-    <ngm-mat-select
+    <ngm-advanced-select
       [appearance]="appearance"
       label="{{ 'PAC.INDICATOR.REGISTER.MODEL' | translate: { Default: 'Semantic Model' } }}"
       [selectOptions]="modelsOptions()"
@@ -109,7 +109,7 @@
       formControlName="modelId"
     />
 
-    <ngm-mat-select
+    <ngm-advanced-select
       [appearance]="appearance"
       label="{{ 'PAC.INDICATOR.REGISTER.ENTITY' | translate: { Default: 'Entity' } }}"
       placeholder="{{ 'PAC.INDICATOR.REGISTER.ENTITY_PLACEHOLDER' | translate: { Default: 'Select one Entity' } }}"
@@ -145,7 +145,7 @@
       [dimensions]="calendars$ | async"
     />
     @if (typeControl.value === IndicatorType.BASIC) {
-      <ngm-mat-select
+      <ngm-advanced-select
         class="col-span-2 sm:col-span-1"
         [appearance]="appearance"
         label="{{ 'PAC.INDICATOR.REGISTER.MEASURE' | translate: { Default: 'Measure' } }}"
@@ -193,7 +193,7 @@
     }
 
     @if (typeControl.value === IndicatorType.DERIVE && (syntax$ | async) === Syntax.SQL) {
-      <ngm-mat-select
+      <ngm-advanced-select
         [appearance]="appearance"
         [label]="'PAC.INDICATOR.REGISTER.Aggregator' | translate: { Default: 'Aggregator' }"
         placeholder="{{ 'PAC.INDICATOR.REGISTER.Aggregator' | translate: { Default: 'Aggregator' } }}"
@@ -202,7 +202,7 @@
       />
     }
 
-    <ngm-mat-select
+    <ngm-advanced-select
       class="col-span-2"
       [appearance]="appearance"
       label="{{ 'PAC.INDICATOR.REGISTER.DIMENSIONS' | translate: { Default: 'Free Dimensions' } }}"

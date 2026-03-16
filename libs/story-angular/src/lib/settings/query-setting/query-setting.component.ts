@@ -3,7 +3,6 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Component, HostBinding, OnInit } from '@angular/core'
 
 import { ZardButtonComponent, ZardDialogModule, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { MatListModule } from '@angular/material/list'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 
@@ -14,7 +13,6 @@ import { TranslateModule } from '@ngx-translate/core'
     ZardDialogModule,
     ZardButtonComponent,
     ZardIconComponent,
-    MatListModule,
     ZardDividerComponent,
     ...ZardTooltipImports,
     ...ZardFormImports,

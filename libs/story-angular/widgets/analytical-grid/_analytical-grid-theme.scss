@@ -1,22 +1,6 @@
-@use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 
 @mixin color($config-or-theme) {
-  $config: mat.m2-get-color-config($config-or-theme);
-  $background: map.get($config, background);
-  $foreground: map.get($config, foreground);
-
-  .ngm-analytical-grid {
-    // &.striped {
-    //   .mat-row:nth-child(even){
-    //     background-color: lighten(mat.m2-get-color-from-palette($background, hover), 50%);
-    //   }
-    // }
-
-    // .mat-table {
-    //   background: unset;
-    // }
-  }
 }
 
 @mixin typography($config-or-theme) {

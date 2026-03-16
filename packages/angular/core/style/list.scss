@@ -5,22 +5,6 @@
   }
 }
 
-.ngm-nav-list.mat-mdc-nav-list .mat-mdc-list-item {
-  @apply text-white rounded-lg duration-300;
-
-  &.active {
-    --mdc-list-list-item-label-text-color: theme('colors.slate.500');
-    --mdc-list-list-item-hover-label-text-color: theme('colors.slate.600');
-    @apply bg-slate-50;
-  }
-
-  &:hover {
-    .z-icon {
-      visibility: visible;
-    }
-  }
-}
-
 ul.ngm-nav-list {
   li.active {
     @apply font-semibold bg-white/90 text-primary-500;

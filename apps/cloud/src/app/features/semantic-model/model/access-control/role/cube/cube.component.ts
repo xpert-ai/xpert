@@ -1,7 +1,6 @@
 import { CdkDrag, CdkDragDrop } from '@angular/cdk/drag-drop'
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { MatButtonToggleChange } from '@angular/material/button-toggle'
 import { ActivatedRoute, Router } from '@angular/router'
 import { MDX } from '@metad/contracts'
 import { nonBlank } from '@metad/core'

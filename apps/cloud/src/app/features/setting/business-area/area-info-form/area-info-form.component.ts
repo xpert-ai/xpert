@@ -7,13 +7,13 @@ import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { EditBusinessAreaComponent } from '../business-area/business-area.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 
 @Component({
   standalone: true,
   selector: 'pac-area-info-form',
   templateUrl: './area-info-form.component.html',
-  imports: [MaterialModule, TranslateModule, ReactiveFormsModule, NgmCommonModule]
+  imports: [SharedUiModule, TranslateModule, ReactiveFormsModule, NgmCommonModule]
 })
 export class BusinessAreaInfoFormComponent extends TranslationBaseComponent {
   private readonly businessAreasService = inject(BusinessAreasService)

@@ -51,7 +51,7 @@ import { StoryDetailsComponent } from '../story-details/story-details.component'
 import { DeviceOrientation, DeviceZooms, EmulatedDevices, StoryScales, downloadStory } from '../types'
 import { StoryToolbarService } from './toolbar.service'
 import { COMPONENTS, PAGES } from './types'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { ProjectFilesDialogComponent } from '../../../@shared/project'
 import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
@@ -59,7 +59,7 @@ import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
   standalone: true,
   imports: [
     CommonModule,
-    MaterialModule,
+    SharedUiModule,
     CdkMenuModule,
     TranslateModule,
     FormsModule,

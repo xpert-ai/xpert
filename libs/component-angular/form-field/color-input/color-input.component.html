@@ -2,9 +2,16 @@
   <label class="p-1 text-sm text-ellipsis whitespace-nowrap overflow-hidden">{{label}}</label>
 }
 <div class="relative w-full">
-  <input z-input class="ngm-input-element" [disabled]="disabled" [(ngModel)]="value" (ngModelChange)="changeColor($event)" [mtxColorpicker]="picker" [format]="format" />
-  <mtx-colorpicker-toggle class="absolute right-0 top-0"
-    [style.color]="value"
-  [for]="picker"></mtx-colorpicker-toggle>
+  <input z-input class="ngm-input-element pr-10" [disabled]="disabled" [(ngModel)]="value" (ngModelChange)="changeColor($event)" />
+
+  <label class="ngm-color-input__trigger absolute right-1 top-1/2 -translate-y-1/2 cursor-pointer" [class.pointer-events-none]="disabled">
+    <span class="ngm-color-input__swatch" [style.background]="value || 'transparent'"></span>
+    <input
+      type="color"
+      class="sr-only"
+      [disabled]="disabled"
+      [value]="nativeColorValue"
+      (input)="updateFromNativeColor($any($event.target).value)"
+    />
+  </label>
 </div>
-<mtx-colorpicker #picker></mtx-colorpicker>

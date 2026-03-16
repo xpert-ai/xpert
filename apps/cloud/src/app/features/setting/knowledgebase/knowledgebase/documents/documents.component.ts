@@ -37,7 +37,7 @@ import { KnowledgebaseComponent } from '../knowledgebase.component'
 import { formatRelative } from 'date-fns/formatRelative'
 import { FilesUploadDialogComponent } from 'apps/cloud/src/app/@shared/files'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 
 /**
  * @deprecated use xpert's Knowledges
@@ -51,7 +51,7 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
     RouterModule,
     FormsModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     ZardPaginatorComponent,
     ZardProgressCircleComponent,
     NgmCommonModule

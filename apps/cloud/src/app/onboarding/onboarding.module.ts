@@ -1,11 +1,11 @@
 import { NgModule } from '@angular/core'
 import { FormlyModule } from '@ngx-formly/core'
-import { FormlyMaterialModule } from '@ngx-formly/material'
+import { NgmFormlyModule } from '@metad/formly'
 import { ServerAgent } from '../@core'
 import { OnboardingRoutingModule } from './onboarding-routing.module'
 
 @NgModule({
-  imports: [OnboardingRoutingModule, FormlyModule.forRoot(), FormlyMaterialModule],
+  imports: [OnboardingRoutingModule, FormlyModule.forRoot(), NgmFormlyModule],
   declarations: [],
   providers: [ServerAgent]
 })

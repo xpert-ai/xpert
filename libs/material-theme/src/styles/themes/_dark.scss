@@ -1,0 +1,5 @@
+@use '../material/dark.theme' as theme;
+
+$dark-theme: theme.$dark-theme;
+$background: theme.$background;
+$foreground: theme.$foreground;

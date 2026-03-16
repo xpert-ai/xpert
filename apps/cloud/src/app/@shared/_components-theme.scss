@@ -1,6 +1,6 @@
 @use '../@core/variables';
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 @reference "tailwindcss";
 
 @mixin color($theme) {
@@ -17,10 +17,6 @@
   }
   $fill-background: mat.m2-get-color-from-palette($foreground, base, $fill-opacity);
   $fill-disabled-background: mat.m2-get-color-from-palette($foreground, base, $fill-opacity);
-
-  .mat-form-field-appearance-fill .mdc-text-field--filled:not(.mdc-text-field--disabled) {
-    background-color: $fill-background;
-  }
 
   // a {
   //   color: mat.m2-get-color-from-palette($foreground, text);
@@ -50,21 +46,10 @@
     }
   }
 
-  .mat-mdc-list.ngm-density__compact,
-  .mat-mdc-list.ngm-density__cosy {
-    .mat-mdc-list-item.mat-mdc-list-item-with-avatar {
-      height: unset;
-    }
-  }
-
   // 公共样式, 需要抽取统一
   /* button */
   [z-button],
-  z-button {
-    &.mat-success {
-      color: mat.m2-get-color-from-palette(variables.$success-palette);
-    }
-  }
+  z-button {}
 
   [z-button][data-icon-only],
   z-button[data-icon-only] {
@@ -103,18 +88,8 @@
     }
 
     .formly-field,
-    .mat-form-field {
+    z-form-field {
       font-size: 12px;
-    }
-  }
-
-  .mat-mdc-list-base.ngm-density__compact .mat-mdc-list-item {
-    height: 30px;
-    line-height: 30px;
-    font-size: 12px;
-
-    .mat-mdc-list-item-content {
-      padding: 0 6px;
     }
   }
 
@@ -181,8 +156,8 @@
     }
   }
 
-  .ngm-tree-table .mat-cell,
-  .ngm-tree-table .mat-header-cell {
+  .ngm-tree-table td[z-table-cell],
+  .ngm-tree-table th[z-table-head] {
     white-space: nowrap;
     padding: 0 10px;
   }
@@ -196,7 +171,8 @@
   }
 
   .ngm-selection-list {
-    .mat-mdc-list-option {
+    > li,
+    .ngm-cdk-option {
       @apply rounded-md;
     }
   }

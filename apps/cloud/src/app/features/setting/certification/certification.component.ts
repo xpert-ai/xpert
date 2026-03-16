@@ -1,13 +1,13 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { NgmConfirmDeleteService, NgmMatSelectComponent } from '@metad/ocap-angular/common'
+import { NgmAdvancedSelectComponent, NgmConfirmDeleteService } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { UsersService } from '@metad/cloud/state'
 import { BehaviorSubject, catchError, firstValueFrom, from, map, switchMap } from 'rxjs'
 import { CertificationService, ICertification, ToastrService } from '../../../@core'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { userLabel } from '../../../@shared/pipes'
 import { SharedModule } from '../../../@shared/shared.module'
 import { UserProfileInlineComponent } from '../../../@shared/user'
@@ -21,13 +21,13 @@ import { UserProfileInlineComponent } from '../../../@shared/user'
     SharedModule,
     CommonModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     FormsModule,
     ReactiveFormsModule,
     ButtonGroupDirective,
     DensityDirective,
     AppearanceDirective,
-    NgmMatSelectComponent,
+    NgmAdvancedSelectComponent,
     UserProfileInlineComponent
   ]
 })

@@ -12,13 +12,13 @@ import { PACFormlyEmptyModule } from '@metad/formly/empty'
 import { PACFormlyEntityTypeModule } from '@metad/formly/entity-type'
 import { PACFormlyInputModule } from '@metad/formly/input'
 import { PACFormlyJsonModule } from '@metad/formly/json'
-import { PACFormlyTableModule } from '@metad/formly/mat-table'
-import { NgmFormlyMatToggleModule } from '@metad/formly/mat-toggle'
+import { PACFormlyTableModule } from '@metad/formly/table'
+import { NgmFormlyToggleModule } from '@metad/formly/toggle'
 import { PACFormlySelectModule } from '@metad/formly/select'
 import { PACFormlySemanticModelModule } from '@metad/formly/semantic-model'
-import { PACFormlyMatSlicersModule } from '@metad/formly/slicers'
+import { PACFormlySlicersModule } from '@metad/formly/slicers'
 import { NgmFormlyRadioModule } from '@metad/formly/radio'
-import { FormlyMatSliderModule } from '@metad/formly/slider'
+import { FormlySliderModule } from '@metad/formly/slider'
 import { PACFormlySortModule } from '@metad/formly/sort'
 import { PACFormlyTextAreaModule } from '@metad/formly/textarea'
 import { MetadFormlyPanelModule } from '@metad/formly/panel'
@@ -30,10 +30,10 @@ import { HLFormlyTabsModule } from '@metad/formly/hl-tabs'
   imports: [CommonModule],
   exports: [
     PACFormlyJsonModule,
-    NgmFormlyMatToggleModule,
-    FormlyMatSliderModule,
+    NgmFormlyToggleModule,
+    FormlySliderModule,
     PACFormlyChartTypeModule,
-    PACFormlyMatSlicersModule,
+    PACFormlySlicersModule,
     PACFormlyCodeEditorModule,
     PACFormlyDesignerModule,
     PACFormlyEmptyModule,

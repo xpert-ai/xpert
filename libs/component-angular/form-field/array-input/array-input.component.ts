@@ -1,30 +1,28 @@
 import { FocusMonitor } from '@angular/cdk/a11y'
 import { BooleanInput, coerceBooleanProperty } from '@angular/cdk/coercion'
-import { Component, ElementRef, Inject, Input, OnDestroy, Optional, Self, ViewChild } from '@angular/core'
+import { Component, ElementRef, Input, OnDestroy, Optional, Self, ViewChild } from '@angular/core'
 import {
   AbstractControl,
   ControlValueAccessor,
+  NgControl,
   UntypedFormArray,
   UntypedFormBuilder,
-  NgControl,
 } from '@angular/forms'
-import { MatFormField, MatFormFieldControl, MAT_FORM_FIELD } from '@angular/material/form-field'
 import { isArray, isEmpty } from 'lodash-es'
 import { Subject } from 'rxjs'
 
-/** Custom `MatFormFieldControl` for telephone number input. */
+/** Array input rendered as a plain control value accessor. */
 @Component({
   selector: 'pac-array-input',
   standalone: false,
   templateUrl: 'array-input.component.html',
   styleUrls: ['array-input.component.scss'],
-  providers: [{ provide: MatFormFieldControl, useExisting: ArrayInputComponent }],
   host: {
     '[class.example-floating]': 'shouldLabelFloat',
     '[id]': 'id'
   }
 })
-export class ArrayInputComponent implements ControlValueAccessor, MatFormFieldControl<string[]>, OnDestroy {
+export class ArrayInputComponent implements ControlValueAccessor, OnDestroy {
   static nextId = 0
   @ViewChild('area') areaInput: HTMLInputElement
   @ViewChild('exchange') exchangeInput: HTMLInputElement
@@ -128,7 +126,6 @@ export class ArrayInputComponent implements ControlValueAccessor, MatFormFieldCo
     private formBuilder: UntypedFormBuilder,
     private _focusMonitor: FocusMonitor,
     private _elementRef: ElementRef<HTMLElement>,
-    @Optional() @Inject(MAT_FORM_FIELD) public _formField: MatFormField,
     @Optional() @Self() public ngControl: NgControl
   ) {
     this.formArray = formBuilder.array([])

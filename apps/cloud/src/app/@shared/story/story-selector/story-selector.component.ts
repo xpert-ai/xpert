@@ -11,7 +11,7 @@ import { NgmDialogComponent } from '@metad/components/dialog'
 import { BehaviorSubject, combineLatest, distinctUntilChanged, firstValueFrom, map, of, startWith, switchMap, tap } from 'rxjs'
 import { DefaultProject, ISemanticModel, IStory, ProjectAPIService } from '../../../@core'
 import { LazyImgDirective } from '../../directives/lazy-img.directive'
-import { MaterialModule } from '../../material.module'
+import { SharedUiModule } from '../../ui.module'
 import { CreatedByPipe } from '../../pipes'
 
 import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
@@ -35,7 +35,7 @@ type SelectableStory = IStory & { modelNotInStory: boolean }
     RouterModule,
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     DensityDirective,
     ButtonGroupDirective,

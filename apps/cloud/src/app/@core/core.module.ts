@@ -51,9 +51,7 @@ export class CoreModule {
   static forRoot(): ModuleWithProviders<CoreModule> {
     return {
       ngModule: CoreModule,
-      providers: [
-        // { provide: MAT_DATE_LOCALE, useValue: zhCN },
-      ]
+      providers: []
     }
   }
 }

@@ -30,11 +30,9 @@ import {
   ZardButtonComponent,
   ZardDividerComponent,
   ZardInputDirective,
+  ZardProgressBarComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { MatListModule } from '@angular/material/list'
-import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatSnackBar } from '@angular/material/snack-bar'
 import { RouterModule } from '@angular/router'
 import {
   AI_PROVIDERS,
@@ -101,9 +99,8 @@ export const AUTO_SUGGESTION_STOP = ['\n', '.', ',', '@', '#']
     ZardDividerComponent,
     ZardInputDirective,
     ZardButtonComponent,
+    ZardProgressBarComponent,
     ...ZardTooltipImports,
-    MatProgressBarModule,
-    MatListModule,
     TranslateModule,
     ScrollingModule,
 
@@ -126,7 +123,6 @@ export class NgmCopilotChatComponent {
   CopilotChatMessageRoleEnum = CopilotChatMessageRoleEnum
   AgentRecursionLimit = AgentRecursionLimit
 
-  readonly _snackBar = inject(MatSnackBar)
   private copilotService = inject(NgmCopilotService)
   readonly #copilotEngine?: NgmCopilotEngineService = inject(NgmCopilotEngineService, { optional: true })
 

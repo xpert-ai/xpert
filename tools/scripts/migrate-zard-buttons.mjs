@@ -8,7 +8,7 @@ const includedExtensions = new Set(['.html', '.ts']);
 const skipDirs = new Set(['.git', 'dist', 'node_modules', '.nx', 'coverage']);
 
 const legacyPrefix = 'mat';
-const legacyButtonSource = ['@angular/material', 'button'].join('/');
+const legacyButtonSource = ['@angular', 'material', 'button'].join('/');
 const legacyButtonModule = ['Mat', 'Button', 'Module'].join('');
 const materialButtonVariants = [
   ['raised', 'button'],

@@ -1,6 +1,6 @@
 @reference "../../../../../tailwind-workspace-reference.css";
 :host {
-  --ngm-chart-property-card-bg-color: var(--ngm-color-surface, var(--mat-sys-surface, #fff));
+  --ngm-chart-property-card-bg-color: var(--ngm-color-surface, #fff);
   @apply flex-1 flex;
 
   .ngm-property-select {
