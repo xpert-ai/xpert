@@ -13,7 +13,7 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
 import {
   Z_MODAL_DATA, 
   ZardDialogRef, 
-  ZardProgressBarComponent
+  ZardProgressBarComponent,
   ZardProgressCircleComponent,
   ZardStepperImports,
   type ZardStepperSelectionEvent

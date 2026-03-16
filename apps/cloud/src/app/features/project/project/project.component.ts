@@ -62,11 +62,13 @@ import { MaterialModule } from '../../../@shared/material.module'
 import { StoryCreationComponent } from '../../../@shared/story'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { injectFetchModelDetails } from '@cloud/app/@shared/indicator'
-<<<<<<< HEAD
-import { ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
-=======
-import { ZardFlatTreeControl, ZardTreeFlatDataSource, ZardTreeImports } from '@xpert-ai/headless-ui'
->>>>>>> upstream/chore/angular-21
+import {
+  ZardDialogRef,
+  ZardDialogService,
+  ZardFlatTreeControl,
+  ZardTreeFlatDataSource,
+  ZardTreeImports
+} from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,

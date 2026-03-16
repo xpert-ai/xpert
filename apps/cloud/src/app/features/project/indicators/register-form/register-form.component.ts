@@ -54,6 +54,7 @@ import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
 import {
   ZardButtonComponent,
   ZardDatePickerComponent,
+  ZardDialogService,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
