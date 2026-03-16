@@ -2,16 +2,16 @@
   <z-form-label>
     {{ 'PAC.KEY_WORDS.Tags' | translate: {Default: 'Tags'} }}
   </z-form-label>
-  <mat-chip-grid aria-label="Tag selection">
+  <z-chip-grid aria-label="Tag selection">
     @for (tag of tags(); track tag.id ?? tag.name) {
-      <mat-chip-row [ngClass]="'bg-'+tag.color+'-100'" class="bg-blue-100" (removed)="remove(tag)">
+      <z-chip-row [ngClass]="'bg-'+tag.color+'-100'" class="bg-blue-100" (removed)="remove(tag)">
         {{tag.name}}
-        <button matChipRemove>
+        <button zChipRemove>
           <z-icon zType="cancel"></z-icon>
         </button>
-      </mat-chip-row>
+      </z-chip-row>
     }
-  </mat-chip-grid>
+  </z-chip-grid>
 
   <z-combobox
     zTriggerMode="input"
@@ -55,3 +55,4 @@
     </ng-template>
   </z-combobox>
 </z-form-field>
+

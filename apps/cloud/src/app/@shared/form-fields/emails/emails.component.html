@@ -1,26 +1,26 @@
 <z-form-field class="w-full" [appearance]="appearance">
   <z-form-label>{{ label }}</z-form-label>
 
-  <mat-chip-grid #chipGrid [attr.aria-label]="label" multiple [formControl]="formControl">
+  <z-chip-grid #chipGrid [attr.aria-label]="label" multiple>
     @for (keyword of keywords; track keyword) {
-      <mat-chip-row
+      <z-chip-row
         [value]="keyword"
         [removable]="removable"
         (removed)="removeKeyword(keyword)"
         >{{keyword}}
         @if (removable) {
-          <button matChipRemove>
+          <button zChipRemove>
             <z-icon zType="cancel"></z-icon>
           </button>
         }
-      </mat-chip-row>
+      </z-chip-row>
     }
-  </mat-chip-grid>
+  </z-chip-grid>
 
   <input
     [placeholder]="placeholder"
-    [matChipInputFor]="chipGrid"
-    [matChipInputAddOnBlur]="addOnBlur"
-    (matChipInputTokenEnd)="addKeywordFromInput($event)"
+    [zChipInputFor]="chipGrid"
+    [zChipInputAddOnBlur]="addOnBlur"
+    (zChipInputTokenEnd)="addKeywordFromInput($event)"
     >
 </z-form-field>

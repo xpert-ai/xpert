@@ -20,7 +20,7 @@
   max-height: 100%;
 }
 
-.mat-chip.mat-standard-chip {
+z-chip-option {
   cursor: pointer;
 }
 
@@ -56,10 +56,8 @@
 }
 
 :host::ng-deep {
-  .mdc-evolution-chip-set {
-    .mdc-evolution-chip-set__chips {
-      @apply content-start;
-    }
+  z-chip-listbox {
+    align-content: flex-start;
   }
 
   .ngm-parameter {

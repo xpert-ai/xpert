@@ -35,9 +35,9 @@
 </div>
 
 @if (slicer()) {
-  <mat-chip-listbox [selectable]="false">
+  <z-chip-listbox [selectable]="false">
     @for (member of members(); track member.key; let i = $index) {
-      <mat-chip-option
+      <z-chip-option
         class="flex justify-start items-center"
         [value]="member"
         [removable]="editable()"
@@ -60,19 +60,19 @@
             />
         </div>
         @if (editable()) {
-          <z-icon matChipRemove zType="cancel"></z-icon>
+          <z-icon zChipRemove zType="cancel"></z-icon>
         }
-      </mat-chip-option>
+      </z-chip-option>
     }
 
     @if (more() > 0) {
-      <mat-chip-option> +{{ more() }} </mat-chip-option>
+      <z-chip-option> +{{ more() }} </z-chip-option>
     }
 
     @if (advancedSlicer$ | async; as advancedSlicer) {
-      <mat-chip-option [zTooltip]="advancedSlicer">
+      <z-chip-option [zTooltip]="advancedSlicer">
         <div class="whitespace-normal">{{ advancedSlicer }}</div>
-      </mat-chip-option>
+      </z-chip-option>
     }
-  </mat-chip-listbox>
+  </z-chip-listbox>
 }

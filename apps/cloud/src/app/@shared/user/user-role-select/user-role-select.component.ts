@@ -2,7 +2,6 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { Component, inject, Input } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatChipsModule } from '@angular/material/chips'
 import {
   ZardButtonComponent,
   ZardComboboxComponent,
@@ -10,6 +9,7 @@ import {
   ZardFormImports,
   ZardIconComponent,
   ZardLoaderComponent,
+  ZardChipsImports,
   type ZardComboboxOption
 } from '@xpert-ai/headless-ui'
 import { UsersService } from '@metad/cloud/state'
@@ -19,6 +19,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { catchError, debounceTime, EMPTY, filter, map, of, switchMap, tap } from 'rxjs'
 import { IUser } from '../../../@core'
 import { userLabel, UserPipe } from '../../pipes'
+import { MatAutocompleteModule } from '@angular/material/autocomplete'
 
 @Component({
   standalone: true,
@@ -30,7 +31,7 @@ import { userLabel, UserPipe } from '../../pipes'
     ZardComboboxComponent,
     ZardComboboxOptionTemplateDirective,
     ...ZardFormImports,
-    MatChipsModule,
+    ...ZardChipsImports,
     ZardIconComponent,
     ZardLoaderComponent,
     TranslateModule,

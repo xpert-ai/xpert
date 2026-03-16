@@ -13,6 +13,7 @@ import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
+  ZardChipInputEvent,
   ZardComboboxComponent,
   ZardComboboxOptionTemplateDirective,
   type ZardComboboxOption

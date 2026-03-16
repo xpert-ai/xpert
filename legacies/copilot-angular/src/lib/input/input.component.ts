@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmHighlightDirective } from '../core/directives'
-import { ZardComboboxComponent, ZardComboboxOptionTemplateDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardChipInputEvent, ZardComboboxComponent, ZardComboboxOptionTemplateDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  * @deprecated use ChatKit instead
  */

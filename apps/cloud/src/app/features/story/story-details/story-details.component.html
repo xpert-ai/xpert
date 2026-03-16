@@ -89,16 +89,16 @@
         <z-form-label>
           {{ 'Story.StoryDetails.Models' | translate: { Default: 'Models' } }}
         </z-form-label>
-        <mat-chip-grid>
+        <z-chip-grid #chipGrid>
           @for (model of models(); track model) {
-            <mat-chip-row color="primary" highlighted (removed)="removeModel(model)">
+            <z-chip-row color="primary" highlighted (removed)="removeModel(model)">
               {{ model.name }}
-              <button matChipRemove [attr.aria-label]="'remove ' + model.name">
+              <button zChipRemove [attr.aria-label]="'remove ' + model.name">
                 <z-icon zType="cancel"></z-icon>
               </button>
-            </mat-chip-row>
+            </z-chip-row>
           }
-        </mat-chip-grid>
+        </z-chip-grid>
         <z-combobox
           zTriggerMode="input"
           class="w-full"

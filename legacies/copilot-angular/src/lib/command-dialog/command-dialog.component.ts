@@ -5,9 +5,7 @@ import { Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { MatAutocomplete, MatAutocompleteActivatedEvent, MatAutocompleteModule } from '@angular/material/autocomplete'
-
-import { MatChipsModule } from '@angular/material/chips'
-import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardChipsImports, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { CopilotContextItem, CopilotEngine } from '@metad/copilot'
@@ -34,7 +32,7 @@ import { NgmCopilotEngineService, NgmCopilotService } from '../services'
     FormsModule,
     ZardDialogModule,
     ZardButtonComponent,
-    MatChipsModule,
+    ...ZardChipsImports,
     ZardInputDirective,
     ...ZardFormImports,
     TextFieldModule,

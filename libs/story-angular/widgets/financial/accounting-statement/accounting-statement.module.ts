@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 
-import { MatChipsModule } from '@angular/material/chips'
 import { MatMenuModule } from '@angular/material/menu'
 import { ComponentCoreModule } from '@metad/components/core'
 import { DensityDirective } from '@metad/ocap-angular/core'
@@ -13,6 +12,7 @@ import {
   ZardButtonComponent,
   ZardIconComponent,
   ZardCardImports,
+  ZardChipsImports,
   ZardLoaderComponent,
   ZardTableImports,
   ZardTooltipImports
@@ -25,7 +25,7 @@ import {
     ZardButtonComponent,
     ZardIconComponent,
     MatMenuModule,
-    MatChipsModule,
+    ...ZardChipsImports,
     ...ZardTooltipImports,
     ZardLoaderComponent,
     ...ZardTableImports,

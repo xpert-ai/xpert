@@ -4,7 +4,6 @@ import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatChipsModule } from '@angular/material/chips'
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import {
   ZardButtonComponent,
   ZardComboboxComponent,
@@ -13,7 +12,11 @@ import {
   ZardIconComponent,
   ZardInputDirective,
   ZardCheckboxComponent,
-  type ZardComboboxOption
+  ZardChipsImports,
+  ZardDialogModule,
+  type ZardComboboxOption,
+  Z_MODAL_DATA,
+  ZardDialogRef
 } from '@xpert-ai/headless-ui'
 import { Router } from '@angular/router'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
@@ -38,7 +41,7 @@ import { NgmHighlightDirective, NgmSelectComponent } from '@metad/ocap-angular/c
     ZardCheckboxComponent,
     ZardComboboxComponent,
     ZardComboboxOptionTemplateDirective,
-    MatChipsModule,
+    ...ZardChipsImports,
     DragDropModule,
     OcapCoreModule,
     NgmHighlightDirective,

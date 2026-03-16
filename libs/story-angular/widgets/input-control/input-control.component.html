@@ -70,23 +70,24 @@
       }
       @case (INPUT_CONTROL_TYPE.MeasureControl) {
         @if (measureControlProperty(); as property) {
-          <mat-chip-listbox aria-label="Measure selection" class="w-full flex-1"
+          <z-chip-listbox aria-label="Measure selection" class="w-full flex-1"
             aria-orientation="vertical"
             [aria-orientation]="options?.ariaOrientation"
+            [displayDensity]="styling?.appearance?.displayDensity || null"
             [hideSingleSelectionIndicator]="options?.hideSingleSelectionIndicator"
             [(ngModel)]="measure"
             >
             @for (measure of availableMeasures(); track trackByName($index, measure)) {
-              <mat-chip-option selectable [color]="options?.chipColor"
+              <z-chip-option selectable [color]="options?.chipColor"
                 [highlighted]="options?.highlighted"
                 [value]="measure.name"
                 >
                 <ngm-display-behaviour [option]="{key: measure.name, caption: measure.caption}"
                   [displayBehaviour]="property.displayBehaviour">
                 </ngm-display-behaviour>
-              </mat-chip-option>
+              </z-chip-option>
             }
-          </mat-chip-listbox>
+          </z-chip-listbox>
         }
       }
       @case (INPUT_CONTROL_TYPE.Parameter) {

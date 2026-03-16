@@ -3,8 +3,6 @@ import { CommonModule } from '@angular/common'
 import { Component, HostBinding, Inject, Input, Optional, computed, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-
-import { MatChipsModule } from '@angular/material/chips'
 import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardDividerComponent, ZardIconComponent, ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
@@ -92,7 +90,6 @@ const ADVANCED_SLICER_OPERATORS = [
     ZardIconComponent,
     ZardButtonComponent,
     ZardInputDirective,
-    MatChipsModule,
     ...ZardTooltipImports,
     ZardDividerComponent,
     TranslateModule,

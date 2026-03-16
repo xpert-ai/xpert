@@ -1,8 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, Inject } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatChipsModule } from '@angular/material/chips'
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
 import {
   ZardButtonComponent,
   ZardComboboxComponent,
@@ -10,7 +8,10 @@ import {
   ZardFormImports,
   ZardIconComponent,
   ZardLoaderComponent,
-  type ZardComboboxOption
+  ZardChipsImports,
+  type ZardComboboxOption,
+  Z_MODAL_DATA,
+  ZardDialogRef
 } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
@@ -27,12 +28,11 @@ import { SharedModule } from '../../shared.module'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatDialogModule,
     ZardButtonComponent,
     ZardComboboxComponent,
     ZardComboboxOptionTemplateDirective,
     ...ZardFormImports,
-    MatChipsModule,
+    ...ZardChipsImports,
     ZardIconComponent,
     ZardLoaderComponent,
     TranslateModule,
