@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MatSidenavModule } from '@angular/material/sidenav'
 import { ResizerModule } from '@metad/ocap-angular/common'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -14,7 +13,6 @@ import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpe
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatSidenavModule,
     ZardIconComponent,
     ZardButtonComponent,
     ...ZardTooltipImports,

@@ -27,11 +27,11 @@ import { CountdownGlobalConfig } from './countdown.config';
   selector: 'countdown',
   standalone: false,
   template: `
-    <ng-container *ngIf="!render">
+    @if (!render) {
       <span [innerHTML]="i.text"></span>
-    </ng-container>
+    }
     <ng-container *ngTemplateOutlet="render; context: { $implicit: i }"></ng-container>
-  `,
+    `,
   host: { '[class.count-down]': 'true' },
   encapsulation: ViewEncapsulation.None,
   changeDetection: ChangeDetectionStrategy.OnPush,

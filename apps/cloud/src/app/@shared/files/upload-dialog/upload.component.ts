@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { HttpEventType } from '@angular/common/http'
 import { Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -20,7 +20,6 @@ import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headle
   styleUrls: ['upload.component.scss'],
   providers: [],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MaterialModule,
@@ -30,7 +29,7 @@ import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headle
     DensityDirective,
     NgmSearchComponent,
     FilesUploadComponent
-  ],
+],
   animations: [listAnimation]
 })
 export class FilesUploadDialogComponent {

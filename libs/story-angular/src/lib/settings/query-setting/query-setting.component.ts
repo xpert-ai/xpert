@@ -1,5 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, HostBinding, OnInit } from '@angular/core'
 
 import { ZardButtonComponent, ZardDialogModule, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -10,7 +10,6 @@ import { TranslateModule } from '@ngx-translate/core'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     DragDropModule,
     ZardDialogModule,
     ZardButtonComponent,
@@ -22,7 +21,7 @@ import { TranslateModule } from '@ngx-translate/core'
     ZardInputDirective,
     TranslateModule,
     NgmCommonModule
-  ],
+],
   selector: 'ngm-settings-query-setting',
   templateUrl: './query-setting.component.html',
   styleUrls: ['./query-setting.component.scss']

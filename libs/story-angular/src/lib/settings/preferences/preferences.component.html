@@ -7,10 +7,12 @@
   </div>
 
   <mat-nav-list class="ngm-nav-list flex-1 overflow-auto">
-    <mat-list-item *ngFor="let menu of menus" [class.active]="activeLink === menu.link"
-      (click)="onActive(menu)">
-      <span >{{ menu.label }}</span>
-   </mat-list-item>
+    @for (menu of menus; track menu) {
+      <mat-list-item [class.active]="activeLink === menu.link"
+        (click)="onActive(menu)">
+        <span >{{ menu.label }}</span>
+      </mat-list-item>
+    }
   </mat-nav-list>
 
   <div class="flex justify-start">
@@ -20,17 +22,19 @@
       </button>
     </div>
   </div>
-  
+
 </div>
 
 <div class="p-8 flex-1 h-full overflow-auto">
-  <div *ngFor="let schema of schemas" class="flex-1 overflow-auto">
-    <formly-form
-      [fields]="schema.fields"
-      [options]="schema.options"
-      [form]="schema.form"
-      [model]="schema.model"
-      (modelChange)="onModelChange(schema.key, $event)"
-    ></formly-form>
-  </div>
+  @for (schema of schemas; track schema) {
+    <div class="flex-1 overflow-auto">
+      <formly-form
+        [fields]="schema.fields"
+        [options]="schema.options"
+        [form]="schema.form"
+        [model]="schema.model"
+        (modelChange)="onModelChange(schema.key, $event)"
+      ></formly-form>
+    </div>
+  }
 </div>

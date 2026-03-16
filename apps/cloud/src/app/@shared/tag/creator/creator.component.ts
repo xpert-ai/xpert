@@ -1,5 +1,5 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
@@ -12,14 +12,13 @@ import { ZardDialogRef } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     TranslateModule,
     MaterialModule,
     CdkListboxModule,
     NgxFloatUiModule,
     ButtonGroupDirective
-  ],
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tag-creator',
   templateUrl: './creator.component.html',

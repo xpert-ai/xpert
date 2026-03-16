@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -18,7 +18,6 @@ import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpe
     class: 'pac-notification'
   },
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
@@ -26,7 +25,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpe
     ...ZardTooltipImports,
     ZardButtonComponent,
     DensityDirective
-  ]
+]
 })
 export class NotificationComponent {
   readonly wasmAgentService = inject(WasmAgentService)

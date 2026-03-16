@@ -1,4 +1,6 @@
-<label *ngIf="appearance?.displayDensity === 'cosy' || appearance?.displayDensity === 'compact'">{{label()}}</label>
+@if (appearance?.displayDensity === 'cosy' || appearance?.displayDensity === 'compact') {
+  <label>{{label()}}</label>
+}
 <ngm-tree-select class="flex-1 max-w-full"
   [appearance]="appearance?.appearance"
   [floatLabel]="appearance?.floatLabel"
@@ -21,10 +23,10 @@
   [ngModel]="memberKeys()"
   (ngModelChange)="onModelChange($event)"
   (focus)="onFocus($event)"
->
+  >
   <div zFormSuffix style="display: flex; align-items: center;">
     @if (loading$ | async) {
-      <mat-spinner [color]="appearance?.color" strokeWidth="1" diameter="20"></mat-spinner>
+      <z-loader diameter="20" />
     }
     @if (hierarchies()?.length > 1) {
       <button
@@ -38,7 +40,7 @@
         #mt="zMenuTrigger"
         [class.active]="mt.menuOpen"
         (click)="$event.stopPropagation();$event.preventDefault();"
-      >
+        >
         <z-icon zType="account_tree"></z-icon>
       </button>
     }
@@ -52,17 +54,17 @@
 <z-radio-group [(ngModel)]="hierarchy">
   <ng-template #hierarchiesMenu>
     <div z-menu-content class="ngm-radio-menu">
-    @for (property of hierarchies(); track property.name) {
-      <button
-        type="button"
-        z-menu-item
-        class="w-full"
-        (click)="$event.stopPropagation();">
-        <z-radio class="flex-1" [value]="property.name">
-          <ngm-property class="flex-1" hiddenIcon [property]="property" [displayBehaviour]="DisplayBehaviour.auto" />
-        </z-radio>
-      </button>
-    }
+      @for (property of hierarchies(); track property.name) {
+        <button
+          type="button"
+          z-menu-item
+          class="w-full"
+          (click)="$event.stopPropagation();">
+          <z-radio class="flex-1" [value]="property.name">
+            <ngm-property class="flex-1" hiddenIcon [property]="property" [displayBehaviour]="DisplayBehaviour.auto" />
+          </z-radio>
+        </button>
+      }
     </div>
   </ng-template>
 </z-radio-group>

@@ -1,30 +1,15 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, forwardRef, input } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
-import { MatDatepicker, MatDatepickerInputEvent, MatDatepickerModule } from '@angular/material/datepicker'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
-import { getYear, setYear } from 'date-fns'
+import { ZardYearPickerComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MatDatepickerModule, ZardInputDirective, OcapCoreModule],
+  imports: [ReactiveFormsModule, ZardYearPickerComponent],
   selector: 'ngm-yearpicker',
   templateUrl: './yearpicker.component.html',
-  styleUrls: ['./yearpicker.component.scss'],
   providers: [
-    provideDateFnsAdapter({
-      parse: {
-        dateInput: `yyyy`
-      },
-      display: {
-        dateInput: `yyyy`,
-        monthYearLabel: 'LLL y',
-        dateA11yLabel: 'MMMM d, y',
-        monthYearA11yLabel: 'MMMM y'
-      }
-    }),
     {
       provide: NG_VALUE_ACCESSOR,
       useExisting: forwardRef(() => NgmYearpickerComponent),
@@ -35,7 +20,7 @@ import { getYear, setYear } from 'date-fns'
 export class NgmYearpickerComponent implements ControlValueAccessor {
   readonly label = input<string>('')
 
-  date = new FormControl(new Date())
+  date = new FormControl<Date | null>(null)
 
   /**
    * Invoked when the model has been changed
@@ -46,15 +31,15 @@ export class NgmYearpickerComponent implements ControlValueAccessor {
    */
   onTouched: () => void = () => {}
 
-  chosenYearHandler(event, datepicker: MatDatepicker<any>) {
-    const ctrlValue = this.date.value ?? new Date()
-    this.date.setValue(setYear(ctrlValue, getYear(event)))
-    datepicker.close()
-    this.onChange(this.date.value)
+  constructor() {
+    this.date.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
+      this.onChange(value)
+      this.onTouched()
+    })
   }
 
   writeValue(obj: any): void {
-    this.date.setValue(obj)
+    this.date.setValue(obj, { emitEvent: false })
   }
   registerOnChange(fn: any): void {
     this.onChange = fn
@@ -64,9 +49,5 @@ export class NgmYearpickerComponent implements ControlValueAccessor {
   }
   setDisabledState?(isDisabled: boolean): void {
     isDisabled ? this.date.disable() : this.date.enable()
-  }
-
-  onDateChange(event: MatDatepickerInputEvent<any>) {
-    this.onChange(event.value)
   }
 }

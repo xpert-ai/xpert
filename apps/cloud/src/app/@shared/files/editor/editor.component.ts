@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, computed, input, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -6,7 +6,7 @@ import { MonacoEditorModule } from 'ngx-monaco-editor'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, MonacoEditorModule],
+  imports: [FormsModule, TranslateModule, MonacoEditorModule],
   selector: 'pac-file-editor',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss']

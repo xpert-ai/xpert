@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import {
@@ -22,7 +22,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -30,7 +29,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     NgmSpinComponent,
     EmojiAvatarComponent
-  ],
+],
   selector: 'project-install-toolset',
   templateUrl: 'toolset.component.html',
   styleUrl: 'toolset.component.scss',

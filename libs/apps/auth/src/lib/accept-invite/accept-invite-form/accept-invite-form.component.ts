@@ -3,7 +3,6 @@ import { Component, EventEmitter, Input, Output } from '@angular/core'
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { IInvite, ITag, ITenant, IUserRegistrationInput } from '@metad/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 
@@ -16,8 +15,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
     ...ZardFormImports,
     ZardButtonComponent,
     ZardInputDirective,
-    ZardCheckboxComponent,
-    MatProgressSpinnerModule
+    ZardCheckboxComponent
   ],
   selector: 'pac-accept-invite-form',
   templateUrl: 'accept-invite-form.component.html',

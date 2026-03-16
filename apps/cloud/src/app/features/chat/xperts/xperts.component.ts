@@ -2,7 +2,7 @@ import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { ConnectedPosition, Overlay, OverlayPositionBuilder } from '@angular/cdk/overlay'
 import { TemplatePortal } from '@angular/cdk/portal'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -32,7 +32,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
     ReactiveFormsModule,
@@ -42,7 +41,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     EmojiAvatarComponent,
     XpertCardComponent
-  ],
+],
   selector: 'pac-chat-xperts',
   templateUrl: './xperts.component.html',
   styleUrl: 'xperts.component.scss',

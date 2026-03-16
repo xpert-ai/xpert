@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -17,13 +17,12 @@ import { XpertExecutionService } from '../../services/execution.service'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     NgmSpinComponent,
     XpertAgentExecutionComponent,
     XpertAgentExecutionAccordionComponent
-  ]
+]
 })
 export class XpertStudioPanelExecutionComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

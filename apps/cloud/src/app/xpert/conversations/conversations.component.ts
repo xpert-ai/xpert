@@ -16,7 +16,6 @@ import {
   viewChild
 } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatSidenav } from '@angular/material/sidenav'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmCommonModule, NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { effectAction, NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -81,7 +80,6 @@ export class ChatConversationsComponent {
   readonly #data = inject<{ xpertId?: string; xpertSlug: string; basePath: string; projectId?: string }>(DIALOG_DATA)
 
   readonly contentContainer = viewChild('contentContainer', { read: ElementRef })
-  readonly sidenav = viewChild('sidenav', { read: MatSidenav })
 
   readonly isMobile = this.appService.isMobile
   readonly lang = this.appService.lang

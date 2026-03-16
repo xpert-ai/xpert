@@ -6,7 +6,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { IWFNProcessor } from 'apps/cloud/src/app/@core'
 import { KnowledgebaseService } from '@cloud/app/@core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { CommonModule } from '@angular/common'
+
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { WorkflowBaseNodeComponent } from '../workflow-base.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -18,14 +18,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FFlowModule,
     ...ZardTooltipImports,
     TranslateModule,
     PlusSvgComponent,
     NgmI18nPipe,
     IconComponent
-  ],
+],
   host: {
     tabindex: '-1'
   }

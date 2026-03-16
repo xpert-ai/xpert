@@ -1,11 +1,10 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { ZardButtonComponent, ZardDialogModule, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardTabsImports } from '@xpert-ai/headless-ui'
-import { MatSidenavModule } from '@angular/material/sidenav'
 import { RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -15,7 +14,7 @@ import { AppService } from '../../app.service'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, RouterModule, DragDropModule, RouterModule, ...ZardTabsImports, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, ZardDialogModule, ZardInputDirective, MatSidenavModule, TranslateModule, DensityDirective, ButtonGroupDirective, NgmCommonModule, AppearanceDirective],
+  imports: [FormsModule, ReactiveFormsModule, RouterModule, DragDropModule, RouterModule, ...ZardTabsImports, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, MatDialogModule, ZardInputDirective, MatSidenavModule, TranslateModule, DensityDirective, ButtonGroupDirective, NgmCommonModule, AppearanceDirective],
   selector: 'pac-home',
   template: `
     <nav
@@ -27,7 +26,7 @@ import { AppService } from '../../app.service'
       disableRipple
       displayDensity="cosy"
       class="pac-home__navigation p-0 sm:px-2 md:px-8"
-    >
+      >
       <span
         z-tab-link
         routerLink="."
@@ -35,50 +34,43 @@ import { AppService } from '../../app.service'
         #rla="routerLinkActive"
         [routerLinkActiveOptions]="{ exact: true }"
         [active]="rla.isActive"
-      >
+        >
         {{ 'PAC.MENU.HOME.TODAY' | translate: { Default: 'Today' } }}
       </span>
-      <span *ngIf="hasFeatureEnabled(AnalyticsFeatures.FEATURE_HOME_CATALOG)"
-        z-tab-link
-        routerLink="./catalog"
-        routerLinkActive
-        #rla2="routerLinkActive"
-        [routerLinkActiveOptions]="{ exact: true }"
-        [active]="rla2.isActive"
-      >
-        {{ 'PAC.MENU.HOME.Catalog' | translate: { Default: 'Catalog' } }}
-      </span>
-      <span
-        *ngIf="hasFeatureEnabled(AnalyticsFeatures.FEATURE_HOME_TREND)"
-        z-tab-link
-        routerLink="./trending"
-        routerLinkActive
-        #rla3="routerLinkActive"
-        [routerLinkActiveOptions]="{ exact: true }"
-        [active]="rla3.isActive"
-      >
-        {{ 'PAC.MENU.HOME.Trending' | translate: { Default: 'Trending' } }}
-      </span>
-      <!-- <span
-        *ngIf="copilotEnabled() && hasFeatureEnabled(AnalyticsFeatures.FEATURE_HOME_INSIGHT)"
-        z-tab-link
-        routerLink="./insight"
-        routerLinkActive
-        #rla4="routerLinkActive"
-        [routerLinkActiveOptions]="{ exact: true }"
-        [active]="rla4.isActive"
-      >
-        {{ 'PAC.MENU.HOME.Insight' | translate: { Default: 'Insight' } }}
-      </span> -->
+      @if (hasFeatureEnabled(AnalyticsFeatures.FEATURE_HOME_CATALOG)) {
+        <span
+          z-tab-link
+          routerLink="./catalog"
+          routerLinkActive
+          #rla2="routerLinkActive"
+          [routerLinkActiveOptions]="{ exact: true }"
+          [active]="rla2.isActive"
+          >
+          {{ 'PAC.MENU.HOME.Catalog' | translate: { Default: 'Catalog' } }}
+        </span>
+      }
+      @if (hasFeatureEnabled(AnalyticsFeatures.FEATURE_HOME_TREND)) {
+        <span
+          z-tab-link
+          routerLink="./trending"
+          routerLinkActive
+          #rla3="routerLinkActive"
+          [routerLinkActiveOptions]="{ exact: true }"
+          [active]="rla3.isActive"
+          >
+          {{ 'PAC.MENU.HOME.Trending' | translate: { Default: 'Trending' } }}
+        </span>
+      }
+      <!-- Insight tab remains disabled until the feature is restored. -->
     </nav>
     <z-tab-nav-panel
       #tabPanel
       class="relative flex-1 overflow-auto"
       [@routeAnimations]="o.isActivated && o.activatedRoute.routeConfig.path"
-    >
+      >
       <router-outlet #o="outlet"></router-outlet>
     </z-tab-nav-panel>
-  `,
+    `,
   styleUrl: 'home.component.scss',
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush

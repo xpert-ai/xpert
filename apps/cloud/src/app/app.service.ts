@@ -2,7 +2,6 @@ import { BreakpointObserver, Breakpoints, BreakpointState } from '@angular/cdk/l
 import { DOCUMENT } from '@angular/common'
 import { computed, inject, Injectable, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { DateAdapter } from '@angular/material/core'
 import { prefersColorScheme, ThemesEnum } from '@metad/ocap-angular/core'
 import { nonNullable } from '@metad/ocap-core'
 import { ComponentStore } from '@metad/store'
@@ -10,7 +9,7 @@ import { TranslateService } from '@ngx-translate/core'
 import { includes, some } from 'lodash-es'
 import { combineLatest } from 'rxjs'
 import { filter, map, shareReplay, startWith } from 'rxjs/operators'
-import { LanguagesEnum, mapDateLocale, MenuCatalog, navigatorLanguage, Store } from './@core'
+import { LanguagesEnum, MenuCatalog, navigatorLanguage, Store } from './@core'
 import { I18nService } from './@shared/i18n'
 
 export interface PACAppState {
@@ -110,8 +109,7 @@ export class AppService extends ComponentStore<PACAppState> {
 
   constructor(
     private store: Store,
-    private breakpointObserver: BreakpointObserver,
-    private _adapter: DateAdapter<any>
+    private breakpointObserver: BreakpointObserver
   ) {
     super({ navigation: {}, zIndexs: [] } as PACAppState)
 
@@ -126,7 +124,6 @@ export class AppService extends ComponentStore<PACAppState> {
       .subscribe((language) => {
         this.translate.use(language)
         this.#document.documentElement.lang = language
-        this._adapter.setLocale(mapDateLocale(language))
       })
   }
 

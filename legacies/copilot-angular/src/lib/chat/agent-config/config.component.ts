@@ -1,5 +1,5 @@
 import { ClipboardModule } from '@angular/cdk/clipboard'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, input } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -15,7 +15,6 @@ import { ZardCheckboxComponent, ZardSliderComponent, ZardTooltipImports } from '
   templateUrl: 'config.component.html',
   styleUrls: ['config.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -23,7 +22,7 @@ import { ZardCheckboxComponent, ZardSliderComponent, ZardTooltipImports } from '
     ...ZardTooltipImports,
     ZardSliderComponent,
     ZardCheckboxComponent
-  ]
+]
 })
 export class CopilotAgentConfigComponent {
   readonly copilotEngine = input<NgmCopilotEngineService>()

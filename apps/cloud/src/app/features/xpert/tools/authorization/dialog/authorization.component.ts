@@ -1,7 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
@@ -11,7 +11,6 @@ import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
@@ -19,7 +18,7 @@ import { ZardButtonComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     DragDropModule,
     ...ZardTooltipImports,
     ZardButtonComponent
-  ],
+],
   selector: 'xpert-tool-authorization',
   templateUrl: 'authorization.component.html',
   styleUrls: ['authorization.component.scss']

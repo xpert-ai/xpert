@@ -1,5 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, Inject } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
@@ -12,7 +12,6 @@ import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardFormImports } 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
@@ -22,7 +21,7 @@ import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardFormImports } 
     ButtonGroupDirective,
     MatListModule,
     TranslateModule
-  ],
+],
   selector: 'pac-story-linked-analysis',
   templateUrl: 'linked-analysis.component.html',
   styleUrls: ['linked-analysis.component.scss']

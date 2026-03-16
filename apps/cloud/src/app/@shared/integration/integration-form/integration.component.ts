@@ -1,6 +1,6 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
@@ -19,7 +19,6 @@ import { EmojiAvatarComponent } from '../../avatar'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     CdkListboxModule,
@@ -31,7 +30,7 @@ import { EmojiAvatarComponent } from '../../avatar'
     EmojiAvatarComponent,
     NgmInputComponent,
     NgmSpinComponent
-  ],
+],
   selector: 'pac-integration-form',
   templateUrl: 'integration.component.html',
   styleUrls: ['integration.component.scss']

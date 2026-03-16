@@ -1,16 +1,27 @@
 <div class="pac-indicator-market__drawer max-w-full w-full sm:w-[400px] h-full relative flex flex-col justify-start items-stretch">
   <div class="pac-indicator-market_-toolbar flex justify-between items-center">
-    <input z-input class="pac-indicator-market__date-picker font-semibold text-base outline-none bg-transparent focus:rounded-lg focus:bg-gray-500 focus:bg-opacity-25"
-      [matDatepicker]="picker"
-      [formControl]="dateControl"
-      (click)="picker.open()"
-    >
-    <mat-datepicker #picker
-      startView="multi-year"
-      (yearSelected)="chosenYearHandler($event, picker)"
-      (monthSelected)="chosenMonthHandler($event, picker)"
-      >
-    </mat-datepicker>
+    @switch (timeGranularity()) {
+      @case (TIME_GRANULARITY.Year) {
+        <div class="pac-indicator-market__date-picker">
+          <z-year-picker [formControl]="dateControl" zFormat="yyyy" />
+        </div>
+      }
+      @case (TIME_GRANULARITY.Quarter) {
+        <div class="pac-indicator-market__date-picker">
+          <z-quarter-picker [formControl]="dateControl" />
+        </div>
+      }
+      @case (TIME_GRANULARITY.Month) {
+        <div class="pac-indicator-market__date-picker">
+          <z-month-picker [formControl]="dateControl" zFormat="yyyyMM" />
+        </div>
+      }
+      @default {
+        <div class="pac-indicator-market__date-picker">
+          <z-date-picker [formControl]="dateControl" />
+        </div>
+      }
+    }
   
     <div class="flex justify-end items-center">
       <div class="pac-indicator__tag px-2 rounded-lg uppercase cursor-pointer bg-gray-100 hover:bg-gray-200" (click)="toggleTag($event)">

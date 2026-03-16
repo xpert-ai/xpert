@@ -1,7 +1,7 @@
 import { Clipboard } from '@angular/cdk/clipboard'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Overlay, OverlayRef } from '@angular/cdk/overlay'
-import { CommonModule } from '@angular/common'
+
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -38,7 +38,7 @@ declare var monaco: any
   styleUrls: ['./editor.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, MonacoEditorModule, ...ZardTooltipImports],
+  imports: [CdkMenuModule, FormsModule, TranslateModule, MonacoEditorModule, ...ZardTooltipImports],
   host: {
     '[class.fullscreen]': 'fullscreen()'
   }

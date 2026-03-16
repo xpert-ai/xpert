@@ -5,7 +5,7 @@
 <div
   class="pac-story-bar py-2 shrink-0 flex-grow-0 flex flex-col justify-start items-center gap-2 z-20 overflow-hidden hover:overflow-auto transition-all duration-200"
   [class.opened]="sideMenuOpened()"
->
+  >
   <button
     z-button
     zType="ghost"
@@ -16,7 +16,7 @@
     zPosition="right"
     z-menu
     [zMenuTriggerFor]="timerMenu"
-  >
+    >
     <z-icon zType="update"></z-icon>
   </button>
 
@@ -46,7 +46,7 @@
     [zTooltip]="'Story.Toolbar.PanMode' | translate: { Default: 'Pan mode (Space)' }"
     zPosition="right"
     (click)="togglePanTool()"
-  >
+    >
     <z-icon zType="pan_tool"></z-icon>
   </button>
 
@@ -59,7 +59,7 @@
     [zTooltip]="'Story.Toolbar.ZoomIn' | translate: { Default: 'Zoom In (+)' }"
     zPosition="right"
     (click)="zoomIn()"
-  >
+    >
     <z-icon zType="zoom_in"></z-icon>
   </button>
   <button
@@ -72,7 +72,7 @@
     [cdkMenuPosition]="[{ originX: 'end', originY: 'center', overlayX: 'start', overlayY: 'center' }]"
     [zTooltip]="scale() ?? ('Story.Toolbar.Scale' | translate: { Default: 'Scale' })"
     zPosition="right"
-  >
+    >
     <span class="text-xs"> {{ scale() }}% </span>
   </button>
   <button
@@ -84,7 +84,7 @@
     [zTooltip]="'Story.Toolbar.ZoomOut' | translate: { Default: 'Zoom Out (-)' }"
     zPosition="right"
     (click)="zoomOut()"
-  >
+    >
     <z-icon zType="zoom_out"></z-icon>
   </button>
 </div>
@@ -96,7 +96,7 @@
     [(opened)]="sideMenuOpened"
     [zTooltip]="'PAC.Story.StoryToolbar' | translate: { Default: 'Story Toolbar' }"
     zPosition="right"
-  />
+    />
 </div>
 
 <ng-template #timerMenu>
@@ -105,46 +105,51 @@
       {{ 'PAC.KEY_WORDS.AutoRefresh' | translate: { Default: 'Auto Refresh' } }}
     </div>
     <button type="button" z-menu-item [class.selected]="!timer" (click)="timerUpdate(null)">
-      <z-icon *ngIf="!timer" zSize="sm" zType="done"></z-icon>
+      @if (!timer) {
+        <z-icon zSize="sm" zType="done"></z-icon>
+      }
       {{ 'PAC.KEY_WORDS.Off' | translate: { Default: 'Off' } }}
     </button>
-    <button
-      type="button"
-      z-menu-item
-      *ngFor="let t of Schedulers"
-      [class.selected]="timer === t"
-      (click)="timerUpdate(t)"
-    >
-      <z-icon *ngIf="timer === t" zSize="sm" zType="done"></z-icon>{{ t }}
-      {{ 'PAC.KEY_WORDS.Minute' | translate: { Default: 'Minutes' } }}
-    </button>
-  </div>
-</ng-template>
-
-<ng-template #scaleMenu>
-  <div cdkMenu displayDensity="cosy">
-    <button cdkMenuItem (click)="resetScalePan()">
-      <z-icon zType="center_focus_strong"></z-icon>
-      <span class="flex-1">
-        {{ 'Story.Toolbar.Scale_Unset' | translate: { Default: 'Unset' } }}
-      </span>
-
-      <span class="text-sm font-bold ml-4"> Alt + Esc </span>
-    </button>
-    @for (item of StoryScales; track item.value) {
+    @for (t of Schedulers; track t) {
       <button
-        cdkMenuItem
-        class="pac-story-bar__scale-item group"
-        [class.active]="scale() === item.value"
-        (click)="setScale(item.value)"
-      >
-        <span
-          class="pac-story-bar__scale-point inline-flex items-center justify-center w-2 h-2 ml-2 mr-4 text-xs font-semibold bg-gray-200 rounded-full group-hover:bg-yellow-500"
+        type="button"
+        z-menu-item
+        [class.selected]="timer === t"
+        (click)="timerUpdate(t)"
         >
+        @if (timer === t) {
+          <z-icon zSize="sm" zType="done"></z-icon>
+          }{{ t }}
+          {{ 'PAC.KEY_WORDS.Minute' | translate: { Default: 'Minutes' } }}
+        </button>
+      }
+    </div>
+  </ng-template>
+
+  <ng-template #scaleMenu>
+    <div cdkMenu displayDensity="cosy">
+      <button cdkMenuItem (click)="resetScalePan()">
+        <z-icon zType="center_focus_strong"></z-icon>
+        <span class="flex-1">
+          {{ 'Story.Toolbar.Scale_Unset' | translate: { Default: 'Unset' } }}
         </span>
 
-        <span>{{ item.name }}</span>
+        <span class="text-sm font-bold ml-4"> Alt + Esc </span>
       </button>
-    }
-  </div>
-</ng-template>
+      @for (item of StoryScales; track item.value) {
+        <button
+          cdkMenuItem
+          class="pac-story-bar__scale-item group"
+          [class.active]="scale() === item.value"
+          (click)="setScale(item.value)"
+          >
+          <span
+            class="pac-story-bar__scale-point inline-flex items-center justify-center w-2 h-2 ml-2 mr-4 text-xs font-semibold bg-gray-200 rounded-full group-hover:bg-yellow-500"
+            >
+          </span>
+
+          <span>{{ item.name }}</span>
+        </button>
+      }
+    </div>
+  </ng-template>

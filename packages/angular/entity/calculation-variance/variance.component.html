@@ -14,7 +14,7 @@
       [capacities]="[PropertyCapacity.Measure]"
       [editable]="false"
       formControlName="measure"
-    >
+      >
     </ngm-property-select>
 
     <ngm-property-select
@@ -27,7 +27,7 @@
       [capacities]="[PropertyCapacity.Dimension]"
       [editable]="false"
       formControlName="baseDimension"
-    >
+      >
     </ngm-property-select>
   </div>
 
@@ -39,7 +39,7 @@
     [entityType]="entityType"
     [dimension]="baseDimension"
     formControlName="compareA"
-  />
+    />
 
   <ngm-compare-member-select
     label="{{ 'Ngm.Calculation.To' | translate: { Default: 'To' } }} (B)"
@@ -47,7 +47,7 @@
     [entityType]="entityType"
     [dimension]="baseDimension"
     formControlName="toB"
-  />
+    />
 
   <z-checkbox formControlName="asZero" class="my-2">
     {{ 'Ngm.Calculation.SetNoDataasZero' | translate: { Default: 'Set No Data as Zero' } }}
@@ -61,13 +61,15 @@
     {{ 'Ngm.Calculation.DirectDivide' | translate: { Default: 'Direct Divide' } }}
   </z-checkbox>
 
-  <div *ngIf="asPercentage && !directDivide" class="flex justify-between items-center">
-    <z-checkbox formControlName="absBaseValue">
-      {{ 'Ngm.Calculation.AbsoluteBaseValue' | translate: { Default: 'Absolute Base Value' } }}
-    </z-checkbox>
-    <z-form-field appearance="fill" class="w-5/12">
-      <z-form-label>{{ 'Ngm.Calculation.DivideBy' | translate: { Default: 'Divide By' } }}</z-form-label>
-      <ngm-select formControlName="divideBy" [selectOptions]="divideByOptions" />
-    </z-form-field>
-  </div>
+  @if (asPercentage && !directDivide) {
+    <div class="flex justify-between items-center">
+      <z-checkbox formControlName="absBaseValue">
+        {{ 'Ngm.Calculation.AbsoluteBaseValue' | translate: { Default: 'Absolute Base Value' } }}
+      </z-checkbox>
+      <z-form-field appearance="fill" class="w-5/12">
+        <z-form-label>{{ 'Ngm.Calculation.DivideBy' | translate: { Default: 'Divide By' } }}</z-form-label>
+        <ngm-select formControlName="divideBy" [selectOptions]="divideByOptions" />
+      </z-form-field>
+    </div>
+  }
 </form>

@@ -2,7 +2,7 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
@@ -32,7 +32,6 @@ const AutoSaveDebounceTime = 1000
   selector: 'xpert-environment-manage',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -40,10 +39,9 @@ const AutoSaveDebounceTime = 1000
     CdkListboxModule,
     DragDropModule,
     ...ZardTooltipImports,
-
     NgmSpinComponent,
     NgmSelectComponent
-  ],
+],
   templateUrl: './manage.component.html',
   styleUrl: './manage.component.scss',
   animations: [IfAnimation]

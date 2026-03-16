@@ -1,32 +1,33 @@
 <div class="flex justify-between items-center">
-    <h2>
-        {{ 'PAC.KEY_WORDS.NOTIFICATION_DESTINATION' | translate: {Default: "Notification Destinations"} }}
-    </h2>
-    <button z-button zType="default" color="primary" (click)="openCreate()">
-        <z-icon zType="add"></z-icon>{{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} {{ 'PAC.KEY_WORDS.NOTIFICATION_DESTINATION' | translate: {Default: "Notification Destinations"} }}
-    </button>
+  <h2>
+    {{ 'PAC.KEY_WORDS.NOTIFICATION_DESTINATION' | translate: {Default: "Notification Destinations"} }}
+  </h2>
+  <button z-button zType="default" color="primary" (click)="openCreate()">
+    <z-icon zType="add"></z-icon>{{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} {{ 'PAC.KEY_WORDS.NOTIFICATION_DESTINATION' | translate: {Default: "Notification Destinations"} }}
+  </button>
 </div>
 
 <div>
-    <div *ngFor="let destination of destinations$ | async" fxFlex.xs="100" fxFlex="33" [ngClass]="routeAnimationsElements">
-        <z-card class="pac-sketch-card relative bg-[var(--ngm-color-surface-container-low)] active:scale-[0.98]">
-            <z-card-header class="overflow-hidden" (click)="edit(destination)">
-                <div z-card-avatar class="h-[50px] w-[50px] overflow-hidden">
-                    <img class="h-full w-full object-cover" src="{{IMG_ROOT}}/{{destination.type}}.png">
-                </div>
-                <div class="min-w-0 flex flex-1 flex-col overflow-hidden">
-                    <z-card-title class="truncate">
-                        <a (click)="edit(destination)">{{destination.name}}</a>
-                    </z-card-title>
-                    <z-card-subtitle class="mb-0" fxLayout="row" fxLayoutAlign="start end">
-                        {{destination.type}}
-                    </z-card-subtitle>
-                </div>
-            </z-card-header>
-
-            <button z-button zType="ghost" zSize="icon" zShape="circle" color="warn" class="pac-sketch-card__remove" (click)="remove(destination)">
-                <z-icon zType="remove"></z-icon>
-            </button>
-        </z-card>
+  @for (destination of destinations$ | async; track destination) {
+    <div fxFlex.xs="100" fxFlex="33" [ngClass]="routeAnimationsElements">
+      <z-card class="pac-sketch-card relative bg-[var(--ngm-color-surface-container-low)] active:scale-[0.98]">
+        <z-card-header class="overflow-hidden" (click)="edit(destination)">
+          <div z-card-avatar class="h-[50px] w-[50px] overflow-hidden">
+            <img class="h-full w-full object-cover" src="{{IMG_ROOT}}/{{destination.type}}.png">
+          </div>
+          <div class="min-w-0 flex flex-1 flex-col overflow-hidden">
+            <z-card-title class="truncate">
+              <a (click)="edit(destination)">{{destination.name}}</a>
+            </z-card-title>
+            <z-card-subtitle class="mb-0" fxLayout="row" fxLayoutAlign="start end">
+              {{destination.type}}
+            </z-card-subtitle>
+          </div>
+        </z-card-header>
+        <button z-button zType="ghost" zSize="icon" zShape="circle" color="warn" class="pac-sketch-card__remove" (click)="remove(destination)">
+          <z-icon zType="remove"></z-icon>
+        </button>
+      </z-card>
     </div>
+  }
 </div>

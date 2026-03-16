@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { HttpEventType } from '@angular/common/http'
 import { booleanAttribute, Component, effect, inject, input, output, signal } from '@angular/core'
 import { StorageFileService } from '@cloud/app/@core'
@@ -12,7 +12,7 @@ import { FileIconComponent } from '../icon/icon.component'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, ZardProgressBarComponent, FileTypePipe, FileIconComponent],
+  imports: [TranslateModule, ZardProgressBarComponent, FileTypePipe, FileIconComponent],
   selector: 'storage-file',
   templateUrl: './storage-file.component.html',
   styleUrls: ['./storage-file.component.scss'],

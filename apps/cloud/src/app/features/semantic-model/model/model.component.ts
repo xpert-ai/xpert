@@ -36,10 +36,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { OcapCoreModule, provideOcapCore } from '@metad/ocap-angular/core'
 
-import { MatSidenavModule } from '@angular/material/sidenav'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { ScrollingModule } from '@angular/cdk/scrolling'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
 import { lowerCase, snakeCase, sortBy, uniqBy } from 'lodash-es'
 import { nanoid } from 'nanoid'
@@ -97,7 +95,7 @@ import {
   TOOLBAR_ACTION_CATEGORY
 } from './types'
 import { markdownTableData, stringifyTableType } from './utils'
-import { ZardButtonComponent, ZardDialogOpenConfig, ZardDialogService, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogOpenConfig, ZardDialogService, ZardDrawerImports, ZardIconComponent, ZardLoaderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -111,9 +109,9 @@ import { ZardButtonComponent, ZardDialogOpenConfig, ZardDialogService, ZardIconC
     ScrollingModule,
     ZardIconComponent,
     ZardButtonComponent,
-    MatSidenavModule,
+    ...ZardDrawerImports,
     ...ZardTooltipImports,
-    MatProgressSpinnerModule,
+    ZardLoaderComponent,
 
     // OCAP Modules
     ResizerModule,

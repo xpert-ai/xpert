@@ -1,7 +1,7 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { Overlay, OverlayRef } from '@angular/cdk/overlay'
 import { TemplatePortal } from '@angular/cdk/portal'
-import { CommonModule } from '@angular/common'
+
 import {
   Component,
   computed,
@@ -29,14 +29,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
     StateVariableSelectComponent,
     XpertVariablePanelComponent
-  ],
+],
   selector: 'xpert-variable-input',
   templateUrl: './input.component.html',
   styleUrls: ['./input.component.scss'],

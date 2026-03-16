@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, ElementRef, inject, input } from '@angular/core'
 import { TXpertTeamNode } from '@metad/contracts'
 import { TranslateModule } from '@ngx-translate/core'
@@ -12,7 +12,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   styleUrls: ['./toolset.component.scss'],
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [CommonModule, TranslateModule, ...ZardTooltipImports, EmojiAvatarComponent]
+  imports: [TranslateModule, ...ZardTooltipImports, EmojiAvatarComponent]
 })
 export class XpertStudioPanelToolsetSectionComponent {
   readonly elementRef = inject(ElementRef)

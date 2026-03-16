@@ -1,5 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -29,7 +29,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
@@ -38,7 +37,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     NgmSelectComponent
-  ],
+],
   selector: 'pac-chatbi-home',
   templateUrl: './home.component.html',
   styleUrl: 'home.component.scss',

@@ -1,7 +1,7 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -19,7 +19,6 @@ import { XpertParameterIconComponent } from '../parameter-icon/icon.component'
   templateUrl: './form.component.html',
   styleUrl: 'form.component.scss',
   imports: [
-    CommonModule,
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
@@ -28,12 +27,11 @@ import { XpertParameterIconComponent } from '../parameter-icon/icon.component'
     DragDropModule,
     ...ZardTooltipImports,
     ZardInputDirective,
-
     NgmDensityDirective,
     XpertParameterMenuItemComponent,
     XpertParameterIconComponent,
     ZardSwitchComponent
-  ],
+],
 
   hostDirectives: [NgxControlValueAccessor]
 })

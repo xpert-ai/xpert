@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -14,7 +14,7 @@ import { NgmSelectComponent } from '../../common'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NgmSelectComponent, IconComponent, NgmI18nPipe],
+  imports: [FormsModule, TranslateModule, NgmSelectComponent, IconComponent, NgmI18nPipe],
   selector: 'xp-integration-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss'],

@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, computed, effect, inject, input, output } from '@angular/core'
 import { Router } from '@angular/router'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
@@ -12,7 +12,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     CdkMenuModule,
     ...ZardTooltipImports,
@@ -21,7 +20,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TagComponent,
     UserPipe,
     DateRelativePipe
-  ],
+],
   selector: 'xpert-card',
   templateUrl: 'xpert-card.component.html',
   styleUrls: ['xpert-card.component.scss']

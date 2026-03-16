@@ -1,11 +1,11 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core'
 import { ChartAnnotation, ChartDimensionRoleType, ChartOrient } from '@metad/ocap-core'
 import { NxChartType } from '@metad/core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   selector: 'pac-analytical-chart-placeholder',
   templateUrl: 'chart-placeholder.component.html',
   styleUrls: ['chart-placeholder.component.scss']

@@ -24,10 +24,10 @@
   min-height: 100px;
 }
 
-.mat-drawer.ngm-story__filter-bar {
+z-drawer.ngm-story__filter-bar {
   overflow: visible;
   width: 250px;
-  &:not(.mat-drawer-opened) {
+  &[data-state='closed'] {
     visibility: visible !important;
     display: flex;
   }

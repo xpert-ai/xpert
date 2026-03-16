@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -17,7 +17,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, ...ZardTooltipImports, NgmSpinComponent],
+  imports: [TranslateModule, ...ZardTooltipImports, NgmSpinComponent],
   selector: 'xpert-project-tasks',
   templateUrl: './tasks.component.html',
   styleUrl: 'tasks.component.scss',

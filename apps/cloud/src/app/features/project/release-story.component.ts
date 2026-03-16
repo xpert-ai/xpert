@@ -31,52 +31,57 @@ import { ZardDialogRef } from '@xpert-ai/headless-ui'
   ],
   selector: 'pac-project-release-story-dialog',
   template: `<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-  <h4 style="pointer-events: none;" class="mb-0">
-    {{ 'PAC.ACTIONS.Release' | translate: { Default: 'Release' } }}
-    {{ 'PAC.KEY_WORDS.Story' | translate: { Default: 'Story' } }}
-  </h4>
-</header>
-
-<div xpDialogContent class="xpDialogContent w-96">
-  <form [formGroup]="form" class="flex flex-col justify-start items-stretch">
-
-    <z-radio-group formControlName="type" class="flex gap-2 my-4">
-      <z-radio [value]="1">
-      {{ 'PAC.Project.Inner' | translate: {Default: 'Inner'} }}
-      </z-radio>
-      <z-radio [value]="2">
-      {{ 'PAC.Project.Public' | translate: {Default: 'Public'} }}
-      </z-radio>
-    </z-radio-group>
-
-    <div *ngIf="notAllPublic()" class="flex flex-col mb-2">
-      <z-form-message zType="error">
-        {{ 'PAC.Project.AllModelsMustBePublic' | translate: { Default: 'All models must be public' } }}
-      </z-form-message>
-
-      <ul class="pl-4">
-        <li *ngFor="let model of noPublicModels()">{{model.name}}</li>
-      </ul>
-    </div>
-
-    <ngm-tree-select *ngIf="type() === 1" appearance="fill" searchable displayBehaviour="descriptionOnly"
-      formControlName="businessAreaId"
-      label="{{ 'PAC.KEY_WORDS.BusinessArea' | translate: { Default: 'Business Area' } }}"
-      [treeNodes]="businessArea$ | async"
-    ></ngm-tree-select>
-
-    <z-form-field appearance="fill" floatLabel="always" >
-      <z-form-label>{{ 'PAC.Project.Name' | translate: { Default: 'Name' } }}</z-form-label>
-      <input z-input formControlName="name" required
-        placeholder="{{ 'PAC.Project.WhatIsTheName' | translate: { Default: 'What is the name of your project' } }}?"
-      />
-    </z-form-field>
-
-    <z-form-field appearance="fill" floatLabel="always">
-      <z-form-label>
+    <h4 style="pointer-events: none;" class="mb-0">
+      {{ 'PAC.ACTIONS.Release' | translate: { Default: 'Release' } }}
+      {{ 'PAC.KEY_WORDS.Story' | translate: { Default: 'Story' } }}
+    </h4>
+  </header>
+  
+  <div xpDialogContent class="xpDialogContent w-96">
+    <form [formGroup]="form" class="flex flex-col justify-start items-stretch">
+  
+      <z-radio-group formControlName="type" class="flex gap-2 my-4">
+        <z-radio [value]="1">
+          {{ 'PAC.Project.Inner' | translate: {Default: 'Inner'} }}
+        </z-radio>
+        <z-radio [value]="2">
+          {{ 'PAC.Project.Public' | translate: {Default: 'Public'} }}
+        </z-radio>
+      </z-radio-group>
+  
+      @if (notAllPublic()) {
+        <div class="flex flex-col mb-2">
+          <z-form-message zType="error">
+            {{ 'PAC.Project.AllModelsMustBePublic' | translate: { Default: 'All models must be public' } }}
+          </z-form-message>
+          <ul class="pl-4">
+            @for (model of noPublicModels(); track model) {
+              <li>{{model.name}}</li>
+            }
+          </ul>
+        </div>
+      }
+  
+      @if (type() === 1) {
+        <ngm-tree-select appearance="fill" searchable displayBehaviour="descriptionOnly"
+          formControlName="businessAreaId"
+          label="{{ 'PAC.KEY_WORDS.BusinessArea' | translate: { Default: 'Business Area' } }}"
+          [treeNodes]="businessArea$ | async"
+        ></ngm-tree-select>
+      }
+  
+      <z-form-field appearance="fill" floatLabel="always" >
+        <z-form-label>{{ 'PAC.Project.Name' | translate: { Default: 'Name' } }}</z-form-label>
+        <input z-input formControlName="name" required
+          placeholder="{{ 'PAC.Project.WhatIsTheName' | translate: { Default: 'What is the name of your project' } }}?"
+          />
+      </z-form-field>
+  
+      <z-form-field appearance="fill" floatLabel="always">
+        <z-form-label>
           {{ 'PAC.Project.Description' | translate: { Default: 'Description' } }}
-      </z-form-label>
-      <textarea z-input formControlName="description"
+        </z-form-label>
+        <textarea z-input formControlName="description"
           placeholder="{{ 'PAC.Project.DescriptionPlaceholder' | translate: { Default: 'Optional, desciption of the project' } }}"
       ></textarea>
     </z-form-field>

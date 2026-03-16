@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, OnInit, inject } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 
@@ -10,7 +10,6 @@ import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, Zar
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     TranslateModule,
     ZardButtonComponent,
@@ -22,7 +21,7 @@ import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, Zar
     DensityDirective,
     NgmEntityPropertyComponent,
     ZardSwitchComponent
-  ],
+],
   selector: 'ngm-formatting',
   templateUrl: './formatting.component.html',
   styleUrls: ['./formatting.component.scss'],

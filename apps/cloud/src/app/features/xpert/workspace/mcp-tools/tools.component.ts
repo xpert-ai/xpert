@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
@@ -37,7 +37,6 @@ import { MCPMarketplaceComponent, XpertMCPManageComponent } from '@cloud/app/@sh
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
@@ -45,13 +44,12 @@ import { MCPMarketplaceComponent, XpertMCPManageComponent } from '@cloud/app/@sh
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-
     DynamicGridDirective,
     NgmCommonModule,
     CardCreateComponent,
     ToolsetCardComponent,
     MCPMarketplaceComponent
-  ],
+],
   selector: 'xpert-workspace-mcp-tools',
   templateUrl: './tools.component.html',
   styleUrl: 'tools.component.scss',

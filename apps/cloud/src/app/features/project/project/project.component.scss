@@ -28,24 +28,24 @@ $prefix-color: (#{$prefix}, color);
 }
 
 :host {
-  --mat-sidenav-container-background-color: transparent;
-  --mat-sidenav-container-text-color: var(--#{$global-prefix}-text-primary-color);
-  --mat-sidenav-container-divider-color: transparent;
+  --z-drawer-bg: transparent;
+  --z-drawer-border-color: transparent;
 
   @include token-utils.create-token-values($prefix, get-token-slots());
 
   flex: 1;
   max-width: 100%;
+  color: var(--#{$global-prefix}-text-primary-color);
 }
 
 @include token-utils.use-tokens($prefix, get-token-slots()) {
-  .mat-drawer-container {
+  z-drawer-container {
     border-top-left-radius: var(#{token-utils.get-token-variable(primary-container-rounded)});
   }
-  .mat-drawer.mat-drawer-over {
-    --mat-sidenav-container-background-color: var(#{token-utils.get-token-variable(color-surface)});
+  z-drawer[data-mode='over'] {
+    --z-drawer-bg: var(#{token-utils.get-token-variable(color-surface)});
   }
-  .mat-drawer-content {
+  z-drawer-content {
     background-color: var(#{token-utils.get-token-variable(color-surface)});
     border-top-left-radius: var(#{token-utils.get-token-variable(primary-container-rounded)});
     @apply flex overflow-hidden; // for rounded corner overflow-visible;

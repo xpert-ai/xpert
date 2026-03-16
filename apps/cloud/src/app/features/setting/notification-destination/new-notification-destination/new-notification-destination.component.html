@@ -1,66 +1,68 @@
 <header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-    <h4 style="pointer-events: none;">Create a New Notification Destination</h4>
+  <h4 style="pointer-events: none;">Create a New Notification Destination</h4>
 </header>
 
 <div xpDialogContent>
-    <mat-horizontal-stepper [linear]="true" #stepper>
-        <mat-step [stepControl]="typeFormGroup" >
-            <form [formGroup]="typeFormGroup">
-                <ng-template matStepLabel>Type Selection</ng-template>
+  <z-stepper [linear]="true" #stepper="zStepper">
+    <z-step [stepControl]="typeFormGroup" >
+      <form [formGroup]="typeFormGroup">
+        <ng-template zStepLabel>Type Selection</ng-template>
 
-                <ul formControlName="type" class="pac-connection-creation__type-selection ngm-cdk-listbox" cdkListbox
-                    [cdkListboxMultiple]="false" [cdkListboxCompareWith]="compareWithType"
-                    (cdkListboxValueChange)="stepper.next()">
-                    @for (item of destinationTypesWithSelection$ | async; track item.type) {
-                        <li [cdkOption]="item" class="ngm-cdk-option">
-                            <div fxLayout="row" fxLayoutAlign="space-between center" >
-                                <span>
-                                    <img src="{{IMG_ROOT}}/{{item.type}}.png" width="32" height="32">
-                                    {{item.name}}
-                                </span>
-                                <z-icon zType="navigate_next"></z-icon>
-                            </div>
-                        </li>
-                    }
-                </ul>
-            </form>
-        </mat-step>
+        <ul formControlName="type" class="pac-connection-creation__type-selection ngm-cdk-listbox" cdkListbox
+          [cdkListboxMultiple]="false" [cdkListboxCompareWith]="compareWithType"
+          (cdkListboxValueChange)="stepper.next()">
+          @for (item of destinationTypesWithSelection$ | async; track item.type) {
+            <li [cdkOption]="item" class="ngm-cdk-option">
+              <div fxLayout="row" fxLayoutAlign="space-between center" >
+                <span>
+                  <img src="{{IMG_ROOT}}/{{item.type}}.png" width="32" height="32">
+                  {{item.name}}
+                </span>
+                <z-icon zType="navigate_next"></z-icon>
+              </div>
+            </li>
+          }
+        </ul>
+      </form>
+    </z-step>
 
-        <mat-step [stepControl]="configurationFormGroup" label="Configuration">
-            <form [formGroup]="configurationFormGroup" *ngIf="type" class="pac-connection-creation__configuration">
-                <div class="pac-connection-creation__configuration-content">
-                    <div fxLayout="row" fxLayoutAlign="center center" >
-                        <img src="{{IMG_ROOT}}/{{type.type}}.png" width="64" height="64">
-                        {{type.name}}
-                    </div>
-                    
-                    <z-form-field appearance="fill">
-                        <z-form-label>Name</z-form-label>
-                        <input z-input formControlName="name" required>
-                        <z-form-message zType="error" *ngIf="nameCtrl.invalid">Name required</z-form-message>
-                    </z-form-field>
+    <z-step [stepControl]="configurationFormGroup" label="Configuration">
+      @if (type) {
+        <form [formGroup]="configurationFormGroup" class="pac-connection-creation__configuration">
+          <div class="pac-connection-creation__configuration-content">
+            <div fxLayout="row" fxLayoutAlign="center center" >
+              <img src="{{IMG_ROOT}}/{{type.type}}.png" width="64" height="64">
+              {{type.name}}
+            </div>
+            <z-form-field appearance="fill">
+              <z-form-label>Name</z-form-label>
+              <input z-input formControlName="name" required>
+              @if (nameCtrl.invalid) {
+                <z-form-message zType="error">Name required</z-form-message>
+              }
+            </z-form-field>
+            <formly-form
+              [form]="options"
+              [fields]="fields$ | async"
+              [model]="model"
+              >
+            </formly-form>
+          </div>
+        </form>
+      }
+    </z-step>
 
-                    <formly-form
-                        [form]="options"
-                        [fields]="fields$ | async"
-                        [model]="model"
-                        >
-                    </formly-form>
-                </div>
-            </form>
-        </mat-step>
-
-    </mat-horizontal-stepper>
+  </z-stepper>
 </div>
 
 <div xpDialogActions fxLayout="row" fxLayoutAlign="space-between center">
 
-    <button z-button zType="outline" [disabled]="configurationFormGroup.pristine" (click)="onReset()">Reset</button>
+  <button z-button zType="outline" [disabled]="configurationFormGroup.pristine" (click)="onReset()">Reset</button>
 
-    <div>
-        <button z-button zType="ghost" xpDialogClose cdkFocusInitial>Cancel</button>
+  <div>
+    <button z-button zType="ghost" xpDialogClose cdkFocusInitial>Cancel</button>
 
-        <button z-button zType="default" color="accent" [disabled]="configurationFormGroup.invalid || creating" (click)="onSave()">Save</button>
-    </div>
-    
+    <button z-button zType="default" color="accent" [disabled]="configurationFormGroup.invalid || creating" (click)="onSave()">Save</button>
+  </div>
+
 </div>

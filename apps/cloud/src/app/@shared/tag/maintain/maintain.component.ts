@@ -1,5 +1,5 @@
 import { CdkListboxModule, ListboxValueChangeEvent } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -13,7 +13,7 @@ import { TagComponent } from '../tag/tag.component'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, CdkListboxModule, ZardInputDirective, TagComponent],
+  imports: [FormsModule, TranslateModule, CdkListboxModule, ZardInputDirective, TagComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'tag-maintain',
   templateUrl: './maintain.component.html',

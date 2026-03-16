@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -44,7 +44,6 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
@@ -60,7 +59,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     XpertToolNameInputComponent,
     MCPServerFormComponent,
     ZardSwitchComponent
-  ],
+],
   selector: 'pac-xpert-api-tool',
   templateUrl: './api-tool.component.html',
   styleUrl: 'api-tool.component.scss',

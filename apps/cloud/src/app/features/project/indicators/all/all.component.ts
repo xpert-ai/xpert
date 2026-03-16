@@ -1,5 +1,5 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectorRef,
   Component,
@@ -35,7 +35,6 @@ import { ZardButtonComponent, ZardCheckboxComponent, ZardTooltipImports } from '
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
     ZardCheckboxComponent,
@@ -44,7 +43,7 @@ import { ZardButtonComponent, ZardCheckboxComponent, ZardTooltipImports } from '
     TranslateModule,
     NgmSpinComponent,
     DateRelativePipe
-  ],
+],
   selector: 'pac-indicator-all',
   templateUrl: './all.component.html',
   styleUrls: ['./all.component.scss']

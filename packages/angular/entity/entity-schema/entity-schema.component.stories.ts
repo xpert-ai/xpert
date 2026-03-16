@@ -1,8 +1,8 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, Input } from '@angular/core'
-import { MatSidenavModule } from '@angular/material/sidenav'
 import { BrowserAnimationsModule, provideAnimations } from '@angular/platform-browser/animations'
+import { ZardDrawerImports } from '@xpert-ai/headless-ui'
 import {
   NgmDSCoreService,
   OCAP_AGENT_TOKEN,
@@ -20,29 +20,31 @@ import { EntityCapacity } from './types'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MatSidenavModule, DragDropModule, NgmEntitySchemaComponent],
+  imports: [...ZardDrawerImports, DragDropModule, NgmEntitySchemaComponent],
   selector: 'ngm-story-component-drag',
-  template: `<mat-drawer-container class="example-container" autosize cdkDropListGroup>
-    <mat-drawer mode="side" opened cdkDropList>
-      <ngm-entity-schema [dataSettings]="dataSettings"></ngm-entity-schema>
-      <ngm-entity-schema
+  template: `<z-drawer-container class="example-container" cdkDropListGroup>
+      <z-drawer mode="side" opened cdkDropList>
+        <ngm-entity-schema [dataSettings]="dataSettings"></ngm-entity-schema>
+        <ngm-entity-schema
         [dataSettings]="{
           dataSource: dataSettings.dataSource,
           entitySet: 'sales_fact'
         }"
-      ></ngm-entity-schema>
-    </mat-drawer>
-    <mat-drawer-content cdkDropList [cdkDropListData]="drops" (cdkDropListDropped)="drop($event)">
-      <ul>
-        <li *ngFor="let item of drops">
-          {{ item.entity }}/{{ item.name || item.raw.memberKey }}/{{ item.type }}/{{ item.dataType }}/{{ item.dbType }}
-        </li>
-      </ul>
-    </mat-drawer-content>
-  </mat-drawer-container>`,
+        ></ngm-entity-schema>
+      </z-drawer>
+      <z-drawer-content cdkDropList [cdkDropListData]="drops" (cdkDropListDropped)="drop($event)">
+        <ul>
+          @for (item of drops; track item) {
+            <li>
+              {{ item.entity }}/{{ item.name || item.raw.memberKey }}/{{ item.type }}/{{ item.dataType }}/{{ item.dbType }}
+            </li>
+          }
+        </ul>
+      </z-drawer-content>
+    </z-drawer-container>`,
   styles: [
     `
-      .mat-drawer-container {
+      z-drawer-container {
         height: 500px;
       }
     `
@@ -102,7 +104,7 @@ const meta: Meta<NgmEntitySchemaComponent> = {
       ]
     }),
     moduleMetadata({
-      imports: [BrowserAnimationsModule, MatSidenavModule, DragDropModule, NgmEntitySchemaComponent, DragComponent],
+      imports: [BrowserAnimationsModule, ...ZardDrawerImports, DragDropModule, NgmEntitySchemaComponent, DragComponent],
       providers: [NgmDSCoreService]
     })
   ]

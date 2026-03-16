@@ -8,7 +8,7 @@
         fill="none"
         viewBox="0 0 24 24"
         class="icon-xl-heavy"
-      >
+        >
         <path
           fill="currentColor"
           fill-rule="evenodd"
@@ -32,34 +32,35 @@
       cdkDropListOrientation="horizontal"
       [cdkDropListData]="roles"
       (cdkDropListDropped)="drop($event)"
-    >
-      <span
-        z-tab-link
-        *ngFor="let role of roles; trackBy: trackByKey"
-        [routerLink]="[role.key]"
-        routerLinkActive
-        #rla="routerLinkActive"
-        [active]="rla.isActive"
-        cdkDragBoundary=".pac-model-access__nav"
-        cdkDrag
-        [cdkDragData]="role"
       >
-        <span class="pac-nav-tab__label" zTooltipClass="pac-model-query__statement-tip">
-          {{ role.name }}
+      @for (role of roles; track trackByKey($index, role)) {
+        <span
+          z-tab-link
+          [routerLink]="[role.key]"
+          routerLinkActive
+          #rla="routerLinkActive"
+          [active]="rla.isActive"
+          cdkDragBoundary=".pac-model-access__nav"
+          cdkDrag
+          [cdkDragData]="role"
+          >
+          <span class="pac-nav-tab__label" zTooltipClass="pac-model-query__statement-tip">
+            {{ role.name }}
+          </span>
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            displayDensity="compact"
+            class="pac-nav-tab__close"
+            [cdkMenuTriggerFor]="roleMenu"
+            [cdkMenuTriggerData]="{ role: role }"
+            >
+            <z-icon zType="more_vert"></z-icon>
+          </button>
         </span>
-        <button
-          z-button
-          zType="ghost"
-          zSize="icon"
-          zShape="circle"
-          displayDensity="compact"
-          class="pac-nav-tab__close"
-          [cdkMenuTriggerFor]="roleMenu"
-          [cdkMenuTriggerData]="{ role: role }"
-        >
-          <z-icon zType="more_vert"></z-icon>
-        </button>
-      </span>
+      }
     </nav>
   } @else {
     <span class="pl-4">
@@ -72,7 +73,7 @@
     class="w-6 h-6 flex justify-center items-center rounded-lg mx-1 cursor-pointer text-white opacity-80 hover:opacity-100 bg-gradient-to-br from-pink-400 from-40% to-fuchsia-700"
     [zTooltip]="'Copilot.GenerateWithAI' | translate: { Default: 'Generate with AI' }"
     (click)="aiCreate()"
-  >
+    >
     <i class="ri-magic-line"></i>
   </button>
   <button
@@ -80,7 +81,7 @@
     class="btn disabled:btn-disabled btn-secondary btn-small"
     [zTooltip]="'PAC.MODEL.AccessControl.NewRole' | translate: { Default: 'New Role' }"
     (click)="openCreate()"
-  >
+    >
     <i class="ri-user-add-line"></i>
   </button>
 </div>
@@ -108,7 +109,7 @@
     [title]="'PAC.MODEL.AccessControl.NewRole' | translate: { Default: 'New Role' }"
     [form]="creatFormGroup"
     (apply)="onCreate()"
-  >
+    >
     <form [formGroup]="creatFormGroup" (ngSubmit)="onCreate()" class="flex flex-col justify-start items-stretch gap-4">
       <div class="flex justify-start items-center gap-4 my-4">
         <label>{{ 'PAC.MODEL.AccessControl.Type' | translate: { Default: 'Type' } }}:</label>
@@ -123,14 +124,20 @@
       <z-form-field appearance="fill">
         <z-form-label>{{ 'PAC.MODEL.AccessControl.Name' | translate: { Default: 'Name' } }}</z-form-label>
         <input z-input formControlName="name" />
-        <z-form-message zType="error" *ngIf="name.invalid">
-          <span *ngIf="name.errors?.['forbiddenName']">
-            {{ 'PAC.MESSAGE.NameAlreadyExist' | translate: { Default: 'Name Already Exist' } }}
-          </span>
-          <span *ngIf="name.errors?.['required']">
-            {{ 'PAC.MESSAGE.Required' | translate: { Default: 'Required' } }}
-          </span>
-        </z-form-message>
+        @if (name.invalid) {
+          <z-form-message zType="error">
+            @if (name.errors?.['forbiddenName']) {
+              <span>
+                {{ 'PAC.MESSAGE.NameAlreadyExist' | translate: { Default: 'Name Already Exist' } }}
+              </span>
+            }
+            @if (name.errors?.['required']) {
+              <span>
+                {{ 'PAC.MESSAGE.Required' | translate: { Default: 'Required' } }}
+              </span>
+            }
+          </z-form-message>
+        }
       </z-form-field>
     </form>
   </ngm-dialog>

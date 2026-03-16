@@ -1,39 +1,50 @@
-<div *ngIf="swiperOptions$ | async as options" class="w-full h-full">
-  <div *ngFor="let slide of slides$ | async; trackBy: trackByKey"
-    class="pac-swiper__slide w-full h-full"
-    [ngStyle]="slideStyling$()"
-    [ngSwitch]="slide.type">
-
-    <pac-indicator-card *ngSwitchCase="IndicatorCardWidgetType.IndicatorCard" class="w-full h-full"
-      [dataSettings]="slide.options?.dataSettings"
-      [options]="slide.options?.options"
-      [styling]="styling"
-      [ngStyle]="slide.options?.styling?.widget"
-      [slicers]="slicers">
-    </pac-indicator-card>
-
-    <pac-widget-analytical-card *ngSwitchCase="WidgetComponentType.AnalyticalCard" class="w-full h-full"
-      [title]="slide.options?.title"
-      [dataSettings]="slide.options?.dataSettings"
-      [chartSettings]="slide.options?.chartSettings"
-      [options]="slide.options?.options"
-      [styling]="styling"
-      [ngStyle]="slide.options?.styling?.widget"
-      [slicers]="slicers">
-    </pac-widget-analytical-card>
-
-    <pac-widget-analytical-grid *ngSwitchCase="WidgetComponentType.AnalyticalGrid" class="w-full h-full"
-      [title]="slide.options?.title"
-      [dataSettings]="slide.options?.dataSettings"
-      [options]="slide.options?.options"
-      [styling]="styling"
-      [ngStyle]="slide.options?.styling?.widget"
-      [slicers]="slicers">
-    </pac-widget-analytical-grid>
+@if (swiperOptions$ | async; as options) {
+  <div class="w-full h-full">
+    @for (slide of slides$ | async; track trackByKey($index, slide)) {
+      <div
+        class="pac-swiper__slide w-full h-full"
+        [ngStyle]="slideStyling$()"
+        >
+        @switch (slide.type) {
+          @case (IndicatorCardWidgetType.IndicatorCard) {
+            <pac-indicator-card class="w-full h-full"
+              [dataSettings]="slide.options?.dataSettings"
+              [options]="slide.options?.options"
+              [styling]="styling"
+              [ngStyle]="slide.options?.styling?.widget"
+              [slicers]="slicers">
+            </pac-indicator-card>
+          }
+          @case (WidgetComponentType.AnalyticalCard) {
+            <pac-widget-analytical-card class="w-full h-full"
+              [title]="slide.options?.title"
+              [dataSettings]="slide.options?.dataSettings"
+              [chartSettings]="slide.options?.chartSettings"
+              [options]="slide.options?.options"
+              [styling]="styling"
+              [ngStyle]="slide.options?.styling?.widget"
+              [slicers]="slicers">
+            </pac-widget-analytical-card>
+          }
+          @case (WidgetComponentType.AnalyticalGrid) {
+            <pac-widget-analytical-grid class="w-full h-full"
+              [title]="slide.options?.title"
+              [dataSettings]="slide.options?.dataSettings"
+              [options]="slide.options?.options"
+              [styling]="styling"
+              [ngStyle]="slide.options?.styling?.widget"
+              [slicers]="slicers">
+            </pac-widget-analytical-grid>
+          }
+        }
+      </div>
+    }
   </div>
-</div>
+}
 
-<div *ngIf="editable && (slides$ | async | isNil)" class="ngm-story-widget__placeholder absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center">
-  <pac-placeholder-add></pac-placeholder-add>
-  <span class="ngm-story-widget__placeholder-title">{{ 'Story.Widgets.Swiper.Title' | translate: {Default: 'Swiper'} }}</span>
-</div>
+@if (editable && (slides$ | async | isNil)) {
+  <div class="ngm-story-widget__placeholder absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center">
+    <pac-placeholder-add></pac-placeholder-add>
+    <span class="ngm-story-widget__placeholder-title">{{ 'Story.Widgets.Swiper.Title' | translate: {Default: 'Swiper'} }}</span>
+  </div>
+}

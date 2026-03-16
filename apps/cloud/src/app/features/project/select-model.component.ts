@@ -1,6 +1,6 @@
 import { DIALOG_DATA } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ButtonGroupDirective, DensityDirective, mergeSelectedValues } from '@metad/ocap-angular/core'
@@ -13,14 +13,13 @@ import { MaterialModule } from '../../@shared/material.module'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     DragDropModule,
     FormsModule,
     TranslateModule,
     MaterialModule,
     ButtonGroupDirective,
     DensityDirective
-  ],
+],
   selector: 'pac-project-select-model-dialog',
   template: `<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
       <h4 style="pointer-events: none;" class="mb-0">

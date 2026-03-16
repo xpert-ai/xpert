@@ -1,5 +1,5 @@
 import { DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -10,7 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, TreeTableModule],
+  imports: [FormsModule, TranslateModule, TreeTableModule],
   selector: 'pac-business-area-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss']

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -14,13 +14,12 @@ import { ZardTabsImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     ...ZardTabsImports,
-    FormlyModule,
-  ],
+    FormlyModule
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-story-designer',
   templateUrl: './story-designer.component.html',

@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, DestroyRef, inject, input, model, OnInit } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -23,7 +23,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     class: 'pac-organization-selector'
   },
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
@@ -31,7 +30,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSearchComponent,
     OrgAvatarComponent,
     NgmHighlightDirective
-  ],
+],
   animations: [OverlayAnimation1]
 })
 export class OrganizationSelectorComponent implements OnInit {

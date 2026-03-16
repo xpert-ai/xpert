@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { animate, query, stagger, style, transition, trigger } from '@angular/animations'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, forwardRef, inject } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
@@ -21,7 +21,6 @@ const listEnterAnimation = trigger('listEnterAnimation', [
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -30,7 +29,7 @@ const listEnterAnimation = trigger('listEnterAnimation', [
     ZardIconComponent,
     ZardButtonComponent,
     DensityDirective
-  ],
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-colors',
   templateUrl: './colors.component.html',

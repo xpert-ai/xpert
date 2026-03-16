@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -36,7 +36,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     ReactiveFormsModule,
     FormsModule,
@@ -46,7 +45,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ContentLoaderModule,
     DynamicGridDirective,
     KnowledgebaseCardComponent
-  ],
+],
   selector: 'chat-project-knowledges',
   templateUrl: './knowledges.component.html',
   styleUrl: 'knowledges.component.scss',

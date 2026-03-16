@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { attrModel, linkedModel, OverlayAnimations } from '@metad/core'
@@ -10,7 +10,7 @@ import { linkedXpertFeaturesModel } from '../types'
 @Component({
   selector: 'xpert-studio-features-suggestion',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, CopilotPromptEditorComponent],
+  imports: [FormsModule, TranslateModule, CopilotPromptEditorComponent],
   templateUrl: './suggestion.component.html',
   styleUrl: './suggestion.component.scss',
   animations: [...OverlayAnimations]

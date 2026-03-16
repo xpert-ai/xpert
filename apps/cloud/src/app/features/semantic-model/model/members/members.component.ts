@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -16,13 +16,12 @@ import { ModelMembersCubeComponent } from './cube/cube.component'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     ...ZardAccordionImports,
     NgmSpinComponent,
     ModelMembersCubeComponent
-  ],
+],
   selector: 'pac-model-members',
   templateUrl: 'members.component.html',
   styleUrl: 'members.component.scss'

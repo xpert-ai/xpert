@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
 import {
@@ -25,7 +25,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     CdkMenuModule,
     TranslateModule,
@@ -33,7 +32,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     UserPipe,
     DateRelativePipe
-  ],
+],
   selector: 'chat-project-conversations',
   templateUrl: './conversations.component.html',
   styleUrl: 'conversations.component.scss',

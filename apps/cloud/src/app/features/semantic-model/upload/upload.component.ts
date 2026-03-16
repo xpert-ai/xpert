@@ -15,6 +15,7 @@ import { CreationTable, getErrorMessage } from '../../../@core'
 import { UploadSheetType, WorkBook, convertExcelDate2ISO, readExcelJson } from '../types'
 import { FilesUploadComponent, UploadFile } from '../../../@shared/files'
 import { MaterialModule } from '../../../@shared/material.module'
+import { ZardProgressCircleComponent, ZardStepperImports } from '@xpert-ai/headless-ui'
 import { createTimer } from '../../../@shared/timer'
 
 import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
@@ -29,6 +30,8 @@ import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     MaterialModule,
     TranslateModule,
+    ...ZardStepperImports,
+    ZardProgressCircleComponent,
     NgmInputComponent,
     OcapCoreModule,
     FilesUploadComponent

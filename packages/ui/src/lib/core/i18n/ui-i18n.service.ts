@@ -1,4 +1,4 @@
-import { inject, Injectable, InjectionToken, type Provider, type Type } from '@angular/core';
+import { computed, inject, Injectable, InjectionToken, type Provider, type Signal, type Type } from '@angular/core';
 import i18next from 'i18next';
 
 export type UiI18nOptions = {
@@ -11,6 +11,7 @@ export type UiI18nOptions = {
 export type UiI18nTranslateFn = (key: string, options?: UiI18nOptions) => string;
 
 export interface UiI18nAdapter {
+  language?: Signal<string | undefined>;
   getLanguage?: () => string | undefined;
   translate: UiI18nTranslateFn;
 }
@@ -39,9 +40,12 @@ export const UI_I18N_ADAPTER = new InjectionToken<UiI18nAdapter>('UI_I18N_ADAPTE
 })
 export class UiI18nService {
   private readonly adapter = inject(UI_I18N_ADAPTER);
+  readonly language = computed(
+    () => this.adapter.language?.() || this.adapter.getLanguage?.() || i18next.resolvedLanguage || i18next.language,
+  );
 
   get currentLanguage(): string {
-    return this.adapter.getLanguage?.() || i18next.resolvedLanguage || i18next.language;
+    return this.language();
   }
 
   get initialized(): boolean {
@@ -55,7 +59,7 @@ export class UiI18nService {
 
     const translated = this.adapter.translate(key, {
       ...options,
-      lng: options?.lng ?? this.currentLanguage,
+      lng: options?.lng ?? this.language(),
       defaultValue: options?.defaultValue ?? options?.Default,
     });
 

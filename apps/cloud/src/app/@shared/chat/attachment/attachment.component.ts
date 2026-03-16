@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { HttpEventType } from '@angular/common/http'
 import { booleanAttribute, Component, computed, effect, inject, input, model, output, signal, TemplateRef, viewChild } from '@angular/core'
 import { StorageFileService } from '@cloud/app/@core'
@@ -13,7 +13,7 @@ import { FileIconComponent } from '../../files'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, NgmProgressSpinnerComponent, FileTypePipe, FileIconComponent,],
+  imports: [TranslateModule, NgmProgressSpinnerComponent, FileTypePipe, FileIconComponent],
   selector: 'chat-attachment',
   templateUrl: './attachment.component.html',
   styleUrls: ['./attachment.component.scss'],

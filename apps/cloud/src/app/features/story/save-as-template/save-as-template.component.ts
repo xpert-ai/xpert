@@ -1,6 +1,6 @@
 import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
 // Angular standalone component
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -19,20 +19,21 @@ import {
   uuid
 } from '../../../@core'
 import { MaterialModule } from '../../../@shared/material.module'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { TagEditorComponent } from '../../../@shared/tag'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
+    ZardLoaderComponent,
     ReactiveFormsModule,
     MaterialModule,
     ButtonGroupDirective,
     AppearanceDirective,
     DensityDirective,
     TagEditorComponent
-  ],
+],
   selector: 'pac-save-as-template',
   templateUrl: './save-as-template.component.html',
   styleUrls: ['./save-as-template.component.scss']

@@ -74,25 +74,6 @@
     }
   }
 
-  .mat-stepper-horizontal {
-    .mat-step-icon {
-      width: 40px;
-      height: 40px;
-      border: 2px solid mat.m2-get-color-from-palette($primary);
-      background-color: unset;
-      color: mat.m2-get-color-from-palette($foreground, text);
-      &.mat-step-icon-selected {
-        background-color: mat.m2-get-color-from-palette($primary);
-        color: white;
-      }
-    }
-  }
-
-  .mat-datepicker-content {
-    box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
-    border-radius: 15px;
-  }
-
   pac-features {
     .ant-page-header-footer {
       margin-top: 0;
@@ -349,11 +330,6 @@
 }
 
 @mixin density($theme) {
-  .ngm-stepper.mat-stepper-vertical {
-    .mat-step-icon {
-      @apply w-10 h-10 -left-2;
-    }
-  }
 }
 
 @mixin typography($theme) {

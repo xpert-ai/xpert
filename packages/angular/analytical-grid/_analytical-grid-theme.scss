@@ -11,15 +11,10 @@
 
   .ngm-analytical-grid {
     /* For analytical grid in dashboard styles */
-    .mat-mdc-table {
-      --mat-table-background-color: transparent;
+    table[z-table] {
       thead, tfoot {
         background: lighten(mat.m2-get-color-from-palette($background, hover), 50%);
       }
-
-      // tbody, mat-header-row, mat-row, mat-footer-row, [mat-header-row], [mat-row], [mat-footer-row] {
-      //   background: unset;
-      // }
     }
     z-paginator {
       background: lighten(mat.m2-get-color-from-palette($background, hover), 50%);
@@ -45,30 +40,30 @@
       }
     }
 
-    .cdk-cell.ngm-analytical-grid__measure {
+    [z-table-cell].ngm-analytical-grid__measure {
       &:hover {
         background-color: mat.m2-get-color-from-palette($background, hover);
       }
     }
     
-    .cdk-cell, .cdk-header-cell {
+    [z-table-cell], [z-table-head] {
       padding: 0 5px;
       cursor: pointer;
     }
 
-    .cdk-cell.ngm-semantic--negative--background {
+    [z-table-cell].ngm-semantic--negative--background {
       background-color: #ff000038;
     }
 
-    .cdk-cell.ngm-semantic--negative--color {
+    [z-table-cell].ngm-semantic--negative--color {
       color: #ff000038;
     }
 
-    .mat-mdc-row.selected {
-      .cdk-cell.ngm-semantic--negative--background.selected {
+    tr[z-table-row].selected {
+      [z-table-cell].ngm-semantic--negative--background.selected {
         background-color: #ff000080;
       }
-      .cdk-cell.ngm-semantic--negative--color.selected {
+      [z-table-cell].ngm-semantic--negative--color.selected {
         color: #ff000080;
       }
     }

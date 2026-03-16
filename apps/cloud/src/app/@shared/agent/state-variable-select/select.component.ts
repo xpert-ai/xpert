@@ -1,5 +1,5 @@
 import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, computed, effect, inject, input, model, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { XpertAPIService } from '@cloud/app/@core'
@@ -21,7 +21,7 @@ import { expandVariablesWithItems } from '../types'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, CdkMenuModule, FormsModule, TranslateModule, NgmI18nPipe, XpertVariablePanelComponent],
+  imports: [CdkMenuModule, FormsModule, TranslateModule, NgmI18nPipe, XpertVariablePanelComponent],
   selector: 'xpert-state-variable-select',
   templateUrl: 'select.component.html',
   styleUrls: ['select.component.scss'],

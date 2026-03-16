@@ -1,5 +1,5 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, HostBinding, Input, forwardRef, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { AbstractControl, ControlValueAccessor, FormBuilder, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
@@ -31,15 +31,13 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     }
   ],
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     ZardIconComponent,
     ZardButtonComponent,
     TranslateModule,
     NgmCommonModule,
-
     NgmPropertySelectComponent
-  ]
+]
 })
 export class NgmPropertyArrayComponent implements ControlValueAccessor {
   private readonly formBuilder = inject(FormBuilder)

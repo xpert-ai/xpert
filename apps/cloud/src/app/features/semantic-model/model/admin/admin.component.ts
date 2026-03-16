@@ -1,5 +1,5 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectorRef, Component, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
@@ -25,7 +25,6 @@ import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xper
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     ZardIconComponent,
     ZardButtonComponent,
@@ -38,7 +37,7 @@ import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xper
     NgmSearchComponent,
     NgmTableComponent,
     NgmSpinComponent
-  ],
+],
   selector: 'pac-model-admin',
   templateUrl: 'admin.component.html',
   styleUrl: 'admin.component.scss'

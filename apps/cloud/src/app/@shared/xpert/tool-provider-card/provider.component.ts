@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, input, output } from '@angular/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { injectOrganizationId } from '@metad/cloud/state'
@@ -9,7 +9,7 @@ import { EmojiAvatarComponent } from '../../avatar'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, ...ZardTooltipImports, EmojiAvatarComponent, NgmI18nPipe],
+  imports: [TranslateModule, ...ZardTooltipImports, EmojiAvatarComponent, NgmI18nPipe],
   selector: 'xpert-tool-provider-card',
   templateUrl: 'provider.component.html',
   styleUrls: ['provider.component.scss']

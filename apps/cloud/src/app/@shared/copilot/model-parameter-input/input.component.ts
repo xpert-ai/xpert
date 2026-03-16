@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardSliderComponent, ZardSwitchComponent } from '@xpert-ai/headless-ui'
@@ -10,7 +10,7 @@ import { ParameterRule, ParameterType } from '../../../@core'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ZardInputDirective, ZardSliderComponent, ZardSwitchComponent],
+  imports: [FormsModule, ZardInputDirective, ZardSliderComponent, ZardSwitchComponent],
   selector: 'copilot-model-parameter-input',
   templateUrl: 'input.component.html',
   styleUrls: ['input.component.scss'],

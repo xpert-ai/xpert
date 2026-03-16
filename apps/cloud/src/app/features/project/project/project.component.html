@@ -1,12 +1,12 @@
-<mat-drawer-container class="w-full h-full" [autosize]="true">
-  <mat-drawer
+<z-drawer-container class="w-full h-full">
+  <z-drawer
     #drawer
     class="w-64"
     [mode]="isMobile() ? 'over' : 'side'"
     [(opened)]="sideMenuOpened"
     ngmResizer
     [resizerWidth]="230"
-  >
+    >
     <div class="p-4">
       <div
         class="pac-project__router-link p-2 pr-0 flex justify-start items-center group cursor-pointer rounded-md"
@@ -15,7 +15,7 @@
         #rla1="routerLinkActive"
         [routerLinkActiveOptions]="{ exact: true }"
         [class.active]="rla1.isActive"
-      >
+        >
         <z-icon class="shrink-0" zType="home"></z-icon>
         <span class="">
           {{ 'PAC.Project.Home' | translate: { Default: 'Home' } }}
@@ -33,9 +33,13 @@
           zShape="circle"
           displayDensity="cosy"
           (click)="unfoldBookmarks = !unfoldBookmarks"
-        >
-          <z-icon *ngIf="!unfoldBookmarks" zType="chevron_right"></z-icon>
-          <z-icon *ngIf="unfoldBookmarks" zType="expand_more"></z-icon>
+          >
+          @if (!unfoldBookmarks) {
+            <z-icon zType="chevron_right"></z-icon>
+          }
+          @if (unfoldBookmarks) {
+            <z-icon zType="expand_more"></z-icon>
+          }
         </button>
       </div>
       @if (unfoldBookmarks) {
@@ -50,7 +54,7 @@
               [class.active]="rla.isActive"
               cdkDrag
               [cdkDragData]="bookmark"
-            >
+              >
               <div class="w-full flex items-center">
                 <z-icon
                   class="shrink-0 cursor-pointer opacity-0 group-hover:opacity-50"
@@ -72,7 +76,7 @@
                   zTooltip="{{ 'PAC.Project.RemoveBookmark' | translate: { Default: 'Remove Bookmark' } }}"
                   zPosition="right"
                   (click)="$event.stopPropagation(); removeBookmark(bookmark)"
-                >
+                  >
                   <z-icon zType="bookmark"></z-icon>
                 </button>
               </div>
@@ -94,24 +98,24 @@
           [cdkMenuTriggerFor]="collectionsMenu"
           #mt="cdkMenuTriggerFor"
           [class.active]="mt.isOpen()"
-        >
+          >
           <i class="ri-more-line"></i>
         </button>
       </div>
 
-      <cdk-tree [dataSource]="dataSource" [treeControl]="treeControl" class="flex flex-col">
+      <z-tree [dataSource]="dataSource" [treeControl]="treeControl" class="flex flex-col">
         <!-- This is the tree node template for leaf nodes -->
-        <cdk-tree-node
-          *cdkTreeNodeDef="let node"
-          cdkTreeNodePadding
-          cdkTreeNodePaddingIndent="10px"
+        <div
+          *zTreeNodeDef="let node"
+          zTreeNodePadding
+          zTreeNodePaddingIndent="10px"
           class="pac-project__router-link flex items-center group cursor-pointer rounded-md"
           [routerLink]="node.raw.__type__ === 'story' ? ['/project', node.key] : null"
           routerLinkActive
           #rla="routerLinkActive"
           [routerLinkActiveOptions]="{ exact: false }"
           [class.active]="rla.isActive"
-        >
+          >
           <!-- use a disabled button to provide padding for tree leaf -->
           <button
             z-button
@@ -143,7 +147,7 @@
                 #mt="cdkMenuTriggerFor"
                 [class.active]="mt.isOpen()"
                 (click)="$event.stopPropagation()"
-              >
+                >
                 <i class="ri-more-line"></i>
               </button>
             }
@@ -166,63 +170,64 @@
                 #mt="cdkMenuTriggerFor"
                 [class.active]="mt.isOpen()"
                 (click)="$event.stopPropagation()"
-              >
+                >
                 <i class="ri-more-line"></i>
               </button>
             }
           }
-        </cdk-tree-node>
+        </div>
         <!-- This is the tree node template for expandable nodes -->
-        <cdk-tree-node
-          *cdkTreeNodeDef="let node; when: hasChild"
-          cdkTreeNodePadding
-          cdkTreeNodePaddingIndent="20px"
+        <div
+          *zTreeNodeDef="let node; when: hasChild"
+          zTreeNodePadding
+          zTreeNodePaddingIndent="20px"
           class="flex items-center group cursor-pointer rounded-md"
-        >
+          >
           <button
             z-button
             zType="ghost"
             zSize="icon"
             zShape="circle"
-            cdkTreeNodeToggle
+            zTreeNodeToggle
             displayDensity="cosy"
             class="ml-2"
             [attr.aria-label]="'Toggle ' + node.caption"
-            (click)="node.isExpanded = !node.isExpanded"
             [style.visibility]="node.expandable ? 'visible' : 'hidden'"
-          >
+            >
             <z-icon
               class="z-icon-rtl-mirror"
               [zType]="treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'"
             ></z-icon>
           </button>
-          <z-icon
-            *ngIf="node.raw.__type__ === 'collection'"
-            zSize="default"
-            class="text-slate-200 group-hover:text-slate-400"
-            zType="folder"
-          ></z-icon>
+          @if (node.raw.__type__ === 'collection') {
+            <z-icon
+              zSize="default"
+              class="text-slate-200 group-hover:text-slate-400"
+              zType="folder"
+            ></z-icon>
+          }
           <span [title]="node.caption" class="whitespace-nowrap text-ellipsis overflow-hidden ml-2">
             {{ node.caption }}
           </span>
           <span class="flex flex-1"></span>
-          <button
-            z-button
-            zType="ghost"
-            zSize="icon"
-            zShape="circle"
-            *ngIf="node.raw.__type__ === 'collection'"
-            class="opacity-0 group-hover:opacity-50"
-            displayDensity="cosy"
-            [cdkMenuTriggerFor]="collectionMenu"
-            [cdkMenuTriggerData]="node"
-            #mt="cdkMenuTriggerFor"
-            [class.active]="mt.isOpen()"
-          >
-            <i class="ri-more-line"></i>
-          </button>
-        </cdk-tree-node>
-      </cdk-tree>
+          @if (node.raw.__type__ === 'collection') {
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              zShape="circle"
+              class="opacity-0 group-hover:opacity-50"
+              displayDensity="cosy"
+              [cdkMenuTriggerFor]="collectionMenu"
+              [cdkMenuTriggerData]="node"
+              #mt="cdkMenuTriggerFor"
+              [class.active]="mt.isOpen()"
+              >
+              <i class="ri-more-line"></i>
+            </button>
+          }
+        </div>
+      </z-tree>
 
       <div class="p-2 pr-0 flex justify-between items-center">
         <span class="">
@@ -230,19 +235,20 @@
         </span>
 
         <span class="flex flex-1"></span>
-        <button
-          z-button
-          zType="ghost"
-          zSize="icon"
-          zShape="circle"
-          *ngIf="isOwner"
-          displayDensity="cosy"
-          zTooltip="{{ 'PAC.Project.AddModel' | translate: { Default: 'Add Model' } }}"
-          zPosition="top"
-          (click)="addModel()"
-        >
-          <z-icon zType="add_link"></z-icon>
-        </button>
+        @if (isOwner) {
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            displayDensity="cosy"
+            zTooltip="{{ 'PAC.Project.AddModel' | translate: { Default: 'Add Model' } }}"
+            zPosition="top"
+            (click)="addModel()"
+            >
+            <z-icon zType="add_link"></z-icon>
+          </button>
+        }
 
         <button
           z-button
@@ -251,9 +257,13 @@
           zShape="circle"
           displayDensity="cosy"
           (click)="modelsExpand = !modelsExpand"
-        >
-          <z-icon *ngIf="!modelsExpand" zType="chevron_right"></z-icon>
-          <z-icon *ngIf="modelsExpand" zType="expand_more"></z-icon>
+          >
+          @if (!modelsExpand) {
+            <z-icon zType="chevron_right"></z-icon>
+          }
+          @if (modelsExpand) {
+            <z-icon zType="expand_more"></z-icon>
+          }
         </button>
       </div>
 
@@ -265,7 +275,7 @@
               [routerLink]="['/models', model.id]"
               cdkDrag
               [cdkDragData]="model"
-            >
+              >
               <div class="w-full flex items-center">
                 <i class="ri-draggable text-lg mx-1 shrink-0 cursor-pointer opacity-0 group-hover:opacity-100"></i>
                 <span class="whitespace-nowrap text-ellipsis overflow-hidden">
@@ -284,7 +294,7 @@
                   zTooltip="{{ 'PAC.Project.RemoveModel' | translate: { Default: 'Remove Model' } }}"
                   zPosition="right"
                   (click)="$event.stopPropagation(); removeModel(model)"
-                >
+                  >
                   <z-icon zType="delete"></z-icon>
                 </button>
               </div>
@@ -300,7 +310,7 @@
         #rla4="routerLinkActive"
         [routerLinkActiveOptions]="{ exact: true }"
         [class.active]="rla4.isActive"
-      >
+        >
         <z-icon class="shrink-0" zType="trending_up"></z-icon>
         <span class="ml-2">
           {{ 'PAC.Project.Indicators' | translate: { Default: 'Indicators' } }}
@@ -315,7 +325,7 @@
           #rla5="routerLinkActive"
           [routerLinkActiveOptions]="{ exact: true }"
           [class.active]="rla5.isActive"
-        >
+          >
           <z-icon class="shrink-0" zType="people"></z-icon>
           <span class="ml-2">{{ 'PAC.Project.Members' | translate: { Default: 'Members' } }}</span>
         </div>
@@ -327,7 +337,7 @@
           #rla6="routerLinkActive"
           [routerLinkActiveOptions]="{ exact: true }"
           [class.active]="rla6.isActive"
-        >
+          >
           <z-icon class="shrink-0" zType="attach_file"></z-icon>
           <span class="ml-2">{{ 'PAC.Project.Files' | translate: { Default: 'Files' } }}</span>
         </div>
@@ -335,11 +345,11 @@
     </div>
 
     <div ngmResizerBar resizerBarPosition="right" cdkDrag cdkDragLockAxis="x"></div>
-  </mat-drawer>
-  <mat-drawer-content
+  </z-drawer>
+  <z-drawer-content
     [ngStyle]="{ 'z-index': isMobile() ? 0 : 10 }"
     [@routeAnimations]="o.isActivated && o.activatedRouteData?.title"
-  >
+    >
     <router-outlet #o="outlet"></router-outlet>
 
     <ngm-drawer-trigger
@@ -347,9 +357,9 @@
       [(opened)]="sideMenuOpened"
       [zTooltip]="'PAC.Project.ProjectNavigations' | translate: { Default: 'Project Navigations' }"
       zPosition="right"
-    />
-  </mat-drawer-content>
-</mat-drawer-container>
+      />
+  </z-drawer-content>
+</z-drawer-container>
 
 <ng-template #collectionsMenu>
   <div cdkMenu class="cdk-menu__large ngm-density__compact">
@@ -366,19 +376,23 @@
 
 <ng-template #collectionMenu let-key="key" let-raw="raw">
   <div cdkMenu class="cdk-menu__large ngm-density__compact">
-    <button cdkMenuItem *ngIf="raw?.id !== DefaultCollection.id" (click)="newCollection(key)">
-      <z-icon zType="create_new_folder"></z-icon>
-      {{ 'PAC.Project.NewCollection' | translate: { Default: 'New Collection' } }}
-    </button>
+    @if (raw?.id !== DefaultCollection.id) {
+      <button cdkMenuItem (click)="newCollection(key)">
+        <z-icon zType="create_new_folder"></z-icon>
+        {{ 'PAC.Project.NewCollection' | translate: { Default: 'New Collection' } }}
+      </button>
+    }
     <button cdkMenuItem (click)="newStory(key)">
       <z-icon zType="collections"></z-icon>
       {{ 'PAC.Project.NewStory' | translate: { Default: 'New Story' } }}
     </button>
 
-    <button cdkMenuItem *ngIf="raw?.id !== DefaultCollection.id" ngmAppearance="danger" (click)="deleteCollection(key)">
-      <z-icon zType="folder_delete"></z-icon>
-      {{ 'PAC.Project.RemoveCollection' | translate: { Default: 'Remove Collection' } }}
-    </button>
+    @if (raw?.id !== DefaultCollection.id) {
+      <button cdkMenuItem ngmAppearance="danger" (click)="deleteCollection(key)">
+        <z-icon zType="folder_delete"></z-icon>
+        {{ 'PAC.Project.RemoveCollection' | translate: { Default: 'Remove Collection' } }}
+      </button>
+    }
   </div>
 </ng-template>
 
@@ -445,7 +459,7 @@
             placeholder="{{
               'PAC.Project.WhatIsTheCollectionName' | translate: { Default: 'What is the name of your collection' }
             }}?"
-          />
+            />
         </z-form-field>
 
         <ngm-tree-select
@@ -495,7 +509,7 @@
         }}?"
         [displayBehaviour]="DisplayBehaviour.descriptionOnly"
         [(ngModel)]="moveToCollectionId"
-      >
+        >
       </ngm-tree-select>
     </div>
 

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -10,11 +10,10 @@ import { Dialog } from '@angular/cdk/dialog'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     FormsModule,
-    ReactiveFormsModule,
-  ],
+    ReactiveFormsModule
+],
   selector: 'xpert-tool-authorization-input',
   templateUrl: 'input.component.html',
   styleUrls: ['input.component.scss'],

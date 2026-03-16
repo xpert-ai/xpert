@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -27,7 +27,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
@@ -35,10 +34,9 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     RouterModule,
     TranslateModule,
     ...ZardTooltipImports,
-
     NgmIndicatorComponent,
     NgmIndicatorExplorerComponent
-  ],
+],
   selector: 'chat-component-indicators',
   templateUrl: './indicators.component.html',
   styleUrl: 'indicators.component.scss',

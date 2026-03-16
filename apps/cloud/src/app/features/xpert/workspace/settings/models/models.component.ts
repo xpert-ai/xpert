@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, input } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertWorkspace, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
@@ -6,7 +6,7 @@ import { IXpertWorkspace, XpertWorkspaceService } from 'apps/cloud/src/app/@core
 @Component({
   selector: 'xpert-workspace-models',
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [TranslateModule],
   templateUrl: './models.component.html',
   styleUrl: './models.component.scss'
 })

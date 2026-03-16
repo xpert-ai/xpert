@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { AfterViewInit, ChangeDetectorRef, Component, computed, inject, output, SecurityContext, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
@@ -19,17 +19,14 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-
     ZardButtonComponent,
     ZardIconComponent,
     MonacoEditorModule,
-
     ButtonGroupDirective
-  ],
+],
   selector: 'pac-email-template',
   templateUrl: './template.component.html',
   styleUrls: ['./template.component.scss']

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, output, input, effect } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -8,8 +8,7 @@ import { VariableTypeOptions } from '../types'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, NgmSelectComponent,
-  ],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, NgmSelectComponent],
   selector: 'xpert-env-variable-form',
   templateUrl: 'variable-form.component.html',
   styleUrls: ['variable-form.component.scss']

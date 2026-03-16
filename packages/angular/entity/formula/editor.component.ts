@@ -1,12 +1,11 @@
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
-import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDrawerImports, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { CommonModule } from '@angular/common'
 import { Component, forwardRef, Input } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { EntityCapacity, OcapCoreModule } from '@metad/ocap-angular/core'
 import { C_MEASURES, DataSettings, isPropertyMeasure, Syntax } from '@metad/ocap-core'
 import { BehaviorSubject, Subject } from 'rxjs'
-import { MatSidenavModule } from '@angular/material/sidenav'
 import { NgmEntitySchemaComponent } from '../entity-schema/entity-schema.component'
 import { ResizerModule } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -18,7 +17,7 @@ import { MonacoEditorModule } from 'ngx-monaco-editor'
     FormsModule,
     TranslateModule,
     DragDropModule,
-    MatSidenavModule,
+    ...ZardDrawerImports,
     ZardIconComponent,
     ...ZardTooltipImports,
     ZardButtonComponent,

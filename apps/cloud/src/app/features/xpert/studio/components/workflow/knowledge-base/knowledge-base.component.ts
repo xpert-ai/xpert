@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed } from '@angular/core'
 import { IWFNKnowledgeBase } from '@cloud/app/@core'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
@@ -14,13 +14,12 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FFlowModule,
     ...ZardTooltipImports,
     TranslateModule,
     CopilotModelSelectComponent,
     PlusSvgComponent
-  ]
+]
 })
 export class XpertWorkflowNodeKnowledgeBaseComponent extends WorkflowBaseNodeComponent {
   // States

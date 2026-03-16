@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input, signal } from '@angular/core'
 import { StoredMessage } from '@langchain/core/messages'
 import { TranslateModule } from '@ngx-translate/core'
@@ -10,7 +10,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     ...ZardTooltipImports,
     MarkdownModule,
@@ -18,7 +17,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     Copy2Component,
     CopilotMessageContentComponent,
     CopilotMessageToolCallComponent
-  ],
+],
   selector: 'copilot-stored-message',
   templateUrl: 'message.component.html',
   styleUrls: ['message.component.scss']

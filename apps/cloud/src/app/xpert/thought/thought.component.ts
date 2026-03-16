@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -19,7 +19,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, MarkdownModule, ...ZardTooltipImports, CopyComponent],
+  imports: [TranslateModule, MarkdownModule, ...ZardTooltipImports, CopyComponent],
   selector: 'chat-thought',
   templateUrl: './thought.component.html',
   styleUrl: 'thought.component.scss',

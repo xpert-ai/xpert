@@ -1,6 +1,6 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, HostBinding, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
@@ -20,7 +20,7 @@ export interface ConfirmCodeEditorData {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, DragDropModule, ZardButtonComponent, MonacoEditorModule, ButtonGroupDirective],
+  imports: [FormsModule, TranslateModule, DragDropModule, ZardButtonComponent, MonacoEditorModule, ButtonGroupDirective],
   selector: 'ngm-confirm-code-editor',
   templateUrl: './confirm-code-editor.component.html',
   styleUrls: ['./confirm-code-editor.component.scss']

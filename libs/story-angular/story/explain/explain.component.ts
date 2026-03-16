@@ -9,13 +9,12 @@ import { TranslateModule } from '@ngx-translate/core'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     DragDropModule,
     ZardIconComponent,
@@ -27,7 +26,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpe
     OmitBlankPipe,
     NgxJsonViewerModule,
     NgmCopyComponent
-  ],
+],
   selector: 'pac-story-explain',
   templateUrl: 'explain.component.html',
   styleUrls: ['explain.component.scss']

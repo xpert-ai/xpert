@@ -1,5 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, DestroyRef, OnInit, computed, effect, inject, input, output, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { AbstractControl, FormBuilder, FormControl, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms'
@@ -37,7 +37,7 @@ export interface CalculationEditorData {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, TranslateModule, DragDropModule, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, ZardInputDirective, NgmCommonModule, NgmCalculatedMeasureComponent, NgmCalculationVarianceComponent, NgmConditionalAggregationComponent, NgmRestrictedMeasureComponent, NgmMeasureControlComponent],
+  imports: [ReactiveFormsModule, TranslateModule, DragDropModule, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, ZardInputDirective, NgmCommonModule, NgmCalculatedMeasureComponent, NgmCalculationVarianceComponent, NgmConditionalAggregationComponent, NgmRestrictedMeasureComponent, NgmMeasureControlComponent],
   selector: 'ngm-calculation-editor',
   templateUrl: './calculation-editor.component.html',
   styleUrls: ['./calculation-editor.component.scss']

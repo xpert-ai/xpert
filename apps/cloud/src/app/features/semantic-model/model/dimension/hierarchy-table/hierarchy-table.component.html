@@ -1,72 +1,94 @@
 <div class="ngm-table__container flex-1 h-full flex flex-col overflow-auto">
-  <table mat-table class="ngm-table-grid min-w-full"
-    [dataSource]="dataSource" matSort
-    [displayDensity]="displayDensity()"
-    >
-    <ng-container matColumnDef="levelNumber" sticky>
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>
-        <span>{{ 'PAC.KEY_WORDS.LevelNumber' | translate: {Default: 'Level Number'} }}</span>
-      </th>
+  <table z-table class="ngm-table-grid min-w-full" [zSize]="tableSize()" [displayDensity]="displayDensity()">
+    <thead z-table-header>
+      <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+        <th z-table-head zTableStickyStart [zTableStickyStart]="0" [zTableStickyZIndex]="5" class="sticky top-0 z-10 bg-background">
+          <span>{{ 'PAC.KEY_WORDS.LevelNumber' | translate: {Default: 'Level Number'} }}</span>
+        </th>
 
-      <td mat-cell *matCellDef="let data" >
-        <span [ngStyle]="{marginLeft: data.levelNumber + 'rem' }">{{data.levelNumber}}</span>
-      </td>
-    </ng-container>
+        @for (column of columns(); track column.name) {
+          <th
+            z-table-head
+            [zTableStickyStart]="column.sticky ? 0 : null"
+            [zTableStickyEnd]="column.stickyEnd ? 0 : null"
+            [zTableStickyZIndex]="column.sticky || column.stickyEnd ? 5 : 1"
+            [style.width]="column.width || null"
+            class="sticky top-0 z-10 bg-background"
+          >
+            <span>
+              {{column.caption || column.name}}
+            </span>
+          </th>
+        }
 
-    <!-- Columns -->
-    <ng-container *ngFor="let column of columns(); let last = last" [matColumnDef]="column.name" [sticky]="column.sticky" [stickyEnd]="column.stickyEnd">
-      <th mat-header-cell *matHeaderCellDef mat-sort-header [width]="column.width">
-        <div class="ngm-header-cell flex-1 flex justify-between items-center whitespace-nowrap">
-          <span>
-          {{column.caption || column.name}}
-          </span>
-        </div>
-      </th>
-      <td mat-cell *matCellDef="let data" >
-        <div class="flex items-center">
-          @if (data.level === column.name) {
-            @if (!last) {
-              <button z-button zType="ghost" zSize="icon" zShape="circle" class="inline-block" (click)="toggleNode(data)">
-                @if (data.expanded) {
-                  <z-icon zType="expand_more"></z-icon>
-                } @else {
-                  <z-icon zType="keyboard_arrow_right"></z-icon>
+        <th z-table-head zTableStickyEnd [zTableStickyEnd]="0" [zTableStickyZIndex]="5" class="sticky top-0 z-10 bg-background">
+          <span>{{ 'PAC.KEY_WORDS.ChildrenCardinality' | translate: {Default: 'Children Cardinality'} }}</span>
+        </th>
+      </tr>
+    </thead>
+
+    <tbody z-table-body>
+      @for (data of rows(); track $index) {
+        <tr z-table-row>
+          <td z-table-cell zTableStickyStart [zTableStickyStart]="0" [zTableStickyZIndex]="4">
+            <span [ngStyle]="{marginLeft: data.levelNumber + 'rem' }">{{data.levelNumber}}</span>
+          </td>
+
+          @for (column of columns(); track column.name; let last = $last) {
+            <td
+              z-table-cell
+              [zTableStickyStart]="column.sticky ? 0 : null"
+              [zTableStickyEnd]="column.stickyEnd ? 0 : null"
+              [zTableStickyZIndex]="column.sticky || column.stickyEnd ? 4 : 1"
+              [style.width]="column.width || null"
+            >
+              <div class="flex items-center">
+                @if (data.level === column.name) {
+                  @if (!last) {
+                    <button z-button zType="ghost" zSize="icon" zShape="circle" class="inline-block" (click)="toggleNode(data)">
+                      @if (data.expanded) {
+                        <z-icon zType="expand_more"></z-icon>
+                      } @else {
+                        <z-icon zType="keyboard_arrow_right"></z-icon>
+                      }
+                    </button>
+                  }
+                  <ngm-display-behaviour class="flex-1" [option]="{
+                      key: getValue(data.value, column.name),
+                      caption: getValue(data.value, column.captionName)
+                    }"
+                    [displayBehaviour]="displayBehaviour()"
+                  />
                 }
-              </button>
-            }
-            
-            <ngm-display-behaviour class="flex-1" [option]="{
-                key: getValue(data.value, column.name),
-                caption: getValue(data.value, column.captionName)
-              }"
-              [displayBehaviour]="displayBehaviour()"
-            />
+              </div>
+            </td>
           }
-        </div>
-      </td>
-    </ng-container>
 
-    <ng-container matColumnDef="childrenCardinality" stickyEnd>
-      <th mat-header-cell *matHeaderCellDef mat-sort-header>
-        <span>{{ 'PAC.KEY_WORDS.ChildrenCardinality' | translate: {Default: 'Children Cardinality'} }}</span>
-      </th>
-
-      <td mat-cell *matCellDef="let data" >
-        <span>{{data.children.length}}</span>
-      </td>
-    </ng-container>
-  
-    <tr mat-header-row *matHeaderRowDef="displayedColumns(); sticky:true"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns();"></tr>
+          <td z-table-cell zTableStickyEnd [zTableStickyEnd]="0" [zTableStickyZIndex]="4">
+            <span>{{data.children.length}}</span>
+          </td>
+        </tr>
+      } @empty {
+        <tr z-table-row>
+          <td z-table-cell [attr.colspan]="displayedColumns().length" class="py-8 text-center text-muted-foreground">
+            {{ 'PAC.KEY_WORDS.NoData' | translate: { Default: 'No data' } }}
+          </td>
+        </tr>
+      }
+    </tbody>
   </table>
 </div>
 
 @if (paging()) {
   <z-paginator
-    class="border-t border-[var(--mat-table-row-item-outline-color)] px-2 py-1"
+    class="border-t border-border px-2 py-1"
     displayDensity="compact"
     [hidePageSizeLabel]="true"
+    [length]="_data().length"
+    [pageIndex]="pageIndex()"
+    [pageSize]="pageSize()"
     [pageSizeOptions]="pageSizeOptions()"
     showFirstLastButtons
+    (page)="onPage($event)"
   ></z-paginator>
 }

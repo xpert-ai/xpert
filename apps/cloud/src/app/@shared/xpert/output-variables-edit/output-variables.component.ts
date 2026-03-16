@@ -1,6 +1,6 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { linkedModel, TSelectOption } from '@metad/ocap-angular/core'
@@ -17,16 +17,14 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   templateUrl: './output-variables.component.html',
   styleUrl: 'output-variables.component.scss',
   imports: [
-    CommonModule,
     TranslateModule,
     FormsModule,
     CdkMenuModule,
     DragDropModule,
     ...ZardTooltipImports,
-
     XpertParameterMenuItemComponent,
     XpertParameterInputComponent
-  ],
+],
 
   hostDirectives: [NgxControlValueAccessor]
 })

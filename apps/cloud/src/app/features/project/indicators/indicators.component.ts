@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, signal, ViewContainerRef } from '@angular/core'
 
 import {
@@ -29,7 +29,6 @@ import { IndicatorImportComponent } from './indicator-import/indicator-import.co
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     TranslateModule,
     CdkMenuModule,
@@ -38,10 +37,9 @@ import { IndicatorImportComponent } from './indicator-import/indicator-import.co
     ZardIconComponent,
     ...ZardTabsImports,
     ZardDividerComponent,
-
     ButtonGroupDirective,
     DensityDirective
-  ],
+],
   selector: 'pac-project-indicators',
   templateUrl: './indicators.component.html',
   styleUrls: ['./indicators.component.scss'],

@@ -26,10 +26,10 @@ import {
   ZardIconComponent,
   ZardInputDirective,
   ZardSelectImports,
-  ZardCheckboxComponent
+  ZardCheckboxComponent,
+  ZardLoaderComponent
 } from '@xpert-ai/headless-ui'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
@@ -96,7 +96,7 @@ export type CreateEntityDialogRetType = {
     ...ZardSelectImports,
     CdkListboxModule,
     MatAutocompleteModule,
-    MatProgressSpinnerModule,
+    ZardLoaderComponent,
     ZardCheckboxComponent,
     TranslateModule,
     NgmCommonModule

@@ -1,10 +1,13 @@
 <z-tab-group stretchTabs [disableRipple]="to?.disableRipple">
-  <z-tab *ngFor="let tab of field.fieldGroup; let i = index; let last = last">
-    <ng-template zTabLabel>
-      <z-icon *ngIf="tab.templateOptions?.['icon']" [zType]="tab.templateOptions?.['icon']"></z-icon>
-      {{tab.templateOptions?.label}}
-    </ng-template>
-
-    <formly-field [field]="tab"></formly-field>
-  </z-tab>
+  @for (tab of field.fieldGroup; track tab; let i = $index; let last = $last) {
+    <z-tab>
+      <ng-template zTabLabel>
+        @if (tab.templateOptions?.['icon']) {
+          <z-icon [zType]="tab.templateOptions?.['icon']"></z-icon>
+        }
+        {{tab.templateOptions?.label}}
+      </ng-template>
+      <formly-field [field]="tab"></formly-field>
+    </z-tab>
+  }
 </z-tab-group>

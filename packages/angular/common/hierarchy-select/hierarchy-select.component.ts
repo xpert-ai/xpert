@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, forwardRef, inject, input, Input, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
@@ -14,7 +14,7 @@ import { ZardComboboxComponent, ZardComboboxGroup, ZardComboboxOption, ZardFormI
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, ...ZardFormImports, ZardComboboxComponent, ReactiveFormsModule, TranslateModule, NgmDisplayBehaviourComponent],
+  imports: [...ZardFormImports, ZardComboboxComponent, ReactiveFormsModule, TranslateModule, NgmDisplayBehaviourComponent],
   selector: 'ngm-hierarchy-select',
   templateUrl: './hierarchy-select.component.html',
   styles: [],

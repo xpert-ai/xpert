@@ -12,25 +12,26 @@
       disableRipple
       class="pac-tab-nav-bar flex-1"
       [tabPanel]="tabPanel"
-    >
+      >
       @for (option of roles$ | async; track option.id) {
         <span z-tab-link [active]="role?.name === option.name" (click)="onSelectedRole(option)">
           <span class="pac-nav-tab__label" zTooltipClass="pac-model-query__statement-tip">
             {{ option.name }}
           </span>
 
-          <button
-            z-button
-            zType="ghost"
-            zSize="icon"
-            zShape="circle"
-            *ngIf="!option.isSystem"
-            displayDensity="compact"
-            class="pac-tab-close"
-            (click)="remove(option)"
-          >
-            <z-icon zType="cancel"></z-icon>
-          </button>
+          @if (!option.isSystem) {
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              zShape="circle"
+              displayDensity="compact"
+              class="pac-tab-close"
+              (click)="remove(option)"
+              >
+              <z-icon zType="cancel"></z-icon>
+            </button>
+          }
         </span>
       }
     </nav>
@@ -43,7 +44,7 @@
       displayDensity="cosy"
       class="shrink-0"
       (click)="create()"
-    >
+      >
       <z-icon zType="add_circle_outline"></z-icon>
     </button>
   </div>
@@ -67,7 +68,7 @@
               <z-switch
                 [ngModel]="enabledPermissions[permission]"
                 (ngModelChange)="permissionChanged(permission, $event)"
-              >
+                >
               </z-switch>
             </div>
           </li>
@@ -85,7 +86,7 @@
             class="rounded-md px-3 py-2"
             [class.pointer-events-none]="isDisabledAdministrationPermissions()"
             [class.opacity-60]="isDisabledAdministrationPermissions()"
-          >
+            >
             <div class="flex items-center gap-4">
               <span class="flex-1">
                 {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission } }}
@@ -94,7 +95,7 @@
                 [disabled]="isDisabledAdministrationPermissions()"
                 [ngModel]="enabledPermissions[permission]"
                 (ngModelChange)="permissionChanged(permission, $event)"
-              >
+                >
               </z-switch>
             </div>
           </li>

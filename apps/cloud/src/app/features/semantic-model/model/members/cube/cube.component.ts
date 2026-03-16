@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal, viewChild, ViewContainerRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { CdkConfirmDeleteComponent, NgmCheckboxComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -30,7 +29,7 @@ import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { SemanticModelService } from '../../model.service'
 import { ModelMembersRetrievalTestingComponent } from '../retrieval/retrieval.component'
 import { ModelTaskDialogComponent } from '../task/task.component'
-import { ZardAccordionImports, ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardAccordionImports, ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardProgressCircleComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -41,7 +40,7 @@ import { ZardAccordionImports, ZardButtonComponent, ZardDialogService, ZardIconC
     ...ZardAccordionImports,
     ZardButtonComponent,
     ...ZardTooltipImports,
-    MatProgressSpinnerModule,
+    ZardProgressCircleComponent,
     DensityDirective,
     AppearanceDirective,
     NgmCheckboxComponent

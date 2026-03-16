@@ -16,7 +16,7 @@ import { ZardButtonComponent, ZardDialogModule } from '@xpert-ai/headless-ui'
     DragDropModule,
     TranslateModule,
     ButtonGroupDirective
-  ],
+],
   selector: 'ngm-dialog',
   template: `<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
       <span style="pointer-events: none;">{{ title }}</span>

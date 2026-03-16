@@ -27,7 +27,6 @@ import { AppRoutingModule } from './app-routing.module'
 import { AppComponent } from './app.component'
 import { PAC_API_BASE_URL } from '@metad/cloud/auth'
 import { environment } from '../environments/environment'
-import { provideDateFnsAdapter } from '@angular/material-date-fns-adapter'
 import { I18nService, initI18n } from './@shared/i18n'
 import { CustomElementsService, initializeCustomElements, provideChatMarkdown } from './@shared/chat'
 
@@ -120,6 +119,7 @@ function detectSubjectType(subject) {
     },
     provideUiI18nAdapterFactory(
       (i18nService: I18nService): UiI18nAdapter => ({
+        language: i18nService.language,
         getLanguage: () => i18nService.currentLanguage,
         translate: (key, options) =>
           i18nService.translate(
@@ -132,7 +132,6 @@ function detectSubjectType(subject) {
       }),
       [I18nService]
     ),
-    provideDateFnsAdapter(),
     {
       provide: APP_INITIALIZER,
       useFactory: initializeCustomElements,

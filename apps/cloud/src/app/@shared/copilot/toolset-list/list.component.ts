@@ -1,5 +1,5 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, input, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -10,14 +10,13 @@ import { EmojiAvatarComponent } from '../../avatar'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MaterialModule,
     CdkListboxModule,
     TranslateModule,
     EmojiAvatarComponent
-  ],
+],
   selector: 'pac-toolset-list',
   templateUrl: 'list.component.html',
   styleUrls: ['list.component.scss']

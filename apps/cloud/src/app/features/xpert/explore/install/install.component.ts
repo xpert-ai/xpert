@@ -1,6 +1,6 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -28,7 +28,6 @@ import { map, switchMap } from 'rxjs/operators'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     RouterModule,
@@ -36,7 +35,7 @@ import { map, switchMap } from 'rxjs/operators'
     NgmSpinComponent,
     NgmSelectComponent,
     XpertBasicFormComponent
-  ],
+],
   selector: 'xpert-install',
   templateUrl: 'install.component.html',
   styleUrl: 'install.component.scss',

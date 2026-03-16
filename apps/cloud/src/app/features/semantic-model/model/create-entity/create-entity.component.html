@@ -1,12 +1,12 @@
 <div
   class="ngm-modal-sidenav ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto p-4 group"
->
+  >
   <div
     class="w-full flex justify-start items-center my-2 cursor-move"
     cdkDrag
     cdkDragRootElement=".cdk-overlay-pane"
     cdkDragHandle
-  >
+    >
     <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-xl pointer-events-none">
       {{ 'PAC.MODEL.CREATE_ENTITY.CREATE_ENTITY' | translate: { Default: 'Create Entity' } }}
@@ -24,7 +24,7 @@
         ngmAppearance="outline"
         color="accent"
         displayDensity="compact"
-      >
+        >
         @for (type of types(); track type) {
           <z-toggle-group-item [value]="type">
             {{ 'PAC.MODEL.CREATE_ENTITY.' + type | translate: { Default: type } }}
@@ -61,14 +61,16 @@
           z-input
           [matAutocomplete]="auto"
           formControlName="table"
-        />
+          />
         <mat-autocomplete #auto="matAutocomplete" displayDensity="compact" class="ngm-density__compact">
-          <mat-option *ngFor="let option of filteredTables | async" [value]="option.name">
-            <ngm-display-behaviour
-              [option]="{ value: option.name, label: option.label }"
-              displayBehaviour="descriptionAndId"
-            ></ngm-display-behaviour>
-          </mat-option>
+          @for (option of filteredTables | async; track option) {
+            <mat-option [value]="option.name">
+              <ngm-display-behaviour
+                [option]="{ value: option.name, label: option.label }"
+                displayBehaviour="descriptionAndId"
+              ></ngm-display-behaviour>
+            </mat-option>
+          }
         </mat-autocomplete>
       </z-form-field>
     }
@@ -85,7 +87,7 @@
           z-input
           [matAutocomplete]="auto"
           formControlName="foreignKey"
-        />
+          />
         <mat-autocomplete #auto="matAutocomplete" displayDensity="compact" class="ngm-density__compact">
           @for (option of factFields(); track option.value) {
             <mat-option [value]="option.value">
@@ -121,7 +123,7 @@
         class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 radius-md system-sm-regular pl-[26px]"
         [placeholder]="'PAC.MODEL.Search' | translate: { Default: 'Search' }"
         [(ngModel)]="searchTerm"
-      />
+        />
       @if (searchTerm()) {
         <i
           class="ri-close-circle-line cursor-pointer flex justify-center items-center absolute right-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder hover:text-text-primary"
@@ -158,7 +160,7 @@
                 [option]="{ key: column.name, caption: column.caption }"
                 displayBehaviour="descriptionAndId"
                 [highlight]="searchTerm()"
-              />
+                />
               <div class="mx-4 w-10 shrink-0 flex justify-center">
                 <z-checkbox [(ngModel)]="column.isMeasure" (ngModelChange)="toggleMeasure($event, column)" />
               </div>
@@ -172,7 +174,7 @@
                     [ngModel]="column.dimension?.name ?? noDimensionValue"
                     (ngModelChange)="selectDimension(column, $event)"
                     [zPlaceholder]="'PAC.MODEL.CREATE_ENTITY.AssociatedDimension' | translate: { Default: 'Dimension' }"
-                  >
+                    >
                     <z-select-item [zValue]="noDimensionValue">
                       {{ 'PAC.KEY_WORDS.None' | translate: { Default: 'None' } }}
                     </z-select-item>
@@ -181,7 +183,7 @@
                         <ngm-display-behaviour
                           class="flex-1"
                           [option]="{ key: dimension.name, caption: dimension.caption }"
-                        />
+                          />
                       </z-select-item>
                     }
                   </z-select>
@@ -195,8 +197,8 @@
         <div class="flex-1 w-full flex justify-center items-center gap-1">
           <i class="ri-information-2-line text-lg"></i>
           {{
-            'PAC.MODEL.XmlaSyncInfo'
-              | translate: { Default: 'Dimensions and measures are automatically synchronized after creation' }
+          'PAC.MODEL.XmlaSyncInfo'
+          | translate: { Default: 'Dimensions and measures are automatically synchronized after creation' }
           }}
         </div>
       }
@@ -225,14 +227,14 @@
                 <div
                   class="flex justify-center items-center w-12 h-full group-hover:opacity-100"
                   [class.opacity-0]="column.name !== primaryKey()"
-                >
+                  >
                   <input
                     id="default-radio-{{ i }}"
                     type="radio"
                     class="w-5 h-5 cursor-pointer text-orange-600 bg-gray-100 border-gray-300 dark:focus:ring-orange-600 dark:ring-offset-gray-800 dark:bg-gray-700 dark:border-gray-600 outline-none"
                     [ngModel]="column.name === primaryKey()"
                     (checkChange)="primaryKey.set($event ? column.name : null)"
-                  />
+                    />
                   <label
                     for="default-radio-{{ i }}"
                     class="ms-2 text-sm font-medium text-gray-900 dark:text-gray-300"
@@ -250,7 +252,7 @@
                   [option]="{ key: column.name, caption: column.caption }"
                   [highlight]="searchTerm()"
                   displayBehaviour="descriptionAndId"
-                />
+                  />
               </div>
             </li>
           }
@@ -266,14 +268,14 @@
           [cdkListboxCompareWith]="compareWithCube"
           [cdkListboxValue]="cubes"
           (cdkListboxValueChange)="cubes = [...$event.value]"
-        >
+          >
           @for (cube of listboxCubes(); track cube.name) {
             <li class="ngm-cdk-option rounded-lg" [cdkOption]="cube">
               <ngm-display-behaviour
                 class="flex-1"
                 [option]="{ key: cube.name, caption: cube.caption }"
                 displayBehaviour="descriptionAndId"
-              />
+                />
             </li>
           }
         </ul>
@@ -283,7 +285,7 @@
 
   @if (loading()) {
     <div class="absolute w-full h-full top-0 left-0 flex justify-center items-center cursor-none">
-      <mat-spinner strokeWidth="1" diameter="30" />
+      <z-loader diameter="30" />
     </div>
   }
 </div>

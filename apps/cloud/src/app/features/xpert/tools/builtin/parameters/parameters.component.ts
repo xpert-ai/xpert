@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, input } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { routeAnimations } from '@metad/core'
@@ -9,7 +9,6 @@ import { ZardDialogModule, ZardDialogService, ZardSwitchComponent, ZardTooltipIm
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -17,7 +16,7 @@ import { ZardDialogModule, ZardDialogService, ZardSwitchComponent, ZardTooltipIm
     ...ZardTooltipImports,
     NgmI18nPipe,
     ZardSwitchComponent
-  ],
+],
   selector: 'xpert-tool-builtin-parameters',
   templateUrl: './parameters.component.html',
   styleUrl: 'parameters.component.scss',

@@ -25,6 +25,7 @@ import { XpertRolesComponent } from '../roles/roles.component'
 import { UpsertEntityComponent } from 'apps/cloud/src/app/@shared/common'
 import { AvatarEditorComponent } from 'apps/cloud/src/app/@shared/files'
 import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -39,6 +40,7 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
     FormsModule,
     ReactiveFormsModule,
     NgmCommonModule,
+    ZardLoaderComponent,
     AvatarEditorComponent,
     KnowledgebaseListComponent,
     ToolsetListComponent

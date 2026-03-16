@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, Input, forwardRef } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
@@ -8,7 +8,7 @@ import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ZardInputDirective, MtxColorpickerModule, DensityDirective],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, ZardInputDirective, MtxColorpickerModule, DensityDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-color-input',
   templateUrl: './color-input.component.html',

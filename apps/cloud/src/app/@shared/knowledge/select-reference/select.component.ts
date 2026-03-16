@@ -1,6 +1,6 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, model } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { FormsModule } from '@angular/forms'
@@ -8,7 +8,7 @@ import { IKnowledgebase, KDocumentSourceType } from '../../../@core/types'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, CdkListboxModule],
+  imports: [FormsModule, TranslateModule, CdkListboxModule],
   selector: 'knowledge-select-reference',
   templateUrl: `select.component.html`,
   styleUrl: `select.component.scss`

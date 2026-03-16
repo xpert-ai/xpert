@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, HostBinding, Input, OnChanges, forwardRef, output, signal } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective, ZardSliderComponent } from '@xpert-ai/headless-ui'
@@ -25,7 +25,7 @@ import { NgmFieldColor } from '@metad/ocap-angular/core'
       useExisting: forwardRef(() => NgmSliderInputComponent)
     }
   ],
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ZardInputDirective, ZardSliderComponent]
+  imports: [FormsModule, ReactiveFormsModule, ZardInputDirective, ZardSliderComponent]
 })
 export class NgmSliderInputComponent implements ControlValueAccessor, OnChanges {
   @Input() disabled = false

@@ -1,6 +1,6 @@
 <div
   class="ngm-theme-dark dark w-[400px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group"
->
+  >
   <div class="w-full flex justify-start items-center my-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-lg pointer-events-none">
@@ -8,33 +8,37 @@
     </span>
   </div>
 
-  <mat-stepper linear #stepper orientation="vertical" class="ngm-stepper flex-1 overflow-auto">
-    <mat-step [label]="'PAC.MODEL.UPLOAD.Files' | translate: { Default: 'Files' }">
-      <div *ngFor="let file of fileList; index as i" class="flex justify-end items-center overflow-hidden">
-        <span class="text-ellipsis">
-          {{ file.file.name }}
-        </span>
-        <button
-          z-button
-          zType="ghost"
-          zSize="icon"
-          zShape="circle"
-          ngmAppearance="danger"
-          displayDensity="cosy"
-          (click)="removeFile(i)"
-        >
-          <z-icon zType="close"></z-icon>
-        </button>
-      </div>
-    </mat-step>
+  <z-stepper linear #stepper="zStepper" orientation="vertical" class="ngm-stepper flex-1 overflow-auto">
+    <z-step [label]="'PAC.MODEL.UPLOAD.Files' | translate: { Default: 'Files' }">
+      @for (file of fileList; track file; let i = $index) {
+        <div class="flex justify-end items-center overflow-hidden">
+          <span class="text-ellipsis">
+            {{ file.file.name }}
+          </span>
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            ngmAppearance="danger"
+            displayDensity="cosy"
+            (click)="removeFile(i)"
+            >
+            <z-icon zType="close"></z-icon>
+          </button>
+        </div>
+      }
+    </z-step>
 
-    <mat-step [label]="'PAC.MODEL.UPLOAD.Preview' | translate: { Default: 'Preview' }">
-      <div *ngIf="error" class="ngm-card-error" style="position: relative">
-        <span class="title-icon font-notoColorEmoji">🐞</span>
-        <span>
-          {{ error }}
-        </span>
-      </div>
+    <z-step [label]="'PAC.MODEL.UPLOAD.Preview' | translate: { Default: 'Preview' }">
+      @if (error) {
+        <div class="ngm-card-error" style="position: relative">
+          <span class="title-icon font-notoColorEmoji">🐞</span>
+          <span>
+            {{ error }}
+          </span>
+        </div>
+      }
 
       <ul cdkTrapFocus cdkTrapFocusAutoCapture class="ngm-nav-list">
         @for (sheet of sheets$ | async; track sheet.name) {
@@ -45,7 +49,7 @@
               class="w-full"
               [placeholder]="'PAC.MODEL.CREATE_TABLE.InputTableName' | translate: { Default: 'Input Table Name' }"
               (keydown)="activeSheet(sheet); onKeyup($event)"
-            />
+              />
           </li>
         }
       </ul>
@@ -53,9 +57,9 @@
       <span class="mt-4 flex items-center">
         *{{ 'PAC.MODEL.UPLOAD.Preview50' | translate: { Default: 'Preview Top 50 Records' } }}
       </span>
-    </mat-step>
+    </z-step>
 
-    <mat-step [label]="'PAC.MODEL.UPLOAD.Import' | translate: { Default: 'Import' }">
+    <z-step [label]="'PAC.MODEL.UPLOAD.Import' | translate: { Default: 'Import' }">
       <label class="text-base my-4 flex">{{
         'PAC.MODEL.UPLOAD.ImportMethod' | translate: { Default: 'Import Method' }
       }}</label>
@@ -70,8 +74,8 @@
           {{ 'PAC.MODEL.UPLOAD.Merge' | translate: { Default: 'Merge' } }}
         </z-radio>
       </z-radio-group>
-    </mat-step>
-  </mat-stepper>
+    </z-step>
+  </z-stepper>
 
   <div class="flex justify-between items-center">
     <div>
@@ -92,9 +96,9 @@
           z-button
           zType="default"
           color="accent"
-          [zDisabled]="stepper.selected?.stepControl?.invalid || !fileList.length"
+          [zDisabled]="stepper.selectedStep?.stepControl?.invalid || !fileList.length"
           (click)="stepper.next()"
-        >
+          >
           {{ 'PAC.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
         </button>
       }
@@ -122,78 +126,86 @@
         [files]="fileList"
         (filesChange)="onFileListChange($event)"
         (removeFileChange)="removeFiles($event)"
-      />
+        />
     }
     @case (1) {
       @if (isLoading()) {
-        <mat-progress-spinner
+        <z-progress-circle
           strokeWidth="2"
-          color="accent"
+          zType="accent"
           diameter="50"
           [value]="progress"
           class="ngm-card__loading"
           style="margin: auto"
-        ></mat-progress-spinner>
+          />
       }
       @for (sheet of activedSheets; track $index) {
         <div class="flex w-full h-full overflow-auto">
           <div class="w-full overflow-auto">
-            <table mat-table [dataSource]="sheet.preview" class="mat-elevation-z w-full">
-              <ng-container *ngFor="let header of sheet.columns; let i = index" [matColumnDef]="header.name">
-                <th mat-header-cell *matHeaderCellDef [cdkContextMenuTriggerFor]="context_menu">
-                  <div class="p-2 flex flex-col justify-start items-start">
-                    <div class="flex justify-start items-center gap-2">
-                      <z-checkbox
-                        [(ngModel)]="header.isKey"
-                        [zTooltip]="'PAC.KEY_WORDS.PrimaryKey' | translate: { Default: 'Primary Key' }"
-                        zPosition="top"
-                      />
-                      <select [(ngModel)]="header.type" class="ngm-select">
-                        <option value="String">String</option>
-                        <option value="Number">Integer</option>
-                        <option value="Numeric">Numeric</option>
-                        <option value="Date">Date</option>
-                        <option value="Time">Time</option>
-                        <option value="Datetime">Datetime</option>
-                      </select>
-                      <input
-                        z-input
-                        [(ngModel)]="header.length"
-                        class="pac-upload-preview__length w-20 text-sm p-1"
-                        type="number"
-                        [placeholder]="'PAC.KEY_WORDS.Length' | translate: { Default: 'Length' }"
-                      />
-                    </div>
+            <table z-table class="w-full">
+              <thead z-table-header>
+                <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+                  @for (header of sheet.columns; track header; let i = $index) {
+                    <th z-table-head class="sticky top-0 z-10 bg-background" [cdkContextMenuTriggerFor]="context_menu">
+                      <div class="p-2 flex flex-col justify-start items-start">
+                        <div class="flex justify-start items-center gap-2">
+                          <z-checkbox
+                            [(ngModel)]="header.isKey"
+                            [zTooltip]="'PAC.KEY_WORDS.PrimaryKey' | translate: { Default: 'Primary Key' }"
+                            zPosition="top"
+                          />
+                          <select [(ngModel)]="header.type" class="ngm-select">
+                            <option value="String">String</option>
+                            <option value="Number">Integer</option>
+                            <option value="Numeric">Numeric</option>
+                            <option value="Date">Date</option>
+                            <option value="Time">Time</option>
+                            <option value="Datetime">Datetime</option>
+                          </select>
+                          <input
+                            z-input
+                            [(ngModel)]="header.length"
+                            class="pac-upload-preview__length w-20 text-sm p-1"
+                            type="number"
+                            [placeholder]="'PAC.KEY_WORDS.Length' | translate: { Default: 'Length' }"
+                          />
+                        </div>
+                        <input
+                          z-input
+                          [(ngModel)]="header.fieldName"
+                          class="w-full py-2 bg-gray-50 border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-md system-sm-regular h-9"
+                        />
+                      </div>
+                      <ng-template #context_menu>
+                        <div cdkMenu class="cdk-menu__medium">
+                          @if (i > 0) {
+                            <button cdkMenuItem (click)="moveLeft(sheet, i)">
+                              <z-icon zType="keyboard_arrow_left"></z-icon>
+                              <span>{{ 'PAC.MODEL.MoveLeft' | translate: { Default: 'Move Left' } }}</span>
+                            </button>
+                          }
+                          @if (i < sheet.columns.length - 1) {
+                            <button cdkMenuItem (click)="moveRight(sheet, i)">
+                              <z-icon zType="keyboard_arrow_right"></z-icon>
+                              <span>{{ 'PAC.MODEL.MoveRight' | translate: { Default: 'Move Right' } }}</span>
+                            </button>
+                          }
+                        </div>
+                      </ng-template>
+                    </th>
+                  }
+                </tr>
+              </thead>
 
-                    <input
-                      z-input
-                      [(ngModel)]="header.fieldName"
-                      class="w-full py-2 bg-gray-50 border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-md system-sm-regular h-9"
-                    />
-                  </div>
-                </th>
-                <td mat-cell *matCellDef="let element">{{ element[header.name] }}</td>
-
-                <ng-template #context_menu>
-                  <div cdkMenu class="cdk-menu__medium">
-                    @if (i > 0) {
-                      <button cdkMenuItem (click)="moveLeft(sheet, i)">
-                        <z-icon zType="keyboard_arrow_left"></z-icon>
-                        <span>{{ 'PAC.MODEL.MoveLeft' | translate: { Default: 'Move Left' } }}</span>
-                      </button>
+              <tbody z-table-body>
+                @for (element of sheet.preview; track $index) {
+                  <tr z-table-row>
+                    @for (header of sheet.columns; track header.name) {
+                      <td z-table-cell>{{ element[header.name] }}</td>
                     }
-                    @if (i < sheet.columns.length - 1) {
-                      <button cdkMenuItem (click)="moveRight(sheet, i)">
-                        <z-icon zType="keyboard_arrow_right"></z-icon>
-                        <span>{{ 'PAC.MODEL.MoveRight' | translate: { Default: 'Move Right' } }}</span>
-                      </button>
-                    }
-                  </div>
-                </ng-template>
-              </ng-container>
-
-              <tr mat-header-row *matHeaderRowDef="sheet.displayedColumns; sticky: true" class="bg-gray-100"></tr>
-              <tr mat-row *matRowDef="let row; columns: sheet.displayedColumns"></tr>
+                  </tr>
+                }
+              </tbody>
             </table>
           </div>
         </div>
@@ -225,7 +237,7 @@
                     ngmAppearance="danger"
                     displayDensity="compact"
                     (click)="remove(sheet)"
-                  >
+                    >
                     <z-icon zType="delete"></z-icon>
                   </button>
                 }

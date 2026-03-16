@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
@@ -34,7 +34,6 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
@@ -42,12 +41,11 @@ import { XpertWorkspaceHomeComponent } from '../home/home.component'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-
     DynamicGridDirective,
     NgmCommonModule,
     AppearanceDirective,
     XpertCardComponent
-  ],
+],
   selector: 'xpert-workspace-xperts',
   templateUrl: './xperts.component.html',
   styleUrl: 'xperts.component.scss',

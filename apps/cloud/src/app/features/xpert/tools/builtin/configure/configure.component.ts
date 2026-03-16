@@ -1,5 +1,5 @@
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -38,7 +38,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -49,7 +48,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CardUpgradeComponent,
     XpertToolBuiltinAuthorizeComponent,
     XpertToolBuiltinToolComponent
-  ],
+],
   selector: 'xpert-tool-configure-builtin',
   templateUrl: './configure.component.html',
   styleUrl: 'configure.component.scss',

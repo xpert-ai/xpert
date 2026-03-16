@@ -2,8 +2,7 @@ import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angul
 import { CommonModule } from '@angular/common'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective, ZardCheckboxComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -23,7 +22,7 @@ import { AcceptInviteFormComponent } from './accept-invite-form/accept-invite-fo
     ZardButtonComponent,
     ZardInputDirective,
     ZardCheckboxComponent,
-    MatProgressSpinnerModule,
+    ZardLoaderComponent,
     AcceptInviteFormComponent
   ],
   selector: 'pac-auth-accept-invite',

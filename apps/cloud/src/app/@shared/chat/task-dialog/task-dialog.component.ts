@@ -1,7 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import {
@@ -26,7 +26,6 @@ import { ScheduleFormComponent } from '../../schedule'
   selector: 'xpert-task-new-blank',
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     DragDropModule,
     FormsModule,
@@ -36,7 +35,7 @@ import { ScheduleFormComponent } from '../../schedule'
     NgmSearchComponent,
     NgmProgressSpinnerComponent,
     ScheduleFormComponent
-  ],
+],
   templateUrl: './task-dialog.component.html',
   styleUrl: './task-dialog.component.scss'
 })

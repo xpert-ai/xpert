@@ -1,6 +1,6 @@
 import { A11yModule } from '@angular/cdk/a11y'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, HostBinding, OnInit, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
@@ -14,7 +14,7 @@ import { isString } from 'lodash-es'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, A11yModule, FormsModule, DragDropModule, ZardDialogModule, ZardButtonComponent, ...ZardFormImports, ZardInputDirective, TranslateModule, ButtonGroupDirective],
+  imports: [A11yModule, FormsModule, DragDropModule, ZardDialogModule, ZardButtonComponent, ...ZardFormImports, ZardInputDirective, TranslateModule, ButtonGroupDirective],
   selector: 'ngm-confirm-unique',
   templateUrl: './confirm-unique.component.html',
   styleUrls: ['./confirm-unique.component.scss']

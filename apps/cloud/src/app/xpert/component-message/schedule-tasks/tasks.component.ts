@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -17,7 +17,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
@@ -27,7 +26,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ...ZardTooltipImports,
     NgmSpinComponent
-  ],
+],
   selector: 'chat-component-schedule-tasks',
   templateUrl: './tasks.component.html',
   styleUrl: 'tasks.component.scss',

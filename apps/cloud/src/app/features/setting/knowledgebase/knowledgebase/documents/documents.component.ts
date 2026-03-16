@@ -2,8 +2,7 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { afterNextRender, Component, effect, inject, model, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { ZardDialogService, ZardPaginatorComponent } from '@xpert-ai/headless-ui'
-import { MatSort, MatSortModule } from '@angular/material/sort'
+import { ZardDialogService, ZardPaginatorComponent, ZardProgressCircleComponent, type ZardTableSortDirection } from '@xpert-ai/headless-ui'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import {
   NgmCommonModule,
@@ -53,8 +52,8 @@ import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
     FormsModule,
     TranslateModule,
     MaterialModule,
-    MatSortModule,
     ZardPaginatorComponent,
+    ZardProgressCircleComponent,
     NgmCommonModule
   ],
   animations: [
@@ -76,11 +75,14 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
 
   readonly paginator = viewChild(ZardPaginatorComponent)
-  readonly sort = viewChild(MatSort)
 
   readonly pageSize = model(10)
   readonly knowledgebase = this.knowledgebaseComponent.knowledgebase
   readonly knowledgebase$ = toObservable(this.knowledgebase)
+  readonly sortState = signal<{ active: string; direction: ZardTableSortDirection }>({
+    active: 'createdAt',
+    direction: 'desc'
+  })
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
   readonly delayRefresh$ = new Subject<boolean>()
@@ -115,25 +117,23 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
     super()
 
     afterNextRender(() => {
-      // If the user changes the sort order, reset back to the first page.
-      this.sort().sortChange.subscribe(() => (this.paginator().pageIndex = 0))
-
-      merge(this.sort().sortChange, this.paginator().page, this.knowledgebase$, this.refresh$)
+      merge(toObservable(this.sortState), this.paginator().page, this.knowledgebase$, this.refresh$)
         .pipe(
           startWith({}),
           debounceTime(100),
           filter(() => !!this.knowledgebase()),
           switchMap(() => {
             this.isLoading.set(true)
-            const order = this.sort().active
-              ? { [this.sort().active]: this.sort().direction.toUpperCase() }
+            const sortState = this.sortState()
+            const order = sortState.active
+              ? { [sortState.active]: sortState.direction.toUpperCase() }
               : { createdAt: OrderTypeEnum.DESC }
             return this.knowledgeDocumentService!.getAll({
               where: {
                 knowledgebaseId: this.knowledgebase().id
               },
               take: this.pageSize(),
-              skip: this.paginator().pageIndex,
+              skip: this.paginator().pageIndex * this.pageSize(),
               relations: ['storageFile'],
               order
             }).pipe(catchError(() => observableOf(null)))
@@ -180,6 +180,20 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
 
   refresh() {
     this.refresh$.next(true)
+  }
+
+  onSortChange(columnName: string, direction: ZardTableSortDirection) {
+    const nextDirection = direction || 'desc'
+    this.sortState.set({
+      active: columnName === 'createdAtRelative' ? 'createdAt' : columnName,
+      direction: nextDirection
+    })
+    this.paginator().pageIndex = 0
+  }
+
+  sortDirection(columnName: string): ZardTableSortDirection {
+    const targetColumn = columnName === 'createdAtRelative' ? 'createdAt' : columnName
+    return this.sortState().active === targetColumn ? this.sortState().direction : ''
   }
 
   uploadDocuments() {

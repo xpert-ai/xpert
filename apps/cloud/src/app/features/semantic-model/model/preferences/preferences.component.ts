@@ -9,7 +9,7 @@ import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { cloneDeep, merge } from 'lodash-es'
 import { map } from 'rxjs'
 import { getErrorMessage, LANGUAGES, Visibility } from '../../../../@core/types'
-import { CommonModule } from '@angular/common'
+
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 
 import { DragDropModule } from '@angular/cdk/drag-drop'
@@ -19,7 +19,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormlyModule, TranslateModule, DragDropModule, ZardButtonComponent, ButtonGroupDirective, NgmSpinComponent],
+  imports: [FormlyModule, TranslateModule, DragDropModule, ZardButtonComponent, ButtonGroupDirective, NgmSpinComponent],
   selector: 'pac-model-preferences',
   templateUrl: './preferences.component.html',
   styleUrls: ['./preferences.component.scss']

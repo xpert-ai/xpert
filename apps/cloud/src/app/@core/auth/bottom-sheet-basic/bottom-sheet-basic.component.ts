@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
@@ -12,17 +12,15 @@ import { Z_SHEET_DATA, ZardButtonComponent, ZardCheckboxComponent, ZardSheetRef 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     ZardButtonComponent,
     ZardCheckboxComponent,
     TranslateModule,
-
     ButtonGroupDirective,
     OcapCoreModule,
     NgmInputComponent
-  ],
+],
   selector: 'bottom-sheet-basic',
   templateUrl: 'bottom-sheet-basic.component.html'
 })

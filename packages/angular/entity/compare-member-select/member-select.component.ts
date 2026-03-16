@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -39,7 +39,7 @@ import { NgmFieldAppearance } from "@metad/ocap-angular/core";
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, ZardInputDirective, NgmSelectComponent],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, ...ZardFormImports, ZardInputDirective, NgmSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-compare-member-select',
   templateUrl: './member-select.component.html',

@@ -1,6 +1,6 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
@@ -31,7 +31,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   selector: 'chat-project-manage',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     DragDropModule,
     TranslateModule,
@@ -40,7 +39,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     ChatProjectMembersComponent,
     IntegrationSelectComponent
-  ],
+],
   templateUrl: './manage.component.html',
   styleUrl: './manage.component.scss'
 })

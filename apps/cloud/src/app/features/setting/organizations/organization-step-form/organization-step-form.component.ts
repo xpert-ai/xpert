@@ -1,7 +1,6 @@
-import { Component, DestroyRef, forwardRef, inject, OnInit, ViewChild } from '@angular/core'
+import { Component, DestroyRef, forwardRef, inject, OnInit } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormBuilder, NG_VALUE_ACCESSOR, Validators, FormGroup } from '@angular/forms'
-import { MatStepper } from '@angular/material/stepper'
 import { combineLatest } from 'rxjs'
 
 @Component({
@@ -19,8 +18,6 @@ import { combineLatest } from 'rxjs'
 })
 export class OrganizationStepFormComponent implements OnInit, ControlValueAccessor {
   readonly destroyRef = inject(DestroyRef)
-
-  @ViewChild('stepper') stepper: MatStepper
 
   basic = this.fb.group({
     name: ['', Validators.required],

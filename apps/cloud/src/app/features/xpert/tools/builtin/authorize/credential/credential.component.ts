@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { NgmRemoteSelectComponent } from '@metad/ocap-angular/common'
@@ -12,7 +12,6 @@ import { ZardDialogModule, ZardSwitchComponent, ZardTooltipImports } from '@xper
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -23,7 +22,7 @@ import { ZardDialogModule, ZardSwitchComponent, ZardTooltipImports } from '@xper
     NgmDensityDirective,
     CopilotModelSelectComponent,
     ZardSwitchComponent
-  ],
+],
   selector: 'xpert-tool-builtin-credential',
   templateUrl: './credential.component.html',
   styleUrl: 'credential.component.scss',

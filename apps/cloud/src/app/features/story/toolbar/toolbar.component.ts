@@ -53,6 +53,7 @@ import { StoryToolbarService } from './toolbar.service'
 import { COMPONENTS, PAGES } from './types'
 import { MaterialModule } from '../../../@shared/material.module'
 import { ProjectFilesDialogComponent } from '../../../@shared/project'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -63,6 +64,7 @@ import { ProjectFilesDialogComponent } from '../../../@shared/project'
     TranslateModule,
     FormsModule,
     IsNilPipe,
+    ZardLoaderComponent,
     AppearanceDirective,
     DensityDirective,
     StoryDesignerComponent,

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, booleanAttribute, computed, effect, input, signal } from '@angular/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
@@ -18,7 +18,7 @@ import {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ZardIconComponent, DensityDirective, NgmCommonModule],
+  imports: [ZardIconComponent, DensityDirective, NgmCommonModule],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-entity-property',
   templateUrl: './property.component.html',

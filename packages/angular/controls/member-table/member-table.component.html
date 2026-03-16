@@ -1,42 +1,71 @@
-<ngm-search *ngIf="options?.searchable" class="ngm-member-table__search shrink-0 my-2" [formControl]="searchControl">
-</ngm-search>
+@if (options?.searchable) {
+  <ngm-search class="ngm-member-table__search shrink-0 my-2" [formControl]="searchControl">
+  </ngm-search>
+}
 
-<cdk-virtual-scroll-viewport [tvsItemSize]="itemSize">
-  <table mat-table [dataSource]="dataSource" [displayDensity]="appearance?.displayDensity">
-    <!-- Checkbox Column -->
-    <ng-container matColumnDef="select">
-      <th mat-header-cell *matHeaderCellDef>
-        <z-checkbox
-          *ngIf="multiple$ | async"
-          (checkChange)="$event ? masterToggle() : null"
-          [ngModel]="hasMember() && isAllSelected()"
-          [indeterminate]="hasMember() && !isAllSelected()"
+<div class="overflow-auto">
+  <table z-table [zSize]="appearance?.displayDensity === 'compact' ? 'compact' : appearance?.displayDensity === 'cosy' ? 'default' : 'comfortable'" class="min-w-full text-sm">
+    <thead z-table-header>
+      <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+        <th
+          z-table-head
+          class="w-14 min-w-14"
+          [ngClass]="options?.stickyHeader ? 'sticky top-0 z-20 bg-background' : ''"
         >
-        </z-checkbox>
-        <span *ngIf="(multiple$ | async) === false">
-          {{ 'Ngm.Common.Select' | translate: { Default: 'Select' } }}
-        </span>
-      </th>
-      <td mat-cell *matCellDef="let row">
-        <z-checkbox
-          (click)="$event.stopPropagation()"
-          (checkChange)="$event ? toggleMember(row) : null"
-          [ngModel]="isSelected(row)"
-        >
-        </z-checkbox>
-      </td>
-    </ng-container>
+          @if (multiple$ | async) {
+            <z-checkbox
+              (checkChange)="$event ? masterToggle() : null"
+              [ngModel]="hasMember() && isAllSelected()"
+              [indeterminate]="hasMember() && !isAllSelected()"
+            >
+            </z-checkbox>
+          } @else {
+            <span>
+              {{ 'Ngm.Common.Select' | translate: { Default: 'Select' } }}
+            </span>
+          }
+        </th>
 
-    <ng-container [matColumnDef]="col.name" *ngFor="let col of columns$ | async">
-      <th mat-header-cell *matHeaderCellDef>{{ col.caption || col.name }}</th>
-      <td mat-cell *matCellDef="let element">{{ element[col.name] }}</td>
-    </ng-container>
+        @for (col of columns(); track col.name) {
+          <th
+            z-table-head
+            [ngClass]="options?.stickyHeader ? 'sticky top-0 z-20 bg-background' : ''"
+          >
+            {{ col.caption || col.name }}
+          </th>
+        }
+      </tr>
+    </thead>
 
-    <tr mat-header-row *matHeaderRowDef="displayedColumns$ | async; sticky: options?.stickyHeader"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns$ | async" (click)="toggleMember(row)"></tr>
+    <tbody z-table-body>
+      @for (row of rows(); track trackMember($index, row)) {
+        <tr z-table-row (click)="toggleMember(row)">
+          <td z-table-cell class="w-14 min-w-14">
+            <z-checkbox
+              (click)="$event.stopPropagation()"
+              (checkChange)="$event ? toggleMember(row) : null"
+              [ngModel]="isSelected(row)"
+            >
+            </z-checkbox>
+          </td>
+
+          @for (col of columns(); track col.name) {
+            <td z-table-cell>{{ row[col.name] }}</td>
+          }
+        </tr>
+      } @empty {
+        <tr z-table-row>
+          <td z-table-cell class="py-8 text-center text-muted-foreground" [attr.colspan]="columns().length + 1">
+            {{ 'Ngm.Table.NoData' | translate: { Default: 'No data' } }}
+          </td>
+        </tr>
+      }
+    </tbody>
   </table>
-</cdk-virtual-scroll-viewport>
-
-<div *ngIf="loading$ | async" class="absolute top-0 left-0 w-full h-full flex justify-center items-center">
-  <mat-spinner strokeWidth="2" diameter="30"></mat-spinner>
 </div>
+
+@if (loading$ | async) {
+  <div class="absolute top-0 left-0 w-full h-full flex justify-center items-center">
+    <z-loader diameter="30" />
+  </div>
+}

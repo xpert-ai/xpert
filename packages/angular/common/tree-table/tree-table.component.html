@@ -1,44 +1,76 @@
-<table mat-table [dataSource]="dataSource" [displayDensity]="displayDensity"
-  [class.ngm-table-grid]="grid"
-  [class.striped]="striped"
->
-  <ng-container matColumnDef="name">
-    <th mat-header-cell *matHeaderCellDef>
-      <div class="flex items-center">
-        <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity" (click)="toggleUnfold()">
-          <z-icon *ngIf="!unfold" zType="unfold_more"></z-icon>
-          <z-icon *ngIf="unfold" zType="unfold_less"></z-icon>
-        </button>
-        <span> {{nameLabel}} </span>
-      </div>
-    </th>
-    <td mat-cell *matCellDef="let data">
-      <div class="flex justify-start items-center">
-        <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity" [style.visibility]="!data.expandable ? 'hidden' : ''" [style.marginLeft.px]="data.level * treeNodePadding" (click)="treeControl.toggle(data)">
-          <z-icon class="z-icon-rtl-mirror" [zType]="treeControl.isExpanded(data) ? 'expand_more' : 'chevron_right'"></z-icon>
-        </button>
-        <ng-container *ngIf="nameCellTemplate">
-          <ng-container *ngTemplateOutlet="nameCellTemplate; context: data"></ng-container>
-        </ng-container>
-        <ng-container *ngIf="!nameCellTemplate">
-          {{data.caption || data.name}}
-        </ng-container>
-      </div>
-    </td>
-  </ng-container>
+<table z-table [zSize]="tableSize" [displayDensity]="displayDensity" [class.ngm-table-grid]="grid" [class.striped]="striped">
+  <thead z-table-header>
+    <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+      <th z-table-head [ngClass]="stickyHeaders ? 'sticky top-0 z-20 bg-background' : ''">
+        <div class="flex items-center">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" [displayDensity]="displayDensity" (click)="toggleUnfold()">
+            @if (!unfold) {
+              <z-icon zType="unfold_more"></z-icon>
+            }
+            @if (unfold) {
+              <z-icon zType="unfold_less"></z-icon>
+            }
+          </button>
+          <span> {{nameLabel}} </span>
+        </div>
+      </th>
 
-  <ng-container *ngFor="let column of columns" [matColumnDef]="column.name" [sticky]="column.sticky" [stickyEnd]="column.stickyEnd">
-    <th mat-header-cell *matHeaderCellDef> {{column.caption || column.name}} </th>
-    <td mat-cell *matCellDef="let data">
-      <ng-container *ngIf="column.cellTemplate">
-        <ng-container *ngTemplateOutlet="column.cellTemplate; context: data"></ng-container>
-      </ng-container>
-      <ng-container *ngIf="!column.cellTemplate">
-        {{column.pipe ? column.pipe(data.raw?.[column.name]) : data.raw?.[column.name]}}
-      </ng-container>
-    </td>
-  </ng-container> 
+      @for (column of columns; track column.name) {
+        <th
+          z-table-head
+          [ngClass]="stickyHeaders ? 'sticky top-0 z-20 bg-background' : ''"
+          [zTableStickyStart]="column.sticky ? stickyStartOffset(column.name) : null"
+          [zTableStickyEnd]="column.stickyEnd ? stickyEndOffset(column.name) : null"
+          [zTableStickyZIndex]="column.sticky || column.stickyEnd ? 5 : 1"
+        >
+          {{column.caption || column.name}}
+        </th>
+      }
+    </tr>
+  </thead>
 
-  <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: stickyHeaders"></tr>
-  <tr mat-row *matRowDef="let row; columns: displayedColumns;"></tr>
+  <tbody z-table-body>
+    @for (data of visibleNodes(); track data.key) {
+      <tr z-table-row>
+        <td z-table-cell>
+          <div class="flex justify-start items-center">
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              zShape="circle"
+              [displayDensity]="displayDensity"
+              [style.visibility]="!data.expandable ? 'hidden' : ''"
+              [style.marginLeft.px]="data.level * treeNodePadding"
+              (click)="toggleNode(data)"
+            >
+              <z-icon class="z-icon-rtl-mirror" [zType]="treeControl.isExpanded(data) ? 'expand_more' : 'chevron_right'"></z-icon>
+            </button>
+            @if (nameCellTemplate) {
+              <ng-container *ngTemplateOutlet="nameCellTemplate; context: data"></ng-container>
+            }
+            @if (!nameCellTemplate) {
+              {{data.caption || data.name}}
+            }
+          </div>
+        </td>
+
+        @for (column of columns; track column.name) {
+          <td
+            z-table-cell
+            [zTableStickyStart]="column.sticky ? stickyStartOffset(column.name) : null"
+            [zTableStickyEnd]="column.stickyEnd ? stickyEndOffset(column.name) : null"
+            [zTableStickyZIndex]="column.sticky || column.stickyEnd ? 4 : 1"
+          >
+            @if (column.cellTemplate) {
+              <ng-container *ngTemplateOutlet="column.cellTemplate; context: data"></ng-container>
+            }
+            @if (!column.cellTemplate) {
+              {{column.pipe ? column.pipe(data.raw?.[column.name]) : data.raw?.[column.name]}}
+            }
+          </td>
+        }
+      </tr>
+    }
+  </tbody>
 </table>

@@ -5,7 +5,7 @@
   flex-direction: column;
 }
 
-.mat-tree-node {
+[data-slot='tree-node'] {
   min-height: 30px;
 
   [z-button][data-icon-only],
@@ -28,7 +28,7 @@
   }
 }
 
-.cdk-tree-node:hover {
+[data-slot='tree-node']:hover {
   .ngm-search {
     @apply w-auto;
   }

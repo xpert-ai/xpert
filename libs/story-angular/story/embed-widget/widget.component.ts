@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, Input, OnChanges, OnInit, SimpleChanges, inject } from '@angular/core'
 import { NxCoreService } from '@metad/core'
 import { NgmDSCoreService, NgmSmartFilterBarService } from '@metad/ocap-angular/core'
@@ -9,7 +9,7 @@ import { NxStoryModule } from '../story.module'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, NxStoryModule],
+  imports: [NxStoryModule],
   selector: 'pac-embed-widget',
   templateUrl: './widget.component.html',
   styleUrls: ['./widget.component.scss'],

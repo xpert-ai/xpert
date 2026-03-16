@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { linkedModel } from '@metad/core'
@@ -16,14 +16,13 @@ import type { ZardSliderValue } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
     ZardSliderComponent,
     ZardSwitchComponent
-  ],
+],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertWorkflowRetryComponent {

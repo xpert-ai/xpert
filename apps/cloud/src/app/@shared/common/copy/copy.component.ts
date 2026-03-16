@@ -1,5 +1,5 @@
 import { Clipboard } from '@angular/cdk/clipboard'
-import { CommonModule } from '@angular/common'
+
 import { Component, HostListener, inject, input, numberAttribute, signal } from '@angular/core'
 import { effectAction } from '@metad/ocap-angular/core'
 import { timer } from 'rxjs'
@@ -7,7 +7,7 @@ import { switchMap, tap } from 'rxjs/operators'
 
 @Component({
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   selector: 'copy',
   templateUrl: 'copy.component.html',
   styleUrls: ['copy.component.scss']

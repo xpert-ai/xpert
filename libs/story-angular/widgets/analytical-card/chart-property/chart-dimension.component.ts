@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, forwardRef, model, signal } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { NgmSchemaFormComponent, NxDesignerModule, STORY_DESIGNER_SCHEMA } from '@metad/story/designer'
@@ -7,7 +7,7 @@ import { DimensionChartOptionsSchemaService } from '../analytical-card.schema'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NxDesignerModule, NgmSchemaFormComponent],
+  imports: [FormsModule, TranslateModule, NxDesignerModule, NgmSchemaFormComponent],
   selector: 'ngm-chart-dimension-form',
   template: `<ngm-schema-form class="w-full" [(ngModel)]="model" [disabled]="isDisabled()" />`,
   styles: [

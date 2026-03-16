@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -15,17 +15,15 @@ import { XpertService } from './xpert.service'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     RouterModule,
     CdkMenuModule,
-
     NgmCommonModule,
     EmojiAvatarComponent,
     XpertBasicManageComponent
-  ],
+],
   selector: 'xp-xpert',
   templateUrl: './xpert.component.html',
   styleUrl: 'xpert.component.scss',

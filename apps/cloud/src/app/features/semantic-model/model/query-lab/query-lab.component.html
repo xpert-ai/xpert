@@ -8,7 +8,7 @@
         fill="none"
         viewBox="0 0 24 24"
         class="icon-xl-heavy"
-      >
+        >
         <path
           fill="currentColor"
           fill-rule="evenodd"
@@ -31,49 +31,51 @@
     cdkDropListOrientation="horizontal"
     [cdkDropListData]="queries()"
     (cdkDropListDropped)="sortQueries($event)"
-  >
-    <span
-      z-tab-link
-      *ngFor="let query of queries(); index as i; trackBy: trackByKey"
-      [routerLink]="query.key"
-      routerLinkActive
-      #rla="routerLinkActive"
-      [active]="rla.isActive"
-      cdkDrag
-      [cdkDragData]="query"
-      cdkDragBoundary=".pac-model-query__nav"
     >
-      <span *ngIf="isQueryDirty(query.key)" class="pac-badge-status-dot"></span>
+    @for (query of queries(); track trackByKey(i, query); let i = $index) {
       <span
-        class="pac-nav-tab__label max-w-[200px] overflow-hidden text-ellipsis"
-        [zTooltip]="query.name"
-        [zShowDelay]="1000"
-      >
-        {{ query.name }}
+        z-tab-link
+        [routerLink]="query.key"
+        routerLinkActive
+        #rla="routerLinkActive"
+        [active]="rla.isActive"
+        cdkDrag
+        [cdkDragData]="query"
+        cdkDragBoundary=".pac-model-query__nav"
+        >
+        @if (isQueryDirty(query.key)) {
+          <span class="pac-badge-status-dot"></span>
+        }
+        <span
+          class="pac-nav-tab__label max-w-[200px] overflow-hidden text-ellipsis"
+          [zTooltip]="query.name"
+          [zShowDelay]="1000"
+          >
+          {{ query.name }}
+        </span>
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          displayDensity="compact"
+          class="pac-nav-tab__close"
+          [cdkMenuTriggerFor]="menu"
+          [cdkMenuTriggerData]="{ key: query.key }"
+          #mt="cdkMenuTriggerFor"
+          [class.active]="mt.isOpen()"
+          >
+          <z-icon zType="more_vert"></z-icon>
+        </button>
       </span>
-
-      <button
-        z-button
-        zType="ghost"
-        zSize="icon"
-        zShape="circle"
-        displayDensity="compact"
-        class="pac-nav-tab__close"
-        [cdkMenuTriggerFor]="menu"
-        [cdkMenuTriggerData]="{ key: query.key }"
-        #mt="cdkMenuTriggerFor"
-        [class.active]="mt.isOpen()"
-      >
-        <z-icon zType="more_vert"></z-icon>
-      </button>
-    </span>
+    }
 
     <div
       class="w-6 h-6 flex justify-center items-center rounded-lg mx-2 cursor-pointer hover:bg-hover-bg"
       [zTooltip]="'PAC.MODEL.QUERY.New' | translate: { Default: 'New Query' }"
       zPosition="top"
       (click)="addQuery()"
-    >
+      >
       <i class="ri-add-line"></i>
     </div>
 
@@ -82,7 +84,7 @@
       [zTooltip]="'Copilot.GenerateWithAI' | translate: { Default: 'Generate with AI' }"
       zPosition="top"
       (click)="aiAddQuery()"
-    >
+      >
       <i class="ri-magic-line"></i>
     </div>
   </nav>

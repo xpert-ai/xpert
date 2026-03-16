@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { HttpClient } from '@angular/common/http'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -13,7 +13,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     ...ZardTooltipImports,
@@ -21,7 +20,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     SafePipe,
     CopyComponent,
     FileEditorComponent
-  ],
+],
   selector: 'chat-canvas-file-viewer',
   templateUrl: './file-viewer.component.html',
   styleUrl: 'file-viewer.component.scss',

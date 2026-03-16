@@ -3,7 +3,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject, signal, ViewContainerRef } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -37,7 +37,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
@@ -52,7 +51,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     OrganizationSelectorComponent,
     HeaderUserComponent,
     XpertChatAppComponent
-  ],
+],
   selector: 'chat-home',
   templateUrl: './home.component.html',
   styleUrl: 'home.component.scss',

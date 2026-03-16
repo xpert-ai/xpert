@@ -1,4 +1,4 @@
-import { NgFor, NgIf } from '@angular/common'
+
 import { Component, EventEmitter, Input, Output, computed, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
@@ -16,15 +16,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   templateUrl: './input.component.html',
   styleUrl: './input.component.scss',
   imports: [
-    NgIf,
-    NgFor,
     TranslateModule,
     ReactiveFormsModule,
     ...ZardTooltipImports,
     MatChipsModule,
     MatAutocompleteModule,
     NgmHighlightDirective
-  ]
+]
 })
 export class NgmCopilotInputComponent {
   @Input() get suggests() {

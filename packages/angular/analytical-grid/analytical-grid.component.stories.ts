@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { provideHttpClient } from '@angular/common/http'
 import { Component, importProvidersFrom } from '@angular/core'
 
@@ -21,7 +21,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ZardButtonComponent, AnalyticalGridModule],
+  imports: [ZardButtonComponent, AnalyticalGridModule],
   selector: 'ngm-story-component-switch-grid',
   template: `<button z-button zType="ghost" (click)="switch()">Switch</button>
     <ngm-analytical-grid

@@ -6,8 +6,7 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
 
 import { MatChipsModule } from '@angular/material/chips'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
+import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { UsersService } from '@metad/cloud/state'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
@@ -18,7 +17,7 @@ import { userLabel, UserPipe } from '../../pipes'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ZardButtonComponent, MatAutocompleteModule, ...ZardFormImports, ZardInputDirective, MatChipsModule, ZardIconComponent, MatProgressSpinnerModule, TranslateModule, ButtonGroupDirective, NgmCommonModule, UserPipe],
+  imports: [CommonModule, FormsModule, ReactiveFormsModule, ZardButtonComponent, MatAutocompleteModule, ...ZardFormImports, ZardInputDirective, MatChipsModule, ZardIconComponent, ZardLoaderComponent, TranslateModule, ButtonGroupDirective, NgmCommonModule, UserPipe],
   selector: 'pac-user-role-select',
   templateUrl: 'user-role-select.component.html',
   styleUrls: ['user-role-select.component.scss']

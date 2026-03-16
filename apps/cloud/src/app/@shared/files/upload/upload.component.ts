@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, booleanAttribute, input, output } from '@angular/core'
 
 import { NgmDndDirective } from '@metad/core'
@@ -15,7 +15,6 @@ export type UploadFile = {
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     ZardButtonComponent,
     ZardIconComponent,
@@ -23,7 +22,7 @@ export type UploadFile = {
     AppearanceDirective,
     DensityDirective,
     NgmDndDirective
-  ],
+],
   selector: 'pac-upload',
   templateUrl: './upload.component.html',
   styleUrls: ['./upload.component.scss']

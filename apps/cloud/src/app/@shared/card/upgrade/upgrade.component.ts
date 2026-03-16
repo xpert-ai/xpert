@@ -1,11 +1,11 @@
-import { CommonModule } from '@angular/common'
+
 import { Component } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectHelpWebsite } from '../../../@core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule],
+  imports: [TranslateModule],
   selector: 'card-upgrade',
   templateUrl: 'upgrade.component.html',
   styleUrls: ['upgrade.component.scss']

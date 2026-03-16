@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -42,7 +42,7 @@ const THEMES = [
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, CdkMenuModule, TranslateModule, UserPipe, UserProfileInlineComponent],
+  imports: [FormsModule, CdkMenuModule, TranslateModule, UserPipe, UserProfileInlineComponent],
   selector: 'pac-header-user',
   templateUrl: './user.component.html',
   animations: [OverlayAnimation1]

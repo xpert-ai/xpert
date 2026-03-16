@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardIconComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -9,7 +9,6 @@ import { DensityDirective, EntityCapacity } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatbiService } from '../chatbi.service'
 import { ScrollingModule } from '@angular/cdk/scrolling'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
 import { AppService } from '../../../app.service'
 import { ChatbiHomeComponent } from '../home.component'
@@ -26,7 +25,7 @@ import { ChatbiHomeComponent } from '../home.component'
     ScrollingModule,
     ZardIconComponent,
     ZardButtonComponent,
-    MatProgressSpinnerModule,
+    ZardLoaderComponent,
     DensityDirective,
     NgmSearchComponent,
     NgmDisplayBehaviourComponent,

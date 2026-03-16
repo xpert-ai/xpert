@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, Input } from '@angular/core'
 import { IOrganization } from '../../@core'
 
@@ -7,7 +7,7 @@ import { IOrganization } from '../../@core'
     selector: 'pac-org-avatar',
     template: `<img class="w-full h-full" [src]="organization?.imageUrl || '/assets/images/illustrations/default-company-logo.svg'" alt="{{organization?.name}}"/>`,
     styles: [``],
-    imports: [CommonModule]
+    imports: []
 })
 export class OrgAvatarComponent {
   @Input() organization?: Partial<IOrganization>

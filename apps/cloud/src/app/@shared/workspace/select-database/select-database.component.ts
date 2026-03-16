@@ -1,5 +1,5 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input, model, output, signal } from '@angular/core'
 import { injectXpertTableAPI } from '@cloud/app/@core'
 import { IXpertTable } from '@metad/contracts'
@@ -69,7 +69,7 @@ const DEFAULT_ORDER_OPTIONS: SelectDatabaseFilterOption<SelectDatabaseOrder>[] =
 @Component({
   selector: 'xp-workspace-select-database',
   standalone: true,
-  imports: [CommonModule],
+  imports: [],
   templateUrl: './select-database.component.html',
   styleUrls: ['./select-database.component.scss']
 })

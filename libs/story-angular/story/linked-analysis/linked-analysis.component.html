@@ -7,32 +7,38 @@
 <xp-dialog-content class="flex flex-col justify-start items-stretch overflow-hidden">
   <form [formGroup]="formGroup" class="w-80 flex flex-col justify-start items-stretch gap-4">
     <z-radio-group formControlName="interactionApplyTo" class="flex flex-col gap-2" aria-label="Select an option">
-      <z-radio *ngFor="let option of applyTos" [value]="option">
-        {{ 'Story.LinkedAnalysis.' + option | translate: { Default: option } }}
-      </z-radio>
+      @for (option of applyTos; track option) {
+        <z-radio [value]="option">
+          {{ 'Story.LinkedAnalysis.' + option | translate: { Default: option } }}
+        </z-radio>
+      }
     </z-radio-group>
 
-    <z-switch
-      *ngIf="interactionApplyTo === LinkedInteractionApplyTo.OnlySelectedWidgets"
-      class="w-full flex justify-end items-center px-4"
-      style="display: flex"
-      formControlName="connectNewly"
-      labelPosition="before"
-    >
-      {{ 'Story.LinkedAnalysis.ConnectNewly' | translate: { Default: 'Connect Newly' } }}
-    </z-switch>
+    @if (interactionApplyTo === LinkedInteractionApplyTo.OnlySelectedWidgets) {
+      <z-switch
+        class="w-full flex justify-end items-center px-4"
+        style="display: flex"
+        formControlName="connectNewly"
+        labelPosition="before"
+        >
+        {{ 'Story.LinkedAnalysis.ConnectNewly' | translate: { Default: 'Connect Newly' } }}
+      </z-switch>
+    }
 
     <div class="flex-1 overflow-auto">
-      <mat-selection-list
-        *ngIf="interactionApplyTo === LinkedInteractionApplyTo.OnlySelectedWidgets"
-        class="w-full"
-        displayDensity="cosy"
-        formControlName="linkedWidgets"
-      >
-        <mat-list-option *ngFor="let widget of widgets" [value]="widget.key" class="rounded-lg">
-          {{ widget.caption }}
-        </mat-list-option>
-      </mat-selection-list>
+      @if (interactionApplyTo === LinkedInteractionApplyTo.OnlySelectedWidgets) {
+        <mat-selection-list
+          class="w-full"
+          displayDensity="cosy"
+          formControlName="linkedWidgets"
+          >
+          @for (widget of widgets; track widget) {
+            <mat-list-option [value]="widget.key" class="rounded-lg">
+              {{ widget.caption }}
+            </mat-list-option>
+          }
+        </mat-selection-list>
+      }
     </div>
   </form>
 </xp-dialog-content>

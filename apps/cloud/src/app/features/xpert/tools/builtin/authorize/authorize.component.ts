@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   ChangeDetectorRef,
@@ -37,7 +37,6 @@ import { TextFieldModule } from '@angular/cdk/text-field'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -47,10 +46,9 @@ import { TextFieldModule } from '@angular/cdk/text-field'
     NgmSpinComponent,
     ZardInputDirective,
     TextFieldModule,
-
     XpertToolBuiltinCredentialComponent,
     ZardSwitchComponent
-  ],
+],
   selector: 'xpert-tool-builtin-authorize',
   templateUrl: './authorize.component.html',
   styleUrl: 'authorize.component.scss',

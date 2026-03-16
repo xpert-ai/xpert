@@ -1,5 +1,5 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, DestroyRef, effect, inject, input, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { myRxResource } from '@metad/core'
@@ -16,13 +16,12 @@ import { XpertAgentExecutionAccordionComponent, XpertAgentExecutionComponent } f
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     NgmSpinComponent,
     XpertAgentExecutionComponent,
     XpertAgentExecutionAccordionComponent
-  ]
+]
 })
 export class ChatMessageExecutionPanelComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

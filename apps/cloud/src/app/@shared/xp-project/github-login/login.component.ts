@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectGitHubAPI, injectProjectService, injectToastr } from '@cloud/app/@core'
@@ -9,7 +9,7 @@ import { myRxResource } from '@metad/ocap-angular/core'
 @Component({
   selector: 'xp-project-github-login',
   standalone: true,
-  imports: [CommonModule, FormsModule, NgmSelectComponent, NgmSpinComponent],
+  imports: [FormsModule, NgmSelectComponent, NgmSpinComponent],
   templateUrl: './login.component.html',
   styleUrl: './login.component.scss'
 })

@@ -1,6 +1,6 @@
 import { CdkDragDrop, DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { Component, TemplateRef, ViewChild, computed, inject, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { AbstractControl, FormControl, FormGroup, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms'
@@ -243,7 +243,6 @@ export class AccessControlComponent extends TranslationBaseComponent {
       </div>
     </div>`,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
@@ -253,7 +252,7 @@ export class AccessControlComponent extends TranslationBaseComponent {
     NgmSearchComponent,
     NgmDisplayBehaviourComponent,
     ButtonGroupDirective
-  ]
+]
 })
 export class CubeSelectorComponent {
   readonly #dialogRef = inject(ZardDialogRef)

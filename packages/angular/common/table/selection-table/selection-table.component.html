@@ -1,61 +1,87 @@
 <ngm-search class="my-2" [(ngModel)]="searchText" (ngModelChange)="applyFilter($event)"></ngm-search>
 
 <div class="overflow-auto">
-  <table mat-table [dataSource]="dataSource" matSort [displayDensity]="displayDensity" [class.ngm-table-grid]="grid">
-    <!-- Checkbox Column -->
-    <ng-container matColumnDef="select" sticky>
-      <th mat-header-cell *matHeaderCellDef class="text-center">
-        {{ 'Ngm.Table.Select' | translate: { Default: 'Select' } }}
-      </th>
-      <td mat-cell *matCellDef="let row">
-        <z-checkbox class="mx-2" [ngModel]="selection.isSelected(row)" (checkChange)="onChangeRow(row)"> </z-checkbox>
-      </td>
-    </ng-container>
-
-    @for (column of columns; track column.value) {
-      <ng-container [matColumnDef]="column.value" [sticky]="column.sticky">
-        <th mat-header-cell *matHeaderCellDef mat-sort-header>
-          <div class="whitespace-nowrap">{{ column.label }}</div>
+  <table
+    z-table
+    [zSize]="tableSize()"
+    [displayDensity]="displayDensity()"
+    [class.ngm-table-grid]="grid"
+  >
+    <thead z-table-header>
+      <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
+        <th z-table-head zTableStickyStart [zTableStickyStart]="0" [zTableStickyZIndex]="5" class="w-14 min-w-14 text-center">
+          {{ 'Ngm.Table.Select' | translate: { Default: 'Select' } }}
         </th>
-        <td mat-cell *matCellDef="let element">
-          @switch (column.type) {
-            @case ('boolean') {
-              @if (element[column.value]) {
-                <span>✅</span>
-              }
-            }
-            @default {
-              <div class="whitespace-nowrap">
-                @if (column.cellTemplate) {
-                  <ng-container
-                    *ngTemplateOutlet="column.cellTemplate; context: _context(element, column)"
-                  ></ng-container>
-                } @else {
-                  {{ get(element, column.value) }}
-                }
-              </div>
-            }
-          }
-        </td>
-      </ng-container>
-    }
 
-    <tr mat-header-row *matHeaderRowDef="displayedColumns; sticky: true"></tr>
-    <tr mat-row *matRowDef="let row; columns: displayedColumns"></tr>
-
-    <!-- Row shown when there is no matching data. -->
-    <tr class="mat-row" *matNoDataRow>
-      <td class="mat-cell" colspan="4">
-        {{ 'Ngm.Table.NoData' | translate: { Default: 'No data' } }}
-        @if (searchText()) {
-          <span>{{
-            'Ngm.Table.MatchingFilter'
-              | translate: { Default: 'matching the filter "' + searchText() + '"', value: searchText() }
-          }}</span>
+        @for (column of columns(); track column.value) {
+          <th
+            z-table-head
+            [zTableStickyStart]="column.sticky ? stickyOffset(column.value) : null"
+            [zTableStickyZIndex]="column.sticky ? 4 : 1"
+          >
+            <button z-table-sort-header [zDirection]="sortDirection(column.value)" (zSortChange)="onSortChange(column.value, $event)">
+              <span class="whitespace-nowrap">{{ column.label }}</span>
+            </button>
+          </th>
         }
-      </td>
-    </tr>
+      </tr>
+    </thead>
+
+    <tbody z-table-body>
+      @if (rows().length) {
+        @for (row of rows(); track row[key()]) {
+          <tr z-table-row>
+            <td z-table-cell zTableStickyStart [zTableStickyStart]="0" [zTableStickyZIndex]="4" class="w-14 min-w-14">
+              <z-checkbox class="mx-2" [ngModel]="selection.isSelected(row)" [zDisabled]="disabled" (checkChange)="onChangeRow(row)" />
+            </td>
+
+            @for (column of columns(); track column.value) {
+              <td z-table-cell [zTableStickyStart]="column.sticky ? stickyOffset(column.value) : null" [zTableStickyZIndex]="column.sticky ? 3 : 1">
+                @switch (column.type) {
+                  @case ('boolean') {
+                    @if (row[column.value]) {
+                      <span>yes</span>
+                    } @else {
+                      <span class="text-muted-foreground">no</span>
+                    }
+                  }
+                  @default {
+                    <div class="whitespace-nowrap">
+                      @if (column.cellTemplate) {
+                        <ng-container *ngTemplateOutlet="column.cellTemplate; context: _context(row, column)"></ng-container>
+                      } @else {
+                        {{ get(row, column.value) }}
+                      }
+                    </div>
+                  }
+                }
+              </td>
+            }
+          </tr>
+        }
+      } @else {
+        <tr z-table-row>
+          <td z-table-cell [attr.colspan]="displayedColumns().length">
+            {{ 'Ngm.Table.NoData' | translate: { Default: 'No data' } }}
+            @if (searchText()) {
+              <span>{{
+                'Ngm.Table.MatchingFilter'
+                  | translate: { Default: 'matching the filter "' + searchText() + '"', value: searchText() }
+              }}</span>
+            }
+          </td>
+        </tr>
+      }
+    </tbody>
   </table>
 </div>
 
-<z-paginator class="border-t border-[var(--mat-table-row-item-outline-color)] px-2 py-1" [hidePageSizeLabel]="true" [pageSizeOptions]="[10, 20, 50, 100]"></z-paginator>
+<z-paginator
+  class="border-t border-border px-2 py-1"
+  [hidePageSizeLabel]="true"
+  [length]="filteredRows().length"
+  [pageIndex]="pageIndex()"
+  [pageSize]="pageSize()"
+  [pageSizeOptions]="defaultPageSizeOptions"
+  (page)="onPage($event)"
+></z-paginator>

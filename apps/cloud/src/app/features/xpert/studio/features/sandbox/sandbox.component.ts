@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, inject } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { TSandboxProvider } from '@cloud/app/@core'
@@ -13,7 +13,7 @@ import { linkedXpertFeaturesModel } from '../types'
 @Component({
   selector: 'xp-studio-features-sandbox',
   standalone: true,
-  imports: [CommonModule, TranslateModule, NgmI18nPipe, IconComponent],
+  imports: [TranslateModule, NgmI18nPipe, IconComponent],
   templateUrl: './sandbox.component.html',
   styleUrl: './sandbox.component.scss'
 })

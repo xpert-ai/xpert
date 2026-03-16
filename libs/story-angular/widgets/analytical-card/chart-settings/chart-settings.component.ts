@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, Input, forwardRef, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
@@ -12,7 +12,7 @@ import { chartSettingsFieldGroup } from '../analytical-card.schema'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule],
   selector: 'ngm-chart-settings',
   templateUrl: 'chart-settings.component.html',
   styleUrls: ['chart-settings.component.scss'],

@@ -1,5 +1,5 @@
-<mat-drawer-container class="flex-1 w-full" [hasBackdrop]="false" [autosize]="true">
-  <mat-drawer #drawer opened mode="side" ngmResizer [resizerWidth]="230">
+<z-drawer-container class="flex-1 w-full" [hasBackdrop]="false">
+  <z-drawer #drawer opened mode="side" ngmResizer [resizerWidth]="230">
     <div class="h-full flex flex-col justify-start items-stretch">
       <div class="pac-sub-toolbar flex shrink-0 justify-between items-center gap-2">
         <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="drawer.toggle()">
@@ -27,7 +27,7 @@
           cdkDropList
           [cdkDropListEnterPredicate]="entityDeletePredicate"
           (cdkDropListDropped)="deleteEntity($event)"
-        >
+          >
           <z-icon color="warn" zType="delete"></z-icon>
         </button>
       </div>
@@ -38,34 +38,35 @@
         cdkDropList
         [cdkDropListEnterPredicate]="navDropPredicate()"
         (cdkDropListDropped)="dropEntity($event)"
-      >
+        >
         @for (entity of entities(); track entity) {
           <ngm-entity-schema
             [dataSettings]="{ dataSource: dataSourceName(), entitySet: entity }"
             [capacities]="[EntityCapacity.Dimension, EntityCapacity.Measure, EntityCapacity.Parameter]"
-          />
+            />
         }
       </div>
     </div>
 
     <div ngmResizerBar resizerBarPosition="right" cdkDrag cdkDragLockAxis="x"></div>
-  </mat-drawer>
+  </z-drawer>
 
-  <mat-drawer-content>
+  <z-drawer-content>
     <ngm-splitter class="ngm-layout-container-secondary flex-1 w-full h-full" [type]="1">
       <ngm-splitter-pane size="50%" class="flex flex-col justify-end items-stretch z-[101]">
         <div class="pac-sub-toolbar pac-toolbar__editor flex shrink-0 justify-start items-center gap-2">
-          <button
-            z-button
-            zType="ghost"
-            zSize="icon"
-            zShape="circle"
-            *ngIf="!drawer.opened"
-            displayDensity="compact"
-            (click)="drawer.toggle()"
-          >
-            <z-icon zType="segment"></z-icon>
-          </button>
+          @if (!drawer.opened) {
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              zShape="circle"
+              displayDensity="compact"
+              (click)="drawer.toggle()"
+              >
+              <z-icon zType="segment"></z-icon>
+            </button>
+          }
 
           <button
             z-button
@@ -75,143 +76,179 @@
             [disabled]="!statement"
             zTooltip=" {{ 'PAC.KEY_WORDS.ShortcutKey' | translate: { Default: 'Shortcut Key' } }}: F8"
             (click)="run()"
-          >
+            >
             <z-icon zType="arrow_right"></z-icon>
 
-            <span *ngIf="textSelection?.text">
-              {{ 'PAC.MENU.RUN_BY_SELECTION' | translate: { Default: 'Run By Selection' } }}
-            </span>
-            <span *ngIf="!textSelection?.text">
-              {{ 'PAC.MENU.RUN' | translate: { Default: 'Run' } }}
-            </span>
+            @if (textSelection?.text) {
+              <span>
+                {{ 'PAC.MENU.RUN_BY_SELECTION' | translate: { Default: 'Run By Selection' } }}
+              </span>
+            }
+            @if (!textSelection?.text) {
+              <span>
+                {{ 'PAC.MENU.RUN' | translate: { Default: 'Run' } }}
+              </span>
+            }
           </button>
 
           <!-- <button z-button zType="ghost" color="primary" displayDensity="compact" [disabled]="!statement">
-                        <z-icon zType="agriculture"></z-icon>
-                        校验</button> -->
+          <z-icon zType="agriculture"></z-icon>
+        校验</button> -->
+        <button
+          z-button
+          zType="ghost"
+          color="primary"
+          displayDensity="compact"
+          [disabled]="!dirty || !statement"
+          (click)="save()"
+          >
+          <z-icon zType="new_label"></z-icon>
+          {{ 'PAC.KEY_WORDS.SAVE' | translate: { Default: 'Save' } }}
+        </button>
+
+        @if (isWasm()) {
           <button
             z-button
             zType="ghost"
             color="primary"
             displayDensity="compact"
-            [disabled]="!dirty || !statement"
-            (click)="save()"
-          >
-            <z-icon zType="new_label"></z-icon>
-            {{ 'PAC.KEY_WORDS.SAVE' | translate: { Default: 'Save' } }}
-          </button>
-
-          <ng-container *ngIf="isWasm()">
-            <button
-              z-button
-              zType="ghost"
-              color="primary"
-              displayDensity="compact"
-              [disabled]="!statement || dbInitialization === selectedStatement"
-              (click)="saveAsDBScript()"
+            [disabled]="!statement || dbInitialization === selectedStatement"
+            (click)="saveAsDBScript()"
             >
-              <z-icon zType="save_as"></z-icon>
-              {{ 'PAC.MODEL.QUERY.SaveAsDBInit' | translate: { Default: 'Save as DB Init Script' } }}
-            </button>
-          </ng-container>
-
-          <!-- <button z-button zType="ghost" *ngIf="useSaveAsSQL$ | async" color="primary" displayDensity="compact" [disabled]="!statement" (click)="saveAsModel()">
-                        <z-icon  zType="database"></z-icon>
-                        {{ 'PAC.MODEL.QUERY.SaveAsModel' | translate: {Default: "Save As Model"} }}
-                    </button> -->
-
-          <span class="flex-1 flex"></span>
-
-          <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="triggerUndo()">
-            <z-icon zType="undo"></z-icon>
+            <z-icon zType="save_as"></z-icon>
+            {{ 'PAC.MODEL.QUERY.SaveAsDBInit' | translate: { Default: 'Save as DB Init Script' } }}
           </button>
-          <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="triggerRedo()">
-            <z-icon zType="redo"></z-icon>
-          </button>
-          <button
-            z-button
-            zType="ghost"
-            zSize="icon"
-            zShape="circle"
-            displayDensity="compact"
-            zTooltip="🔍{{ 'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' } }}"
-            (click)="triggerFind()"
-          >
-            <z-icon zType="search"></z-icon>
-          </button>
-          <button
-            z-button
-            zType="ghost"
-            zSize="icon"
-            zShape="circle"
-            displayDensity="compact"
-            zTooltip="⛔{{ 'PAC.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}"
-            (click)="triggerClear()"
-          >
-            <z-icon zType="playlist_remove"></z-icon>
-          </button>
-
-          @if (isMDX()) {
-            <button
-              z-button
-              zType="ghost"
-              zSize="icon"
-              zShape="circle"
-              displayDensity="compact"
-              zTooltip="📦{{ 'PAC.KEY_WORDS.Compact' | translate: { Default: 'Compact' } }}"
-              (click)="triggerCompress()"
-            >
-              <z-icon zType="folder_zip"></z-icon>
-            </button>
-          }
-
-          <button
-            z-button
-            zType="ghost"
-            zSize="icon"
-            zShape="circle"
-            displayDensity="compact"
-            zTooltip="💡{{ 'PAC.KEY_WORDS.Format' | translate: { Default: 'Format' } }}"
-            (click)="triggerFormat()"
-          >
-            <z-icon zType="format_indent_increase"></z-icon>
-          </button>
-        </div>
-
-        @if (isMDX()) {
-          <ngm-mdx-editor
-            #editor
-            class="pac-cdk-drop__list pac-cdk-drop__area flex-1 w-full h-full"
-            [theme]="themeName()"
-            [entityType]="entityType()"
-            [(ngModel)]="statement"
-            (selectionChange)="onSelectionChange($event)"
-            (keyDown)="onEditorKeyDown($event)"
-            cdkDropList
-            [cdkDropListEnterPredicate]="editorDropPredicate"
-            (cdkDropListDropped)="drop($event)"
-          />
-        } @else {
-          <ngm-sql-editor
-            #editor
-            class="pac-cdk-drop__list pac-cdk-drop__area flex-1 w-full h-full"
-            [theme]="themeName()"
-            [entitySets]="tables$ | async"
-            [(ngModel)]="statement"
-            [disabled]="answering()"
-            (selectionChange)="onSelectionChange($event)"
-            (keyDown)="onEditorKeyDown($event)"
-            cdkDropList
-            [cdkDropListEnterPredicate]="editorDropPredicate"
-            (cdkDropListDropped)="drop($event)"
-          />
         }
-      </ngm-splitter-pane>
-      <ngm-splitter-pane class="relative flex flex-col justify-start items-stretch">
-        <div class="pac-nav-toolbar flex shrink-0 items-center">
-          @if (!results?.length) {
-            <div>{{ 'PAC.MODEL.QUERY.QueryResults' | translate: { Default: 'Query Results' } }}</div>
-          } @else {
+
+        <!-- Save-as-model action kept disabled until the SQL flow is restored. -->
+
+      <span class="flex-1 flex"></span>
+
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="triggerUndo()">
+        <z-icon zType="undo"></z-icon>
+      </button>
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="triggerRedo()">
+        <z-icon zType="redo"></z-icon>
+      </button>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="compact"
+        zTooltip="🔍{{ 'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' } }}"
+        (click)="triggerFind()"
+        >
+        <z-icon zType="search"></z-icon>
+      </button>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="compact"
+        zTooltip="⛔{{ 'PAC.KEY_WORDS.Clear' | translate: { Default: 'Clear' } }}"
+        (click)="triggerClear()"
+        >
+        <z-icon zType="playlist_remove"></z-icon>
+      </button>
+
+      @if (isMDX()) {
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          displayDensity="compact"
+          zTooltip="📦{{ 'PAC.KEY_WORDS.Compact' | translate: { Default: 'Compact' } }}"
+          (click)="triggerCompress()"
+          >
+          <z-icon zType="folder_zip"></z-icon>
+        </button>
+      }
+
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="compact"
+        zTooltip="💡{{ 'PAC.KEY_WORDS.Format' | translate: { Default: 'Format' } }}"
+        (click)="triggerFormat()"
+        >
+        <z-icon zType="format_indent_increase"></z-icon>
+      </button>
+    </div>
+
+    @if (isMDX()) {
+      <ngm-mdx-editor
+        #editor
+        class="pac-cdk-drop__list pac-cdk-drop__area flex-1 w-full h-full"
+        [theme]="themeName()"
+        [entityType]="entityType()"
+        [(ngModel)]="statement"
+        (selectionChange)="onSelectionChange($event)"
+        (keyDown)="onEditorKeyDown($event)"
+        cdkDropList
+        [cdkDropListEnterPredicate]="editorDropPredicate"
+        (cdkDropListDropped)="drop($event)"
+        />
+    } @else {
+      <ngm-sql-editor
+        #editor
+        class="pac-cdk-drop__list pac-cdk-drop__area flex-1 w-full h-full"
+        [theme]="themeName()"
+        [entitySets]="tables$ | async"
+        [(ngModel)]="statement"
+        [disabled]="answering()"
+        (selectionChange)="onSelectionChange($event)"
+        (keyDown)="onEditorKeyDown($event)"
+        cdkDropList
+        [cdkDropListEnterPredicate]="editorDropPredicate"
+        (cdkDropListDropped)="drop($event)"
+        />
+    }
+  </ngm-splitter-pane>
+  <ngm-splitter-pane class="relative flex flex-col justify-start items-stretch">
+    <div class="pac-nav-toolbar flex shrink-0 items-center">
+      @if (!results?.length) {
+        <div>{{ 'PAC.MODEL.QUERY.QueryResults' | translate: { Default: 'Query Results' } }}</div>
+      } @else {
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          displayDensity="compact"
+          class="pac-nav-tab__close"
+          [cdkMenuTriggerFor]="menu"
+          >
+          <z-icon zType="more_vert"></z-icon>
+        </button>
+      }
+
+      <nav
+        z-tab-nav-bar
+        id="pac-model__query-results"
+        color="accent"
+        stretchTabs="false"
+        alignTabs="start"
+        class="flex-1"
+        [tabPanel]="tabPanel"
+        cdkDropList
+        [cdkDropListData]="results"
+        >
+        @for (result of results; track result; let i = $index) {
+          <span
+            z-tab-link
+            (click)="activeResult = result"
+            [active]="activeResult === result"
+            cdkDrag
+            [cdkDragData]="result"
+            >
+            <span class="pac-nav-tab__label" zTooltipClass="pac-model-query__statement-tip">
+              {{ 'PAC.MENU.RESULTS' | translate: { Default: 'Results' } }}
+            </span>
             <button
               z-button
               zType="ghost"
@@ -219,132 +256,97 @@
               zShape="circle"
               displayDensity="compact"
               class="pac-nav-tab__close"
-              [cdkMenuTriggerFor]="menu"
-            >
-              <z-icon zType="more_vert"></z-icon>
-            </button>
-          }
-
-          <nav
-            z-tab-nav-bar
-            id="pac-model__query-results"
-            color="accent"
-            stretchTabs="false"
-            alignTabs="start"
-            class="flex-1"
-            [tabPanel]="tabPanel"
-            cdkDropList
-            [cdkDropListData]="results"
-          >
-            <span
-              z-tab-link
-              (click)="activeResult = result"
-              [active]="activeResult === result"
-              *ngFor="let result of results; index as i"
-              cdkDrag
-              [cdkDragData]="result"
-            >
-              <span class="pac-nav-tab__label" zTooltipClass="pac-model-query__statement-tip">
-                {{ 'PAC.MENU.RESULTS' | translate: { Default: 'Results' } }}
-              </span>
-
-              <button
-                z-button
-                zType="ghost"
-                zSize="icon"
-                zShape="circle"
-                displayDensity="compact"
-                class="pac-nav-tab__close"
-                ngmAppearance="danger"
-                (click)="deleteResult(i); $event.stopPropagation()"
+              ngmAppearance="danger"
+              (click)="deleteResult(i); $event.stopPropagation()"
               >
-                <z-icon zType="cancel"></z-icon>
-              </button>
-            </span>
-          </nav>
-        </div>
-        @if (loading$ | async) {
-          <div
-            class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center z-[101] bg-gray-500/10 backdrop-blur-lg"
-          >
-            <div class="emoji-loader" style="position: relative; height: 80px"></div>
-            <button z-button zType="outline" (click)="cancelQuery()">
-              {{ 'PAC.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
+              <z-icon zType="cancel"></z-icon>
             </button>
-          </div>
-          <z-progress-bar zIndeterminate zShape="square" zSize="sm" class="absolute bottom-0 left-0 z-[102] w-full" />
+          </span>
         }
-
-        <z-tab-nav-panel
-          #tabPanel
-          class="pac-cdk-drop__list pac-cdk-drop__area flex flex-col overflow-hidden"
-          cdkDropList
-          [cdkDropListEnterPredicate]="editorDropPredicate"
-          (cdkDropListDropped)="dropTable($event)"
+      </nav>
+    </div>
+    @if (loading$ | async) {
+      <div
+        class="absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center z-[101] bg-gray-500/10 backdrop-blur-lg"
         >
-          @if (activeResult) {
-            <div class="pac-model-ql-lab__stats">
-              <button
-                z-button
-                zType="ghost"
-                zSize="icon"
-                zShape="circle"
-                displayDensity="compact"
-                [zTooltip]="'PAC.KEY_WORDS.EXPORT' | translate: { Default: 'Export' }"
-                zPosition="top"
-                (click)="export()"
-              >
-                <z-icon zType="file_download"></z-icon>
-              </button>
+        <div class="emoji-loader" style="position: relative; height: 80px"></div>
+        <button z-button zType="outline" (click)="cancelQuery()">
+          {{ 'PAC.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
+        </button>
+      </div>
+      <z-progress-bar zIndeterminate zShape="square" zSize="sm" class="absolute bottom-0 left-0 z-[102] w-full" />
+    }
 
-              <z-icon zSize="sm" [zTooltip]="activeResult.statement" zType="info"></z-icon>
-              <span>
-                {{ 'PAC.MODEL.QUERY.TotalRecords' | translate: { Default: 'Total Records' } }}
-                : {{ activeResult.stats?.numberOfEntries }}</span
-              >
-              @if (activeResult.stats?.numberOfEntries > 1000) {
-                <span> , {{ 'PAC.MODEL.QUERY.PreviewTop1000' | translate: { Default: 'Preview Top 1000' } }}. </span>
-              }
-            </div>
+    <z-tab-nav-panel
+      #tabPanel
+      class="pac-cdk-drop__list pac-cdk-drop__area flex flex-col overflow-hidden"
+      cdkDropList
+      [cdkDropListEnterPredicate]="editorDropPredicate"
+      (cdkDropListDropped)="dropTable($event)"
+      >
+      @if (activeResult) {
+        <div class="pac-model-ql-lab__stats">
+          <button
+            z-button
+            zType="ghost"
+            zSize="icon"
+            zShape="circle"
+            displayDensity="compact"
+            [zTooltip]="'PAC.KEY_WORDS.EXPORT' | translate: { Default: 'Export' }"
+            zPosition="top"
+            (click)="export()"
+            >
+            <z-icon zType="file_download"></z-icon>
+          </button>
 
-            @if (activeResult?.error) {
-              <div class="pac-result flex-1">
-                <div class="bug font-notoColorEmoji">🐞</div>
-                <div class="description">
-                  {{ activeResult.error }}
-                </div>
-              </div>
-            } @else {
-              @if (activeResult && !activeResult?.data) {
-                <div class="pac-result flex-1">
-                  <div class="bug font-notoColorEmoji">✅</div>
-                  <div class="description"></div>
-                </div>
-              }
-
-              @if (activeResult?.preview) {
-                <ngm-table
-                  class="pac-model-ql-lab__result ngm-data-preview striped"
-                  [columns]="activeResult?.columns"
-                  [data]="activeResult?.preview"
-                  [paging]="true"
-                />
-              }
+          <z-icon zSize="sm" [zTooltip]="activeResult.statement" zType="info"></z-icon>
+          <span>
+            {{ 'PAC.MODEL.QUERY.TotalRecords' | translate: { Default: 'Total Records' } }}
+            : {{ activeResult.stats?.numberOfEntries }}</span
+            >
+            @if (activeResult.stats?.numberOfEntries > 1000) {
+              <span> , {{ 'PAC.MODEL.QUERY.PreviewTop1000' | translate: { Default: 'Preview Top 1000' } }}. </span>
             }
-          } @else {
-            <div class="grow flex justify-center items-center text-text-secondary">
-              <i class="ri-information-2-line text-lg mr-2"></i>
-              <span class="text-sm">{{
-                'PAC.MODEL.QUERY.DragDropFieldPreview'
-                  | translate: { Default: 'Drag table, field, dimension, measure, etc. here to preview the data' }
-              }}</span>
+          </div>
+
+          @if (activeResult?.error) {
+            <div class="pac-result flex-1">
+              <div class="bug font-notoColorEmoji">🐞</div>
+              <div class="description">
+                {{ activeResult.error }}
+              </div>
             </div>
+          } @else {
+            @if (activeResult && !activeResult?.data) {
+              <div class="pac-result flex-1">
+                <div class="bug font-notoColorEmoji">✅</div>
+                <div class="description"></div>
+              </div>
+            }
+
+            @if (activeResult?.preview) {
+              <ngm-table
+                class="pac-model-ql-lab__result ngm-data-preview striped"
+                [columns]="activeResult?.columns"
+                [data]="activeResult?.preview"
+                [paging]="true"
+                />
+            }
           }
-        </z-tab-nav-panel>
-      </ngm-splitter-pane>
-    </ngm-splitter>
-  </mat-drawer-content>
-</mat-drawer-container>
+        } @else {
+          <div class="grow flex justify-center items-center text-text-secondary">
+            <i class="ri-information-2-line text-lg mr-2"></i>
+            <span class="text-sm">{{
+              'PAC.MODEL.QUERY.DragDropFieldPreview'
+              | translate: { Default: 'Drag table, field, dimension, measure, etc. here to preview the data' }
+            }}</span>
+          </div>
+        }
+      </z-tab-nav-panel>
+    </ngm-splitter-pane>
+  </ngm-splitter>
+</z-drawer-content>
+</z-drawer-container>
 
 <ng-template #menu let-key="key">
   <div cdkMenu class="cdk-menu__medium">
@@ -372,5 +374,5 @@
     [data]="message.data['content']"
     paging
     [pageSizeOptions]="[10, 20, 50, 100]"
-  />
+    />
 </ng-template>

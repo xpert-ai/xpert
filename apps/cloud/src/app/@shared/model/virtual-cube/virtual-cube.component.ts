@@ -1,18 +1,18 @@
 import { CdkDrag, CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import {
   ZardAccordionImports,
   ZardButtonComponent,
   ZardDividerComponent,
+  ZardDrawerImports,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import type { ZardSwitchChange } from '@xpert-ai/headless-ui'
-import { MatSidenavModule } from '@angular/material/sidenav'
 import { injectToastr } from '@cloud/app/@core'
 import { TMessageContentVirtualCube } from '@metad/contracts'
 import { NgmCommonModule, NgmSelectComponent, ResizerModule } from '@metad/ocap-angular/common'
@@ -48,15 +48,14 @@ import { ChecklistComponent } from '../../common'
   templateUrl: 'virtual-cube.component.html',
   styleUrls: ['virtual-cube.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     CdkMenuModule,
+    ...ZardDrawerImports,
     ...ZardTooltipImports,
     ZardButtonComponent,
     ZardDividerComponent,
     ZardIconComponent,
-    MatSidenavModule,
     ...ZardFormImports,
     ...ZardAccordionImports,
     ZardInputDirective,
@@ -68,7 +67,7 @@ import { ChecklistComponent } from '../../common'
     NgmCalculatedMeasureComponent,
     ChecklistComponent,
     NgmSelectComponent
-  ],
+],
   providers: [NgmDSCoreService, ModelStudioService]
 })
 export class ModelVirtualCubeComponent extends ModelDraftBaseComponent {

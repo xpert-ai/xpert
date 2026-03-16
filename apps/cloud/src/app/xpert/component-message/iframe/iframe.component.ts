@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { DomSanitizer, SafeResourceUrl } from '@angular/platform-browser'
 import { RouterModule } from '@angular/router'
@@ -9,7 +9,7 @@ import { XpertHomeService } from '../../home.service'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, CdkMenuModule, RouterModule, TranslateModule, ...ZardTooltipImports],
+  imports: [CdkMenuModule, RouterModule, TranslateModule, ...ZardTooltipImports],
   selector: 'chat-component-message-iframe',
   templateUrl: './iframe.component.html',
   styleUrl: 'iframe.component.scss',

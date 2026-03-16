@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { Attachment_Type_Options, TXpertAttachment, TXpertAttachmentType } from '@cloud/app/@core/types'
@@ -13,14 +13,13 @@ import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
   selector: 'xpert-studio-features-attachment',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
     ZardSliderComponent,
     NgmI18nPipe
-  ],
+],
   templateUrl: './attachment.component.html',
   styleUrl: './attachment.component.scss',
   animations: [...OverlayAnimations]

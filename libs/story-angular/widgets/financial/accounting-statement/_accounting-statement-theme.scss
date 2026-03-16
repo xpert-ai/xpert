@@ -10,10 +10,10 @@
   $accent: map.get($config, accent);
 
   .pac-widget-accounting-statement {
-    .mat-table {
+    table[z-table] {
       background: transparent;
 
-      .mat-cell, .mat-header-cell {
+      [z-table-cell], [z-table-head] {
         white-space: nowrap;
       }
       tr.pac-widget-accounting-statement__underline > td {
@@ -35,7 +35,7 @@
 
 @mixin density($config-or-theme) {
   .pac-widget-accounting-statement {
-    th.mat-header-cell, td.mat-cell, td.mat-footer-cell {
+    th[z-table-head], td[z-table-cell] {
       padding: 0 5px;
     }
   }

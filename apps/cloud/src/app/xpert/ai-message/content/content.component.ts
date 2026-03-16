@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { DateRelativePipe } from '@cloud/app/@core'
@@ -15,7 +15,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     TranslateModule,
     MarkdownModule,
     ...ZardTooltipImports,
@@ -23,7 +22,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     Copy2Component,
     ChatComponentMessageComponent,
     ChatMessageDashboardComponent
-  ],
+],
   selector: 'chat-message-content',
   templateUrl: './content.component.html',
   styleUrl: 'content.component.scss',

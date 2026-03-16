@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, inject, model, OnDestroy, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -24,7 +24,6 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   styleUrls: ['./edit-user.component.scss'],
   animations: [routeAnimations],
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     ZardButtonComponent,
@@ -32,7 +31,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     UserBasicComponent,
     UserChangePasswordFormComponent,
     PACUserOrganizationsComponent
-  ]
+]
 })
 export class PACEditUserComponent implements OnDestroy {
   RolesEnum = RolesEnum

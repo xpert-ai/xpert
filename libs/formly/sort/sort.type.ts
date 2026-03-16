@@ -14,22 +14,26 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
   standalone: true,
   selector: 'pac-formly-sort',
   template: `<ngm-select class="p-1" label="{{ 'FORMLY.Sort.Label' | translate: { Default: 'Sort Field' } }}" displayDensity="compact"
-    searchable
-    valueKey="key"
-    [selectOptions]="props.options | async"
-    [(ngModel)]="by"
-  >
-    <div ngmSuffix>
-      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="$event.stopPropagation(); toggleOrder()">
-        <z-icon *ngIf="order === OrderDirection.DESC" zType="arrow_upward"></z-icon>
-        <z-icon *ngIf="order === OrderDirection.ASC || !order" zType="arrow_downward"></z-icon>
-      </button>
-    </div>
-
-    <ng-template ngmOptionContent let-value="value" let-highlight="highlight">
-      <ngm-entity-property class="flex-1" [property]="value" [highlight]="highlight"></ngm-entity-property>
-    </ng-template>
-  </ngm-select>`,
+      searchable
+      valueKey="key"
+      [selectOptions]="props.options | async"
+      [(ngModel)]="by"
+      >
+      <div ngmSuffix>
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="$event.stopPropagation(); toggleOrder()">
+          @if (order === OrderDirection.DESC) {
+            <z-icon zType="arrow_upward"></z-icon>
+          }
+          @if (order === OrderDirection.ASC || !order) {
+            <z-icon zType="arrow_downward"></z-icon>
+          }
+        </button>
+      </div>
+    
+      <ng-template ngmOptionContent let-value="value" let-highlight="highlight">
+        <ngm-entity-property class="flex-1" [property]="value" [highlight]="highlight"></ngm-entity-property>
+      </ng-template>
+    </ngm-select>`,
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./sort.type.scss'],
   imports: [CommonModule, FormsModule, TranslateModule, ZardIconComponent, ZardButtonComponent, NgmSelectModule, OcapCoreModule, NgmEntityPropertyComponent]

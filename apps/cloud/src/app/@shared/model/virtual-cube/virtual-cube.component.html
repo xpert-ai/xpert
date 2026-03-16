@@ -61,8 +61,8 @@
   </div>
 </div>
 
-<mat-drawer-container class="flex-1 rounded-lg" [hasBackdrop]="false" [autosize]="true">
-  <mat-drawer #drawer opened mode="side" ngmResizer [resizerWidth]="230" class="flex flex-col">
+<z-drawer-container class="flex-1 rounded-lg" [hasBackdrop]="false">
+  <z-drawer #drawer opened mode="side" ngmResizer [resizerWidth]="230" class="flex flex-col">
     <div class="h-full flex-1 flex flex-col justify-start items-stretch overflow-y-auto">
       <div class="flex justify-between items-center p-1 gap-2" displayDensity="compact">
         <span>{{ 'PAC.MODEL.VirtualCube.CubeUsages' | translate: { Default: 'Cube Usages' } }}</span>
@@ -100,9 +100,9 @@
     </div>
 
     <div ngmResizerBar resizerBarPosition="right" cdkDrag cdkDragLockAxis="x"></div>
-  </mat-drawer>
+  </z-drawer>
 
-  <mat-drawer-content>
+  <z-drawer-content>
     @if (_virtualCube(); as virtualCube) {
       <div class="flex flex-wrap justify-start items-center gap-4">
         <z-form-field appearance="fill" displayDensity="cosy">
@@ -405,8 +405,8 @@
         }
       </z-accordion-item>
     </z-accordion>
-  </mat-drawer-content>
-</mat-drawer-container>
+  </z-drawer-content>
+</z-drawer-container>
 
 <ng-template #checklistMenu>
   <xp-checklist cdkMenu class="cdk-menu__large rounded-xl" [checklist]="checklist()" />

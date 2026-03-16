@@ -1,7 +1,7 @@
 import { Clipboard, ClipboardModule } from '@angular/cdk/clipboard'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { XpertOutputVariablesEditComponent } from '@cloud/app/@shared/xpert'
@@ -28,7 +28,6 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     ClipboardModule,
     CdkMenuModule,
@@ -37,7 +36,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmDensityDirective,
     XpertOutputVariablesEditComponent,
     ZardSwitchComponent
-  ]
+]
 })
 export class XpertWorkflowAgentToolComponent extends XpertWorkflowBaseComponent {
   eXpertAgentExecutionEnum = XpertAgentExecutionStatusEnum

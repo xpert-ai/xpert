@@ -1,6 +1,6 @@
 import { Clipboard } from '@angular/cdk/clipboard'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
@@ -13,14 +13,13 @@ import { ZardButtonComponent, ZardSwitchComponent, ZardTooltipImports } from '@x
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     ...ZardTooltipImports,
     ZardButtonComponent,
     ButtonGroupDirective,
     ZardSwitchComponent
-  ],
+],
   selector: 'xpert-develop-app',
   templateUrl: './app.component.html',
   styleUrl: 'app.component.scss',

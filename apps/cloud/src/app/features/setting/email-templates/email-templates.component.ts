@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
@@ -25,25 +25,21 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     CdkMenuModule,
-
     ZardIconComponent,
     ZardButtonComponent,
-
     NgmSelectComponent,
     NgmTagsComponent,
     CardCreateComponent,
     DynamicGridDirective,
     ButtonGroupDirective,
-
     LanguageSelectorComponent,
     EmailTemplateComponent
-  ],
+],
   templateUrl: './email-templates.component.html',
   styleUrls: ['./email-templates.component.scss'],
   animations: [DisappearFadeOut]

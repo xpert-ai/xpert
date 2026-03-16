@@ -11,7 +11,7 @@ import {
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { CompareToEnum, DataSettings, EntityType } from '@metad/ocap-core'
 import { PropertyCapacity } from '../types'
-import { CommonModule } from '@angular/common'
+
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { NgmPropertySelectComponent } from '../property-select/property-select.component'
@@ -21,7 +21,6 @@ import { ZardFormImports, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -30,7 +29,7 @@ import { ZardFormImports, ZardCheckboxComponent } from '@xpert-ai/headless-ui'
     NgmPropertySelectComponent,
     NgmCompareMemberSelectComponent,
     NgmSelectComponent
-  ],
+],
   selector: 'ngm-calculation-variance',
   templateUrl: 'variance.component.html',
   styleUrls: ['variance.component.scss'],

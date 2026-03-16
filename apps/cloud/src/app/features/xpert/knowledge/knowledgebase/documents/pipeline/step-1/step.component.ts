@@ -1,6 +1,6 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
@@ -44,7 +44,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   templateUrl: './step.component.html',
   styleUrls: ['./step.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     RouterModule,
@@ -60,7 +59,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     KnowledgeLocalFileComponent,
     XpertParametersFormComponent,
     KnowledgeDocumentPreviewComponent
-  ]
+]
 })
 export class KnowledgeDocumentPipelineStep1Component {
   eKDocumentSourceType = KDocumentSourceType

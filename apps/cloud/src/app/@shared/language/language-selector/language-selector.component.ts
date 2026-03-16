@@ -4,7 +4,7 @@ import { TranslateModule } from '@ngx-translate/core';
 import { LanguagesService, Store } from '../../../@core';
 import { filter, tap } from 'rxjs/operators';
 import { FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms';
-import { CommonModule } from '@angular/common';
+
 import { TranslationBaseComponent } from '../translation-base.component';
 import { NgmSelectComponent, NgmSpinComponent } from '@metad/ocap-angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
@@ -13,13 +13,11 @@ import { NgmFieldAppearance } from "@metad/ocap-angular/core";
 @Component({
 	standalone: true,
 	imports: [
-		CommonModule,
-		FormsModule,
-		TranslateModule,
-
-		NgmSelectComponent,
-		NgmSpinComponent
-	],
+    FormsModule,
+    TranslateModule,
+    NgmSelectComponent,
+    NgmSpinComponent
+],
 	selector: 'pac-language-selector',
 	templateUrl: './language-selector.component.html',
 	styleUrls: ['./language-selector.component.scss'],

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, booleanAttribute, computed, effect, input, signal } from '@angular/core'
 import { DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
 import {
@@ -18,7 +18,7 @@ import { type ZardIconSizeVariants, ZardIconComponent } from '@xpert-ai/headless
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ZardIconComponent, DensityDirective, NgmDisplayBehaviourComponent],
+  imports: [ZardIconComponent, DensityDirective, NgmDisplayBehaviourComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-property',
   templateUrl: './property.component.html',

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { AfterViewInit, Component, ElementRef, Input, OnDestroy } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import mermaid from 'mermaid'
@@ -9,7 +9,7 @@ const svgCache = new Map<string, string>()
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ...ZardTooltipImports, TranslateModule, CopyComponent],
+  imports: [...ZardTooltipImports, TranslateModule, CopyComponent],
   selector: 'chat-mermaid-viewer',
   template: `<div class="group/mermaid relative my-4">
     <copy

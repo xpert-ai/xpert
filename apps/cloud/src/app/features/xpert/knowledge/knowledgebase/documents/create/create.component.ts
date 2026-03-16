@@ -1,6 +1,6 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -39,18 +39,16 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   templateUrl: './create.component.html',
   styleUrls: ['./create.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
     CdkListboxModule,
     ...ZardTooltipImports,
     WaIntersectionObserver,
-
     KnowledgeDocumentCreateStep1Component,
     KnowledgeDocumentCreateStep2Component,
     KnowledgeDocumentCreateStep3Component
-  ]
+]
 })
 export class KnowledgeDocumentCreateComponent {
   eKDocumentSourceType = KDocumentSourceType

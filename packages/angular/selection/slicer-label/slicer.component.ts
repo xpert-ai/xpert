@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, EventEmitter, Output, booleanAttribute, computed, inject, input } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { injectTranslate } from '@metad/ocap-angular/core'
@@ -20,9 +20,7 @@ import { combineLatestWith, map } from 'rxjs'
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-  ],
+  imports: [],
   selector: 'ngm-slicer-label',
   templateUrl: 'slicer.component.html',
   styleUrls: ['slicer.component.scss']

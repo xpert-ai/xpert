@@ -1,8 +1,10 @@
 <header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-  <h4 style="pointer-events: none" *ngIf="property$ | async as property">
-    {{ 'Ngm.TimeFilter.SET_DATE_RANGE' | translate: {Default: "Set Date Range for {{property.caption}}", property:
-    property.caption} }}
-  </h4>
+  @if (property$ | async; as property) {
+    <h4 style="pointer-events: none">
+      {{ 'Ngm.TimeFilter.SET_DATE_RANGE' | translate: {Default: "Set Date Range for {{property.caption}}", property:
+      property.caption} }}
+    </h4>
+  }
 </header>
 
 <div xpDialogContent [formGroup]="formGroup">
@@ -15,54 +17,53 @@
           { value: 'SYSTEMTIME', label: ('Ngm.TimeFilter.SYSTEM_DATE' | translate: { Default: 'System Date' }) },
           { value: 'TODAY', label: ('Ngm.TimeFilter.USER_CURRENT_DATE' | translate: { Default: 'User Current Date' }) }
         ]"
-      />
+        />
     </z-form-field>
 
-    <ng-container *ngIf="hierarchyOptions$ | async as hierarchyOptions">
+    @if (hierarchyOptions$ | async; as hierarchyOptions) {
       <z-form-field appearance="fill" formGroupName="dimension">
         <z-form-label>{{ 'Ngm.Common.Hierarchy' | translate: { Default: 'Hierarchy' } }}</z-form-label>
         <ngm-select formControlName="hierarchy" [selectOptions]="hierarchyOptions" />
       </z-form-field>
-    </ng-container>
+    }
   </div>
 
   <z-accordion hideToggle formArrayName="ranges" displayDensity="cosy" class="">
-    <z-accordion-item *ngFor="let range of ranges.controls; let i = index" [formGroupName]="i">
-      <z-accordion-header class="pr-0">
-        <z-accordion-title>
-          {{ 'Ngm.TimeFilter.RANGE' | translate: { Default: 'Range' } }} {{ i + 1 }}: {{ range.value.result?.[0] }} -
-          {{ range.value.result?.[1] }}
-        </z-accordion-title>
-        <z-accordion-description class="">
-          <button
-            z-button
-            zType="ghost"
-            zSize="icon"
-            zShape="circle"
-            ngmAppearance="danger"
-            (click)="ranges.controls.splice(i, 1)"
-          >
-            <z-icon zType="close"></z-icon>
-          </button>
-        </z-accordion-description>
-      </z-accordion-header>
-
-      <div class="flex flex-wrap gap-2">
-        <z-form-field appearance="fill">
-          <z-form-label>{{ 'Ngm.TimeFilter.RANGE_TYPE' | translate: { Default: 'Range Type' } }}</z-form-label>
-          <ngm-select
-            formControlName="type"
+    @for (range of ranges.controls; track range; let i = $index) {
+      <z-accordion-item [formGroupName]="i">
+        <z-accordion-header class="pr-0">
+          <z-accordion-title>
+            {{ 'Ngm.TimeFilter.RANGE' | translate: { Default: 'Range' } }} {{ i + 1 }}: {{ range.value.result?.[0] }} -
+            {{ range.value.result?.[1] }}
+          </z-accordion-title>
+          <z-accordion-description class="">
+            <button
+              z-button
+              zType="ghost"
+              zSize="icon"
+              zShape="circle"
+              ngmAppearance="danger"
+              (click)="ranges.controls.splice(i, 1)"
+              >
+              <z-icon zType="close"></z-icon>
+            </button>
+          </z-accordion-description>
+        </z-accordion-header>
+        <div class="flex flex-wrap gap-2">
+          <z-form-field appearance="fill">
+            <z-form-label>{{ 'Ngm.TimeFilter.RANGE_TYPE' | translate: { Default: 'Range Type' } }}</z-form-label>
+            <ngm-select
+              formControlName="type"
             [selectOptions]="[
               { value: 'Standard', label: ('Ngm.TimeFilter.RANGE_TYPE_STANDARD' | translate: { Default: 'Standard' }) },
               { value: 'Offset', label: ('Ngm.TimeFilter.RANGE_TYPE_OFFSET' | translate: { Default: 'Offset' }) }
             ]"
-          />
-        </z-form-field>
-
-        <z-form-field appearance="fill">
-          <z-form-label>{{ 'Ngm.TimeFilter.GRANULARITY' | translate: { Default: 'Granularity' } }}</z-form-label>
-          <ngm-select
-            formControlName="granularity"
+              />
+          </z-form-field>
+          <z-form-field appearance="fill">
+            <z-form-label>{{ 'Ngm.TimeFilter.GRANULARITY' | translate: { Default: 'Granularity' } }}</z-form-label>
+            <ngm-select
+              formControlName="granularity"
             [selectOptions]="[
               { value: 'Year', label: ('Ngm.TimeFilter.YEAR' | translate: { Default: 'Year' }) },
               { value: 'Quarter', label: ('Ngm.TimeFilter.QUARTER' | translate: { Default: 'Quarter' }) },
@@ -70,57 +71,54 @@
               { value: 'Week', label: ('Ngm.TimeFilter.WEEK' | translate: { Default: 'Week' }) },
               { value: 'Day', label: ('Ngm.TimeFilter.DAY' | translate: { Default: 'Day' }) }
             ]"
-          />
-        </z-form-field>
-
-        <z-form-field appearance="fill">
-          <z-form-label>{{ 'Ngm.TimeFilter.LOOK_BACK' | translate: { Default: 'Look Back' } }}</z-form-label>
-          <input z-input formControlName="lookBack" type="number" />
-        </z-form-field>
-
-        <z-form-field appearance="fill">
-          <z-form-label>{{ 'Ngm.TimeFilter.CURRENT_PERIOD' | translate: { Default: 'Current Period' } }}</z-form-label>
-          <input z-input formControlName="currentPeriod" />
-        </z-form-field>
-
-        <z-form-field appearance="fill">
-          <z-form-label>{{ 'Ngm.TimeFilter.LOOK_AHEAD' | translate: { Default: 'Look Ahead' } }}</z-form-label>
-          <input z-input formControlName="lookAhead" type="number" />
-        </z-form-field>
-        <z-form-field appearance="fill">
-          <z-form-label>{{ 'Ngm.TimeFilter.FORMATTER' | translate: { Default: 'Formatter' } }}</z-form-label>
-          <input z-input formControlName="formatter" type="string" />
-        </z-form-field>
-      </div>
-
-      <div *ngIf="range.value.type === 'Offset'" formGroupName="current" class="flex flex-wrap gap-2">
-        <z-form-field appearance="fill">
-          <z-form-label>{{
-            'Ngm.TimeFilter.OFFSET_DIRECTION' | translate: { Default: 'Offset Direction' }
-          }}</z-form-label>
-          <ngm-select
-            formControlName="direction"
+              />
+          </z-form-field>
+          <z-form-field appearance="fill">
+            <z-form-label>{{ 'Ngm.TimeFilter.LOOK_BACK' | translate: { Default: 'Look Back' } }}</z-form-label>
+            <input z-input formControlName="lookBack" type="number" />
+          </z-form-field>
+          <z-form-field appearance="fill">
+            <z-form-label>{{ 'Ngm.TimeFilter.CURRENT_PERIOD' | translate: { Default: 'Current Period' } }}</z-form-label>
+            <input z-input formControlName="currentPeriod" />
+          </z-form-field>
+          <z-form-field appearance="fill">
+            <z-form-label>{{ 'Ngm.TimeFilter.LOOK_AHEAD' | translate: { Default: 'Look Ahead' } }}</z-form-label>
+            <input z-input formControlName="lookAhead" type="number" />
+          </z-form-field>
+          <z-form-field appearance="fill">
+            <z-form-label>{{ 'Ngm.TimeFilter.FORMATTER' | translate: { Default: 'Formatter' } }}</z-form-label>
+            <input z-input formControlName="formatter" type="string" />
+          </z-form-field>
+        </div>
+        @if (range.value.type === 'Offset') {
+          <div formGroupName="current" class="flex flex-wrap gap-2">
+            <z-form-field appearance="fill">
+              <z-form-label>{{
+                'Ngm.TimeFilter.OFFSET_DIRECTION' | translate: { Default: 'Offset Direction' }
+              }}</z-form-label>
+              <ngm-select
+                formControlName="direction"
             [selectOptions]="[
               { value: 'LookBack', label: ('Ngm.TimeFilter.LOOK_BACK' | translate: { Default: 'Look Back' }) },
               { value: 'LookAhead', label: ('Ngm.TimeFilter.LOOK_AHEAD' | translate: { Default: 'Look Ahead' }) }
             ]"
-          />
-        </z-form-field>
-
-        <z-form-field appearance="fill">
-          <z-form-label>{{ 'Ngm.TimeFilter.GRANULARITY' | translate: { Default: 'Granularity' } }}</z-form-label>
-          <ngm-select
-            formControlName="granularity"
-            [selectOptions]="[{ value: range.value.granularity, label: range.value.granularity }]"
-          />
-        </z-form-field>
-
-        <z-form-field appearance="fill">
-          <z-form-label>{{ 'Ngm.TimeFilter.OFFSET_AMOUNT' | translate: { Default: 'Offset Amount' } }}</z-form-label>
-          <input z-input formControlName="amount" type="number" />
-        </z-form-field>
-      </div>
-    </z-accordion-item>
+                />
+            </z-form-field>
+            <z-form-field appearance="fill">
+              <z-form-label>{{ 'Ngm.TimeFilter.GRANULARITY' | translate: { Default: 'Granularity' } }}</z-form-label>
+              <ngm-select
+                formControlName="granularity"
+                [selectOptions]="[{ value: range.value.granularity, label: range.value.granularity }]"
+                />
+            </z-form-field>
+            <z-form-field appearance="fill">
+              <z-form-label>{{ 'Ngm.TimeFilter.OFFSET_AMOUNT' | translate: { Default: 'Offset Amount' } }}</z-form-label>
+              <input z-input formControlName="amount" type="number" />
+            </z-form-field>
+          </div>
+        }
+      </z-accordion-item>
+    }
   </z-accordion>
 
   <button
@@ -130,29 +128,31 @@
     color="primary"
     ngmAppearance="dashed"
     (click)="addRange($event)"
-  >
+    >
     <z-icon zType="add"></z-icon>{{ 'Ngm.TimeFilter.ADD_TIME_RANGE' | translate: { Default: 'Add Time Range' } }}
   </button>
 
   <div class="flex-1"></div>
 
-  <div *ngIf="forControl" class="flex flex-col">
-    <z-divider></z-divider>
-    <div>{{ 'Ngm.TimeFilter.SETTINGS_FOR_USERS' | translate: { Default: 'Settings for Users' } }}</div>
-    <z-checkbox formControlName="allowModifySelections">
-      {{ 'Ngm.TimeFilter.ALLOW_MODIFY_SELECTIONS' | translate: { Default: 'Allow viewers to modify selections' } }}
-    </z-checkbox>
-    <z-form-field appearance="fill">
-      <z-form-label>{{ 'Ngm.TimeFilter.SELECTION_TYPE' | translate: { Default: 'Selection Type' } }}</z-form-label>
-      <ngm-select
-        formControlName="selectionType"
+  @if (forControl) {
+    <div class="flex flex-col">
+      <z-divider></z-divider>
+      <div>{{ 'Ngm.TimeFilter.SETTINGS_FOR_USERS' | translate: { Default: 'Settings for Users' } }}</div>
+      <z-checkbox formControlName="allowModifySelections">
+        {{ 'Ngm.TimeFilter.ALLOW_MODIFY_SELECTIONS' | translate: { Default: 'Allow viewers to modify selections' } }}
+      </z-checkbox>
+      <z-form-field appearance="fill">
+        <z-form-label>{{ 'Ngm.TimeFilter.SELECTION_TYPE' | translate: { Default: 'Selection Type' } }}</z-form-label>
+        <ngm-select
+          formControlName="selectionType"
         [selectOptions]="[
           { value: 'Multiple', label: ('Ngm.TimeFilter.SELECTION_TYPE_MULTIPLE' | translate: { Default: 'Multiple' }) },
           { value: 'Single', label: ('Ngm.TimeFilter.SELECTION_TYPE_SINGLE' | translate: { Default: 'Single' }) }
         ]"
-      />
-    </z-form-field>
-  </div>
+          />
+      </z-form-field>
+    </div>
+  }
 </div>
 
 <div xpDialogActions align="end">

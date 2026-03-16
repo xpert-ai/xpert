@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { LongTermMemoryTypeEnum, TLongTermMemory, TLongTermMemoryConfig } from '@metad/contracts'
@@ -16,18 +16,16 @@ import { ZardCheckboxComponent, ZardSliderComponent, ZardTooltipImports } from '
   selector: 'xpert-studio-features-memory',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     TranslateModule,
     ZardSliderComponent,
     ...ZardTooltipImports,
     ZardCheckboxComponent,
-
     NgmTooltipDirective,
     CopilotPromptEditorComponent,
     InDevelopmentComponent
-  ],
+],
   templateUrl: './memory.component.html',
   styleUrl: './memory.component.scss',
   animations: [...IfAnimations, ...OverlayAnimations]

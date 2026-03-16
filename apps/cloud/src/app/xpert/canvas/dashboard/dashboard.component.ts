@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -15,7 +15,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     RouterModule,
     CdkMenuModule,
@@ -28,7 +27,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ModelVirtualCubeComponent,
     XpListIndicatorsComponent,
     XpIndicatorFormComponent
-  ],
+],
   selector: 'chat-canvas-dashboard',
   templateUrl: './dashboard.component.html',
   styleUrl: 'dashboard.component.scss',

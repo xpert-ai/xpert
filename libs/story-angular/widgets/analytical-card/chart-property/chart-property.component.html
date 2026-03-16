@@ -12,7 +12,7 @@
   [capacities]="capacities()"
   [syntax]="syntax()"
   (calculationChange)="onCalculationChange($event)"
->
+  >
   <div ngmSuffix>
     <ng-content select="[ngmSuffix]"></ng-content>
   </div>
@@ -26,9 +26,11 @@
         </label>
 
         <z-toggle-group [(ngModel)]="role" ngmAppearance="hero" color="accent" class="self-start max-w-full flex-wrap">
-          <z-toggle-group-item *ngFor="let role of DIMENSION_ROLES" [value]="role.value">
-            {{ 'Story.ChartProperty.' + role.label | translate: { Default: role.label } }}
-          </z-toggle-group-item>
+          @for (role of DIMENSION_ROLES; track role) {
+            <z-toggle-group-item [value]="role.value">
+              {{ 'Story.ChartProperty.' + role.label | translate: { Default: role.label } }}
+            </z-toggle-group-item>
+          }
         </z-toggle-group>
       </div>
 
@@ -49,9 +51,11 @@
         </label>
 
         <z-toggle-group [(ngModel)]="role" ngmAppearance="hero" color="accent" class="self-start max-w-full flex-wrap">
-          <z-toggle-group-item *ngFor="let role of MEASURE_ROLES" [value]="role.value">
-            {{ 'Story.ChartProperty.' + role.label | translate: { Default: role.label } }}
-          </z-toggle-group-item>
+          @for (role of MEASURE_ROLES; track role) {
+            <z-toggle-group-item [value]="role.value">
+              {{ 'Story.ChartProperty.' + role.label | translate: { Default: role.label } }}
+            </z-toggle-group-item>
+          }
         </z-toggle-group>
       </div>
     }
@@ -67,9 +71,11 @@
           <z-toggle-group-item [value]="null">
             {{ 'Story.ChartProperty.None' | translate: { Default: 'None' } }}
           </z-toggle-group-item>
-          <z-toggle-group-item *ngFor="let shape of SHAPE_TYPES" [value]="shape.value">
-            {{ 'Story.ChartProperty.' + shape.label | translate: { Default: shape.label } }}
-          </z-toggle-group-item>
+          @for (shape of SHAPE_TYPES; track shape) {
+            <z-toggle-group-item [value]="shape.value">
+              {{ 'Story.ChartProperty.' + shape.label | translate: { Default: shape.label } }}
+            </z-toggle-group-item>
+          }
         </z-toggle-group>
       </div>
     }
@@ -84,9 +90,11 @@
           <z-toggle-group-item [value]="null">
             {{ 'Story.ChartProperty.None' | translate: { Default: 'None' } }}
           </z-toggle-group-item>
-          <z-toggle-group-item *ngFor="let item of PATTERNS" [value]="item.value">
-            {{ item.label }}
-          </z-toggle-group-item>
+          @for (item of PATTERNS; track item) {
+            <z-toggle-group-item [value]="item.value">
+              {{ item.label }}
+            </z-toggle-group-item>
+          }
         </z-toggle-group>
       </div>
     }
@@ -104,7 +112,7 @@
           displayDensity="comfortable"
           class="ngm-chart-property__palette-trigger w-full"
           [matMenuTriggerFor]="paletteMenu"
-        >
+          >
           <div class="w-full flex items-center">
             <z-icon zType="palette"></z-icon>
             <span>{{ 'Story.ChartProperty.Palette' | translate: { Default: 'Palette' } }}</span>
@@ -122,7 +130,7 @@
             [(ngModel)]="colors"
             (ngModelChange)="onColorsChange($event)"
             (click)="$event.stopPropagation()"
-          >
+            >
           </ngm-colors>
         </div>
       </div>
@@ -173,17 +181,18 @@
         </z-radio>
       </button>
 
-      <ng-container *ngFor="let group of interpolateGroups">
+      @for (group of interpolateGroups; track group) {
         <button mat-menu-item disableRipple disabled>
           {{ group.groupName }}
         </button>
-
-        <button mat-menu-item disableRipple *ngFor="let interpolate of group.values" (click)="$event.stopPropagation()">
-          <z-radio [value]="interpolate.name" class="ngm-radio-button__property flex-1 w-full">
-            <ngm-chromatic-preview class="flex-1 w-full" [interpolate]="interpolate"></ngm-chromatic-preview>
-          </z-radio>
-        </button>
-      </ng-container>
+        @for (interpolate of group.values; track interpolate) {
+          <button mat-menu-item disableRipple (click)="$event.stopPropagation()">
+            <z-radio [value]="interpolate.name" class="ngm-radio-button__property flex-1 w-full">
+              <ngm-chromatic-preview class="flex-1 w-full" [interpolate]="interpolate"></ngm-chromatic-preview>
+            </z-radio>
+          </button>
+        }
+      }
     </ng-template>
   </mat-menu>
 </z-radio-group>

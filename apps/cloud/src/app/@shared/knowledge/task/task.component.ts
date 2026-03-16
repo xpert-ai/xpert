@@ -1,5 +1,5 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { DateRelativePipe, IKnowledgebase, KnowledgeDocumentService } from '@cloud/app/@core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -10,7 +10,7 @@ import { ChatMessageExecutionPanelComponent } from '../../chat'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, MarkdownModule, NgmSpinComponent, DateRelativePipe, ChatMessageExecutionPanelComponent],
+  imports: [TranslateModule, MarkdownModule, NgmSpinComponent, DateRelativePipe, ChatMessageExecutionPanelComponent],
   selector: 'xp-knowledge-task',
   templateUrl: 'task.component.html',
   styleUrls: ['task.component.scss']

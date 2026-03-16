@@ -1,5 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectorRef, Component, effect, inject, signal } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -16,7 +16,6 @@ import { StoryCardComponent } from '../../../@shared/story'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
@@ -24,14 +23,12 @@ import { StoryCardComponent } from '../../../@shared/story'
     IntersectionObserverModule,
     ZardToggleGroupComponent,
     ZardToggleGroupItemComponent,
-
     TranslateModule,
     NgmCommonModule,
     AppearanceDirective,
     DensityDirective,
-
     StoryCardComponent
-  ],
+],
   selector: 'pac-home-trending',
   templateUrl: 'trending.component.html',
   styleUrls: ['trending.component.scss'],

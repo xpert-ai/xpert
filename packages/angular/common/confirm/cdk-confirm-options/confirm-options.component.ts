@@ -1,7 +1,7 @@
 import { A11yModule } from '@angular/cdk/a11y'
 import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, HostBinding, inject, signal } from '@angular/core'
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { assign } from '@metad/ocap-core'
@@ -10,7 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
 
 @Component({
   standalone: true,
-  imports: [A11yModule, CommonModule, FormsModule, ReactiveFormsModule, FormlyModule, TranslateModule, DragDropModule],
+  imports: [A11yModule, FormsModule, ReactiveFormsModule, FormlyModule, TranslateModule, DragDropModule],
   selector: 'cdk-confirm-options',
   templateUrl: './confirm-options.component.html',
   styleUrls: ['./confirm-options.component.scss'],

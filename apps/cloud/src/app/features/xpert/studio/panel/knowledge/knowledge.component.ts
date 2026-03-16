@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, inject, input, signal } from '@angular/core'
 import { CloseSvgComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -39,7 +39,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
@@ -52,7 +51,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     XpertKnowledgeTestComponent,
     KnowledgeRecallParamsComponent,
     XpertKnowledgeCaseFormComponent
-  ],
+],
   host: {
     tabindex: '-1'
   }

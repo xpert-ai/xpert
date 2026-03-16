@@ -4,14 +4,18 @@
 
     <span class="flex-1"></span>
 
-    <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="value" displayDensity="compact" [disabled]="!value" (click)="swapColors($event)">
-      <z-icon class="m-0" style="margin: 0;" zType="swap_horiz"></z-icon>
-    </button>
+    @if (value) {
+      <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" [disabled]="!value" (click)="swapColors($event)">
+        <z-icon class="m-0" style="margin: 0;" zType="swap_horiz"></z-icon>
+      </button>
+    }
 
     <div class="flex justify-center items-center overflow-hidden" [@listEnterAnimation]="value">
-      <div *ngFor="let color of value" class="w-4 h-4"
+      @for (color of value; track color) {
+        <div class="w-4 h-4"
           [style.background-color]="color"
-      ></div>
+        ></div>
+      }
     </div>
   </div>
 
@@ -27,11 +31,13 @@
       [ngModel]="value"
       (ngModelChange)="onChange($event)"
       (blur)="onBlur($event, acTrigger);"
-    />
+      />
 
-    <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="value" class="ngm-colors__clear right-0" displayDensity="compact" (click)="clear()">
-      <z-icon zType="close"></z-icon>
-    </button>
+    @if (value) {
+      <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-colors__clear right-0" displayDensity="compact" (click)="clear()">
+        <z-icon zType="close"></z-icon>
+      </button>
+    }
   </div>
 
 </div>
@@ -41,17 +47,19 @@
   #auto="matAutocomplete"
   class="ngm-select-panel ngm-density__compact"
   (optionSelected)="onOptionSelected($event)"
->
+  >
   <mat-option [value]="null">--</mat-option>
   @for (group of options; track group.label) {
     <mat-option disabled>{{ group.label }}</mat-option>
     @for (color of group.colors; track color.colors.join(',')) {
       <mat-option [value]="color.colors">
-      <div class="flex justify-start items-center">
-        <div *ngFor="let color of color.colors" class="w-4 h-4"
-            [style.background-color]="color"
-        ></div>
-      </div>
+        <div class="flex justify-start items-center">
+          @for (color of color.colors; track color) {
+            <div class="w-4 h-4"
+              [style.background-color]="color"
+            ></div>
+          }
+        </div>
       </mat-option>
     }
   }

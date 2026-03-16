@@ -24,3 +24,22 @@ export interface FlatTreeNode<T = any> {
   expandable: boolean;
   index: number;
 }
+
+export interface ZardTreeNodeOutletContext<F = unknown> {
+  $implicit: F;
+  index: number;
+  level: number;
+  expandable: boolean;
+}
+
+export type ZardTreeNodePredicate<F = unknown> = (index: number, nodeData: F) => boolean;
+
+export interface ZardTreeExpansionChange<F = unknown> {
+  added?: F[];
+  removed?: F[];
+}
+
+export interface ZardTreeCompatibleDataSource<F = unknown> {
+  connect(viewer?: { viewChange?: import('rxjs').Observable<unknown> }): import('rxjs').Observable<F[]>;
+  disconnect?(viewer?: { viewChange?: import('rxjs').Observable<unknown> }): void;
+}

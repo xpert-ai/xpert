@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -16,15 +16,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   templateUrl: 'global.component.html',
   styleUrls: ['global.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
     NgxFloatUiModule,
     ...ZardTooltipImports,
-
     NgmCopilotChatComponent
-  ],
+],
   host: {
     class: 'ngm-copilot-global'
   }

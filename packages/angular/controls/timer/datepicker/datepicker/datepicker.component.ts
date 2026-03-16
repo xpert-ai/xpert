@@ -1,24 +1,17 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, forwardRef, input } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatNativeDateModule } from '@angular/material/core'
-import { MatDatepickerInputEvent, MatDatepickerModule } from '@angular/material/datepicker'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
+import { ZardDatePickerComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
-    MatDatepickerModule,
-    ZardInputDirective,
-    MatNativeDateModule,
-    OcapCoreModule,
-  ],
+    ZardDatePickerComponent
+],
   selector: 'ngm-datepicker',
   templateUrl: './datepicker.component.html',
-  styleUrls: ['./datepicker.component.scss'],
   providers: [
     {
       provide: NG_VALUE_ACCESSOR,
@@ -30,8 +23,8 @@ import { OcapCoreModule } from '@metad/ocap-angular/core'
 export class NgmDatepickerComponent implements ControlValueAccessor {
 
   readonly label = input<string>('')
-  
-  date = new FormControl(new Date())
+ 
+  date = new FormControl<Date | null>(null)
 
   /**
    * Invoked when the model has been changed
@@ -42,8 +35,15 @@ export class NgmDatepickerComponent implements ControlValueAccessor {
    */
   onTouched: () => void = () => {}
 
+  constructor() {
+    this.date.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
+      this.onChange(value)
+      this.onTouched()
+    })
+  }
+
   writeValue(obj: any): void {
-    this.date.setValue(obj)
+    this.date.setValue(obj, { emitEvent: false })
   }
   registerOnChange(fn: any): void {
     this.onChange = fn
@@ -53,9 +53,5 @@ export class NgmDatepickerComponent implements ControlValueAccessor {
   }
   setDisabledState?(isDisabled: boolean): void {
     isDisabled ? this.date.disable() : this.date.enable()
-  }
-
-  onDateChange(event: MatDatepickerInputEvent<any>) {
-    this.onChange(event.value)
   }
 }

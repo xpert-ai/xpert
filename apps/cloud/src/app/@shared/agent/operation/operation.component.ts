@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, computed, effect, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { SlashSvgComponent } from '@metad/ocap-angular/common'
@@ -14,14 +14,13 @@ import { XpertAgentInterruptComponent } from '../interrupt/interrupt.component'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     SlashSvgComponent,
     NgmI18nPipe,
     XpertAgentIdentityComponent,
     XpertAgentInterruptComponent
-  ],
+],
   selector: 'xp-xpert-agent-operation',
   templateUrl: 'operation.component.html',
   styleUrls: ['operation.component.scss']

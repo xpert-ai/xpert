@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 
@@ -20,7 +20,6 @@ import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xper
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     ReactiveFormsModule,
     ZardIconComponent,
     ZardButtonComponent,
@@ -31,7 +30,7 @@ import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xper
     DensityDirective,
     AppearanceDirective,
     NgmTableComponent
-  ],
+],
   selector: 'pac-project-members',
   templateUrl: 'members.component.html',
   styles: [

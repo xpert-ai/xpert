@@ -1,5 +1,5 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { Component, input, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -10,14 +10,13 @@ import { ZardIconComponent } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     CdkListboxModule,
     TranslateModule,
     ZardIconComponent,
     EmojiAvatarComponent
-  ],
+],
   selector: 'pac-integration-list',
   templateUrl: 'list.component.html',
   styleUrls: ['list.component.scss']

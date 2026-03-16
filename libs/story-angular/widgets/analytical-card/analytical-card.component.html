@@ -9,7 +9,7 @@
   [options]="options$ | async"
   (slicersChanging)="onLinkAnalysis($event)"
   (explain)="setExplains($event)"
->
+  >
   <div ngmAction class="flex items-center">
     @if (pin) {
       <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="unlinkAnalysis()">
@@ -29,25 +29,26 @@
       [class.active]="mt.menuOpen"
       [zTooltip]="'Story.Common.Slicers' | translate: { Default: 'Slicers' }"
       zPosition="top"
-    >
+      >
       <z-icon zType="filter_alt"></z-icon>
     </button>
   </div>
 </ngm-analytical-card>
 
-<div
-  *ngIf="editable && (placeholder$ | async)"
-  class="ngm-story-widget__placeholder absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center"
->
-  @if (chartAnnotation) {
-    <pac-analytical-chart-placeholder class="w-full h-full" [chartAnnotation]="chartAnnotation" />
-  } @else {
-    <pac-placeholder-add />
-    <span class="ngm-story-widget__placeholder-title">{{
-      'Story.Widgets.AnalyticalCard.Title' | translate: { Default: 'Analytical Card' }
-    }}</span>
-  }
-</div>
+@if (editable && (placeholder$ | async)) {
+  <div
+    class="ngm-story-widget__placeholder absolute top-0 left-0 w-full h-full flex flex-col justify-center items-center"
+    >
+    @if (chartAnnotation) {
+      <pac-analytical-chart-placeholder class="w-full h-full" [chartAnnotation]="chartAnnotation" />
+    } @else {
+      <pac-placeholder-add />
+      <span class="ngm-story-widget__placeholder-title">{{
+        'Story.Widgets.AnalyticalCard.Title' | translate: { Default: 'Analytical Card' }
+      }}</span>
+    }
+  </div>
+}
 
 <mat-menu #filtersMenu="matMenu" class="pac-widget__slicer-menu">
   <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: { Default: 'Slicers' } }}</div>
@@ -62,5 +63,5 @@
     [capacities]="[SlicersCapacity.CombinationSlicer, SlicersCapacity.AdvancedSlicer, SlicersCapacity.Variable]"
     (valueChange)="setSelectOptions($event)"
     (click)="$event.stopPropagation()"
-  />
+    />
 </mat-menu>

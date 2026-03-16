@@ -26,7 +26,6 @@ import { isNil, negate } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { firstValueFrom, of } from 'rxjs'
 import { debounceTime, distinctUntilChanged, filter, map, pairwise, startWith, switchMap } from 'rxjs/operators'
-import { MatSidenavModule } from '@angular/material/sidenav'
 import { AggregationRole, isEntitySet, markdownModelCube, PropertyAttributes } from '@metad/ocap-core'
 import { NgmOcapCoreService } from '@metad/ocap-angular/core'
 import { AppService } from '../../../../app.service'
@@ -37,7 +36,7 @@ import { ModelEntityService } from './entity.service'
 import { ModelCubeFactComponent } from './fact/fact.component'
 import { SemanticModelService } from '../model.service'
 import { ModelComponent } from '../model.component'
-import { ZardIconComponent, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardDrawerImports, ZardIconComponent, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-model-entity',
@@ -52,9 +51,9 @@ import { ZardIconComponent, ZardTabsImports, ZardTooltipImports } from '@xpert-a
     TranslateModule,
     CdkMenuModule,
     CopyComponent,
+    ...ZardDrawerImports,
     ...ZardTooltipImports,
     ZardIconComponent,
-    MatSidenavModule,
     ...ZardTabsImports,
     NgmCommonModule,
     NxDesignerModule,

@@ -3,7 +3,7 @@
   --ngm-cdk-cell-selected-border-color: theme('colors.yellow.500');
   --ngm-cdk-cell-selected-bg-color: theme('colors.gray.300');
 
-  .mat-mdc-row.cdk-row {
+  tr[z-table-row] {
     &:hover {
       @apply bg-gray-300/20 dark:bg-gray-500/20;
     }
@@ -11,7 +11,7 @@
     &.selected {
       @apply bg-gray-300/50 dark:bg-gray-700/50;
 
-      .cdk-cell.ngm-analytical-grid__dimension.selected-member {
+      [z-table-cell].ngm-analytical-grid__dimension.selected-member {
         @apply relative;
         &::before {
           content: '';
@@ -21,7 +21,7 @@
     }
   }
 
-  .cdk-header-cell.selected-member {
+  [z-table-head].selected-member {
     @apply relative;
 
     &::before {
@@ -29,13 +29,15 @@
       @apply absolute left-0 bottom-0 h-0.5 w-full block bg-black dark:bg-white;
     }
   }
-  .cdk-cell.selected-cell, .cdk-header-cell.selected {
+  [z-table-cell].selected-cell,
+  [z-table-head].selected {
     background-color: var(--ngm-cdk-cell-selected-bg-color);
   }
   
   &.cdk-focused {
-    .cdk-row.selected {
-      .cdk-cell.ngm-analytical-grid__dimension.selected, .cdk-cell.selected-cell {
+    tr[z-table-row].selected {
+      [z-table-cell].ngm-analytical-grid__dimension.selected,
+      [z-table-cell].selected-cell {
         border-right: 1px solid var(--ngm-cdk-cell-selected-border-color);
         border-bottom: 1px solid var(--ngm-cdk-cell-selected-border-color);
         box-shadow: inset 1px 1px var(--ngm-cdk-cell-selected-border-color);
@@ -44,12 +46,12 @@
   }
 
   &.striped {
-    .mat-mdc-row:nth-child(even):not(.selected):not(:hover) {
+    tbody[z-table-body] tr[z-table-row]:nth-child(even):not(.selected):not(:hover) {
       @apply bg-gray-300/10 dark:bg-gray-500/10;
     }
   }
 
-  th.mat-mdc-table-sticky {
+  thead[z-table-header] th[z-table-head] {
     @apply bg-neutral-50;
   }
 }
@@ -59,7 +61,7 @@
     --ngm-cdk-cell-selected-border-color: theme('colors.yellow.700');
     --ngm-cdk-cell-selected-bg-color: theme('colors.gray.700');
 
-    th.mat-mdc-table-sticky {
+    thead[z-table-header] th[z-table-head] {
       @apply bg-white/5;
     }
   }

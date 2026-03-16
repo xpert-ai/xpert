@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -28,7 +28,6 @@ import { XpertAgentOperationComponent } from '@cloud/app/@shared/agent'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
@@ -39,7 +38,7 @@ import { XpertAgentOperationComponent } from '@cloud/app/@shared/agent'
     ChatAiMessageComponent,
     ChatHumanMessageComponent,
     XpertParametersCardComponent
-  ],
+],
   selector: 'chat-conversation',
   templateUrl: './conversation.component.html',
   styleUrl: 'conversation.component.scss',

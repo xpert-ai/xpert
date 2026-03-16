@@ -3,7 +3,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ConnectedPosition, Overlay, OverlayPositionBuilder } from '@angular/cdk/overlay'
 import { TemplatePortal } from '@angular/cdk/portal'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -36,7 +36,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
     ReactiveFormsModule,
@@ -49,7 +48,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     EmojiAvatarComponent,
     NgmSearchComponent,
     XpertCardComponent
-  ],
+],
   selector: 'pac-chat-project-xperts',
   templateUrl: './xperts.component.html',
   styleUrl: 'xperts.component.scss',

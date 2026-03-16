@@ -1,18 +1,18 @@
 <div
   class="pac-story-bar py-2 shrink-0 flex-grow-0 flex flex-col justify-start items-center gap-2 z-20 overflow-hidden hover:overflow-auto transition-all duration-200"
   [class.opened]="sideMenuOpened()"
->
+  >
   <!-- <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" zTooltip="{{ 'PAC.Story.GlobalFilterBar' | translate: {Default: 'Global Filter Bar'} }}" zPosition="right" (click)="toggleGlobalFilterBar()">
-        <z-icon zType="filter_alt"></z-icon>
-    </button> -->
-  @if (story?.access === AccessEnum.Write) {
-    @switch (story.status) {
-      @case (StoryStatusEnum.RELEASED) {
-        <span
-          class="font-notoColorEmoji"
-          zTooltip="{{ 'PAC.Story.Released' | translate: { Default: 'Released' } }}"
-          zPosition="right"
-          >🚀</span
+  <z-icon zType="filter_alt"></z-icon>
+</button> -->
+@if (story?.access === AccessEnum.Write) {
+  @switch (story.status) {
+    @case (StoryStatusEnum.RELEASED) {
+      <span
+        class="font-notoColorEmoji"
+        zTooltip="{{ 'PAC.Story.Released' | translate: { Default: 'Released' } }}"
+        zPosition="right"
+        >🚀</span
         >
       }
       @case (StoryStatusEnum.DRAFT) {
@@ -21,24 +21,24 @@
           zTooltip="{{ 'PAC.Story.Draft' | translate: { Default: 'Draft' } }}"
           zPosition="right"
           >📝</span
-        >
+          >
+        }
       }
-    }
 
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      displayDensity="cosy"
-      zTooltip="{{ 'PAC.Story.EditStory' | translate: { Default: 'Edit Story' } }}"
-      zPosition="right"
-      (click)="edit()"
-    >
-      <z-icon zType="edit"></z-icon>
-    </button>
-    <!-- <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" zTooltip="{{ 'PAC.Story.DuplicateStory' | translate: {Default: 'Duplicate Story'} }}" zPosition="right" (click)="copy()">
-        <z-icon zType="copy"></z-icon>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="cosy"
+        zTooltip="{{ 'PAC.Story.EditStory' | translate: { Default: 'Edit Story' } }}"
+        zPosition="right"
+        (click)="edit()"
+        >
+        <z-icon zType="edit"></z-icon>
+      </button>
+      <!-- <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" zTooltip="{{ 'PAC.Story.DuplicateStory' | translate: {Default: 'Duplicate Story'} }}" zPosition="right" (click)="copy()">
+      <z-icon zType="copy"></z-icon>
     </button> -->
     <button
       z-button
@@ -49,7 +49,7 @@
       zTooltip="{{ 'PAC.Story.DownloadStory' | translate: { Default: 'Download Story' } }}"
       zPosition="right"
       (click)="onStoryDownload()"
-    >
+      >
       <z-icon zType="file_download"></z-icon>
     </button>
   }
@@ -63,7 +63,7 @@
     zTooltip="{{ 'PAC.Story.AutoRefresh' | translate: { Default: 'Auto Refresh' } }}"
     zPosition="right"
     [cdkMenuTriggerFor]="timerMenu"
-  >
+    >
     <z-icon zType="update"></z-icon>
   </button>
 
@@ -76,19 +76,21 @@
     zShape="circle"
     displayDensity="cosy"
     (click)="toggleBookmark(story.bookmark)"
-  >
-    <z-icon
-      *ngIf="story?.bookmark"
-      zTooltip="{{ 'PAC.Story.RemoveBookmark' | translate: { Default: 'Remove Bookmark' } }}"
-      zPosition="right"
-      zType="bookmark"
-    ></z-icon>
-    <z-icon
-      *ngIf="!story?.bookmark"
-      zTooltip="{{ 'PAC.Story.Bookmark' | translate: { Default: 'Bookmark' } }}"
-      zPosition="right"
-      zType="bookmark_add"
-    ></z-icon>
+    >
+    @if (story?.bookmark) {
+      <z-icon
+        zTooltip="{{ 'PAC.Story.RemoveBookmark' | translate: { Default: 'Remove Bookmark' } }}"
+        zPosition="right"
+        zType="bookmark"
+      ></z-icon>
+    }
+    @if (!story?.bookmark) {
+      <z-icon
+        zTooltip="{{ 'PAC.Story.Bookmark' | translate: { Default: 'Bookmark' } }}"
+        zPosition="right"
+        zType="bookmark_add"
+      ></z-icon>
+    }
   </button>
   <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="openShares(story)">
     <z-icon zType="share"></z-icon>
@@ -120,7 +122,7 @@
     [zTooltip]="'Story.Toolbar.PanMode' | translate: { Default: 'Pan mode (Space)' }"
     zPosition="right"
     (click)="togglePanTool()"
-  >
+    >
     <z-icon zType="pan_tool"></z-icon>
   </button>
 
@@ -133,7 +135,7 @@
     [zTooltip]="'Story.Toolbar.ZoomIn' | translate: { Default: 'Zoom In (+)' }"
     zPosition="right"
     (click)="zoomIn()"
-  >
+    >
     <z-icon zType="zoom_in"></z-icon>
   </button>
   <button
@@ -146,7 +148,7 @@
     [cdkMenuPosition]="[{ originX: 'end', originY: 'center', overlayX: 'start', overlayY: 'center' }]"
     [zTooltip]="scale() ?? ('Story.Toolbar.Scale' | translate: { Default: 'Scale' })"
     zPosition="right"
-  >
+    >
     <span class="text-xs"> {{ scale() }}% </span>
   </button>
   <button
@@ -158,7 +160,7 @@
     [zTooltip]="'Story.Toolbar.ZoomOut' | translate: { Default: 'Zoom Out (-)' }"
     zPosition="right"
     (click)="zoomOut()"
-  >
+    >
     <z-icon zType="zoom_out"></z-icon>
   </button>
 </div>
@@ -173,14 +175,14 @@
     [widgetKey]="widgetKey()"
     [watermark]="watermark$ | async"
     [dark]="isDark$ | async"
-  />
+    />
 
   <ngm-drawer-trigger
     class="absolute -left-2 top-1/3 -translate-y-1/2 z-40"
     [(opened)]="sideMenuOpened"
     [zTooltip]="'PAC.Story.StoryToolbar' | translate: { Default: 'Story Toolbar' }"
     zPosition="right"
-  />
+    />
 </div>
 
 @if (error) {
@@ -198,80 +200,92 @@
     cdkDropListGroup
     [data]="explore()"
     (closed)="closeExplorer($event)"
-  />
+    />
 }
 
 <ng-template #timerMenu>
   <div cdkMenu class="cdk-menu__medium" displayDensity="cosy">
     <button cdkMenuItem [cdkMenuTriggerFor]="dataMenu">
       <z-icon class="shrink-0 mr-1" zType="autorenew"></z-icon
-      >{{ 'Story.Toolbar.Data' | translate: { Default: 'Data' } }}
-    </button>
-    @if (multiplePages) {
-      <button cdkMenuItem [cdkMenuTriggerFor]="pagesMenu">
-        <z-icon class="shrink-0 mr-1" zType="auto_stories"></z-icon
-        >{{ 'Story.Toolbar.Pages' | translate: { Default: 'Pages' } }}
+        >{{ 'Story.Toolbar.Data' | translate: { Default: 'Data' } }}
       </button>
-    }
-  </div>
-</ng-template>
+      @if (multiplePages) {
+        <button cdkMenuItem [cdkMenuTriggerFor]="pagesMenu">
+          <z-icon class="shrink-0 mr-1" zType="auto_stories"></z-icon
+            >{{ 'Story.Toolbar.Pages' | translate: { Default: 'Pages' } }}
+          </button>
+        }
+      </div>
+    </ng-template>
 
-<ng-template #dataMenu>
-  <div cdkMenu class="cdk-menu__medium" displayDensity="cosy">
-    <div class="text-sm uppercase px-4 py-2">
-      {{ 'PAC.KEY_WORDS.AutoRefresh' | translate: { Default: 'Auto Refresh' } }}
-    </div>
-    <button cdkMenuItem (click)="timerUpdate(null)">
-      <z-icon *ngIf="!dataTimer" class="mr-1" zSize="sm" zType="done"></z-icon>
-      {{ 'PAC.KEY_WORDS.Off' | translate: { Default: 'Off' } }}
-    </button>
-    <button cdkMenuItem *ngFor="let t of Schedulers" (click)="timerUpdate(t)">
-      <z-icon *ngIf="dataTimer === t" class="mr-1" zSize="sm" zType="done"></z-icon>{{ t }}
-      {{ 'PAC.KEY_WORDS.Minute' | translate: { Default: 'Minutes' } }}
-    </button>
-  </div>
-</ng-template>
+    <ng-template #dataMenu>
+      <div cdkMenu class="cdk-menu__medium" displayDensity="cosy">
+        <div class="text-sm uppercase px-4 py-2">
+          {{ 'PAC.KEY_WORDS.AutoRefresh' | translate: { Default: 'Auto Refresh' } }}
+        </div>
+        <button cdkMenuItem (click)="timerUpdate(null)">
+          @if (!dataTimer) {
+            <z-icon class="mr-1" zSize="sm" zType="done"></z-icon>
+          }
+          {{ 'PAC.KEY_WORDS.Off' | translate: { Default: 'Off' } }}
+        </button>
+        @for (t of Schedulers; track t) {
+          <button cdkMenuItem (click)="timerUpdate(t)">
+            @if (dataTimer === t) {
+              <z-icon class="mr-1" zSize="sm" zType="done"></z-icon>
+              }{{ t }}
+              {{ 'PAC.KEY_WORDS.Minute' | translate: { Default: 'Minutes' } }}
+            </button>
+          }
+        </div>
+      </ng-template>
 
-<ng-template #pagesMenu>
-  <div cdkMenu class="cdk-menu__medium" displayDensity="cosy">
-    <div class="text-sm uppercase px-4 py-2">
-      {{ 'Story.Toolbar.AutoPaging' | translate: { Default: 'Auto Paging' } }}
-    </div>
-    <button cdkMenuItem (click)="timerPageDown(null)">
-      <z-icon *ngIf="!pageTimer" class="mr-1" zSize="sm" zType="done"></z-icon>
-      {{ 'PAC.KEY_WORDS.Off' | translate: { Default: 'Off' } }}
-    </button>
-    <button cdkMenuItem *ngFor="let t of Schedulers" (click)="timerPageDown(t)">
-      <z-icon *ngIf="pageTimer === t" class="mr-1" zSize="sm" zType="done"></z-icon>{{ t }}
-      {{ 'PAC.KEY_WORDS.Minute' | translate: { Default: 'Minutes' } }}
-    </button>
-  </div>
-</ng-template>
+      <ng-template #pagesMenu>
+        <div cdkMenu class="cdk-menu__medium" displayDensity="cosy">
+          <div class="text-sm uppercase px-4 py-2">
+            {{ 'Story.Toolbar.AutoPaging' | translate: { Default: 'Auto Paging' } }}
+          </div>
+          <button cdkMenuItem (click)="timerPageDown(null)">
+            @if (!pageTimer) {
+              <z-icon class="mr-1" zSize="sm" zType="done"></z-icon>
+            }
+            {{ 'PAC.KEY_WORDS.Off' | translate: { Default: 'Off' } }}
+          </button>
+          @for (t of Schedulers; track t) {
+            <button cdkMenuItem (click)="timerPageDown(t)">
+              @if (pageTimer === t) {
+                <z-icon class="mr-1" zSize="sm" zType="done"></z-icon>
+                }{{ t }}
+                {{ 'PAC.KEY_WORDS.Minute' | translate: { Default: 'Minutes' } }}
+              </button>
+            }
+          </div>
+        </ng-template>
 
-<ng-template #scaleMenu>
-  <div cdkMenu class="cdk-menu__medium" displayDensity="cosy">
-    <button cdkMenuItem (click)="resetScalePan()">
-      <z-icon class="mr-1" zType="center_focus_strong"></z-icon>
-      <span class="flex-1">
-        {{ 'Story.Toolbar.Scale_Unset' | translate: { Default: 'Unset' } }}
-      </span>
+        <ng-template #scaleMenu>
+          <div cdkMenu class="cdk-menu__medium" displayDensity="cosy">
+            <button cdkMenuItem (click)="resetScalePan()">
+              <z-icon class="mr-1" zType="center_focus_strong"></z-icon>
+              <span class="flex-1">
+                {{ 'Story.Toolbar.Scale_Unset' | translate: { Default: 'Unset' } }}
+              </span>
 
-      <span class="text-sm font-bold ml-4"> Alt + Esc </span>
-    </button>
-    @for (item of StoryScales; track item.value) {
-      <button
-        cdkMenuItem
-        class="pac-story-bar__scale-item group"
-        [class.active]="scale() === item.value"
-        (click)="setScale(item.value)"
-      >
-        <span
-          class="pac-story-bar__scale-point inline-flex items-center justify-center w-2 h-2 ml-2 mr-4 text-xs font-semibold bg-gray-200 rounded-full group-hover:bg-yellow-500"
-        >
-        </span>
+              <span class="text-sm font-bold ml-4"> Alt + Esc </span>
+            </button>
+            @for (item of StoryScales; track item.value) {
+              <button
+                cdkMenuItem
+                class="pac-story-bar__scale-item group"
+                [class.active]="scale() === item.value"
+                (click)="setScale(item.value)"
+                >
+                <span
+                  class="pac-story-bar__scale-point inline-flex items-center justify-center w-2 h-2 ml-2 mr-4 text-xs font-semibold bg-gray-200 rounded-full group-hover:bg-yellow-500"
+                  >
+                </span>
 
-        <span>{{ item.name }}</span>
-      </button>
-    }
-  </div>
-</ng-template>
+                <span>{{ item.name }}</span>
+              </button>
+            }
+          </div>
+        </ng-template>

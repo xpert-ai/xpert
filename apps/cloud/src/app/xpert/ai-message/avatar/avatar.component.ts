@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, input, model } from '@angular/core'
 import { TMessageContentComplex } from '@cloud/app/@core/types'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
@@ -8,7 +8,7 @@ import { TCopilotChatMessage } from '../../types'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, ...ZardTooltipImports, EmojiAvatarComponent],
+  imports: [TranslateModule, ...ZardTooltipImports, EmojiAvatarComponent],
   selector: 'chat-message-avatar',
   templateUrl: './avatar.component.html',
   styleUrl: 'avatar.component.scss',

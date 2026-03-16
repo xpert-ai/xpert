@@ -2,7 +2,6 @@ import { BooleanInput, coerceBooleanProperty } from '@angular/cdk/coercion'
 import { SelectionModel } from '@angular/cdk/collections'
 import { COMMA, ENTER } from '@angular/cdk/keycodes'
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling'
-import { FlatTreeControl } from '@angular/cdk/tree'
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -36,10 +35,13 @@ import {
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
-  ZardCheckboxComponent
+  ZardCheckboxComponent,
+  ZardLoaderComponent,
+  ZardFlatTreeControl,
+  ZardTreeFlatDataSource,
+  ZardTreeFlattener,
+  ZardTreeImports
 } from '@xpert-ai/headless-ui'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatTreeModule } from '@angular/material/tree'
 import {
   DensityDirective,
   OcapCoreModule,
@@ -48,7 +50,6 @@ import {
   NgmFloatLabel
 } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
 import { DisplayDensity } from '@metad/ocap-angular/core'
 import { DisplayBehaviour, filterTreeNodes, findTreeNode, FlatTreeNode, TreeNodeInterface } from '@metad/ocap-core'
 import { isEqual } from 'lodash-es'
@@ -89,10 +90,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
     MatAutocompleteModule,
     ScrollingModule,
     ZardCheckboxComponent,
-    MatProgressSpinnerModule,
+    ZardLoaderComponent,
     ZardInputDirective,
     MatChipsModule,
-    MatTreeModule,
+    ...ZardTreeImports,
     TranslateModule,
     OcapCoreModule,
     NgmDisplayBehaviourComponent,
@@ -251,17 +252,17 @@ export class NgmTreeSelectComponent<T> implements OnChanges, ControlValueAccesso
       raw: node.raw
     }
   }
-  treeControl = new FlatTreeControl<FlatTreeNode<any>>(
+  treeControl = new ZardFlatTreeControl<FlatTreeNode<any>>(
     (node) => node.level,
     (node) => node.expandable
   )
-  treeFlattener = new MatTreeFlattener(
+  treeFlattener = new ZardTreeFlattener(
     this.transformer,
     (node) => node.level,
     (node) => node.expandable,
     (node) => node.children
   )
-  dataSource = new MatTreeFlatDataSource(this.treeControl, this.treeFlattener)
+  dataSource = new ZardTreeFlatDataSource(this.treeControl, this.treeFlattener)
   selectOptions$ = this.dataSource.connect({ viewChange: of() })
 
   // Display selected option in only single select mode

@@ -5,12 +5,23 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { ZardAccordionImports, ZardButtonComponent, ZardCardImports, ZardCheckboxComponent, ZardDialogModule, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { MatDialogModule } from '@angular/material/dialog'
+import {
+  ZardAccordionImports,
+  ZardButtonComponent,
+  ZardCardImports,
+  ZardDrawerImports,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardTableImports,
+  ZardDialogModule,
+  ZardTabsImports,
+  ZardCheckboxComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatTableModule } from '@angular/material/table'
 
 const MAT_MODULES = [
   ZardIconComponent,
@@ -20,15 +31,14 @@ const MAT_MODULES = [
   ...ZardFormImports,
   ZardInputDirective,
   ZardDialogModule,
-  MatSidenavModule,
-  MatTableModule,
+  ...ZardDrawerImports,
+  ...ZardTableImports,
   ZardCheckboxComponent,
   ...ZardTooltipImports,
   MatProgressBarModule,
   DragDropModule,
   PortalModule,
   LayoutModule,
-  MatProgressSpinnerModule,
   ...ZardCardImports,
   ...ZardAccordionImports
 ]

@@ -1,4 +1,5 @@
-import { CommonModule } from '@angular/common'
+
+import { NgStyle } from '@angular/common'
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, forwardRef, inject } from '@angular/core'
 import {
   ControlValueAccessor,
@@ -16,6 +17,7 @@ import { ComponentStyling } from '@metad/story/core'
 import { debounceTime, distinctUntilChanged, firstValueFrom, map } from 'rxjs'
 import { IScreenshot, ScreenshotService, ToastrService, listAnimation } from '../../../../@core'
 import { MaterialModule } from '../../../../@shared/material.module'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { ColorInputComponent } from '../color-input/color-input.component'
 import { ImageUploadComponent } from '../image-upload/image-upload.component'
 import { ClipboardModule } from '@angular/cdk/clipboard'
@@ -27,7 +29,6 @@ import { DesignerTextComponent } from '../text/text.component'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -35,7 +36,6 @@ import { DesignerTextComponent } from '../text/text.component'
     FormlyModule,
     ClipboardModule,
     ButtonGroupDirective,
-
     MtxColorpickerModule,
     AppearanceDirective,
     DensityDirective,
@@ -43,8 +43,10 @@ import { DesignerTextComponent } from '../text/text.component'
     ColorInputComponent,
     ImageUploadComponent,
     NgmInputComponent,
-    DesignerTextComponent
-  ],
+    DesignerTextComponent,
+    ZardLoaderComponent,
+    NgStyle
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-designer-widget',
   templateUrl: './widget.component.html',
@@ -631,11 +633,11 @@ export class DesignerWidgetComponent implements ControlValueAccessor {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormlyModule, TranslateModule, ReactiveFormsModule, DesignerWidgetComponent],
+  imports: [FormlyModule, TranslateModule, ReactiveFormsModule, DesignerWidgetComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-formly-widget-designer',
   template: `
-<!-- <div *ngIf="props?.label" class="p-4">{{props.label}}</div> -->
+<!-- Optional field label rendered by the designer wrapper. -->
 <pac-designer-widget class="ngm-density__compact" [formControl]="$any(formControl)"></pac-designer-widget>`,
   styles: [
     `

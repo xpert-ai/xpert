@@ -1,42 +1,46 @@
 import { coerceBooleanProperty } from '@angular/cdk/coercion'
 import { SelectionModel } from '@angular/cdk/collections'
-import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
-  ChangeDetectorRef,
   Component,
-  Injector,
-  afterNextRender,
+  computed,
   effect,
-  inject,
   input,
   isSignal,
   output,
-  runInInjectionContext,
-  signal,
-  viewChild
+  signal
 } from '@angular/core'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import {
   ZardButtonComponent,
+  type ZardPageEvent,
   ZardIconComponent,
   ZardInputDirective,
   ZardCheckboxComponent,
   ZardPaginatorComponent,
-  type ZardPaginatorLike
+  ZardTableImports,
+  ZardTooltipImports,
+  type ZardTableSortDirection
 } from '@xpert-ai/headless-ui'
-import { MatSort, MatSortModule } from '@angular/material/sort'
-import { MatTableDataSource, MatTableModule } from '@angular/material/table'
 import { DisplayDensity, OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import get from 'lodash-es/get'
 import { TableColumn } from '../types'
+import {
+  displayDensityToTableSize,
+  filterTableRowsByColumn,
+  paginateTableRows,
+  parseTableWidthToPx,
+  sortTableRows,
+  type TableSortState
+} from '../table.utils'
 
-type PagedTableDataSource<T> = Omit<MatTableDataSource<T>, 'paginator'> & {
-  paginator: ZardPaginatorLike | null
-}
+const SELECT_COLUMN_WIDTH = 56
+const DEFAULT_STICKY_START_WIDTH = 180
+const DEFAULT_STICKY_END_WIDTH = 128
 
 /**
  * @deprecated use tailwindcss
@@ -52,15 +56,14 @@ type PagedTableDataSource<T> = Omit<MatTableDataSource<T>, 'paginator'> & {
   },
   imports: [
     CommonModule,
-    DragDropModule,
     FormsModule,
     ReactiveFormsModule,
     ZardCheckboxComponent,
-    MatTableModule,
+    ...ZardTableImports,
     ZardPaginatorComponent,
     ZardIconComponent,
     ZardButtonComponent,
-    MatSortModule,
+    ...ZardTooltipImports,
     ZardInputDirective,
     TranslateModule,
 
@@ -69,9 +72,6 @@ type PagedTableDataSource<T> = Omit<MatTableDataSource<T>, 'paginator'> & {
   ]
 })
 export class NgmTableComponent {
-  readonly #injector = inject(Injector)
-  readonly #cdr = inject(ChangeDetectorRef)
-
   isSignal = isSignal
 
   /**
@@ -106,76 +106,91 @@ export class NgmTableComponent {
 
   /**
   |--------------------------------------------------------------------------
-  | Child Components
-  |--------------------------------------------------------------------------
-  */
-  readonly paginator = viewChild(ZardPaginatorComponent)
-  readonly sort = viewChild(MatSort)
-
-  /**
-  |--------------------------------------------------------------------------
   | Signals
   |--------------------------------------------------------------------------
   */
-  readonly displayedColumns = signal<string[]>([])
+  readonly searchControl = new FormControl<string>('', { nonNullable: true })
+  readonly displayedColumns = computed<string[]>(() => {
+    const columns = this.columns() ?? []
+    const displayedColumns = columns.map(({ name }) => name)
+    return this.selectable() ? ['select', ...displayedColumns] : displayedColumns
+  })
+  readonly tableSize = computed(() => displayDensityToTableSize(this.displayDensity()))
+  readonly processedRows = computed(() => {
+    let rows = [...(this.data() as any[])]
+    rows = filterTableRowsByColumn(rows, this.searchingColumn(), this.searchValue())
+    rows = sortTableRows(rows, this.sortState())
+    return rows
+  })
+  readonly rows = computed(() =>
+    this.paging() ? paginateTableRows(this.processedRows(), this.pageIndex(), this.pageSize()) : this.processedRows()
+  )
+  readonly stickyStartOffsets = computed(() => {
+    const offsets = new Map<string, number>()
+    let offset = this.selectable() ? SELECT_COLUMN_WIDTH : 0
 
-  dataSource = new MatTableDataSource<any>() as PagedTableDataSource<any>
+    for (const column of this.columns() ?? []) {
+      if (column.sticky) {
+        offsets.set(column.name, offset)
+        offset += parseTableWidthToPx(column.width, DEFAULT_STICKY_START_WIDTH)
+      }
+    }
 
-  searchControl = new FormControl<string>('')
-  searchingColumn = ''
-  selection = new SelectionModel<any>(true, [])
+    return offsets
+  })
+  readonly stickyEndOffsets = computed(() => {
+    const offsets = new Map<string, number>()
+    let offset = 0
+
+    for (const column of [...(this.columns() ?? [])].reverse()) {
+      if (column.stickyEnd) {
+        offsets.set(column.name, offset)
+        offset += parseTableWidthToPx(column.width, DEFAULT_STICKY_END_WIDTH)
+      }
+    }
+
+    return offsets
+  })
+
+  readonly searchValue = signal('')
+  readonly searchingColumn = signal<string | null>(null)
+  readonly sortState = signal<TableSortState>({ active: null, direction: '' })
+  readonly pageIndex = signal(0)
+  readonly pageSize = signal(20)
+  readonly selection = new SelectionModel<any>(true, [])
 
   readonly #searchValueSub = this.searchControl.valueChanges.subscribe((value) => {
-    this.dataSource.filter = value
+    this.searchValue.set(value ?? '')
+    this.pageIndex.set(0)
   })
 
   constructor() {
-    this.selection.changed.subscribe(() => {
-      this.#cdr.detectChanges()
+    this.selection.changed.pipe(takeUntilDestroyed()).subscribe(() => {
       this.rowSelectionChanging.emit(this.selection.selected)
-    })
-
-    afterNextRender(() => {
-      this.dataSource.paginator = this.paginator() ?? null
-      this.dataSource.sort = this.sort()
-      // If the user changes the sort order, reset back to the first page.
-      this.sort()?.sortChange.subscribe((sort) => {
-        if (this.paginator()) {
-          this.paginator().pageIndex = 0
-        }
-      })
-
-      this.dataSource.filterPredicate = (data: any, filter: string): boolean => {
-        // Transform the data into a lowercase string of all property values.
-        const dataStr = ('' + data[this.searchingColumn]).toLowerCase()
-
-        // Transform the filter by converting it to lowercase and removing whitespace.
-        const transformedFilter = filter.trim().toLowerCase()
-
-        return dataStr.indexOf(transformedFilter) != -1
-      }
-
-      runInInjectionContext(this.#injector, () => {
-        effect(
-          () => {
-            this.dataSource.data = this.data()
-          },
-          { allowSignalWrites: true }
-        )
-      })
     })
 
     effect(
       () => {
-        const columns = this.columns()
-        if (columns) {
-          this.displayedColumns.set(columns.map(({ name }) => name))
-          if (this.selectable()) {
-            this.displayedColumns.update((columns) => {
-              columns.unshift('select')
-              return [...columns]
-            })
-          }
+        const pageSizeOptions = this.pageSizeOptions()
+        if (!pageSizeOptions?.length) {
+          this.pageSize.set(20)
+          return
+        }
+
+        if (!pageSizeOptions.includes(this.pageSize())) {
+          this.pageSize.set(pageSizeOptions[0])
+        }
+      },
+      { allowSignalWrites: true }
+    )
+
+    effect(
+      () => {
+        const pageSize = this.pageSize()
+        const processedRows = this.processedRows()
+        const maxPageIndex = pageSize > 0 ? Math.max(Math.ceil(processedRows.length / pageSize) - 1, 0) : 0
+        if (this.pageIndex() > maxPageIndex) {
+          this.pageIndex.set(maxPageIndex)
         }
       },
       { allowSignalWrites: true }
@@ -193,17 +208,57 @@ export class NgmTableComponent {
     return get(row, name)
   }
 
-  escapeSearching(event) {
+  escapeSearching(event: KeyboardEvent) {
     if (event.key === 'Escape') {
-      this.searchingColumn = ''
+      this.searchingColumn.set(null)
       this.searchControl.setValue('')
     }
+  }
+
+  toggleSearchingColumn(columnName: string) {
+    const nextColumn = this.searchingColumn() === columnName ? null : columnName
+    this.searchingColumn.set(nextColumn)
+    this.searchControl.setValue('')
+  }
+
+  onSortChange(columnName: string, direction: ZardTableSortDirection) {
+    this.sortState.set({
+      active: direction ? columnName : null,
+      direction
+    })
+    this.pageIndex.set(0)
+  }
+
+  onPage(event: ZardPageEvent) {
+    this.pageIndex.set(event.pageIndex)
+    this.pageSize.set(event.pageSize)
+  }
+
+  sortDirection(columnName: string): ZardTableSortDirection {
+    const sortState = this.sortState()
+    return sortState.active === columnName ? sortState.direction : ''
+  }
+
+  stickyStartOffset(columnName: string) {
+    return this.stickyStartOffsets().get(columnName) ?? null
+  }
+
+  stickyEndOffset(columnName: string) {
+    return this.stickyEndOffsets().get(columnName) ?? null
+  }
+
+  stickyZIndex(column: Pick<TableColumn, 'sticky' | 'stickyEnd'> | undefined, isHeader = false) {
+    if (column?.sticky || column?.stickyEnd) {
+      return isHeader ? 5 : 4
+    }
+
+    return isHeader ? 3 : 1
   }
 
   /** Whether the number of selected elements matches the total number of rows. */
   isAllSelected() {
     const numSelected = this.selection.selected.length
-    const numRows = this.dataSource.data.length
+    const numRows = this.rows().length
     return numSelected === numRows
   }
 
@@ -214,7 +269,7 @@ export class NgmTableComponent {
       return
     }
 
-    this.selection.select(...this.dataSource.data)
+    this.selection.select(...this.rows())
   }
 
   /** The label for the checkbox on the passed row */

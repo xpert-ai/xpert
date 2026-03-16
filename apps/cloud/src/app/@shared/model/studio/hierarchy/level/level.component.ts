@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -39,7 +39,7 @@ import { CubeStudioHierarchyComponent } from '../hierarchy.component'
   selector: 'xp-cube-studio-dimension-level',
   templateUrl: 'level.component.html',
   styleUrls: ['level.component.scss'],
-  imports: [CommonModule, FormsModule, TranslateModule, FormlyModule, DensityDirective],
+  imports: [FormsModule, TranslateModule, FormlyModule, DensityDirective],
   host: {
     class: 'xp-cube-studio-dimension-level'
   }

@@ -30,6 +30,7 @@ import {
 } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ISemanticModel, ITag, registerModel, TagCategoryEnum } from 'apps/cloud/src/app/@core'
+import { format, parseISO } from 'date-fns'
 import { isEqual } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import {
@@ -50,8 +51,15 @@ import { ProjectService } from '../../project.service'
 import { injectIndicatorFormulaCommand } from '../../copilot'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
 
-import { MatDatepickerModule } from '@angular/material/datepicker'
-import { ZardButtonComponent, ZardCheckboxComponent, ZardDialogService, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardDatePickerComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '@cloud/app/@shared/indicator/'
 
 /**
@@ -71,7 +79,7 @@ import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '@cloud/app/@shar
     ZardButtonComponent,
     ...ZardTooltipImports,
     ...ZardFormImports,
-    MatDatepickerModule,
+    ZardDatePickerComponent,
     ZardInputDirective,
     ZardCheckboxComponent,
     DensityDirective,
@@ -140,6 +148,7 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
 
     tags: new FormControl<ITag[]>([])
   })
+  readonly validityControl = new FormControl<Date | null>(null)
 
   get id() {
     return this.formGroup.get('id').value
@@ -277,6 +286,23 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
     .subscribe((value) => this._onChange?.(value))
 
   constructor() {
+    this.formGroup
+      .get('validity')
+      .valueChanges.pipe(startWith(this.formGroup.get('validity').value), distinctUntilChanged(), takeUntilDestroyed())
+      .subscribe((value) => {
+        if (!value) {
+          this.validityControl.setValue(null, { emitEvent: false })
+          return
+        }
+
+        const date = parseISO(value)
+        this.validityControl.setValue(Number.isNaN(date.getTime()) ? null : date, { emitEvent: false })
+      })
+
+    this.validityControl.valueChanges.pipe(takeUntilDestroyed()).subscribe((value) => {
+      this.formGroup.get('validity').setValue(value ? format(value, 'yyyy-MM-dd') : null)
+    })
+
     effect(
       () => {
         const indicator = this.indicator()

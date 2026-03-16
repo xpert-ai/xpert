@@ -18,7 +18,6 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayDensity, mergeSelectedValues, NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
@@ -34,6 +33,7 @@ import { BehaviorSubject } from 'rxjs'
 import { combineLatestWith, debounceTime, map, startWith, tap } from 'rxjs/operators'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { ControlOptions } from '../types'
+import { ZardLoaderComponent } from '@xpert-ai/headless-ui'
 
 export interface MemberListOptions extends ControlOptions {
   /**
@@ -60,7 +60,7 @@ export interface MemberListOptions extends ControlOptions {
     CommonModule,
     ScrollingModule,
     CdkListboxModule,
-    MatProgressSpinnerModule,
+    ZardLoaderComponent,
     NgmCommonModule,
     OcapCoreModule,
   ]

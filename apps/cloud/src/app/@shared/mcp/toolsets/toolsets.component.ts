@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
@@ -36,7 +36,6 @@ import { XpertMCPManageComponent } from '../manage/manage.component'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
@@ -44,12 +43,11 @@ import { XpertMCPManageComponent } from '../manage/manage.component'
     CdkMenuModule,
     RouterModule,
     TranslateModule,
-
     DynamicGridDirective,
     NgmCommonModule,
     CardCreateComponent,
-    ToolsetCardComponent,
-  ],
+    ToolsetCardComponent
+],
   selector: 'mcp-toolsets',
   templateUrl: './toolsets.component.html',
   styleUrl: 'toolsets.component.scss',

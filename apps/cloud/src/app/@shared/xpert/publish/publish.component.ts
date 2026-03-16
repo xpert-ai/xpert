@@ -2,7 +2,7 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, effect, inject, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -35,7 +35,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   templateUrl: './publish.component.html',
   styleUrls: ['publish.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
@@ -47,7 +46,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     EmojiAvatarComponent,
     IntegrationFormComponent,
     NgmI18nPipe
-  ],
+],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertPublishComponent {

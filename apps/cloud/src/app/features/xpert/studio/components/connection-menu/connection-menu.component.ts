@@ -1,6 +1,6 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { FConnectionComponent } from '@foblex/flow'
@@ -12,7 +12,7 @@ import { XpertStudioApiService } from '../../domain'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, FormsModule, CdkMenuModule, CdkListboxModule],
+  imports: [TranslateModule, FormsModule, CdkMenuModule, CdkListboxModule],
   selector: 'xpert-studio-connection-menu',
   templateUrl: './connection-menu.component.html',
   styleUrls: ['./connection-menu.component.scss'],

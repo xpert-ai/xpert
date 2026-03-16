@@ -36,10 +36,6 @@ input[z-input] {
   @apply bg-gray-100;
 }
 
-.mat-stepper-vertical, .mat-stepper-horizontal {
-  --mat-stepper-container-color: transparent;
-}
-
 input[z-input] {
   @apply caret-yellow-500 bg-transparent outline-none;
 }

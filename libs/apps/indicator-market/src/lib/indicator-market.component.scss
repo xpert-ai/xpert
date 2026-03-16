@@ -111,8 +111,10 @@ $searching-transition: all 300ms;
   flex: 1;
 }
 
-.mat-datepicker-input.pac-indicator-market__date-picker {
-  border: unset;
+.pac-indicator-market__date-picker {
+  button {
+    border: unset;
+  }
 }
 
 .pac-indicator-app__options {

@@ -1,5 +1,4 @@
 import { ScrollingModule } from '@angular/cdk/scrolling'
-import { FlatTreeControl } from '@angular/cdk/tree'
 import { CommonModule } from '@angular/common'
 import {
   booleanAttribute,
@@ -18,8 +17,6 @@ import {
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DisplayDensity, NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -48,7 +45,11 @@ import {
   ZardButtonComponent,
   ZardIconComponent,
   ZardCheckboxComponent,
-  ZardTooltipImports
+  ZardLoaderComponent,
+  ZardTooltipImports,
+  ZardFlatTreeControl,
+  ZardTreeFlatDataSource,
+  ZardTreeFlattener
 } from '@xpert-ai/headless-ui'
 export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
   checked?: boolean
@@ -74,7 +75,7 @@ export interface TreeItemFlatNode<T> extends FlatTreeNode<T> {
     ReactiveFormsModule,
     ZardIconComponent,
     ZardCheckboxComponent,
-    MatProgressSpinnerModule,
+    ZardLoaderComponent,
     ZardButtonComponent,
     ...ZardTooltipImports,
     ScrollingModule,
@@ -119,9 +120,9 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
   /** Map from nested node to flattened node. This helps us to keep the same object for selection */
   nestedNodeMap = new Map<TreeNodeInterface<T>, TreeItemFlatNode<T>>()
   keyNodeMap = new Map<PrimitiveType, TreeItemFlatNode<T>>()
-  treeControl: FlatTreeControl<TreeItemFlatNode<T>>
-  treeFlattener: MatTreeFlattener<TreeNodeInterface<T>, TreeItemFlatNode<T>>
-  dataSource: MatTreeFlatDataSource<TreeNodeInterface<T>, TreeItemFlatNode<T>>
+  treeControl: ZardFlatTreeControl<TreeItemFlatNode<T>>
+  treeFlattener: ZardTreeFlattener<TreeNodeInterface<T>, TreeItemFlatNode<T>>
+  dataSource: ZardTreeFlatDataSource<TreeNodeInterface<T>, TreeItemFlatNode<T>>
   readonly highlightKeyword = toSignal(
     this.searchControl.valueChanges.pipe(
       startWith(''),
@@ -275,11 +276,11 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
     })
 
   constructor(private smartFilterService: NgmSmartFilterService) {
-    this.treeFlattener = new MatTreeFlattener(this.transformer, this.getLevel, this.isExpandable, this.getChildren)
-    this.treeControl = new FlatTreeControl<TreeItemFlatNode<T>>(this.getLevel, this.isExpandable, {
+    this.treeFlattener = new ZardTreeFlattener(this.transformer, this.getLevel, this.isExpandable, this.getChildren)
+    this.treeControl = new ZardFlatTreeControl<TreeItemFlatNode<T>>(this.getLevel, this.isExpandable, {
       trackBy: (dataNode: TreeItemFlatNode<T>) => dataNode.key as any
     })
-    this.dataSource = new MatTreeFlatDataSource(this.treeControl, this.treeFlattener)
+    this.dataSource = new ZardTreeFlatDataSource(this.treeControl, this.treeFlattener)
     this.dataSource.data = []
 
     effect(

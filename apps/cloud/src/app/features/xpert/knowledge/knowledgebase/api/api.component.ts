@@ -1,7 +1,7 @@
 import { Clipboard } from '@angular/cdk/clipboard'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
@@ -15,7 +15,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -23,7 +22,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkMenuModule,
     ...ZardTooltipImports,
     NgmSpinComponent
-  ],
+],
   selector: 'xpert-knowledgebase-api',
   templateUrl: './api.component.html',
   styleUrl: 'api.component.scss',

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, forwardRef, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormGroup, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
@@ -10,7 +10,7 @@ import { getGridOptionsSchema } from '../analytical-grid.schema'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, FormlyModule],
   selector: 'ngm-grid-settings',
   templateUrl: 'grid-settings.component.html',
   styles: [],

@@ -43,7 +43,7 @@
   />
   <div class="ngm-smart-filter__suffix flex items-center">
     @if (loading$ | async) {
-      <mat-spinner [color]="appearance()?.color" strokeWidth="1" diameter="20" />
+      <z-loader diameter="20" />
     }
 
     @if (hierarchies()?.length > 1) {

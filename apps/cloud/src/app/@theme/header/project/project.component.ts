@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
@@ -16,7 +16,6 @@ import { DefaultProject, IProject, ProjectAPIService, Store, ToastrService } fro
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
@@ -24,7 +23,7 @@ import { DefaultProject, IProject, ProjectAPIService, Store, ToastrService } fro
     TranslateModule,
     NgmSearchComponent,
     NgmHighlightDirective
-  ],
+],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'pac-header-project',
   templateUrl: `./project.component.html`

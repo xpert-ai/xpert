@@ -1,5 +1,5 @@
 import { CdkDrag, CdkDragDrop, CdkDragRelease, moveItemInArray, transferArrayItem } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -49,7 +49,7 @@ import { newDimensionFromColumn } from '../types'
   selector: 'pac-model-structure',
   templateUrl: './structure.component.html',
   styleUrls: ['./structure.component.scss'],
-  imports: [CommonModule, FormsModule, TranslateModule, NgmCommonModule, ERComponent]
+  imports: [FormsModule, TranslateModule, NgmCommonModule, ERComponent]
 })
 export class ModelEntityStructureComponent extends TranslationBaseComponent {
   @HostBinding('class.pac-model-cube-structure') _isModelCubeStructure = true

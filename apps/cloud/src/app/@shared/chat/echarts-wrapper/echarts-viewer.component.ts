@@ -1,5 +1,5 @@
 // echarts-viewer.component.ts
-import { CommonModule } from '@angular/common'
+
 import { AfterViewInit, Component, ElementRef, Input } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { init } from 'echarts'
@@ -7,7 +7,7 @@ import { CopyComponent } from '../../common'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, ...ZardTooltipImports, TranslateModule, CopyComponent],
+  imports: [...ZardTooltipImports, TranslateModule, CopyComponent],
   selector: 'chat-echarts-viewer',
   template: `<div class="group/echarts relative my-4">
     <copy

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, forwardRef, inject, input, model, signal } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { ChartType } from '@metad/ocap-core'
@@ -8,7 +8,7 @@ import { ChartOptionsSchemaService } from '../../analytical-card.schema'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, NxDesignerModule, NgmSchemaFormComponent],
+  imports: [FormsModule, TranslateModule, NxDesignerModule, NgmSchemaFormComponent],
   selector: 'ngm-chart-type-form',
   template: `<ngm-schema-form class="w-full" [(ngModel)]="model" [disabled]="isDisabled()" />`,
   styles: [

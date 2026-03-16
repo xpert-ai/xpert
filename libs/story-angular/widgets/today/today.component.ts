@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 import { DensityDirective, NgmSmartFilterBarService } from '@metad/ocap-angular/core'
@@ -16,7 +16,7 @@ export interface TodayWidgetOptions {
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DensityDirective, NgmTimeFilterModule],
+  imports: [TranslateModule, ReactiveFormsModule, DensityDirective, NgmTimeFilterModule],
   selector: 'ngm-story-widget-today',
   templateUrl: './today.component.html',
   styleUrls: ['./today.component.scss']

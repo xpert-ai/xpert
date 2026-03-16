@@ -1,5 +1,5 @@
-<mat-stepper #stepper>
-  <mat-step
+<z-stepper #stepper="zStepper">
+  <z-step
     [stepControl]="basic"
     [label]="'PAC.ORGANIZATIONS_PAGE.Organization.BasicInfo' | translate: { Default: 'Basic Info' }"
   >
@@ -21,9 +21,9 @@
         <input z-input formControlName="defaultValueDateType" />
       </z-form-field>
     </form>
-  </mat-step>
+  </z-step>
 
-  <mat-step
+  <z-step
     [stepControl]="orgSettingsForm"
     [label]="'PAC.ORGANIZATIONS_PAGE.Organization.OtherInfo' | translate: { Default: 'Other Info' }"
   >
@@ -42,5 +42,5 @@
         <input z-input formControlName="inviteExpiryPeriod" type="number" />
       </z-form-field>
     </form>
-  </mat-step>
-</mat-stepper>
+  </z-step>
+</z-stepper>

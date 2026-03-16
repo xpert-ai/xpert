@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule, DatePipe } from '@angular/common'
+import { DatePipe } from '@angular/common';
 import {
   Component,
   computed,
@@ -36,7 +36,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -44,7 +43,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     CdkListboxModule,
     ...ZardTooltipImports,
     NgmCommonModule
-  ],
+],
   selector: 'copilot-knowledges',
   templateUrl: 'knowledges.component.html',
   styleUrls: ['knowledges.component.scss'],

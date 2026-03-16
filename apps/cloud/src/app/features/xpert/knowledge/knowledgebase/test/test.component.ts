@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -29,7 +29,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   templateUrl: './test.component.html',
   styleUrls: ['./test.component.scss'],
   imports: [
-    CommonModule,
     RouterModule,
     FormsModule,
     TranslateModule,
@@ -39,7 +38,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     DateRelativePipe,
     KnowledgeChunkComponent,
     KnowledgeRetrievalSettingsComponent
-  ],
+],
   animations: [routeAnimations]
 })
 export class KnowledgeTestComponent {

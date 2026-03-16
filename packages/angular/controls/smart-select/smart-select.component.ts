@@ -45,7 +45,7 @@ export interface SmartSelectOptions extends ControlOptions {
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, MatProgressSpinnerModule, DensityDirective, AppearanceDirective, NgmMatSelectComponent],
+  imports: [CommonModule, FormsModule, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, DensityDirective, AppearanceDirective, NgmMatSelectComponent],
   selector: 'ngm-smart-select',
   templateUrl: 'smart-select.component.html',
   styleUrls: ['smart-select.component.scss'],

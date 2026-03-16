@@ -44,9 +44,11 @@
 </ng-template>
 
 <ng-template #actionTempl let-loading="loading" let-id="id" let-user="user">
-  <button z-button zType="ghost" zSize="icon" zShape="circle" *ngIf="!loading" ngmAppearance="danger" displayDensity="cosy" class="text-slate-500" (click)="removeUser(id, user)">
-    <div class="flex items-center justify-center">
-      <z-icon zType="delete"></z-icon>
-    </div>
-  </button>
+  @if (!loading) {
+    <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-slate-500" (click)="removeUser(id, user)">
+      <div class="flex items-center justify-center">
+        <z-icon zType="delete"></z-icon>
+      </div>
+    </button>
+  }
 </ng-template>

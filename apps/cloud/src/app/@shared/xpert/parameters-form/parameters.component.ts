@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { booleanAttribute, Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { SlashSvgComponent, VariableSvgComponent } from '@metad/ocap-angular/common'
@@ -16,7 +16,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   templateUrl: './parameters.component.html',
   styleUrl: 'parameters.component.scss',
   imports: [
-    CommonModule,
     FormsModule,
     ...ZardTooltipImports,
     TranslateModule,
@@ -24,7 +23,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmSelectComponent,
     VariableSvgComponent,
     SlashSvgComponent
-  ],
+],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class XpertParametersFormComponent {

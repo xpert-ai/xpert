@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { HttpErrorResponse } from '@angular/common/http'
 import { Component, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
@@ -15,62 +15,64 @@ import { UserFormsModule } from '../../../@shared/user/forms'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ZardButtonComponent, ZardIconComponent, ...ZardFormImports, ZardInputDirective, FormsModule, ReactiveFormsModule, UserFormsModule, TranslateModule],
+  imports: [ZardButtonComponent, ZardIconComponent, ...ZardFormImports, ZardInputDirective, FormsModule, ReactiveFormsModule, UserFormsModule, TranslateModule],
   selector: 'pac-account-password',
   template: `<form
-    class="flex flex-col items-start justify-start p-4 m-auto w-96"
-    [formGroup]="passwordForm"
-    (ngSubmit)="resetPassword()"
-  >
-    <input
-      z-input
-      type="text"
-      id="username"
-      name="username"
-      autocomplete="username"
-      aria-hidden="true"
-      class="hidden"
-    />
-    <z-form-field appearance="fill" floatLabel="always" class="self-stretch">
-      <z-form-label>
-        <span class="text-red-500">*</span>{{ 'PAC.KEY_WORDS.CurrentPassword' | translate: { Default: 'Current Password' } }}
-      </z-form-label>
-      <input type="password" z-input formControlName="hash" autocomplete="current-password" />
-      <z-form-message zType="error" *ngIf="hash.invalid">{{ 'PAC.KEY_WORDS.Error' | translate: { Default: 'Error' } }}</z-form-message>
-    </z-form-field>
-    <z-form-field appearance="fill" floatLabel="always" class="self-stretch">
-      <z-form-label>
-        <span class="text-red-500">*</span>{{ 'PAC.KEY_WORDS.NewPassword' | translate: { Default: 'New Password' } }}
-      </z-form-label>
-      <input type="password" z-input formControlName="password" autocomplete="new-password" />
-      @if (minlengthError(); as error) {
-        <z-form-message zType="error">
-          {{ 'PAC.Onboarding.Minlength' | translate: { Default: 'Min length' } }} {{ error.requiredLength }}
-          {{ 'PAC.Onboarding.Actuallength' | translate: { Default: 'actual length' } }}
-          {{ error.actualLength }}</z-form-message>
-      }
-    </z-form-field>
-
-    <z-form-field appearance="fill" floatLabel="always" class="self-stretch">
-      <z-form-label>
-        <span class="text-red-500">*</span>{{ 'PAC.KEY_WORDS.ConfirmPassword' | translate: { Default: 'Confirm Password' } }}
-      </z-form-label>
-      <input type="password" z-input formControlName="confirmPassword" autocomplete="new-password" />
-      @if (mustMatchError(); as error) {
-        <z-form-message zType="error">{{ 'PAC.Onboarding.PasswordMustMatch' | translate: { Default: 'Password must match' } }}</z-form-message>
-      }
-    </z-form-field>
-
-    <div class="w-full flex justify-center items-center gap-2">
-      <button
-        type="submit"
-        class="btn disabled:btn-disabled btn-primary btn-large"
-        [disabled]="passwordForm.pristine || passwordForm.invalid || loading()"
+      class="flex flex-col items-start justify-start p-4 m-auto w-96"
+      [formGroup]="passwordForm"
+      (ngSubmit)="resetPassword()"
       >
-        {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
-      </button>
-    </div>
-  </form>`,
+      <input
+        z-input
+        type="text"
+        id="username"
+        name="username"
+        autocomplete="username"
+        aria-hidden="true"
+        class="hidden"
+        />
+      <z-form-field appearance="fill" floatLabel="always" class="self-stretch">
+        <z-form-label>
+          <span class="text-red-500">*</span>{{ 'PAC.KEY_WORDS.CurrentPassword' | translate: { Default: 'Current Password' } }}
+        </z-form-label>
+        <input type="password" z-input formControlName="hash" autocomplete="current-password" />
+        @if (hash.invalid) {
+          <z-form-message zType="error">{{ 'PAC.KEY_WORDS.Error' | translate: { Default: 'Error' } }}</z-form-message>
+        }
+      </z-form-field>
+      <z-form-field appearance="fill" floatLabel="always" class="self-stretch">
+        <z-form-label>
+          <span class="text-red-500">*</span>{{ 'PAC.KEY_WORDS.NewPassword' | translate: { Default: 'New Password' } }}
+        </z-form-label>
+        <input type="password" z-input formControlName="password" autocomplete="new-password" />
+        @if (minlengthError(); as error) {
+          <z-form-message zType="error">
+            {{ 'PAC.Onboarding.Minlength' | translate: { Default: 'Min length' } }} {{ error.requiredLength }}
+            {{ 'PAC.Onboarding.Actuallength' | translate: { Default: 'actual length' } }}
+          {{ error.actualLength }}</z-form-message>
+        }
+      </z-form-field>
+    
+      <z-form-field appearance="fill" floatLabel="always" class="self-stretch">
+        <z-form-label>
+          <span class="text-red-500">*</span>{{ 'PAC.KEY_WORDS.ConfirmPassword' | translate: { Default: 'Confirm Password' } }}
+        </z-form-label>
+        <input type="password" z-input formControlName="confirmPassword" autocomplete="new-password" />
+        @if (mustMatchError(); as error) {
+          <z-form-message zType="error">{{ 'PAC.Onboarding.PasswordMustMatch' | translate: { Default: 'Password must match' } }}</z-form-message>
+        }
+      </z-form-field>
+    
+      <div class="w-full flex justify-center items-center gap-2">
+        <button
+          type="submit"
+          class="btn disabled:btn-disabled btn-primary btn-large"
+          [disabled]="passwordForm.pristine || passwordForm.invalid || loading()"
+          >
+          {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+        </button>
+      </div>
+    </form>`,
   styles: [`
     // Hide Material Design's default required marker (gray asterisk after label)
     // We use our own red asterisk before the label instead

@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { attrModel, OverlayAnimations } from '@metad/core'
@@ -10,7 +10,7 @@ import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-studio-features-memory-reply',
   standalone: true,
-  imports: [CommonModule, FormsModule, TranslateModule, ...ZardTooltipImports, ZardSliderComponent],
+  imports: [FormsModule, TranslateModule, ...ZardTooltipImports, ZardSliderComponent],
   templateUrl: './memory-reply.component.html',
   styleUrl: './memory-reply.component.scss',
   animations: [...OverlayAnimations]

@@ -1,5 +1,5 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { environment } from '@cloud/environments/environment'
@@ -34,7 +34,6 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
   templateUrl: './server.component.html',
   styleUrl: 'server.component.scss',
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -47,7 +46,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     NgmAutoScrollBottomDirective,
     NgmTimerDirective,
     ZardSwitchComponent
-  ],
+],
   hostDirectives: [NgxControlValueAccessor]
 })
 export class MCPServerFormComponent {

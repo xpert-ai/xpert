@@ -1,14 +1,16 @@
 <ngm-story class="w-full h-full"
-    [story]="story()"
-    [pageKey]="pageKey"
-    [widgetKey]="widgetKey"
-    [dark]="isDark$ | async"
-    [watermark]="watermark$()"
+  [story]="story()"
+  [pageKey]="pageKey"
+  [widgetKey]="widgetKey"
+  [dark]="isDark$ | async"
+  [watermark]="watermark$()"
 
-    ngmTransformScale
->
+  ngmTransformScale
+  >
 </ngm-story>
 
-<a *ngIf="story()" class="absolute right-1 bottom-0 z-10" href="/">
+@if (story()) {
+  <a class="absolute right-1 bottom-0 z-10" href="/">
     {{'@'}}{{ story().createdBy | createdBy }}
-</a>
+  </a>
+}

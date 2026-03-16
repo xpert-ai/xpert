@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { FFlowModule } from '@foblex/flow'
@@ -17,14 +17,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     FFlowModule,
     CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
     PlusSvgComponent
-  ]
+]
 })
 export class XpertWorkflowNodeStartComponent extends WorkflowBaseNodeComponent {
   readonly elementRef = inject(ElementRef)

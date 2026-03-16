@@ -4,18 +4,22 @@
 
     @if (useAutocomplete) {
       <mat-chip-grid #chipGrid>
-        <mat-chip-row *ngFor="let chip of chipList$ | async" (removed)="removeChip(chip)">
-          <ngm-display-behaviour
-            [option]="{ value: chip.key, label: chip.label }"
-            [displayBehaviour]="displayBehaviour"
-          >
-          </ngm-display-behaviour>
-          <button matChipRemove>
-            <z-icon zType="cancel"></z-icon>
-          </button>
-        </mat-chip-row>
+        @for (chip of chipList$ | async; track chip) {
+          <mat-chip-row (removed)="removeChip(chip)">
+            <ngm-display-behaviour
+              [option]="{ value: chip.key, label: chip.label }"
+              [displayBehaviour]="displayBehaviour"
+              >
+            </ngm-display-behaviour>
+            <button matChipRemove>
+              <z-icon zType="cancel"></z-icon>
+            </button>
+          </mat-chip-row>
+        }
 
-        <mat-chip-row *ngIf="restChips?.length">+{{ restChips?.length }}</mat-chip-row>
+        @if (restChips?.length) {
+          <mat-chip-row>+{{ restChips?.length }}</mat-chip-row>
+        }
       </mat-chip-grid>
       <input
         #autoInput
@@ -27,12 +31,12 @@
         (matChipInputTokenEnd)="add($event)"
         (focus)="focus.emit($event)"
         (blur)="blur.emit($event)"
-      />
+        />
 
-      <!-- 
-        [class.multiple]="multiple"
-        [class.ngm-density__compact]="displayDensity==='compact'"
-        [class.ngm-density__cosy]="displayDensity==='cosy'" -->
+      <!--
+      [class.multiple]="multiple"
+      [class.ngm-density__compact]="displayDensity==='compact'"
+      [class.ngm-density__cosy]="displayDensity==='cosy'" -->
       <mat-autocomplete
         #auto="matAutocomplete"
         disableRipple
@@ -51,112 +55,113 @@
         [autoSelectActiveOption]="autoSelectActiveOption"
         (opened)="onAutocompleteOpened()"
         (optionSelected)="onAutocompleteSelected($event)"
-      >
-        <cdk-virtual-scroll-viewport
-          *ngIf="virtualScroll; else nonVirtualScroll"
-          [itemSize]="virtualScrollItemSize"
-          minBufferPx="200"
-          maxBufferPx="400"
-          class="ngm-tree-select__viewport"
         >
-          <mat-option
-            *cdkVirtualFor="let option of selectOptions$ | async; trackBy: trackByFun"
-            [value]="option"
-            [class.mat-selected]="isSelected(option)"
-          >
-            <div class="flex-1 flex justify-start items-center">
-              <button
-                z-button
-                zType="ghost"
-                zSize="icon"
-                zShape="circle"
-                [displayDensity]="displayDensity"
-                [style.visibility]="!option.expandable ? 'hidden' : ''"
-                [style.marginLeft.px]="option.level * treeNodePaddingIndent"
-                (click)="$event.stopPropagation(); treeControl.toggle(option)"
+        @if (virtualScroll) {
+          <cdk-virtual-scroll-viewport
+            [itemSize]="virtualScrollItemSize"
+            minBufferPx="200"
+            maxBufferPx="400"
+            class="ngm-tree-select__viewport"
+            >
+            <mat-option
+              *cdkVirtualFor="let option of selectOptions$ | async; trackBy: trackByFun"
+              [value]="option"
+              [class.mat-selected]="isSelected(option)"
               >
-                <z-icon
-                  class="z-icon-rtl-mirror"
-                  [zType]="treeControl.isExpanded(option) ? 'expand_more' : 'chevron_right'"
-                ></z-icon>
-              </button>
+              <div class="flex-1 flex justify-start items-center">
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  [displayDensity]="displayDensity"
+                  [style.visibility]="!option.expandable ? 'hidden' : ''"
+                  [style.marginLeft.px]="option.level * treeNodePaddingIndent"
+                  (click)="$event.stopPropagation(); treeControl.toggle(option)"
+                  >
+                  <z-icon
+                    class="z-icon-rtl-mirror"
+                    [zType]="treeControl.isExpanded(option) ? 'expand_more' : 'chevron_right'"
+                  ></z-icon>
+                </button>
+                @if (multiple) {
+                  <z-checkbox
+                    class="flex-1"
+                    [ngModel]="isSelected(option)"
+                    (click)="$event.stopPropagation()"
+                    (checkChange)="onCheckboxSelect($event, option)"
+                    >
+                    <ngm-display-behaviour
+                      [option]="{ value: option.key, label: option.label }"
+                      [displayBehaviour]="displayBehaviour"
+                      [highlight]="autoHighlight"
+                      >
+                    </ngm-display-behaviour>
+                  </z-checkbox>
+                }
+                @if (!multiple) {
+                  <ngm-display-behaviour
+                    class="flex-1"
+                    [option]="{ value: option.key, label: option.label }"
+                    [displayBehaviour]="displayBehaviour"
+                    [highlight]="autoHighlight"
+                    >
+                  </ngm-display-behaviour>
+                }
+              </div>
+            </mat-option>
+          </cdk-virtual-scroll-viewport>
+        } @else {
+          @for (option of selectOptions$ | async; track option) {
+            <mat-option
+              [value]="option"
+              (click)="$event.stopPropagation(); $event.preventDefault()"
+              >
+              <div class="flex-1 flex justify-start items-center">
+                <button
+                  z-button
+                  zType="ghost"
+                  zSize="icon"
+                  zShape="circle"
+                  [displayDensity]="displayDensity"
+                  [style.visibility]="!option.expandable ? 'hidden' : ''"
+                  [style.marginLeft.px]="option.level * treeNodePaddingIndent"
+                  (click)="$event.stopPropagation(); treeControl.toggle(option)"
+                  >
+                  <z-icon
+                    class="z-icon-rtl-mirror"
+                    [zType]="treeControl.isExpanded(option) ? 'expand_more' : 'chevron_right'"
+                  ></z-icon>
+                </button>
+                @if (multiple) {
+                  <z-checkbox
+                    class="flex-1"
+                    [ngModel]="isSelected(option)"
+                    (click)="$event.stopPropagation()"
+                    (checkChange)="onCheckboxSelect($event, option)"
+                    >
+                    <ngm-display-behaviour
+                      [option]="{ value: option.key, label: option.label }"
+                      [displayBehaviour]="displayBehaviour"
+                      [highlight]="autoHighlight"
+                      >
+                    </ngm-display-behaviour>
+                  </z-checkbox>
+                }
+                @if (!multiple) {
+                  <ngm-display-behaviour
+                    class="flex-1"
+                    [option]="{ value: option.key, label: option.label }"
+                    [displayBehaviour]="displayBehaviour"
+                    [highlight]="autoHighlight"
+                    >
+                  </ngm-display-behaviour>
+                }
+              </div>
+            </mat-option>
+          }
+        }
 
-              <z-checkbox
-                *ngIf="multiple"
-                class="flex-1"
-                [ngModel]="isSelected(option)"
-                (click)="$event.stopPropagation()"
-                (checkChange)="onCheckboxSelect($event, option)"
-              >
-                <ngm-display-behaviour
-                  [option]="{ value: option.key, label: option.label }"
-                  [displayBehaviour]="displayBehaviour"
-                  [highlight]="autoHighlight"
-                >
-                </ngm-display-behaviour>
-              </z-checkbox>
-
-              <ngm-display-behaviour
-                *ngIf="!multiple"
-                class="flex-1"
-                [option]="{ value: option.key, label: option.label }"
-                [displayBehaviour]="displayBehaviour"
-                [highlight]="autoHighlight"
-              >
-              </ngm-display-behaviour>
-            </div>
-          </mat-option>
-        </cdk-virtual-scroll-viewport>
-
-        <ng-template #nonVirtualScroll>
-          <mat-option
-            *ngFor="let option of selectOptions$ | async"
-            [value]="option"
-            (click)="$event.stopPropagation(); $event.preventDefault()"
-          >
-            <div class="flex-1 flex justify-start items-center">
-              <button
-                z-button
-                zType="ghost"
-                zSize="icon"
-                zShape="circle"
-                [displayDensity]="displayDensity"
-                [style.visibility]="!option.expandable ? 'hidden' : ''"
-                [style.marginLeft.px]="option.level * treeNodePaddingIndent"
-                (click)="$event.stopPropagation(); treeControl.toggle(option)"
-              >
-                <z-icon
-                  class="z-icon-rtl-mirror"
-                  [zType]="treeControl.isExpanded(option) ? 'expand_more' : 'chevron_right'"
-                ></z-icon>
-              </button>
-
-              <z-checkbox
-                *ngIf="multiple"
-                class="flex-1"
-                [ngModel]="isSelected(option)"
-                (click)="$event.stopPropagation()"
-                (checkChange)="onCheckboxSelect($event, option)"
-              >
-                <ngm-display-behaviour
-                  [option]="{ value: option.key, label: option.label }"
-                  [displayBehaviour]="displayBehaviour"
-                  [highlight]="autoHighlight"
-                >
-                </ngm-display-behaviour>
-              </z-checkbox>
-
-              <ngm-display-behaviour
-                *ngIf="!multiple"
-                class="flex-1"
-                [option]="{ value: option.key, label: option.label }"
-                [displayBehaviour]="displayBehaviour"
-                [highlight]="autoHighlight"
-              >
-              </ngm-display-behaviour>
-            </div>
-          </mat-option>
-        </ng-template>
       </mat-autocomplete>
     }
 
@@ -170,61 +175,66 @@
           class="ngm-actionable-opacity"
           [displayDensity]="displayDensity"
           (click)="$event.stopPropagation(); toggleExpand()"
-        >
-          <z-icon *ngIf="!unfold" zType="unfold_more"></z-icon>
-          <z-icon *ngIf="unfold" zType="unfold_less"></z-icon>
+          >
+          @if (!unfold) {
+            <z-icon zType="unfold_more"></z-icon>
+          }
+          @if (unfold) {
+            <z-icon zType="unfold_less"></z-icon>
+          }
         </button>
 
-        <z-checkbox
-          *ngIf="multiple"
-          class="ngm-tree-select__select-all-checkbox"
-          [ngModel]="allSelect"
-          [indeterminate]="someSelect()"
-          (checkChange)="setAll($event)"
-        ></z-checkbox>
+        @if (multiple) {
+          <z-checkbox
+            class="ngm-tree-select__select-all-checkbox"
+            [ngModel]="allSelect"
+            [indeterminate]="someSelect()"
+            (checkChange)="setAll($event)"
+          ></z-checkbox>
+        }
       </div>
     }
 
     <div zFormSuffix class="flex justify-start items-center">
-      <button
-        z-button
-        zType="ghost"
-        zSize="icon"
-        zShape="circle"
-        *ngIf="isNotInitial"
-        class="ngm-actionable-opacity"
-        displayDensity="cosy"
-        ngmAppearance="danger"
-        [zDisabled]="disabled()"
-        (click)="clear($event)"
-      >
-        <z-icon zType="close"></z-icon>
-      </button>
+      @if (isNotInitial) {
+        <button
+          z-button
+          zType="ghost"
+          zSize="icon"
+          zShape="circle"
+          class="ngm-actionable-opacity"
+          displayDensity="cosy"
+          ngmAppearance="danger"
+          [zDisabled]="disabled()"
+          (click)="clear($event)"
+          >
+          <z-icon zType="close"></z-icon>
+        </button>
+      }
 
       <ng-content select="[zFormSuffix]"></ng-content>
     </div>
 
-    <z-form-message zType="error" *ngIf="formControl.invalid">{{ getErrorMessage() }}</z-form-message>
+    @if (formControl.invalid) {
+      <z-form-message zType="error">{{ getErrorMessage() }}</z-form-message>
+    }
   </z-form-field>
 } @else {
-  <ngm-search *ngIf="searchable()" class="w-full shrink-0 p-2" [formControl]="autoControl"></ngm-search>
+  @if (searchable()) {
+    <ngm-search class="w-full shrink-0 p-2" [formControl]="autoControl"></ngm-search>
+  }
 
-  <mat-tree
-    class="selection ngm-tree-select__panel flex-1"
-    [dataSource]="dataSource"
-    [treeControl]="treeControl"
-    [displayDensity]="displayDensity"
-  >
+  <z-tree class="selection ngm-tree-select__panel flex-1" [dataSource]="dataSource" [treeControl]="treeControl">
     <!-- This is the tree node template for leaf nodes -->
-    <mat-tree-node
-      *matTreeNodeDef="let node"
+    <div
+      *zTreeNodeDef="let node"
       class="rounded-lg"
-      matTreeNodePadding
-      [matTreeNodePaddingIndent]="treeNodePaddingIndent"
+      zTreeNodePadding
+      [zTreeNodePaddingIndent]="treeNodePaddingIndent"
       [ngClass]="isSelected(node) ? 'selected' : ''"
-      [disabled]="disabled()"
+      [attr.disabled]="disabled() || null"
       (click)="disabled() || toggleNode(node)"
-    >
+      >
       <!-- use a disabled button to provide padding for tree leaf -->
       <button z-button zType="ghost" zSize="icon" zShape="circle" disabled [displayDensity]="displayDensity"></button>
 
@@ -233,28 +243,28 @@
         [option]="{ value: node.key, label: node.label }"
         [displayBehaviour]="displayBehaviour"
         [highlight]="autoHighlight"
-      >
+        >
       </ngm-display-behaviour>
-    </mat-tree-node>
+    </div>
     <!-- This is the tree node template for expandable nodes -->
-    <mat-tree-node
-      *matTreeNodeDef="let node; when: hasChild"
+    <div
+      *zTreeNodeDef="let node; when: hasChild"
       class="rounded-lg"
-      matTreeNodePadding
-      [matTreeNodePaddingIndent]="treeNodePaddingIndent"
+      zTreeNodePadding
+      [zTreeNodePaddingIndent]="treeNodePaddingIndent"
       [ngClass]="isSelected(node) ? 'selected' : ''"
-      [disabled]="disabled()"
+      [attr.disabled]="disabled() || null"
       (click)="disabled() || toggleNode(node)"
-    >
+      >
       <button
         z-button
         zType="ghost"
         zSize="icon"
         zShape="circle"
-        matTreeNodeToggle
+        zTreeNodeToggle
         [displayDensity]="displayDensity"
         [attr.aria-label]="'Toggle ' + node.name"
-      >
+        >
         <z-icon
           class="z-icon-rtl-mirror"
           [zType]="treeControl.isExpanded(node) ? 'expand_more' : 'chevron_right'"
@@ -266,8 +276,8 @@
         [option]="{ value: node.key, label: node.label }"
         [displayBehaviour]="displayBehaviour"
         [highlight]="autoHighlight"
-      >
+        >
       </ngm-display-behaviour>
-    </mat-tree-node>
-  </mat-tree>
+    </div>
+  </z-tree>
 }

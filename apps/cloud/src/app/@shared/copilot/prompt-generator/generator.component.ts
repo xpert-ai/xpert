@@ -1,7 +1,7 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
@@ -26,17 +26,15 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   styleUrls: ['./generator.component.scss'],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     TranslateModule,
     CdkMenuModule,
     DragDropModule,
     ...ZardTooltipImports,
     NgmSpinComponent,
-
     CopilotModelSelectComponent,
     CopilotInstructionEditorComponent
-  ]
+]
 })
 export class CopilotPromptGeneratorComponent {
   eModelType = AiModelTypeEnum

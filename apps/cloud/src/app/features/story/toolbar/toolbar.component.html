@@ -1,13 +1,13 @@
 <div
   class="ngm-theme-dark dark w-16 py-2 flex flex-col items-center h-full overflow-auto bg-bluegray-800 text-neutral-100"
->
+  >
   @if (expandLess() || !collapsible()) {
     <div class="w-full px-2 flex-1 flex flex-col items-center overflow-hidden hover:overflow-y-auto">
       <ng-content></ng-content>
 
       @if (saving()) {
         <div class="h-[40px] flex flex-col justify-center items-center">
-          <mat-spinner color="accent" [diameter]="22" [strokeWidth]="2" />
+          <z-loader [diameter]="22" />
         </div>
       } @else {
         <button
@@ -20,7 +20,7 @@
           zPosition="right"
           [disabled]="disableSave()"
           (click)="storyService.saveStory()"
-        >
+          >
           @if (isDirty$ | async) {
             <span class="absolute top-2 left-2 w-2 h-2 bg-yellow-500 rounded-full"></span>
           }
@@ -37,7 +37,7 @@
         [zTooltip]="'Story.Toolbar.PREFERENCES.TITLE' | translate: { Default: 'Preferences' }"
         zPosition="right"
         (click)="togglePreferences()"
-      >
+        >
         <z-icon zType="settings_applications"></z-icon>
       </button>
 
@@ -50,7 +50,7 @@
         [zTooltip]="'Story.Toolbar.GlobalStyles' | translate: { Default: 'Global Styles' }"
         zPosition="right"
         (click)="toggleStoryDesigner()"
-      >
+        >
         <z-icon zType="format_color_fill"></z-icon>
       </button>
 
@@ -63,7 +63,7 @@
         [zTooltip]="'Story.Toolbar.Devices' | translate: { Default: 'Devices' }"
         zPosition="right"
         (click)="toggleDevices()"
-      >
+        >
         <z-icon zType="devices"></z-icon>
       </button>
 
@@ -79,7 +79,7 @@
         "
         zPosition="right"
         (click)="toggleEditable(!editable())"
-      >
+        >
         @if (editable()) {
           <z-icon zType="edit_off"></z-icon>
         } @else {
@@ -99,7 +99,7 @@
         "
         zPosition="right"
         (click)="_fullscreen = !_fullscreen; fullscreen.emit(_fullscreen)"
-      >
+        >
         @if (_fullscreen) {
           <z-icon zType="fullscreen_exit"></z-icon>
         } @else {
@@ -123,7 +123,7 @@
         draggable="true"
         (dragstart)="dragStartHandler($event, { component: ComponentType.AnalyticalCard })"
         (click)="createWidget({ component: ComponentType.AnalyticalCard })"
-      >
+        >
         <z-icon zType="addchart"></z-icon>
       </button>
       <button
@@ -138,7 +138,7 @@
         draggable="true"
         (dragstart)="dragStartHandler($event, { component: ComponentType.AnalyticalGrid })"
         (click)="createWidget({ component: ComponentType.AnalyticalGrid })"
-      >
+        >
         <z-icon zType="pivot_table_chart"></z-icon>
       </button>
       <button
@@ -153,7 +153,7 @@
         draggable="true"
         (dragstart)="dragStartHandler($event, { component: ComponentType.InputControl })"
         (click)="createWidget({ component: ComponentType.InputControl })"
-      >
+        >
         <z-icon zType="toggle_on"></z-icon>
       </button>
       <button
@@ -168,7 +168,7 @@
         draggable="true"
         (dragstart)="dragStartHandler($event, { component: ComponentType.KpiCard })"
         (click)="createWidget({ component: ComponentType.KpiCard })"
-      >
+        >
         <z-icon zType="percent"></z-icon>
       </button>
       <button
@@ -184,15 +184,17 @@
             : ('Story.Toolbar.More' | translate: { Default: 'More' })
         "
         (click)="toggleWidgets()"
-      >
-        <z-icon
-          *ngIf="(showDetails() !== 'widgets' && !onRight) || (showDetails() === 'widgets' && onRight)"
-          zType="keyboard_arrow_right"
-        ></z-icon>
-        <z-icon
-          *ngIf="(showDetails() === 'widgets' && !onRight) || (showDetails() !== 'widgets' && onRight)"
-          zType="keyboard_arrow_left"
-        ></z-icon>
+        >
+        @if ((showDetails() !== 'widgets' && !onRight) || (showDetails() === 'widgets' && onRight)) {
+          <z-icon
+            zType="keyboard_arrow_right"
+          ></z-icon>
+        }
+        @if ((showDetails() === 'widgets' && !onRight) || (showDetails() !== 'widgets' && onRight)) {
+          <z-icon
+            zType="keyboard_arrow_left"
+          ></z-icon>
+        }
       </button>
 
       <button
@@ -205,7 +207,7 @@
         [zTooltip]="'Copilot.GenerateWithAI' | translate: { Default: 'Generate with AI' }"
         zPosition="right"
         (click)="aiChatStory()"
-      >
+        >
         <z-icon zType="auto_fix_high"></z-icon>
       </button>
 
@@ -224,39 +226,38 @@
   }
 </div>
 
-<div
-  *ngIf="showDetails() === 'preferences'"
-  class="ngm-theme-dark dark w-16 h-full flex flex-col border-solid border-0 border-gray-500 bg-bluegray-800 text-neutral-100"
-  [ngClass]="onRight ? 'border-r' : 'border-l'"
->
-  <div class="flex-1 flex flex-col p-2 overflow-y-auto overflow-x-hidden">
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      [zTooltip]="'Story.Toolbar.NewPage' | translate: { Default: 'New Page' }"
-      zPosition="right"
-      (click)="showDetails.set('newPages')"
+@if (showDetails() === 'preferences') {
+  <div
+    class="ngm-theme-dark dark w-16 h-full flex flex-col border-solid border-0 border-gray-500 bg-bluegray-800 text-neutral-100"
+    [ngClass]="onRight ? 'border-r' : 'border-l'"
     >
-      <z-icon class="ngm-story--tab-icon" zType="add"></z-icon>
-    </button>
-
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      [zTooltip]="'Story.Toolbar.PREFERENCES.DETAILS' | translate: { Default: 'Story Details' }"
-      zPosition="right"
-      (click)="openStoryDetails()"
-    >
-      <z-icon zType="settings"></z-icon>
-    </button>
-    <!-- <button cdkMenuItem (click)="openPreferences()">
-            <z-icon zType="tune"></z-icon>
-            {{ 'Story.Toolbar.PREFERENCES.PREFERENCES' | translate: {Default: "Preferences"} }}
-        </button> -->
+    <div class="flex-1 flex flex-col p-2 overflow-y-auto overflow-x-hidden">
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        [zTooltip]="'Story.Toolbar.NewPage' | translate: { Default: 'New Page' }"
+        zPosition="right"
+        (click)="showDetails.set('newPages')"
+        >
+        <z-icon class="ngm-story--tab-icon" zType="add"></z-icon>
+      </button>
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        [zTooltip]="'Story.Toolbar.PREFERENCES.DETAILS' | translate: { Default: 'Story Details' }"
+        zPosition="right"
+        (click)="openStoryDetails()"
+        >
+        <z-icon zType="settings"></z-icon>
+      </button>
+      <!-- <button cdkMenuItem (click)="openPreferences()">
+      <z-icon zType="tune"></z-icon>
+      {{ 'Story.Toolbar.PREFERENCES.PREFERENCES' | translate: {Default: "Preferences"} }}
+    </button> -->
     <button
       z-button
       zType="ghost"
@@ -265,7 +266,7 @@
       [zTooltip]="'Story.Toolbar.PREFERENCES.ADVANCED_STYLE' | translate: { Default: 'Advanced Style' }"
       zPosition="right"
       (click)="openAdvancedStyle()"
-    >
+      >
       <z-icon zType="css"></z-icon>
     </button>
     <button
@@ -276,7 +277,7 @@
       [zTooltip]="'Story.Toolbar.PREFERENCES.Calculations' | translate: { Default: 'Calculations' }"
       zPosition="right"
       (click)="openCalculations()"
-    >
+      >
       <z-icon zType="functions"></z-icon>
     </button>
     <button
@@ -287,7 +288,7 @@
       [zTooltip]="'Story.Toolbar.PREFERENCES.ThemeBuilder' | translate: { Default: 'Theme Builder' }"
       zPosition="right"
       (click)="openThemeBuilder()"
-    >
+      >
       <z-icon zType="palette"></z-icon>
     </button>
     <button
@@ -298,10 +299,9 @@
       [zTooltip]="'Story.Toolbar.PREFERENCES.Templates' | translate: { Default: 'Templates' }"
       zPosition="right"
       (click)="toolbarService.openTemplates()"
-    >
+      >
       <z-icon zType="category"></z-icon>
     </button>
-
     <button
       z-button
       zType="ghost"
@@ -310,166 +310,160 @@
       [zTooltip]="'PAC.Project.Files' | translate: { Default: 'Files' }"
       zPosition="right"
       (click)="openMaterials()"
-    >
+      >
       <z-icon zType="attach_file"></z-icon>
     </button>
-
     <!-- <button cdkMenuItem (click)="openQuerySettings()">
-            <z-icon zType="query_stats"></z-icon>
-            {{ 'Story.Toolbar.PREFERENCES.QUERY_SETTINGS' | translate: {Default: "Query Settings"} }}
-        </button>
-        <button cdkMenuItem>
-            <z-icon zType="lightbulb"></z-icon>
-            {{ 'Story.Toolbar.PREFERENCES.SMART_INSIGHTS' | translate: {Default: "Smart Insights"} }}
-        </button>
-        <button cdkMenuItem (click)="openSubscription()">
-            <z-icon zType="subscriptions"></z-icon>
-            {{ 'Story.Toolbar.PREFERENCES.SUBSCRIPTION' | translate: {Default: "Subscription"} }}
-        </button> -->
-
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      [cdkMenuTriggerFor]="saveMenu"
-      [cdkMenuPosition]="[{ originX: 'end', originY: 'center', overlayX: 'start', overlayY: 'center' }]"
-      [zTooltip]="'Story.Toolbar.Edit.Title' | translate: { Default: 'Edit' }"
-      zPosition="right"
-    >
-      <z-icon zType="edit"></z-icon>
-    </button>
-
-    <!-- <button z-button zType="ghost" cdkMenuItem [cdkMenuTriggerFor]="copyMenu">
-            <z-icon zType="content_copy"></z-icon>
-            {{ 'Story.Toolbar.COPY.COPY' | translate: {Default: "Copy"} }}
-        </button> -->
-
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      [zTooltip]="'Story.Toolbar.SHARE.SHARE' | translate: { Default: 'Share' }"
-      zPosition="right"
-      (click)="openShare()"
-    >
-      <z-icon zType="share"></z-icon>
-    </button>
-
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      [zTooltip]="'Story.Toolbar.SAVE.EXPORT' | translate: { Default: 'Export' }"
-      zPosition="right"
-      [disabled]="exporting"
-      (click)="export()"
-    >
-      <z-icon zType="file_download"></z-icon>
-    </button>
-
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      [color]="isPanMode() ? 'accent' : ''"
-      [zTooltip]="'Story.Toolbar.PanMode' | translate: { Default: 'Pan mode (Alt)' }"
-      zPosition="right"
-      (click)="togglePanTool()"
-    >
-      <z-icon zType="pan_tool"></z-icon>
-    </button>
-
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      [zTooltip]="'Story.Toolbar.ZoomIn' | translate: { Default: 'Zoom In (Alt +)' }"
-      zPosition="right"
-      (click)="zoomIn()"
-    >
-      <z-icon zType="zoom_in"></z-icon>
-    </button>
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      [cdkMenuTriggerFor]="scaleMenu"
-      [cdkMenuPosition]="[{ originX: 'end', originY: 'center', overlayX: 'start', overlayY: 'center' }]"
-      [zTooltip]="scale() ?? ('Story.Toolbar.Scale' | translate: { Default: 'Scale' })"
-      zPosition="right"
-    >
-      <span class="text-xs">{{ scale() }}%</span>
-    </button>
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      [zTooltip]="'Story.Toolbar.ZoomOut' | translate: { Default: 'Zoom Out (Alt -)' }"
-      zPosition="right"
-      (click)="zoomOut()"
-    >
-      <z-icon zType="zoom_out"></z-icon>
-    </button>
-  </div>
-</div>
-
-<div
-  *ngIf="showDetails() === 'newPages'"
-  @inOut
-  class="pac-story-bar__detail-card relative w-96 h-full flex flex-col p-2"
->
+    <z-icon zType="query_stats"></z-icon>
+    {{ 'Story.Toolbar.PREFERENCES.QUERY_SETTINGS' | translate: {Default: "Query Settings"} }}
+  </button>
+  <button cdkMenuItem>
+    <z-icon zType="lightbulb"></z-icon>
+    {{ 'Story.Toolbar.PREFERENCES.SMART_INSIGHTS' | translate: {Default: "Smart Insights"} }}
+  </button>
+  <button cdkMenuItem (click)="openSubscription()">
+    <z-icon zType="subscriptions"></z-icon>
+    {{ 'Story.Toolbar.PREFERENCES.SUBSCRIPTION' | translate: {Default: "Subscription"} }}
+  </button> -->
   <button
     z-button
     zType="ghost"
     zSize="icon"
     zShape="circle"
-    style="position: absolute"
-    class="absolute right-1 top-1"
-    (click)="showDetails.set(null)"
-  >
-    <z-icon zType="close"></z-icon>
-  </button>
-
-  <div class="text-base text-center my-4">
-    {{ 'Story.Toolbar.NewPage' | translate: { Default: 'New Page' } }}
-  </div>
-
-  <div class="grid grid-cols-3 gap-2">
-    <button
-      *ngFor="let page of pages"
-      class="h-20 m-2 flex justify-center items-center rounded-lg overflow-hidden ring-offset-2 ring-2 ring-transparent ring-offset-transparent hover:ring-violet-300 focus:ring-violet-500 hover:ring-offset-white dark:hover:ring-offset-black"
-      (click)="createStoryPage(page.value)"
-      [zTooltip]="'Story.Toolbar.' + page.label | translate: { Default: page.label }"
-      zPosition="top"
+    [cdkMenuTriggerFor]="saveMenu"
+    [cdkMenuPosition]="[{ originX: 'end', originY: 'center', overlayX: 'start', overlayY: 'center' }]"
+    [zTooltip]="'Story.Toolbar.Edit.Title' | translate: { Default: 'Edit' }"
+    zPosition="right"
     >
-      {{ 'Story.Toolbar.' + page.label | translate: { Default: page.label } }}
-    </button>
-  </div>
+    <z-icon zType="edit"></z-icon>
+  </button>
+  <!-- <button z-button zType="ghost" cdkMenuItem [cdkMenuTriggerFor]="copyMenu">
+  <z-icon zType="content_copy"></z-icon>
+  {{ 'Story.Toolbar.COPY.COPY' | translate: {Default: "Copy"} }}
+</button> -->
+<button
+  z-button
+  zType="ghost"
+  zSize="icon"
+  zShape="circle"
+  [zTooltip]="'Story.Toolbar.SHARE.SHARE' | translate: { Default: 'Share' }"
+  zPosition="right"
+  (click)="openShare()"
+  >
+  <z-icon zType="share"></z-icon>
+</button>
+<button
+  z-button
+  zType="ghost"
+  zSize="icon"
+  zShape="circle"
+  [zTooltip]="'Story.Toolbar.SAVE.EXPORT' | translate: { Default: 'Export' }"
+  zPosition="right"
+  [disabled]="exporting"
+  (click)="export()"
+  >
+  <z-icon zType="file_download"></z-icon>
+</button>
+<button
+  z-button
+  zType="ghost"
+  zSize="icon"
+  zShape="circle"
+  [color]="isPanMode() ? 'accent' : ''"
+  [zTooltip]="'Story.Toolbar.PanMode' | translate: { Default: 'Pan mode (Alt)' }"
+  zPosition="right"
+  (click)="togglePanTool()"
+  >
+  <z-icon zType="pan_tool"></z-icon>
+</button>
+<button
+  z-button
+  zType="ghost"
+  zSize="icon"
+  zShape="circle"
+  [zTooltip]="'Story.Toolbar.ZoomIn' | translate: { Default: 'Zoom In (Alt +)' }"
+  zPosition="right"
+  (click)="zoomIn()"
+  >
+  <z-icon zType="zoom_in"></z-icon>
+</button>
+<button
+  z-button
+  zType="ghost"
+  zSize="icon"
+  zShape="circle"
+  [cdkMenuTriggerFor]="scaleMenu"
+  [cdkMenuPosition]="[{ originX: 'end', originY: 'center', overlayX: 'start', overlayY: 'center' }]"
+  [zTooltip]="scale() ?? ('Story.Toolbar.Scale' | translate: { Default: 'Scale' })"
+  zPosition="right"
+  >
+  <span class="text-xs">{{ scale() }}%</span>
+</button>
+<button
+  z-button
+  zType="ghost"
+  zSize="icon"
+  zShape="circle"
+  [zTooltip]="'Story.Toolbar.ZoomOut' | translate: { Default: 'Zoom Out (Alt -)' }"
+  zPosition="right"
+  (click)="zoomOut()"
+  >
+  <z-icon zType="zoom_out"></z-icon>
+</button>
 </div>
+</div>
+}
 
-<div *ngIf="showDetails() === 'widgets'" @inOut class="pac-story-bar__detail-card w-80 h-full flex flex-col p-2">
-  <div class="text-base text-center my-4">
-    {{ 'Story.Toolbar.Charts' | translate: { Default: 'Charts' } }}
-  </div>
-
-  <ng-container *ngFor="let group of charts">
-    <div class="text-sm p-2">
-      {{ 'FORMLY.CHART.' + group.label | translate: { Default: group.label } }}
+@if (showDetails() === 'newPages') {
+  <div
+    @inOut
+    class="pac-story-bar__detail-card relative w-96 h-full flex flex-col p-2"
+    >
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      style="position: absolute"
+      class="absolute right-1 top-1"
+      (click)="showDetails.set(null)"
+      >
+      <z-icon zType="close"></z-icon>
+    </button>
+    <div class="text-base text-center my-4">
+      {{ 'Story.Toolbar.NewPage' | translate: { Default: 'New Page' } }}
     </div>
     <div class="grid grid-cols-3 gap-2">
-      <button
-        *ngFor="let chart of group.charts"
-        class="h-16 m-2 flex justify-center items-center rounded-lg overflow-hidden ring-offset-2 ring-2 ring-transparent ring-offset-transparent hover:ring-violet-300 focus:ring-violet-500 hover:ring-offset-white dark:hover:ring-offset-black bg-white"
-        [zTooltip]="'FORMLY.CHART.' + chart.label | translate: { Default: chart.label }"
-        zPosition="top"
-        draggable="true"
+      @for (page of pages; track page) {
+        <button
+          class="h-20 m-2 flex justify-center items-center rounded-lg overflow-hidden ring-offset-2 ring-2 ring-transparent ring-offset-transparent hover:ring-violet-300 focus:ring-violet-500 hover:ring-offset-white dark:hover:ring-offset-black"
+          (click)="createStoryPage(page.value)"
+          [zTooltip]="'Story.Toolbar.' + page.label | translate: { Default: page.label }"
+          zPosition="top"
+          >
+          {{ 'Story.Toolbar.' + page.label | translate: { Default: page.label } }}
+        </button>
+      }
+    </div>
+  </div>
+}
+
+@if (showDetails() === 'widgets') {
+  <div @inOut class="pac-story-bar__detail-card w-80 h-full flex flex-col p-2">
+    <div class="text-base text-center my-4">
+      {{ 'Story.Toolbar.Charts' | translate: { Default: 'Charts' } }}
+    </div>
+    @for (group of charts; track group) {
+      <div class="text-sm p-2">
+        {{ 'FORMLY.CHART.' + group.label | translate: { Default: group.label } }}
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        @for (chart of group.charts; track chart) {
+          <button
+            class="h-16 m-2 flex justify-center items-center rounded-lg overflow-hidden ring-offset-2 ring-2 ring-transparent ring-offset-transparent hover:ring-violet-300 focus:ring-violet-500 hover:ring-offset-white dark:hover:ring-offset-black bg-white"
+            [zTooltip]="'FORMLY.CHART.' + chart.label | translate: { Default: chart.label }"
+            zPosition="top"
+            draggable="true"
         (dragstart)="
           dragStartHandler($event, {
             component: ComponentType.AnalyticalCard,
@@ -486,7 +480,7 @@
             }
           })
         "
-      >
+        >
         <img
           [src]="'/assets/icons/charts/' + chart.icon"
           class="object-contain max-h-full"
@@ -495,129 +489,108 @@
             transform: chart.rotate ? 'rotate(90deg)' : 'none',
             width: chart.width ? chart.width : '100%'
           }"
-        />
+          />
       </button>
-    </div>
-  </ng-container>
-
-  <z-divider></z-divider>
-  <div class="text-base text-center my-2">
-    {{ 'Story.Toolbar.Widgets' | translate: { Default: 'Widgets' } }}
+    }
   </div>
-
-  <div class="grid grid-cols-3 gap-2">
+}
+<z-divider></z-divider>
+<div class="text-base text-center my-2">
+  {{ 'Story.Toolbar.Widgets' | translate: { Default: 'Widgets' } }}
+</div>
+<div class="grid grid-cols-3 gap-2">
+  @for (widget of widgets; track widget) {
     <button
-      *ngFor="let widget of widgets"
       class="h-16 m-2 flex justify-center items-center rounded-lg overflow-hidden ring-offset-2 ring-2 ring-transparent ring-offset-transparent hover:ring-violet-300 focus:ring-violet-500 hover:ring-offset-white dark:hover:ring-offset-black"
       [zTooltip]="'Story.Toolbar.INSERT.' + widget.code | translate: { Default: widget.label }"
       zPosition="top"
       draggable="true"
       (dragstart)="dragStartHandler($event, widget.value)"
       (click)="createWidget(widget.value)"
-    >
+      >
       <z-icon [zType]="widget.icon"></z-icon>
     </button>
-
-    <!-- <button (click)="createWidget(ComponentType.AnalyticalGeography)">
-            <z-icon zType="map"></z-icon>
-            {{ 'Story.Toolbar.INSERT.Geo_Map' | translate: {Default: "Geo Map"} }}
-        </button> -->
-
-    <!-- <button>Shape</button>
-        <z-divider></z-divider>
-        <button>Symbol</button> -->
-
-    <!-- <button (click)="createWidget(ComponentType.Table)"
-            [disabled]="false"
-        >
-            <z-icon zType="pivot_table_chart"></z-icon>
-            {{ 'Story.Toolbar.INSERT.PivotTable' | translate: {Default: "Pivot Table"} }}
-            <span class="pac-pro-tag">pro</span>
-        </button> -->
-  </div>
+  }
+  <!-- <button (click)="createWidget(ComponentType.AnalyticalGeography)">
+  <z-icon zType="map"></z-icon>
+  {{ 'Story.Toolbar.INSERT.Geo_Map' | translate: {Default: "Geo Map"} }}
+</button> -->
+<!-- <button>Shape</button>
+<z-divider></z-divider>
+<button>Symbol</button> -->
+<!-- <button (click)="createWidget(ComponentType.Table)"
+[disabled]="false"
+>
+<z-icon zType="pivot_table_chart"></z-icon>
+{{ 'Story.Toolbar.INSERT.PivotTable' | translate: {Default: "Pivot Table"} }}
+<span class="pac-pro-tag">pro</span>
+</button> -->
 </div>
+</div>
+}
 
 @if (showDetails() === 'storyDesigner') {
   <pac-story-designer @inOut class="pac-story-bar__detail-card w-96 h-full" />
 }
 
-<div *ngIf="showDetails() === 'devices'" @inOut class="pac-story-bar__detail-card w-80 h-full flex flex-col p-2">
-  <div class="text-base text-center my-2">
-    {{ 'Story.Toolbar.Devices' | translate: { Default: 'Devices' } }}
-  </div>
-  <div class="grid grid-cols-2 gap-2">
-    @for (device of EmulatedDevices; track $index) {
-      <button
-        class="h-24 m-2 flex flex-col justify-center items-center rounded-lg overflow-hidden ring-offset-2 ring-2 ring-transparent ring-offset-transparent hover:ring-violet-300 focus:ring-violet-500 hover:ring-offset-white dark:hover:ring-offset-black"
-        [class.ring-violet-500]="device.name === emulatedDevice?.name"
-        (click)="toggleMobile(device.value)"
-      >
-        <span>{{ 'Story.Toolbar.EmulatedDevice_' + device.name | translate: { Default: device.name } }}</span>
-        <span *ngIf="device.value"
-          >{{ device.value.width ?? emulatedDevice?.width }} x {{ device.value.height ?? emulatedDevice?.height }}</span
-        >
-      </button>
-    }
-  </div>
-
-  <div *ngIf="emulatedDevice" class="flex justify-center items-center gap-4">
-    <ngm-input
-      [label]="'Story.Toolbar.Width' | translate: { Default: 'Width' }"
-      [(ngModel)]="emulatedDevice.width"
-      (ngModelChange)="onEmulatedDeviceChange()"
-    ></ngm-input>
-    <ngm-input
-      [label]="'Story.Toolbar.Height' | translate: { Default: 'Height' }"
-      [(ngModel)]="emulatedDevice.height"
-      (ngModelChange)="onEmulatedDeviceChange()"
-    >
-    </ngm-input>
-  </div>
-
-  <z-divider></z-divider>
-  <div class="text-base text-center my-2">{{ 'Story.Toolbar.Fit' | translate: { Default: 'Fit' } }}</div>
-  <div class="grid grid-cols-3 gap-2">
-    <button
-      *ngFor="let zoom of DeviceZooms"
-      class="h-16 m-2 flex flex-col justify-center items-center rounded-lg overflow-hidden ring-offset-2 ring-2 ring-transparent ring-offset-transparent hover:ring-violet-300 focus:ring-violet-500 hover:ring-offset-white dark:hover:ring-offset-black"
-      [class.ring-violet-500]="zoom.name === deviceZoom?.name"
-      (click)="setDeviceZoom(zoom)"
-    >
-      {{ zoom.name }}
-    </button>
-  </div>
-
-  <z-divider></z-divider>
-  <div class="text-base text-center my-2">
-    {{ 'Story.Toolbar.Orientation' | translate: { Default: 'Orientation' } }}
-  </div>
-
-  <div class="w-full flex justify-center items-center">
-    <z-toggle-group ngmAppearance="outline" displayDensity="compact" color="accent"
-        [ngModel]="orientation"
-        (ngModelChange)="toggleOrientation($event)"
-    >
-        <z-toggle-group-item [value]="DeviceOrientation.landscape">
-            <z-icon zSize="sm" zType="stay_primary_landscape"></z-icon>
-        </z-toggle-group-item>
-        <z-toggle-group-item [value]="DeviceOrientation.portrait">
-            <z-icon zSize="sm" zType="stay_primary_portrait"></z-icon>
-        </z-toggle-group-item>
-    </z-toggle-group>
-
-    <ng-container *ngIf="emulatedDevice?.isFold">
+@if (showDetails() === 'devices') {
+  <div @inOut class="pac-story-bar__detail-card w-80 h-full flex flex-col p-2">
+    <div class="text-base text-center my-2">
+      {{ 'Story.Toolbar.Devices' | translate: { Default: 'Devices' } }}
+    </div>
+    <div class="grid grid-cols-2 gap-2">
+      @for (device of EmulatedDevices; track $index) {
+        <button
+          class="h-24 m-2 flex flex-col justify-center items-center rounded-lg overflow-hidden ring-offset-2 ring-2 ring-transparent ring-offset-transparent hover:ring-violet-300 focus:ring-violet-500 hover:ring-offset-white dark:hover:ring-offset-black"
+          [class.ring-violet-500]="device.name === emulatedDevice?.name"
+          (click)="toggleMobile(device.value)"
+          >
+          <span>{{ 'Story.Toolbar.EmulatedDevice_' + device.name | translate: { Default: device.name } }}</span>
+          @if (device.value) {
+            <span
+              >{{ device.value.width ?? emulatedDevice?.width }} x {{ device.value.height ?? emulatedDevice?.height }}</span
+              >
+            }
+          </button>
+        }
+      </div>
+      @if (emulatedDevice) {
+        <div class="flex justify-center items-center gap-4">
+          <ngm-input
+            [label]="'Story.Toolbar.Width' | translate: { Default: 'Width' }"
+            [(ngModel)]="emulatedDevice.width"
+            (ngModelChange)="onEmulatedDeviceChange()"
+          ></ngm-input>
+          <ngm-input
+            [label]="'Story.Toolbar.Height' | translate: { Default: 'Height' }"
+            [(ngModel)]="emulatedDevice.height"
+            (ngModelChange)="onEmulatedDeviceChange()"
+            >
+          </ngm-input>
+        </div>
+      }
+      <z-divider></z-divider>
+      <div class="text-base text-center my-2">{{ 'Story.Toolbar.Fit' | translate: { Default: 'Fit' } }}</div>
+      <div class="grid grid-cols-3 gap-2">
+        @for (zoom of DeviceZooms; track zoom) {
+          <button
+            class="h-16 m-2 flex flex-col justify-center items-center rounded-lg overflow-hidden ring-offset-2 ring-2 ring-transparent ring-offset-transparent hover:ring-violet-300 focus:ring-violet-500 hover:ring-offset-white dark:hover:ring-offset-black"
+            [class.ring-violet-500]="zoom.name === deviceZoom?.name"
+            (click)="setDeviceZoom(zoom)"
+            >
+            {{ zoom.name }}
+          </button>
+        }
+      </div>
       <z-divider></z-divider>
       <div class="text-base text-center my-2">
-        {{ 'Story.Toolbar.DeviceFold' | translate: { Default: 'Device Fold' } }}
+        {{ 'Story.Toolbar.Orientation' | translate: { Default: 'Orientation' } }}
       </div>
       <div class="w-full flex justify-center items-center">
-        <z-toggle-group
-          ngmAppearance="outline"
-          displayDensity="compact"
-          color="accent"
+        <z-toggle-group ngmAppearance="outline" displayDensity="compact" color="accent"
           [ngModel]="orientation"
           (ngModelChange)="toggleOrientation($event)"
-        >
+          >
           <z-toggle-group-item [value]="DeviceOrientation.landscape">
             <z-icon zSize="sm" zType="stay_primary_landscape"></z-icon>
           </z-toggle-group-item>
@@ -625,50 +598,71 @@
             <z-icon zSize="sm" zType="stay_primary_portrait"></z-icon>
           </z-toggle-group-item>
         </z-toggle-group>
+        @if (emulatedDevice?.isFold) {
+          <z-divider></z-divider>
+          <div class="text-base text-center my-2">
+            {{ 'Story.Toolbar.DeviceFold' | translate: { Default: 'Device Fold' } }}
+          </div>
+          <div class="w-full flex justify-center items-center">
+            <z-toggle-group
+              ngmAppearance="outline"
+              displayDensity="compact"
+              color="accent"
+              [ngModel]="orientation"
+              (ngModelChange)="toggleOrientation($event)"
+              >
+              <z-toggle-group-item [value]="DeviceOrientation.landscape">
+                <z-icon zSize="sm" zType="stay_primary_landscape"></z-icon>
+              </z-toggle-group-item>
+              <z-toggle-group-item [value]="DeviceOrientation.portrait">
+                <z-icon zSize="sm" zType="stay_primary_portrait"></z-icon>
+              </z-toggle-group-item>
+            </z-toggle-group>
+          </div>
+        }
       </div>
-    </ng-container>
-  </div>
-</div>
+    </div>
+  }
 
-<ng-template #fileMenu>
-  <div cdkMenu displayDensity="cosy">
-    <button cdkMenuItem>
-      {{ 'Story.Toolbar.PREFERENCES.PREFERENCES' | translate: { Default: 'Preferences' } }}
-    </button>
-    <button cdkMenuItem [cdkMenuTriggerFor]="saveMenu">
-      <z-badge zCount="1" zOverlap="false" [zHidden]="isNotDirty$ | async">
+  <ng-template #fileMenu>
+    <div cdkMenu displayDensity="cosy">
+      <button cdkMenuItem>
+        {{ 'Story.Toolbar.PREFERENCES.PREFERENCES' | translate: { Default: 'Preferences' } }}
+      </button>
+      <button cdkMenuItem [cdkMenuTriggerFor]="saveMenu">
+        <z-badge zCount="1" zOverlap="false" [zHidden]="isNotDirty$ | async">
+          {{ 'Story.Toolbar.SAVE.SAVE' | translate: { Default: 'Save' } }}
+        </z-badge>
+      </button>
+      <button cdkMenuItem [cdkMenuTriggerFor]="copyMenu">
+        {{ 'Story.Toolbar.COPY.COPY' | translate: { Default: 'Copy' } }}
+      </button>
+      <button cdkMenuItem>
+        <z-icon zType="share"></z-icon>
+        {{ 'Story.Toolbar.SHARE.SHARE' | translate: { Default: 'Share' } }}
+      </button>
+    </div>
+  </ng-template>
+
+  <ng-template #saveMenu>
+    <div cdkMenu displayDensity="cosy">
+      <button
+        z-button
+        zType="ghost"
+        cdkMenuItem
+        [disabled]="isNotDirty$ | async"
+        [color]="(isDirty$ | async) ? 'accent' : null"
+        (click)="storyService.saveStory()"
+        >
         {{ 'Story.Toolbar.SAVE.SAVE' | translate: { Default: 'Save' } }}
-      </z-badge>
-    </button>
-    <button cdkMenuItem [cdkMenuTriggerFor]="copyMenu">
-      {{ 'Story.Toolbar.COPY.COPY' | translate: { Default: 'Copy' } }}
-    </button>
-    <button cdkMenuItem>
-      <z-icon zType="share"></z-icon>
-      {{ 'Story.Toolbar.SHARE.SHARE' | translate: { Default: 'Share' } }}
-    </button>
-  </div>
-</ng-template>
-
-<ng-template #saveMenu>
-  <div cdkMenu displayDensity="cosy">
-    <button
-      z-button
-      zType="ghost"
-      cdkMenuItem
-      [disabled]="isNotDirty$ | async"
-      [color]="(isDirty$ | async) ? 'accent' : null"
-      (click)="storyService.saveStory()"
-    >
-      {{ 'Story.Toolbar.SAVE.SAVE' | translate: { Default: 'Save' } }}
-    </button>
+      </button>
 
       <!-- <button cdkMenuItem (click)="openSaveAs()">
-            {{ 'Story.Toolbar.SAVE.SAVE_AS' | translate: {Default: "Save As"} }}...
-        </button>
-        <button cdkMenuItem>
-            {{ 'Story.Toolbar.SAVE.SAVE_AS_TEMPLATE' | translate: {Default: "Save As Template"} }}...
-        </button> -->
+      {{ 'Story.Toolbar.SAVE.SAVE_AS' | translate: {Default: "Save As"} }}...
+    </button>
+    <button cdkMenuItem>
+      {{ 'Story.Toolbar.SAVE.SAVE_AS_TEMPLATE' | translate: {Default: "Save As Template"} }}...
+    </button> -->
 
     <z-divider></z-divider>
 
@@ -677,7 +671,7 @@
       [cdkMenuItemDisabled]="isWidgetSelected()"
       [class.ngm-cdk-menu-item__disabled]="isWidgetSelected()"
       (click)="copyWidget()"
-    >
+      >
       {{ 'Story.Toolbar.COPY.COPY' | translate: { Default: 'Copy' } }}
     </button>
     <button
@@ -685,7 +679,7 @@
       [cdkMenuItemDisabled]="isWidgetSelected()"
       [class.ngm-cdk-menu-item__disabled]="isWidgetSelected()"
       [cdkMenuTriggerFor]="copyToMenu"
-    >
+      >
       {{ 'Story.Toolbar.COPY.COPY_TO' | translate: { Default: 'Copy to' } }}...
     </button>
     <button
@@ -693,7 +687,7 @@
       [cdkMenuItemDisabled]="isWidgetSelected()"
       [class.ngm-cdk-menu-item__disabled]="isWidgetSelected()"
       (click)="duplicateWidget()"
-    >
+      >
       {{ 'Story.Toolbar.COPY.DUPLICATE' | translate: { Default: 'Duplicate' } }}
     </button>
     <z-divider></z-divider>
@@ -702,7 +696,7 @@
       [cdkMenuItemDisabled]="!isCopyWidgetSelected$()"
       [class.ngm-cdk-menu-item__disabled]="!isCopyWidgetSelected$()"
       (click)="isCopyWidgetSelected$() ? pasteWidget() : ''"
-    >
+      >
       {{ 'Story.Toolbar.COPY.PASTE' | translate: { Default: 'Paste' } }}
     </button>
 
@@ -721,7 +715,7 @@
       [cdkMenuItemDisabled]="isWidgetSelected()"
       [class.ngm-cdk-menu-item__disabled]="isWidgetSelected()"
       (click)="copyWidget()"
-    >
+      >
       {{ 'Story.Toolbar.COPY.COPY' | translate: { Default: 'Copy' } }}
     </button>
     <button
@@ -729,7 +723,7 @@
       [cdkMenuItemDisabled]="isWidgetSelected()"
       [class.ngm-cdk-menu-item__disabled]="isWidgetSelected()"
       [cdkMenuTriggerFor]="copyToMenu"
-    >
+      >
       {{ 'Story.Toolbar.COPY.COPY_TO' | translate: { Default: 'Copy to' } }}...
     </button>
     <button
@@ -737,7 +731,7 @@
       [cdkMenuItemDisabled]="isWidgetSelected()"
       [class.ngm-cdk-menu-item__disabled]="isWidgetSelected()"
       (click)="duplicateWidget()"
-    >
+      >
       {{ 'Story.Toolbar.COPY.DUPLICATE' | translate: { Default: 'Duplicate' } }}
     </button>
     <z-divider></z-divider>
@@ -746,7 +740,7 @@
       [cdkMenuItemDisabled]="!isCopyWidgetSelected$()"
       [class.ngm-cdk-menu-item__disabled]="!isCopyWidgetSelected$()"
       (click)="isCopyWidgetSelected$() ? pasteWidget() : ''"
-    >
+      >
       {{ 'Story.Toolbar.COPY.PASTE' | translate: { Default: 'Paste' } }}
     </button>
   </div>
@@ -770,17 +764,21 @@
 
 <ng-template #devicesMenu>
   <div cdkMenu displayDensity="cosy">
-    <button cdkMenuItem *ngFor="let device of EmulatedDevices" (click)="setEmulatedDevice(device)">
-      {{ device.name }}
-    </button>
+    @for (device of EmulatedDevices; track device) {
+      <button cdkMenuItem (click)="setEmulatedDevice(device)">
+        {{ device.name }}
+      </button>
+    }
   </div>
 </ng-template>
 
 <ng-template #zoomsMenu>
   <div cdkMenu displayDensity="cosy">
-    <button cdkMenuItem *ngFor="let zoom of DeviceZooms" (click)="setDeviceZoom(zoom)">
-      {{ zoom.name }}
-    </button>
+    @for (zoom of DeviceZooms; track zoom) {
+      <button cdkMenuItem (click)="setDeviceZoom(zoom)">
+        {{ zoom.name }}
+      </button>
+    }
   </div>
 </ng-template>
 <ng-template #scaleMenu>
@@ -799,10 +797,10 @@
         class="pac-story-bar__scale-item group"
         [class.active]="scale() === item.value"
         (click)="setScale(item.value)"
-      >
+        >
         <span
           class="pac-story-bar__scale-point inline-flex items-center justify-center w-2 h-2 ml-2 mr-4 text-xs font-semibold bg-gray-200 rounded-full group-hover:bg-yellow-500"
-        >
+          >
         </span>
 
         <span>{{ item.name }}</span>
@@ -817,17 +815,17 @@
       cdkMenuItem
       [cdkMenuTriggerFor]="scaleMenu"
       [zTooltip]="'Story.Toolbar.Scale' | translate: { Default: 'Scale' }"
-    >
+      >
       {{ scale() ?? ('Story.Toolbar.Scale' | translate: { Default: 'Scale' }) }}
     </button>
 
-    <ng-container *ngIf="emulatedDevice">
+    @if (emulatedDevice) {
       <button
         cdkMenuItem
         [cdkMenuTriggerFor]="devicesMenu"
         [zTooltip]="'Story.Toolbar.EmulatedDevices' | translate: { Default: 'Emulated Devices' }"
         zPosition="right"
-      >
+        >
         {{ emulatedDevice?.name ?? 'Responsive' }}
       </button>
       <button
@@ -835,19 +833,19 @@
         [cdkMenuTriggerFor]="zoomsMenu"
         [zTooltip]="'Story.Toolbar.Fit' | translate: { Default: 'Fit' }"
         zPosition="right"
-      >
+        >
         {{ deviceZoom?.name ?? ('Story.Toolbar.Fit' | translate: { Default: 'Fit' }) }}
       </button>
-
-      <button
-        cdkMenuItem
-        *ngIf="emulatedDevice?.isFold"
-        [zTooltip]="'Story.Toolbar.DeviceFold' | translate: { Default: 'Device Fold' }"
-        zPosition="right"
-        (click)="toggleDeviceFold()"
-      >
-        <z-icon zType="flip"></z-icon>
-      </button>
-    </ng-container>
+      @if (emulatedDevice?.isFold) {
+        <button
+          cdkMenuItem
+          [zTooltip]="'Story.Toolbar.DeviceFold' | translate: { Default: 'Device Fold' }"
+          zPosition="right"
+          (click)="toggleDeviceFold()"
+          >
+          <z-icon zType="flip"></z-icon>
+        </button>
+      }
+    }
   </div>
 </ng-template>

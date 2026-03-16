@@ -1,6 +1,6 @@
 <ngm-table class="flex-1 overflow-hidden rounded-lg mt-2"
-    paging
-    [data]="approvals$ | async"
+  paging
+  [data]="approvals$ | async"
     [columns]="[
         {
             name: 'permissionType',
@@ -40,52 +40,63 @@
     ]">
 </ngm-table>
 
-<div *ngIf="loading" class="absolute top-1/2 left-1/2 -mt-4 -ml-4 z-10">
-    <mat-spinner diameter="30" strokeWidth="2">
-    </mat-spinner>
-</div>
+@if (loading) {
+  <div class="absolute top-1/2 left-1/2 -mt-4 -ml-4 z-10">
+    <z-loader diameter="30" />
+  </div>
+}
 
 <ng-template #typeTempl let-permissionType="permissionType">
-    <span>
-        {{ 'PAC.ApprovalPolicy.' + permissionType | translate: { Default: permissionType } }}
-    </span>
+  <span>
+    {{ 'PAC.ApprovalPolicy.' + permissionType | translate: { Default: permissionType } }}
+  </span>
 </ng-template>
 
 <ng-template #igTempl let-indicatorGroup="indicatorGroup">
-    <a *ngIf="indicatorGroup" [routerLink]="['/settings/business-area/', indicatorGroup?.id]">{{ indicatorGroup?.name }}</a>
+  @if (indicatorGroup) {
+    <a [routerLink]="['/settings/business-area/', indicatorGroup?.id]">{{ indicatorGroup?.name }}</a>
+  }
 </ng-template>
 
 <ng-template #indicatorTempl let-indicator="indicator">
-    <a [routerLink]="['/indicator/viewer', indicator?.id]">{{ indicator?.name }}</a>
+  <a [routerLink]="['/indicator/viewer', indicator?.id]">{{ indicator?.name }}</a>
 </ng-template>
 
 <ng-template #usersTempl let-userApprovals="userApprovals">
-    <mat-chip-set class="pac-user-chip-set" displayDensity="compact" [style.width.px]="userApprovals.length*20 + 120">
-        <mat-chip *ngFor="let userApproval of userApprovals; let i = index" [style.width.px]="120" [style.left.px]="i*20">
-            <pac-user-avatar matChipAvatar [user]="userApproval.user" class="m-0 shrink-0"></pac-user-avatar>
-            <span class="text-ellipsis overflow-hidden whitespace-nowrap">
-                {{ userApproval.user | user }}
-            </span>
-        </mat-chip>
-    </mat-chip-set>
+  <mat-chip-set class="pac-user-chip-set" displayDensity="compact" [style.width.px]="userApprovals.length*20 + 120">
+    @for (userApproval of userApprovals; track userApproval; let i = $index) {
+      <mat-chip [style.width.px]="120" [style.left.px]="i*20">
+        <pac-user-avatar matChipAvatar [user]="userApproval.user" class="m-0 shrink-0"></pac-user-avatar>
+        <span class="text-ellipsis overflow-hidden whitespace-nowrap">
+          {{ userApproval.user | user }}
+        </span>
+      </mat-chip>
+    }
+  </mat-chip-set>
 </ng-template>
 
 <ng-template #actionTempl let-indicator="indicator" let-approvalId="id" let-status="status" let-loading="loading">
-    <div *ngIf="status===PermissionApprovalStatus.REQUESTED" ngmButtonGroup displayDensity="compact" class="inline-block">
-        <button z-button zType="default" displayDensity="compact" color="primary" [disabled]="loading" (click)="approval(approvalId)">
-            <div class="flex items-center">
-                <z-icon zType="task_alt"></z-icon>
-                {{ 'PAC.KEY_WORDS.Approve' | translate: {Default: 'Approve'} }}
-            </div>
-        </button>
-        <button z-button zType="default" displayDensity="compact" color="warn" [disabled]="loading" (click)="refuse(approvalId)">
-            <div class="flex items-center">
-                <z-icon zType="block"></z-icon>
-                {{ 'PAC.KEY_WORDS.Refuse' | translate: {Default: 'Refuse'} }}
-            </div>
-        </button>
+  @if (status===PermissionApprovalStatus.REQUESTED) {
+    <div ngmButtonGroup displayDensity="compact" class="inline-block">
+      <button z-button zType="default" displayDensity="compact" color="primary" [disabled]="loading" (click)="approval(approvalId)">
+        <div class="flex items-center">
+          <z-icon zType="task_alt"></z-icon>
+          {{ 'PAC.KEY_WORDS.Approve' | translate: {Default: 'Approve'} }}
+        </div>
+      </button>
+      <button z-button zType="default" displayDensity="compact" color="warn" [disabled]="loading" (click)="refuse(approvalId)">
+        <div class="flex items-center">
+          <z-icon zType="block"></z-icon>
+          {{ 'PAC.KEY_WORDS.Refuse' | translate: {Default: 'Refuse'} }}
+        </div>
+      </button>
     </div>
+  }
 
-    <z-icon *ngIf="status===PermissionApprovalStatus.APPROVED" zSize="default" color="primary" zType="task_alt"></z-icon>
-    <z-icon *ngIf="status===PermissionApprovalStatus.REFUSED" zSize="default" color="warn" zType="block"></z-icon>
+  @if (status===PermissionApprovalStatus.APPROVED) {
+    <z-icon zSize="default" color="primary" zType="task_alt"></z-icon>
+  }
+  @if (status===PermissionApprovalStatus.REFUSED) {
+    <z-icon zSize="default" color="warn" zType="block"></z-icon>
+  }
 </ng-template>

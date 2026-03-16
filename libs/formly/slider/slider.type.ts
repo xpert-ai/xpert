@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, Type } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmSliderInputComponent } from '@metad/ocap-angular/common'
@@ -49,7 +49,7 @@ export interface FormlySliderFieldConfig extends FormlyFieldConfig<SliderProps> 
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrls: ['./slider.type.scss'],
-  imports: [CommonModule, FormsModule, NgmSliderInputComponent]
+  imports: [FormsModule, NgmSliderInputComponent]
 })
 export class FormlyFieldSliderComponent extends FieldType<FieldTypeConfig<SliderProps>> {
   override defaultOptions = {

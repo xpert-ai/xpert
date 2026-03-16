@@ -3,14 +3,22 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { NgModule } from '@angular/core'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { MatChipsModule } from '@angular/material/chips'
-import { MatNativeDateModule } from '@angular/material/core'
-import { ZardAccordionImports, ZardBadgeComponent, ZardButtonComponent, ZardCardImports, ZardCheckboxComponent, ZardDialogModule, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardMenuImports, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { MatSidenavModule } from '@angular/material/sidenav'
-import { MatStepperModule } from '@angular/material/stepper'
-import { MatTableModule } from '@angular/material/table'
-import { MatTreeModule } from '@angular/material/tree'
-import { MatDatepickerModule } from '@angular/material/datepicker'
+import {
+  ZardAccordionImports,
+  ZardBadgeComponent,
+  ZardButtonComponent,
+  ZardCardImports,
+  ZardDividerComponent,
+  ZardDrawerImports,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardMenuImports,
+  ZardTableImports,
+  ZardTabsImports,
+  ZardCheckboxComponent,
+  ZardTooltipImports
+} from '@xpert-ai/headless-ui'
 
 const MATERIAL_MODULES = [
   DragDropModule,
@@ -18,25 +26,16 @@ const MATERIAL_MODULES = [
   ZardIconComponent,
   ZardDividerComponent,
   ...ZardMenuImports,
-  ZardDialogModule,
   ZardButtonComponent,
   ...ZardFormImports,
   ...ZardTabsImports,
   ...ZardCardImports,
-  MatStepperModule,
   ZardInputDirective,
-  MatSidenavModule,
   ZardCheckboxComponent,
-  ...ZardAccordionImports,
   MatAutocompleteModule,
   MatChipsModule,
   ...ZardTooltipImports,
-  MatTreeModule,
   ZardBadgeComponent,
-  MatTableModule,
-  MatProgressSpinnerModule,
-  MatDatepickerModule,
-  MatNativeDateModule
 ]
 
 /**

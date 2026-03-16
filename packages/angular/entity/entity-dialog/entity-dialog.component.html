@@ -34,7 +34,7 @@
   <ngm-search class="m-2" [formControl]="search"></ngm-search>
   @if (loading()) {
     <div class="absolute w-full h-full top-0 left-0 flex justify-center items-center z-10">
-      <mat-spinner mode="indeterminate" diameter="30" class="m-2"></mat-spinner>
+      <z-loader diameter="30" class="m-2" />
     </div>
   }
 

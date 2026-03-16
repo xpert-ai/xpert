@@ -1,5 +1,5 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-import { CommonModule } from '@angular/common'
+
 import { Component, DestroyRef, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -17,7 +17,7 @@ import { map } from 'rxjs/operators'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, CdkListboxModule, FormsModule],
+  imports: [TranslateModule, CdkListboxModule, FormsModule],
   providers: [FeatureService],
   selector: 'xp-feature-category',
   templateUrl: './feature-category.component.html',

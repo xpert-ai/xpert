@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ZardDividerComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
@@ -16,14 +16,13 @@ import { UserAvatarEditorComponent } from '../../../@shared/user'
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     ...ZardTabsImports,
     ZardDividerComponent,
     TranslateModule,
     RouterModule,
     UserPipe,
     UserAvatarEditorComponent
-  ]
+]
 })
 export class PACAccountComponent {
   private readonly store = inject(Store)

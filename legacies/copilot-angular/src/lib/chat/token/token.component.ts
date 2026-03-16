@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -10,13 +10,17 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-copilot-token',
   template: `<span
-    class="bg-neutral-100 text-neutral-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-neutral-700 dark:text-neutral-300"
-    zTooltip="{{ 'PAC.Copilot.CharacterLength' | translate: { Default: 'Character length' } }}"
-  >
-    <span *ngIf="characterLength() >= 4000" class="inline-block w-2 h-2 bg-yellow-400 rounded-full"></span>
-    <span *ngIf="characterLength() < 4000" class="inline-block w-2 h-2 bg-gray-300 rounded-full"></span>
-    {{ characterLength() }}
-  </span>`,
+      class="bg-neutral-100 text-neutral-800 text-xs font-medium px-2.5 py-0.5 rounded dark:bg-neutral-700 dark:text-neutral-300"
+      zTooltip="{{ 'PAC.Copilot.CharacterLength' | translate: { Default: 'Character length' } }}"
+      >
+      @if (characterLength() >= 4000) {
+        <span class="inline-block w-2 h-2 bg-yellow-400 rounded-full"></span>
+      }
+      @if (characterLength() < 4000) {
+        <span class="inline-block w-2 h-2 bg-gray-300 rounded-full"></span>
+      }
+      {{ characterLength() }}
+    </span>`,
   styles: [
     `
       :host {
@@ -24,7 +28,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
       }
     `
   ],
-  imports: [CommonModule, ...ZardTooltipImports, TranslateModule],
+  imports: [...ZardTooltipImports, TranslateModule],
   host: {
     class: 'ngm-copilot-token'
   }

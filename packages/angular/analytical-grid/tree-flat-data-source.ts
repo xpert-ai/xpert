@@ -1,13 +1,12 @@
 import { CollectionViewer } from '@angular/cdk/collections'
-import { MatTreeFlatDataSource } from '@angular/material/tree'
-import { type ZardPaginatorLike } from '@xpert-ai/headless-ui'
+import { type ZardPaginatorLike, ZardTreeFlatDataSource } from '@xpert-ai/headless-ui'
 import { BehaviorSubject, Observable, Subject, combineLatestWith, distinctUntilChanged, map, merge, of, switchMap } from 'rxjs'
 
 export class NgmTreeFlatDataSource<
   T,
   F,
   P extends ZardPaginatorLike = ZardPaginatorLike
-> extends MatTreeFlatDataSource<T, F> {
+> extends ZardTreeFlatDataSource<T, F> {
   get paginator(): P | null {
     return this._paginator.value
   }

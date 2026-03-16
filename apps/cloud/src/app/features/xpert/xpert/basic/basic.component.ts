@@ -2,7 +2,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormArray, FormBuilder, FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
@@ -35,7 +35,6 @@ import { XpertService } from '../xpert.service'
   selector: 'xpert-basic',
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
@@ -43,13 +42,12 @@ import { XpertService } from '../xpert.service'
     CdkListboxModule,
     DragDropModule,
     ZardInputDirective,
-
     NgmDensityDirective,
     EmojiAvatarComponent,
     CopilotModelSelectComponent,
     TagSelectComponent,
     NgmSpinComponent
-  ],
+],
   templateUrl: './basic.component.html',
   styleUrl: './basic.component.scss',
   animations: [IfAnimation]

@@ -1,70 +1,77 @@
-<div *ngIf="editable" class="ngm-responsive__header"></div>
+@if (editable) {
+  <div class="ngm-responsive__header"></div>
+}
 
-<ng-container *ngFor="let item of flexLayout.children; trackBy:trackById">
-    <ngm-flex-layout *ngIf="item.type === FLEX_ITEM_TYPE.FlexLayout" class="ngm-responsive__item"
-        [flexLayout]="item" [editable]="editable">
+@for (item of flexLayout.children; track trackById($index, item)) {
+  @if (item.type === FLEX_ITEM_TYPE.FlexLayout) {
+    <ngm-flex-layout class="ngm-responsive__item"
+      [flexLayout]="item" [editable]="editable">
     </ngm-flex-layout>
-
-    <div *ngIf="item.type===FLEX_ITEM_TYPE.Widget" class="ngm-responsive__item widget"
-        [ngClass]="activeId===item.key ? 'active' : ''"
-        [ngStyle]="item.styles"
-        (click)="onChildClick($event, item)"
-        >
-        <ng-container [ngTemplateOutlet]="item.template"
+  }
+  @if (item.type===FLEX_ITEM_TYPE.Widget) {
+    <div class="ngm-responsive__item widget"
+      [ngClass]="activeId===item.key ? 'active' : ''"
+      [ngStyle]="item.styles"
+      (click)="onChildClick($event, item)"
+      >
+      <ng-container [ngTemplateOutlet]="item.template"
             [ngTemplateOutletContext]="{
                 $implicit: item.templateContext,
                 laneKey: item.key,
                 editable: editable,
                 selected: activeId === item.key
             }">
-        </ng-container>
+      </ng-container>
     </div>
-</ng-container>
+  }
+}
 
-<div *ngIf="active && editable" class="ngm-responsive__fab-menu" [ngClass]="{rightSide: rightSide}"
+@if (active && editable) {
+  <div class="ngm-responsive__fab-menu" [ngClass]="{rightSide: rightSide}"
     fxLayout="column" fxLayoutAlign="space-around center" fxLayoutGap="0.25rem">
     <button z-button zType="default" zSize="icon-sm" zShape="circle" [matMenuTriggerFor]="menu" (click)="$event.stopPropagation()">
       <z-icon zType="menu"></z-icon>
     </button>
-</div>
+  </div>
+}
 
 <mat-menu #menu="matMenu" class="ngm-density__compact">
-    <button mat-menu-item [matMenuTriggerFor]="laneMenu">
-        <z-icon  zType="add"></z-icon> Add lane
-    </button>
+  <button mat-menu-item [matMenuTriggerFor]="laneMenu">
+    <z-icon  zType="add"></z-icon> Add lane
+  </button>
 
-    <button mat-menu-item [matMenuTriggerFor]="swapMenu">
-        <z-icon [zType]="parentDirection === 'row' ? 'swap_horiz' : 'swap_vert'"></z-icon>Swap
-    </button>
+  <button mat-menu-item [matMenuTriggerFor]="swapMenu">
+    <z-icon [zType]="parentDirection === 'row' ? 'swap_horiz' : 'swap_vert'"></z-icon>Swap
+  </button>
 
-    <button mat-menu-item color="warn" class="ngm-button--warn" (click)="removeMyself()">
-        <z-icon color="warn" zType="delete_forever"></z-icon>
-        <span>Delete</span>
-    </button>
+  <button mat-menu-item color="warn" class="ngm-button--warn" (click)="removeMyself()">
+    <z-icon color="warn" zType="delete_forever"></z-icon>
+    <span>Delete</span>
+  </button>
 </mat-menu>
 
 <mat-menu #laneMenu="matMenu" class="ngm-density__compact">
-    <button mat-menu-item (click)="addLaneLeft()">
-        Add lane to left
-    </button>
-    <button mat-menu-item (click)="addLaneRight()">
-        Add lane to right
-    </button>
-    <button mat-menu-item (click)="addLaneAbove()">
-        Add lane to above
-    </button>
-    <button mat-menu-item (click)="addLaneBelow()">
-        Add lane to below
-    </button>
+  <button mat-menu-item (click)="addLaneLeft()">
+    Add lane to left
+  </button>
+  <button mat-menu-item (click)="addLaneRight()">
+    Add lane to right
+  </button>
+  <button mat-menu-item (click)="addLaneAbove()">
+    Add lane to above
+  </button>
+  <button mat-menu-item (click)="addLaneBelow()">
+    Add lane to below
+  </button>
 </mat-menu>
 
 <mat-menu #swapMenu="matMenu" class="ngm-density__compact">
-    <button mat-menu-item (click)="swapWithPrev()">
-        <z-icon [zType]="parentDirection === 'row' ? 'arrow_back' : 'arrow_upward'"></z-icon>
-        With Prev
-    </button>
-    <button mat-menu-item (click)="swapWithNext()">
-        <z-icon [zType]="parentDirection === 'row' ? 'arrow_forward' : 'arrow_downward'"></z-icon>
-        With Next
-    </button>
+  <button mat-menu-item (click)="swapWithPrev()">
+    <z-icon [zType]="parentDirection === 'row' ? 'arrow_back' : 'arrow_upward'"></z-icon>
+    With Prev
+  </button>
+  <button mat-menu-item (click)="swapWithNext()">
+    <z-icon [zType]="parentDirection === 'row' ? 'arrow_forward' : 'arrow_downward'"></z-icon>
+    With Next
+  </button>
 </mat-menu>

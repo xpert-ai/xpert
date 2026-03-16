@@ -1,5 +1,5 @@
 import { animate, state, style, transition, trigger } from '@angular/animations'
-import { CommonModule } from '@angular/common'
+
 import { Component, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
@@ -14,7 +14,7 @@ import { ProjectComponent } from '../project/project.component'
 import { ZardDialogService } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MaterialModule, TranslateModule],
+  imports: [ReactiveFormsModule, MaterialModule, TranslateModule],
   selector: 'pac-project-files',
   templateUrl: 'files.component.html',
   styleUrl: 'files.component.scss',

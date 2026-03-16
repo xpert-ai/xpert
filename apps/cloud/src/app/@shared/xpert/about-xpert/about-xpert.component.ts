@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
@@ -15,7 +15,6 @@ import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headle
   templateUrl: './about-xpert.component.html',
   styleUrls: ['about-xpert.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     ReactiveFormsModule,
     MaterialModule,

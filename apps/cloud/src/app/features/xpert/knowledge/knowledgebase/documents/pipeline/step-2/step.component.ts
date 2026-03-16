@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -25,7 +25,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   templateUrl: './step.component.html',
   styleUrls: ['./step.component.scss'],
   imports: [
-    CommonModule,
     RouterModule,
     CdkMenuModule,
     FormsModule,
@@ -33,7 +32,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     ContentLoaderModule,
     KnowledgeDocumentPipelineSettingsComponent
-  ]
+]
 })
 export class KnowledgeDocumentPipelineStep2Component {
   eKDocumentSourceType = KDocumentSourceType

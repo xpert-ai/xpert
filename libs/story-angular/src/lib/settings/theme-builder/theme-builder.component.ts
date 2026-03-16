@@ -1,5 +1,5 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { CommonModule } from '@angular/common'
+
 import { Component, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
@@ -13,7 +13,6 @@ import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardIconComponent 
 @Component({
   standalone: true,
   imports: [
-    CommonModule,
     FormsModule,
     DragDropModule,
     TranslateModule,
@@ -23,7 +22,7 @@ import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardIconComponent 
     ZardIconComponent,
     MonacoEditorModule,
     ButtonGroupDirective
-  ],
+],
   selector: 'ngm-theme-builder',
   templateUrl: './theme-builder.component.html',
   styleUrls: ['./theme-builder.component.scss']

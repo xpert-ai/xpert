@@ -1,5 +1,5 @@
 @reference "../../../../../../styles/tailwind-reference.css";
 :host {
-  --mat-sidenav-content-background-color: transparent;
+  --z-drawer-content-bg: transparent;
   @apply relative grow flex flex-col max-w-full;
 }

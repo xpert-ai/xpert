@@ -1,7 +1,5 @@
 import { FocusableOption, FocusMonitor, FocusOrigin } from '@angular/cdk/a11y'
 import { coerceBooleanProperty } from '@angular/cdk/coercion'
-import { DataSource } from '@angular/cdk/collections'
-import { FlatTreeControl } from '@angular/cdk/tree'
 import {
   afterNextRender,
   ChangeDetectionStrategy,
@@ -20,14 +18,16 @@ import {
   OnDestroy,
   Output,
   signal,
-  SimpleChanges,
-  viewChild,
-  ViewChild
+  SimpleChanges
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { ZardPaginatorComponent, type ZardPaginatorLike } from '@xpert-ai/headless-ui'
-import { MatSort, SortDirection } from '@angular/material/sort'
-import { MatTreeFlatDataSource, MatTreeFlattener } from '@angular/material/tree'
+import {
+  type ZardPageEvent,
+  type ZardTableSortDirection,
+  ZardFlatTreeControl,
+  ZardTreeFlatDataSource,
+  ZardTreeFlattener
+} from '@xpert-ai/headless-ui'
 import { csvDownload, DisplayDensity, mergeSelectedValues, NgmAppearance } from '@metad/ocap-angular/core'
 import {
   AggregationRole,
@@ -75,9 +75,9 @@ import { TranslateService } from '@ngx-translate/core'
 import { maxBy, minBy, orderBy, unionBy } from 'lodash-es'
 import { BehaviorSubject, combineLatest, firstValueFrom, Observable, of } from 'rxjs'
 import { combineLatestWith, debounceTime, filter, map, shareReplay, withLatestFrom } from 'rxjs/operators'
+import { paginateTableRows, parseTableWidthToPx, sortTableRows, type TableSortState } from '../common/table/table.utils'
 import { NgmAnalyticsBusinessService } from './analytics.service'
 import { getChromaticScale, getContrastYIQ } from './chromatics'
-import { NgmFlatTableDataSource } from './flat-data-source'
 import {
   AnalyticalGridColumn,
   AnalyticalGridColumnOptions,
@@ -154,15 +154,6 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
   @Output() explain = new EventEmitter<any[]>()
   @Output() entityTypeChange = new EventEmitter<EntityType>()
 
-  @ViewChild(ZardPaginatorComponent)
-  set paginator(v: ZardPaginatorComponent) {
-    this._paginator.set(v)
-  }
-  private readonly _paginator = signal<ZardPaginatorComponent>(null)
-
-  // @ViewChild(MatSort) sort: MatSort
-  readonly sort = viewChild(MatSort)
-
   readonly showToolbar = computed(() => isNil(this.options()?.showToolbar) || this.options().showToolbar)
 
   // Inner states
@@ -171,8 +162,9 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
       matRestHeaders: string[][];
       matRowColumns?: string[]
     }[]>([])
-  matSortActive = ''
-  matSortDirection: SortDirection
+  readonly pageIndex = signal(0)
+  readonly pageSize = signal(20)
+  readonly sortState = signal<TableSortState>({ active: null, direction: '' })
   selected: {
     prevI: number | string
     prevColumn: number | string
@@ -195,10 +187,6 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
   }
   virtualScrollItemSize = 48
 
-  // Flat Table
-  flatDataSource = new NgmFlatTableDataSource([]) as Omit<NgmFlatTableDataSource<any>, 'paginator'> & {
-    paginator: ZardPaginatorLike | null
-  }
   // isRowHierarchy = false
   rowRecursiveHierarchy = null
   readonly rowTreeProperty = signal<string>(null)
@@ -222,9 +210,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
       return [...data]
     })
   )
-  get dataSource(): DataSource<any> {
-    return this.rowTreeProperty() ? this.rowDataSource : this.flatDataSource
-  }
+  readonly filteredFlatRows = toSignal(this.filteredData$, { initialValue: [] as any[] })
 
   treeNodePadding = 16
   /**
@@ -342,13 +328,13 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
   public readonly querySchemaColumns$ = new BehaviorSubject([])
 
   // for Tree Table
-  public columnTreeControl = new FlatTreeControl<AnalyticalGridColumn>(
+  public columnTreeControl = new ZardFlatTreeControl<AnalyticalGridColumn>(
     (node) => node.treeLevel,
     (node) => node.expandable
   )
-  public readonly columnsDataSource = new MatTreeFlatDataSource(
+  public readonly columnsDataSource = new ZardTreeFlatDataSource(
     this.columnTreeControl,
-    new MatTreeFlattener(
+    new ZardTreeFlattener(
       (node: TreeNodeInterface<PivotColumn>, level: number): AnalyticalGridColumn => {
         return {
           ...omit(node.raw, 'label'),
@@ -365,13 +351,13 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
     []
   )
 
-  public rowTreeControl = new FlatTreeControl<FlatTreeNode<T>>(
+  public rowTreeControl = new ZardFlatTreeControl<FlatTreeNode<T>>(
     (node) => node.level,
     (node) => node.expandable
   )
   public readonly rowDataSource = new NgmTreeFlatDataSource(
     this.rowTreeControl,
-    new MatTreeFlattener(
+    new ZardTreeFlattener(
       (node: TreeNodeInterface<T>, level: number): FlatTreeNode<T> => {
         return {
           ...(node.raw ?? node),
@@ -679,13 +665,6 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
 
       this._data$.next(data)
     })
-  private filteredFlatDataSub = this.filteredData$.pipe(
-      filter(() => !this.rowRecursiveHierarchy),
-      takeUntilDestroyed()
-    ).subscribe((data) => {
-      this.flatDataSource.data = data
-    })
-  
 
   constructor(
     private translateService: TranslateService,
@@ -719,25 +698,20 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
     )
 
     effect(() => {
-      if (this._paginator()) {
-        if (this.rowTreeProperty()) {
-          this.flatDataSource.paginator = null
-          this.rowDataSource.paginator = this._paginator()
-        } else {
-          this.flatDataSource.paginator = this._paginator()
-          this.rowDataSource.paginator = null
-        }
-      } else {
-        this.flatDataSource.paginator = null
-        this.rowDataSource.paginator = null
+      const defaultPageSize = this.options()?.pageSize ?? 20
+      if (this.pageSize() !== defaultPageSize) {
+        this.pageSize.set(defaultPageSize)
       }
-    },
-    { allowSignalWrites: true }
-    )
+    }, { allowSignalWrites: true })
 
     effect(() => {
-      if (this.sort()) {
-        this.flatDataSource.sort = this.sort()
+      const total = this.resultsLength()
+      const pageSize = this.pageSize()
+      const maxPageIndex =
+        this.options()?.paging && pageSize > 0 ? Math.max(Math.ceil(total / pageSize) - 1, 0) : 0
+
+      if (this.pageIndex() > maxPageIndex) {
+        this.pageIndex.set(maxPageIndex)
       }
     }, { allowSignalWrites: true })
 
@@ -772,6 +746,88 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
 
   refresh(force?: boolean) {
     this.analyticsService.refresh(force)
+  }
+
+  onPage(event: ZardPageEvent) {
+    this.pageIndex.set(event.pageIndex)
+    this.pageSize.set(event.pageSize)
+  }
+
+  onSortChange(columnName: string, direction: ZardTableSortDirection) {
+    this.sortState.set({
+      active: direction ? columnName : null,
+      direction
+    })
+    this.pageIndex.set(0)
+  }
+
+  setSort(columnName: string, direction: ZardTableSortDirection) {
+    this.onSortChange(columnName, this.sortDirection(columnName) === direction ? '' : direction)
+  }
+
+  sortDirection(columnName: string): ZardTableSortDirection {
+    const sortState = this.sortState()
+    return sortState.active === columnName ? sortState.direction : ''
+  }
+
+  orderedRowAxes(tableConfig: {
+    rowAxes?: AnalyticalGridColumn[]
+    matRowColumns?: string[]
+  }) {
+    const rowAxes = tableConfig.rowAxes ?? []
+    const rowAxisMap = new Map(rowAxes.map((column) => [column.name, column]))
+    const orderedNames = tableConfig.matRowColumns?.filter((name) => rowAxisMap.has(name)) ?? []
+
+    return orderedNames.map((name) => rowAxisMap.get(name))
+  }
+
+  leafColumns(tableConfig: {
+    rowAxes?: AnalyticalGridColumn[]
+    pivotColumns?: AnalyticalGridColumn[][]
+    matRowColumns?: string[]
+  }) {
+    const rowAxisNames = new Set((tableConfig.rowAxes ?? []).map((column) => column.name))
+    const leafColumnMap = new Map(
+      (tableConfig.pivotColumns?.[tableConfig.pivotColumns.length - 1] ?? []).map((column) => [column.name, column])
+    )
+    const orderedNames = tableConfig.matRowColumns?.filter((name) => !rowAxisNames.has(name)) ?? []
+
+    return orderedNames
+      .map((name) => leafColumnMap.get(name))
+      .filter((column): column is AnalyticalGridColumn => !!column)
+  }
+
+  stickyStartOffset(
+    tableConfig: {
+      rowAxes?: AnalyticalGridColumn[]
+      matRowColumns?: string[]
+    },
+    columnName: string
+  ) {
+    let offset = 0
+    for (const column of this.orderedRowAxes(tableConfig)) {
+      if (column.name === columnName) {
+        return offset
+      }
+
+      if (column.sticky) {
+        offset += parseTableWidthToPx((column as { width?: string }).width, 180)
+      }
+    }
+
+    return null
+  }
+
+  headerStickyTop(index: number) {
+    return this.options()?.sticky ? `${index * this.virtualScrollItemSize}px` : null
+  }
+
+  bodyLeadingColspan(tableConfig: { rowAxes?: AnalyticalGridColumn[] }) {
+    if (this.pivotColumnRowCount <= 1) {
+      return null
+    }
+
+    return (tableConfig.rowAxes?.length ?? 0) > 0 ? null : 1
   }
 
   /**
@@ -1214,8 +1270,26 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
     downloadData(this.title || 'data', this.analytics(), this.entityType(), result.data)
   }
 
-  treeData = toSignal(this.rowDataSource.connect({ viewChange: of({ start: 0, end: Number.MAX_SAFE_INTEGER }) }))
-  flatData = toSignal(this.flatDataSource.connect())
+  readonly sortedFlatData = computed(() =>
+    sortTableRows(this.filteredFlatRows(), this.sortState(), (row, columnName) => {
+      const value = row?.[columnName]
+      return typeof value === 'object' && value !== null && 'value' in value ? value.value : value
+    })
+  )
+  readonly treeRows = toSignal(
+    this.rowDataSource.connect({ viewChange: of({ start: 0, end: Number.MAX_SAFE_INTEGER }) }),
+    { initialValue: [] as any[] }
+  )
+  readonly resultsLength = computed(() => (this.rowTreeProperty() ? this.treeRows().length : this.sortedFlatData().length))
+  readonly treeData = computed(() =>
+    this.options()?.paging ? paginateTableRows(this.treeRows(), this.pageIndex(), this.pageSize()) : this.treeRows()
+  )
+  readonly flatData = computed(() =>
+    this.options()?.paging
+      ? paginateTableRows(this.sortedFlatData(), this.pageIndex(), this.pageSize())
+      : this.sortedFlatData()
+  )
+  readonly tableRows = computed(() => (this.rowTreeProperty() ? this.treeData() : this.flatData()))
   
   copy(selected: typeof this.selected) {
     const treeData = this.treeData()

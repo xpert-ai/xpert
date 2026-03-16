@@ -2,8 +2,8 @@
   {{ 'Ngm.TimeFilter.Today' | translate: {Default: "Today"} }}
 </label>
 
-<ng-container [ngSwitch]="granularity">
-  <ng-container *ngSwitchCase="TimeGranularity.Year">
+@switch (granularity) {
+  @case (TimeGranularity.Year) {
     <ngm-yearpicker [formControl]="date">
       <button
         z-button
@@ -15,12 +15,12 @@
         z-menu
         [zMenuTriggerFor]="granularityMenu"
         (click)="$event.stopPropagation();$event.preventDefault();"
-      >
+        >
         <z-icon zType="more_vert"></z-icon>
       </button>
     </ngm-yearpicker>
-  </ng-container>
-  <ng-container *ngSwitchCase="TimeGranularity.Quarter">
+  }
+  @case (TimeGranularity.Quarter) {
     <ngm-quarterpicker [formControl]="date">
       <button
         z-button
@@ -32,12 +32,12 @@
         z-menu
         [zMenuTriggerFor]="granularityMenu"
         (click)="$event.stopPropagation();$event.preventDefault();"
-      >
-          <z-icon zType="more_vert"></z-icon>
+        >
+        <z-icon zType="more_vert"></z-icon>
       </button>
     </ngm-quarterpicker>
-  </ng-container>
-  <ng-container *ngSwitchCase="TimeGranularity.Month">
+  }
+  @case (TimeGranularity.Month) {
     <ngm-monthpicker [formControl]="date">
       <button
         z-button
@@ -49,13 +49,12 @@
         z-menu
         [zMenuTriggerFor]="granularityMenu"
         (click)="$event.stopPropagation();$event.preventDefault();"
-      >
+        >
         <z-icon zType="more_vert"></z-icon>
       </button>
     </ngm-monthpicker>
-  </ng-container>
-
-  <ng-container *ngSwitchDefault>
+  }
+  @default {
     <ngm-datepicker [formControl]="date">
       <button
         z-button
@@ -67,27 +66,28 @@
         z-menu
         [zMenuTriggerFor]="granularityMenu"
         (click)="$event.stopPropagation();$event.preventDefault();"
-      >
-          <z-icon zType="more_vert"></z-icon>
+        >
+        <z-icon zType="more_vert"></z-icon>
       </button>
     </ngm-datepicker>
-  </ng-container>
-</ng-container>
+  }
+}
 
 <z-radio-group [(ngModel)]="granularity">
   <ng-template #granularityMenu>
     <div z-menu-content class="ngm-formly ngm-density__compact">
-      <button
-        type="button"
-        z-menu-item
-        class="w-full"
-        *ngFor="let value of TIME_GRANULARITY_SEQUENCES[granularitySequence]"
-        (click)="$event.stopPropagation()"
-      >
-        <z-radio [value]="value">
-          {{ 'Ngm.TimeFilter.' + value | translate: {Default: value} }}
-        </z-radio>
-      </button>
+      @for (value of TIME_GRANULARITY_SEQUENCES[granularitySequence]; track value) {
+        <button
+          type="button"
+          z-menu-item
+          class="w-full"
+          (click)="$event.stopPropagation()"
+          >
+          <z-radio [value]="value">
+            {{ 'Ngm.TimeFilter.' + value | translate: {Default: value} }}
+          </z-radio>
+        </button>
+      }
     </div>
   </ng-template>
 </z-radio-group>

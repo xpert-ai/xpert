@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, input } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -26,7 +26,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     ...ZardTooltipImports,
@@ -35,7 +34,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     JSONSchemaFormComponent,
     NgmSelectComponent,
     IntegrationSelectComponent
-  ]
+]
 })
 export class XpertWorkflowSourceComponent extends XpertWorkflowBaseComponent {
   readonly studioService = inject(XpertStudioApiService)

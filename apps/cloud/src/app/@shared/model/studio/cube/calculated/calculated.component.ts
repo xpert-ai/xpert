@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import {
   ChangeDetectionStrategy,
   Component,
@@ -29,7 +29,7 @@ import { HiddenLLM } from '../../../schema'
   selector: 'xp-cube-studio-calculated-settings',
   templateUrl: 'calculated.component.html',
   styleUrls: ['calculated.component.scss'],
-  imports: [CommonModule, FormsModule, TranslateModule, FormlyModule, DensityDirective],
+  imports: [FormsModule, TranslateModule, FormlyModule, DensityDirective],
   host: {
     class: 'xp-cube-studio-calculated-settings'
   }

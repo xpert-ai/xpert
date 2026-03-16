@@ -1,6 +1,6 @@
 import { CdkDragDrop, DragDropModule, moveItemInArray } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, computed, inject, model, output } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { suuid } from '@cloud/app/@core/types'
@@ -18,7 +18,6 @@ import { CubeStudioDimensionLevelComponent } from './level/level.component'
   templateUrl: 'hierarchy.component.html',
   styleUrls: ['hierarchy.component.scss'],
   imports: [
-    CommonModule,
     FormsModule,
     CdkMenuModule,
     FFlowModule,
@@ -26,7 +25,7 @@ import { CubeStudioDimensionLevelComponent } from './level/level.component'
     DragDropModule,
     CubeStudioDimensionSettingsComponent,
     CubeStudioDimensionLevelComponent
-  ],
+],
   host: {
     class: 'xp-cube-studio-hierarchy'
   }

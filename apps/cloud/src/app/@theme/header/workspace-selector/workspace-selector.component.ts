@@ -1,5 +1,5 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule } from '@angular/common'
+
 import { Component, DestroyRef, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
@@ -18,7 +18,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   host: {
     class: 'pac-workspace-selector'
   },
-  imports: [CommonModule, FormsModule, CdkMenuModule, TranslateModule, ...ZardTooltipImports],
+  imports: [FormsModule, CdkMenuModule, TranslateModule, ...ZardTooltipImports],
   animations: [OverlayAnimation1]
 })
 export class WorkspaceSelectorComponent {

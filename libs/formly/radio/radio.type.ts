@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { ChangeDetectionStrategy, Component, Type } from '@angular/core'
 import { ReactiveFormsModule } from '@angular/forms'
 import { FieldType, FieldTypeConfig, FormlyFieldConfig, FormlyFieldProps, FormlyModule } from '@ngx-formly/core'
@@ -23,33 +23,33 @@ export interface FormlyRadioFieldConfig extends FormlyFieldConfig<RadioProps> {
 @Component({
   standalone: true,
   selector: 'ngm-formly-radio',
-  imports: [CommonModule, ReactiveFormsModule, FormlyModule, ...ZardFormImports],
+  imports: [ReactiveFormsModule, FormlyModule, ...ZardFormImports],
   template: `
     <div class="ngm-formly-radio flex max-w-full flex-col gap-2">
-      <ng-container *ngIf="props.label && props.hideLabel !== true">
+      @if (props.label && props.hideLabel !== true) {
         <label [attr.for]="id" class="text-sm font-medium text-foreground">
           {{ props.label }}
-          <ng-container *ngIf="props.required && props.hideRequiredMarker !== true">
+          @if (props.required && props.hideRequiredMarker !== true) {
             <span aria-hidden="true" class="text-destructive">*</span>
-          </ng-container>
+          }
         </label>
-      </ng-container>
-
+      }
+    
       <z-radio-group
         class="ngm-formly-radio__group flex max-w-full flex-wrap gap-x-4 gap-y-2"
         [id]="id"
         [formControl]="formControl"
         [formlyAttributes]="field"
         [displayDensity]="props.displayDensity ?? 'default'"
-      >
-        <ng-container *ngFor="let option of radioOptions; trackBy: trackByValue">
+        >
+        @for (option of radioOptions; track trackByValue($index, option)) {
           <z-radio [value]="option.value">
             {{ option.label }}
           </z-radio>
-        </ng-container>
+        }
       </z-radio-group>
     </div>
-  `,
+    `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     class: 'ngm-formly-radio-field'

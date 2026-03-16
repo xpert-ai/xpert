@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common'
+
 import { Component, Input } from '@angular/core'
 import { IUser } from '../../../@core'
 import { UserPipe } from "../../pipes"
@@ -12,7 +12,7 @@ import { AvatarComponent } from '../../files'
     selector: 'pac-user-avatar',
     template: `<pac-avatar [imageUrl]="user?.imageUrl" alt="{{user | user}}"/>`,
     styles: [``],
-    imports: [CommonModule, UserPipe, AvatarComponent]
+    imports: [UserPipe, AvatarComponent]
 })
 export class UserAvatarComponent {
   @Input() user?: IUser
