@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common'
 import { Component, effect, forwardRef, inject, input, Input, model, ViewContainerRef } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocompleteModule } from '@angular/material/autocomplete'
 
 import { MatDialog } from '@angular/material/dialog'
 import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
@@ -45,7 +44,6 @@ import { Dialog } from '@angular/cdk/dialog'
     ZardButtonComponent,
     ZardIconComponent,
     ZardDividerComponent,
-    MatAutocompleteModule,
     TranslateModule,
 
     OcapCoreModule,

@@ -5,19 +5,14 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  DestroyRef,
-  effect,
   forwardRef,
   HostBinding,
-  inject,
   input,
   Input,
   OnChanges,
-  OnInit,
   signal,
   SimpleChanges
 } from '@angular/core'
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import {
   ControlValueAccessor,
   FormControl,
@@ -26,14 +21,16 @@ import {
   ReactiveFormsModule,
   ValidatorFn
 } from '@angular/forms'
-import { MatAutocompleteModule } from '@angular/material/autocomplete'
 
 import {
   ZardButtonComponent,
+  ZardCheckboxComponent,
+  ZardComboboxComponent,
+  ZardComboboxPanelTemplateDirective,
+  type ZardComboboxOption,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
-  ZardCheckboxComponent,
   ZardLoaderComponent
 } from '@xpert-ai/headless-ui'
 import {
@@ -44,9 +41,8 @@ import {
   NgmFieldColor
 } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
-import { combineLatestWith, debounceTime, distinctUntilChanged, filter, map, startWith } from 'rxjs/operators'
-import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
 import { isEqual } from 'lodash-es'
+import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
 
 /**
  * @deprecated use headless components instead
@@ -74,8 +70,9 @@ import { isEqual } from 'lodash-es'
     ReactiveFormsModule,
     ScrollingModule,
     ...ZardFormImports,
-    MatAutocompleteModule,
     ZardCheckboxComponent,
+    ZardComboboxComponent,
+    ZardComboboxPanelTemplateDirective,
     ZardLoaderComponent,
     ZardIconComponent,
     ZardInputDirective,
@@ -84,9 +81,7 @@ import { isEqual } from 'lodash-es'
     OcapCoreModule
   ]
 })
-export class NgmMatSelectComponent implements OnInit, OnChanges, ControlValueAccessor {
-  readonly #destroyRef = inject(DestroyRef)
-
+export class NgmMatSelectComponent implements OnChanges, ControlValueAccessor {
   @Input() disabled = false
   @Input() disableRipple = false
   @Input() color: NgmFieldColor = null
@@ -123,72 +118,45 @@ export class NgmMatSelectComponent implements OnInit, OnChanges, ControlValueAcc
 
   virtualScrollItemSize = 48
 
-  formControl = new FormControl<ISelectOption | string[] | string>(null)
-  // selection = new SelectionModel<string>(true)
+  formControl = new FormControl<string | string[] | null>(null)
   readonly selectionSignal = selectionModel<string>()
+  readonly searchTerm = signal('')
   readonly selectedValues = computed(() => this.selectionSignal(), { equal: isEqual })
-  get highlight() {
-    return typeof this.formControl.value === 'string' ? this.formControl.value.trim() : null
-  }
-  get isNotInitial() {
-    return Array.isArray(this.formControl.value) ? this.formControl.value.length : this.formControl.value
-  }
+  readonly highlight = computed(() => this.searchTerm().trim())
+  readonly isNotInitial = computed(() =>
+    this.multiple ? this.selectedValues().length : !!this.formControl.value
+  )
 
-  readonly _selectOptions$ = toObservable(this.selectOptions)
-  public readonly options$ = this.formControl.valueChanges.pipe(
-    startWith(''),
-    debounceTime(500),
-    combineLatestWith(this._selectOptions$),
-    map(([name, options]) => {
-      const text = Array.isArray(name) ? null : typeof name === 'string' ? name?.trim().toLowerCase() : null
-      return options?.filter((option) =>
-        text ? option.caption?.toLowerCase().includes(text) || `${option.key}`.toLowerCase().includes(text) : true
+  readonly comboboxOptions = computed<ZardComboboxOption[]>(() =>
+    (this.selectOptions() ?? []).map((option) => ({
+      id: this.optionId(option),
+      label: option.caption || option.label || `${option.key ?? option.value ?? ''}`,
+      value: option.key,
+      data: option
+    }))
+  )
+
+  readonly filteredComboboxOptions = computed(() => {
+    const text = this.highlight().toLowerCase()
+    if (!text) {
+      return this.comboboxOptions()
+    }
+
+    return this.comboboxOptions().filter((option) => {
+      const original = option.data as ISelectOption | undefined
+      return (
+        original?.caption?.toLowerCase().includes(text) ||
+        `${original?.key ?? ''}`.toLowerCase().includes(text)
       )
     })
+  })
+
+  readonly comboboxValue = computed(() =>
+    this.multiple ? (this.selectedValues().length ? this.selectedValues() : null) : this.formControl.value
   )
 
   onChange: (input: any) => void
   onTouched: () => void
-
-  constructor() {
-    effect(
-      () => {
-        if (this.multiple) {
-          // this._updateLabel()
-          this.onChange?.(this.selectedValues())
-        }
-      },
-      { allowSignalWrites: true }
-    )
-  }
-
-  ngOnInit() {
-    this.formControl.valueChanges
-      .pipe(
-        filter(() => !this.multiple),
-        distinctUntilChanged(),
-        takeUntilDestroyed(this.#destroyRef)
-      )
-      .subscribe((value) => {
-        if (typeof value !== 'string' && !Array.isArray(value)) {
-          this.onChange?.(value?.key)
-        }
-      })
-
-    // this.selection.changed
-    //   .pipe(
-    //     filter(() => this.multiple),
-    //     takeUntilDestroyed(this.#destroyRef)
-    //   )
-    //   .subscribe(() => {
-    //     this._updateLabel()
-    //     this.onChange?.(this.selection.selected)
-    //   })
-
-    this._selectOptions$.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe(() => {
-      this._updateLabel()
-    })
-  }
 
   ngOnChanges({ displayDensity, validators }: SimpleChanges): void {
     if (displayDensity) {
@@ -207,91 +175,128 @@ export class NgmMatSelectComponent implements OnInit, OnChanges, ControlValueAcc
   }
 
   writeValue(obj: any): void {
-    if (obj) {
-      if (this.multiple) {
-        this.selectionSignal.set(obj)
-        // this.selection.select(...obj)
-      } else {
-        this.formControl.setValue({ key: obj }, { emitEvent: false })
-      }
-      this._updateLabel()
+    if (this.multiple) {
+      const values = Array.isArray(obj) ? obj : []
+      this.selectionSignal.set(values)
+      this.formControl.setValue(values, { emitEvent: false })
+    } else {
+      this.formControl.setValue(obj ?? null, { emitEvent: false })
     }
+    this.searchTerm.set('')
   }
+
   registerOnChange(fn: any): void {
     this.onChange = fn
   }
+
   registerOnTouched(fn: any) {
     this.onTouched = fn
   }
+
   setDisabledState?(isDisabled: boolean): void {
     this.disabled = isDisabled
     isDisabled ? this.formControl.disable() : this.formControl.enable()
   }
 
-  trackBy(i: number, item: ISelectOption) {
-    return item.key || item.value
+  trackBy(i: number, item: ZardComboboxOption | ISelectOption) {
+    return (item as ZardComboboxOption)?.id ?? (item as ISelectOption)?.key ?? i
   }
 
-  displayWith(value: any) {
-    return Array.isArray(value) ? value : value?.caption || value?.key
+  displayWith(option: ZardComboboxOption | null, value: unknown) {
+    if (Array.isArray(value)) {
+      return value
+        .map((item) => this.resolveOptionLabel(item as string))
+        .filter(Boolean)
+        .join(', ')
+    }
+
+    if (option?.data) {
+      const original = option.data as ISelectOption
+      return original?.caption || original?.label || original?.key || `${value ?? ''}`
+    }
+
+    return this.resolveOptionLabel(value as string)
   }
 
-  private _updateLabel() {
+  isSelect(option: ZardComboboxOption) {
+    return this.selectionSignal().includes(option.value as string)
+  }
+
+  onSearchTermChange(value: string) {
+    this.searchTerm.set(value)
+  }
+
+  onComboboxValueChange(value: unknown) {
+    if (value !== null || !this.multiple) {
+      this.searchTerm.set('')
+    }
+
     if (this.multiple) {
-      this.formControl.setValue(
-        // this.selection.selected.map((value) => this.selectOptions?.find((item) => item.key === value)?.caption || value)
-        this.selectionSignal().map(
-          (value) => this.selectOptions()?.find((item) => item.key === value)?.caption || value
-        )
-      )
+      if (value === null) {
+        this.clear()
+      }
+      return
+    }
+
+    const normalized = (value ?? null) as string | null
+    this.formControl.setValue(normalized)
+    this.onChange?.(normalized)
+  }
+
+  onSelect(event: boolean, option: ZardComboboxOption) {
+    if (!this.multiple) {
+      return
+    }
+
+    if (event) {
+      this.selectionSignal.select(option.value as string)
     } else {
-      let option: any = this.formControl.value
-      // if (isObject(option)) {
-      const key = option?.key
-      if (key && !option.caption) {
-        option = {
-          key,
-          caption: this.selectOptions()?.find((item) => item.key === key)?.caption
-        }
-        this.formControl.setValue(option, { emitEvent: false })
-      }
-      // }
+      this.selectionSignal.deselect(option.value as string)
     }
-  }
 
-  isSelect(option: ISelectOption) {
-    // return this.selection.isSelected(option?.key as string)
-    return this.selectionSignal().includes(option.key)
-  }
-
-  onSelect(event: boolean, option: ISelectOption) {
-    if (this.multiple) {
-      if (event) {
-        // this.selection.select(option.key as string)
-        // this.value.update((value) => [...(value ?? []), option.key])
-        this.selectionSignal.select(option.key)
-      } else {
-        // this.selection.deselect(option.key as string)
-        this.selectionSignal.deselect(option.key)
-      }
-    }
+    const values = [...this.selectionSignal()]
+    this.formControl.setValue(values)
+    this.onChange?.(values)
   }
 
   clear() {
-    this.formControl.setValue(null)
-    this.selectionSignal.clear()
+    this.searchTerm.set('')
+    if (this.multiple) {
+      this.selectionSignal.clear()
+      this.formControl.setValue([])
+      this.onChange?.([])
+    } else {
+      this.formControl.setValue(null)
+      this.onChange?.(null)
+    }
   }
 
   getErrorMessage() {
-    return Object.values(this.formControl.errors).join(', ')
+    return Object.values(this.formControl.errors ?? {}).join(', ')
+  }
+
+  private resolveOptionLabel(value: string | null | undefined): string {
+    if (!value) {
+      return ''
+    }
+
+    return this.selectOptions()?.find((item) => item.key === value)?.caption || value
+  }
+
+  private optionId(option: ISelectOption): string | number {
+    const candidate = option.key ?? option.value
+    return typeof candidate === 'string' || typeof candidate === 'number'
+      ? candidate
+      : `${candidate ?? ''}`
   }
 }
 
 export function selectionModel<T>() {
-  const m = signal<T[]>([]) // multiple ? : signal<T>(null)
+  const m = signal<T[]>([])
   const sig = (): T[] => {
     return m()
   }
+
   sig.set = (value: T[]) => {
     m.set(value)
   }
@@ -301,7 +306,7 @@ export function selectionModel<T>() {
   }
 
   sig.select = (value: T) => {
-    m.update((values) => [...values, value])
+    m.update((values) => (values.includes(value) ? values : [...values, value]))
   }
 
   sig.deselect = (value: T) => {

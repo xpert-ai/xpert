@@ -1,96 +1,97 @@
 <z-form-field class="w-full flex-1 group" [appearance]="appearance" [displayDensity]="displayDensity">
   <z-form-label>{{ label }}</z-form-label>
-  <input type="text" [placeholder]="placeholder" z-input [formControl]="formControl" [matAutocomplete]="auto" />
 
-  <mat-autocomplete
-    autoActiveFirstOption
-    #auto="matAutocomplete"
-    class="ngm-select__autocomplete-panel"
-    [class]="
-      (multiple ? 'multiple' : '') +
-      ' ' +
-      (displayDensity === 'compact' ? 'ngm-density__compact' : '') +
-      ' ' +
-      (displayDensity === 'cosy' ? 'ngm-density__cosy' : '')
-    "
-    [displayWith]="displayWith"
-    >
-    @if (virtualScroll) {
-      <cdk-virtual-scroll-viewport
-        [itemSize]="virtualScrollItemSize"
-        minBufferPx="200"
-        maxBufferPx="400"
-        class="ngm-select-form-field__viewport"
+  <z-combobox
+    zTriggerMode="input"
+    class="w-full"
+    [value]="comboboxValue()"
+    [options]="comboboxOptions()"
+    [placeholder]="placeholder || ''"
+    [disabled]="formControl.disabled"
+    [zSearchTerm]="searchTerm()"
+    [zDisplayWith]="displayWith"
+    [zClearable]="true"
+    [zSelectOnEnter]="!multiple"
+    (zSearchTermChange)="onSearchTermChange($event)"
+    (zValueChange)="onComboboxValueChange($event)"
+    (zBlur)="onTouched?.()"
+  >
+    <ng-template zComboboxPanel let-activeIndex="activeIndex" let-select="select">
+      @if (virtualScroll) {
+        <cdk-virtual-scroll-viewport
+          [itemSize]="virtualScrollItemSize"
+          minBufferPx="200"
+          maxBufferPx="400"
+          class="ngm-select-form-field__viewport"
         >
-        <mat-option *cdkVirtualFor="let option of options$ | async" [value]="option" class="flex items-center">
-          @if (multiple) {
-            <z-checkbox
-              [ngModel]="isSelect(option)"
-              (click)="$event.stopPropagation()"
-              (checkChange)="onSelect($event, option)"
+          <button
+            type="button"
+            role="option"
+            class="flex w-full items-center rounded-md px-2 py-1.5 text-left"
+            *cdkVirtualFor="let option of filteredComboboxOptions(); trackBy: trackBy; let i = index"
+            [class.bg-accent]="i === activeIndex"
+            [class.text-accent-foreground]="i === activeIndex"
+            (click)="multiple ? onSelect(!isSelect(option), option) : select(option)"
+          >
+            @if (multiple) {
+              <z-checkbox
+                [ngModel]="isSelect(option)"
+                (click)="$event.stopPropagation()"
+                (checkChange)="onSelect($event, option)"
               >
+                <ngm-display-behaviour
+                  [option]="option.data"
+                  [displayBehaviour]="displayBehaviour"
+                  [highlight]="highlight()"
+                ></ngm-display-behaviour>
+              </z-checkbox>
+            } @else {
               <ngm-display-behaviour
-                [option]="option"
+                class="flex-1"
+                [option]="option.data"
                 [displayBehaviour]="displayBehaviour"
-                [highlight]="highlight"
+                [highlight]="highlight()"
               ></ngm-display-behaviour>
-            </z-checkbox>
-          }
-          @if (!multiple) {
-            <ngm-display-behaviour
-              class="flex-1"
-              [option]="option"
-              [displayBehaviour]="displayBehaviour"
-              [highlight]="highlight"
-            ></ngm-display-behaviour>
-          }
-        </mat-option>
-      </cdk-virtual-scroll-viewport>
-    } @else {
-      @for (option of options$ | async; track option) {
-        <mat-option [value]="option" class="flex items-center">
-          @if (multiple) {
-            <z-checkbox
-              [ngModel]="isSelect(option)"
-              (click)="$event.stopPropagation()"
-              (checkChange)="onSelect($event, option)"
+            }
+          </button>
+        </cdk-virtual-scroll-viewport>
+      } @else {
+        @for (option of filteredComboboxOptions(); track option.id ?? option.value; let i = $index) {
+          <button
+            type="button"
+            role="option"
+            class="flex w-full items-center rounded-md px-2 py-1.5 text-left"
+            [class.bg-accent]="i === activeIndex"
+            [class.text-accent-foreground]="i === activeIndex"
+            (click)="multiple ? onSelect(!isSelect(option), option) : select(option)"
+          >
+            @if (multiple) {
+              <z-checkbox
+                [ngModel]="isSelect(option)"
+                (click)="$event.stopPropagation()"
+                (checkChange)="onSelect($event, option)"
               >
+                <ngm-display-behaviour
+                  [option]="option.data"
+                  [displayBehaviour]="displayBehaviour"
+                  [highlight]="highlight()"
+                ></ngm-display-behaviour>
+              </z-checkbox>
+            } @else {
               <ngm-display-behaviour
-                [option]="option"
+                class="flex-1"
+                [option]="option.data"
                 [displayBehaviour]="displayBehaviour"
-                [highlight]="highlight"
+                [highlight]="highlight()"
               ></ngm-display-behaviour>
-            </z-checkbox>
-          }
-          @if (!multiple) {
-            <ngm-display-behaviour
-              class="flex-1"
-              [option]="option"
-              [displayBehaviour]="displayBehaviour"
-              [highlight]="highlight"
-            ></ngm-display-behaviour>
-          }
-        </mat-option>
+            }
+          </button>
+        }
       }
-    }
-
-  </mat-autocomplete>
+    </ng-template>
+  </z-combobox>
 
   <div zFormSuffix class="flex items-center">
-    @if (isNotInitial) {
-      <button
-        z-button
-        zType="ghost"
-        zSize="icon"
-        zShape="circle"
-        class="opacity-0 group-hover:opacity-100"
-        [zDisabled]="formControl.disabled"
-        ngmAppearance="danger"
-        (click)="clear()"
-        >
-        <z-icon zType="close"></z-icon>
-      </button>
-    }
     @if (loading()) {
       <z-loader class="m-2" diameter="24" />
     }
