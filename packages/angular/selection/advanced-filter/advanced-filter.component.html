@@ -38,14 +38,14 @@
         (mouseenter)="expressionItem.hovered = true"
         (mouseleave)="expressionItem.hovered = false"
         >
-        <mat-chip-listbox >
-          <mat-chip-option [value]="expressionItem" [selected]="expressionItem.selected" removable selectable
+        <z-chip-listbox>
+          <z-chip-option [value]="expressionItem" [selected]="expressionItem.selected" removable selectable
             (removed)="onChipRemove(expressionItem)">
-            <mat-chip-avatar>
+            <span zChipAvatar>
               <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" (click)="enterExpressionEdit(expressionItem)">
                 <z-icon zType="edit"></z-icon>
               </button>
-            </mat-chip-avatar>
+            </span>
             <span class="pac-filter-tree__expression-column">{{ expressionItem.columnHeader || expressionItem.expression.dimension?.dimension }}</span>
             <span class="pac-filter-tree__expression-condition">
               {{ getConditionFriendlyName(expressionItem.expression.operator) }}
@@ -59,11 +59,11 @@
                 {{ isDate(expressionItem.expression.members?.[1]?.value) ? (expressionItem.expression.members?.[1]?.value | date) : expressionItem.expression.members?.[1]?.value }}
               </span>
             }
-            <button matChipRemove>
+            <button zChipRemove>
               <z-icon zType="cancel"></z-icon>
             </button>
-          </mat-chip-option>
-        </mat-chip-listbox>
+          </z-chip-option>
+        </z-chip-listbox>
         @if ((expressionItem.selected && selectedExpressions.length === 1) || expressionItem.hovered) {
           <div class="pac-filter-tree__expression-actions"
             >

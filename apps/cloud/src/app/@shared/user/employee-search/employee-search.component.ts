@@ -3,9 +3,7 @@ import { CommonModule } from '@angular/common'
 import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-
-import { MatChipsModule } from '@angular/material/chips'
-import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardLoaderComponent } from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardChipsImports, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -16,7 +14,7 @@ import { SharedModule } from '../../shared.module'
 
 @Component({
   standalone: true,
-  imports: [SharedModule, CommonModule, FormsModule, ReactiveFormsModule, ZardDialogModule, ZardButtonComponent, MatAutocompleteModule, ...ZardFormImports, ZardInputDirective, MatChipsModule, ZardIconComponent, ZardLoaderComponent, TranslateModule, ButtonGroupDirective, NgmCommonModule],
+  imports: [SharedModule, CommonModule, FormsModule, ReactiveFormsModule, ZardDialogModule, ZardButtonComponent, MatAutocompleteModule, ...ZardFormImports, ZardInputDirective, ...ZardChipsImports, ZardIconComponent, ZardLoaderComponent, TranslateModule, ButtonGroupDirective, NgmCommonModule],
   selector: 'pac-employee-search',
   templateUrl: 'employee-search.component.html',
   styleUrls: ['employee-search.component.scss']

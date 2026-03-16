@@ -1,6 +1,5 @@
 import { provideHttpClient } from '@angular/common/http'
 
-import { MatChipsModule } from '@angular/material/chips'
 import { provideAnimations } from '@angular/platform-browser/animations'
 import { NgmSearchComponent } from '@metad/ocap-angular/common'
 import { provideTranslate } from '@metad/ocap-angular/mock'
@@ -8,7 +7,7 @@ import { StoryObj, applicationConfig, moduleMetadata } from '@storybook/angular'
 import { OcapCoreModule } from '../core.module'
 import { DensityDirective } from './displayDensity'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardCheckboxComponent, ZardIconComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardCheckboxComponent, ZardChipComponent, ZardChipGridComponent, ZardChipRemoveDirective, ZardChipRowComponent, ZardChipSetComponent, ZardIconComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
 
 export default {
   title: 'Core/DisplayDensity',
@@ -23,7 +22,11 @@ export default {
         OcapCoreModule,
         ZardIconComponent,
         ZardButtonComponent,
-        MatChipsModule,
+        ZardChipComponent,
+        ZardChipGridComponent,
+        ZardChipRemoveDirective,
+        ZardChipRowComponent,
+        ZardChipSetComponent,
         ZardCheckboxComponent,
         ...ZardMenuImports,
         DensityDirective,
@@ -59,68 +62,68 @@ export const Primary: Story = {
       </button>
     </div>
     
-    <div displayDensity="comfort">
+    <div displayDensity="comfortable">
       <z-checkbox>Check me!</z-checkbox>
       <ngm-search></ngm-search>
-      <mat-chip-grid #chipGrid aria-label="Fruit selection">
-        <mat-chip-row>fruit
-          <button matChipRemove [attr.aria-label]="'remove ' + fruit">
+      <z-chip-grid #chipGrid aria-label="Fruit selection" displayDensity="comfortable">
+        <z-chip-row>fruit
+          <button zChipRemove aria-label="remove fruit">
             <z-icon zType="cancel"></z-icon>
           </button>
-        </mat-chip-row>
-      </mat-chip-grid>
+        </z-chip-row>
+      </z-chip-grid>
     </div>
     <div displayDensity="cosy">
       <z-checkbox displayDensity="cosy">Check me!</z-checkbox>
       <ngm-search></ngm-search>
-      <mat-chip-grid #chipGrid aria-label="Fruit selection">
-        <mat-chip-row>fruit
-          <button matChipRemove [attr.aria-label]="'remove ' + fruit">
+      <z-chip-grid #chipGrid aria-label="Fruit selection" displayDensity="cosy">
+        <z-chip-row>fruit
+          <button zChipRemove aria-label="remove fruit">
             <z-icon zType="cancel"></z-icon>
           </button>
-        </mat-chip-row>
-      </mat-chip-grid>
+        </z-chip-row>
+      </z-chip-grid>
     </div>
     <div displayDensity="compact">
       <z-checkbox displayDensity="compact">Check me!</z-checkbox>
       <ngm-search></ngm-search>
-      <mat-chip-grid #chipGrid aria-label="Fruit selection">
-        <mat-chip-row>fruit
-          <button matChipRemove [attr.aria-label]="'remove ' + fruit">
+      <z-chip-grid #chipGrid aria-label="Fruit selection" displayDensity="compact">
+        <z-chip-row>fruit
+          <button zChipRemove aria-label="remove fruit">
             <z-icon zType="cancel"></z-icon>
           </button>
-        </mat-chip-row>
-      </mat-chip-grid>
+        </z-chip-row>
+      </z-chip-grid>
     </div>
     
     <div class="flex items-center gap-2">
-      <mat-chip-grid displayDensity="comfort">
-        <mat-chip-row>fruit
-          <button matChipRemove [attr.aria-label]="'remove ' + fruit">
+      <z-chip-grid displayDensity="comfortable">
+        <z-chip-row>fruit
+          <button zChipRemove aria-label="remove fruit">
             <z-icon zType="cancel"></z-icon>
           </button>
-        </mat-chip-row>
-      </mat-chip-grid>
-      <mat-chip-grid displayDensity="cosy">
-        <mat-chip-row>fruit
-          <button matChipRemove [attr.aria-label]="'remove ' + fruit">
+        </z-chip-row>
+      </z-chip-grid>
+      <z-chip-grid displayDensity="cosy">
+        <z-chip-row>fruit
+          <button zChipRemove aria-label="remove fruit">
             <z-icon zType="cancel"></z-icon>
           </button>
-        </mat-chip-row>
-      </mat-chip-grid>
-      <mat-chip-grid displayDensity="compact">
-        <mat-chip-row>fruit
-          <button matChipRemove [attr.aria-label]="'remove ' + fruit">
+        </z-chip-row>
+      </z-chip-grid>
+      <z-chip-grid displayDensity="compact">
+        <z-chip-row>fruit
+          <button zChipRemove aria-label="remove fruit">
             <z-icon zType="cancel"></z-icon>
           </button>
-        </mat-chip-row>
-      </mat-chip-grid>
+        </z-chip-row>
+      </z-chip-grid>
     </div>
     
     <div class="flex items-center gap-2">
-      <mat-chip-set><mat-chip>fruit</mat-chip></mat-chip-set>
-      <mat-chip-set displayDensity="cosy"><mat-chip>fruit</mat-chip></mat-chip-set>
-      <mat-chip-set displayDensity="compact"><mat-chip>fruit</mat-chip></mat-chip-set>
+      <z-chip-set><z-chip>fruit</z-chip></z-chip-set>
+      <z-chip-set displayDensity="cosy"><z-chip>fruit</z-chip></z-chip-set>
+      <z-chip-set displayDensity="compact"><z-chip>fruit</z-chip></z-chip-set>
     </div>
     `
   })

@@ -15,10 +15,10 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { MatChipInputEvent } from '@angular/material/chips'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { isString } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardChipInputEvent } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { startWith } from 'rxjs'
 import { ITag, Store, TagCategoryEnum, TagService } from '../../../@core'
@@ -108,7 +108,7 @@ export class TagEditorComponent implements ControlValueAccessor {
     isDisabled ? this.tagCtrl.disable({ emitEvent: false }) : this.tagCtrl.enable({ emitEvent: false })
   }
 
-  add(event: MatChipInputEvent): void {
+  add(event: ZardChipInputEvent): void {
     const value = (event.value || '').trim()
 
     // Add our tag

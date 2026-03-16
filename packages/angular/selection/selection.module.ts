@@ -4,8 +4,7 @@ import { NgModule } from '@angular/core'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ReactiveFormsModule } from '@angular/forms'
 
-import { MatChipsModule } from '@angular/material/chips'
-import { ZardButtonComponent, ZardDialogModule, ZardDividerComponent, ZardIconComponent, ZardInputDirective, ZardMenuImports, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardChipsImports, ZardDialogModule, ZardDividerComponent, ZardIconComponent, ZardInputDirective, ZardMenuImports, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmControlsModule } from '@metad/ocap-angular/controls'
 import { ButtonGroupDirective, OcapCoreModule } from '@metad/ocap-angular/core'
@@ -28,7 +27,7 @@ import { SlicersComponent } from './slicers/slicers.component'
     ZardIconComponent,
     ZardButtonComponent,
     ZardInputDirective,
-    MatChipsModule,
+    ...ZardChipsImports,
     ...ZardTooltipImports,
     ZardDividerComponent,
     ...ZardMenuImports,

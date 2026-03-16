@@ -9,12 +9,17 @@
   max-height: 100%;
 }
 
-.mat-chip {
+z-chip-row {
   max-width: 100%;
-  .ngm-display-behaviour {
-    text-overflow: ellipsis;
-    overflow: hidden;
-  }
+}
+
+z-chip-row .ngm-display-behaviour {
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.z-chip-input {
+  flex: 1 0 50px;
 }
 
 .mat-option {
@@ -45,11 +50,6 @@
 
 /* Deep styles */
 :host::ng-deep {
-  .mat-mdc-standard-chip {
-    .mdc-evolution-chip__cell--primary, .mat-mdc-chip-action-label {
-      @apply overflow-hidden;
-    }
-  }
   .mat-mdc-form-field-icon-prefix, .mat-mdc-form-field-icon-suffix {
     @apply self-end;
   }

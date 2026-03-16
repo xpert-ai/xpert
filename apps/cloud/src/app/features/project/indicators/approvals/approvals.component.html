@@ -63,16 +63,16 @@
 </ng-template>
 
 <ng-template #usersTempl let-userApprovals="userApprovals">
-  <mat-chip-set class="pac-user-chip-set" displayDensity="compact" [style.width.px]="userApprovals.length*20 + 120">
+  <z-chip-set class="pac-user-chip-set" displayDensity="compact" [style.width.px]="userApprovals.length*20 + 120">
     @for (userApproval of userApprovals; track userApproval; let i = $index) {
-      <mat-chip [style.width.px]="120" [style.left.px]="i*20">
-        <pac-user-avatar matChipAvatar [user]="userApproval.user" class="m-0 shrink-0"></pac-user-avatar>
+      <z-chip [style.width.px]="120" [style.left.px]="i*20">
+        <pac-user-avatar zChipAvatar [user]="userApproval.user" class="m-0 h-5 w-5 shrink-0"></pac-user-avatar>
         <span class="text-ellipsis overflow-hidden whitespace-nowrap">
           {{ userApproval.user | user }}
         </span>
-      </mat-chip>
+      </z-chip>
     }
-  </mat-chip-set>
+  </z-chip-set>
 </ng-template>
 
 <ng-template #actionTempl let-indicator="indicator" let-approvalId="id" let-status="status" let-loading="loading">

@@ -3,10 +3,9 @@ import { Component, EventEmitter, Input, Output, computed, signal } from '@angul
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { MatChipInputEvent, MatChipsModule } from '@angular/material/chips'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmHighlightDirective } from '../core/directives'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardChipInputEvent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  * @deprecated use ChatKit instead
  */
@@ -19,7 +18,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     TranslateModule,
     ReactiveFormsModule,
     ...ZardTooltipImports,
-    MatChipsModule,
     MatAutocompleteModule,
     NgmHighlightDirective
 ]
@@ -56,7 +54,7 @@ export class NgmCopilotInputComponent {
    *
    * @param event
    */
-  async add(event: MatChipInputEvent) {
+  async add(event: ZardChipInputEvent) {
     // Prompt value
     const value = (event.value || '').trim()
 

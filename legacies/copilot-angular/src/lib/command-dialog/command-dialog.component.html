@@ -1,9 +1,9 @@
 <h2 xpDialogTitle class="flex items-center justify-between">
-  <mat-chip-listbox hideSingleSelectionIndicator [(ngModel)]="commandName" required color="basic">
+  <z-chip-listbox hideSingleSelectionIndicator [(ngModel)]="commandName" required color="basic">
     @for (command of data.commands; track command) {
-      <mat-chip-option [value]="command">/{{ command }}</mat-chip-option>
+      <z-chip-option [value]="command">/{{ command }}</z-chip-option>
     }
-  </mat-chip-listbox>
+  </z-chip-listbox>
 
   <div class="flex-1"></div>
 

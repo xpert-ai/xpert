@@ -3,10 +3,10 @@ import { ScrollingModule } from '@angular/cdk/scrolling'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatChipsModule } from '@angular/material/chips'
 import {
   ZardButtonComponent,
   ZardCardImports,
+  ZardChipsImports,
   ZardDatePickerComponent,
   ZardDividerComponent,
   ZardIconComponent,
@@ -63,7 +63,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     ZardDatePickerComponent,
     ZardIconComponent,
     MatMenuModule,
-    MatChipsModule,
+    ...ZardChipsImports,
     ZardInputDirective,
     ZardMonthPickerComponent,
     ZardQuarterPickerComponent,

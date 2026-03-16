@@ -5,11 +5,6 @@
   @apply flex flex-col relative;
 }
 
-.mat-mdc-standard-chip {
-  --mdc-chip-container-shape-radius: .5rem;
-  --mdc-chip-with-avatar-avatar-size: 20px;
-}
-
 [z-button][data-icon-only],
 z-button[data-icon-only] {
   --mdc-icon-button-state-layer-size: 32px;
@@ -144,9 +139,4 @@ z-button.ngm-copilot__message-remove {
     }
   }
 
-  .ngm-copilot-chat__roles.mdc-evolution-chip-set {
-    .mdc-evolution-chip-set__chips {
-      @apply justify-center;
-    }
-  }
 }

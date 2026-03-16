@@ -4,9 +4,7 @@ import { Component, ElementRef, OnInit, ViewChild, inject, signal } from '@angul
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-
-import { MatChipsModule } from '@angular/material/chips'
-import { Z_MODAL_DATA, ZardButtonComponent, ZardCheckboxComponent, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardCheckboxComponent, ZardChipsImports, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { Router } from '@angular/router'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { cloneDeep } from '@metad/ocap-core'
@@ -29,7 +27,7 @@ import { NgmHighlightDirective, NgmSelectComponent } from '@metad/ocap-angular/c
     ZardDialogModule,
     ZardCheckboxComponent,
     MatAutocompleteModule,
-    MatChipsModule,
+    ...ZardChipsImports,
     DragDropModule,
     OcapCoreModule,
     NgmHighlightDirective,

@@ -1,12 +1,13 @@
 import { FormsModule } from '@angular/forms'
 
-import { MatChipsModule } from '@angular/material/chips'
 import { MatSlideToggleModule } from '@angular/material/slide-toggle'
 import { Meta, moduleMetadata } from '@storybook/angular'
 import { OcapCoreModule } from '../core.module'
 import { ButtonGroupDirective } from './button-group.directive'
 import {
   ZardButtonComponent,
+  ZardChipComponent,
+  ZardChipSetComponent,
   ZardIconComponent,
   ZardToggleGroupComponent,
   ZardToggleGroupItemComponent
@@ -22,9 +23,10 @@ export default {
         OcapCoreModule,
         ZardIconComponent,
         ZardButtonComponent,
+        ZardChipComponent,
+        ZardChipSetComponent,
         ZardToggleGroupComponent,
         ZardToggleGroupItemComponent,
-        MatChipsModule,
         MatSlideToggleModule,
         ButtonGroupDirective,
       ],
@@ -115,37 +117,37 @@ export const Primary = {
   </div>
   
   <div>
-    <mat-chip-list aria-label="Fish selection" >
-      <mat-chip>One fish</mat-chip>
-      <mat-chip>Two fish</mat-chip>
-      <mat-chip color="primary" selected>Primary fish</mat-chip>
-      <mat-chip color="accent" selected>Accent fish</mat-chip>
-      <mat-chip color="warn" selected>warn fish</mat-chip>
-    </mat-chip-list>
+    <z-chip-set aria-label="Fish selection">
+      <z-chip>One fish</z-chip>
+      <z-chip>Two fish</z-chip>
+      <z-chip color="primary" selected>Primary fish</z-chip>
+      <z-chip color="accent" selected>Accent fish</z-chip>
+      <z-chip color="warn" selected>warn fish</z-chip>
+    </z-chip-set>
   
-    <mat-chip-list aria-label="Fish selection" ngmAppearance="outline">
-      <mat-chip>One fish</mat-chip>
-      <mat-chip>Two fish</mat-chip>
-      <mat-chip color="primary" selected>Primary fish</mat-chip>
-      <mat-chip color="accent" selected>Accent fish</mat-chip>
-      <mat-chip color="warn" selected>warn fish</mat-chip>
-    </mat-chip-list>
+    <z-chip-set aria-label="Fish selection" class="[&_z-chip]:border [&_z-chip]:border-border [&_z-chip]:bg-transparent">
+      <z-chip>One fish</z-chip>
+      <z-chip>Two fish</z-chip>
+      <z-chip color="primary" selected>Primary fish</z-chip>
+      <z-chip color="accent" selected>Accent fish</z-chip>
+      <z-chip color="warn" selected>warn fish</z-chip>
+    </z-chip-set>
   
-    <mat-chip-list aria-label="Fish selection" ngmAppearance="dashed">
-      <mat-chip>One fish</mat-chip>
-      <mat-chip>Two fish</mat-chip>
-      <mat-chip color="primary" selected>Primary fish</mat-chip>
-      <mat-chip color="accent" selected>Accent fish</mat-chip>
-      <mat-chip color="warn" selected>warn fish</mat-chip>
-    </mat-chip-list>
+    <z-chip-set aria-label="Fish selection" class="[&_z-chip]:border [&_z-chip]:border-dashed [&_z-chip]:border-border [&_z-chip]:bg-transparent">
+      <z-chip>One fish</z-chip>
+      <z-chip>Two fish</z-chip>
+      <z-chip color="primary" selected>Primary fish</z-chip>
+      <z-chip color="accent" selected>Accent fish</z-chip>
+      <z-chip color="warn" selected>warn fish</z-chip>
+    </z-chip-set>
   
-    <mat-chip-list aria-label="Fish selection" ngmAppearance="outline" displayDensity="compact">
-      <mat-chip>One fish</mat-chip>
-      <mat-chip>Two fish</mat-chip>
-      <mat-chip color="primary" selected>Primary fish</mat-chip>
-      <mat-chip color="accent" selected>Accent fish</mat-chip>
-      <mat-chip color="warn" selected>warn fish</mat-chip>
-    </mat-chip-list>
+    <z-chip-set aria-label="Fish selection" displayDensity="compact" class="[&_z-chip]:border [&_z-chip]:border-border [&_z-chip]:bg-transparent">
+      <z-chip>One fish</z-chip>
+      <z-chip>Two fish</z-chip>
+      <z-chip color="primary" selected>Primary fish</z-chip>
+      <z-chip color="accent" selected>Accent fish</z-chip>
+      <z-chip color="warn" selected>warn fish</z-chip>
+    </z-chip-set>
   </div>
   
   <div fxLayout="row wrap" fxLayoutAlign="space-between center" >

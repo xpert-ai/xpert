@@ -3,8 +3,7 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MatChipsModule } from '@angular/material/chips'
-import { ZardButtonComponent, ZardDialogModule, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardChipsImports, ZardDialogModule, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { NgmEntityModule } from '@metad/ocap-angular/entity'
@@ -16,7 +15,7 @@ import { NgmAdvancedFilterComponent } from './advanced-filter.component'
  */
 @NgModule({
   declarations: [NgmAdvancedFilterComponent],
-  imports: [CommonModule, FormsModule, DragDropModule, ZardDialogModule, ZardButtonComponent, ZardIconComponent, ...ZardFormImports, ZardInputDirective, MatChipsModule, TranslateModule, ButtonGroupDirective, DensityDirective, AppearanceDirective, NgmEntityModule, NgmSelectComponent],
+  imports: [CommonModule, FormsModule, DragDropModule, ZardDialogModule, ZardButtonComponent, ZardIconComponent, ...ZardFormImports, ZardInputDirective, ...ZardChipsImports, TranslateModule, ButtonGroupDirective, DensityDirective, AppearanceDirective, NgmEntityModule, NgmSelectComponent],
   exports: [NgmAdvancedFilterComponent]
 })
 export class NgmAdvancedFilterModule {}

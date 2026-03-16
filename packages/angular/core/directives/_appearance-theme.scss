@@ -135,31 +135,6 @@
   .ngm-appearance-opacity {
     opacity: 0.5;
   }
-
-  .mat-chip-list {
-    --box-shadow-radius: 6px;
-    
-    .mat-chip {
-      &:hover, 
-      &:focus,
-      &:active {
-        box-shadow: rgb(143 155 179 / 16%) 0px 0px 0px var(--box-shadow-radius);
-        z-index: 1;
-      }
-    }
-
-    &.ngm-appearance-outline {
-      .mat-chip {
-        @include _theme-outline($color-config, solid);
-      }
-    }
-
-    &.ngm-appearance-dashed {
-      .mat-chip {
-        @include _theme-outline($color-config, dashed);
-      }
-    }
-  }
 }
 
 @mixin density($config-or-theme) {

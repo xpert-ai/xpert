@@ -1,14 +1,13 @@
 
 import { Component, Input, OnInit, forwardRef } from '@angular/core'
 import { ControlValueAccessor, FormControl, ReactiveFormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { MatChipInputEvent, MatChipsModule } from '@angular/material/chips'
 import { distinctUntilChanged } from 'rxjs'
 import { NgmFieldAppearance, NgmFieldColor } from "@metad/ocap-angular/core";
-import { ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardChipInputEvent, ZardChipsImports, ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [MatChipsModule, ...ZardFormImports, ZardIconComponent, ReactiveFormsModule],
+  imports: [...ZardChipsImports, ...ZardFormImports, ZardIconComponent, ReactiveFormsModule],
   selector: 'pac-form-field-emails',
   templateUrl: 'emails.component.html',
   providers: [
@@ -51,7 +50,7 @@ export class FormFieldEmailsComponent implements ControlValueAccessor, OnInit {
   setDisabledState?(isDisabled: boolean): void {
   }
 
-  addKeywordFromInput(event: MatChipInputEvent) {
+  addKeywordFromInput(event: ZardChipInputEvent) {
     if (event.value) {
       this.keywords.add(event.value)
       event.chipInput!.clear()

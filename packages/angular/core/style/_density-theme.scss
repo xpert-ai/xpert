@@ -10,40 +10,6 @@
 }
 
 @mixin density($config-or-theme) {
-  .ngm-density__cosy .mat-mdc-chip-grid, .ngm-density__cosy.mat-mdc-chip-grid {
-    .mat-mdc-chip.mat-mdc-standard-chip {
-      --mdc-chip-container-height: 24px;
-      @include mat.chips-density(-2);
-      &.mdc-evolution-chip--with-trailing-action .mdc-evolution-chip__action--primary {
-        padding-left: 8px;
-      }
-      &.mdc-evolution-chip--with-trailing-action .mdc-evolution-chip__action--trailing {
-        padding-left: 4px;
-        padding-right: 4px;
-      }
-    }
-  }
-  .ngm-density__compact .mat-mdc-chip-grid, .ngm-density__compact.mat-mdc-chip-grid {
-    .mat-mdc-chip.mat-mdc-standard-chip {
-      --mdc-chip-container-height: 18px;
-      @include mat.chips-density(-3);
-      &.mdc-evolution-chip--with-trailing-action .mdc-evolution-chip__action--primary {
-        padding-left: 2px;
-      }
-      &.mdc-evolution-chip--with-trailing-action .mdc-evolution-chip__action--trailing {
-        padding-left: 2px;
-        padding-right: 2px;
-      }
-
-      .mat-mdc-chip-avatar {
-        width: 16px;
-        height: 16px;
-        margin-left: 2px;
-        margin-right: 4px;
-      }
-    }
-  }
-
   // For accordion expansion
   .ngm-density__compact[data-slot='accordion'],
   .ngm-density__compact [data-slot='accordion'] {

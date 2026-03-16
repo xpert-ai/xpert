@@ -28,10 +28,9 @@ import {
 } from '@angular/forms'
 import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
 import { MatAutocompleteModule } from '@angular/material/autocomplete'
-
-import { MatChipsModule } from '@angular/material/chips'
 import {
   ZardButtonComponent,
+  ZardChipsImports,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
@@ -92,7 +91,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
     ZardCheckboxComponent,
     ZardLoaderComponent,
     ZardInputDirective,
-    MatChipsModule,
+    ...ZardChipsImports,
     ...ZardTreeImports,
     TranslateModule,
     OcapCoreModule,
