@@ -13,6 +13,7 @@ import { XpertComponent } from '../xpert.component'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'
 import { Dialog } from '@angular/cdk/dialog'
+import { XpertManagerBulkImportComponent } from './bulk-import/bulk-import.component'
 
 @Component({
   standalone: true,
@@ -29,7 +30,8 @@ import { Dialog } from '@angular/cdk/dialog'
     DragDropModule,
     MatTooltipModule,
     NgmSpinComponent,
-    UserProfileInlineComponent
+    UserProfileInlineComponent,
+    XpertManagerBulkImportComponent
   ]
 })
 export class XpertAuthorizationComponent {
@@ -71,6 +73,21 @@ export class XpertAuthorizationComponent {
       .closed
       .pipe(switchMap((result) => (result ? this.addManagers(result.users) : EMPTY)))
       .subscribe()
+  }
+
+  openBulkImport() {
+    this.#dialog
+      .open<boolean>(XpertManagerBulkImportComponent, {
+        data: {
+          xpertId: this.xpertComponent.xpertId()
+        }
+      })
+      .closed
+      .subscribe((result) => {
+        if (result) {
+          this.refresh$.next()
+        }
+      })
   }
 
   addManagers(users: IUser[]) {
