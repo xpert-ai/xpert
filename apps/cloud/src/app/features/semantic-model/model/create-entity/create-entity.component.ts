@@ -22,6 +22,8 @@ import { CommonModule } from '@angular/common'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import {
   ZardButtonComponent,
+  ZardComboboxComponent,
+  type ZardComboboxOption,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
@@ -29,7 +31,6 @@ import {
   ZardCheckboxComponent,
   ZardLoaderComponent
 } from '@xpert-ai/headless-ui'
-import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
@@ -91,11 +92,11 @@ export type CreateEntityDialogRetType = {
     ReactiveFormsModule,
     ZardIconComponent,
     ZardButtonComponent,
+    ZardComboboxComponent,
     ...ZardFormImports,
     ZardInputDirective,
     ...ZardSelectImports,
     CdkListboxModule,
-    MatAutocompleteModule,
     ZardLoaderComponent,
     ZardCheckboxComponent,
     TranslateModule,
@@ -154,6 +155,20 @@ export class ModelCreateEntityComponent {
   )
 
   readonly factFields = signal(this.data.factFields)
+  readonly tableComboboxOptions = computed<ZardComboboxOption[]>(() =>
+    (this.data.entitySets ?? []).map((item) => ({
+      id: item.name,
+      value: item.name,
+      label: item.label || item.caption || item.name
+    }))
+  )
+  readonly factFieldComboboxOptions = computed<ZardComboboxOption[]>(() =>
+    (this.factFields() ?? []).map((item) => ({
+      id: this.comboboxId(item.key ?? item.value),
+      value: `${item.value ?? ''}`,
+      label: item.caption || item.label || `${item.value ?? ''}`
+    }))
+  )
 
   private readonly tableName$ = this.table.valueChanges.pipe(
     startWith(this.data.model?.table),
@@ -331,6 +346,26 @@ export class ModelCreateEntityComponent {
       }))
     )
     this.cubes = []
+  }
+
+  displayText(_option: { label?: string } | null, value: unknown) {
+    return value == null ? '' : `${value}`
+  }
+
+  comboboxId(value: unknown): string | number {
+    return typeof value === 'string' || typeof value === 'number' ? value : `${value ?? ''}`
+  }
+
+  onTableSearchTermChange(value: string) {
+    this.table.setValue(value)
+  }
+
+  onTableValueChange(value: unknown) {
+    this.table.setValue((value ?? null) as string | null)
+  }
+
+  onForeignKeyValueChange(value: unknown) {
+    this.formGroup.get('foreignKey').setValue((value ?? null) as string | null)
   }
 
   onSubmit(event) {

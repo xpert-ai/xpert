@@ -1,34 +1,56 @@
-import { COMMA, ENTER } from '@angular/cdk/keycodes'
 import { CommonModule } from '@angular/common'
-import { Component, ElementRef, Inject, OnInit, ViewChild } from '@angular/core'
+import { Component, Inject } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { Z_MODAL_DATA, ZardButtonComponent, ZardChipsImports, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardLoaderComponent } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardComboboxComponent,
+  ZardComboboxOptionTemplateDirective,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardLoaderComponent,
+  ZardChipsImports,
+  type ZardComboboxOption,
+  Z_MODAL_DATA,
+  ZardDialogRef
+} from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { catchError, debounceTime, EMPTY, filter, of, switchMap, tap } from 'rxjs'
+import { catchError, debounceTime, EMPTY, filter, map, of, switchMap, tap } from 'rxjs'
 import { EmployeesService, IEmployee } from '../../../@core'
 import { userLabel } from '../../pipes'
 import { SharedModule } from '../../shared.module'
 
 @Component({
   standalone: true,
-  imports: [SharedModule, CommonModule, FormsModule, ReactiveFormsModule, ZardDialogModule, ZardButtonComponent, MatAutocompleteModule, ...ZardFormImports, ZardInputDirective, ...ZardChipsImports, ZardIconComponent, ZardLoaderComponent, TranslateModule, ButtonGroupDirective, NgmCommonModule],
+  imports: [
+    SharedModule,
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    ZardButtonComponent,
+    ZardComboboxComponent,
+    ZardComboboxOptionTemplateDirective,
+    ...ZardFormImports,
+    ...ZardChipsImports,
+    ZardIconComponent,
+    ZardLoaderComponent,
+    TranslateModule,
+    ButtonGroupDirective,
+    NgmCommonModule
+  ],
   selector: 'pac-employee-search',
   templateUrl: 'employee-search.component.html',
   styleUrls: ['employee-search.component.scss']
 })
 export class EmployeeSelectComponent {
-  separatorKeysCodes: number[] = [ENTER, COMMA]
+  private skipNextSearchTermSync = false
   userLabel = userLabel
 
   role = null
   users: IEmployee[] = []
   loading = false
-  searchControl = new FormControl()
-
-  @ViewChild('userInput') userInput: ElementRef<HTMLInputElement>
+  searchControl = new FormControl<string>('')
 
   public readonly users$ = this.searchControl.valueChanges.pipe(
     debounceTime(500),
@@ -47,6 +69,16 @@ export class EmployeeSelectComponent {
     }),
     tap((items) => (this.loading = false))
   )
+  public readonly userOptions$ = this.users$.pipe(
+    map((items) =>
+      items.map((user) => ({
+        id: user.id,
+        label: userLabel(user.user),
+        value: user,
+        data: user
+      }))
+    )
+  )
 
   constructor(
     @Inject(Z_MODAL_DATA)
@@ -64,12 +96,26 @@ export class EmployeeSelectComponent {
     }
   }
 
-  selected(event: MatAutocompleteSelectedEvent): void {
-    if (event.option.value && !this.users.find((item) => item.id === event.option.value.id)) {
-      this.users.push(event.option.value)
+  onSearchTermChange(value: string) {
+    if (this.skipNextSearchTermSync) {
+      this.skipNextSearchTermSync = false
+      this.searchControl.setValue('', { emitEvent: false })
+      return
     }
-    this.userInput.nativeElement.value = ''
-    this.searchControl.setValue(null)
+
+    this.searchControl.setValue(value)
+  }
+
+  selected(value: unknown): void {
+    const user = value as IEmployee | null
+    if (user && !this.users.find((item) => item.id === user.id)) {
+      this.users.push(user)
+    }
+    this.resetSearch()
+  }
+
+  displayUser(_option: ZardComboboxOption | null, value: unknown) {
+    return value ? userLabel((value as IEmployee).user) : ''
   }
 
   onApply() {
@@ -77,5 +123,10 @@ export class EmployeeSelectComponent {
       role: this.role,
       employees: this.users
     })
+  }
+
+  private resetSearch() {
+    this.skipNextSearchTermSync = true
+    this.searchControl.setValue('', { emitEvent: false })
   }
 }

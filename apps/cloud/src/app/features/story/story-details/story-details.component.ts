@@ -1,10 +1,23 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 
-import { Component, ElementRef, OnInit, ViewChild, inject, signal } from '@angular/core'
+import { Component, OnInit, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { Z_MODAL_DATA, ZardButtonComponent, ZardCheckboxComponent, ZardChipsImports, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { MatChipsModule } from '@angular/material/chips'
+import {
+  ZardButtonComponent,
+  ZardComboboxComponent,
+  ZardComboboxOptionTemplateDirective,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardCheckboxComponent,
+  ZardChipsImports,
+  ZardDialogModule,
+  type ZardComboboxOption,
+  Z_MODAL_DATA,
+  ZardDialogRef
+} from '@xpert-ai/headless-ui'
 import { Router } from '@angular/router'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { cloneDeep } from '@metad/ocap-core'
@@ -26,7 +39,8 @@ import { NgmHighlightDirective, NgmSelectComponent } from '@metad/ocap-angular/c
     ZardInputDirective,
     ZardDialogModule,
     ZardCheckboxComponent,
-    MatAutocompleteModule,
+    ZardComboboxComponent,
+    ZardComboboxOptionTemplateDirective,
     ...ZardChipsImports,
     DragDropModule,
     OcapCoreModule,
@@ -45,8 +59,7 @@ export class StoryDetailsComponent implements OnInit {
   public dialogRef? = inject(ZardDialogRef<StoryDetailsComponent>)
   private readonly router = inject(Router)
   private readonly translate = inject(TranslateService)
-
-  @ViewChild('modelInput') modelInput: ElementRef<HTMLInputElement>
+  private skipNextModelSearchSync = false
 
   c_details = 'details'
   c_thumbnail = 'thumbnail'
@@ -62,7 +75,7 @@ export class StoryDetailsComponent implements OnInit {
   imagePreview: string | ArrayBuffer | null
   error: string = null
 
-  modelCtrl = new FormControl(null)
+  modelCtrl = new FormControl<string | null>(null)
   projectId$ = new Subject<string>()
 
   models$ = toSignal<ISemanticModel[], ISemanticModel[]>(
@@ -90,6 +103,14 @@ export class StoryDetailsComponent implements OnInit {
   }
 
   models = signal<ISemanticModel[]>([])
+  readonly modelOptions = computed<ZardComboboxOption[]>(() =>
+    this.models$().map((model) => ({
+      id: model.id,
+      label: model.name,
+      value: model,
+      data: model
+    }))
+  )
 
   constructor() {
     this.projectId$.next(this.data.projectId)
@@ -108,21 +129,30 @@ export class StoryDetailsComponent implements OnInit {
     this.reset()
   }
 
-  displayWithName(model: ISemanticModel) {
-    return model?.name
+  displayWithName(_option: ZardComboboxOption | null, value: unknown) {
+    return (value as ISemanticModel | null)?.name ?? ''
   }
 
   removeModel(model: ISemanticModel) {
     this.models.set(this.models().filter((m) => m.id !== model.id))
   }
 
-  modelSelected(event: MatAutocompleteSelectedEvent): void {
-    const model = event.option.value as ISemanticModel
-    if (!this.models().some((m) => m.id === model.id)) {
-      this.models.set([...this.models(), event.option.value])
+  onModelSearchTermChange(value: string) {
+    if (this.skipNextModelSearchSync) {
+      this.skipNextModelSearchSync = false
+      this.modelCtrl.setValue('', { emitEvent: false })
+      return
     }
-    this.modelInput.nativeElement.value = ''
-    this.modelCtrl.setValue(null)
+
+    this.modelCtrl.setValue(value)
+  }
+
+  modelSelected(value: unknown): void {
+    const model = value as ISemanticModel | null
+    if (model && !this.models().some((m) => m.id === model.id)) {
+      this.models.set([...this.models(), model])
+    }
+    this.resetModelSearch()
   }
 
   onFileSelected(event: Event): void {
@@ -183,11 +213,17 @@ export class StoryDetailsComponent implements OnInit {
     this.imagePreview = this.data.thumbnail || this.data.preview?.url
     this.thumbnail = this.data.thumbnail
     this.details = cloneDeep(this.data.options) || {}
+    this.modelCtrl.setValue('', { emitEvent: true })
   }
 
   async uploadScreenshot(fileUpload: File) {
     const formData = new FormData()
     formData.append('file', fileUpload)
     return await firstValueFrom(this.screenshotService.create(formData))
+  }
+
+  private resetModelSearch() {
+    this.skipNextModelSearchSync = true
+    this.modelCtrl.setValue('', { emitEvent: true })
   }
 }

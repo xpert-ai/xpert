@@ -99,45 +99,39 @@
             </z-chip-row>
           }
         </z-chip-grid>
-        <input
-          type="text"
-          #modelInput
+        <z-combobox
+          zTriggerMode="input"
+          class="w-full"
+          [value]="null"
+          [options]="modelOptions()"
           placeholder="{{ 'Story.StoryDetails.AddSemanticModels' | translate: { Default: 'Add semantic models' } }}"
-          z-input
-          [formControl]="modelCtrl"
-          [zChipInputFor]="chipGrid"
-          [matAutocomplete]="auto"
-          />
-        <mat-autocomplete
-          autoActiveFirstOption
-          #auto="matAutocomplete"
-          [displayWith]="displayWithName"
-          (optionSelected)="modelSelected($event)"
-          >
-          @for (option of models$(); track option) {
-            <mat-option [value]="option">
-              <div class="flex items-center">
-                <button
-                  z-button
-                  zType="ghost"
-                  zSize="icon"
-                  zShape="circle"
-                  displayDensity="cosy"
-                  (click)="openSemanticModel(option.id)"
-                  >
-                  <z-icon zType="open_in_new"></z-icon>
-                </button>
-                <span
-                  [ngmHighlight]="highlight"
-                  [caseSensitive]="false"
-                  customClasses="bg-transparent font-semibold text-amber-500"
-                  [content]="option.name"
-                  >
-                </span>
-              </div>
-            </mat-option>
-          }
-        </mat-autocomplete>
+          [zSearchTerm]="modelCtrl.value ?? ''"
+          [zDisplayWith]="displayWithName"
+          (zSearchTermChange)="onModelSearchTermChange($event)"
+          (zValueChange)="modelSelected($event)"
+        >
+          <ng-template zComboboxOption let-option let-searchTerm="searchTerm">
+            <div class="flex items-center">
+              <button
+                z-button
+                zType="ghost"
+                zSize="icon"
+                zShape="circle"
+                displayDensity="cosy"
+                (click)="$event.preventDefault(); $event.stopPropagation(); openSemanticModel(option.data.id)"
+                >
+                <z-icon zType="open_in_new"></z-icon>
+              </button>
+              <span
+                [ngmHighlight]="searchTerm"
+                [caseSensitive]="false"
+                customClasses="bg-transparent font-semibold text-amber-500"
+                [content]="option.data?.name"
+                >
+              </span>
+            </div>
+          </ng-template>
+        </z-combobox>
       </z-form-field>
       <z-form-field appearance="fill" class="col-span-1">
         <z-form-label>

@@ -1,7 +1,6 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { NgModule } from '@angular/core'
-import { MatAutocompleteModule } from '@angular/material/autocomplete'
 import {
   ZardAccordionImports,
   ZardBadgeComponent,
@@ -37,7 +36,7 @@ const MATERIAL_MODULES = [
   ...ZardCardImports,
   ZardInputDirective,
   ZardCheckboxComponent,
-  MatAutocompleteModule,
+  ...ZardAccordionImports,
   ...ZardChipsImports,
   ...ZardTooltipImports,
   ZardBadgeComponent,

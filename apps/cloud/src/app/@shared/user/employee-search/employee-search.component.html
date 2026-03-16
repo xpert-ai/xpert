@@ -23,26 +23,32 @@
         }
       </z-chip-grid>
 
-      <input
+      <z-combobox
+        zTriggerMode="input"
+        class="w-full"
+        [value]="null"
+        [options]="(userOptions$ | async) ?? []"
         [placeholder]=" 'PAC.SHARED.User.NameEmail' | translate: {Default: 'Name,Email'} "
-        #userInput
-        [formControl]="searchControl"
-        [matAutocomplete]="auto"
-        [zChipInputFor]="chipGrid"
-        [zChipInputSeparatorKeyCodes]="separatorKeysCodes"
-        >
-      <mat-autocomplete #auto="matAutocomplete" (optionSelected)="selected($event)">
-        @for (option of users$ | async; track option) {
-          <mat-option [value]="option">
-                    <ngm-display-behaviour class="flex-1" [option]="{
-                        value: option.user.email,
-                        label: userLabel(option.user)
-                    }" [highlight]="searchControl.value ?? ''"></ngm-display-behaviour>
-          </mat-option>
-        }
-      </mat-autocomplete>
+        [zSearchTerm]="searchControl.value ?? ''"
+        [zDisplayWith]="displayUser"
+        (zSearchTermChange)="onSearchTermChange($event)"
+        (zValueChange)="selected($event)"
+      >
+        <ng-template zComboboxOption let-option let-searchTerm="searchTerm">
+          <ngm-display-behaviour
+            class="flex-1"
+            [option]="{
+              value: option.data?.user?.email,
+              label: userLabel(option.data?.user)
+            }"
+            [highlight]="searchTerm"
+          ></ngm-display-behaviour>
+        </ng-template>
+      </z-combobox>
       @if (loading) {
-        <z-loader zFormSuffix diameter="20" />
+        <div zFormSuffix class="flex items-center pr-8">
+          <z-loader diameter="20" />
+        </div>
       }
     </z-form-field>
 

@@ -1,10 +1,7 @@
-import { COMMA, ENTER } from '@angular/cdk/keycodes'
 import { CommonModule } from '@angular/common'
 import {
   Component,
-  ElementRef,
   Input,
-  ViewChild,
   computed,
   effect,
   forwardRef,
@@ -12,22 +9,30 @@ import {
   input,
   signal
 } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
-import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
+import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { NgmHighlightDirective } from '@metad/ocap-angular/common'
-import { isString } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardChipInputEvent } from '@xpert-ai/headless-ui'
+import {
+  ZardChipInputEvent,
+  ZardComboboxComponent,
+  ZardComboboxOptionTemplateDirective,
+  type ZardComboboxOption
+} from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { startWith } from 'rxjs'
 import { ITag, Store, TagCategoryEnum, TagService } from '../../../@core'
 import { MaterialModule } from '../../material.module'
-import { NgmFieldColor } from "@metad/ocap-angular/core";
+import { NgmFieldColor } from '@metad/ocap-angular/core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, MaterialModule, TranslateModule, NgmHighlightDirective],
+  imports: [
+    CommonModule,
+    MaterialModule,
+    TranslateModule,
+    NgmHighlightDirective,
+    ZardComboboxComponent,
+    ZardComboboxOptionTemplateDirective
+  ],
   selector: 'pac-tag-editor',
   templateUrl: './editor.component.html',
   styleUrls: ['./editor.component.scss'],
@@ -46,56 +51,47 @@ import { NgmFieldColor } from "@metad/ocap-angular/core";
 export class TagEditorComponent implements ControlValueAccessor {
   private tagService = inject(TagService)
   private store = inject(Store)
+  private skipNextSearchTermSync = false
 
   disabled = false
   @Input() color: NgmFieldColor
   // @Input() category: string
   readonly category = input<TagCategoryEnum>(null)
+  readonly searchTerm = signal('')
+  readonly tags = signal<ITag[]>([])
 
-  @ViewChild('tagInput') tagInput: ElementRef<HTMLInputElement>
-
-  tagCtrl = new FormControl('')
-
-  private onChange: (value: any) => void
-  private onTouched: () => void
-
-  addOnBlur = false
-  readonly separatorKeysCodes = [ENTER, COMMA] as const
-  tags = signal<ITag[]>(null)
+  private onChange: (value: ITag[]) => void = () => {}
+  private onTouched: () => void = () => {}
 
   get highlight() {
-    return this.tagCtrl.value
+    return this.searchTerm()
   }
 
-  readonly _tags = derivedAsync(() => this.tagService.getAllByCategory(this.category()), { initialValue: []})
-
-  readonly search = toSignal(this.tagCtrl.valueChanges.pipe(startWith(null)))
-
-  readonly filterdTags = computed(() => {
-    const tags = this._tags()
-    const search = this.search()
-    if (isString(search)) {
-      const _tag = search?.trim().toLowerCase()
-      return search
-        ? tags.filter(
-            (item) => item.name.toLowerCase().includes(_tag) || item.description?.toLowerCase().includes(_tag)
-          )
-        : tags.slice()
-    }
-    return tags
-  })
+  readonly _tags = derivedAsync(() => this.tagService.getAllByCategory(this.category()), { initialValue: [] })
+  readonly comboboxOptions = computed<ZardComboboxOption[]>(() =>
+    this._tags().map((tag) => ({
+      id: tag.id ?? tag.name,
+      label: tag.name,
+      value: tag,
+      data: tag
+    }))
+  )
 
   constructor() {
     effect(
       () => {
-        this.tags.update((values) => values.map((value) => this._tags().find((item) => item.id === value.id) ?? value))
+        const allTags = this._tags()
+        this.tags.update((values) =>
+          (values ?? []).map((value) => allTags.find((item) => item.id === value.id) ?? value)
+        )
       },
       { allowSignalWrites: true }
     )
   }
 
   writeValue(obj: any): void {
-    this.tags.set(obj)
+    this.tags.set(Array.isArray(obj) ? obj : [])
+    this.searchTerm.set('')
   }
   registerOnChange(fn: any): void {
     this.onChange = fn
@@ -105,43 +101,75 @@ export class TagEditorComponent implements ControlValueAccessor {
   }
   setDisabledState?(isDisabled: boolean): void {
     this.disabled = isDisabled
-    isDisabled ? this.tagCtrl.disable({ emitEvent: false }) : this.tagCtrl.enable({ emitEvent: false })
   }
 
-  add(event: ZardChipInputEvent): void {
-    const value = (event.value || '').trim()
+  displayTag(_option: ZardComboboxOption | null, value: unknown) {
+    return (value as ITag | null)?.name ?? `${value ?? ''}`
+  }
 
-    // Add our tag
-    if (value) {
-      this.tags.set([
-        ...(this.tags() ?? []),
-        {
-          name: value,
-          color: 'blue',
-          category: this.category(),
-          organizationId: this.store.selectedOrganization.id
-        }
-      ])
-      this.onChange(this.tags())
+  filterTagOption(option: ZardComboboxOption, searchTerm: string) {
+    const tag = option.data as ITag | undefined
+    const normalized = searchTerm?.trim().toLowerCase()
+    if (!normalized) {
+      return true
     }
 
-    // Clear the input value
-    event.chipInput!.clear()
+    return (
+      tag?.name?.toLowerCase().includes(normalized) ||
+      tag?.description?.toLowerCase().includes(normalized)
+    )
   }
 
   remove(tag: ITag): void {
-    const index = this.tags()?.indexOf(tag)
-
-    if (index >= 0) {
-      this.tags().splice(index, 1)
-      this.onChange(this.tags())
-    }
+    this.tags.set(this.tags().filter((item) => item !== tag))
+    this.onChange(this.tags())
   }
 
-  selected(event: MatAutocompleteSelectedEvent): void {
-    this.tags.set([...(this.tags() ?? []), event.option.value])
-    this.tagInput.nativeElement.value = ''
-    this.tagCtrl.setValue(null)
+  onBlur() {
+    this.onTouched()
+  }
+
+  onSearchTermChange(value: string) {
+    if (this.skipNextSearchTermSync) {
+      this.skipNextSearchTermSync = false
+      this.searchTerm.set('')
+      return
+    }
+
+    this.searchTerm.set(value)
+  }
+
+  selected(value: unknown): void {
+    const tag = value as ITag | null
+    if (tag && !this.tags().some((item) => item.id === tag.id)) {
+      this.tags.set([...(this.tags() ?? []), tag])
+      this.onChange(this.tags())
+    }
+    this.resetComboboxSearch()
+  }
+
+  submitCustomTag(value: string) {
+    const name = value.trim()
+    if (!name) {
+      this.resetComboboxSearch()
+      return
+    }
+
+    this.tags.set([
+      ...(this.tags() ?? []),
+      {
+        name,
+        color: 'blue',
+        category: this.category(),
+        organizationId: this.store.selectedOrganization.id
+      }
+    ])
     this.onChange(this.tags())
+    this.resetComboboxSearch()
+  }
+
+  private resetComboboxSearch() {
+    this.skipNextSearchTermSync = true
+    this.searchTerm.set('')
   }
 }

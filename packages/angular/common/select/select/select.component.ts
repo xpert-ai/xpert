@@ -4,18 +4,15 @@ import {
   ChangeDetectionStrategy,
   Component,
   ContentChild,
-  ElementRef,
   HostBinding,
   TemplateRef,
   booleanAttribute,
   computed,
-  effect,
   forwardRef,
   input,
   signal,
-  viewChild
 } from '@angular/core'
-import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import {
   ControlValueAccessor,
   FormControl,
@@ -23,10 +20,17 @@ import {
   NG_VALUE_ACCESSOR,
   ReactiveFormsModule,
 } from '@angular/forms'
-import { MatAutocompleteModule } from '@angular/material/autocomplete'
-import { ZardFormImports, ZardIconComponent, ZardInputDirective, ZardSelectImports } from '@xpert-ai/headless-ui'
+import {
+  ZardComboboxComponent,
+  ZardComboboxPanelTemplateDirective,
+  type ZardComboboxOption,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardInputDirective,
+  ZardSelectImports
+} from '@xpert-ai/headless-ui'
 import { DisplayDensity, ISelectOption, NgmDensityDirective, OcapCoreModule } from '@metad/ocap-angular/core'
-import { DisplayBehaviour, isNil, nonNullable } from '@metad/ocap-core'
+import { DisplayBehaviour } from '@metad/ocap-core'
 import { distinctUntilChanged, filter } from 'rxjs/operators'
 import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
 import { NgmOptionContent } from '../../input/option-content'
@@ -66,7 +70,8 @@ import { NgmOptionContent } from '../../input/option-content'
     FormsModule,
     ReactiveFormsModule,
     ...ZardSelectImports,
-    MatAutocompleteModule,
+    ZardComboboxComponent,
+    ZardComboboxPanelTemplateDirective,
     ZardInputDirective,
     ...ZardFormImports,
     ZardIconComponent,
@@ -111,26 +116,31 @@ export class NgmSelectComponent implements ControlValueAccessor
 
   @ContentChild(NgmOptionContent, { read: TemplateRef, static: true })
   _explicitContent: TemplateRef<any> = undefined!
-  readonly searInput = viewChild('searInput', { read: ElementRef })
 
   formControl = new FormControl<string | number | Array<string | number>>(null)
   readonly value = signal<string | number | Array<string | number>>(null)
-  // searchControl = new FormControl<string>(null)
-  // readonly highlight = toSignal(this.searchControl.valueChanges, { initialValue: '' })
-
-  readonly autoInput = signal(null)
-  readonly highlight = computed(() => typeof this.autoInput() === 'string' ? this.autoInput() : '')
-
-  readonly options$ = computed(() => {
+  readonly searchTerm = signal('')
+  readonly highlight = computed(() => this.searchTerm())
+  readonly comboboxOptions = computed<ZardComboboxOption[]>(() =>
+    (this.selectOptions() ?? []).map((option) => ({
+      id: this.optionId(option),
+      label: option.caption || option.label || `${option[this.valueKey()] ?? ''}`,
+      value: option[this.valueKey()],
+      data: option
+    }))
+  )
+  readonly filteredComboboxOptions = computed(() => {
     const text = this.highlight()?.trim().toLowerCase()
-    if (text) {
-      const terms = text.split(' ').filter((t) => !!t)
-      return this.selectOptions()?.filter((option) => {
-        const str = `${option.caption || option.label || ''}${option[this.valueKey()]}`
-        return terms.every((term) => str?.toLowerCase().includes(term))
-      })
+    if (!text) {
+      return this.comboboxOptions()
     }
-    return this.selectOptions()
+
+    const terms = text.split(' ').filter(Boolean)
+    return this.comboboxOptions().filter((option) => {
+      const original = option.data as ISelectOption | undefined
+      const str = `${original?.caption || original?.label || ''}${original?.[this.valueKey()] ?? ''}`.toLowerCase()
+      return terms.every((term) => str.includes(term))
+    })
   })
 
   readonly inputDirty = signal(false)
@@ -148,24 +158,10 @@ export class NgmSelectComponent implements ControlValueAccessor
       this.onChange?.(value)
     })
 
-  constructor() {
-    effect(() => {
-      if (!isNil(this.value())) {
-        const selectedOption = this.selectOptions()?.find((item) => item[this.valueKey()] === this.value())
-        if (nonNullable(selectedOption?.[this.valueKey()])) {
-          this.autoInput.set(selectedOption)
-        } else {
-          this.autoInput.set(this.allowInput() ? this.value() : null)
-        }
-      } else {
-        this.autoInput.set(null)
-      }
-    }, { allowSignalWrites: true })
-  }
-
   writeValue(obj: any): void {
     this.value.set(obj)
     this.formControl.setValue(obj, { emitEvent: false })
+    this.searchTerm.set('')
   }
   registerOnChange(fn: any): void {
     this.onChange = fn
@@ -177,53 +173,43 @@ export class NgmSelectComponent implements ControlValueAccessor
     isDisabled ? this.formControl.disable() : this.formControl.enable()
   }
   trackByValue(index: number, item) {
-    return item?.[this.valueKey()] ?? item?.key
+    return item?.id ?? item?.value
   }
 
-  displayWith(option: ISelectOption) {
-    return option?.caption || option?.label || option?.key || option as string
-  }
-
-  onAutoInput(event: string | ISelectOption) {
-    if (typeof event === 'string') {
-      // this.searchControl.setValue(event)
-      this.autoInput.set(event)
-    } else if (event) {
-      this.formControl.setValue(event?.[this.valueKey()])
-      this.autoInput.set(null)
+  displayWith(option: ZardComboboxOption | null, value: unknown) {
+    if (option?.data) {
+      const original = option.data as ISelectOption
+      return original?.caption || original?.label || original?.key || `${value ?? ''}`
     }
+
+    return value == null ? '' : `${value}`
   }
 
-  onOptionSelected(event: any) {
-    this.inputDirty.set(false)
-    // this.autoInput.set(event.option.value)
-    // this.searchControl.setValue(null)
-    this.autoInput.set('')
-    // this.searInput().nativeElement.value = null
-  }
-
-  onKeydown(event: KeyboardEvent) {
+  onSearchTermChange(value: string) {
     this.inputDirty.set(true)
+    this.searchTerm.set(value)
   }
 
-  onBlur(event: FocusEvent) {
-    if (!this.allowInput()) {
-      return
-    }
-    const value = (<HTMLInputElement>event.target).value.trim()
-    if (this.inputDirty()) {
-      this.formControl.setValue(value)
-      // this.searchControl.setValue(null)
-      this.autoInput.set('')
-    }
+  onOptionSelected(value: unknown) {
+    this.inputDirty.set(false)
+    this.searchTerm.set('')
+    this.formControl.setValue((value ?? null) as string | number | null)
   }
 
   clear() {
     this.formControl.setValue(null)
+    this.searchTerm.set('')
   }
 
   @HostBinding('attr.disabled')
   get isDisabled() {
     return this.formControl.disabled
+  }
+
+  private optionId(option: ISelectOption): string | number {
+    const candidate = option.key ?? option[this.valueKey()]
+    return typeof candidate === 'string' || typeof candidate === 'number'
+      ? candidate
+      : `${candidate ?? ''}`
   }
 }
