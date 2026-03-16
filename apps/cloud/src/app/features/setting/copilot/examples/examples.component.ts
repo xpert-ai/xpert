@@ -1,12 +1,12 @@
 import { Component, TemplateRef, computed, effect, inject, model, signal, viewChild } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { saveAsYaml, uploadYamlFile } from '@metad/core'
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   NgmCommonModule,
-  NgmConfirmDeleteComponent,
+  NgmConfirmDeleteService,
   NgmConfirmOptionsComponent,
   TableColumn
 } from '@metad/ocap-angular/common'
@@ -49,7 +49,8 @@ export class CopilotExamplesComponent extends TranslationBaseComponent {
   readonly _toastrService = inject(ToastrService)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
-  readonly dialog = inject(MatDialog)
+  readonly dialog = inject(ZardDialogService)
+  readonly confirmDelete = inject(NgmConfirmDeleteService)
   readonly appService = inject(AppService)
 
   readonly actionTemplate = viewChild('actionTemplate', { read: TemplateRef })
@@ -191,14 +192,11 @@ export class CopilotExamplesComponent extends TranslationBaseComponent {
   }
 
   deleteExample(id: string, input: string) {
-    this.dialog
-      .open(NgmConfirmDeleteComponent, {
-        data: {
-          value: id,
-          information: `${this.getTranslation('PAC.Copilot.Examples.Input', {Default: 'Input'})}: ${input}`
-        }
+    this.confirmDelete
+      .confirm({
+        value: id,
+        information: `${this.getTranslation('PAC.Copilot.Examples.Input', {Default: 'Input'})}: ${input}`
       })
-      .afterClosed()
       .pipe(
         switchMap((confirm) => {
           if (confirm) {

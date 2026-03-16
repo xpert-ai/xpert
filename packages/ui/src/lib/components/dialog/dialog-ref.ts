@@ -17,6 +17,7 @@ export class ZardDialogRef<T = any, R = any, U = any> {
   private isClosing = false;
   protected result?: R;
   componentInstance: T | null = null;
+  readonly closed = this.afterClosed$.asObservable();
 
   constructor(
     private overlayRef: OverlayRef,
@@ -80,7 +81,7 @@ export class ZardDialogRef<T = any, R = any, U = any> {
   }
 
   afterClosed() {
-    return this.afterClosed$.asObservable();
+    return this.closed;
   }
 
   private trigger(action: eTriggerAction) {

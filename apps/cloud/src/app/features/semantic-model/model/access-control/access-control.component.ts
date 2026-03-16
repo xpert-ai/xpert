@@ -5,7 +5,6 @@ import { Component, TemplateRef, ViewChild, computed, inject, model } from '@ang
 import { toSignal } from '@angular/core/rxjs-interop'
 import { AbstractControl, FormControl, FormGroup, FormsModule, ReactiveFormsModule, ValidationErrors, ValidatorFn, Validators } from '@angular/forms'
 
-import { MAT_DIALOG_DATA, MatDialog, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
 import { IModelRole } from '@metad/contracts'
 import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
@@ -19,7 +18,7 @@ import { SemanticModelService } from '../model.service'
 import { AccessControlStateService } from './access-control.service'
 import { ModelComponent } from '../model.component'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: false,
@@ -43,7 +42,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 export class AccessControlComponent extends TranslationBaseComponent {
   readonly #accessControlState = inject(AccessControlStateService)
   readonly #logger = inject(NGXLogger)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(ZardDialogService)
   readonly #route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   readonly #modelService = inject(SemanticModelService)
@@ -69,7 +68,7 @@ export class AccessControlComponent extends TranslationBaseComponent {
     return this.#accessControlState.roles
   }
 
-  #newDialogRef: MatDialogRef<any, any>
+  #newDialogRef: ZardDialogRef<any, any>
 
   /**
   |--------------------------------------------------------------------------
@@ -99,46 +98,46 @@ export class AccessControlComponent extends TranslationBaseComponent {
     systemPrompt: async () => `Create or edit a role. 如何未提供 cube 信息，请先选择一个 cube`,
     actions: [
       // injectMakeCopilotActionable({
-      //   name: 'select_cube',
-      //   description: 'Select a cube',
-      //   argumentAnnotations: [],
-      //   implementation: async () => {
-      //     const result = await firstValueFrom(
-      //       this.#dialog.open(CubeSelectorComponent, { data: this.cubes() }).afterClosed()
-      //     )
-      //     if (result) {
-      //       const entityType = await firstValueFrom(this.#modelService.selectEntityType(result[0]))
-      //       return {
-      //         id: nanoid(),
-      //         name: 'select_cube',
-      //         role: 'function',
-      //         content: `${calcEntityTypePrompt(entityType)}`
-      //       }
-      //     }
-      //   }
+      // name: 'select_cube',
+      // description: 'Select a cube',
+      // argumentAnnotations: [],
+      // implementation: async () => {
+      // const result = await firstValueFrom(
+      // this.#dialog.open(CubeSelectorComponent, { data: this.cubes() }).afterClosed()
+      // )
+      // if (result) {
+      // const entityType = await firstValueFrom(this.#modelService.selectEntityType(result[0]))
+      // return {
+      // id: nanoid(),
+      // name: 'select_cube',
+      // role: 'function',
+      // content: `${calcEntityTypePrompt(entityType)}`
+      // }
+      // }
+      // }
       // }),
       // injectMakeCopilotActionable({
-      //   name: 'new-role',
-      //   description: 'Create a new role',
-      //   argumentAnnotations: [
-      //     {
-      //       name: 'role',
-      //       type: 'object',
-      //       description: 'Role defination',
-      //       properties: zodToAnnotations(RoleSchema),
-      //       required: true
-      //     }
-      //   ],
-      //   implementation: async (role: any) => {
-      //     role.key = nanoid()
-      //     this.#logger.debug(`The new role in function call is:`, role)
-      //     this.#accessControlState.addRole(role)
+      // name: 'new-role',
+      // description: 'Create a new role',
+      // argumentAnnotations: [
+      // {
+      // name: 'role',
+      // type: 'object',
+      // description: 'Role defination',
+      // properties: zodToAnnotations(RoleSchema),
+      // required: true
+      // }
+      // ],
+      // implementation: async (role: any) => {
+      // role.key = nanoid()
+      // this.#logger.debug(`The new role in function call is:`, role)
+      // this.#accessControlState.addRole(role)
 
-      //     // Navigate to the new role
-      //     this.#router.navigate([role.key], { relativeTo: this.#route })
+      // // Navigate to the new role
+      // this.#router.navigate([role.key], { relativeTo: this.#route })
 
-      //     return `创建成功`
-      //   }
+      // return `创建成功`
+      // }
       // })
     ]
   })
@@ -216,11 +215,11 @@ export class AccessControlComponent extends TranslationBaseComponent {
 @Component({
   standalone: true,
   selector: 'pac-cube-selector',
-  template: `<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  template: `<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
       <span style="pointer-events: none;">{{ '选择数据集' }}</span>
     </header>
 
-    <div mat-dialog-content class="flex-1">
+    <div xpDialogContent class="flex-1">
       <ngm-search class="m-2" [formControl]="search"></ngm-search>
 
       <ul
@@ -237,9 +236,9 @@ export class AccessControlComponent extends TranslationBaseComponent {
       </ul>
     </div>
 
-    <div mat-dialog-actions align="end">
+    <div xpDialogActions align="end">
       <div ngmButtonGroup>
-        <button z-button zType="ghost" mat-dialog-close cdkFocusInitial>Cancel</button>
+        <button z-button zType="ghost" xpDialogClose cdkFocusInitial>Cancel</button>
         <button z-button zType="default" color="accent" (click)="onApply()">Apply</button>
       </div>
     </div>`,
@@ -248,7 +247,7 @@ export class AccessControlComponent extends TranslationBaseComponent {
     ReactiveFormsModule,
     DragDropModule,
     CdkListboxModule,
-    MatDialogModule,
+    ZardDialogModule,
     ZardButtonComponent,
     NgmSearchComponent,
     NgmDisplayBehaviourComponent,
@@ -256,8 +255,8 @@ export class AccessControlComponent extends TranslationBaseComponent {
 ]
 })
 export class CubeSelectorComponent {
-  readonly #dialogRef = inject(MatDialogRef)
-  readonly data = inject<ISelectOption[]>(MAT_DIALOG_DATA)
+  readonly #dialogRef = inject(ZardDialogRef)
+  readonly data = inject<ISelectOption[]>(Z_MODAL_DATA)
 
   readonly search = new FormControl('')
   readonly searchText = toSignal(this.search.valueChanges, { initialValue: '' })

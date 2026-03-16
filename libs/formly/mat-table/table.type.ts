@@ -3,12 +3,11 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, OnInit, TemplateRef, ViewChild, ViewContainerRef, inject } from '@angular/core'
 import { FormArray, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { cloneDeep } from '@metad/ocap-core'
 import { FieldArrayType, FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardIconComponent, ZardTableImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogModule, ZardDialogService, ZardIconComponent, ZardTableImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -24,7 +23,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardTableImports } from '@xpert
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
-    MatDialogModule,
+    ZardDialogModule,
     ZardButtonComponent,
     ZardIconComponent,
     ...ZardTableImports,
@@ -36,7 +35,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardTableImports } from '@xpert
   ]
 })
 export class PACFormlyTableComponent extends FieldArrayType implements OnInit {
-  private readonly _dialog = inject(MatDialog)
+  private readonly _dialog = inject(ZardDialogService)
   private readonly _viewContainerRef = inject(ViewContainerRef)
 
   @ViewChild('dialogRef') dialogRef: TemplateRef<any>

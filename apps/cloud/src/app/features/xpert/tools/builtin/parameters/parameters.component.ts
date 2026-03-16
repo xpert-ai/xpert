@@ -1,19 +1,18 @@
 
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, input } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog, MatDialogModule } from '@angular/material/dialog'
 import { routeAnimations } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IBuiltinTool, XpertToolsetService } from 'apps/cloud/src/app/@core'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardDialogModule, ZardDialogService, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatDialogModule,
+    ZardDialogModule,
     ...ZardTooltipImports,
     NgmI18nPipe,
     ZardSwitchComponent
@@ -27,7 +26,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 export class XpertToolBuiltinParametersComponent {
   readonly toolsetService = inject(XpertToolsetService)
   readonly #formBuilder = inject(FormBuilder)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(ZardDialogService)
   readonly #cdr = inject(ChangeDetectorRef)
 
   readonly tool = input<IBuiltinTool>()

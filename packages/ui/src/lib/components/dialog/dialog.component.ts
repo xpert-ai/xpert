@@ -20,12 +20,14 @@ import {
   type TemplateRef,
   type Type,
   viewChild,
-  type ViewContainerRef,
+  ViewContainerRef,
 } from '@angular/core';
 
 import { mergeClasses, noopFn } from '../../utils/merge-classes';
 
 import type { ZardDialogRef } from './dialog-ref';
+import { UiDialogCloseDirective } from './dialog-close.directive';
+import { XpDialogActionsDirective, XpDialogContentDirective, XpDialogTitleDirective } from './dialog-layout.directive';
 import { ZardDialogService } from './dialog.service';
 import { dialogVariants } from './dialog.variants';
 import { ZardButtonComponent } from '../button/button.component';
@@ -36,6 +38,7 @@ import type { ZardIcon } from '../icon/icons';
 
 export type OnClickCallback<T> = (instance: T) => false | void | object;
 export class ZardDialogOptions<T, U> {
+  zBackdropClass?: string | string[];
   zCancelIcon?: ZardIcon;
   zCancelText?: string | null;
   zClosable?: boolean;
@@ -53,6 +56,11 @@ export class ZardDialogOptions<T, U> {
   zOnOk?: EventEmitter<T> | OnClickCallback<T> = noopFn;
   zTitle?: string | TemplateRef<T>;
   zViewContainerRef?: ViewContainerRef;
+  zHeight?: string;
+  zMaxHeight?: string;
+  zMaxWidth?: string;
+  zMinHeight?: string;
+  zMinWidth?: string;
   zWidth?: string;
 }
 
@@ -152,6 +160,11 @@ export class ZardDialogOptions<T, U> {
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
     '[class]': 'classes()',
+    '[style.height]': 'config.zHeight ? config.zHeight : null',
+    '[style.max-height]': 'config.zMaxHeight ? config.zMaxHeight : null',
+    '[style.max-width]': 'config.zMaxWidth ? config.zMaxWidth : null',
+    '[style.min-height]': 'config.zMinHeight ? config.zMinHeight : null',
+    '[style.min-width]': 'config.zMinWidth ? config.zMinWidth : null',
     '[style.width]': 'config.zWidth ? config.zWidth : null',
     'animate.enter': 'dialog-enter',
     'animate.leave': 'dialog-leave',
@@ -160,6 +173,7 @@ export class ZardDialogOptions<T, U> {
 })
 export class ZardDialogComponent<T, U> extends BasePortalOutlet {
   private readonly host = inject(ElementRef<HTMLElement>);
+  private readonly viewContainerRef = inject(ViewContainerRef);
   protected readonly config = inject(ZardDialogOptions<T, U>);
 
   protected readonly classes = computed(() => mergeClasses(dialogVariants(), this.config.zCustomClasses));
@@ -178,6 +192,10 @@ export class ZardDialogComponent<T, U> extends BasePortalOutlet {
 
   getNativeElement(): HTMLElement {
     return this.host.nativeElement;
+  }
+
+  getViewContainerRef(): ViewContainerRef {
+    return this.viewContainerRef;
   }
 
   attachComponentPortal<T>(portal: ComponentPortal<T>): ComponentRef<T> {
@@ -205,7 +223,17 @@ export class ZardDialogComponent<T, U> extends BasePortalOutlet {
 }
 
 @NgModule({
-  imports: [ZardButtonComponent, ZardDialogComponent, OverlayModule, PortalModule],
+  imports: [
+    UiDialogCloseDirective,
+    XpDialogActionsDirective,
+    XpDialogContentDirective,
+    XpDialogTitleDirective,
+    ZardButtonComponent,
+    ZardDialogComponent,
+    OverlayModule,
+    PortalModule,
+  ],
+  exports: [UiDialogCloseDirective, XpDialogActionsDirective, XpDialogContentDirective, XpDialogTitleDirective],
   providers: [ZardDialogService],
 })
 export class ZardDialogModule {}

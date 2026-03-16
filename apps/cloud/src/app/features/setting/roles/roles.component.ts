@@ -1,9 +1,9 @@
 import { ChangeDetectorRef, Component, DestroyRef, OnInit, inject } from '@angular/core'
-import { MatDialog } from '@angular/material/dialog'
 import { isNil } from '@metad/ocap-core'
 import { BehaviorSubject, firstValueFrom, Subject } from 'rxjs'
 import { debounceTime, filter, map, shareReplay, switchMap, tap } from 'rxjs/operators'
 import { environment } from '../../../../environments/environment'
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   IRole,
   IRolePermission,
@@ -18,7 +18,7 @@ import {
 } from '../../../@core'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { NgmConfirmDeleteComponent, NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
+import { NgmConfirmDeleteService, NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
 
 @Component({
   standalone: false,
@@ -56,7 +56,8 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
     private readonly rolesService: RoleService,
     private readonly store: Store,
     private _cdr: ChangeDetectorRef,
-    private readonly _dialog: MatDialog,
+    private readonly _dialog: ZardDialogService,
+    private readonly _confirmDelete: NgmConfirmDeleteService,
     private readonly _toastr: ToastrService
   ) {
     super()
@@ -197,11 +198,7 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
   }
 
   async remove(role: IRole) {
-    const confirm = await firstValueFrom(this._dialog.open(NgmConfirmDeleteComponent, {
-      data: {
-        value: role.name
-      }
-    }).afterClosed())
+    const confirm = await firstValueFrom(this._confirmDelete.confirm({ value: role.name }))
     if (confirm) {
       await firstValueFrom(this.rolesService.delete(role))
       this.refresh()

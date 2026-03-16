@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, Inject, inject, Input, Optional } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
 import { RouterModule } from '@angular/router'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -15,6 +14,7 @@ import { LazyImgDirective } from '../../directives/lazy-img.directive'
 import { MaterialModule } from '../../material.module'
 import { CreatedByPipe } from '../../pipes'
 
+import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
 type SelectableStory = IStory & { modelNotInStory: boolean }
 
 @Component({
@@ -153,9 +153,9 @@ export class StorySelectorComponent {
       key: point.key
     })))
   )
-  constructor(@Optional() @Inject(MAT_DIALOG_DATA) private data,
+  constructor(@Optional() @Inject(Z_MODAL_DATA) private data,
     @Optional()
-    public dialogRef: MatDialogRef<StorySelectorComponent> ) {
+    public dialogRef: ZardDialogRef<StorySelectorComponent> ) {
     this.model = this.data?.model
   }
 

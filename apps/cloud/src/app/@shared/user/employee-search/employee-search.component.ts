@@ -81,9 +81,9 @@ export class EmployeeSelectComponent {
   )
 
   constructor(
-    @Inject(MAT_DIALOG_DATA)
+    @Inject(Z_MODAL_DATA)
     public data: { role: string; roles: ISelectOption[] },
-    private _dialogRef: MatDialogRef<EmployeeSelectComponent>,
+    private _dialogRef: ZardDialogRef<EmployeeSelectComponent>,
     private employeeService: EmployeesService
   ) {
     this.role = data?.role

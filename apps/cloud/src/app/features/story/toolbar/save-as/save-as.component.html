@@ -1,10 +1,10 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <h4 style="pointer-events: none;">
         {{ 'Story.Toolbar.SaveAs' | translate: {Default: 'Save As'} }}...
     </h4>
 </header>
 
-<mat-dialog-content class="mat-typography" fxLayout="column" fxLayoutAlign="start stretch">
+<xp-dialog-content class="" fxLayout="column" fxLayoutAlign="start stretch">
     <z-form-field appearance="fill">
         <z-form-label>
             {{ 'Story.Common.Name' | translate: {Default: 'Name'} }}
@@ -18,19 +18,19 @@
         </z-form-label>
         <textarea z-input [(ngModel)]="model.description"></textarea>
     </z-form-field>
-</mat-dialog-content>
+</xp-dialog-content>
 
-<mat-dialog-actions>
+<xp-dialog-actions>
     <button z-button zType="ghost">
         {{ 'STORY.COMMON.RESET' | translate: { Default: 'Reset' } }}
       </button>
 
     <div ngmButtonGroup>
-        <button z-button zType="ghost" mat-dialog-close>
+        <button z-button zType="ghost" xpDialogClose>
             {{ 'STORY.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
-        <button z-button zType="default" color="accent" cdkFocusInitial [mat-dialog-close]="model">
+        <button z-button zType="default" color="accent" cdkFocusInitial [xpDialogClose]="model">
             {{ 'STORY.COMMON.APPLY' | translate: { Default: 'Apply' } }}
         </button>
     </div>
-</mat-dialog-actions>
+</xp-dialog-actions>

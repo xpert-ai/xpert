@@ -1,29 +1,29 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <h4 style="pointer-events: none;">
         {{ title || ('COMPONENTS.CONFIRM.INPUT_UNIQUE_VALUE' | translate: {Default: 'Input Unique Value'}) }}
     </h4>
 </header>
 
-<mat-dialog-content class="mat-typography" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
+<xp-dialog-content class="" cdkTrapFocus [cdkTrapFocusAutoCapture]="true">
     <form (ngSubmit)="onSubmit()">
         <z-form-field appearance="fill" class="w-full">
             <z-form-label>{{ 'COMPONENTS.CONFIRM.NAME' | translate: {Default: 'Name'} }}</z-form-label>
             <input cdkFocusInitial z-input name="value" [(ngModel)]="value" />
         </z-form-field>
     </form>
-</mat-dialog-content>
+</xp-dialog-content>
 
-<mat-dialog-actions >
+<xp-dialog-actions >
     <button z-button zType="ghost" (click)="reset()">
         {{ 'COMPONENTS.COMMON.RESET' | translate: {Default: 'Reset'} }}
     </button>
 
     <div ngmButtonGroup class="ml-8">
-        <button z-button zType="secondary" mat-dialog-close>
+        <button z-button zType="secondary" xpDialogClose>
             {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
         </button>
-        <button z-button zType="default" color="accent" cdkFocusInitial [mat-dialog-close]="value">
+        <button z-button zType="default" color="accent" cdkFocusInitial [xpDialogClose]="value">
             {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
         </button>
     </div>
-</mat-dialog-actions>
+</xp-dialog-actions>

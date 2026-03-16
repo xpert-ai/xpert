@@ -1,8 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
-import { NgmConfirmDeleteComponent, NgmMatSelectComponent } from '@metad/ocap-angular/common'
+import { NgmConfirmDeleteService, NgmMatSelectComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { UsersService } from '@metad/cloud/state'
@@ -36,7 +35,7 @@ export class CertificationComponent {
   private readonly certificationService = inject(CertificationService)
   private readonly userService = inject(UsersService)
   private readonly _toastrService = inject(ToastrService)
-  private readonly _dialog = inject(MatDialog)
+  private readonly _confirmDelete = inject(NgmConfirmDeleteService)
   private readonly _cdr = inject(ChangeDetectorRef)
 
   certification: ICertification
@@ -73,9 +72,7 @@ export class CertificationComponent {
   }
 
   async removeCertification(certification: ICertification) {
-    const confirm = await firstValueFrom(
-      this._dialog.open(NgmConfirmDeleteComponent, { data: { value: certification.name } }).afterClosed()
-    )
+    const confirm = await firstValueFrom(this._confirmDelete.confirm({ value: certification.name }))
     if (confirm) {
       try {
         await firstValueFrom(this.certificationService.delete(certification.id))

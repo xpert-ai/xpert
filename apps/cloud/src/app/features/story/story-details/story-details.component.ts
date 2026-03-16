@@ -34,7 +34,7 @@ import { NgmHighlightDirective, NgmSelectComponent } from '@metad/ocap-angular/c
     ZardButtonComponent,
     ...ZardFormImports,
     ZardInputDirective,
-    MatDialogModule,
+    ZardDialogModule,
     ZardCheckboxComponent,
     ZardComboboxComponent,
     ZardComboboxOptionTemplateDirective,
@@ -52,8 +52,8 @@ export class StoryDetailsComponent implements OnInit {
   private readonly screenshotService = inject(ScreenshotService)
   private readonly projectAPI = inject(ProjectAPIService)
   public readonly toastrService = inject(ToastrService)
-  public readonly data = inject<Story>(MAT_DIALOG_DATA)
-  public dialogRef? = inject(MatDialogRef<StoryDetailsComponent>)
+  public readonly data = inject<Story>(Z_MODAL_DATA)
+  public dialogRef? = inject(ZardDialogRef<StoryDetailsComponent>)
   private readonly router = inject(Router)
   private readonly translate = inject(TranslateService)
   private skipNextModelSearchSync = false

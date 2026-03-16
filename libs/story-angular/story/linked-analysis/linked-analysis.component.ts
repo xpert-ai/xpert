@@ -3,12 +3,11 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Component, Inject } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'
 import { MatListModule } from '@angular/material/list'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { LinkedAnalysisSettings, LinkedInteractionApplyTo } from '@metad/story/core'
-import { ZardButtonComponent, ZardFormImports } from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardFormImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -16,7 +15,7 @@ import { ZardButtonComponent, ZardFormImports } from '@xpert-ai/headless-ui'
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
-    MatDialogModule,
+    ZardDialogModule,
     ZardButtonComponent,
     ...ZardFormImports,
     ButtonGroupDirective,
@@ -49,7 +48,7 @@ export class LinkedAnalysisComponent {
     return this.data?.widgets
   }
   constructor(
-    @Inject(MAT_DIALOG_DATA) public data: { linkedAnalysis: LinkedAnalysisSettings; widgets: ISelectOption[] }
+    @Inject(Z_MODAL_DATA) public data: { linkedAnalysis: LinkedAnalysisSettings; widgets: ISelectOption[] }
   ) {
     this.formGroup.patchValue({
       ...data.linkedAnalysis,

@@ -1,6 +1,5 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { Injectable, inject, signal } from '@angular/core'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
 import { CopilotChatConversation } from '@metad/copilot'
 import { NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
@@ -12,6 +11,7 @@ import { ModelQueryState, QueryResult } from '../types'
 import { initModelQueryState } from './types'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 export interface QueryLabState {
   modelId: string
   queries: {
@@ -24,7 +24,7 @@ export class QueryLabService extends ComponentStore<QueryLabState> {
   private readonly modelQueryService = inject(ModelQueryService)
   private readonly route = inject(ActivatedRoute)
   private readonly router = inject(Router)
-  public readonly dialog = inject(MatDialog)
+  public readonly dialog = inject(ZardDialogService)
   readonly translate = injectI18nService()
 
   public results: {

@@ -1,8 +1,7 @@
 import { Component, inject } from '@angular/core'
-import { MatDialog } from '@angular/material/dialog'
 import { ToastrService, UsersService } from '@metad/cloud/state'
 import { IUser, RolesEnum } from '@metad/contracts'
-import { NgmConfirmDeleteComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
+import { NgmConfirmDeleteService, NgmSearchComponent } from '@metad/ocap-angular/common'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { MtxCheckboxGroupModule } from '@ng-matero/extensions/checkbox-group'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
@@ -40,7 +39,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 export class ManageUserComponent extends TranslationBaseComponent {
   private usersComponent = inject(PACUsersComponent)
   private userService = inject(UsersService)
-  private _dialog = inject(MatDialog)
+  private readonly _confirmDelete = inject(NgmConfirmDeleteService)
   private toastrService = inject(ToastrService)
 
   ROLES = Object.keys(RolesEnum)
@@ -99,9 +98,7 @@ export class ManageUserComponent extends TranslationBaseComponent {
    * 对比下面函数的写法
    */
   async remove(user: IUser) {
-    const confirm = await firstValueFrom(
-      this._dialog.open(NgmConfirmDeleteComponent, { data: { value: userLabel(user) } }).afterClosed()
-    )
+    const confirm = await firstValueFrom(this._confirmDelete.confirm({ value: userLabel(user) }))
     if (confirm) {
       try {
         await firstValueFrom(this.userService.delete(user.id,))

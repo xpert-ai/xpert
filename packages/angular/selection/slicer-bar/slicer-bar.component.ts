@@ -1,6 +1,6 @@
 import { Component, EventEmitter, HostBinding, Inject, Input, OnInit, Optional, Output } from '@angular/core'
 import { FormControl } from '@angular/forms'
-import { MAT_DIALOG_DATA } from '@angular/material/dialog'
+import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
 import {
   DataSettings,
   DisplayBehaviour,
@@ -61,7 +61,7 @@ export class SlicerBarComponent extends BaseSlicersComponent implements OnInit {
 
   constructor(
     @Optional()
-    @Inject(MAT_DIALOG_DATA)
+    @Inject(Z_MODAL_DATA)
     public data?: {
       dataSettings: DataSettings
       value: ISlicer[]

@@ -3,7 +3,6 @@ import { HttpEventType } from '@angular/common/http'
 import { Component, computed, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
 import { NgmSearchComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -13,6 +12,7 @@ import { IStorageFile, StorageFileService, ToastrService, getErrorMessage, listA
 import { MaterialModule } from '../../material.module'
 import { FilesUploadComponent, UploadFile } from '../upload/upload.component'
 
+import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-files-upload',
@@ -33,9 +33,9 @@ import { FilesUploadComponent, UploadFile } from '../upload/upload.component'
   animations: [listAnimation]
 })
 export class FilesUploadDialogComponent {
-  private readonly _dialog = inject(MatDialog)
-  readonly #dialogRef = inject(MatDialogRef)
-  private readonly _data = inject<{ projectId: string }>(MAT_DIALOG_DATA)
+  private readonly _dialog = inject(ZardDialogService)
+  readonly #dialogRef = inject(ZardDialogRef)
+  private readonly _data = inject<{ projectId: string }>(Z_MODAL_DATA)
   private readonly _toastrService = inject(ToastrService)
   private readonly storageFileService = inject(StorageFileService)
 

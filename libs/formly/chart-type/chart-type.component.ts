@@ -1,3 +1,4 @@
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   ChangeDetectionStrategy,
   Component,
@@ -11,7 +12,6 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormArray, FormControl, FormGroup } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { CommandDialogComponent, NgmCopilotService } from '@metad/copilot-angular'
 import { NgmFormlyArrayComponent } from '@metad/formly/array'
 import { NgmThemeService } from '@metad/ocap-angular/core'
@@ -63,7 +63,7 @@ export class PACFormlyChartTypeComponent extends FieldType implements OnInit {
   readonly #translate = inject(TranslateService)
   readonly #logger = inject(NGXLogger)
   readonly #themeService = inject(NgmThemeService)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(ZardDialogService)
 
   @ViewChild('mapTemp') mapTemplate: TemplateRef<unknown>
 

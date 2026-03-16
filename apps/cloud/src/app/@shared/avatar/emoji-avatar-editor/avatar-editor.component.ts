@@ -1,7 +1,6 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, effect, inject, model, signal } from '@angular/core'
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 
 import { PickerComponent } from '@ctrl/ngx-emoji-mart'
 import { EmojiComponent } from '@ctrl/ngx-emoji-mart/ngx-emoji'
@@ -10,7 +9,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash-es'
 import { firstValueFrom } from 'rxjs'
 import { ScreenshotService, TAvatar } from '../../../@core'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -23,7 +22,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     CdkListboxModule,
     ZardIconComponent,
     ZardButtonComponent,
-    MatDialogModule,
+    ZardDialogModule,
     TranslateModule,
     ButtonGroupDirective,
     AppearanceDirective,
@@ -33,8 +32,8 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 })
 export class EmojiAvatarEditorComponent {
   readonly screenshotService = inject(ScreenshotService)
-  readonly #dialogRef = inject(MatDialogRef)
-  readonly avatar = inject<TAvatar>(MAT_DIALOG_DATA)
+  readonly #dialogRef = inject(ZardDialogRef)
+  readonly avatar = inject<TAvatar>(Z_MODAL_DATA)
 
   readonly disabled = signal<boolean>(false)
   readonly type = model<'emoji' | 'image'>('emoji')

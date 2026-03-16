@@ -1,4 +1,4 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <h4 style="pointer-events: none;">
     @if (data.title) {
       {{ data.title }}
@@ -12,17 +12,17 @@
   </h4>
 </header>
 
-<mat-dialog-content class="mat-typography min-h-[100px]">
+<xp-dialog-content class="min-h-[100px]">
   <div class="whitespace-pre-line">{{data?.information}}</div>
-</mat-dialog-content>
+</xp-dialog-content>
 
-<mat-dialog-actions align="end">
+<xp-dialog-actions align="end">
   <div ngmButtonGroup>
-    <button z-button zType="ghost" mat-dialog-close>
+    <button z-button zType="ghost" xpDialogClose>
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
-    <button z-button zType="default" color="accent" cdkFocusInitial [mat-dialog-close]="true">
+    <button z-button zType="default" color="accent" cdkFocusInitial [xpDialogClose]="true">
       {{ 'COMPONENTS.COMMON.Confirm' | translate: {Default: 'Confirm'} }}
     </button>
   </div>
-</mat-dialog-actions>
+</xp-dialog-actions>

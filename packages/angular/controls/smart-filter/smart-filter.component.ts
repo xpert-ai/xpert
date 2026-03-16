@@ -23,18 +23,18 @@ import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-i
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
 
-import { MatDialog } from '@angular/material/dialog'
-import {
-  ZardButtonComponent,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardCheckboxComponent,
+import { 
+  ZardButtonComponent, 
+  ZardCheckboxComponent, 
+  ZardDialogService, 
+  ZardFormImports, 
+  ZardIconComponent, 
+  ZardInputDirective, 
   ZardTooltipImports,
   ZardLoaderComponent,
   ZardFlatTreeControl,
   ZardTreeFlatDataSource,
-  ZardTreeFlattener
+  ZardTreeFlattener 
 } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import {
@@ -129,7 +129,7 @@ export interface SmartFilterState {
 })
 export class NgmSmartFilterComponent implements ControlValueAccessor {
   private smartFilterService = inject(NgmSmartFilterService)
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(ZardDialogService)
   private _viewContainerRef = inject(ViewContainerRef)
   private _cdr = inject(ChangeDetectorRef)
   public coreService = inject(NgmOcapCoreService)

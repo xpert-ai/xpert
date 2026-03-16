@@ -1,4 +1,4 @@
-<h2 mat-dialog-title>{{'PAC.KEY_WORDS.Tag' | translate: {Default: 'Tag'} }}</h2>
+<h2 xpDialogTitle>{{'PAC.KEY_WORDS.Tag' | translate: {Default: 'Tag'} }}</h2>
 <div class="flex flex-col justify-start items-stretch px-8 py-4">
   <form [formGroup]="formGroup" class="flex flex-col gap-2">
   <div class="flex gap-4">
@@ -43,7 +43,7 @@
 
 <div class="flex justify-end p-4">
   <div ngmButtonGroup>
-    <button z-button zType="secondary" mat-dialog-close cdkFocusInitial>
+    <button z-button zType="secondary" xpDialogClose cdkFocusInitial>
       {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
     <button z-button zType="default" color="accent" [disabled]="formGroup.invalid || formGroup.pristine" (click)="apply()">

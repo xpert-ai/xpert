@@ -1,7 +1,6 @@
 import { Component, inject, signal } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
@@ -12,6 +11,7 @@ import { get } from 'lodash-es'
 import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, distinctUntilChanged, filter, switchMap, tap } from 'rxjs'
 import {
+import { ZardDialogService } from '@xpert-ai/headless-ui'
   getErrorMessage,
   IDocumentChunk,
   KnowledgeDocumentService,
@@ -35,7 +35,7 @@ export class KnowledgeDocumentChunkComponent extends TranslationBaseComponent {
   readonly #store = inject(Store)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(ZardDialogService)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
   readonly paramId = injectParams('id')
 

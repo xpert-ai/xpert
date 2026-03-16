@@ -1,11 +1,11 @@
 import { Component, HostBinding, OnInit } from '@angular/core'
 import { UntypedFormControl, UntypedFormGroup, Validators } from '@angular/forms'
-import { MatDialogRef } from '@angular/material/dialog'
 import { mergeSelectedValues } from '@metad/ocap-angular/core'
 import { isEmpty } from 'lodash-es'
 import { BehaviorSubject, combineLatest, map, startWith } from 'rxjs'
 import { convertConfigurationSchema, IMG_ROOT, PACNotificationDestinationsService, ToastrService } from '../../../../@core'
 
+import { ZardDialogRef } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'pac-new-notification-destination',
   templateUrl: './new-notification-destination.component.html',
@@ -45,7 +45,7 @@ export class NewNotificationDestinationComponent implements OnInit {
   creating: boolean
   constructor(
     private destinationService: PACNotificationDestinationsService,
-    private _dialogRef: MatDialogRef<NewNotificationDestinationComponent>,
+    private _dialogRef: ZardDialogRef<NewNotificationDestinationComponent>,
     private readonly toastrService: ToastrService
   ) {}
 

@@ -1,5 +1,4 @@
 import { Injectable, ViewContainerRef, inject } from '@angular/core'
-import { MatDialog } from '@angular/material/dialog'
 import { NxStoryService, StoryWidget } from '@metad/story/core'
 import { TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
@@ -9,13 +8,14 @@ import { DeepPartial } from '@metad/ocap-core'
 import { StoryTemplateComponent } from '../../../@shared/story'
 import { toSignal } from '@angular/core/rxjs-interop'
 
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 @Injectable()
 export class StoryToolbarService {
   readonly #translate = inject(TranslateService)
   public readonly toastrService = inject(ToastrService)
   public readonly _viewContainerRef = inject(ViewContainerRef)
   private storyService = inject(NxStoryService)
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(ZardDialogService)
 
   public widgetComponents = []
 

@@ -2,6 +2,7 @@ import { animate, style, transition, trigger } from '@angular/animations'
 import { CdkDragEnd } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   Component,
   ElementRef,
@@ -19,7 +20,6 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
 import { StoriesService, convertNewSemanticModelResult } from '@metad/cloud/state'
 import { CopilotChatMessage } from '@metad/copilot'
@@ -125,7 +125,7 @@ export class StoryToolbarComponent implements OnInit {
   readonly #translate = inject(TranslateService)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(ZardDialogService)
   private _viewContainerRef = inject(ViewContainerRef)
   private _widgetComponents?: Array<StoryWidgetComponentProvider> = inject(STORY_WIDGET_COMPONENT, { optional: true })
 

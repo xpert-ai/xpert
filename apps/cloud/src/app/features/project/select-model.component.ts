@@ -21,13 +21,13 @@ import { MaterialModule } from '../../@shared/material.module'
     DensityDirective
 ],
   selector: 'pac-project-select-model-dialog',
-  template: `<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  template: `<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
       <h4 style="pointer-events: none;" class="mb-0">
         {{ 'PAC.Project.AddModels' | translate: { Default: 'Add Semantic Models' } }}
       </h4>
     </header>
 
-    <div mat-dialog-content class="mat-dialog-content mat-typography w-96 overflow-y-auto">
+    <div xpDialogContent class="xpDialogContent w-96 overflow-y-auto">
       <ul class="ngm-cdk-listbox" cdkListbox [(ngModel)]="models" [cdkListboxMultiple]="true" [cdkListboxCompareWith]="compareWith">
         @for (model of listboxModels(); track model.id) {
           <li class="ngm-cdk-option rounded-md overflow-hidden" [cdkOption]="model">
@@ -36,17 +36,17 @@ import { MaterialModule } from '../../@shared/material.module'
         }
       </ul>
     </div>
-    <mat-dialog-actions align="end">
+    <xp-dialog-actions align="end">
       <div ngmButtonGroup>
-        <button z-button zType="ghost" mat-dialog-close>
+        <button z-button zType="ghost" xpDialogClose>
           {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
 
-        <button z-button zType="default" color="accent" [matDialogClose]="models">
+        <button z-button zType="default" color="accent" [xpDialogClose]="models">
           {{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}
         </button>
       </div>
-    </mat-dialog-actions> `,
+    </xp-dialog-actions> `,
   styles: [
     `
       :host {

@@ -6,18 +6,10 @@ import { Component, ViewContainerRef, computed, effect, inject, model, signal } 
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
-import { MatDialog, MatDialogModule } from '@angular/material/dialog'
-import {
-  ZardButtonComponent,
-  ZardDividerComponent,
-  ZardIconComponent,
-  ZardMenuImports,
-  ZardProgressBarComponent,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogModule, ZardDialogService, ZardDividerComponent, ZardIconComponent, ZardMenuImports, ZardProgressBarComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { CommandDialogComponent } from '@metad/copilot-angular'
-import { NgmCommonModule, NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
+import { NgmCommonModule, NgmConfirmDeleteService } from '@metad/ocap-angular/common'
 import { ISelectOption, filterSearch } from '@metad/ocap-angular/core'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
 import { CalculationProperty, DisplayBehaviour, ParameterProperty, getEntityCalculations } from '@metad/ocap-core'
@@ -32,7 +24,7 @@ import { BehaviorSubject, combineLatestWith, firstValueFrom, map, of, shareRepla
     FormsModule,
     DragDropModule,
     RouterModule,
-    MatDialogModule,
+    ZardDialogModule,
     ZardButtonComponent,
     ZardIconComponent,
     ZardDividerComponent,
@@ -56,6 +48,7 @@ export class StoryCalculationsComponent {
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
   readonly #dialog = inject(Dialog)
+  readonly #confirmDelete = inject(NgmConfirmDeleteService)
   // readonly dsCoreService = inject(NgmDSCacheService)
 
   readonly activeLink = signal<{ dataSource: string; modelId: string; entity: string }>(null)
@@ -164,7 +157,7 @@ export class StoryCalculationsComponent {
 
   constructor(
     private storyService: NxStoryService,
-    private readonly _dialog: MatDialog,
+    private readonly _dialog: ZardDialogService,
     private readonly _viewContainerRef: ViewContainerRef
   ) {
     effect(
@@ -256,14 +249,11 @@ export class StoryCalculationsComponent {
   }
 
   removeCalculation(calculationProperty: CalculationProperty) {
-    this._dialog
-      .open(NgmConfirmDeleteComponent, {
-        data: {
-          value: calculationProperty.caption || calculationProperty.name,
-          information: ''
-        }
+    this.#confirmDelete
+      .confirm({
+        value: calculationProperty.caption || calculationProperty.name,
+        information: ''
       })
-      .afterClosed()
       .subscribe((confirm) => {
         if (confirm) {
           this.storyService.removeCalculation({

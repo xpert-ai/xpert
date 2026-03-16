@@ -1,5 +1,4 @@
 import { inject, NgZone } from '@angular/core'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
 import { DynamicStructuredTool } from '@langchain/core/tools'
 import { Indicator } from '@metad/cloud/state'
@@ -12,6 +11,7 @@ import { firstValueFrom } from 'rxjs'
 import z from 'zod'
 import { ProjectService } from '../../project.service'
 
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 export function injectCreateIndicatorTool() {
   const logger = inject(NGXLogger)
   const router = inject(Router)
@@ -85,7 +85,7 @@ export function injectPickCubeTool() {
   const logger = inject(NGXLogger)
   const projectService = inject(ProjectService)
   const dsCoreService = inject(NgmDSCoreService)
-  const _dialog = inject(MatDialog)
+  const _dialog = inject(ZardDialogService)
 
   const pickCubeTool = new DynamicStructuredTool({
     name: 'pickCube',

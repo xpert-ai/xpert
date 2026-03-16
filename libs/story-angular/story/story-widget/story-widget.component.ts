@@ -30,7 +30,6 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Params, Router } from '@angular/router'
 import {
   Intent,
@@ -44,7 +43,7 @@ import {
   WidgetService
 } from '@metad/core'
 import { CommandDialogComponent } from '@metad/copilot-angular'
-import { NgmCommonModule, NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
+import { NgmCommonModule, NgmConfirmDeleteService } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
 import {
   assignDeepOmitBlank,
@@ -71,7 +70,7 @@ import { NxSettingsPanelService } from '@metad/story/designer'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { select } from '@ngneat/elf'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardDividerComponent, ZardToastService } from '@xpert-ai/headless-ui'
+import { ZardDialogService, ZardDividerComponent, ZardToastService } from '@xpert-ai/headless-ui'
 import { cloneDeep, isEmpty, isEqual, pick } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, combineLatest, EMPTY, firstValueFrom, from, Observable, of } from 'rxjs'
@@ -125,6 +124,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
   readonly #logger? = inject(NGXLogger, { optional: true })
   private readonly _renderer = inject(Renderer2)
   private readonly _elementRef = inject(ElementRef)
+  private readonly _confirmDelete = inject(NgmConfirmDeleteService)
   private readonly pointComponent? = inject(NxStoryPointComponent, { optional: true })
   private readonly router = inject(Router)
   private readonly route = inject(ActivatedRoute)
@@ -362,7 +362,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
     public readonly widgetService: WidgetService,
     private readonly translateService: TranslateService,
     private readonly _cdr: ChangeDetectorRef,
-    private readonly _dialog: MatDialog,
+    private readonly _dialog: ZardDialogService,
     private readonly _injector: Injector,
     private _viewContainerRef: ViewContainerRef,
 
@@ -538,13 +538,7 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
         Default: 'It is not deleted from the server until it is actually saved'
       })
     )
-    const confirm = await firstValueFrom(
-      this._dialog
-        .open(NgmConfirmDeleteComponent, {
-          data: { value: this.widget().name, information }
-        })
-        .afterClosed()
-    )
+    const confirm = await firstValueFrom(this._confirmDelete.confirm({ value: this.widget().name, information }))
 
     if (confirm) {
       if (this.laneKey) {

@@ -2,7 +2,6 @@
 import { Component, Inject, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
 import { BusinessAreasService, SemanticModelServerService, StoriesService } from '@metad/cloud/state'
 import { NgmTreeSelectComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -13,6 +12,7 @@ import { ICollection, ISemanticModel } from '../../../@core'
 import { InlineSearchComponent } from '../../form-fields'
 import { MaterialModule } from '../../material.module'
 
+import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -83,7 +83,7 @@ export class StoryCreationComponent {
   constructor(
     private businessAreaService: BusinessAreasService,
     private modelsService: SemanticModelServerService,
-    @Inject(MAT_DIALOG_DATA)
+    @Inject(Z_MODAL_DATA)
     public data: {
       story: {
         id?: string
@@ -95,7 +95,7 @@ export class StoryCreationComponent {
       models: ISemanticModel[]
       collections: TreeNodeInterface<ICollection>[]
     },
-    public dialogRef: MatDialogRef<StoryCreationComponent>
+    public dialogRef: ZardDialogRef<StoryCreationComponent>
   ) {
     this._models = this.data.models
     this.collections = this.data.collections

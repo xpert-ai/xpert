@@ -4,7 +4,6 @@ import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MatDialogModule } from '@angular/material/dialog'
 import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardTabsImports } from '@xpert-ai/headless-ui'
 import { RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -15,7 +14,22 @@ import { AppService } from '../../app.service'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, RouterModule, DragDropModule, RouterModule, ...ZardTabsImports, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, MatDialogModule, ZardInputDirective, TranslateModule, DensityDirective, ButtonGroupDirective, NgmCommonModule, AppearanceDirective],
+  imports: [
+    FormsModule,
+    ReactiveFormsModule,
+    RouterModule,
+    DragDropModule,
+    ...ZardTabsImports,
+    ...ZardFormImports,
+    ZardIconComponent,
+    ZardButtonComponent,
+    ZardInputDirective,
+    TranslateModule,
+    DensityDirective,
+    ButtonGroupDirective,
+    NgmCommonModule,
+    AppearanceDirective
+  ],
   selector: 'pac-home',
   template: `
     <nav

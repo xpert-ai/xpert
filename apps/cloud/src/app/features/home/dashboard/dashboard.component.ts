@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { Component, OnInit, ViewChild, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { IndicatorsService, SemanticModelServerService, Store, StoriesService } from '@metad/cloud/state'
 import { getErrorMessage } from '@metad/core'
 import { NgmConfirmOptionsComponent } from '@metad/ocap-angular/common'
@@ -12,7 +11,7 @@ import { NxStoryModule } from '@metad/story/story'
 import { TranslateModule } from '@ngx-translate/core'
 import { GridType, Gridster, GridsterConfig, GridsterItem as GridsterItemComponent, GridsterItemConfig } from 'angular-gridster2'
 import { cloneDeep, compact, isEqual, pick } from 'lodash-es'
-import { ZardDatePickerComponent } from '@xpert-ai/headless-ui'
+import { ZardDialogService, ZardDatePickerComponent } from '@xpert-ai/headless-ui'
 import {
   BehaviorSubject,
   combineLatest,
@@ -92,7 +91,7 @@ export class DashboardComponent extends TranslationBaseComponent implements OnIn
   private organizationsService = inject(OrganizationsService)
   private dsCoreService = inject(NgmDSCoreService)
   private toastrService = inject(ToastrService)
-  readonly _dialog = inject(MatDialog)
+  readonly _dialog = inject(ZardDialogService)
 
   @ViewChild(Gridster) gridster: Gridster
 

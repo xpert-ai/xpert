@@ -1,8 +1,8 @@
 import { booleanAttribute, Directive, inject, Input, input, signal, ViewContainerRef } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
 import { NgmTimeFilterEditorComponent, NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { DateVariableEnum, NgmOcapCoreService } from '@metad/ocap-angular/core'
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   AdvancedSlicer,
   AggregationRole,
@@ -33,7 +33,7 @@ export class BaseSlicersComponent {
   isSemanticCalendar = isSemanticCalendar
 
   public coreService = inject(NgmOcapCoreService)
-  public _dialog = inject(MatDialog)
+  public _dialog = inject(ZardDialogService)
   public viewContainerRef? = inject(ViewContainerRef)
 
   @Input() get dataSettings(): DataSettings {

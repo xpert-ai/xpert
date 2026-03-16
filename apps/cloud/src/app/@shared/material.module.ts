@@ -2,12 +2,12 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { NgModule } from '@angular/core'
 import { MatChipsModule } from '@angular/material/chips'
-import { MatDialogModule } from '@angular/material/dialog'
 import {
   ZardAccordionImports,
   ZardBadgeComponent,
   ZardButtonComponent,
   ZardCardImports,
+  ZardDialogModule,
   ZardDividerComponent,
   ZardDrawerImports,
   ZardFormImports,
@@ -26,19 +26,20 @@ const MATERIAL_MODULES = [
   ZardIconComponent,
   ZardDividerComponent,
   ...ZardMenuImports,
-  MatDialogModule,
   ZardButtonComponent,
+  ZardDialogModule,
   ...ZardFormImports,
+  ...ZardAccordionImports,
+  ...ZardDrawerImports,
+  ...ZardTableImports,
   ...ZardTabsImports,
   ...ZardCardImports,
   ZardInputDirective,
-  ...ZardDrawerImports,
   ZardCheckboxComponent,
   ...ZardAccordionImports,
   MatChipsModule,
   ...ZardTooltipImports,
   ZardBadgeComponent,
-  ...ZardTableImports,
 ]
 
 /**

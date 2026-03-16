@@ -2,24 +2,13 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialogModule } from '@angular/material/dialog'
 import { MatMenuModule } from '@angular/material/menu'
 import { NgmCommonModule, ResizerModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-import {
-  ZardButtonComponent,
-  ZardComboboxComponent,
-  ZardIconComponent,
-  ZardInputDirective,
-  provideZardIconAssets,
-  ZardCheckboxComponent,
-  ZardToggleGroupComponent,
-  ZardToggleGroupItemComponent,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardCheckboxComponent, ZardComboboxComponent, ZardDialogModule, ZardIconComponent, ZardInputDirective, ZardToggleGroupComponent, ZardToggleGroupItemComponent, ZardTooltipImports, provideZardIconAssets } from '@xpert-ai/headless-ui'
 import { PACFormlyChartTypeComponent } from './chart-type.component'
 import { CHART_ICON_ASSETS } from './types'
 
@@ -34,7 +23,7 @@ import { CHART_ICON_ASSETS } from './types'
     ZardButtonComponent,
     ZardComboboxComponent,
     MatMenuModule,
-    MatDialogModule,
+    ZardDialogModule,
     ZardInputDirective,
     ZardCheckboxComponent,
     ZardToggleGroupComponent,

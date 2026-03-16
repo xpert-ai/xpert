@@ -1,6 +1,7 @@
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule, DOCUMENT } from '@angular/common';
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   ChangeDetectionStrategy,
   Component,
@@ -19,7 +20,6 @@ import {
   viewChild
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
 import { FavoritesService, StoriesService } from '@metad/cloud/state'
 import { NxCoreService } from '@metad/core'
@@ -75,7 +75,7 @@ export class StoryViewerComponent extends TranslationBaseComponent implements On
   StoryStatusEnum = StoryStatusEnum
   StoryScales = StoryScales
 
-  private readonly _dialog: MatDialog = inject(MatDialog)
+  private readonly _dialog: ZardDialogService = inject(ZardDialogService)
   private readonly _viewContainerRef = inject(ViewContainerRef)
 
   readonly storyComponent = viewChild('storyComponent', { read: NxStoryComponent })

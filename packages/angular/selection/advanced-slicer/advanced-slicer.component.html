@@ -1,10 +1,10 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <h4 style="pointer-events: none">
     {{ 'Ngm.AdvancedSlicer.TITLE' | translate: { Default: 'Advanced Slicer' } }}
   </h4>
 </header>
 
-<mat-dialog-content class="mat-typography">
+<xp-dialog-content class="">
   <form [formGroup]="formGroup" class="flex flex-col justify-start items-stretch gap-2">
     <div>{{ 'Ngm.AdvancedSlicer.CONTEXT' | translate: { Default: 'Context' } }}</div>
 
@@ -69,19 +69,19 @@
       >
     </ngm-measure-select>
   </form>
-</mat-dialog-content>
+</xp-dialog-content>
 
-<mat-dialog-actions>
+<xp-dialog-actions>
   <button z-button zType="ghost">
     {{ 'Ngm.Common.Reset' | translate: { Default: 'Reset' } }}
   </button>
 
   <div ngmButtonGroup>
-    <button z-button zType="ghost" mat-dialog-close>
+    <button z-button zType="ghost" xpDialogClose>
       {{ 'Ngm.Common.Cancel' | translate: { Default: 'Cancel' } }}
     </button>
     <button z-button zType="default" color="accent" (click)="onApply()" cdkFocusInitial>
       {{ 'Ngm.Common.Apply' | translate: { Default: 'Apply' } }}
     </button>
   </div>
-</mat-dialog-actions>
+</xp-dialog-actions>

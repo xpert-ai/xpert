@@ -1,10 +1,10 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <h4 class="m-0 pointer-events-none">
     {{ 'Story.Query.Title' | translate: { Default: 'Query' } }}
   </h4>
 </header>
 
-<mat-dialog-content class="mat-typography">
+<xp-dialog-content class="">
   <div>
     <h4>HANA</h4>
     <P>
@@ -41,18 +41,18 @@
       <z-switch></z-switch>
     </p>
   </div>
-</mat-dialog-content>
+</xp-dialog-content>
 
-<mat-dialog-actions>
+<xp-dialog-actions>
   <button z-button zType="ghost">
     {{ 'STORY.COMMON.RESET' | translate: { Default: 'Reset' } }}
   </button>
   <div ngmButtonGroup>
-    <button z-button zType="ghost" mat-dialog-close>
+    <button z-button zType="ghost" xpDialogClose>
       {{ 'STORY.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
-    <button z-button zType="default" color="accent" cdkFocusInitial [mat-dialog-close]="true" (click)="onApply()">
+    <button z-button zType="default" color="accent" cdkFocusInitial [xpDialogClose]="true" (click)="onApply()">
       {{ 'STORY.COMMON.APPLY' | translate: { Default: 'Apply' } }}
     </button>
   </div>
-</mat-dialog-actions>
+</xp-dialog-actions>

@@ -14,16 +14,7 @@ import {
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MAT_DIALOG_DATA } from '@angular/material/dialog'
-import {
-  ZardButtonComponent,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardSliderComponent,
-  ZardToastService,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardSliderComponent, ZardToastService, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { DomSanitizer, SafeUrl } from '@angular/platform-browser'
 import { AccessEnum, ISemanticModel, Visibility } from '@metad/contracts'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -116,7 +107,7 @@ export class StorySharesComponent implements OnInit {
     @Inject(NX_STORY_STORE)
     private storyStore: NxStoryStore,
 
-    @Inject(MAT_DIALOG_DATA)
+    @Inject(Z_MODAL_DATA)
     public data: {
       // story id
       id: string

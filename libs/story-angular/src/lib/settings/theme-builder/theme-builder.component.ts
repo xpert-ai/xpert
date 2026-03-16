@@ -3,13 +3,12 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { Component, effect, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'
 import { MatListModule } from '@angular/material/list'
 import { ButtonGroupDirective, NgmThemeService, ThemesEnum } from '@metad/ocap-angular/core'
 import { EditorThemeMap } from '@metad/ocap-angular/formula'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -17,7 +16,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
     FormsModule,
     DragDropModule,
     TranslateModule,
-    MatDialogModule,
+    ZardDialogModule,
     MatListModule,
     ZardButtonComponent,
     ZardIconComponent,
@@ -30,7 +29,7 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 })
 export class ThemeBuilderComponent {
 
-  public readonly data = inject(MAT_DIALOG_DATA)
+  public readonly data = inject(Z_MODAL_DATA)
   readonly themeService = inject(NgmThemeService)
 
   c_light = ThemesEnum.light

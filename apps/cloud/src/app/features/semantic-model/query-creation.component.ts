@@ -3,8 +3,7 @@ import { CommonModule } from '@angular/common'
 import { Component, HostBinding, OnInit } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
-import { MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -14,15 +13,15 @@ import { ModelQueryService, uuid } from '../../@core'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, MatDialogModule, TranslateModule, FormsModule, ReactiveFormsModule, ...ZardFormImports, DragDropModule, ZardButtonComponent, ZardInputDirective, ButtonGroupDirective, DensityDirective, NgmSelectComponent],
+  imports: [CommonModule, ZardDialogModule, TranslateModule, FormsModule, ReactiveFormsModule, ...ZardFormImports, DragDropModule, ZardButtonComponent, ZardInputDirective, ButtonGroupDirective, DensityDirective, NgmSelectComponent],
   selector: 'pac-query-creation',
-  template: `<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  template: `<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
       <h4 style="pointer-events: none;">
         {{ 'PAC.MODEL.CreateQuery' | translate: { Default: 'Create Query' } }}
       </h4>
     </header>
 
-    <div mat-dialog-content>
+    <div xpDialogContent>
       <form class="flex flex-col justify-start items-stretch" 
         [formGroup]="formGroup" (ngSubmit)="create()">
         <z-form-field appearance="fill" floatLabel="always">
@@ -49,9 +48,9 @@ import { ModelQueryService, uuid } from '../../@core'
       </form>
     </div>
 
-    <div mat-dialog-actions>
+    <div xpDialogActions>
       <div ngmButtonGroup>
-        <button z-button zType="outline" mat-dialog-close cdkFocusInitial>
+        <button z-button zType="outline" xpDialogClose cdkFocusInitial>
           {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
       </div>
@@ -74,7 +73,7 @@ export class QueryCreationDialogComponent implements OnInit {
   })
   public readonly models$ = this.modelsService.getMy()
   constructor(
-    public dialogRef: MatDialogRef<QueryCreationDialogComponent>,
+    public dialogRef: ZardDialogRef<QueryCreationDialogComponent>,
     private modelsService: SemanticModelServerService,
     private modelQueryService: ModelQueryService
   ) {}

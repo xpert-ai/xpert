@@ -13,7 +13,6 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { convertQueryResultColumns, linkedModel } from '@metad/core'
@@ -45,7 +44,7 @@ import { ModelEntityService } from '../entity.service'
 import { getDropProperty } from '../types'
 import { animate, style, transition, trigger } from '@angular/animations'
 import { typeOfObj } from '@cloud/app/@shared/model/types'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardDialogService, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -93,7 +92,7 @@ export class ModelEntityCalculationComponent {
   readonly #router = inject(Router)
   readonly #logger = inject(NGXLogger)
   readonly #toastr = inject(ToastrService)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(ZardDialogService)
 
   @ViewChild('editor') editor!: NgmBaseEditorDirective
 

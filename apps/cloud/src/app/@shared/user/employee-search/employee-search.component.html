@@ -1,10 +1,10 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <div style="pointer-events: none;">
     {{ 'PAC.MENU.AddUsers' | translate: {Default: 'Add Users'} }}
   </div>
 </header>
 
-<mat-dialog-content class="mat-typography flex flex-col">
+<xp-dialog-content class="flex flex-col">
   <div class="flex flex-col">
     <z-form-field appearance="fill" class="self-stretch" >
       <z-form-label>{{ 'PAC.KEY_WORDS.Users' | translate: {Default: 'Users'} }}</z-form-label>
@@ -60,15 +60,15 @@
       </z-radio-group>
     }
   </div>
-</mat-dialog-content>
+</xp-dialog-content>
 
-<mat-dialog-actions align="end">
+<xp-dialog-actions align="end">
   <div ngmButtonGroup>
-    <button z-button zType="secondary" mat-dialog-close>
+    <button z-button zType="secondary" xpDialogClose>
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
     <button z-button zType="default" color="accent" cdkFocusInitial (click)="onApply()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
     </button>
   </div>
-</mat-dialog-actions>
+</xp-dialog-actions>

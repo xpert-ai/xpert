@@ -18,7 +18,6 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import {
   CdkConfirmDeleteComponent,
@@ -72,7 +71,7 @@ import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
 import { ModelEntityComponent } from '../entity.component'
-import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  * Display and edit the field list of the multidimensional analysis model
  *
@@ -117,7 +116,7 @@ export class ModelCubeStructureComponent {
   /**
    * @deprecated use `#dialog`
    */
-  readonly _dialog = inject(MatDialog)
+  readonly _dialog = inject(ZardDialogService)
   readonly #dialog = inject(Dialog)
   readonly #translate = inject(TranslateService)
   readonly #toastr = injectToastr()

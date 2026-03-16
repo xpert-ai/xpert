@@ -10,7 +10,6 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { BusinessAreasService, NgmSemanticModel } from '@metad/cloud/state'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { nonBlank, nonNullable } from '@metad/core'
@@ -55,6 +54,7 @@ import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
 import {
   ZardButtonComponent,
   ZardDatePickerComponent,
+  ZardDialogService,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
@@ -114,7 +114,7 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
   /**
    * @default use Dialog in cdk
    */
-  readonly _dialog = inject(MatDialog)
+  readonly _dialog = inject(ZardDialogService)
 
   @Input() certifications: ISelectOption[]
   readonly models = input<ISemanticModel[]>()

@@ -3,10 +3,9 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MatDialogModule } from '@angular/material/dialog'
 import { NxScaleChromaticComponent } from './scale-chromatic/scale-chromatic.component'
 import { NxScaleChromaticDirective } from './scale-chromatic/scale-chromatic.directive'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogModule } from '@xpert-ai/headless-ui'
 
 @NgModule({
   declarations: [
@@ -18,7 +17,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
-    MatDialogModule,
+    ZardDialogModule,
     ZardButtonComponent
   ],
   exports: [

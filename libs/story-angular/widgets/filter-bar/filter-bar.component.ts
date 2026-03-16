@@ -1,3 +1,4 @@
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   AfterViewInit,
   ChangeDetectionStrategy,
@@ -16,7 +17,6 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { AbstractStoryWidget, ControlType } from '@metad/core'
 import { SmartFilterOptions } from '@metad/ocap-angular/controls'
 import { NgmAppearance, NgmSmartBusinessService, NgmSmartFilterBarService } from '@metad/ocap-angular/core'
@@ -80,7 +80,7 @@ export class NxSmartFilterBarComponent
   Syntax = Syntax
 
   protected readonly dataService = inject(NgmSmartBusinessService<unknown>)
-  protected readonly _dialog = inject(MatDialog)
+  protected readonly _dialog = inject(ZardDialogService)
   protected readonly _cdr = inject(ChangeDetectorRef)
   private readonly _viewContainerRef = inject(ViewContainerRef)
   protected readonly smartFilterBarService? = inject(NgmSmartFilterBarService, { optional: true })

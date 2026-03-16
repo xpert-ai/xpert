@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal, viewChild, ViewContainerRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MatDialog } from '@angular/material/dialog'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { CdkConfirmDeleteComponent, NgmCheckboxComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -30,7 +29,7 @@ import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { SemanticModelService } from '../../model.service'
 import { ModelMembersRetrievalTestingComponent } from '../retrieval/retrieval.component'
 import { ModelTaskDialogComponent } from '../task/task.component'
-import { ZardAccordionImports, ZardButtonComponent, ZardIconComponent, ZardProgressCircleComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardAccordionImports, ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardProgressCircleComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -54,7 +53,7 @@ export class ModelMembersCubeComponent {
   readonly modelService = inject(SemanticModelService)
   readonly modelEntityService = inject(SemanticModelEntityService)
   readonly modelsService = inject(SemanticModelServerService)
-  readonly dialog = inject(MatDialog)
+  readonly dialog = inject(ZardDialogService)
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
   readonly translate = inject(TranslateService)

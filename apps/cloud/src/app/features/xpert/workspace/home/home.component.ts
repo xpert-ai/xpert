@@ -88,7 +88,7 @@ export class XpertWorkspaceHomeComponent {
   readonly route = inject(ActivatedRoute)
   readonly logger = inject(NGXLogger)
   readonly #dialog = inject(Dialog)
-  // readonly #dialog = inject(MatDialog)
+  // readonly #dialog = inject(ZardDialogService)
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly workspaceService = inject(XpertWorkspaceService)

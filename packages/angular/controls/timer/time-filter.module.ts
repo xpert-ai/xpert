@@ -3,17 +3,17 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MatDialogModule } from '@angular/material/dialog'
-import {
-  ZardAccordionImports,
-  ZardButtonComponent,
-  ZardDividerComponent,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardCheckboxComponent,
+import { 
+  ZardAccordionImports, 
+  ZardButtonComponent, 
+  ZardCheckboxComponent, 
+  ZardDialogModule, 
+  ZardDividerComponent, 
+  ZardFormImports, 
+  ZardIconComponent, 
+  ZardInputDirective, 
   ZardMenuImports,
-  ZardTableImports
+  ZardTableImports 
 } from '@xpert-ai/headless-ui'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -37,7 +37,7 @@ import {
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatDialogModule,
+    ZardDialogModule,
     ...ZardTableImports,
     ZardCheckboxComponent,
     ZardInputDirective,

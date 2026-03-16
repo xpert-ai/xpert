@@ -4,7 +4,6 @@ import { CommonModule } from '@angular/common'
 import { HttpErrorResponse } from '@angular/common/http'
 import { Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { MAT_DIALOG_DATA } from '@angular/material/dialog'
 import { DataSourceService } from '@metad/cloud/state'
 import { NgmInputComponent } from '@metad/ocap-angular/common'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
@@ -19,6 +18,7 @@ import { MaterialModule } from '../../../@shared/material.module'
 import { ZardProgressCircleComponent, ZardStepperImports } from '@xpert-ai/headless-ui'
 import { createTimer } from '../../../@shared/timer'
 
+import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-model-upload',
@@ -38,7 +38,7 @@ import { createTimer } from '../../../@shared/timer'
   ]
 })
 export class ModelUploadComponent {
-  private data: { dataSource: DataSource; id: string } = inject(MAT_DIALOG_DATA)
+  private data: { dataSource: DataSource; id: string } = inject(Z_MODAL_DATA)
   private readonly dataSourceService = inject(DataSourceService)
 
   fileList: UploadFile[] = []

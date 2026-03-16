@@ -5,15 +5,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 
 import { MatChipsModule } from '@angular/material/chips'
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import {
-  ZardButtonComponent,
-  ZardDividerComponent,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardSwitchComponent,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardDividerComponent, ZardIconComponent, ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
@@ -96,7 +88,7 @@ const ADVANCED_SLICER_OPERATORS = [
     CommonModule,
     ReactiveFormsModule,
     DragDropModule,
-    MatDialogModule,
+    ZardDialogModule,
     ZardIconComponent,
     ZardButtonComponent,
     ZardInputDirective,
@@ -123,7 +115,7 @@ export class NgmAdvancedSlicerComponent {
   public readonly dsCoreService = inject(NgmDSCoreService)
   private readonly translateService = inject(TranslateService)
   private readonly _formBuilder = inject(FormBuilder)
-  private readonly dialogRef? = inject<MatDialogRef<NgmAdvancedSlicerComponent>>(MatDialogRef, { optional: true })
+  private readonly dialogRef? = inject<ZardDialogRef<NgmAdvancedSlicerComponent>>(ZardDialogRef, { optional: true })
 
   @Input() get dataSettings(): DataSettings {
     return this.dataSettings$.value
@@ -184,7 +176,7 @@ export class NgmAdvancedSlicerComponent {
 
   constructor(
     @Optional()
-    @Inject(MAT_DIALOG_DATA)
+    @Inject(Z_MODAL_DATA)
     public data
   ) {
     this.dataSettings = this.data?.dataSettings

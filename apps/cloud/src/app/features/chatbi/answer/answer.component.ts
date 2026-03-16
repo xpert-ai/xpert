@@ -15,15 +15,7 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MatDialog } from '@angular/material/dialog'
-import {
-  ZardButtonComponent,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardMenuImports,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogService, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardMenuImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { Router, RouterModule } from '@angular/router'
 import { CopilotChatMessage, JSONValue, nanoid, stringifyMessageContent } from '@metad/copilot'
 import { AnalyticalCardComponent, AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
@@ -111,7 +103,7 @@ export class ChatbiAnswerComponent {
   readonly homeComponent = inject(ChatbiHomeComponent)
   readonly chatComponent = inject(ChatbiChatComponent)
   readonly #translate = inject(TranslateService)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(ZardDialogService)
   readonly #toastr = inject(ToastrService)
   readonly router = inject(Router)
   readonly #store = inject(Store)

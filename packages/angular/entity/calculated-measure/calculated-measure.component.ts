@@ -16,7 +16,6 @@ import {
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
-import { MatDialog } from '@angular/material/dialog'
 import { NgmCommonModule, NgmHighlightDirective, ResizerModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
@@ -41,7 +40,7 @@ import { NgmEntitySchemaComponent } from '../entity-schema/entity-schema.compone
 import { EntityCapacity } from '../entity-schema/types'
 import { NgmEntityPropertyComponent } from '../property/property.component'
 import { Dialog } from '@angular/cdk/dialog'
-import { ZardAccordionImports, ZardButtonComponent, ZardDrawerImports, ZardIconComponent, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardAccordionImports, ZardButtonComponent, ZardDialogService, ZardDrawerImports, ZardIconComponent, ZardTabsImports, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -85,7 +84,7 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
   EntityCapacity = EntityCapacity
   FUNCTIONS = []
 
-  private readonly _dialog = inject(MatDialog)
+  private readonly _dialog = inject(ZardDialogService)
   readonly #dialog = inject(Dialog, { optional: true })
   private readonly _viewContainerRef = inject(ViewContainerRef)
 

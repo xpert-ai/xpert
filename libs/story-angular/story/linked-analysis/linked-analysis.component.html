@@ -1,10 +1,10 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <h4 class="mb-0 pointer-events-none">
     {{ 'Story.LinkedAnalysis.Title' | translate: { Default: 'Linked Analysis' } }}
   </h4>
 </header>
 
-<mat-dialog-content class="mat-typography flex flex-col justify-start items-stretch overflow-hidden">
+<xp-dialog-content class="flex flex-col justify-start items-stretch overflow-hidden">
   <form [formGroup]="formGroup" class="w-80 flex flex-col justify-start items-stretch gap-4">
     <z-radio-group formControlName="interactionApplyTo" class="flex flex-col gap-2" aria-label="Select an option">
       @for (option of applyTos; track option) {
@@ -41,16 +41,16 @@
       }
     </div>
   </form>
-</mat-dialog-content>
+</xp-dialog-content>
 
-<mat-dialog-actions class="flex justify-between items-center">
+<xp-dialog-actions class="flex justify-between items-center">
   <div></div>
   <div ngmButtonGroup>
-    <button z-button zType="secondary" mat-dialog-close>
+    <button z-button zType="secondary" xpDialogClose>
       {{ 'Story.Common.Cancel' | translate: { Default: 'Cancel' } }}
     </button>
-    <button z-button zType="default" color="accent" cdkFocusInitial [matDialogClose]="formGroup.value">
+    <button z-button zType="default" color="accent" cdkFocusInitial [xpDialogClose]="formGroup.value">
       {{ 'Story.Common.Apply' | translate: { Default: 'Apply' } }}
     </button>
   </div>
-</mat-dialog-actions>
+</xp-dialog-actions>

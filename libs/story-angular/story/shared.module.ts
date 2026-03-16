@@ -15,6 +15,7 @@ import {
   ZardIconComponent,
   ZardInputDirective,
   ZardTableImports,
+  ZardDialogModule,
   ZardTabsImports,
   ZardCheckboxComponent,
   ZardTooltipImports
@@ -29,7 +30,7 @@ const MAT_MODULES = [
   ...ZardTabsImports,
   ...ZardFormImports,
   ZardInputDirective,
-  MatDialogModule,
+  ZardDialogModule,
   ...ZardDrawerImports,
   ...ZardTableImports,
   ZardCheckboxComponent,

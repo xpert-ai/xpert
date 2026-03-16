@@ -4,8 +4,7 @@ import { Component, effect, forwardRef, inject, input, Input, model, ViewContain
 import { toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
-import { MatDialog } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogService, ZardDividerComponent, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmDisplayBehaviourComponent, NgmInputComponent } from '@metad/ocap-angular/common'
 import { DisplayDensity, ISelectOption, OcapCoreModule, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import {
@@ -54,7 +53,7 @@ import { Dialog } from '@angular/cdk/dialog'
 export class NgmParameterSelectComponent implements ControlValueAccessor {
   eCubeParameterEnum = CubeParameterEnum
 
-  private readonly _dialog = inject(MatDialog)
+  private readonly _dialog = inject(ZardDialogService)
   readonly #dialog = inject(Dialog, { optional: true })
   readonly #viewContainerRef = inject(ViewContainerRef)
 

@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, inject, ViewContainerRef } from '@angular/core'
 
-import { MatDialog } from '@angular/material/dialog'
 import { Router } from '@angular/router'
 import { StoriesService } from '@metad/cloud/state'
 import { uploadYamlFile } from '@metad/core'
@@ -12,7 +11,7 @@ import { firstValueFrom, switchMap, tap } from 'rxjs'
 import { DefaultCollection, IStory, IStoryTemplate, ProjectAPIService, ToastrService, tryHttp } from '../../../@core'
 import { ProjectComponent } from '../project/project.component'
 import { StoryCardComponent, StoryCreationComponent, StoryTemplateComponent } from '../../../@shared/story'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -42,7 +41,7 @@ export class ProjectHomeComponent {
   private _router = inject(Router)
   private _viewContainerRef = inject(ViewContainerRef)
   private projectComponent = inject(ProjectComponent)
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(ZardDialogService)
   private _toastrService = inject(ToastrService)
 
   storyUploading = false

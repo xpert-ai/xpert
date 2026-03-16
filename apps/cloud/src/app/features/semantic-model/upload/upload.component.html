@@ -79,7 +79,7 @@
 
   <div class="flex justify-between items-center">
     <div>
-      <button z-button zType="ghost" mat-dialog-close cdkFocusInitial>
+      <button z-button zType="ghost" xpDialogClose cdkFocusInitial>
         {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
     </div>
@@ -105,7 +105,7 @@
 
       @if (stepper.selectedIndex === 2) {
         @if (done) {
-          <button z-button zType="default" color="accent" [zDisabled]="uploading()" mat-dialog-close>
+          <button z-button zType="default" color="accent" [zDisabled]="uploading()" xpDialogClose>
             {{ 'PAC.MODEL.UPLOAD.Done' | translate: { Default: 'Done' } }}
           </button>
         } @else {

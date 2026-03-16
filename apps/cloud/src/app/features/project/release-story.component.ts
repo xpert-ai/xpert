@@ -3,7 +3,6 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, Inject, computed, inject } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatDialogRef } from '@angular/material/dialog'
 import { NgmCommonModule, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { pick } from '@metad/ocap-core'
@@ -15,6 +14,7 @@ import { MaterialModule } from '../../@shared/material.module'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { nonNullable } from '@metad/core'
 
+import { ZardDialogRef } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -30,14 +30,14 @@ import { nonNullable } from '@metad/core'
     NgmTreeSelectComponent
   ],
   selector: 'pac-project-release-story-dialog',
-  template: `<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  template: `<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <h4 style="pointer-events: none;" class="mb-0">
       {{ 'PAC.ACTIONS.Release' | translate: { Default: 'Release' } }}
       {{ 'PAC.KEY_WORDS.Story' | translate: { Default: 'Story' } }}
     </h4>
   </header>
   
-  <div mat-dialog-content class="mat-dialog-content mat-typography w-96">
+  <div xpDialogContent class="xpDialogContent w-96">
     <form [formGroup]="form" class="flex flex-col justify-start items-stretch">
   
       <z-radio-group formControlName="type" class="flex gap-2 my-4">
@@ -83,22 +83,22 @@ import { nonNullable } from '@metad/core'
         </z-form-label>
         <textarea z-input formControlName="description"
           placeholder="{{ 'PAC.Project.DescriptionPlaceholder' | translate: { Default: 'Optional, desciption of the project' } }}"
-        ></textarea>
-      </z-form-field>
-    </form>
+      ></textarea>
+    </z-form-field>
+  </form>
+</div>
+
+<xp-dialog-actions align="end">
+  <div ngmButtonGroup>
+    <button z-button zType="ghost" xpDialogClose>
+      {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+    </button>
+
+    <button z-button zType="default" color="accent" [disabled]="form.invalid || notAllPublic()" (click)="release()">
+      {{ 'PAC.Project.Release' | translate: { Default: 'Release' } }}
+    </button>
   </div>
-  
-  <mat-dialog-actions align="end">
-    <div ngmButtonGroup>
-      <button z-button zType="ghost" mat-dialog-close>
-        {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
-      </button>
-  
-      <button z-button zType="default" color="accent" [disabled]="form.invalid || notAllPublic()" (click)="release()">
-        {{ 'PAC.Project.Release' | translate: { Default: 'Release' } }}
-      </button>
-    </div>
-  </mat-dialog-actions>`,
+</xp-dialog-actions>`,
   styles: [``]
 })
 export class ReleaseStoryDialog {
@@ -134,7 +134,7 @@ export class ReleaseStoryDialog {
     @Inject(DIALOG_DATA) public data: {
       story: IStory
     },
-    private _dialogRef: MatDialogRef<ReleaseStoryDialog>,
+    private _dialogRef: ZardDialogRef<ReleaseStoryDialog>,
     private businessAreaService: BusinessAreasService,
     private _toastrService: ToastrService
   ) {

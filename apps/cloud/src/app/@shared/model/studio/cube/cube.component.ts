@@ -33,10 +33,9 @@ import { CubeStudioDimensionSettingsComponent } from './dimension/dimension.comp
 import { CubeStudioMeasureSettingsComponent } from './measure/measure.component'
 import { CubeStudioCubeSettingsComponent } from './settings/settings.component'
 import { CubeStudioDimensionUsageComponent } from './usage/usage.component'
-import { MatDialog } from '@angular/material/dialog'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
 import { OverlayAnimation1 } from '@metad/core'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardDialogService, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -73,7 +72,7 @@ export class CubeStudioCubeComponent {
   /**
    * @deprecated use `#dialog`
    */
-  readonly _dialog = inject(MatDialog)
+  readonly _dialog = inject(ZardDialogService)
   readonly #vcr = inject(ViewContainerRef)
 
   // Inputs

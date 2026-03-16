@@ -2,12 +2,11 @@ import { animate, state, style, transition, trigger } from '@angular/animations'
 import { afterNextRender, Component, effect, inject, model, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
-import { ZardPaginatorComponent, ZardProgressCircleComponent, type ZardTableSortDirection } from '@xpert-ai/headless-ui'
+import { ZardDialogService, ZardPaginatorComponent, ZardProgressCircleComponent, type ZardTableSortDirection } from '@xpert-ai/headless-ui'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import {
   NgmCommonModule,
-  NgmConfirmDeleteComponent,
+  NgmConfirmDeleteService,
   NgmCountdownConfirmationComponent
 } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -69,7 +68,8 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   readonly knowledgeDocumentService = inject(KnowledgeDocumentService)
   readonly _toastrService = inject(ToastrService)
   readonly #store = inject(Store)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(ZardDialogService)
+  readonly #confirmDelete = inject(NgmConfirmDeleteService)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
@@ -224,14 +224,11 @@ export class KnowledgeDocumentsComponent extends TranslationBaseComponent {
   }
 
   deleteDocument(id: string, storageFile: IStorageFile) {
-    this.#dialog
-      .open(NgmConfirmDeleteComponent, {
-        data: {
-          value: id,
-          information: `${storageFile.originalName}`
-        }
+    this.#confirmDelete
+      .confirm({
+        value: id,
+        information: `${storageFile.originalName}`
       })
-      .afterClosed()
       .pipe(switchMap((confirm) => (confirm ? this.knowledgeDocumentService.delete(id) : EMPTY)))
       .subscribe({
         next: () => {
