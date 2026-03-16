@@ -1,29 +1,49 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { COMMA, ENTER } from '@angular/cdk/keycodes'
 import { CommonModule } from '@angular/common'
-import { Component, ElementRef, inject, Input, ViewChild } from '@angular/core'
+import { Component, inject, Input } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-
 import { MatChipsModule } from '@angular/material/chips'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardLoaderComponent } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardComboboxComponent,
+  ZardComboboxOptionTemplateDirective,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardLoaderComponent,
+  type ZardComboboxOption
+} from '@xpert-ai/headless-ui'
 import { UsersService } from '@metad/cloud/state'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { catchError, debounceTime, EMPTY, filter, of, switchMap, tap } from 'rxjs'
+import { catchError, debounceTime, EMPTY, filter, map, of, switchMap, tap } from 'rxjs'
 import { IUser } from '../../../@core'
 import { userLabel, UserPipe } from '../../pipes'
 
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ReactiveFormsModule, ZardButtonComponent, MatAutocompleteModule, ...ZardFormImports, ZardInputDirective, MatChipsModule, ZardIconComponent, ZardLoaderComponent, TranslateModule, ButtonGroupDirective, NgmCommonModule, UserPipe],
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    ZardButtonComponent,
+    ZardComboboxComponent,
+    ZardComboboxOptionTemplateDirective,
+    ...ZardFormImports,
+    MatChipsModule,
+    ZardIconComponent,
+    ZardLoaderComponent,
+    TranslateModule,
+    ButtonGroupDirective,
+    NgmCommonModule,
+    UserPipe
+  ],
   selector: 'pac-user-role-select',
   templateUrl: 'user-role-select.component.html',
   styleUrls: ['user-role-select.component.scss']
 })
 export class UserRoleSelectComponent {
-  separatorKeysCodes: number[] = [ENTER, COMMA]
+  private skipNextSearchTermSync = false
   userLabel = userLabel
 
   private userService = inject(UsersService)
@@ -35,8 +55,7 @@ export class UserRoleSelectComponent {
   role: string = null
   users: IUser[] = []
   loading = false
-  searchControl = new FormControl()
-  @ViewChild('userInput') userInput: ElementRef<HTMLInputElement>
+  searchControl = new FormControl<string>('')
 
   public readonly users$ = this.searchControl.valueChanges.pipe(
     debounceTime(500),
@@ -55,17 +74,29 @@ export class UserRoleSelectComponent {
     }),
     tap((items) => (this.loading = false))
   )
+  public readonly userOptions$ = this.users$.pipe(
+    map((items) =>
+      items.map((user) => ({
+        id: user.id,
+        label: userLabel(user),
+        value: user,
+        data: user
+      }))
+    )
+  )
 
   constructor() {
     this.role = this.data?.role
     this.single = this.data?.single
   }
 
-  displayWith(user: IUser) {
-    if (user === null) {
-      return null
+  displayWith(_option: ZardComboboxOption | null, value: unknown) {
+    if (value === null) {
+      return ''
     }
-    return user.fullName || user.firstName + user.firstName || user.email
+
+    const user = value as IUser
+    return user.fullName || user.firstName || user.email
   }
 
   remove(user: IUser): void {
@@ -76,16 +107,26 @@ export class UserRoleSelectComponent {
     }
   }
 
-  selected(event: MatAutocompleteSelectedEvent): void {
-    if (event.option.value && !this.users.find((item) => item.id === event.option.value.id)) {
+  onSearchTermChange(value: string) {
+    if (this.skipNextSearchTermSync) {
+      this.skipNextSearchTermSync = false
+      this.searchControl.setValue('', { emitEvent: false })
+      return
+    }
+
+    this.searchControl.setValue(value)
+  }
+
+  selected(value: unknown): void {
+    const user = value as IUser | null
+    if (user && !this.users.find((item) => item.id === user.id)) {
       if (this.single) {
-        this.users = [event.option.value]
+        this.users = [user]
       } else {
-        this.users.push(event.option.value)
+        this.users.push(user)
       }
     }
-    this.userInput.nativeElement.value = ''
-    this.searchControl.setValue(null)
+    this.resetSearch()
   }
 
   onPaste(event: ClipboardEvent) {
@@ -122,5 +163,10 @@ export class UserRoleSelectComponent {
 
   onCancel() {
     this._dialogRef.close()
+  }
+
+  private resetSearch() {
+    this.skipNextSearchTermSync = true
+    this.searchControl.setValue('', { emitEvent: false })
   }
 }

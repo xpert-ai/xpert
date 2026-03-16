@@ -20,18 +20,28 @@
   </div>
 
   <div class="relative flex items-center mx-1">
-    <input
-      z-input
+    <z-combobox
+      zTriggerMode="input"
       class="ngm-input-element ngm-w-full"
-      type="text"
+      [value]="value"
+      [groups]="colorGroups()"
       [placeholder]="placeholder"
       [disabled]="disabled"
-      [matAutocomplete]="auto"
-      #acTrigger="matAutocompleteTrigger"
-      [ngModel]="value"
-      (ngModelChange)="onChange($event)"
-      (blur)="onBlur($event, acTrigger);"
-      />
+      [allowCustomValue]="true"
+      [zSearchTerm]="searchTerm()"
+      [zDisplayWith]="displayColors"
+      (zSearchTermChange)="onSearchTermChange($event)"
+      (zValueChange)="onComboboxValueChange($event)"
+      (zBlur)="onTouched()"
+    >
+      <ng-template zComboboxOption let-option>
+        <div class="flex justify-start items-center">
+          @for (color of option.data?.colors; track color) {
+            <div class="w-4 h-4" [style.background-color]="color"></div>
+          }
+        </div>
+      </ng-template>
+    </z-combobox>
 
     @if (value) {
       <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-colors__clear right-0" displayDensity="compact" (click)="clear()">
@@ -41,26 +51,3 @@
   </div>
 
 </div>
-
-<mat-autocomplete
-  autoActiveFirstOption
-  #auto="matAutocomplete"
-  class="ngm-select-panel ngm-density__compact"
-  (optionSelected)="onOptionSelected($event)"
-  >
-  <mat-option [value]="null">--</mat-option>
-  @for (group of options; track group.label) {
-    <mat-option disabled>{{ group.label }}</mat-option>
-    @for (color of group.colors; track color.colors.join(',')) {
-      <mat-option [value]="color.colors">
-        <div class="flex justify-start items-center">
-          @for (color of color.colors; track color) {
-            <div class="w-4 h-4"
-              [style.background-color]="color"
-            ></div>
-          }
-        </div>
-      </mat-option>
-    }
-  }
-</mat-autocomplete>

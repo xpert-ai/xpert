@@ -55,23 +55,16 @@
     @if (!expression && !hiddenTable && type.value !== SemanticModelEntityType.VirtualCube) {
       <z-form-field appearance="fill" color="accent">
         <z-form-label>{{ 'PAC.MODEL.CREATE_ENTITY.TABLE' | translate: { Default: 'Table' } }}</z-form-label>
-        <input
+        <z-combobox
+          zTriggerMode="input"
+          [value]="table.value"
+          [options]="tableComboboxOptions()"
           [placeholder]="'PAC.MODEL.CREATE_ENTITY.PICK_ONE_TABLE' | translate: { Default: 'pick one table' }"
-          aria-label="Table"
-          z-input
-          [matAutocomplete]="auto"
-          formControlName="table"
-          />
-        <mat-autocomplete #auto="matAutocomplete" displayDensity="compact" class="ngm-density__compact">
-          @for (option of filteredTables | async; track option) {
-            <mat-option [value]="option.name">
-              <ngm-display-behaviour
-                [option]="{ value: option.name, label: option.label }"
-                displayBehaviour="descriptionAndId"
-              ></ngm-display-behaviour>
-            </mat-option>
-          }
-        </mat-autocomplete>
+          [allowCustomValue]="true"
+          [zDisplayWith]="displayText"
+          (zSearchTermChange)="onTableSearchTermChange($event)"
+          (zValueChange)="onTableValueChange($event)"
+        />
       </z-form-field>
     }
 
@@ -80,21 +73,16 @@
         <z-form-label>{{
           'PAC.MODEL.CREATE_ENTITY.ForeignKeyOfFact' | translate: { Default: 'Foreign key of fact table' }
         }}</z-form-label>
-        <input
+        <z-combobox
+          zTriggerMode="input"
+          [value]="formGroup.get('foreignKey').value"
+          [options]="factFieldComboboxOptions()"
           [placeholder]="
             'PAC.MODEL.CREATE_ENTITY.PickForeignKeyField' | translate: { Default: 'Pick foreign key field' }
           "
-          z-input
-          [matAutocomplete]="auto"
-          formControlName="foreignKey"
-          />
-        <mat-autocomplete #auto="matAutocomplete" displayDensity="compact" class="ngm-density__compact">
-          @for (option of factFields(); track option.value) {
-            <mat-option [value]="option.value">
-              <ngm-display-behaviour [option]="option" displayBehaviour="descriptionAndId" />
-            </mat-option>
-          }
-        </mat-autocomplete>
+          [zDisplayWith]="displayText"
+          (zValueChange)="onForeignKeyValueChange($event)"
+        />
       </z-form-field>
     }
 

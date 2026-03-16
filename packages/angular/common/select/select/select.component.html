@@ -34,69 +34,68 @@
   </div>
 } @else {
   <div class="relative">
-    <input
+    <z-combobox
+      zTriggerMode="input"
       class="ngm-input-element w-full relative"
-      #searInput
-      type="text"
+      [value]="formControl.value"
+      [options]="comboboxOptions()"
+      [placeholder]="placeholder() || ''"
       [disabled]="isDisabled"
-      [placeholder]="placeholder()"
-      z-input
-      [matAutocomplete]="auto"
-      [matAutocompleteDisabled]="isDisabled"
-      [ngModel]="autoInput()"
-      (ngModelChange)="onAutoInput($event)"
-      (blur)="onBlur($event)"
-      (keydown)="onKeydown($event)"
-      />
+      [allowCustomValue]="allowInput()"
+      [zSearchTerm]="searchTerm()"
+      [zPanelWidth]="panelWidth()"
+      [zDisplayWith]="displayWith"
+      [zClearable]="true"
+      (zSearchTermChange)="onSearchTermChange($event)"
+      (zValueChange)="onOptionSelected($event)"
+    >
+      <ng-template zComboboxPanel let-activeIndex="activeIndex" let-select="select">
+        @if (virtualScroll()) {
+          <cdk-virtual-scroll-viewport
+            class="nx-formly__virtual-scroll-viewport"
+            minBufferPx="200"
+            maxBufferPx="400"
+            [style.height.px]="240"
+            [itemSize]="30"
+          >
+            <button
+              type="button"
+              role="option"
+              class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm"
+              *cdkVirtualFor="let option of filteredComboboxOptions(); trackBy: trackByValue; let i = index"
+              [class.bg-accent]="i === activeIndex"
+              [class.text-accent-foreground]="i === activeIndex"
+              (click)="select(option)"
+            >
+              <ng-container
+                *ngTemplateOutlet="optionTemplate; context: { $implicit: option.data, highlight: highlight() }"
+              ></ng-container>
+            </button>
+          </cdk-virtual-scroll-viewport>
+        } @else {
+          @for (option of filteredComboboxOptions(); track option.id ?? option.value; let i = $index) {
+            <button
+              type="button"
+              role="option"
+              class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm"
+              [class.bg-accent]="i === activeIndex"
+              [class.text-accent-foreground]="i === activeIndex"
+              (click)="select(option)"
+            >
+              <ng-container
+                *ngTemplateOutlet="optionTemplate; context: { $implicit: option.data, highlight: highlight() }"
+              ></ng-container>
+            </button>
+          }
+        }
+      </ng-template>
+    </z-combobox>
 
     <div class="absolute right-0 top-0 h-full flex items-center mr-1">
       <ng-container *ngTemplateOutlet="suffixTemplate"></ng-container>
-      @if (value()) {
-        <button
-          type="button"
-          class="ngm-input-element__clear w-8 h-8 flex justify-center items-center rounded-lg border border-transparent text-center text-sm transition-all active:scale-95 disabled:pointer-events-none disabled:opacity-50 disabled:shadow-none opacity-30 hover:opacity-100 hover:bg-white focus:bg-neutral-50 active:bg-neutral-50 dark:hover:bg-neutral-600 dark:focus:bg-neutral-700 dark:active:bg-neutral-700"
-          (click)="clear()"
-          >
-          <i class="ri-close-line"></i>
-        </button>
-      }
     </div>
   </div>
 }
-
-<mat-autocomplete
-  autoActiveFirstOption
-  #auto="matAutocomplete"
-  class="ngm-select__autocomplete-panel ngm-autocomplete-panel"
-  [class]="
-    (displayDensity() === 'compact' ? 'ngm-density__compact' : '') +
-    ' ' +
-    (displayDensity() === 'cosy' ? 'ngm-density__cosy' : '')
-  "
-  [panelWidth]="panelWidth() || null"
-  [displayWith]="displayWith"
-  (optionSelected)="onOptionSelected($event)"
-  >
-  @if (virtualScroll()) {
-    <cdk-virtual-scroll-viewport
-      class="nx-formly__virtual-scroll-viewport"
-      minBufferPx="200"
-      maxBufferPx="400"
-      [style.height.px]="240"
-      [itemSize]="30"
-      >
-      <mat-option *cdkVirtualFor="let option of options$(); trackBy: trackByValue" [value]="option">
-        <ng-container *ngTemplateOutlet="optionTemplate; context: { $implicit: option }"></ng-container>
-      </mat-option>
-    </cdk-virtual-scroll-viewport>
-  } @else {
-    @for (option of options$(); track option.key) {
-      <mat-option [value]="option" class="text-sm">
-        <ng-container *ngTemplateOutlet="optionTemplate; context: { $implicit: option }"></ng-container>
-      </mat-option>
-    }
-  }
-</mat-autocomplete>
 
 <div class="flex items-center">
   <ng-content select="[help]"></ng-content>

@@ -11,17 +11,20 @@
     <div class="px-2 left-0 flex items-center">
       <span class="font-notoColorEmoji">🤖</span>
     </div>
-    <input
-      #promptInput
-      type="text"
-      id="simple-search"
-      class="border-none outline-none text-gray-900 text-sm block w-full dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500"
+    <z-combobox
+      zTriggerMode="input"
+      class="w-full"
+      [value]="null"
+      [options]="comboboxOptions()"
       placeholder=" {{ 'Copilot.Ask' | translate: { Default: 'Ask' } }}..."
-      required
-      z-input
-      [matAutocomplete]="auto"
-      formControlName="prompt"
-    />
+      [zSearchTerm]="promptControl.value ?? ''"
+      [zSelectOnEnter]="false"
+      (zSearchTermChange)="onSearchTermChange($event)"
+    >
+      <ng-template zComboboxOption let-option let-searchTerm="searchTerm">
+        <span [ngmHighlight]="searchTerm" [content]="option.value"></span>
+      </ng-template>
+    </z-combobox>
     @if (error) {
       <div class="whitespace-nowrap text-ellipsis overflow-hidden text-red-400" [zTooltip]="error">
         {{ error }}
@@ -29,16 +32,3 @@
     }
   </form>
 </div>
-
-<mat-autocomplete
-  #auto="matAutocomplete"
-  class="pac-insight__autocomplete ngm-autocomplete-panel ngm-density__cosy"
-  hideSingleSelectionIndicator
-  (optionSelected)="selected($event)"
->
-  @for (prompt of filteredSuggests(); track prompt) {
-    <mat-option [value]="prompt" (click)="$event.stopPropagation(); $event.preventDefault()">
-      <span [ngmHighlight]="search()" [content]="prompt"></span>
-    </mat-option>
-  }
-</mat-autocomplete>

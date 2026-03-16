@@ -2,11 +2,9 @@
 import { Component, EventEmitter, Input, Output, computed, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
-import { MatChipInputEvent, MatChipsModule } from '@angular/material/chips'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmHighlightDirective } from '../core/directives'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardComboboxComponent, ZardComboboxOptionTemplateDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  * @deprecated use ChatKit instead
  */
@@ -18,9 +16,9 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
   imports: [
     TranslateModule,
     ReactiveFormsModule,
+    ZardComboboxComponent,
+    ZardComboboxOptionTemplateDirective,
     ...ZardTooltipImports,
-    MatChipsModule,
-    MatAutocompleteModule,
     NgmHighlightDirective
 ]
 })
@@ -40,6 +38,13 @@ export class NgmCopilotInputComponent {
   error = ''
   promptControl = new FormControl('')
   formGroup = new FormGroup({ prompt: this.promptControl })
+  readonly comboboxOptions = computed(() =>
+    this.filteredSuggests().map((prompt) => ({
+      id: prompt,
+      label: prompt,
+      value: prompt
+    }))
+  )
 
   readonly search = toSignal(this.promptControl.valueChanges, { initialValue: null })
 
@@ -51,31 +56,17 @@ export class NgmCopilotInputComponent {
     return []
   })
 
-  /**
-   * Add an ask prompt
-   *
-   * @param event
-   */
-  async add(event: MatChipInputEvent) {
-    // Prompt value
-    const value = (event.value || '').trim()
-
-    // Clear the input value
-    event.chipInput!.clear()
-    this.promptControl.setValue(null)
-
-    if (value) {
-      //   await this.askCopilot(value)
-    }
-  }
-
-  selected(event: MatAutocompleteSelectedEvent) {
-    // this.promptInput.nativeElement.value = event.option.viewValue
-    this.promptControl.setValue(event.option.viewValue)
+  onSearchTermChange(value: string) {
+    this.promptControl.setValue(value)
   }
 
   onSubmit() {
+    const prompt = this.promptControl.value?.trim()
+    if (!prompt) {
+      return
+    }
+
     this.promptControl.setValue(null)
-    this.ask.emit({ prompt: this.promptControl.value })
+    this.ask.emit({ prompt })
   }
 }
