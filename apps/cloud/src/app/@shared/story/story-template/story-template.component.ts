@@ -1,8 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, OnInit, inject } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
-import { NgmConfirmDeleteComponent, NgmHighlightDirective, NgmTagsComponent } from '@metad/ocap-angular/common'
+import { NgmConfirmDeleteService, NgmHighlightDirective, NgmTagsComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { find, sortBy, values } from 'lodash-es'
@@ -14,6 +13,7 @@ import { MaterialModule } from '../../material.module'
 import { UserPipe } from '../../pipes'
 import { TagViewerComponent } from '../../tag'
 
+import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-story-template',
@@ -40,9 +40,9 @@ import { TagViewerComponent } from '../../tag'
 export class StoryTemplateComponent implements OnInit {
   StoryTemplateType = StoryTemplateType
   private readonly storyTemplateService = inject(StoryTemplateService)
-  private readonly _dialogRef = inject(MatDialogRef<StoryTemplateComponent>)
-  private readonly _dialog = inject(MatDialog)
-  private readonly _data = inject(MAT_DIALOG_DATA)
+  private readonly _confirmDelete = inject(NgmConfirmDeleteService)
+  private readonly _dialogRef = inject(ZardDialogRef<StoryTemplateComponent>)
+  private readonly _data = inject(Z_MODAL_DATA)
   private readonly _toastrService = inject(ToastrService)
   private readonly _cdr = inject(ChangeDetectorRef)
 
@@ -177,15 +177,7 @@ export class StoryTemplateComponent implements OnInit {
   }
 
   async deleteTemplate(template: IStoryTemplate) {
-    const confirm = await firstValueFrom(
-      this._dialog
-        .open(NgmConfirmDeleteComponent, {
-          data: {
-            value: template.name
-          }
-        })
-        .afterClosed()
-    )
+    const confirm = await firstValueFrom(this._confirmDelete.confirm({ value: template.name }))
     if (confirm) {
       try {
         await firstValueFrom(this.storyTemplateService.delete(template.id))

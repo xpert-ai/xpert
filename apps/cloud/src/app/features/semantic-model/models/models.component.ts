@@ -6,7 +6,6 @@ import { AfterViewInit, Component, inject, Inject, signal, TemplateRef, viewChil
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup } from '@angular/forms'
 
-import { MatDialog } from '@angular/material/dialog'
 import { Router, RouterModule } from '@angular/router'
 import { ModelCreationComponent } from '@cloud/app/@shared/model'
 import { DataSourceService, IBusinessArea, SemanticModelServerService } from '@metad/cloud/state'
@@ -40,7 +39,7 @@ import { CreatedByPipe } from '../../../@shared/pipes'
 import { AppService } from '../../../app.service'
 import { exportSemanticModel } from '../types'
 import { BusinessAreaSelectComponent } from '@cloud/app/@shared/business-area'
-import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -123,7 +122,7 @@ export class ModelsComponent implements AfterViewInit {
     private dataSourcesStore: DataSourceService,
     @Inject(NX_STORY_STORE) private storyStore: NxStoryStore,
     private router: Router,
-    private _dialog: MatDialog
+    private _dialog: ZardDialogService
   ) {}
 
   ngOnInit() {
@@ -185,14 +184,10 @@ export class ModelsComponent implements AfterViewInit {
   //     Default: 'Delete this model permanently'
   //   })
   //   const result = await firstValueFrom(
-  //     this._dialog
-  //       .open(NgmConfirmDeleteComponent, {
-  //         data: {
-  //           value: model.name,
-  //           information: information + '?'
-  //         }
-  //       })
-  //       .afterClosed()
+  //     this.confirmDelete.confirm({
+  //       value: model.name,
+  //       information: information + '?'
+  //     })
   //   )
 
   //   if (result) {

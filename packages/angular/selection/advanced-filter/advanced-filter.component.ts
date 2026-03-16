@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Component, HostBinding, Inject, Input, OnInit, Optional, ViewChild, ViewContainerRef } from '@angular/core'
-import { MatDialog, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
+import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   Dimension,
   DisplayBehaviour,
@@ -158,17 +158,17 @@ export class NgmAdvancedFilterComponent implements OnInit {
   private _preventChipClick = false
   constructor(
     public cdr: ChangeDetectorRef,
-    public dialog: MatDialog,
+    public dialog: ZardDialogService,
     private readonly _viewContainerRef: ViewContainerRef,
     @Optional()
-    @Inject(MAT_DIALOG_DATA) public data?: {
+    @Inject(Z_MODAL_DATA) public data?: {
       dataSettings: DataSettings,
       entityType: EntityType,
       syntax: Syntax,
       advancedFilter: IAdvancedFilter
     },
     @Optional()
-    public dialogRef?: MatDialogRef<NgmAdvancedFilterComponent>,
+    public dialogRef?: ZardDialogRef<NgmAdvancedFilterComponent>,
   ) {}
 
   ngOnInit(): void {

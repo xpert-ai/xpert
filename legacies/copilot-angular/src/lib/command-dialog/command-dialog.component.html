@@ -1,4 +1,4 @@
-<h2 mat-dialog-title class="flex items-center justify-between">
+<h2 xpDialogTitle class="flex items-center justify-between">
   <mat-chip-listbox hideSingleSelectionIndicator [(ngModel)]="commandName" required color="basic">
     @for (command of data.commands; track command) {
       <mat-chip-option [value]="command">/{{ command }}</mat-chip-option>
@@ -15,7 +15,7 @@
     <i class="ri-close-circle-line w-6 h-6 block"></i>
   </button>
 </h2>
-<mat-dialog-content class="relative">
+<xp-dialog-content class="relative">
   @if (contexts().length) {
     <div class="flex flex-col divide-y overflow-hidden rounded-b-md rounded-t-xl bg-neutral-100 dark:bg-neutral-800">
       <div class="flex items-center py-2 gap-2 pl-3 pr-1.5 text-sm whitespace-nowrap">
@@ -115,9 +115,9 @@
   @if (creating()) {
     <mat-progress-bar class="absolute left-0 right-0 bottom-0" mode="buffer"></mat-progress-bar>
   }
-</mat-dialog-content>
+</xp-dialog-content>
 
-<mat-dialog-actions>
+<xp-dialog-actions>
   <button
     z-button
     zType="default"
@@ -200,7 +200,7 @@
       </div>
     </button>
   }
-</mat-dialog-actions>
+</xp-dialog-actions>
 
 <mat-menu #contextMenu="matMenu" class="ngm-menu__copilot-context-popper ngm-density__compact">
   <ng-template matMenuContent let-word="word">

@@ -2,7 +2,6 @@ import { CommonModule } from '@angular/common'
 import { Component, inject, LOCALE_ID, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
@@ -20,7 +19,7 @@ import {
   OrderTypeEnum,
   ToastrService
 } from '../../../../@core'
-import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogService, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-settings-copilot-users',
@@ -48,7 +47,7 @@ export class CopilotUsersComponent {
   readonly _toastrService = inject(ToastrService)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
-  readonly dialog = inject(MatDialog)
+  readonly dialog = inject(ZardDialogService)
   readonly translate = inject(TranslateService)
   readonly formatRelative = injectFormatRelative()
   readonly locale = inject(LOCALE_ID)

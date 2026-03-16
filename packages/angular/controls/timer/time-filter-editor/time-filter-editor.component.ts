@@ -3,15 +3,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, Input, OnInit, inject } from '@angular/core'
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 
-import { MatDialogRef, MAT_DIALOG_DATA, MatDialogModule } from '@angular/material/dialog'
-import {
-  ZardAccordionImports,
-  ZardButtonComponent,
-  ZardDividerComponent,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective
-} from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardAccordionImports, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { ISelectOption, NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
@@ -32,7 +24,7 @@ import { BehaviorSubject, combineLatest, map, Observable, shareReplay, startWith
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DragDropModule, MatDialogModule, ...ZardFormImports, ...ZardAccordionImports, ZardIconComponent, ZardDividerComponent, ZardInputDirective, ZardButtonComponent, OcapCoreModule, NgmSelectComponent],
+  imports: [CommonModule, TranslateModule, ReactiveFormsModule, DragDropModule, ZardDialogModule, ...ZardFormImports, ...ZardAccordionImports, ZardIconComponent, ZardDividerComponent, ZardInputDirective, ZardButtonComponent, OcapCoreModule, NgmSelectComponent],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-time-filter-editor',
   templateUrl: './time-filter-editor.component.html',
@@ -46,9 +38,9 @@ export class NgmTimeFilterEditorComponent implements OnInit {
     entityType: EntityType
     slicer: TimeRangesSlicer
     forControl: boolean
-  }>(MAT_DIALOG_DATA, {optional: true})
+  }>(Z_MODAL_DATA, {optional: true})
 
-  private _dialogRef? = inject(MatDialogRef<NgmTimeFilterEditorComponent>, {optional: true})
+  private _dialogRef? = inject(ZardDialogRef<NgmTimeFilterEditorComponent>, {optional: true})
 
   @Input() get entityType() {
     return this.entityType$.value

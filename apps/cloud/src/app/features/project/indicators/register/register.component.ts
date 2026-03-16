@@ -1,10 +1,9 @@
 import { CommonModule } from '@angular/common'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, HostListener, inject, OnDestroy, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { convertIndicatorResult, Indicator, IndicatorsService, Store } from '@metad/cloud/state'
 import { createSubStore, dirtyCheckWith, IsDirty, nonBlank, saveAsYaml } from '@metad/core'
@@ -65,7 +64,7 @@ export class IndicatorRegisterComponent implements OnDestroy, IsDirty {
   private toastrService = inject(ToastrService)
   private _route = inject(ActivatedRoute)
   private _router = inject(Router)
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(ZardDialogService)
   readonly #dialog = inject(Dialog)
   readonly #translate = inject(TranslateService)
   private _logger? = inject(NGXLogger, { optional: true })

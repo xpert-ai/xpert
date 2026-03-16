@@ -6,7 +6,6 @@ import { ChangeDetectionStrategy, Component, OnInit, inject, model, signal } fro
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, ISelectOption, mergeSelectedValues } from '@metad/ocap-angular/core'
@@ -15,7 +14,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { catchError, combineLatestWith, distinctUntilChanged, filter, map, of, startWith, switchMap, tap } from 'rxjs'
 import { EntitySelectResultType } from '../types'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 export type EntitySelectDataType = {
   dataSources: ISelectOption<string>[]
   dsCoreService: DSCoreService
@@ -38,7 +37,7 @@ export type EntitySelectDataType = {
     CdkListboxModule,
     ZardButtonComponent,
     ...ZardFormImports,
-    MatDialogModule,
+    ZardDialogModule,
     ZardIconComponent,
     MatProgressSpinnerModule,
     ...ZardTooltipImports,
@@ -49,9 +48,9 @@ export type EntitySelectDataType = {
   ]
 })
 export class NgmEntityDialogComponent implements OnInit {
-  public readonly data = inject<EntitySelectDataType>(MAT_DIALOG_DATA)
+  public readonly data = inject<EntitySelectDataType>(Z_MODAL_DATA)
 
-  readonly dialogRef = inject<MatDialogRef<NgmEntityDialogComponent, EntitySelectResultType>>(MatDialogRef)
+  readonly dialogRef = inject<ZardDialogRef<NgmEntityDialogComponent, EntitySelectResultType>>(ZardDialogRef)
   readonly #logger = inject(NGXLogger)
 
   readonly modelKey = model<string>(null)

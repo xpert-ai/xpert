@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MAT_DIALOG_DATA, MatDialog, MatDialogRef } from '@angular/material/dialog'
 import { TranslateModule } from '@ngx-translate/core'
 import { MaterialModule } from '../../material.module'
 import { IXpert } from '../../../@core'
@@ -9,6 +8,7 @@ import { KnowledgebaseCardComponent } from '../../copilot'
 import { ToolsetCardComponent } from '../toolset-card/toolset.component'
 import { EmojiAvatarComponent } from "../../avatar/emoji-avatar/avatar.component";
 
+import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-about-xpert',
@@ -26,9 +26,9 @@ import { EmojiAvatarComponent } from "../../avatar/emoji-avatar/avatar.component
 ]
 })
 export class AboutXpertComponent {
-  private readonly _dialog = inject(MatDialog)
-  readonly #dialogRef = inject(MatDialogRef)
-  private readonly _data = inject<{ xpert: IXpert }>(MAT_DIALOG_DATA)
+  private readonly _dialog = inject(ZardDialogService)
+  readonly #dialogRef = inject(ZardDialogRef)
+  private readonly _data = inject<{ xpert: IXpert }>(Z_MODAL_DATA)
 
   get xpert() {
     return this._data.xpert

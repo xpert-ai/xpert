@@ -1,6 +1,6 @@
 import { Component, HostBinding, inject } from '@angular/core'
-import { MAT_DIALOG_DATA } from '@angular/material/dialog'
 
+import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
 /**
  * @deprecated CdkConfirmDeleteComponent
  */
@@ -11,7 +11,7 @@ import { MAT_DIALOG_DATA } from '@angular/material/dialog'
   standalone: false
 })
 export class NgmConfirmDeleteComponent {
-  readonly data = inject<{ title?: string; value: any; information: string }>(MAT_DIALOG_DATA)
+  readonly data = inject<{ title?: string; value: any; information: string }>(Z_MODAL_DATA)
 
   @HostBinding('class.ngm-dialog-container') isDialogContainer = true
 }

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, OnInit } from '@angular/core'
-import { MatDialog } from '@angular/material/dialog'
 import { Router } from '@angular/router'
 import {
+import { ZardDialogService } from '@xpert-ai/headless-ui'
   IMG_ROOT,
   PACNotificationDestinationsService,
   routeAnimations,
@@ -20,7 +20,7 @@ export class NotificationDestinationsComponent implements OnInit {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS
   IMG_ROOT = IMG_ROOT
   readonly destinations$ = this.store.getAll()
-  constructor(private store: PACNotificationDestinationsService, private router: Router, private _dialog: MatDialog) {}
+  constructor(private store: PACNotificationDestinationsService, private router: Router, private _dialog: ZardDialogService) {}
 
   ngOnInit(): void {}
 

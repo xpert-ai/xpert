@@ -1,4 +1,4 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <h4 class="pac-typography__h6" style="pointer-events: none;">
         {{ 'Ngm.AdvancedFilter.Title' | translate: {Default: 'Combination Slicer'} }}
     </h4>
@@ -12,7 +12,7 @@
     </div>
 </header>
 
-<mat-dialog-content class="mat-typography">
+<xp-dialog-content class="">
     <ng-container *ngIf="!rootGroup">
         <div class="flex gap-2">
             <button z-button zType="outline" #addRootAndGroupButton color="accent" ngmAppearance="dashed" (click)="addAndGroup()">
@@ -181,13 +181,13 @@
         <ng-container *ngTemplateOutlet="expressionTreeTemplate; context: context(rootGroup)"></ng-container>
     </ng-container>
 
-</mat-dialog-content>
-<mat-dialog-actions>
+</xp-dialog-content>
+<xp-dialog-actions>
     <button z-button zType="ghost" (click)="onClearButtonClick($event)">
         {{ 'Ngm.Common.Clear' | translate: {Default: 'Clear'} }}
     </button>
     <div ngmButtonGroup>
-        <button z-button zType="ghost" mat-dialog-close>{{ 'Ngm.Common.Cancel' | translate: {Default: 'Cancel'} }}</button>
+        <button z-button zType="ghost" xpDialogClose>{{ 'Ngm.Common.Cancel' | translate: {Default: 'Cancel'} }}</button>
         <button z-button zType="default" color="accent" (click)="onApply()" cdkFocusInitial>{{ 'Ngm.Common.Apply' | translate: {Default: 'Apply'} }}</button>
     </div>
-</mat-dialog-actions>
+</xp-dialog-actions>

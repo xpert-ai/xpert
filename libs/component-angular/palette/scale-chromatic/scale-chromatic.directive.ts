@@ -1,5 +1,5 @@
 import { ChangeDetectorRef, Directive, HostBinding, HostListener } from '@angular/core'
-import { MatDialog } from '@angular/material/dialog'
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 // import { NxScaleChromaticService } from './scale-chromatic.service'
 
 @Directive({
@@ -10,7 +10,7 @@ export class NxScaleChromaticDirective {
   constructor(
     // @Inject(NX_SCALE_CHROMATIC)
     // public scaleChromaticService: NxScaleChromaticService,
-    public dialog: MatDialog,
+    public dialog: ZardDialogService,
     private _cdr: ChangeDetectorRef
   ) {}
 

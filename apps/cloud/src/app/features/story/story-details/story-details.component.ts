@@ -6,14 +6,7 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
 
 import { MatChipsModule } from '@angular/material/chips'
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import {
-  ZardButtonComponent,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardCheckboxComponent
-} from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardCheckboxComponent, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { Router } from '@angular/router'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { cloneDeep } from '@metad/ocap-core'
@@ -34,7 +27,7 @@ import { NgmHighlightDirective, NgmSelectComponent } from '@metad/ocap-angular/c
     ZardButtonComponent,
     ...ZardFormImports,
     ZardInputDirective,
-    MatDialogModule,
+    ZardDialogModule,
     ZardCheckboxComponent,
     MatAutocompleteModule,
     MatChipsModule,
@@ -51,8 +44,8 @@ export class StoryDetailsComponent implements OnInit {
   private readonly screenshotService = inject(ScreenshotService)
   private readonly projectAPI = inject(ProjectAPIService)
   public readonly toastrService = inject(ToastrService)
-  public readonly data = inject<Story>(MAT_DIALOG_DATA)
-  public dialogRef? = inject(MatDialogRef<StoryDetailsComponent>)
+  public readonly data = inject<Story>(Z_MODAL_DATA)
+  public dialogRef? = inject(ZardDialogRef<StoryDetailsComponent>)
   private readonly router = inject(Router)
   private readonly translate = inject(TranslateService)
 

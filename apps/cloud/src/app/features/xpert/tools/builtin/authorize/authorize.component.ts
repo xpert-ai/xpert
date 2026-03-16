@@ -14,7 +14,6 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialogModule } from '@angular/material/dialog'
 import { routeAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -32,7 +31,7 @@ import { derivedAsync } from 'ngxtension/derived-async'
 import { of } from 'rxjs'
 import { XpertToolBuiltinCredentialComponent } from './credential/credential.component'
 import { isNil } from 'lodash-es'
-import { ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardDialogModule, ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { TextFieldModule } from '@angular/cdk/text-field'
 
 @Component({
@@ -42,7 +41,7 @@ import { TextFieldModule } from '@angular/cdk/text-field'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatDialogModule,
+    ZardDialogModule,
     ...ZardTooltipImports,
     NgmI18nPipe,
     NgmSpinComponent,

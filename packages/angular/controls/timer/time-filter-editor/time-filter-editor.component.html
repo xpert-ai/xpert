@@ -1,11 +1,11 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <h4 style="pointer-events: none" *ngIf="property$ | async as property">
     {{ 'Ngm.TimeFilter.SET_DATE_RANGE' | translate: {Default: "Set Date Range for {{property.caption}}", property:
     property.caption} }}
   </h4>
 </header>
 
-<div mat-dialog-content [formGroup]="formGroup">
+<div xpDialogContent [formGroup]="formGroup">
   <div class="ngm-timer-editor__header">
     <z-form-field appearance="fill">
       <z-form-label>{{ 'Ngm.TimeFilter.CURRENT_DATE' | translate: { Default: 'Current Date' } }}</z-form-label>
@@ -155,9 +155,9 @@
   </div>
 </div>
 
-<div mat-dialog-actions align="end">
+<div xpDialogActions align="end">
   <div ngmButtonGroup>
-    <button z-button zType="ghost" mat-dialog-close>
+    <button z-button zType="ghost" xpDialogClose>
       {{ 'Ngm.Common.Cancel' | translate: { Default: 'Cancel' } }}
     </button>
     <button z-button zType="default" color="accent" (click)="onApply()" cdkFocusInitial>

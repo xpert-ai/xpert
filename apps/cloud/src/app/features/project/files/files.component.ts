@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common'
 import { Component, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, map, switchMap } from 'rxjs'
 import { IStorageFile, ProjectAPIService, Store, ToastrService } from '../../../@core'
@@ -12,6 +11,7 @@ import { userLabel } from '../../../@shared/pipes'
 import { ProjectFilesDialogComponent } from '../../../@shared/project'
 import { ProjectComponent } from '../project/project.component'
 
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, MaterialModule, TranslateModule],
@@ -33,7 +33,7 @@ export class ProjectFilesComponent {
   private projectService = inject(ProjectAPIService)
   private projectComponent = inject(ProjectComponent)
   private store = inject(Store)
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(ZardDialogService)
   private _toastrService = inject(ToastrService)
 
   searchControl = new FormControl()

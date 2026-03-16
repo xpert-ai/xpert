@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, Validators } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute } from '@angular/router'
 import { calcEntityTypePrompt, nonBlank } from '@metad/core'
 import { NgmCommonModule, NgmSelectComponent, ResizerModule } from '@metad/ocap-angular/common'
@@ -22,7 +21,7 @@ import {
 import { TranslateService } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
-import { ZardAccordionImports, ZardToastService, type ZardSwitchChange } from '@xpert-ai/headless-ui'
+import { ZardAccordionImports, ZardDialogService, ZardToastService, type ZardSwitchChange } from '@xpert-ai/headless-ui'
 import { SemanticModelService } from '../model.service'
 import { CdkDragDropContainers, SemanticModelEntityType } from '../types'
 import { VirtualCubeStateService } from './virtual-cube.service'
@@ -53,7 +52,7 @@ export class VirtualCubeComponent {
   Syntax = Syntax
   EntityCapacity = EntityCapacity
 
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(ZardDialogService)
   private dsCoreService = inject(NgmDSCoreService)
   private modelState = inject(SemanticModelService)
   private virtualCubeState = inject(VirtualCubeStateService)

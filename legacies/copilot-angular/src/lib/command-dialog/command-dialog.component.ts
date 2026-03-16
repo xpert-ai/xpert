@@ -7,14 +7,7 @@ import { FormsModule } from '@angular/forms'
 import { MatAutocomplete, MatAutocompleteActivatedEvent, MatAutocompleteModule } from '@angular/material/autocomplete'
 
 import { MatChipsModule } from '@angular/material/chips'
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import {
-  ZardButtonComponent,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { MatMenuModule } from '@angular/material/menu'
 import { MatProgressBarModule } from '@angular/material/progress-bar'
 import { CopilotContextItem, CopilotEngine } from '@metad/copilot'
@@ -39,7 +32,7 @@ import { NgmCopilotEngineService, NgmCopilotService } from '../services'
     CommonModule,
     TranslateModule,
     FormsModule,
-    MatDialogModule,
+    ZardDialogModule,
     ZardButtonComponent,
     MatChipsModule,
     ZardInputDirective,
@@ -59,8 +52,8 @@ import { NgmCopilotEngineService, NgmCopilotService } from '../services'
 export class CommandDialogComponent {
   readonly #copilotEngine: CopilotEngine = inject(NgmCopilotEngineService)
 
-  readonly data = inject<{ commands: string[] }>(MAT_DIALOG_DATA)
-  readonly dialogRef = inject(MatDialogRef)
+  readonly data = inject<{ commands: string[] }>(Z_MODAL_DATA)
+  readonly dialogRef = inject(ZardDialogRef)
   readonly copilotService = inject(NgmCopilotService)
 
   readonly copilotEnabled = toSignal(this.copilotService.enabled$)

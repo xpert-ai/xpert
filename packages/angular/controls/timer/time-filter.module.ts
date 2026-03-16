@@ -4,17 +4,7 @@ import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
 import { MatDatepickerModule } from '@angular/material/datepicker'
-import { MatDialogModule } from '@angular/material/dialog'
-import {
-  ZardAccordionImports,
-  ZardButtonComponent,
-  ZardDividerComponent,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardCheckboxComponent,
-  ZardMenuImports
-} from '@xpert-ai/headless-ui'
+import { ZardAccordionImports, ZardButtonComponent, ZardCheckboxComponent, ZardDialogModule, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardMenuImports } from '@xpert-ai/headless-ui'
 import { MatTableModule } from '@angular/material/table'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -38,7 +28,7 @@ import {
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MatDialogModule,
+    ZardDialogModule,
     MatTableModule,
     ZardCheckboxComponent,
     ZardInputDirective,

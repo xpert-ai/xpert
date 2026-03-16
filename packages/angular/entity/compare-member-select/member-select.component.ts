@@ -19,8 +19,7 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
-import { ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardDialogService, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import {
@@ -61,7 +60,7 @@ export class NgmCompareMemberSelectComponent implements ControlValueAccessor {
   DISPLAY_BEHAVIOUR = DisplayBehaviour.descriptionAndId
   COMPARE_TO_ENUM = CompareToEnum
 
-  private readonly _dialog? = inject(MatDialog, { optional: true })
+  private readonly _dialog? = inject(ZardDialogService, { optional: true })
   private readonly _viewContainerRef = inject(ViewContainerRef)
   private readonly translate = inject(TranslateService)
 

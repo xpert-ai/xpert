@@ -4,16 +4,16 @@
 }
 
 /* for dialog container */
-.cdk-overlay-pane.mat-mdc-dialog-panel.large {
-  --mat-dialog-container-min-width: 80vw;
+z-dialog.large {
+  min-width: 80vw;
   min-height: 80vh;
 }
-.cdk-overlay-pane.mat-mdc-dialog-panel.medium {
-  --mat-dialog-container-min-width: 60vw;
+z-dialog.medium {
+  min-width: 60vw;
   min-height: 60vh;
 }
-.cdk-overlay-pane.mat-mdc-dialog-panel.small {
-  --mat-dialog-container-min-width: 40vw;
+z-dialog.small {
+  min-width: 40vw;
   min-height: 40vh;
 }
 
@@ -35,11 +35,9 @@
   background-color: rgba(249, 249, 249, 0.8);
 }
 
-.cdk-overlay-pane.xp-overlay-pane-share-sheet {
-  .cdk-dialog-container {
-    @apply overflow-hidden rounded-[36px] shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(255,255,255,0.4)] border-[0.5px] border-solid border-neutral-200 bg-components-card-bg;
-    animation: custom-dialog-enter-bounce 0.5s cubic-bezier(0.22, 1, 0.36, 1);
-  }
+z-dialog.xp-overlay-pane-share-sheet {
+  @apply overflow-hidden rounded-[36px] border-[0.5px] border-solid border-neutral-200 bg-components-card-bg shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(255,255,255,0.4)];
+  animation: custom-dialog-enter-bounce 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
 @keyframes custom-dialog-enter-bounce {

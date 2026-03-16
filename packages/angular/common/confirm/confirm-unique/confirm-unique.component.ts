@@ -4,8 +4,7 @@ import { CommonModule } from '@angular/common'
 import { Component, HostBinding, OnInit, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isString } from 'lodash-es'
@@ -15,7 +14,7 @@ import { isString } from 'lodash-es'
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, A11yModule, FormsModule, DragDropModule, MatDialogModule, ZardButtonComponent, ...ZardFormImports, ZardInputDirective, TranslateModule, ButtonGroupDirective],
+  imports: [CommonModule, A11yModule, FormsModule, DragDropModule, ZardDialogModule, ZardButtonComponent, ...ZardFormImports, ZardInputDirective, TranslateModule, ButtonGroupDirective],
   selector: 'ngm-confirm-unique',
   templateUrl: './confirm-unique.component.html',
   styleUrls: ['./confirm-unique.component.scss']
@@ -23,8 +22,8 @@ import { isString } from 'lodash-es'
 export class NgmConfirmUniqueComponent implements OnInit {
   @HostBinding('class.ngm-dialog-container') isDialogContainer = true
 
-  public data = inject<string | { title: string; value: string }>(MAT_DIALOG_DATA)
-  private _dialogRef = inject(MatDialogRef<NgmConfirmUniqueComponent>)
+  public data = inject<string | { title: string; value: string }>(Z_MODAL_DATA)
+  private _dialogRef = inject(ZardDialogRef<NgmConfirmUniqueComponent>)
 
   value: string
   title: string

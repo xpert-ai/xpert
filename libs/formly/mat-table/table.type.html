@@ -72,26 +72,26 @@
 </ng-template>
 
 <ng-template #dialogRef>
-  <header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+  <header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <h4 style="pointer-events: none">
       {{ props?.title || ('FORMLY.TABLE.Options' | translate: {Default: 'Options'}) }}
     </h4>
   </header>
 
-  <mat-dialog-content class="pac-formly-mat-table">
+  <xp-dialog-content class="pac-formly-mat-table">
     <ng-container *ngTemplateOutlet="inlineTable"></ng-container>
-  </mat-dialog-content>
+  </xp-dialog-content>
 
-  <mat-dialog-actions class="flex justify-between items-center">
+  <xp-dialog-actions class="flex justify-between items-center">
     <div>
       <button z-button zType="ghost" (click)="clear()">{{ 'FORMLY.COMMON.Clear' | translate: {Default: 'Clear'} }}</button>
     </div>
 
     <div ngmButtonGroup>
-      <button z-button zType="ghost" mat-dialog-close>{{ 'FORMLY.COMMON.Cancel' | translate: {Default: 'Cancel'} }}</button>
-      <button z-button zType="default" color="accent" cdkFocusInitial [mat-dialog-close]="true">
+      <button z-button zType="ghost" xpDialogClose>{{ 'FORMLY.COMMON.Cancel' | translate: {Default: 'Cancel'} }}</button>
+      <button z-button zType="default" color="accent" cdkFocusInitial [xpDialogClose]="true">
         {{ 'FORMLY.COMMON.Apply' | translate: {Default: 'Apply'} }}
       </button>
     </div>
-  </mat-dialog-actions>
+  </xp-dialog-actions>
 </ng-template>

@@ -15,12 +15,11 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { MatDialog, MatDialogRef } from '@angular/material/dialog'
 import { MatTreeFlatDataSource } from '@angular/material/tree'
 import { Router, RouterModule } from '@angular/router'
 import { FavoritesService, StoriesService, convertStory } from '@metad/cloud/state'
 import { NgmCopilotContextService, NgmCopilotContextToken } from '@metad/copilot-angular'
-import { NgmCommonModule, NgmConfirmDeleteComponent, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
+import { NgmCommonModule, NgmConfirmDeleteService, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { DisplayBehaviour, FlatTreeNode, TreeNodeInterface, hierarchize } from '@metad/ocap-core'
@@ -65,6 +64,7 @@ import { MaterialModule } from '../../../@shared/material.module'
 import { StoryCreationComponent } from '../../../@shared/story'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { injectFetchModelDetails } from '@cloud/app/@shared/indicator'
+import { ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -109,6 +109,7 @@ export class ProjectComponent extends TranslationBaseComponent {
   readonly destroyRef = inject(DestroyRef)
   readonly fetchModelDetails = injectFetchModelDetails()
   readonly copilotContext = provideCopilotCubes()
+  readonly #confirmDelete = inject(NgmConfirmDeleteService)
 
   @ViewChild('collectionCreation') collectionCreation: TemplateRef<ElementRef>
   @ViewChild('moveTo') moveTo: TemplateRef<ElementRef>
@@ -119,7 +120,7 @@ export class ProjectComponent extends TranslationBaseComponent {
     parentId: new FormControl(null, [])
   })
 
-  private dialogRef: MatDialogRef<ElementRef<any>, any>
+  private dialogRef: ZardDialogRef<ElementRef<any>, any>
 
   dataSource: MatTreeFlatDataSource<TreeNodeInterface<any>, FlatTreeNode<any>>
   treeControl: FlatTreeControl<FlatTreeNode<any>>
@@ -277,7 +278,7 @@ export class ProjectComponent extends TranslationBaseComponent {
     private storiesService: StoriesService,
     private favoritesService: FavoritesService,
     private projectAPI: ProjectAPIService,
-    private _dialog: MatDialog,
+    private _dialog: ZardDialogService,
     private _toastrService: ToastrService,
     private _cdr: ChangeDetectorRef,
     private _router: Router
@@ -320,7 +321,7 @@ export class ProjectComponent extends TranslationBaseComponent {
   }
 
   async deleteCollection(id: string) {
-    const confirm = await firstValueFrom(this._dialog.open(NgmConfirmDeleteComponent, { data: {} }).afterClosed())
+    const confirm = await firstValueFrom(this.#confirmDelete.confirm())
     if (confirm) {
       await firstValueFrom(this.collectionService.delete(id))
       this.refresh$.next()
@@ -454,9 +455,7 @@ export class ProjectComponent extends TranslationBaseComponent {
   }
 
   async deleteStory(story: Story) {
-    const confirm = await firstValueFrom(
-      this._dialog.open(NgmConfirmDeleteComponent, { data: { value: story.name } }).afterClosed()
-    )
+    const confirm = await firstValueFrom(this.#confirmDelete.confirm({ value: story.name }))
     if (!confirm) {
       return
     }
@@ -503,9 +502,7 @@ export class ProjectComponent extends TranslationBaseComponent {
   async removeModel(model: ISemanticModel) {
     const project = this.project
     if (project?.id) {
-      const confirm = await firstValueFrom(
-        this._dialog.open(NgmConfirmDeleteComponent, { data: { value: model.name } }).afterClosed()
-      )
+      const confirm = await firstValueFrom(this.#confirmDelete.confirm({ value: model.name }))
       if (confirm) {
         await firstValueFrom(this.projectAPI.deleteModel(project.id, model.id))
         this.project.models = this.project.models.filter((item) => item.id !== model.id)

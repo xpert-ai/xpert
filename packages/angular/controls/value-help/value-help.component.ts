@@ -13,8 +13,7 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardDividerComponent, ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardDividerComponent, ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { NgmCommonModule, NgmResizableDirective, NgmSelectComponent } from '@metad/ocap-angular/common'
@@ -60,7 +59,7 @@ import { ControlOptions, TreeControlOptions } from '../types'
     ReactiveFormsModule,
     TranslateModule,
     CdkMenuModule,
-    MatDialogModule,
+    ZardDialogModule,
     ZardIconComponent,
     ZardDividerComponent,
     ...ZardFormImports,
@@ -244,9 +243,9 @@ export class NgmValueHelpComponent implements OnInit {
   })
 
   constructor(
-    @Optional() public dialogRef?: MatDialogRef<NgmValueHelpComponent>,
+    @Optional() public dialogRef?: ZardDialogRef<NgmValueHelpComponent>,
     @Optional()
-    @Inject(MAT_DIALOG_DATA)
+    @Inject(Z_MODAL_DATA)
     public _data?: {
       dsCoreService: NgmDSCoreService
       dataSettings: DataSettings

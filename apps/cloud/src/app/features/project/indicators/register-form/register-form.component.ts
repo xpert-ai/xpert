@@ -10,7 +10,6 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { BusinessAreasService, NgmSemanticModel } from '@metad/cloud/state'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { nonBlank, nonNullable } from '@metad/core'
@@ -52,14 +51,7 @@ import { injectIndicatorFormulaCommand } from '../../copilot'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
 
 import { MatDatepickerModule } from '@angular/material/datepicker'
-import {
-  ZardButtonComponent,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardCheckboxComponent,
-  ZardTooltipImports
-} from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardCheckboxComponent, ZardDialogService, ZardFormImports, ZardIconComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '@cloud/app/@shared/indicator/'
 
 /**
@@ -113,7 +105,7 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
   /**
    * @default use Dialog in cdk
    */
-  readonly _dialog = inject(MatDialog)
+  readonly _dialog = inject(ZardDialogService)
 
   @Input() certifications: ISelectOption[]
   readonly models = input<ISemanticModel[]>()

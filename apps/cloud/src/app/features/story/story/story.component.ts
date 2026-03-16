@@ -1,5 +1,6 @@
 import { CdkDragEnd } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   Component,
   computed,
@@ -50,7 +51,6 @@ import { StoryToolbarComponent } from '../toolbar/toolbar.component'
 import { StoryToolbarService } from '../toolbar/toolbar.service'
 import { ResponsiveBreakpoints, ResponsiveBreakpointType } from '../types'
 import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
-import { MatDialog } from '@angular/material/dialog'
 import { injectCalculationGraphCommand, injectStoryCommand, injectStoryPageCommand, injectStoryStyleCommand, injectStoryWidgetCommand } from '../copilot'
 import { MaterialModule } from '../../../@shared/material.module'
 import { TranslationBaseComponent } from '../../../@shared/language'
@@ -107,7 +107,7 @@ export class StoryDesignerComponent extends TranslationBaseComponent implements 
   private logger = inject(NGXLogger)
   readonly copilotContext = inject(NgmCopilotContextToken)
   readonly coreService = inject(NgmOcapCoreService)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(ZardDialogService)
   readonly _viewContainerRef = inject(ViewContainerRef)
 
   @Input() storyId: string

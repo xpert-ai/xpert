@@ -1,3 +1,4 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog';
 import { type ComponentType, Overlay, OverlayConfig, OverlayRef } from '@angular/cdk/overlay';
 import { ComponentPortal, TemplatePortal } from '@angular/cdk/portal';
 import { isPlatformBrowser } from '@angular/common';
@@ -15,8 +16,23 @@ import { ZardDialogRef } from './dialog-ref';
 import { ZardDialogComponent, ZardDialogOptions } from './dialog.component';
 
 type ContentType<T> = ComponentType<T> | TemplateRef<T> | string;
+type CustomClass = string | string[] | undefined;
 
 export const Z_MODAL_DATA = new InjectionToken<any>('Z_MODAL_DATA');
+
+export interface ZardDialogOpenConfig<U = any> {
+  backdropClass?: CustomClass;
+  data?: U;
+  disableClose?: boolean;
+  height?: string;
+  maxHeight?: string;
+  maxWidth?: string;
+  minHeight?: string;
+  minWidth?: string;
+  panelClass?: CustomClass;
+  viewContainerRef?: ViewContainerRef;
+  width?: string;
+}
 
 @Injectable({
   providedIn: 'root',
@@ -27,11 +43,34 @@ export class ZardDialogService {
   private platformId = inject(PLATFORM_ID);
 
   create<T, U>(config: ZardDialogOptions<T, U>): ZardDialogRef<T> {
-    return this.open<T, U>(config.zContent as ComponentType<T>, config);
+    return this.createDialog<T, U>(config.zContent as ComponentType<T>, config);
   }
 
-  private open<T, U>(componentOrTemplateRef: ContentType<T>, config: ZardDialogOptions<T, U>) {
-    const overlayRef = this.createOverlay();
+  open<T, D = any, R = any>(
+    componentOrTemplateRef: ContentType<T>,
+    config: ZardDialogOpenConfig<D> = {},
+  ): ZardDialogRef<T, R, D> {
+    const zardConfig = new ZardDialogOptions<T, D>();
+    zardConfig.zBackdropClass = config.backdropClass;
+    zardConfig.zClosable = false;
+    zardConfig.zContent = componentOrTemplateRef;
+    zardConfig.zCustomClasses = this.mergeCustomClasses(config.panelClass);
+    zardConfig.zData = config.data;
+    zardConfig.zHeight = config.height;
+    zardConfig.zHideFooter = true;
+    zardConfig.zMaskClosable = !config.disableClose;
+    zardConfig.zMaxHeight = config.maxHeight;
+    zardConfig.zMaxWidth = config.maxWidth;
+    zardConfig.zMinHeight = config.minHeight;
+    zardConfig.zMinWidth = config.minWidth;
+    zardConfig.zViewContainerRef = config.viewContainerRef;
+    zardConfig.zWidth = config.width;
+
+    return this.create<T, D>(zardConfig) as ZardDialogRef<T, R, D>;
+  }
+
+  private createDialog<T, U>(componentOrTemplateRef: ContentType<T>, config: ZardDialogOptions<T, U>) {
+    const overlayRef = this.createOverlay(config);
 
     if (!overlayRef) {
       return new ZardDialogRef(
@@ -50,9 +89,10 @@ export class ZardDialogService {
     return dialogRef;
   }
 
-  private createOverlay(): OverlayRef | undefined {
+  private createOverlay<T, U>(config: ZardDialogOptions<T, U>): OverlayRef | undefined {
     if (isPlatformBrowser(this.platformId)) {
       const overlayConfig = new OverlayConfig({
+        backdropClass: config.zBackdropClass,
         hasBackdrop: true,
         positionStrategy: this.overlay.position().global(),
       });
@@ -92,10 +132,11 @@ export class ZardDialogService {
     const dialogRef = new ZardDialogRef<T>(overlayRef, config, dialogContainer, this.platformId);
 
     if (componentOrTemplateRef instanceof TemplateRef) {
+      const viewContainerRef = config.zViewContainerRef ?? dialogContainer.getViewContainerRef();
       dialogContainer.attachTemplatePortal(
         new TemplatePortal<T>(
           componentOrTemplateRef,
-          null as unknown as ViewContainerRef,
+          viewContainerRef,
           {
             dialogRef,
           } as T,
@@ -116,9 +157,19 @@ export class ZardDialogService {
     return Injector.create({
       parent: this.injector,
       providers: [
+        { provide: DialogRef, useValue: dialogRef },
+        { provide: DIALOG_DATA, useValue: config.zData },
         { provide: ZardDialogRef, useValue: dialogRef },
         { provide: Z_MODAL_DATA, useValue: config.zData },
       ],
     });
+  }
+
+  private mergeCustomClasses(panelClass: CustomClass) {
+    if (Array.isArray(panelClass)) {
+      return panelClass.filter(Boolean).join(' ');
+    }
+
+    return panelClass ?? undefined;
   }
 }

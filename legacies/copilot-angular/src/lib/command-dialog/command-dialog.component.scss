@@ -1,6 +1,5 @@
 @reference "../../../../../tailwind-workspace-reference.css";
 :host {
-  --mat-dialog-with-actions-content-padding: .5rem;
   --mdc-filled-button-container-shape: .75rem;
 }
 
@@ -12,7 +11,7 @@
   position: absolute;
 }
 
-.mat-mdc-dialog-content.mdc-dialog__content {
+xp-dialog-content {
   @apply flex flex-col;
 }
 

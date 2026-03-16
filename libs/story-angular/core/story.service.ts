@@ -1,7 +1,6 @@
 import { BreakpointObserver, Breakpoints, BreakpointState } from '@angular/cdk/layout'
 import { computed, inject, Inject, Injectable, Injector, Optional, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
 import { ID, IStoryTemplate, StoryTemplateType } from '@metad/contracts'
 import {
   createSubStore,
@@ -37,7 +36,7 @@ import {
 } from '@metad/ocap-core'
 import { createStore, Query, select, Store, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
-import { ZardToastService } from '@xpert-ai/headless-ui'
+import { ZardDialogService, ZardToastService } from '@xpert-ai/headless-ui'
 import { TranslateService } from '@ngx-translate/core'
 import { cloneDeep, findKey, includes, isEmpty, isEqual, negate, omit, some, sortBy } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
@@ -440,7 +439,7 @@ export class NxStoryService {
     private storyStore?: NxStoryStore,
     @Optional() protected logger?: NGXLogger,
     @Optional() private toast?: ZardToastService,
-    @Optional() private _dialog?: MatDialog
+    @Optional() private _dialog?: ZardDialogService
   ) {}
 
   onSaved() {

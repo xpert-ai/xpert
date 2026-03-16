@@ -1,7 +1,7 @@
 import { Component, Signal, ViewChild, ViewContainerRef, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   AbstractStoryWidget,
   StoryWidgetState,
@@ -84,7 +84,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
 
   private readonly dsCoreService = inject(NgmDSCoreService)
   private readonly storyService = inject(NxStoryService)
-  private readonly _dialog = inject(MatDialog)
+  private readonly _dialog = inject(ZardDialogService)
   readonly #dialog = inject(Dialog)
   private readonly filterBarService = inject(NgmSmartFilterBarService)
   private readonly _viewContainerRef = inject(ViewContainerRef)

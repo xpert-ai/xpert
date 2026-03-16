@@ -2,10 +2,9 @@ import { CommonModule } from '@angular/common'
 import { Component, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
 import { BusinessAreasService } from '@metad/cloud/state'
-import { NgmConfirmDeleteComponent, NgmSpinComponent, TreeTableModule } from '@metad/ocap-angular/common'
+import { NgmConfirmDeleteService, NgmSpinComponent, TreeTableModule } from '@metad/ocap-angular/common'
 import { DisplayDensity, OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
@@ -42,7 +41,7 @@ export class BusinessAreasComponent {
   private readonly businessAreaComponent = inject(BusinessAreaComponent)
   private readonly businessAreasStore = inject(BusinessAreasService)
   private readonly _toastrService = inject(ToastrService)
-  private readonly _dialog = inject(MatDialog)
+  private readonly _confirmDelete = inject(NgmConfirmDeleteService)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)
 
@@ -70,9 +69,7 @@ export class BusinessAreasComponent {
   }
 
   async deleteBusinessArea(item: IBusinessArea) {
-    const cofirm = await firstValueFrom(
-      this._dialog.open(NgmConfirmDeleteComponent, { data: { value: item.name } }).afterClosed()
-    )
+    const cofirm = await firstValueFrom(this._confirmDelete.confirm({ value: item.name }))
     if (!cofirm) {
       return
     }

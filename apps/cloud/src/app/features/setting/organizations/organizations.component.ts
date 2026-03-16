@@ -1,11 +1,11 @@
 import { SelectionModel } from '@angular/cdk/collections'
 import { Component } from '@angular/core'
-import { MatDialog } from '@angular/material/dialog'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { IOrganization, OrganizationsService, ToastrService, routeAnimations } from '../../../@core'
 import { OrganizationMutationComponent } from './organization-mutation/organization-mutation.component'
 import { ManageEntityBaseComponent } from '../../../@shared/directives'
 
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 @Component({
   standalone: false,
   selector: 'pac-organizations',
@@ -26,7 +26,7 @@ export class OrganizationsComponent extends ManageEntityBaseComponent<IOrganizat
 
   constructor(
     private readonly organizationsService: OrganizationsService,
-    private readonly _dialog: MatDialog,
+    private readonly _dialog: ZardDialogService,
     private _toastrService: ToastrService
   ) {
     super()

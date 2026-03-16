@@ -24,7 +24,6 @@ import {
   FormsModule,
   ReactiveFormsModule
 } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import {
   AggregationRole,
   CalculationProperty,
@@ -84,18 +83,7 @@ import { DisplayDensity, mergeSelectedValues, NgmDSCoreService, NgmOcapCoreServi
 import { ControlOptions, NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CommonModule } from '@angular/common'
-import {
-  ZardBadgeComponent,
-  ZardButtonComponent,
-  ZardComboboxComponent,
-  ZardComboboxGroup,
-  ZardComboboxOption,
-  ZardDividerComponent,
-  ZardFormImports,
-  ZardIconComponent,
-  ZardInputDirective,
-  ZardCheckboxComponent
-} from '@xpert-ai/headless-ui'
+import { ZardBadgeComponent, ZardButtonComponent, ZardCheckboxComponent, ZardComboboxComponent, ZardComboboxGroup, ZardComboboxOption, ZardDialogService, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
@@ -154,7 +142,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
 
   @HostBinding('class.ngm-property-select') isPropertySelect = true
 
-  readonly _dialog? = inject(MatDialog, { optional: true })
+  readonly _dialog? = inject(ZardDialogService, { optional: true })
   readonly #dialog = inject(Dialog, { optional: true })
   readonly _viewContainerRef = inject(ViewContainerRef, { skipSelf: true })
   readonly _destroyRef = inject(DestroyRef)

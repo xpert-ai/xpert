@@ -4,7 +4,6 @@ import { ChangeDetectorRef, Component, inject, signal } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule } from '@angular/forms'
 
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { injectConfirmDelete, NgmSearchComponent, NgmSpinComponent, NgmTableComponent } from '@metad/ocap-angular/common'
@@ -21,7 +20,7 @@ import {
 import { uniq } from 'lodash-es'
 import { BehaviorSubject, combineLatest, EMPTY, firstValueFrom, map, switchMap } from 'rxjs'
 import { ModelComponent } from '../model.component'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogService, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -110,7 +109,7 @@ export class ModelAdminComponent extends TranslationBaseComponent {
     })
 
   constructor(
-    private _dialog: MatDialog,
+    private _dialog: ZardDialogService,
     private _cdr: ChangeDetectorRef,
     private _toastrService: ToastrService
   ) {

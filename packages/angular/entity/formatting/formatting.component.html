@@ -1,10 +1,10 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <h4 style="pointer-events: none">
     {{ 'Ngm.Entity.MeasureFormatting' | translate: { Default: 'Measure Formatting' } }}
   </h4>
 </header>
 
-<mat-dialog-content class="mat-typography">
+<xp-dialog-content class="">
   <form [formGroup]="formGroup" class="flex flex-col justify-start items-stretch gap-2">
     <z-switch formControlName="shortNumber">
       {{ 'Ngm.Entity.ShortNumber' | translate: { Default: 'Short Number' } }}
@@ -27,15 +27,15 @@
             {{ 'Ngm.Entity.UseUnderlyingUnit' | translate: {Default: "Use Underlying Unit"} }}
         </z-checkbox> -->
   </form>
-</mat-dialog-content>
+</xp-dialog-content>
 
-<mat-dialog-actions align="end">
+<xp-dialog-actions align="end">
   <div ngmButtonGroup>
-    <button z-button zType="ghost" mat-dialog-close>
+    <button z-button zType="ghost" xpDialogClose>
       {{ 'Ngm.Common.Cancel' | translate: { Default: 'Cancel' } }}
     </button>
     <button z-button zType="default" color="accent" cdkFocusInitial (click)="onApply()">
       {{ 'Ngm.Common.Apply' | translate: { Default: 'Apply' } }}
     </button>
   </div>
-</mat-dialog-actions>
+</xp-dialog-actions>

@@ -3,8 +3,7 @@ import { CommonModule } from '@angular/common'
 import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
-import { ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardDialogService, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
@@ -25,7 +24,7 @@ export class TagMaintainComponent {
   eNgxFloatUiPlacements = NgxFloatUiPlacements
 
   readonly tagService = inject(TagService)
-  readonly #dialog = inject(MatDialog)
+  readonly #dialog = inject(ZardDialogService)
   readonly #toastr = inject(ToastrService)
 
   readonly tenant = input<boolean, string | boolean>(false, {

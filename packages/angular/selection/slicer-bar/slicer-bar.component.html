@@ -1,10 +1,10 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <h4 style="pointer-events: none;">
     {{ 'Ngm.Selection.Slicers' | translate: {Default: "Slicers"} }}
   </h4>
 </header>
 
-<mat-dialog-content class="mat-typography">
+<xp-dialog-content class="">
   <ng-container *ngFor="let slicer of slicers$ | async; index as i">
     <ngm-slicer [slicer]="slicer"
       [dataSettings]="dataSettings"
@@ -15,23 +15,23 @@
     </ngm-slicer>
     <z-divider></z-divider>
   </ng-container>
-</mat-dialog-content>
+</xp-dialog-content>
 
-<mat-dialog-actions style="display: flex; justify-content: space-between; align-items: center;">
+<xp-dialog-actions style="display: flex; justify-content: space-between; align-items: center;">
   <button z-button zType="ghost" color="primary" ngmAppearance="dashed" z-menu [zMenuTriggerFor]="menu">
     <z-icon zType="add"></z-icon>
     {{ 'Ngm.Common.ADD' | translate: {Default: "Add"} }}
   </button>
 
   <div ngmButtonGroup>
-    <button z-button zType="ghost" mat-dialog-close cdkFocusInitial>
+    <button z-button zType="ghost" xpDialogClose cdkFocusInitial>
       {{ 'Ngm.Common.Cancel' | translate: {Default: 'Cancel'} }}
     </button>
-    <button z-button zType="default" color="accent" cdkFocusInitial [mat-dialog-close]="slicers">
+    <button z-button zType="default" color="accent" cdkFocusInitial [xpDialogClose]="slicers">
       {{ 'Ngm.Common.Apply' | translate: {Default: 'Apply'} }}
     </button>
   </div>
-</mat-dialog-actions>
+</xp-dialog-actions>
 
 <ng-template #menu>
   <div z-menu-content class="ngm-density__compact">

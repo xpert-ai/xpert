@@ -427,14 +427,14 @@
 
 <ng-template #collectionCreation>
   <div class="flex flex-col">
-    <header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
       <h4 style="pointer-events: none" class="mb-0">
         {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
         {{ 'PAC.Project.Collection' | translate: { Default: 'Collection' } }}
       </h4>
     </header>
 
-    <div mat-dialog-content class="mat-dialog-content mat-typography w-96">
+    <div xpDialogContent class="xpDialogContent w-96">
       <form class="flex flex-col justify-start items-stretch" [formGroup]="form" (ngSubmit)="createCollection()">
         <z-form-field appearance="fill" floatLabel="always" displayDensity="cosy">
           <z-form-label>{{ 'PAC.Project.CollectionName' | translate: { Default: 'Name' } }}</z-form-label>
@@ -461,9 +461,9 @@
       </form>
     </div>
 
-    <mat-dialog-actions align="end">
+    <xp-dialog-actions align="end">
       <div ngmButtonGroup>
-        <button z-button zType="ghost" mat-dialog-close>
+        <button z-button zType="ghost" xpDialogClose>
           {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
 
@@ -471,19 +471,19 @@
           {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
         </button>
       </div>
-    </mat-dialog-actions>
+    </xp-dialog-actions>
   </div>
 </ng-template>
 
 <ng-template #moveTo>
   <div class="flex flex-col">
-    <header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+    <header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
       <h4 style="pointer-events: none" class="mb-0">
         {{ 'PAC.Project.MoveToCollection' | translate: { Default: 'Move to collection' } }}
       </h4>
     </header>
 
-    <div mat-dialog-content class="mat-dialog-content mat-typography w-96">
+    <div xpDialogContent class="xpDialogContent w-96">
       <ngm-tree-select
         appearance="fill"
         floatLabel="always"
@@ -499,16 +499,16 @@
       </ngm-tree-select>
     </div>
 
-    <mat-dialog-actions align="end">
+    <xp-dialog-actions align="end">
       <div ngmButtonGroup>
-        <button z-button zType="ghost" mat-dialog-close>
+        <button z-button zType="ghost" xpDialogClose>
           {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
 
-        <button z-button zType="default" color="accent" [matDialogClose]="moveToCollectionId">
+        <button z-button zType="default" color="accent" [xpDialogClose]="moveToCollectionId">
           {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
         </button>
       </div>
-    </mat-dialog-actions>
+    </xp-dialog-actions>
   </div>
 </ng-template>

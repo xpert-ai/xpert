@@ -1,5 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { OverlayModule } from '@angular/cdk/overlay'
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   ChangeDetectorRef,
   Component,
@@ -21,7 +22,6 @@ import {
   signal
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Params, Router } from '@angular/router'
 import { NxCoreModule, nonNullable, uploadYamlFile } from '@metad/core'
 import { NgmCommonModule, NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
@@ -100,7 +100,7 @@ export class NxStoryPointComponent {
   readonly storyService = inject(NxStoryService)
   readonly storyPointService = inject(NxStoryPointService)
   private _renderer = inject(Renderer2)
-  private readonly _dialog = inject(MatDialog)
+  private readonly _dialog = inject(ZardDialogService)
   private readonly _viewContainerRef = inject(ViewContainerRef)
   private smartFilterBar = inject(NgmSmartFilterBarService)
   public settingsService? = inject(NxSettingsPanelService, { optional: true })

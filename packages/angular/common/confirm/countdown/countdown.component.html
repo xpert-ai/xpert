@@ -1,10 +1,10 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
   <h4 style="pointer-events: none;">
     {{ 'COMPONENTS.COUNTDOWN_CONFIRMATION.CONFIRM' | translate: {Default: 'Confirm'} }}
   </h4>
 </header>
 
-<mat-dialog-content class="mat-typography">
+<xp-dialog-content class="">
   <span>
     <b>{{ recordType }}</b>
     {{ 'COMPONENTS.COUNTDOWN_CONFIRMATION.WAS' | translate: {Default: 'Waiting seconds'} }}
@@ -18,10 +18,10 @@
     {{ 'COMPONENTS.COUNTDOWN_CONFIRMATION.WAIT_UNTIL_RELOAD' | translate: {Default: 'Waiting until reload'} }}
     <ngm-countdown #cd [config]="countDownConfig" (event)="handleActionEvent($event)" />
   </div>
-</mat-dialog-content>
-<mat-dialog-actions align="end">
+</xp-dialog-content>
+<xp-dialog-actions align="end">
   <div ngmButtonGroup>
-    <button z-button zType="ghost" color="accent" mat-dialog-close>{{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}</button>
+    <button z-button zType="ghost" color="accent" xpDialogClose>{{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}</button>
     <button z-button zType="default" color="accent" (click)="continue()">{{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}</button>
   </div>
-</mat-dialog-actions>
+</xp-dialog-actions>

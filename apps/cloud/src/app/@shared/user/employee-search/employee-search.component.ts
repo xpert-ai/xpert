@@ -5,8 +5,7 @@ import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
 
 import { MatChipsModule } from '@angular/material/chips'
-import { MatDialogModule, MatDialogRef, MAT_DIALOG_DATA } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
@@ -18,7 +17,7 @@ import { SharedModule } from '../../shared.module'
 
 @Component({
   standalone: true,
-  imports: [SharedModule, CommonModule, FormsModule, ReactiveFormsModule, MatDialogModule, ZardButtonComponent, MatAutocompleteModule, ...ZardFormImports, ZardInputDirective, MatChipsModule, ZardIconComponent, MatProgressSpinnerModule, TranslateModule, ButtonGroupDirective, NgmCommonModule],
+  imports: [SharedModule, CommonModule, FormsModule, ReactiveFormsModule, ZardDialogModule, ZardButtonComponent, MatAutocompleteModule, ...ZardFormImports, ZardInputDirective, MatChipsModule, ZardIconComponent, MatProgressSpinnerModule, TranslateModule, ButtonGroupDirective, NgmCommonModule],
   selector: 'pac-employee-search',
   templateUrl: 'employee-search.component.html',
   styleUrls: ['employee-search.component.scss']
@@ -53,9 +52,9 @@ export class EmployeeSelectComponent {
   )
 
   constructor(
-    @Inject(MAT_DIALOG_DATA)
+    @Inject(Z_MODAL_DATA)
     public data: { role: string; roles: ISelectOption[] },
-    private _dialogRef: MatDialogRef<EmployeeSelectComponent>,
+    private _dialogRef: ZardDialogRef<EmployeeSelectComponent>,
     private employeeService: EmployeesService
   ) {
     this.role = data?.role

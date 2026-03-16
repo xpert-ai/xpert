@@ -3,10 +3,9 @@ import { CommonModule } from '@angular/common'
 import { Component, ViewContainerRef, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 
-import { MatDialog, MatDialogModule } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogModule, ZardDialogService, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { MatListModule } from '@angular/material/list'
-import { NgmCommonModule, NgmConfirmDeleteComponent } from '@metad/ocap-angular/common'
+import { NgmCommonModule, NgmConfirmDeleteService } from '@metad/ocap-angular/common'
 import { ISelectOption, NgmDSCacheService } from '@metad/ocap-angular/core'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
 import { CalculationProperty, EntityType, ParameterProperty, getEntityCalculations } from '@metad/ocap-core'
@@ -24,7 +23,7 @@ import { Dialog } from '@angular/cdk/dialog'
   imports: [
     CommonModule,
     DragDropModule,
-    MatDialogModule,
+    ZardDialogModule,
     ZardButtonComponent,
     ZardIconComponent,
     MatListModule,
@@ -39,6 +38,7 @@ import { Dialog } from '@angular/cdk/dialog'
 export class ParametersComponent {
   public readonly dsCoreService = inject(NgmDSCacheService)
   readonly #dialog = inject(Dialog)
+  readonly #confirmDelete = inject(NgmConfirmDeleteService)
 
   entities: ISelectOption<string>[] = []
   activeLink: { dataSource: string; entity: string }
@@ -75,7 +75,7 @@ export class ParametersComponent {
   constructor(
     private storyService: NxStoryService,
     private coreService: NxCoreService,
-    private readonly _dialog: MatDialog,
+    private readonly _dialog: ZardDialogService,
     private readonly _viewContainerRef: ViewContainerRef
   ) {}
 
@@ -175,9 +175,7 @@ export class ParametersComponent {
 
   async removeCalculation(calculationProperty: CalculationProperty) {
     const confirm = await firstValueFrom(
-      this._dialog
-        .open(NgmConfirmDeleteComponent, { data: { value: calculationProperty.caption || calculationProperty.name } })
-        .afterClosed()
+      this.#confirmDelete.confirm({ value: calculationProperty.caption || calculationProperty.name })
     )
     if (confirm) {
       this.storyService.removeCalculation({

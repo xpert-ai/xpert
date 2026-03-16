@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject, input, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
 import { nonNullable } from '@metad/copilot'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectUser, IUser, IXpertWorkspace, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
@@ -10,7 +9,7 @@ import { uniqBy } from 'lodash-es'
 import { EMPTY, filter, switchMap } from 'rxjs'
 import { UserPipe } from 'apps/cloud/src/app/@shared/pipes'
 import { Dialog } from '@angular/cdk/dialog'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardDialogService, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   selector: 'xpert-workspace-members',
   standalone: true,

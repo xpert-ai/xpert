@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialogModule } from '@angular/material/dialog'
 import { NgmRemoteSelectComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -9,7 +8,7 @@ import { AiModelTypeEnum, CredentialsType, ToolProviderCredentials } from 'apps/
 import { CopilotModelSelectComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardDialogModule, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -17,7 +16,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MatDialogModule,
+    ZardDialogModule,
     ...ZardTooltipImports,
     NgmI18nPipe,
     NgmRemoteSelectComponent,

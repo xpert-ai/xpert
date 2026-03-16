@@ -4,8 +4,7 @@ import { Component, DestroyRef, OnInit, computed, effect, inject, input, output,
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { AbstractControl, FormBuilder, FormControl, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms'
 
-import { MAT_DIALOG_DATA, MatDialogRef } from '@angular/material/dialog'
-import { ZardButtonComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import {
@@ -62,11 +61,11 @@ export class NgmCalculationEditorComponent implements OnInit {
   /**
    * @deprecated use #dialogRef
    */
-  readonly _dialogRef? = inject(MatDialogRef<NgmCalculationEditorComponent>, { optional: true })
+  readonly _dialogRef? = inject(ZardDialogRef<NgmCalculationEditorComponent>, { optional: true })
   /**
    * @deprecated use #data
    */
-  readonly _data? = inject<CalculationEditorData>(MAT_DIALOG_DATA, { optional: true })
+  readonly _data? = inject<CalculationEditorData>(Z_MODAL_DATA, { optional: true })
   readonly #dialogRef = inject(DialogRef, { optional: true })
   readonly #data = inject(DIALOG_DATA, { optional: true })
   get dialogRef() {

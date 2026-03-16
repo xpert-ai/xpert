@@ -2,10 +2,9 @@ import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
-import { MatDialog } from '@angular/material/dialog'
 import { BusinessAreaUserService } from '@metad/cloud/state'
 import { BusinessAreaRole, IBusinessAreaUser, IUser } from '@metad/contracts'
-import { NgmConfirmDeleteComponent, NgmSearchComponent, NgmTableComponent } from '@metad/ocap-angular/common'
+import { NgmConfirmDeleteService, NgmSearchComponent, NgmTableComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService } from 'apps/cloud/src/app/@core'
 import {
@@ -46,6 +45,7 @@ export class BusinessAreaUsersComponent extends TranslationBaseComponent {
   userLabel = userLabel
 
   private _toastrService = inject(ToastrService)
+  private readonly _confirmDelete = inject(NgmConfirmDeleteService)
   readonly #dialog = inject(Dialog)
 
   searchControl = new FormControl()
@@ -82,16 +82,13 @@ export class BusinessAreaUsersComponent extends TranslationBaseComponent {
   public readonly businessArea = this.areaComponent.businessArea
   constructor(
     private areaComponent: EditBusinessAreaComponent,
-    private businessAreaUserService: BusinessAreaUserService,
-    private _dialog: MatDialog
+    private businessAreaUserService: BusinessAreaUserService
   ) {
     super()
   }
 
   async removeUser(id: string, user: IUser) {
-    const confirm = await firstValueFrom(
-      this._dialog.open(NgmConfirmDeleteComponent, { data: { value: userLabel(user) } }).afterClosed()
-    )
+    const confirm = await firstValueFrom(this._confirmDelete.confirm({ value: userLabel(user) }))
     if (confirm) {
       try {
         await firstValueFrom(this.businessAreaUserService.delete(id))

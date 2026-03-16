@@ -3,11 +3,10 @@ import { CommonModule } from '@angular/common';
 import { Component, HostBinding, inject, signal } from '@angular/core';
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 
-import { MAT_DIALOG_DATA, MatDialogModule, MatDialogRef } from '@angular/material/dialog';
 import { ButtonGroupDirective } from '@metad/ocap-angular/core';
 import { FormlyModule } from '@ngx-formly/core';
 import { TranslateModule } from '@ngx-translate/core';
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated CdkConfirmOptionsComponent
@@ -15,7 +14,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
-    MatDialogModule,
+    ZardDialogModule,
     ZardButtonComponent,
     CommonModule, FormsModule, ReactiveFormsModule, FormlyModule, TranslateModule,
     DragDropModule,
@@ -27,8 +26,8 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   styleUrls: ['./confirm-options.component.scss']
 })
 export class NgmConfirmOptionsComponent {
-  readonly data = inject<{ formFields: any; information: string }>(MAT_DIALOG_DATA)
-  readonly dialogRef = inject(MatDialogRef)
+  readonly data = inject<{ formFields: any; information: string }>(Z_MODAL_DATA)
+  readonly dialogRef = inject(ZardDialogRef)
 
   @HostBinding('class.ngm-dialog-container') isDialogContainer = true
 

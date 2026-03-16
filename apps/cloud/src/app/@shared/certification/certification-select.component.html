@@ -1,10 +1,10 @@
-<header mat-dialog-title cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <div style="pointer-events: none;">
         {{ 'PAC.MENU.AddCertifications' | translate: {Default: 'Add Certifications'} }}
     </div>
 </header>
 
-<mat-dialog-content class="mat-typography flex flex-col">
+<xp-dialog-content class="flex flex-col">
     <ngm-select appearance="fill" color="accent" displayBehaviour="descriptionOnly"
         [label]=" 'PAC.KEY_WORDS.Certification' | translate: { Default: 'Certification' } "
         [selectOptions]="certifications$ | async"
@@ -12,15 +12,15 @@
         [(ngModel)]="certificationId"
     >
     </ngm-select>
-</mat-dialog-content>
+</xp-dialog-content>
 
-<mat-dialog-actions align="end">
+<xp-dialog-actions align="end">
     <div ngmButtonGroup>
-        <button z-button zType="secondary" mat-dialog-close>
+        <button z-button zType="secondary" xpDialogClose>
             {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
         </button>
-        <button z-button zType="default" color="accent" cdkFocusInitial [matDialogClose]="certificationId">
+        <button z-button zType="default" color="accent" cdkFocusInitial [xpDialogClose]="certificationId">
             {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
         </button>
     </div>
-</mat-dialog-actions>
+</xp-dialog-actions>

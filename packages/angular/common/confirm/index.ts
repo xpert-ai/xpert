@@ -1,4 +1,5 @@
 export * from './confirm-delete/confirm-delete.component'
+export * from './confirm-delete/confirm-delete.service'
 export * from './confirm-unique/confirm-unique.component'
 export * from './confirm.module'
 export * from './countdown/countdown.component'

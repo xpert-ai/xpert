@@ -1,7 +1,6 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { ChangeDetectionStrategy, Component, Optional, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { MatDialog } from '@angular/material/dialog'
 import { ActivatedRoute, Router } from '@angular/router'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { IsDirty } from '@metad/core'
@@ -16,6 +15,7 @@ import { ModelQueryState } from '../types'
 import { QueryLabService } from './query-lab.service'
 import { ModelComponent } from '../model.component'
 
+import { ZardDialogService } from '@xpert-ai/headless-ui'
 @Component({
   standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -28,7 +28,7 @@ import { ModelComponent } from '../model.component'
   providers: [QueryLabService]
 })
 export class QueryLabComponent extends TranslationBaseComponent implements IsDirty {
-  readonly _dialog = inject(MatDialog)
+  readonly _dialog = inject(ZardDialogService)
   readonly queryService = inject(ModelQueryService)
   readonly #model = inject(ModelComponent)
 

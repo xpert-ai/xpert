@@ -15,14 +15,13 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatDialog, MatDialogConfig } from '@angular/material/dialog'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { CopilotChatMessageRoleEnum, CopilotEngine } from '@metad/copilot'
 import { nonBlank } from '@metad/core'
 import {
   NgmCommonModule,
-  NgmConfirmDeleteComponent,
+  NgmConfirmDeleteService,
   NgmConfirmUniqueComponent,
   ResizerModule,
   SplitterModule
@@ -98,7 +97,7 @@ import {
   TOOLBAR_ACTION_CATEGORY
 } from './types'
 import { markdownTableData, stringifyTableType } from './utils'
-import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogOpenConfig, ZardDialogService, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   imports: [
@@ -146,7 +145,8 @@ export class ModelComponent {
   private storyStore = inject<NxStoryStore>(NX_STORY_STORE)
   private route = inject(ActivatedRoute)
   private router = inject(Router)
-  private _dialog = inject(MatDialog)
+  private _dialog = inject(ZardDialogService)
+  readonly #confirmDelete = inject(NgmConfirmDeleteService)
   readonly #dialog = inject(Dialog)
   private _viewContainerRef = inject(ViewContainerRef)
   readonly #toastr = injectToastr()
@@ -669,7 +669,7 @@ export class ModelComponent {
             id: this.modelService.modelSignal().dataSource.id
           },
           disableClose: true
-        } as MatDialogConfig)
+        } as ZardDialogOpenConfig)
         .afterClosed()
     )
 
@@ -682,9 +682,7 @@ export class ModelComponent {
 
   async dropTable(event: CdkDragDrop<DBTable[]>) {
     const tableName = event.item.data.name
-    const confirm = await firstValueFrom(
-      this._dialog.open(NgmConfirmDeleteComponent, { data: { value: tableName } }).afterClosed()
-    )
+    const confirm = await firstValueFrom(this.#confirmDelete.confirm({ value: tableName }))
     if (confirm) {
       try {
         await this.modelService.originalDataSource.dropEntity(tableName)
