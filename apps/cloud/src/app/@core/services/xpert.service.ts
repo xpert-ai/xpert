@@ -162,6 +162,16 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.delete<void>(this.apiBaseUrl + `/${id}/managers/${userId}`)
   }
 
+  uploadAndParseManagersCsv(id: string, file: File) {
+    const formData = new FormData()
+    formData.append('file', file)
+    return this.httpClient.post<IUser[]>(`${this.apiBaseUrl}/${id}/managers/bulk/upload`, formData)
+  }
+
+  bulkAddManagers(id: string, userIds: string[]) {
+    return this.httpClient.put<IUser[]>(this.apiBaseUrl + `/${id}/managers/bulk`, userIds)
+  }
+
   getMyCopilots(relations?: string[]) {
     return this.getMyAll({
       relations,

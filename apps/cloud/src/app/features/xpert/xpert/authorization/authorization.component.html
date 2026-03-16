@@ -10,22 +10,41 @@
       <div class="flex items-center mb-4 p-3 bg-gray-50 rounded-2xl">
         <div class="grow mx-2">{{ xpert()?.title || xpert()?.name }}</div>
 
-        <div
-          class="shrink-0 flex items-center py-[7px] px-3 border-[0.5px] border-gray-200 text-[13px] font-medium text-primary-600 bg-white shadow-xs rounded-lg cursor-pointer"
-          (click)="openAddUser()"
-        >
-          <svg
-            viewBox="0 0 24 24"
-            xmlns="http://www.w3.org/2000/svg"
-            width="24"
-            height="24"
-            fill="currentColor"
-            class="w-4 h-4 mr-2"
+        <div class="flex items-center gap-2">
+          <div
+            class="shrink-0 flex items-center py-[7px] px-3 border-[0.5px] border-gray-200 text-[13px] font-medium text-gray-600 bg-white shadow-xs rounded-lg cursor-pointer hover:bg-gray-50"
+            (click)="openBulkImport()"
           >
-            <path
-              d="M14 14.252V16.3414C13.3744 16.1203 12.7013 16 12 16C8.68629 16 6 18.6863 6 22H4C4 17.5817 7.58172 14 12 14C12.6906 14 13.3608 14.0875 14 14.252ZM12 13C8.685 13 6 10.315 6 7C6 3.685 8.685 1 12 1C15.315 1 18 3.685 18 7C18 10.315 15.315 13 12 13ZM12 11C14.21 11 16 9.21 16 7C16 4.79 14.21 3 12 3C9.79 3 8 4.79 8 7C8 9.21 9.79 11 12 11ZM18 17V14H20V17H23V19H20V22H18V19H15V17H18Z"
-            ></path></svg
-          >{{ 'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }}
+            <svg
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              fill="currentColor"
+              class="w-4 h-4 mr-2"
+            >
+              <path
+                d="M11 4H13V13L17.5 8.5L18.92 9.92L12 16.84L5.08 9.92L6.5 8.5L11 13V4ZM5 18V20H19V18H5Z"
+              ></path></svg
+            >{{ 'PAC.Xpert.BulkImport' | translate: {Default: 'Bulk Import'} }}
+          </div>
+          <div
+            class="shrink-0 flex items-center py-[7px] px-3 border-[0.5px] border-gray-200 text-[13px] font-medium text-primary-600 bg-white shadow-xs rounded-lg cursor-pointer"
+            (click)="openAddUser()"
+          >
+            <svg
+              viewBox="0 0 24 24"
+              xmlns="http://www.w3.org/2000/svg"
+              width="24"
+              height="24"
+              fill="currentColor"
+              class="w-4 h-4 mr-2"
+            >
+              <path
+                d="M14 14.252V16.3414C13.3744 16.1203 12.7013 16 12 16C8.68629 16 6 18.6863 6 22H4C4 17.5817 7.58172 14 12 14C12.6906 14 13.3608 14.0875 14 14.252ZM12 13C8.685 13 6 10.315 6 7C6 3.685 8.685 1 12 1C15.315 1 18 3.685 18 7C18 10.315 15.315 13 12 13ZM12 11C14.21 11 16 9.21 16 7C16 4.79 14.21 3 12 3C9.79 3 8 4.79 8 7C8 9.21 9.79 11 12 11ZM18 17V14H20V17H23V19H20V22H18V19H15V17H18Z"
+              ></path></svg
+            >{{ 'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }}
+          </div>
         </div>
       </div>
     </div>
