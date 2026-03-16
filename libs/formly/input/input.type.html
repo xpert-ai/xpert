@@ -6,7 +6,7 @@
   [type]="props?.type"
   [options]="selectOptions()"
   [ngModel]="newValue"
-  (ngModelChange)="newValue = $event"
+  (ngModelChange)="onModelChange($event)"
   (blur)="onBlur()"
   (focus)="onFocus()"
   >
