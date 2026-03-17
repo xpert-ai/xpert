@@ -8,7 +8,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, firstValueFrom, map } from 'rxjs'
 import {
   LocalAgent,
-  ServerAgent,
+  ServerSocketAgent,
   ToastrService,
   convertConfigurationSchema,
   getErrorMessage
@@ -67,7 +67,7 @@ export class PACDataSourceCreationComponent implements OnInit {
   private data: IDataSource = inject(DIALOG_DATA, { optional: true })
   public dialogRef = inject(DialogRef<Partial<IDataSource>>)
   private localAgent? = inject(LocalAgent, { optional: true })
-  private serverAgent = inject(ServerAgent)
+  private serverAgent = inject(ServerSocketAgent)
 
   readonly loading = signal(false)
 
