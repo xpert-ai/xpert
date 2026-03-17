@@ -52,7 +52,7 @@ export class ManageUserInviteComponent extends TranslationBaseComponent {
     withLatestFrom(this.store.user$.pipe(map((user) => user?.tenantId))),
     combineLatestWith(this.refresh$),
     switchMap(([[organizationId, tenantId]]) => {
-      return this.inviteService.getAll(['projects', 'invitedBy', 'role', 'organizationContact', 'departments'], {
+      return this.inviteService.getAll(['invitedBy', 'role', 'organizationContact'], {
         organizationId,
         tenantId
       })
