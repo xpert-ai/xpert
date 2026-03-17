@@ -1,4 +1,11 @@
-import { IPlugin, PLUGIN_LEVEL, PluginLevel, PluginSource } from '@metad/contracts'
+import {
+	IPlugin,
+	PLUGIN_CONFIGURATION_STATUS,
+	PLUGIN_LEVEL,
+	PluginConfigurationStatus,
+	PluginLevel,
+	PluginSource
+} from '@metad/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { Column, Entity, Index } from 'typeorm'
 import { IsOptional, IsString } from 'class-validator'
@@ -39,4 +46,16 @@ export class PluginInstance extends TenantOrganizationBaseEntity implements IPlu
 	@ApiProperty({ type: () => Object, required: false })
 	@Column({ type: 'jsonb', default: {} })
 	config: Record<string, any>
+
+	@ApiProperty({ enum: Object.values(PLUGIN_CONFIGURATION_STATUS), required: false })
+	@Column({ type: 'varchar', nullable: true })
+	@IsOptional()
+	@IsString()
+	configurationStatus?: PluginConfigurationStatus | null
+
+	@ApiProperty({ type: () => String, required: false })
+	@Column({ type: 'text', nullable: true })
+	@IsOptional()
+	@IsString()
+	configurationError?: string | null
 }

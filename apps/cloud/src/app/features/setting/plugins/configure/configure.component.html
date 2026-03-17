@@ -17,6 +17,25 @@
     </button>
   </div>
 
+  @if (needsConfiguration()) {
+    <div class="mx-6 mb-4 rounded-xl border border-orange-200 bg-orange-50 px-4 py-3 text-sm text-text-warning">
+      <div class="flex items-start gap-2">
+        <i class="ri-alert-line mt-0.5"></i>
+        <div class="min-w-0">
+          <div class="font-medium">
+            {{
+              'PAC.Plugin.RequiresConfiguration'
+                | translate: { Default: 'This plugin needs configuration before it can be used.' }
+            }}
+          </div>
+          @if (configurationError()) {
+            <div class="mt-1 break-words text-text-secondary">{{ configurationError() }}</div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
   <div class="relative min-h-[200px] px-6 pb-6">
     @if (schema(); as schema) {
       <json-schema-form class="grid grid-cols-2 gap-3" [schema]="schema" [(ngModel)]="config" />

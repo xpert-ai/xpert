@@ -2,9 +2,15 @@ import { BadRequestException, Body, Controller, Delete, Get, Inject, Post, Put }
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiTags } from '@nestjs/swagger'
 import { t } from 'i18next'
-import { IPluginConfiguration, IPluginDescriptor, PLUGIN_LEVEL, RolesEnum } from '@metad/contracts'
+import {
+	IPluginConfiguration,
+	IPluginDescriptor,
+	PLUGIN_CONFIGURATION_STATUS,
+	PLUGIN_LEVEL,
+	RolesEnum
+} from '@metad/contracts'
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
-import { buildConfig } from './config'
+import { buildConfig, inspectConfig } from './config'
 import { resolvePluginConfigSchema } from './plugin-config-schema'
 import { resolvePluginLevel } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
@@ -45,12 +51,22 @@ export class PluginController {
 		}
 
 		const instance = await this.pluginInstanceService.findOneByPluginName(plugin.name, organizationId)
-		const config = buildConfig(plugin.name, this.pluginInstanceService.getConfig(instance), plugin.instance.config)
+		const inspected = inspectConfig(
+			plugin.name,
+			this.pluginInstanceService.getConfig(instance),
+			plugin.instance.config
+		)
+		const configurationStatus = inspected.error
+			? PLUGIN_CONFIGURATION_STATUS.INVALID
+			: instance?.configurationStatus
+		const configurationError = inspected.error ?? instance?.configurationError
 
 		return {
 			pluginName: plugin.name,
-			config,
-			configSchema: resolvePluginConfigSchema(plugin.instance)
+			config: inspected.config,
+			configSchema: resolvePluginConfigSchema(plugin.instance),
+			configurationStatus,
+			configurationError
 		}
 	}
 
@@ -79,13 +95,17 @@ export class PluginController {
 			version: existing?.version ?? plugin.instance.meta?.version,
 			source: existing?.source ?? 'env',
 			level: existing?.level ?? plugin.level ?? resolvePluginLevel(plugin.instance.meta?.level),
-			config
+			config,
+			configurationStatus: PLUGIN_CONFIGURATION_STATUS.VALID,
+			configurationError: null
 		})
 
 		return {
 			pluginName: plugin.name,
 			config,
-			configSchema: resolvePluginConfigSchema(plugin.instance)
+			configSchema: resolvePluginConfigSchema(plugin.instance),
+			configurationStatus: PLUGIN_CONFIGURATION_STATUS.VALID,
+			configurationError: null
 		}
 	}
 
@@ -147,6 +167,16 @@ export class PluginController {
 		const packageName = normalizePluginName(plugin.packageName ?? plugin.name)
 		const canUpdate = canUpdatePlugin(plugin, organizationId) && supportsNpmRegistryUpdates(plugin.source)
 		const latestVersion = canUpdate ? await this.resolveLatestPluginVersion(packageName) : undefined
+		const instance = await this.pluginInstanceService.findOneByPluginName(plugin.name, plugin.organizationId)
+		const inspected = inspectConfig(
+			plugin.name,
+			this.pluginInstanceService.getConfig(instance),
+			plugin.instance.config
+		)
+		const configurationStatus = inspected.error
+			? PLUGIN_CONFIGURATION_STATUS.INVALID
+			: instance?.configurationStatus
+		const configurationError = inspected.error ?? instance?.configurationError
 
 		return {
 			organizationId: plugin.organizationId,
@@ -161,7 +191,9 @@ export class PluginController {
 			canConfigure: plugin.organizationId === organizationId && !!resolvePluginConfigSchema(plugin.instance),
 			canUpdate,
 			hasUpdate: canUpdate && hasNewerVersion(plugin.instance.meta?.version, latestVersion),
-			configSchema: resolvePluginConfigSchema(plugin.instance)
+			configSchema: resolvePluginConfigSchema(plugin.instance),
+			configurationStatus,
+			configurationError
 		}
 	}
 

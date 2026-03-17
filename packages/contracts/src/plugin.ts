@@ -18,6 +18,11 @@ export const PLUGIN_SOURCE = {
   ENV: 'env'
 } as const
 
+export const PLUGIN_CONFIGURATION_STATUS = {
+  VALID: 'valid',
+  INVALID: 'invalid'
+} as const
+
 /**
  * Classifies plugin scope and governance.
  * - `system`: built-in/platform-managed plugin that users cannot install/uninstall from org APIs.
@@ -25,6 +30,7 @@ export const PLUGIN_SOURCE = {
  */
 export type PluginLevel = (typeof PLUGIN_LEVEL)[keyof typeof PLUGIN_LEVEL]
 export type PluginSource = (typeof PLUGIN_SOURCE)[keyof typeof PLUGIN_SOURCE]
+export type PluginConfigurationStatus = (typeof PLUGIN_CONFIGURATION_STATUS)[keyof typeof PLUGIN_CONFIGURATION_STATUS]
 
 export interface PluginMeta {
   name: PluginName
@@ -60,6 +66,8 @@ export interface IPlugin extends IBasePerTenantAndOrganizationEntityModel {
   source?: PluginSource
   level?: PluginLevel
   config: Record<string, any>
+  configurationStatus?: PluginConfigurationStatus | null
+  configurationError?: string | null
 }
 
 export interface IPluginDescriptor {
@@ -76,10 +84,14 @@ export interface IPluginDescriptor {
   canUpdate?: boolean
   hasUpdate?: boolean
   configSchema?: JsonSchemaObjectType
+  configurationStatus?: PluginConfigurationStatus | null
+  configurationError?: string | null
 }
 
 export interface IPluginConfiguration<TConfig extends Record<string, any> = Record<string, any>> {
   pluginName: PluginName
   config: TConfig
   configSchema?: JsonSchemaObjectType
+  configurationStatus?: PluginConfigurationStatus | null
+  configurationError?: string | null
 }

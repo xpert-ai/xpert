@@ -1,7 +1,7 @@
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { LazyModuleLoader, ModuleRef } from '@nestjs/core'
 import { t } from 'i18next'
-import { PLUGIN_LEVEL } from '@metad/contracts'
+import { PLUGIN_CONFIGURATION_STATUS, PLUGIN_LEVEL } from '@metad/contracts'
 import {
 	getErrorMessage,
 	GLOBAL_ORGANIZATION_SCOPE,
@@ -9,7 +9,7 @@ import {
 	STRATEGY_META_KEY,
 	StrategyBus
 } from '@xpert-ai/plugin-sdk'
-import { buildConfig } from './config'
+import { inspectConfig } from './config'
 import { collectProvidersWithMetadata, hasLifecycleMethod, registerPluginsAsync } from './plugin.helper'
 import { resolvePluginLevel } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
@@ -146,7 +146,12 @@ export class PluginManagementService {
 			}
 
 			const pluginName = plugin.meta?.name ?? packageName
-			const config = buildConfig(pluginName, body.config ?? {}, plugin.config)
+			const configInspection = inspectConfig(pluginName, body.config ?? {}, plugin.config)
+			if (configInspection.error) {
+				this.logger.warn(
+					`Plugin ${pluginName} was installed with invalid configuration and requires setup before use: ${configInspection.error}`
+				)
+			}
 
 			await this.pluginInstanceService.upsert({
 				tenantId,
@@ -156,7 +161,11 @@ export class PluginManagementService {
 				version: plugin.meta?.version,
 				source,
 				level: resolvedLevel,
-				config
+				config: configInspection.config,
+				configurationStatus: configInspection.error
+					? PLUGIN_CONFIGURATION_STATUS.INVALID
+					: PLUGIN_CONFIGURATION_STATUS.VALID,
+				configurationError: configInspection.error ?? null
 			})
 
 			return {

@@ -30,9 +30,9 @@ Add `index.cjs` for local plugin loading when needed.
 
 ## Plugin configuration
 
-If your plugin needs installation-time or post-install configuration:
+If your plugin needs configuration:
 
-1. define `config.schema` for validation
+1. define `config.schema` for validation when configuration is saved; install-time checks can surface a warning state without blocking installation
 2. optionally define `config.formSchema` for the frontend form
 3. read config through the host `PluginConfigResolver`
 

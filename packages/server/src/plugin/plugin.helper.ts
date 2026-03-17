@@ -28,7 +28,7 @@ import {
 } from './types'
 import { discoverPlugins } from './plugin-discovery'
 import { loadPlugin } from './plugin-loader'
-import { buildConfig } from './config'
+import { inspectConfig } from './config'
 import { createPluginContext } from './lifecycle'
 import { resolvePluginLevel } from './plugin-instance.entity'
 
@@ -213,7 +213,7 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
 /**
  * Install and register plugins asynchronously for a given organization scope.
  * 1. Install plugins into the organization workspace.
- * 2. Load each plugin and build its configuration.
+ * 2. Load each plugin and merge its configuration defaults.
  * 3. Create a plugin context and register the plugin module.
  * 4. Tag the module and its providers with organization and plugin metadata.
  *
@@ -259,10 +259,10 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 			const pluginBaseDir = opts.organizationId
 				? getOrganizationPluginPath(organizationId, name, opts)
 				: baseDirRoot
-			// 2) Load each plugin and build its configuration.
+			// 2) Load each plugin and merge its configuration defaults.
 			const plugin = await loadPlugin(name, { basedir: pluginBaseDir })
 			const cfgRaw = opts.configs?.[plugin.meta.name] ?? {}
-			const cfg = buildConfig(plugin.meta.name, cfgRaw, plugin.config)
+			const { config: cfg } = inspectConfig(plugin.meta.name, cfgRaw, plugin.config)
 
 			// 3) Create a plugin context and register the plugin module.
 			// Construct a temporary ctx as a placeholder; the actual app instance will be completed after the app goes online
@@ -289,7 +289,9 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 				baseDir: pluginBaseDir
 			})
 		} catch (error) {
-			Logger.error(`Failed to load/register plugin ${name} for organization ${organizationId}: ${error.message}`)
+			const message = error instanceof Error ? error.message : String(error)
+			const stack = error instanceof Error ? error.stack : undefined
+			Logger.error(`Failed to load/register plugin ${name} for organization ${organizationId}: ${message}`, stack)
 		}
 	}
 

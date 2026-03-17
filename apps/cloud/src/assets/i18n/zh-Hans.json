@@ -589,6 +589,7 @@
       "LatestVersion": "最新版本",
       "ConfigurePlugin": "配置插件",
       "UpdatePlugin": "更新到最新版本",
+      "RequiresConfiguration": "该插件需要先完成配置后才能使用。",
       "NoConfigSchema": "该插件未提供配置架构。",
       "Close": "关闭",
       "InstallSource": "安装来源",
