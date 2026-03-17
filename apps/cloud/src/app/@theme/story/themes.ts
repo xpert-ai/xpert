@@ -9,6 +9,8 @@ import { distinctUntilChanged, filter, map } from 'rxjs/operators'
 import { AppService } from '../../app.service'
 import { ThemesEnum } from '@metad/ocap-angular/core'
 
+const LEGACY_DARK_GREEN_THEME = 'dark-green'
+
 export function registerStoryThemes(storyService: NxStoryService) {
   return storyService.echartsTheme$
     .pipe(filter(Boolean), distinctUntilChanged(isEqual), takeUntilDestroyed())
@@ -47,6 +49,9 @@ export function effectStoryTheme(elementRef: Signal<ElementRef<unknown>> | Eleme
     })
 
     let current = storyService.themeName()
+    if (String(current) === LEGACY_DARK_GREEN_THEME) {
+      current = ThemesEnum.dark
+    }
 
     if (current && current !== ThemesEnum.default && current !== ThemesEnum.system) {
       renderer.addClass(nativeElement, 'ngm-theme-' + current)

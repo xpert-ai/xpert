@@ -32,11 +32,6 @@ const THEMES = [
     key: 'dark',
     caption: 'Dark',
     icon: 'dark_mode'
-  },
-  {
-    key: 'dark-green',
-    caption: 'Dark Green',
-    icon: 'dark_mode'
   }
 ]
 
