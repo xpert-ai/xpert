@@ -120,6 +120,7 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		})
 
 		if (!items.length) {
+			await this.removePlugins(organizationId, [packageName])
 			return
 		}
 

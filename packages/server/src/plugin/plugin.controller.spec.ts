@@ -1,112 +1,274 @@
 import { BadRequestException } from '@nestjs/common'
-import { PLUGIN_LEVEL } from '@metad/contracts'
-import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, StrategyBus } from '@xpert-ai/plugin-sdk'
-import { PluginController } from './plugin.controller'
-import { PluginInstanceService } from './plugin-instance.service'
-import { collectProvidersWithMetadata, hasLifecycleMethod, registerPluginsAsync } from './plugin.helper'
-import { loadPlugin } from './plugin-loader'
+import { UpdatePluginCommand } from './commands'
+import { ResolveLatestPluginVersionQuery } from './queries'
+import type { PluginInstanceService } from './plugin-instance.service'
+import type { PluginManagementService } from './plugin-management.service'
 
-jest.mock('./plugin.helper', () => ({
-	registerPluginsAsync: jest.fn(),
-	collectProvidersWithMetadata: jest.fn(),
-	hasLifecycleMethod: jest.fn()
+jest.mock('@metad/contracts', () => ({
+	PLUGIN_LEVEL: {
+		SYSTEM: 'system',
+		ORGANIZATION: 'organization'
+	},
+	RolesEnum: {
+		SUPER_ADMIN: 'SUPER_ADMIN'
+	}
 }))
 
-jest.mock('./plugin-loader', () => ({
-	loadPlugin: jest.fn()
+jest.mock('@xpert-ai/plugin-sdk', () => ({
+	GLOBAL_ORGANIZATION_SCOPE: '__global__',
+	RequestContext: {
+		getOrganizationId: jest.fn(),
+		currentTenantId: jest.fn(),
+		hasRole: jest.fn()
+	}
 }))
 
-describe('PluginController install plugin level checks', () => {
-	const mockedRegisterPluginsAsync = registerPluginsAsync as jest.MockedFunction<typeof registerPluginsAsync>
-	const mockedCollectProvidersWithMetadata = collectProvidersWithMetadata as jest.MockedFunction<
-		typeof collectProvidersWithMetadata
-	>
-	const mockedHasLifecycleMethod = hasLifecycleMethod as jest.MockedFunction<typeof hasLifecycleMethod>
-	const mockedLoadPlugin = loadPlugin as jest.MockedFunction<typeof loadPlugin>
+jest.mock('./config', () => ({
+	buildConfig: jest.fn((_: string, config: Record<string, any>) => config ?? {})
+}))
 
+jest.mock('./plugin-config-schema', () => ({
+	resolvePluginConfigSchema: jest.fn(() => undefined)
+}))
+
+jest.mock('./plugin-instance.entity', () => ({
+	resolvePluginLevel: jest.fn(() => 'organization')
+}))
+
+jest.mock('./plugin-instance.service', () => ({
+	PluginInstanceService: class PluginInstanceService {}
+}))
+
+jest.mock('./plugin-management.service', () => ({
+	PluginManagementService: class PluginManagementService {}
+}))
+
+const { PLUGIN_LEVEL } = require('@metad/contracts')
+const { GLOBAL_ORGANIZATION_SCOPE, RequestContext } = require('@xpert-ai/plugin-sdk')
+const { PluginController } = require('./plugin.controller')
+
+describe('PluginController', () => {
 	const pluginInstanceService = {
-		uninstallByPackageName: jest.fn(),
-		upsert: jest.fn(),
-		removePlugins: jest.fn(),
-		uninstall: jest.fn()
+		findOneByPluginName: jest.fn(),
+		getConfig: jest.fn(),
+		upsert: jest.fn()
 	} as unknown as PluginInstanceService
 
-	const strategyBus = {
-		upsert: jest.fn()
-	} as unknown as StrategyBus
+	const pluginManagementService = {
+		findLoadedPlugin: jest.fn(),
+		installPlugin: jest.fn(),
+		uninstallByNamesWithGuard: jest.fn()
+	} as unknown as PluginManagementService
 
-	const lazyLoader = {
-		load: jest.fn()
+	const queryBus = {
+		execute: jest.fn()
 	}
 
-	const moduleRef = {}
+	const commandBus = {
+		execute: jest.fn()
+	}
 
 	const loadedPlugins: Array<any> = []
 
-	let controller: PluginController
+	let controller: any
 
 	beforeEach(() => {
 		jest.resetAllMocks()
+		loadedPlugins.length = 0
 		controller = new PluginController(
 			loadedPlugins,
 			pluginInstanceService,
-			strategyBus,
-			lazyLoader as any,
-			moduleRef as any
+			pluginManagementService,
+			queryBus as any,
+			commandBus as any
 		)
 
-		jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
-		jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
-		jest.spyOn(RequestContext, 'hasRole').mockReturnValue(false)
-
-		mockedRegisterPluginsAsync.mockResolvedValue({ organizationId: 'org-1', modules: [] })
-		mockedCollectProvidersWithMetadata.mockReturnValue([])
-		mockedHasLifecycleMethod.mockReturnValue(false)
+		RequestContext.getOrganizationId.mockReturnValue('org-1')
+		RequestContext.currentTenantId.mockReturnValue('tenant-1')
+		RequestContext.hasRole.mockReturnValue(false)
 	})
 
-	afterEach(() => {
-		jest.restoreAllMocks()
-	})
-
-	it('rejects install when plugin metadata level is system', async () => {
-		mockedLoadPlugin.mockResolvedValue({
-			meta: {
-				name: '@xpert-ai/plugin-system-demo',
-				level: PLUGIN_LEVEL.SYSTEM
-			},
-			register: jest.fn()
-		} as any)
-
-		await expect(controller.installPlugin({ pluginName: '@xpert-ai/plugin-system-demo' })).rejects.toBeInstanceOf(
-			BadRequestException
-		)
-
-		expect((pluginInstanceService as any).upsert).not.toHaveBeenCalled()
-	})
-
-	it('allows install when plugin metadata level is organization', async () => {
-		mockedLoadPlugin.mockResolvedValue({
-			meta: {
-				name: '@xpert-ai/plugin-org-demo',
-				level: PLUGIN_LEVEL.ORGANIZATION
-			},
-			register: jest.fn()
-		} as any)
-
-		const result = await controller.installPlugin({ pluginName: '@xpert-ai/plugin-org-demo' })
-
-		expect(result).toEqual({
+	it('delegates installation to plugin management service', async () => {
+		;(pluginManagementService as any).installPlugin.mockResolvedValue({
 			success: true,
 			name: '@xpert-ai/plugin-org-demo',
 			packageName: '@xpert-ai/plugin-org-demo',
 			organizationId: 'org-1'
 		})
-		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
+
+		await expect(controller.installPlugin({ pluginName: '@xpert-ai/plugin-org-demo' })).resolves.toEqual(
 			expect.objectContaining({
-				pluginName: '@xpert-ai/plugin-org-demo',
-				packageName: '@xpert-ai/plugin-org-demo',
-				level: PLUGIN_LEVEL.ORGANIZATION
+				success: true,
+				name: '@xpert-ai/plugin-org-demo'
 			})
 		)
+		expect((pluginManagementService as any).installPlugin).toHaveBeenCalledWith({
+			pluginName: '@xpert-ai/plugin-org-demo'
+		})
+	})
+
+	it('delegates updates to command bus', async () => {
+		;(commandBus as any).execute.mockResolvedValue({
+			success: true,
+			name: '@xpert-ai/plugin-env-demo',
+			updated: true,
+			currentVersion: '0.0.2'
+		})
+
+		await expect(controller.updatePlugin({ pluginName: '@xpert-ai/plugin-env-demo' })).resolves.toEqual(
+			expect.objectContaining({
+				updated: true,
+				currentVersion: '0.0.2'
+			})
+		)
+		expect((commandBus as any).execute).toHaveBeenCalledWith(new UpdatePluginCommand('@xpert-ai/plugin-env-demo'))
+	})
+
+	it('throws when update request does not include plugin name', async () => {
+		await expect(controller.updatePlugin({ pluginName: '' })).rejects.toBeInstanceOf(BadRequestException)
+		expect((commandBus as any).execute).not.toHaveBeenCalled()
+	})
+
+	it('includes update status only when the user can update and a newer version exists', async () => {
+		loadedPlugins.push({
+			organizationId: 'org-1',
+			name: '@xpert-ai/plugin-env-demo',
+			packageName: '@xpert-ai/plugin-env-demo',
+			source: 'env',
+			level: PLUGIN_LEVEL.ORGANIZATION,
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-env-demo',
+					version: '0.0.1',
+					level: PLUGIN_LEVEL.ORGANIZATION
+				}
+			},
+			ctx: {}
+		})
+		;(queryBus as any).execute.mockResolvedValue('0.0.2')
+
+		await expect(controller.getPlugins()).resolves.toEqual([
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-env-demo',
+				canUpdate: true,
+				hasUpdate: true,
+				currentVersion: '0.0.1',
+				latestVersion: '0.0.2'
+			})
+		])
+		expect((queryBus as any).execute).toHaveBeenCalledWith(
+			new ResolveLatestPluginVersionQuery('@xpert-ai/plugin-env-demo')
+		)
+	})
+
+	it('does not surface update availability for code plugins', async () => {
+		loadedPlugins.push({
+			organizationId: 'org-1',
+			name: '@xpert-ai/plugin-code-demo',
+			packageName: '@xpert-ai/plugin-code-demo',
+			source: 'code',
+			level: PLUGIN_LEVEL.ORGANIZATION,
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-code-demo',
+					version: '0.0.1',
+					level: PLUGIN_LEVEL.ORGANIZATION
+				}
+			},
+			ctx: {}
+		})
+
+		await expect(controller.getPlugins()).resolves.toEqual([
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-code-demo',
+				canUpdate: false,
+				hasUpdate: false,
+				latestVersion: undefined
+			})
+		])
+		expect((queryBus as any).execute).not.toHaveBeenCalled()
+	})
+
+	it('does not allow organization-scoped users to update global plugins', async () => {
+		loadedPlugins.push({
+			organizationId: GLOBAL_ORGANIZATION_SCOPE,
+			name: '@xpert-ai/plugin-global-demo',
+			packageName: '@xpert-ai/plugin-global-demo',
+			source: 'env',
+			level: PLUGIN_LEVEL.ORGANIZATION,
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-global-demo',
+					version: '0.0.1',
+					level: PLUGIN_LEVEL.ORGANIZATION
+				}
+			},
+			ctx: {}
+		})
+
+		await expect(controller.getPlugins()).resolves.toEqual([
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-global-demo',
+				isGlobal: true,
+				canUpdate: false,
+				hasUpdate: false,
+				latestVersion: undefined
+			})
+		])
+		expect((queryBus as any).execute).not.toHaveBeenCalled()
+	})
+
+	it('allows tenant-level super admins to update global plugins', async () => {
+		RequestContext.getOrganizationId.mockReturnValue(GLOBAL_ORGANIZATION_SCOPE)
+		RequestContext.hasRole.mockImplementation((role: string) => role === 'SUPER_ADMIN')
+		loadedPlugins.push({
+			organizationId: GLOBAL_ORGANIZATION_SCOPE,
+			name: '@xpert-ai/plugin-global-demo',
+			packageName: '@xpert-ai/plugin-global-demo',
+			source: 'env',
+			level: PLUGIN_LEVEL.ORGANIZATION,
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-global-demo',
+					version: '0.0.1',
+					level: PLUGIN_LEVEL.ORGANIZATION
+				}
+			},
+			ctx: {}
+		})
+		;(queryBus as any).execute.mockResolvedValue('0.0.2')
+
+		await expect(controller.getPlugins()).resolves.toEqual([
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-global-demo',
+				isGlobal: true,
+				canUpdate: true,
+				hasUpdate: true,
+				latestVersion: '0.0.2'
+			})
+		])
+		expect((queryBus as any).execute).toHaveBeenCalledWith(
+			new ResolveLatestPluginVersionQuery('@xpert-ai/plugin-global-demo')
+		)
+	})
+
+	it('keeps system plugins hidden from non-super-admin users', async () => {
+		loadedPlugins.push({
+			organizationId: GLOBAL_ORGANIZATION_SCOPE,
+			name: '@xpert-ai/plugin-system-demo',
+			packageName: '@xpert-ai/plugin-system-demo',
+			source: 'env',
+			level: PLUGIN_LEVEL.SYSTEM,
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-system-demo',
+					version: '0.0.1',
+					level: PLUGIN_LEVEL.SYSTEM
+				}
+			},
+			ctx: {}
+		})
+
+		await expect(controller.getPlugins()).resolves.toEqual([])
 	})
 })

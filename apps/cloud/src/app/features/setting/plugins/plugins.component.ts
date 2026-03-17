@@ -8,6 +8,7 @@ import { MatTooltipModule } from '@angular/material/tooltip'
 import {
   getErrorMessage,
   injectHelpWebsite,
+  injectToastr,
   routeAnimations,
   KnowledgebaseService,
   XpertAgentService,
@@ -52,6 +53,7 @@ export class PluginsComponent {
   readonly releaseHelpUrl = injectHelpWebsite('/docs/plugin/release-to-xpert-marketplace')
   readonly i18nService = inject(I18nService)
   readonly pluginAPI = injectPluginAPI()
+  readonly #toastr = injectToastr()
   readonly confirmDelete = injectConfirmDelete()
   readonly #agentService = inject(XpertAgentService)
   readonly #knowledgebaseService = inject(KnowledgebaseService)
@@ -86,6 +88,7 @@ export class PluginsComponent {
     }
   })
   readonly removing = signal('')
+  readonly updating = signal('')
   readonly npmPackageName = model('')
   readonly npmPackageVersion = model('')
   readonly npmInstalling = signal(false)
@@ -218,6 +221,31 @@ export class PluginsComponent {
       },
       error: () => {
         this.removing.set('')
+      }
+    })
+  }
+
+  update(plugin: TInstalledPlugin) {
+    this.updating.set(plugin.name)
+    this.pluginAPI.update(plugin.name).subscribe({
+      next: (result) => {
+        this.updating.set('')
+        this.#plugins.reload()
+        this.refreshStrategyCaches()
+        if (result.updated) {
+          this.#toastr.success(
+            `${plugin.meta?.displayName || plugin.name} updated to ${result.currentVersion ?? 'latest'}`
+          )
+        } else {
+          this.#toastr.info({
+            code: `${plugin.meta?.displayName || plugin.name} is already on the latest version`,
+            default: `${plugin.meta?.displayName || plugin.name} is already on the latest version`
+          })
+        }
+      },
+      error: (err) => {
+        this.updating.set('')
+        this.#toastr.error(getErrorMessage(err))
       }
     })
   }

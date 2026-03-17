@@ -203,7 +203,7 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
 	/** Override the plugin workspace root for the organization. Defaults to data/plugins/<orgId> when organizationId is set. */
 	baseDir?: string
 	/** Explicit list of plugin package names (takes precedence) */
-	plugins?: { name: string; version?: string; source?: string; level?: PluginLevel }[]
+	plugins?: { name: string; version?: string; source?: LoadedPluginRecord['source']; level?: PluginLevel }[]
 	/** Auto-discovery options (effective when plugins are not explicitly provided) */
 	discovery?: { prefix?: string; manifestPath?: string }
 	/** Configuration map injected by the main app (indexed by plugin name) */
@@ -230,12 +230,17 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 		discoveryOptions.manifestPath = getOrganizationManifestPath(organizationId, opts)
 	}
 
-	const pluginNames: Array<{ name: string; version?: string; source?: string; level?: PluginLevel }> = opts.plugins
-		?.length
+	const pluginNames: Array<{
+		name: string
+		version?: string
+		source?: LoadedPluginRecord['source']
+		level?: PluginLevel
+	}> = opts.plugins?.length
 		? opts.plugins
 		: opts.discovery || opts.organizationId
 			? discoverPlugins(baseDirRoot, discoveryOptions).map((plugin) => ({
 					...plugin,
+					source: plugin.source as LoadedPluginRecord['source'],
 					level: undefined
 				}))
 			: []
@@ -249,7 +254,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 
 	const modules: DynamicModule[] = []
 
-	for (const { name, level } of pluginNames) {
+	for (const { name, level, source } of pluginNames) {
 		try {
 			const pluginBaseDir = opts.organizationId
 				? getOrganizationPluginPath(organizationId, name, opts)
@@ -277,6 +282,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 				organizationId,
 				name: plugin.meta.name,
 				packageName: name,
+				source,
 				level: resolvePluginLevel(plugin.meta?.level ?? level),
 				instance: plugin,
 				ctx,
