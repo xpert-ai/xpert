@@ -117,6 +117,9 @@ export class NgmTableComponent {
   })
   readonly tableSize = computed(() => displayDensityToTableSize(this.displayDensity()))
   readonly processedRows = computed(() => {
+    if(!Array.isArray(this.data())){
+      return [];
+    }
     let rows = [...(this.data() as any[])]
     rows = filterTableRowsByColumn(rows, this.searchingColumn(), this.searchValue())
     rows = sortTableRows(rows, this.sortState())
