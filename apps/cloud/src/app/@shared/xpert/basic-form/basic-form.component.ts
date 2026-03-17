@@ -123,6 +123,6 @@ export class XpertBasicFormComponent {
 
       // If validation passes, trigger name availability check
       this.name$.next(name)
-    }, { allowSignalWrites: true })
+    })
   }
 }

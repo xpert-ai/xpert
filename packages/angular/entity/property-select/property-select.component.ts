@@ -775,8 +775,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
           )
         }
       }
-    },
-    { allowSignalWrites: true }
+    }
   )
 
   /**
@@ -845,8 +844,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
         if (!isNil(this.disabled())) {
           this._disabled.set(this.disabled())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

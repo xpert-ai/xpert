@@ -246,8 +246,7 @@ export class ModelEntityPreviewComponent {
             }))
           }
         })
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

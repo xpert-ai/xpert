@@ -79,8 +79,7 @@ export class XpertHomeService {
           })
         }
       }
-    },
-    { allowSignalWrites: true }
+    }
   )
 
   /**

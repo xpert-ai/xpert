@@ -86,7 +86,7 @@ export class ChatMessageExecutionPanelComponent {
       } else {
         this.#stopPolling()
       }
-    }, { allowSignalWrites: true })
+    })
 
     // Stop polling when component is destroyed
     this.#destroyRef.onDestroy(() => {

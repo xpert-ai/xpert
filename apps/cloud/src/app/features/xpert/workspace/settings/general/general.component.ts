@@ -44,8 +44,7 @@ export class XpertWorkspaceSettingsGeneralComponent {
         if (this.workspace()) {
           this.name.set(this.workspace().name)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

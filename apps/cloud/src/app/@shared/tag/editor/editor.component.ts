@@ -84,8 +84,7 @@ export class TagEditorComponent implements ControlValueAccessor {
         this.tags.update((values) =>
           (values ?? []).map((value) => allTags.find((item) => item.id === value.id) ?? value)
         )
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

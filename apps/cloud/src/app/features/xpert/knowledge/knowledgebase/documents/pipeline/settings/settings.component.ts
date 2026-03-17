@@ -81,8 +81,7 @@ export class KnowledgeDocumentPipelineSettingsComponent {
         if (!this.previewDocName() && this.documents()?.length) {
           this.previewDocName.set(this.documents()[0].name)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

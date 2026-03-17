@@ -46,8 +46,7 @@ export class KnowledgeChunkComponent {
     effect(
       () => {
         this._preview.set(this.preview())
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

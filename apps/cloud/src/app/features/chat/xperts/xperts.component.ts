@@ -145,8 +145,7 @@ export class ChatXpertsComponent {
           this.overlayRef()?.detach()
           this.element.set(null)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

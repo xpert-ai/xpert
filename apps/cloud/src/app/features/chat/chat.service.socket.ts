@@ -298,8 +298,7 @@ export class ChatWebsocketService {
         } else {
           this.messages.set([])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -307,8 +306,7 @@ export class ChatWebsocketService {
         if (this.paramId()) {
           this.conversationId.set(this.paramId())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     this.#destroyRef.onDestroy(() => {

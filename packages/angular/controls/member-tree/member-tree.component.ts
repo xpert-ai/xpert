@@ -198,7 +198,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
   | Effects
   |--------------------------------------------------------------------------
   */
-  readonly loadedTreeNodes = effect(() => this.initial.set(true), { allowSignalWrites: true })
+  readonly loadedTreeNodes = effect(() => this.initial.set(true))
   readonly autoActiveFirstEffect = effect(
     () => {
       // Auto active first option when no selection
@@ -220,8 +220,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
         }
         this.onChange(slicer)
       }
-    },
-    { allowSignalWrites: true }
+    }
   )
 
   // Subscribers
@@ -294,8 +293,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
             this.memberKeys.set(options.defaultMembers.map((member) => member.key))
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -316,8 +314,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
               this.treeNodePaddingIndent = 20
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -326,8 +323,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
         if (dataSettings) {
           this.smartFilterService.dataSettings = dataSettings
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -336,8 +332,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
         if (dimension) {
           this.smartFilterService.options = { ...(this.options ?? {}), dimension }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

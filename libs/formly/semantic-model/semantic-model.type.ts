@@ -62,7 +62,7 @@ export class PACFormlySemanticModelComponent extends FieldType implements OnInit
     } else {
       this.notFound.set(null)
     }
-  }, { allowSignalWrites: true })
+  })
 
   ngOnInit() {
     ;(this.props.options as Observable<any[]>)?.subscribe((options) => {

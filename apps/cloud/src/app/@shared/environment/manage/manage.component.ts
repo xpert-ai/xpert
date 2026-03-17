@@ -121,8 +121,7 @@ export class XpertEnvironmentManageComponent {
         if (!this.environment() && this.environments()?.length) {
           this.environmentId.set(this.environments().find((_) => _.isDefault)?.id)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

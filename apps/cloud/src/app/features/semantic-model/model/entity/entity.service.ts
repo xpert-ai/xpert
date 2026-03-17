@@ -310,8 +310,7 @@ export class ModelEntityService {
     effect(
       () => {
         this.#modelService.updateDirty(this.cube().__id__, this.dirtyCheckResult.dirty())
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

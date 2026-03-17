@@ -66,8 +66,7 @@ export class XpertAgentInterruptComponent {
             console.error('Error loading component:', error)
           })
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

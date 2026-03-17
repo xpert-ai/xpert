@@ -90,7 +90,7 @@ export class ChatFileListComponent {
       if (this.files()) {
         this.fileList.set(this.files())
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   preview(file: TFile) {

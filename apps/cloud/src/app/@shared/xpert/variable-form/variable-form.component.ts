@@ -37,6 +37,6 @@ export class XpertVariableFormComponent {
       if (this.variable()) {
         this.form.patchValue(this.variable() as any)
       }
-    }, { allowSignalWrites: true })
+    })
   }
 }

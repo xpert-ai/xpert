@@ -476,8 +476,7 @@ export class StoryExplorerComponent {
             })
           )
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     if (this.#data?.data) {

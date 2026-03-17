@@ -102,8 +102,7 @@ export class ModelHierarchyService {
     effect(
       () => {
         this.dimensionService.updateDirty(this.store.value.__id__, this.dirtyCheckResult.dirty())
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

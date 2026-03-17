@@ -458,16 +458,14 @@ export class NgmCopilotChatComponent {
     effect(
       () => {
         this.answering() ? this.promptControl.disable() : this.promptControl.enable()
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     // effect(
     //   () => {
     //     // this.selectedModel.set([this.#defaultModel()])
     //     // this.model = this.#defaultModel()
-    //   },
-    //   { allowSignalWrites: true }
+    //   }
     // )
 
     effect(
@@ -481,8 +479,7 @@ export class NgmCopilotChatComponent {
         } else {
           this.context.set(null)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     // effect(() => {

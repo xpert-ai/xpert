@@ -107,8 +107,7 @@ export class ChatTasksComponent {
         if (this.paramId()) {
           this.taskId.set(this.paramId())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

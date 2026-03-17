@@ -291,8 +291,7 @@ export class XpertStudioApiService {
           this.environmentId.set(
             this.environments().find((_) => _.isDefault)?.id ?? this.environments()[0]?.id)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
   

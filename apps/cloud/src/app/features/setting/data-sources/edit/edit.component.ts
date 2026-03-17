@@ -128,8 +128,7 @@ export class PACDataSourceEditComponent {
           this.optionsFormGroup.patchValue(dataSource.options)
           assign(this.model, dataSource.options)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

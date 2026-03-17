@@ -179,8 +179,7 @@ export class ChatbiService {
           //   this.setEntity(model.cube)
           // }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     // Set default cube of model
@@ -189,8 +188,7 @@ export class ChatbiService {
         if (!this.entity() && this.model()) {
           this.setEntity(this.model().cube || this.model().schema?.cubes?.[0]?.name)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -208,8 +206,7 @@ export class ChatbiService {
             indicators: _indicators
           } as Schema)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

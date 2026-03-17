@@ -77,8 +77,7 @@ export class XpertWorkflowPanelDBInsertComponent extends XpertWorkflowBaseCompon
           }, {} as InsertColumns)
           this.columns.set(Object.keys(filtered).length ? filtered : null)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

@@ -200,8 +200,7 @@ export class MCPServerFormComponent {
           this.command = 'python3'
           this.args.set(['main.py'])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -209,8 +208,7 @@ export class MCPServerFormComponent {
         if (this.views()[0] === 'code' && !this.fileIndex()?.length) {
           this.fileIndex.set([0])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

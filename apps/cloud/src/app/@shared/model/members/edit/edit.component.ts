@@ -156,7 +156,7 @@ export class ModelMemberEditComponent {
   })
 
   constructor() {
-    effect(() => {}, { allowSignalWrites: true })
+    effect(() => {})
   }
 
   toggleTest() {

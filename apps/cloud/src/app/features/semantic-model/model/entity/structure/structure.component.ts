@@ -160,8 +160,7 @@ export class ModelEntityStructureComponent extends TranslationBaseComponent {
               )
           )
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

@@ -166,8 +166,7 @@ export class StoryCalculationsComponent {
         if (!this.activeLink() && entities?.length > 0) {
           this.activeEntity(entities[0].value.dataSource, entities[0].key)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

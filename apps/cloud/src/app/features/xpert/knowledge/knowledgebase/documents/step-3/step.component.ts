@@ -108,8 +108,7 @@ export class KnowledgeDocumentCreateStep3Component {
             this.#task.reload()
           }, 2000)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

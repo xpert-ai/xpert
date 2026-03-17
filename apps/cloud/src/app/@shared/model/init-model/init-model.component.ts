@@ -70,7 +70,7 @@ export class InitModelComponent extends AbstractInterruptComponent<{name?: strin
       if (this.name()) {
         this.types.set(['New'])
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   onNewModel() {

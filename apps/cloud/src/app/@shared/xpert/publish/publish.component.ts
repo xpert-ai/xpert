@@ -83,8 +83,7 @@ export class XpertPublishComponent {
         if (this.xpert()) {
           this.integrations.set(this.xpert().integrations)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -92,8 +91,7 @@ export class XpertPublishComponent {
         if (this.selectedIntegrations()) {
           this.integration.set(this.selectedIntegrations()[0])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

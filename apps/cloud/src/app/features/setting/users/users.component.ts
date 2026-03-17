@@ -57,8 +57,7 @@ export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseC
             this.openedLinks.set([...links, this.currentLink()])
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

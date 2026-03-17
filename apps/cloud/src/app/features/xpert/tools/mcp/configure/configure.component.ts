@@ -157,8 +157,7 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
     effect(
       () => {
         this.loading() ? this.formGroup.disable() : this.formGroup.enable()
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -180,8 +179,7 @@ export class XpertStudioConfigureMCPComponent extends XpertConfigureToolComponen
           } as any)
           this.#cdr.detectChanges()
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 }

@@ -217,7 +217,7 @@ export class XpertMCPManageComponent {
   constructor() {
     // effect(() => {
     //   console.log(this.toolsDirty(), this.dirty())
-    // }, { allowSignalWrites: true })
+    // })
   }
 
   selectTool(tool: IXpertTool) {

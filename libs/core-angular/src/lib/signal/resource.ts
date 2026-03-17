@@ -39,8 +39,7 @@ export function myResource<TReq, TRes>(options: ResourceOptions<TReq, TRes>) {
           errorSig.set(err)
           statusSig.set('error')
         })
-    },
-    { allowSignalWrites: true }
+    }
   )
 
   return {
@@ -99,8 +98,7 @@ export function myRxResource<TReq, TRes>(options: RxResourceOptions<TReq, TRes>)
           statusSig.set('error')
         }
       })
-    },
-    { allowSignalWrites: true }
+    }
   )
 
   // 注销组件时，清理订阅

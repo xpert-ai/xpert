@@ -89,8 +89,7 @@ export class CopilotInstructionEditorComponent {
       () => {
         const height = this.elementRef.nativeElement.offsetHeight
         this.startHeight = height
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

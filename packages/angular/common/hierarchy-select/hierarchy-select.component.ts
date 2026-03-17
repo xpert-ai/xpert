@@ -78,8 +78,7 @@ export class NgmHierarchySelectComponent implements ControlValueAccessor {
       } else {
         this.error.set(null)
       }
-    },
-    { allowSignalWrites: true }
+    }
   )
 
   writeValue(obj: any): void {

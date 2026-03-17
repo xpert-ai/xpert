@@ -277,8 +277,7 @@ export class ModelCreateEntityComponent {
         }
 
         this.columns.set([...columns.map((item) => ({ ...item }))])
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

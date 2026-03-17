@@ -166,8 +166,7 @@ export class KnowledgeDocumentsComponent {
         if (this.knowledgebase()?.type === KnowledgebaseTypeEnum.External) {
           this.#router.navigate(['../test'], { relativeTo: this.#route })
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     afterNextRender(() => {

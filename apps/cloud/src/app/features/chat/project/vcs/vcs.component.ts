@@ -66,7 +66,7 @@ export class ChatProjectVcsComponent {
       if (this.installationId()) {
         this.checkInstallation()
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   handleInstallationChange(installationId: string) {

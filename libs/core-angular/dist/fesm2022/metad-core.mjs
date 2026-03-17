@@ -5671,13 +5671,13 @@ function linkedModel(options) {
     effect(() => {
         currentValue = internalState();
         derived.set(currentValue);
-    }, { allowSignalWrites: true });
+    });
     effect(() => {
         if (derived() !== currentValue) {
             update(derived(), currentValue);
             currentValue = derived();
         }
-    }, { allowSignalWrites: true });
+    });
     return derived;
 }
 function attrModel(model, name) {
@@ -5739,7 +5739,7 @@ function myResource(options) {
             errorSig.set(err);
             statusSig.set('error');
         });
-    }, { allowSignalWrites: true });
+    });
     return {
         value: computed(() => valueSig()),
         error: computed(() => errorSig()),
@@ -5782,7 +5782,7 @@ function myRxResource(options) {
                 statusSig.set('error');
             }
         });
-    }, { allowSignalWrites: true });
+    });
     // 注销组件时，清理订阅
     destroyRef.onDestroy(() => {
         if (currentSub) {

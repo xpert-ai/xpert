@@ -91,8 +91,7 @@ export class FeatureToggleComponent {
         this.featureToggles.set(featureToggles)
 
         this.loading.set(false)
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

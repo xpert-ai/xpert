@@ -105,8 +105,7 @@ export class IntegrationFormComponent {
             this.formGroup.markAsDirty()
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

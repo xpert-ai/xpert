@@ -75,7 +75,7 @@ export class EmojiAvatarComponent {
       if (this.cva.value$()) {
         this.avatar.set(this.cva.value$())
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   @HostListener('click')

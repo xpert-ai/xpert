@@ -79,8 +79,7 @@ export class XpertExploreComponent {
         if (this.querySearch()) {
           this.searchModel.set(this.querySearch())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

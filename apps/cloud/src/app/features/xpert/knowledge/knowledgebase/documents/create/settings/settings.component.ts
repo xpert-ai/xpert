@@ -184,7 +184,7 @@ export class KnowledgeDocumentCreateSettingsComponent {
   // constructor() {
   //   effect(() => {
   //     this.preview()
-  //   }, { allowSignalWrites: true })
+  //   })
   // }
 
   onPreview() {

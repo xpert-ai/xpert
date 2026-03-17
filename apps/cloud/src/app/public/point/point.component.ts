@@ -101,7 +101,7 @@ export class PublicPointComponent {
       if (this.story()) {
         this.storyService.setStory(this.story())
       }
-    }, {allowSignalWrites: true})
+    })
 
     effect(() => {
       const models = this.models()

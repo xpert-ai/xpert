@@ -145,7 +145,6 @@ export class NgmMemberTreeSelectComponent implements ControlValueAccessor {
         this.onChange?.(this.slicer())
       }
     })
-    // 在 effect 里设置 dataSettings 会触发后续的 allowSignalWrites 问题
     // effect(() => {
     //   if (this.dataSettings) {
     //     this.smartFilterService.dataSettings = this.dataSettings
@@ -160,7 +159,7 @@ export class NgmMemberTreeSelectComponent implements ControlValueAccessor {
           members: this.options.defaultMembers
         })
       }
-    }, {allowSignalWrites: true})
+    })
 
     effect(() => {
       if (this.dimension) {

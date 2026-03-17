@@ -103,7 +103,6 @@ export class XpertToolBuiltinAuthorizeComponent {
     //       this.save()
     //     }
     //   },
-    //   { allowSignalWrites: true }
     // )
 
     effect(
@@ -111,8 +110,7 @@ export class XpertToolBuiltinAuthorizeComponent {
         if (this.toolsetCredentials()) {
           this.#credentials.set(this.toolsetCredentials())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -121,8 +119,7 @@ export class XpertToolBuiltinAuthorizeComponent {
           this.toolsetName.set(this.toolset().name)
           this.toolsetDescription.set(this.toolset().description)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

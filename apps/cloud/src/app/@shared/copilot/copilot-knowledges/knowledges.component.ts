@@ -169,8 +169,7 @@ export class CopilotKnowledgesComponent {
         if (this.items()) {
           this.loading.set(false)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

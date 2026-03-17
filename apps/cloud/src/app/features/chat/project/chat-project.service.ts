@@ -76,8 +76,7 @@ export class ChatProjectService extends ChatService {
         } else {
           this.conversationId.set(null)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

@@ -80,8 +80,7 @@ export class FeatureCategoryComponent {
           }))
 
         this.cva.writeValue(features)
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 }

@@ -325,8 +325,7 @@ export class XpIndicatorRegisterFormComponent implements ControlValueAccessor {
           )
           this.dataSourceName$.next(dataSource.key)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

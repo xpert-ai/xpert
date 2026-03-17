@@ -46,8 +46,7 @@ export class ChatCanvasComponent {
         ) {
           this.canvas.update((state) => ({ opened: true, type: state.type }))
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 }

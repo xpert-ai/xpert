@@ -323,8 +323,7 @@ ${calcEntityTypePrompt(entityType)}
           //   this.#queryService.setConversations(this.#copilotEngine.conversations())
           // }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     // Sync statement in local and store
@@ -333,8 +332,7 @@ ${calcEntityTypePrompt(entityType)}
         if (nonNullable(this.statementSignal())) {
           this._statement.set(this.statementSignal())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -342,8 +340,7 @@ ${calcEntityTypePrompt(entityType)}
         if (nonNullable(this._statement())) {
           this.queryLabService.setStatement({ key: this.queryKey(), statement: this._statement() })
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

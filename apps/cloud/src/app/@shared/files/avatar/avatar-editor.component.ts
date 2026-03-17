@@ -40,7 +40,7 @@ export class AvatarEditorComponent implements ControlValueAccessor  {
   constructor() {
     effect(() => {
       this.value.set(this.imageUrl())
-    }, { allowSignalWrites: true })
+    })
   }
 
   writeValue(obj: any): void {

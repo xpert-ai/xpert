@@ -160,8 +160,7 @@ export class XpertToolConfigureBuiltinComponent {
             })
           )
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

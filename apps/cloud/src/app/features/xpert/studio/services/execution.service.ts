@@ -130,8 +130,7 @@ export class XpertExecutionService {
             )
           )
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

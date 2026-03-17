@@ -67,7 +67,7 @@ export class CopilotExampleComponent extends TranslationBaseComponent {
       }
       this.formGroup.markAsPristine()
       this.loading.set(false)
-    }, { allowSignalWrites: true })
+    })
   }
 
   close(refresh = false) {

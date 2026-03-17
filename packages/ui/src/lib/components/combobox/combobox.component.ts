@@ -549,7 +549,6 @@ export class ZardComboboxComponent implements ControlValueAccessor {
           this.internalSearchTerm.set(searchTerm);
         }
       },
-      { allowSignalWrites: true },
     );
 
     effect(
@@ -569,7 +568,6 @@ export class ZardComboboxComponent implements ControlValueAccessor {
           }),
         );
       },
-      { allowSignalWrites: true },
     );
 
     effect(
@@ -588,7 +586,6 @@ export class ZardComboboxComponent implements ControlValueAccessor {
 
         this.internalSearchTerm.set(this.displayValue());
       },
-      { allowSignalWrites: true },
     );
 
     effect(
@@ -612,7 +609,6 @@ export class ZardComboboxComponent implements ControlValueAccessor {
           }),
         );
       },
-      { allowSignalWrites: true },
     );
 
     effect(
@@ -629,7 +625,6 @@ export class ZardComboboxComponent implements ControlValueAccessor {
           this.activeIndex.set(this.getInitialActiveIndex());
         }
       },
-      { allowSignalWrites: true },
     );
   }
 

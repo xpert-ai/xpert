@@ -58,7 +58,7 @@ export class NgmPropertyComponent {
             role: role ?? property.role
           }).icon
         : null)
-    }, { allowSignalWrites: true })
+    })
   }
 }
 

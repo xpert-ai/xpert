@@ -103,7 +103,6 @@ export class ModelMembersCubeComponent {
     //       this.selectedDims.set(this.entity()?.options?.vector?.hierarchies ?? [])
     //     }
     //   },
-    //   { allowSignalWrites: true }
     // )
 
     effect(
@@ -111,8 +110,7 @@ export class ModelMembersCubeComponent {
         if (this.entity() && !this.selectedDims()) {
           this.selectedDims.set(this.entity()?.options?.vector?.dimensions ?? [])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

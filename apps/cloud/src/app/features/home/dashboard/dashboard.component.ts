@@ -249,8 +249,7 @@ export class DashboardComponent extends TranslationBaseComponent implements OnIn
           quickGuides.sample.complete = createdDemo
           return quickGuides
         })
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

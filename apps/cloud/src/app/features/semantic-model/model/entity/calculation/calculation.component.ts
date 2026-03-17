@@ -212,8 +212,7 @@ export class ModelEntityCalculationComponent {
         if (this.calculatedMember()) {
           this.entityService.setSelectedProperty(this.typeKey())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

@@ -148,8 +148,7 @@ export class ChatbiHomeComponent {
         if (conversationId) {
           this.chatbiService.conversationId.set(conversationId)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -162,8 +161,7 @@ export class ChatbiHomeComponent {
             }
           })
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

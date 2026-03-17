@@ -174,8 +174,7 @@ export class XpertMemoryStoreComponent {
         if (this.#memories.value()) {
           this.data.set(this.#memories.value())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

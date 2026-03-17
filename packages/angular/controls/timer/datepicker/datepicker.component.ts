@@ -236,20 +236,20 @@ export class NgmMemberDatepickerComponent implements OnInit, ControlValueAccesso
           this.granularity.set(mapSemanticTimeGranularity(level.semantics?.semantic))
         }
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       if (this.defaultValue()) {
         const value = this.coreService.execDateVariables(this.defaultValue())
         this.date = Array.isArray(value) ? value : [value]
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       if (this.dataSettings()) {
         this.dataService.dataSettings = this.dataSettings()
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       if (this.dimension()) {
@@ -258,7 +258,7 @@ export class NgmMemberDatepickerComponent implements OnInit, ControlValueAccesso
           dimension: this.dimension()
         }
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   ngOnInit() {

@@ -334,8 +334,7 @@ export class XpIndicatorFormComponent {
           // })
           this.dataSource().upsertIndicator(convertIndicatorResult(draft ? { ...indicator, ...draft } : indicator))
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -343,8 +342,7 @@ export class XpIndicatorFormComponent {
         if (this.draft()) {
           this.draftForm.set({ ...this.draft() })
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

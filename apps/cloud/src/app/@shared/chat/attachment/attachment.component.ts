@@ -69,7 +69,7 @@ export class ChatAttachmentComponent {
   constructor() {
     effect(() => {
       this.onProgress.emit(this.progress())
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       const file = this.file();
@@ -88,7 +88,7 @@ export class ChatAttachmentComponent {
           this.upload(file)
         }
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       const url = this.url()
@@ -105,7 +105,7 @@ export class ChatAttachmentComponent {
           this.createUrlFile(url)
         }
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       const file = this.storageFile()
@@ -113,7 +113,7 @@ export class ChatAttachmentComponent {
         // Check if file is an image
         this.isImage.set(file.mimetype.startsWith('image/'));
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   readonly upload = effectAction((file$: Observable<File>) => {

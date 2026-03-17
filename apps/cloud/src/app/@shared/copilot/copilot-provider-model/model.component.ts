@@ -127,8 +127,7 @@ export class CopilotProviderModelComponent {
         } else if (this.modelTypes().length === 0 && this.supported_model_types()) {
           this.modelTypes.set([this.supported_model_types()[0]])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

@@ -197,8 +197,7 @@ export class ModelCubeFactComponent {
               )
           )
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

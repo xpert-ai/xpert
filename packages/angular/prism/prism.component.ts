@@ -51,7 +51,6 @@ export class NgmPrismHighlightComponent {
           this.language()
         )
       )
-    },
-    { allowSignalWrites: true }
+    }
   )
 }

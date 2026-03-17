@@ -138,8 +138,7 @@ export class XpertBasicComponent implements IsDirty {
           this.form.patchValue(this.team())
           this.form.markAsPristine()
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

@@ -95,8 +95,7 @@ export class HierarchyTableComponent<T> {
             this.expandNode(root)
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -106,8 +105,7 @@ export class HierarchyTableComponent<T> {
           ...this.columns().map((column) => column.name),
           'childrenCardinality'
         ])
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -121,8 +119,7 @@ export class HierarchyTableComponent<T> {
         if (!pageSizeOptions.includes(this.pageSize())) {
           this.pageSize.set(pageSizeOptions[0])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -131,8 +128,7 @@ export class HierarchyTableComponent<T> {
         if (this.pageIndex() > maxPageIndex) {
           this.pageIndex.set(maxPageIndex)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

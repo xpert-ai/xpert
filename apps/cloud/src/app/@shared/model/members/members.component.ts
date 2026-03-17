@@ -127,8 +127,7 @@ export class ModelMembersComponent extends ModelDraftBaseComponent {
         if (this.#modelId()) {
           this.modelId.set(this.#modelId())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -136,8 +135,7 @@ export class ModelMembersComponent extends ModelDraftBaseComponent {
         if (this.#cubeName()) {
           this.cubeName.set(this.#cubeName())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

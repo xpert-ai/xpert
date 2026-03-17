@@ -334,8 +334,7 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
           )
           this.dataSourceName$.next(dataSource.key)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

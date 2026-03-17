@@ -64,8 +64,7 @@ export class PACEditUserComponent implements OnDestroy {
     effect(
       () => {
         this.usersComponent.setCurrentLink(this.user())
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

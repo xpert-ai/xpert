@@ -89,7 +89,7 @@ export class ModelDraftBaseComponent {
       if (this.semanticModel()) {
         this.studioService.initModel(this.semanticModel())
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   save() {

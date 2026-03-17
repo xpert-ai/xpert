@@ -152,14 +152,14 @@ export class XpAgentInterruptHitlComponent extends AbstractInterruptComponent<HI
       this.editedActions.set(edits)
       this.parseErrors.set(actions.map(() => null))
       this.value.set({ decisions: defaults })
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       const decisions = this.decisions()
       if (decisions?.length) {
         this.value.set({ decisions })
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   decisionFor(index: number) {

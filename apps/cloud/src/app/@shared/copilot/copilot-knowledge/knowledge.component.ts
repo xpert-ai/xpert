@@ -100,8 +100,7 @@ export class CopilotKnowledgeComponent {
         }
         this.formGroup.markAsPristine()
         this.loading.set(false)
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

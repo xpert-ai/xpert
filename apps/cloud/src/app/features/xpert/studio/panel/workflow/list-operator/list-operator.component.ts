@@ -84,8 +84,7 @@ export class XpertWorkflowListOperatorComponent extends XpertWorkflowBaseCompone
         if (this.inputVariableItemType()) {
           this.itemVarType.set(this.inputVariableItemType())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

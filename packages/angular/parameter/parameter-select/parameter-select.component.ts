@@ -90,8 +90,7 @@ export class NgmParameterSelectComponent implements ControlValueAccessor {
         if (nonNullable(this.model())) {
           this.onChange?.(this.model())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

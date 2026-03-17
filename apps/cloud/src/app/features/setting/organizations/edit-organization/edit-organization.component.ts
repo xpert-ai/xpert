@@ -65,7 +65,7 @@ export class EditOrganizationComponent {
       if (this.organization()) {
         this.setSelectedOrg(this.organization())
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   setSelectedOrg(selectedOrg: IOrganization) {

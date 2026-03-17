@@ -113,8 +113,7 @@ export class NgmIndicatorComponent {
           indicatorId: this.indicatorCode(),
           lookBack: this.lookBack()
         })
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

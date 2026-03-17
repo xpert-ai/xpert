@@ -35,7 +35,7 @@ export class BusinessAreaInfoFormComponent extends TranslationBaseComponent {
     effect(() => {
       this.form.patchValue(this.businessAreaComponent.businessArea())
       this.form.markAsPristine()
-    }, {allowSignalWrites: true})
+    })
   }
 
   async save() {

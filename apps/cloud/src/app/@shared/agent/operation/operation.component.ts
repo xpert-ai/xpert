@@ -68,8 +68,7 @@ export class XpertAgentOperationComponent {
             this.agentKey.set(this.operation().tasks[0].agent?.key || null)
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

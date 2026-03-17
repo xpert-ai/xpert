@@ -183,8 +183,7 @@ export class NgmTableComponent {
         if (!pageSizeOptions.includes(this.pageSize())) {
           this.pageSize.set(pageSizeOptions[0])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -195,8 +194,7 @@ export class NgmTableComponent {
         if (this.pageIndex() > maxPageIndex) {
           this.pageIndex.set(maxPageIndex)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
