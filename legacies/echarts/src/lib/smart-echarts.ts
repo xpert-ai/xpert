@@ -32,7 +32,6 @@ import {
   Property,
 } from '@metad/ocap-core'
 import { ECharts, format, time, use, registerMap, graphic, getMap } from 'echarts/core'
-import * as echartsGL from 'echarts-gl/dist/echarts-gl.js'
 
 import {
   BehaviorSubject,
@@ -72,8 +71,18 @@ import { waterfallChart } from './waterfall'
 import { fromFetch } from 'rxjs/fetch'
 import { t } from 'i18next'
 
-// Keep echarts-gl UMD bundle in the build for its runtime registration side effects.
-void echartsGL
+type EChartsGLRuntime = typeof globalThis & {
+  __xpertEchartsGlImport__?: Promise<void>
+}
+
+function ensureEChartsGLLoaded(): Promise<void> {
+  const runtime = globalThis as EChartsGLRuntime
+
+  // Avoid re-running echarts-gl's runtime registration when the same code is bundled into lazy chunks.
+  runtime.__xpertEchartsGlImport__ ??= import('echarts-gl/dist/echarts-gl.js').then(() => undefined)
+
+  return runtime.__xpertEchartsGlImport__
+}
 
 export class SmartEChartEngine extends SmartChartEngine<SmartChartEngineState> {
   get echarts() {
@@ -119,6 +128,10 @@ export class SmartEChartEngine extends SmartChartEngine<SmartChartEngineState> {
         settings.locale = settings.locale ?? 'en'
 
         const type = chartAnnotation.chartType?.type
+        if (type === 'Custom' || type === 'Bar3D' || type === 'Scatter3D' || type === 'Line3D') {
+          await ensureEChartsGLLoaded()
+        }
+
         let context = null
         if (type === 'Custom') {
           // Custom Logic
