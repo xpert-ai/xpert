@@ -6,7 +6,7 @@
     opacity: 0.1;
     position: relative;
 
-    .mat-mdc-progress-spinner {
+    .z-loader {
       position: absolute;
       right: 0;
       margin: 5px;
@@ -32,12 +32,12 @@
 }
 
 .mdc-data-table__header-cell,
-.mat-mdc-cell {
+.cdk-cell {
   white-space: nowrap;
 }
 
 .mdc-data-table__header-cell.ngm-measure,
-.mat-mdc-cell.ngm-measure {
+.cdk-cell.ngm-measure {
   text-align: right;
 }
 

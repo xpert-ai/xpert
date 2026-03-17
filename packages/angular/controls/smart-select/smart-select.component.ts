@@ -2,8 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, effect, EventEmitter, forwardRef, inject, input, Input, Output } from '@angular/core'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { MatProgressSpinnerModule } from '@angular/material/progress-spinner'
-import { NgmMatSelectComponent } from '@metad/ocap-angular/common'
+import { NgmAdvancedSelectComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective, NgmAppearance } from '@metad/ocap-angular/core'
 import {
   DataSettings,
@@ -45,7 +44,7 @@ export interface SmartSelectOptions extends ControlOptions {
  */
 @Component({
   standalone: true,
-  imports: [CommonModule, FormsModule, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, DensityDirective, AppearanceDirective, NgmMatSelectComponent],
+  imports: [CommonModule, FormsModule, ...ZardFormImports, ZardIconComponent, ZardButtonComponent, DensityDirective, AppearanceDirective, NgmAdvancedSelectComponent],
   selector: 'ngm-smart-select',
   templateUrl: 'smart-select.component.html',
   styleUrls: ['smart-select.component.scss'],

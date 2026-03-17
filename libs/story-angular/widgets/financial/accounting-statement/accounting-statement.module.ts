@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 
-import { MatMenuModule } from '@angular/material/menu'
 import { ComponentCoreModule } from '@metad/components/core'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { NgmSelectionModule } from '@metad/ocap-angular/selection'
@@ -14,6 +13,7 @@ import {
   ZardCardImports,
   ZardChipsImports,
   ZardLoaderComponent,
+  ZardMenuImports,
   ZardTableImports,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
@@ -24,8 +24,8 @@ import {
     ...ZardCardImports,
     ZardButtonComponent,
     ZardIconComponent,
-    MatMenuModule,
     ...ZardChipsImports,
+    ...ZardMenuImports,
     ...ZardTooltipImports,
     ZardLoaderComponent,
     ...ZardTableImports,

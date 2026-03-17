@@ -15,7 +15,7 @@
   top: 0;
 }
 
-.mat-header-cell.ngm-measure,
-.mat-cell.ngm-measure {
+th[z-table-head].ngm-measure,
+td[z-table-cell].ngm-measure {
   text-align: right;
 }

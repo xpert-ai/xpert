@@ -20,4 +20,4 @@ import { FormlyFieldSliderComponent } from './slider.type'
     })
   ],
 })
-export class FormlyMatSliderModule {}
+export class FormlySliderModule {}

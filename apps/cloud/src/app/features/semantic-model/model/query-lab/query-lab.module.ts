@@ -10,14 +10,14 @@ import { QueryLabRoutingModule } from './query-lab-routing.module'
 import { QueryLabComponent } from './query-lab.component'
 import { QueryComponent } from './query/query.component'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ZardProgressBarComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({
   imports: [
     SharedModule,
-    MaterialModule,
+    SharedUiModule,
     CdkMenuModule,
     ZardProgressBarComponent,
     ReactiveFormsModule,

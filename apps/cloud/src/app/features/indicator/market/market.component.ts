@@ -22,7 +22,7 @@ import {
 import { InlineSearchComponent } from '../../../@shared/form-fields'
 import { IndicatorTypeComponent } from '../../../@shared/indicator'
 import { AppService } from '../../../app.service'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { SharedModule } from '../../../@shared/shared.module'
 import { TagViewerComponent } from '../../../@shared/tag'
 
@@ -33,7 +33,7 @@ import { TagViewerComponent } from '../../../@shared/tag'
     FormsModule,
     ReactiveFormsModule,
     SharedModule,
-    MaterialModule,
+    SharedUiModule,
 
     InlineSearchComponent,
 

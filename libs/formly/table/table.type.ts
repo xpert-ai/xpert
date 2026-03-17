@@ -12,11 +12,11 @@ import { ZardButtonComponent, ZardDialogModule, ZardDialogService, ZardIconCompo
 @Component({
   standalone: true,
   changeDetection: ChangeDetectionStrategy.OnPush,
-  selector: 'pac-formly-mat-table',
+  selector: 'pac-formly-table',
   templateUrl: `table.type.html`,
   styleUrls: [`table.type.scss`],
   host: {
-    class: 'pac-formly-mat-table'
+    class: 'pac-formly-table'
   },
   imports: [
     CommonModule,

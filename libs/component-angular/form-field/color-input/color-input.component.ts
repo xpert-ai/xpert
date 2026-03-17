@@ -3,12 +3,13 @@ import { ChangeDetectionStrategy, Component, Input, forwardRef } from '@angular/
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { ZardInputDirective } from '@xpert-ai/headless-ui'
 import { DensityDirective } from '@metad/ocap-angular/core'
-import { ColorFormat, MtxColorpickerModule } from '@ng-matero/extensions/colorpicker'
 import { TranslateModule } from '@ngx-translate/core'
+
+export type ColorInputFormat = 'hex' | 'rgba' | 'hsla' | 'hsva' | 'cmyk'
 
 @Component({
   standalone: true,
-  imports: [FormsModule, ReactiveFormsModule, TranslateModule, ZardInputDirective, MtxColorpickerModule, DensityDirective],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, ZardInputDirective, DensityDirective],
   changeDetection: ChangeDetectionStrategy.OnPush,
   selector: 'ngm-color-input',
   templateUrl: './color-input.component.html',
@@ -32,7 +33,7 @@ export class NgmColorInputComponent implements ControlValueAccessor {
   @Input() color: string | null = null
   @Input() label: string
   @Input() default = '#00000000'
-  @Input() format: ColorFormat
+  @Input() format: ColorInputFormat = 'hex'
 
   value: string
 
@@ -57,6 +58,7 @@ export class NgmColorInputComponent implements ControlValueAccessor {
   }
 
   changeColor(value: string) {
+    this.value = value
     this._onChange?.(value)
   }
 
@@ -67,5 +69,36 @@ export class NgmColorInputComponent implements ControlValueAccessor {
       this.value = null
     }
     this.changeColor(this.value)
+  }
+
+  get nativeColorValue() {
+    return this.normalizeColor(this.value || this.default || '#000000')
+  }
+
+  updateFromNativeColor(value: string) {
+    this.changeColor(value)
+  }
+
+  private normalizeColor(value: string) {
+    const normalized = `${value || ''}`.trim()
+    if (/^#[0-9a-f]{3}$/i.test(normalized)) {
+      const [, r, g, b] = normalized
+      return `#${r}${r}${g}${g}${b}${b}`.toLowerCase()
+    }
+
+    if (/^#[0-9a-f]{6}$/i.test(normalized)) {
+      return normalized.toLowerCase()
+    }
+
+    if (/^#[0-9a-f]{8}$/i.test(normalized)) {
+      return normalized.slice(0, 7).toLowerCase()
+    }
+
+    if (/^#[0-9a-f]{4}$/i.test(normalized)) {
+      const [, r, g, b] = normalized
+      return `#${r}${r}${g}${g}${b}${b}`.toLowerCase()
+    }
+
+    return '#000000'
   }
 }

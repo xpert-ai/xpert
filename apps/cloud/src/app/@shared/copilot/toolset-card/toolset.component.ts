@@ -5,14 +5,14 @@ import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertToolset } from '../../../@core/types'
 import { AvatarComponent } from '../../files'
-import { MaterialModule } from '../../material.module'
+import { SharedUiModule } from '../../ui.module'
 
 @Component({
   standalone: true,
   imports: [
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     ButtonGroupDirective,
     DensityDirective,

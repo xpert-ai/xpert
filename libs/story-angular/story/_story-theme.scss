@@ -1,5 +1,5 @@
 @use "sass:map";
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 
 @use 'story-point/story-point.component-theme';
 @use 'story-widget/story-widget.component-theme';
@@ -80,12 +80,6 @@ $ease-in-out-curve-function: cubic-bezier(0.35, 0, 0.25, 1);
       bottom: 2rem;
       right: 2rem;
       z-index: 1;
-    }
-
-    .ngm-story--action-list {
-      .mat-mdc-list-icon {
-        border: 1px solid;
-      }
     }
 
     .ngm-filter-type--exclude {

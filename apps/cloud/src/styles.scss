@@ -36,11 +36,6 @@ body {
 $text-font: Lato, 'Noto Serif SC', monospace;
 
 body {
-  --mdc-dialog-subhead-font: $text-font;
-  --mdc-dialog-supporting-text-font: $text-font;
-  --mat-table-row-item-label-text-font: $text-font;
-  --mat-table-header-headline-font: $text-font;
-
   @apply flex m-0 text-text-primary;
 
   &.mobile {
@@ -54,16 +49,6 @@ body {
   z-index: 100 !important;
 }
 
-.cdk-overlay-container .mat-mdc-dialog-container {
-  --mdc-dialog-container-shape: 15px;
-  --mdc-dialog-container-elevation: rgba(0, 0, 0, 0.4) 0px 30px 90px;
-  max-height: 90vh;
-
-  .mdc-dialog__surface {
-    display: flex;
-  }
-}
-
 .cdk-drag-preview {
   box-sizing: border-box;
   border-radius: 4px;
@@ -75,32 +60,9 @@ formly-form {
   display: block;
 }
 
-.mat-mdc-dialog-container {
-  .cdk-drag.cdk-drag-handle {
-    cursor: pointer;
-  }
-
-  .ngm-theme-dark {
-    .mdc-text-field--filled:not(.mdc-text-field--disabled) {
-      background-color: rgba(255, 255, 255, 0.05);
-    }
-  }
-}
-
-formly-wrapper-mat-form-field {
-  .mat-form-field-type-checkbox {
-    .mat-form-field-infix {
-      width: 20px;
-    }
-  }
-  .mat-form-field-infix {
-    width: 80px;
-  }
-}
-
 // 会造成很多地方的样式问题如 table 内的 button
-*:not(.mat-cell) > [z-button][data-icon-only],
-*:not(.mat-cell) > z-button[data-icon-only] {
+[z-button][data-icon-only],
+z-button[data-icon-only] {
   display: flex;
   justify-content: center;
   align-items: center;
@@ -134,17 +96,12 @@ z-button[data-icon-only] {
 
 .ngm-dialog-container {
   @apply flex-1 flex flex-col;
-  .mat-horizontal-content-container {
-    padding: 0 24px;
-  }
 }
 
 .z-tab-nav-panel {
   @apply flex-1 flex flex-col;
 }
 
-.cdk-overlay-pane.mat-mdc-tooltip-panel {
-  .mdc-tooltip {
-    @apply text-xs;
-  }
+.cdk-overlay-pane .mdc-tooltip {
+  @apply text-xs;
 }

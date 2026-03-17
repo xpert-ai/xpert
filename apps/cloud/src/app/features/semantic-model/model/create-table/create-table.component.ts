@@ -9,7 +9,7 @@ import { TableEntity, isEqual, pick } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmDndDirective } from '@metad/core'
 import { IStorageFile, StorageFileService } from 'apps/cloud/src/app/@core'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import {
   Z_MODAL_DATA, 
   ZardDialogRef, 
@@ -37,7 +37,7 @@ import { SemanticModelService } from '../model.service'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     ...ZardStepperImports,
     ZardProgressBarComponent,

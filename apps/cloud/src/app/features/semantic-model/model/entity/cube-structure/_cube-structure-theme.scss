@@ -1,6 +1,6 @@
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 
 @mixin color($config-or-theme) {
   $config: mat.m2-get-color-config($config-or-theme);
@@ -81,21 +81,9 @@
       }
     }
 
-    .mat-selection-list {
-      padding-top: 0;
-
-      .mat-mdc-list-option {
-        .mat-mdc-list-text {
-          padding-right: 0;
-        }
-      }
-    }
-
     [data-slot='accordion-item'] {
-      .mat-mdc-list-item {
-        .mat-mdc-list-item-content {
-          padding-left: 20px;
-        }
+      .ngm-list-item {
+        padding-left: 20px;
       }
     }
 

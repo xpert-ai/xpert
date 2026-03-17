@@ -10,7 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { BusinessAreasService, StoriesService } from '@metad/cloud/state'
 import { BehaviorSubject, filter, firstValueFrom, map, startWith, switchMap } from 'rxjs'
 import { IStory, StoryStatusEnum, ToastrService, Visibility } from '../../@core'
-import { MaterialModule } from '../../@shared/material.module'
+import { SharedUiModule } from '../../@shared/ui.module'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { nonNullable } from '@metad/core'
 
@@ -22,7 +22,7 @@ import { ZardDialogRef } from '@xpert-ai/headless-ui'
     FormsModule,
     ReactiveFormsModule,
     DragDropModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     DensityDirective,
     NgmCommonModule,

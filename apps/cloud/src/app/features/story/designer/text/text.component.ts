@@ -7,7 +7,7 @@ import { ComponentStyling } from '@metad/story/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ColorInputComponent } from '../color-input/color-input.component'
-import { MaterialModule } from '../../../../@shared/material.module'
+import { SharedUiModule } from '../../../../@shared/ui.module'
 
 @Component({
   standalone: true,
@@ -16,7 +16,7 @@ import { MaterialModule } from '../../../../@shared/material.module'
     ReactiveFormsModule,
     TranslateModule,
     FormlyModule,
-    MaterialModule,
+    SharedUiModule,
     AppearanceDirective,
     DensityDirective,
     NgmSliderInputComponent,

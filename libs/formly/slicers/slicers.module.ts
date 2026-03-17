@@ -28,4 +28,4 @@ import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
   ],
   exports: [PACFormlySlicersComponent]
 })
-export class PACFormlyMatSlicersModule {}
+export class PACFormlySlicersModule {}

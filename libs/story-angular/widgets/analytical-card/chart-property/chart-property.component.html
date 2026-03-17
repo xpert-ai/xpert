@@ -111,7 +111,8 @@
           zType="secondary"
           displayDensity="comfortable"
           class="ngm-chart-property__palette-trigger w-full"
-          [matMenuTriggerFor]="paletteMenu"
+          z-menu
+          [zMenuTriggerFor]="paletteMenu"
           >
           <div class="w-full flex items-center">
             <z-icon zType="palette"></z-icon>
@@ -173,26 +174,26 @@
 </ngm-property-select>
 
 <z-radio-group [(ngModel)]="palette" displayDensity="cosy">
-  <mat-menu #paletteMenu="matMenu" class="ngm-density__compact">
-    <ng-template matMenuContent>
-      <button mat-menu-item disableRipple (click)="$event.stopPropagation()">
-        <z-radio class="ngm-radio-button__property" [value]="null">
-          {{ 'Story.ChartProperty.None' | translate: { Default: 'None' } }}
-        </z-radio>
-      </button>
-
-      @for (group of interpolateGroups; track group) {
-        <button mat-menu-item disableRipple disabled>
-          {{ group.groupName }}
+  <ng-template #paletteMenu>
+    <div z-menu-content class="ngm-density__compact">
+        <button type="button" z-menu-item (click)="$event.stopPropagation()">
+          <z-radio class="ngm-radio-button__property" [value]="null">
+            {{ 'Story.ChartProperty.None' | translate: { Default: 'None' } }}
+          </z-radio>
         </button>
-        @for (interpolate of group.values; track interpolate) {
-          <button mat-menu-item disableRipple (click)="$event.stopPropagation()">
-            <z-radio [value]="interpolate.name" class="ngm-radio-button__property flex-1 w-full">
-              <ngm-chromatic-preview class="flex-1 w-full" [interpolate]="interpolate"></ngm-chromatic-preview>
-            </z-radio>
-          </button>
+
+        @for (group of interpolateGroups; track group) {
+          <div class="px-2 py-1 text-sm text-muted-foreground">
+            {{ group.groupName }}
+          </div>
+          @for (interpolate of group.values; track interpolate) {
+            <button type="button" z-menu-item (click)="$event.stopPropagation()">
+              <z-radio [value]="interpolate.name" class="ngm-radio-button__property flex-1 w-full">
+                <ngm-chromatic-preview class="flex-1 w-full" [interpolate]="interpolate"></ngm-chromatic-preview>
+              </z-radio>
+            </button>
+          }
         }
-      }
-    </ng-template>
-  </mat-menu>
+    </div>
+  </ng-template>
 </z-radio-group>

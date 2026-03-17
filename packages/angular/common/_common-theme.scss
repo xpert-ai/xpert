@@ -1,7 +1,7 @@
 @forward './breadcrumb/breadcrumb.theme' as breadcrumb-*;
 
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 @use './splitter/splitter-theme' as splitter;
 @use './tabs/tabs-theme' as tabs;
 @use './appearance/appearance-theme' as appearance;
@@ -24,14 +24,6 @@
     }
   }
 
-  /**
-   * Search bar formfield for members list
-   */
-  .ngm-member__search {
-    .mat-form-field-infix {
-      width: unset;
-    }
-  }
 }
 
 @mixin common-density($config-or-theme) {

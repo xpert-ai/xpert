@@ -1,9 +1,9 @@
 import { Component, ChangeDetectionStrategy, ViewChild, Type } from '@angular/core'
-import { FieldTypeConfig, FormlyFieldConfig } from '@ngx-formly/core'
-import { FieldType, FormlyFieldProps } from '@ngx-formly/material/form-field'
+import { FieldType, FieldTypeConfig, FormlyFieldConfig, FormlyFieldProps } from '@ngx-formly/core'
 import { ZardSwitchComponent } from '@xpert-ai/headless-ui'
 
 interface ToggleProps extends FormlyFieldProps {
+  color?: string
   labelPosition?: 'before' | 'after'
 }
 
@@ -12,7 +12,7 @@ export interface FormlyToggleFieldConfig extends FormlyFieldConfig<ToggleProps> 
 }
 
 @Component({
-  selector: 'ngm-formly-mat-toggle',
+  selector: 'ngm-formly-toggle',
   standalone: false,
   template: `
     <z-switch
@@ -23,7 +23,7 @@ export interface FormlyToggleFieldConfig extends FormlyFieldConfig<ToggleProps> 
       [formlyAttributes]="field"
       [zType]="props.color === 'warn' ? 'destructive' : 'default'"
       [tabIndex]="props.tabindex"
-      [required]="required"
+      [required]="props.required"
       [labelPosition]="props.labelPosition"
     >
       {{ props.label }}
@@ -34,16 +34,8 @@ export interface FormlyToggleFieldConfig extends FormlyFieldConfig<ToggleProps> 
 })
 export class NgmFormlyToggleComponent extends FieldType<FieldTypeConfig<ToggleProps>> {
   @ViewChild(ZardSwitchComponent, { static: true }) slideToggle!: ZardSwitchComponent
-  override defaultOptions = {
-    props: {
-      hideFieldUnderline: true,
-      floatLabel: 'always' as const,
-      hideLabel: true
-    }
-  }
 
-  override onContainerClick(event: MouseEvent): void {
+  onContainerClick(): void {
     this.slideToggle.focus()
-    super.onContainerClick(event)
   }
 }

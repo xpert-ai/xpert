@@ -33,13 +33,13 @@
       searchable
     ></ngm-tree-select>
 
-    <ngm-mat-select
+    <ngm-advanced-select
       [appearance]="appearance"
       displayBehaviour="descriptionOnly"
       [label]="'PAC.INDICATOR.REGISTER.AUTHENTICATION' | translate: { Default: 'Authentication' }"
       [selectOptions]="certifications"
       formControlName="certificationId"
-    ></ngm-mat-select>
+    ></ngm-advanced-select>
 
     <z-form-field [appearance]="appearance">
       <z-form-label>{{ 'PAC.INDICATOR.REGISTER.CREATED_BY' | translate: { Default: 'Created By' } }}</z-form-label>
@@ -106,7 +106,7 @@
   </div>
 
   <div class="section grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3">
-    <ngm-mat-select
+    <ngm-advanced-select
       [appearance]="appearance"
       label="{{ 'PAC.INDICATOR.REGISTER.MODEL' | translate: { Default: 'Semantic Model' } }}"
       [selectOptions]="modelsOptions()"
@@ -114,9 +114,9 @@
       virtualScroll
       formControlName="modelId"
     >
-    </ngm-mat-select>
+    </ngm-advanced-select>
 
-    <ngm-mat-select
+    <ngm-advanced-select
       [appearance]="appearance"
       label="{{ 'PAC.INDICATOR.REGISTER.ENTITY' | translate: { Default: 'Entity' } }}"
       placeholder="{{ 'PAC.INDICATOR.REGISTER.ENTITY_PLACEHOLDER' | translate: { Default: 'Select one Entity' } }}"
@@ -125,7 +125,7 @@
       virtualScroll
       displayBehaviour=""
       formControlName="entity"
-    ></ngm-mat-select>
+    ></ngm-advanced-select>
 
     <z-checkbox formControlName="visible" class="my-4">{{
       'PAC.INDICATOR.REGISTER.Visible' | translate: { Default: 'Visible' }
@@ -150,14 +150,14 @@
     </z-radio-group>
 
     @if (typeControl.value === IndicatorType.BASIC) {
-      <ngm-mat-select
+      <ngm-advanced-select
         [appearance]="appearance"
         label="{{ 'PAC.INDICATOR.REGISTER.MEASURE' | translate: { Default: 'Measure' } }}"
         placeholder="{{ 'PAC.INDICATOR.REGISTER.MEASURE_PLACEHOLDER' | translate: { Default: 'Select Measure' } }}"
         [loading]="entityTypeLoading$ | async"
         [selectOptions]="measures$ | async"
         formControlName="measure"
-      ></ngm-mat-select>
+      ></ngm-advanced-select>
     } @else if (typeControl.value === IndicatorType.DERIVE) {
       <z-form-field class="col-span-1 sm:col-span-2" [appearance]="appearance">
         <z-form-label>
@@ -212,16 +212,16 @@
 
   <div class="section grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3 mt-4">
     @if (typeControl.value === IndicatorType.DERIVE && (syntax$ | async) === Syntax.SQL) {
-      <ngm-mat-select
+      <ngm-advanced-select
         [appearance]="appearance"
         [label]="'PAC.INDICATOR.REGISTER.Aggregator' | translate: { Default: 'Aggregator' }"
         placeholder="{{ 'PAC.INDICATOR.REGISTER.Aggregator' | translate: { Default: 'Aggregator' } }}"
         [selectOptions]="AGGREGATORS"
         formControlName="aggregator"
-      ></ngm-mat-select>
+      ></ngm-advanced-select>
     }
 
-    <ngm-mat-select
+    <ngm-advanced-select
       class="col-span-1 sm:col-span-2"
       [appearance]="appearance"
       label="{{ 'PAC.INDICATOR.REGISTER.DIMENSIONS' | translate: { Default: 'Free Dimensions' } }}"
@@ -232,7 +232,7 @@
       [selectOptions]="dimensions$ | async"
       multiple
       formControlName="dimensions"
-    ></ngm-mat-select>
+    ></ngm-advanced-select>
 
     <div class="col-span-1 sm:col-span-2 text-base font-medium">
       {{ 'PAC.INDICATOR.REGISTER.RestrictiveCondition' | translate: { Default: 'Restrictive Condition' } }}
@@ -247,10 +247,4 @@
     ></ngm-slicers>
   </div>
 
-  <!-- @if (loading()) {
-      <div class="absolute top-1/2 left-1/2 -mt-4 -ml-4 z-10">
-        <mat-spinner diameter="30" strokeWidth="2">
-        </mat-spinner>
-      </div>
-    } -->
 </form>

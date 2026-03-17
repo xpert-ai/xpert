@@ -1,10 +1,10 @@
 import { CommonModule } from '@angular/common'
 import { HttpClientModule } from '@angular/common/http'
 import { AfterViewInit, Component, NgModule, OnInit } from '@angular/core'
+import { NgmFormlyModule } from '@metad/formly'
 
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
 import { FormlyModule } from '@ngx-formly/core'
-import { FormlyMaterialModule } from '@ngx-formly/material'
 import { uuid } from '@metad/ds-core'
 import { Meta, moduleMetadata, Story } from '@storybook/angular'
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
@@ -120,7 +120,7 @@ export default {
         }),
         NxDesignerWrapperModule,
         FormlyModule.forRoot(),
-        FormlyMaterialModule,
+        NgmFormlyModule,
       ],
       providers: [
         {

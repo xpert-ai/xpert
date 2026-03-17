@@ -5,14 +5,14 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { IKnowledgebase } from '../../../@core/types'
 import { EmojiAvatarComponent } from '../../avatar'
-import { MaterialModule } from '../../material.module'
+import { SharedUiModule } from '../../ui.module'
 
 @Component({
   standalone: true,
   imports: [
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     CdkListboxModule,
     TranslateModule,
     EmojiAvatarComponent

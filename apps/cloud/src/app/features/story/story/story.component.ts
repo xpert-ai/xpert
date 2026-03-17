@@ -52,7 +52,7 @@ import { StoryToolbarService } from '../toolbar/toolbar.service'
 import { ResponsiveBreakpoints, ResponsiveBreakpointType } from '../types'
 import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
 import { injectCalculationGraphCommand, injectStoryCommand, injectStoryPageCommand, injectStoryStyleCommand, injectStoryWidgetCommand } from '../copilot'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { TranslationBaseComponent } from '../../../@shared/language'
 
 @Component({
@@ -60,7 +60,7 @@ import { TranslationBaseComponent } from '../../../@shared/language'
   imports: [
     CommonModule,
     RouterModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
 
     NgMapPipeModule,

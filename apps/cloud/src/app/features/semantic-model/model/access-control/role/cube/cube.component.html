@@ -37,7 +37,7 @@
 
     <z-accordion class="pac-model__accordion">
       @for (hierarchyGrant of hierarchyGrants$ | async; track trackByName($index, hierarchyGrant)) {
-        <z-accordion-item hideToggle class="mat-elevation-z bg-[var(--ngm-color-surface-container-low)]" [class.pac-model-access__hierarchy-hidden]="hierarchyGrant.access===Access.none"
+        <z-accordion-item hideToggle class="shadow-sm bg-[var(--ngm-color-surface-container-low)]" [class.pac-model-access__hierarchy-hidden]="hierarchyGrant.access===Access.none"
           [disabled]="hierarchyGrant.access===Access.none"
           [expanded]="hierarchyGrant.access!==Access.none"
           (opened)="openedHierarchy(hierarchyGrant.hierarchy)"

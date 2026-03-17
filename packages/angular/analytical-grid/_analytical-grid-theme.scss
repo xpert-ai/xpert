@@ -1,5 +1,5 @@
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 
 @mixin color($config-or-theme) {
   $config: mat.m2-get-color-config($config-or-theme);
@@ -78,15 +78,6 @@
 }
 
 @mixin density($config-or-theme) {
-  // sticky 除了只能 41px 高度外还有 border right 漏光问题
-  // .ngm-analytical-grid {
-  //   .cdk-table.ngm-table-grid.ngm-density__compact {
-  //     tr.mat-header-row, tr.mat-footer-row {
-  //       height: 41px;
-  //     }
-  //   }
-  // }
-
   .ngm-analytical-grid__filtering-card {
     &.ngm-density__cosy {
       @include mat.list-density(-1);

@@ -1,5 +1,4 @@
 import { NgModule } from '@angular/core'
-import { MatListModule } from '@angular/material/list'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -10,7 +9,6 @@ import { ZardDialogModule, ZardIconComponent } from '@xpert-ai/headless-ui'
   declarations: [PreferencesComponent],
   imports: [
     ZardIconComponent,
-    MatListModule,
     ZardDialogModule,
     FormlyModule,
     TranslateModule,

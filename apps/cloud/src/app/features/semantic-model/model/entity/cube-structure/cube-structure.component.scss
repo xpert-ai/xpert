@@ -12,7 +12,8 @@
   bg-gray-200 dark:bg-neutral-800;
 }
 
-.mat-mdc-list-item {
+.ngm-list-item,
+.row {
   @apply rounded-lg;
 }
 

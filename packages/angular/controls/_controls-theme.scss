@@ -1,5 +1,5 @@
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 @use './member-table/member-table-theme' as member-table;
 @use './member-tree/member-tree-theme' as member-tree;
 @use './member-list/member-list-theme' as member-list;

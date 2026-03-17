@@ -4,27 +4,6 @@
   border-radius: 15px;
 }
 
-.mat-mdc-select-panel:not([class*='mat-elevation-z']) {
+[z-menu-content] {
   @include overlay-panel-box();
-
-  .mat-mdc-option.ngm-appearance-dashed:first-child {
-    border-top-left-radius: 15px;
-    border-top-right-radius: 15px;
-  }
-  .mat-mdc-option.ngm-appearance-dashed:last-child {
-    border-bottom-left-radius: 15px;
-    border-bottom-right-radius: 15px;
-  }
-}
-
-.mat-mdc-autocomplete-panel:not([class*='mat-elevation-z']) {
-  box-shadow: rgba(100, 100, 111, 0.2) 0px 7px 29px 0px;
-  border-bottom-left-radius: 15px;
-  border-bottom-right-radius: 15px;
-}
-
-.mat-mdc-autocomplete-panel {
-  .mdc-list-item__primary-text {
-    width: 100%;
-  }
 }

@@ -78,12 +78,12 @@
             <z-form-label>{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</z-form-label>
             <textarea z-input formControlName="description"></textarea>
           </z-form-field>
-          <ngm-mat-select appearance="fill"
+          <ngm-advanced-select appearance="fill"
             formControlName="ownerId"
             displayBehaviour="descriptionOnly"
             [label]=" 'PAC.KEY_WORDS.Owner' | translate: {Default: 'Owner'} "
             [selectOptions]="users$ | async">
-          </ngm-mat-select>
+          </ngm-advanced-select>
           <div class="flex items-center gap-2">
             <button z-button zType="default" color="primary">
               {{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}

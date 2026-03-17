@@ -1,5 +1,5 @@
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 
 @mixin color($config-or-theme) {
   $config: mat.m2-get-color-config($config-or-theme);
@@ -7,7 +7,7 @@
   $foreground: map.get($config, foreground);
 
   .cdk-virtual-scroll-viewport.ngm-smart-filter__autocomplete-viewport {
-    .mat-option-text {
+    .ngm-display-behaviour {
       overflow: visible;
     }
     z-checkbox {

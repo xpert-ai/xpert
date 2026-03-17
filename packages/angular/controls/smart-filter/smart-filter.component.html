@@ -39,7 +39,10 @@
     [class.ngm-input__searching]="!!searchHighlight"
     [placeholder]="placeholder$ | async"
     [formControl]="valueControl"
-    [matAutocomplete]="auto"
+    cdkOverlayOrigin
+    #autoTrigger="cdkOverlayOrigin"
+    (focus)="openAutocomplete()"
+    (blur)="onAutocompleteBlur($event)"
   />
   <div class="ngm-smart-filter__suffix flex items-center">
     @if (loading$ | async) {
@@ -97,21 +100,29 @@
   </div>
 </div>
 
-<mat-autocomplete
-  #auto="matAutocomplete"
-  class="ngm-tree-select__panel"
-  [class]="
-    'ngm-autocomplete-panel ' +
-    (multiple() ? 'multiple' : '') +
-    ' ' +
-    (_displayDensity() === 'compact' ? 'ngm-density__compact' : '') +
-    ' ' +
-    (_displayDensity() === 'cosy' ? 'ngm-density__cosy' : '')
-  "
-  [autoActiveFirstOption]="options()?.autoActiveFirst"
-  [displayWith]="displayWithCaption"
-  (opened)="onAutocompleteOpened()"
-  (optionSelected)="selectMember($event)"
+<ng-template
+  cdkConnectedOverlay
+  [cdkConnectedOverlayOrigin]="autoTrigger"
+  [cdkConnectedOverlayOpen]="panelOpen()"
+  [cdkConnectedOverlayHasBackdrop]="true"
+  cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+  [cdkConnectedOverlayWidth]="search.offsetWidth"
+  [cdkConnectedOverlayPositions]="[
+    {
+      originX: 'start',
+      originY: 'bottom',
+      overlayX: 'start',
+      overlayY: 'top'
+    }
+  ]"
+  (attach)="onAutocompleteOpened()"
+  (backdropClick)="closeAutocomplete()"
+>
+<div
+  class="ngm-tree-select__panel ngm-autocomplete-panel"
+  [class.multiple]="multiple()"
+  [class.ngm-density__compact]="_displayDensity() === 'compact'"
+  [class.ngm-density__cosy]="_displayDensity() === 'cosy'"
 >
   <cdk-virtual-scroll-viewport
     class="ngm-smart-filter__autocomplete-viewport ngm-tree-select__viewport"
@@ -119,10 +130,13 @@
     maxBufferPx="400"
     [itemSize]="virtualScrollItemSize"
   >
-    <mat-option
+    <div
       *cdkVirtualFor="let option of selectOptions$ | async; trackBy: trackByKey"
-      [value]="option"
-      [class.mat-selected]="isSelected(option)"
+      role="option"
+      tabindex="0"
+      class="ngm-tree-select__option"
+      [class.selected]="isSelected(option)"
+      (click)="multiple() ? null : selectMember(option)"
     >
       <div class="flex-1 flex justify-start items-center">
         <button
@@ -161,12 +175,14 @@
             [option]="option"
             [displayBehaviour]="displayBehaviour()"
             [highlight]="searchHighlight"
+            (click)="selectMember(option)"
           />
         }
       </div>
-    </mat-option>
+    </div>
   </cdk-virtual-scroll-viewport>
-</mat-autocomplete>
+</div>
+</ng-template>
 
 <ng-template #hierarchiesMenu>
   <div cdkMenu class="cdk-menu__large ngm-density__compact">

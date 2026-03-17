@@ -4,7 +4,7 @@ import { booleanAttribute, Component, input, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertToolset } from '../../../@core/types'
-import { MaterialModule } from '../../material.module'
+import { SharedUiModule } from '../../ui.module'
 import { EmojiAvatarComponent } from '../../avatar'
 
 @Component({
@@ -12,7 +12,7 @@ import { EmojiAvatarComponent } from '../../avatar'
   imports: [
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     CdkListboxModule,
     TranslateModule,
     EmojiAvatarComponent

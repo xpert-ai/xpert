@@ -1,5 +1,5 @@
 import { NgModule } from '@angular/core'
-import { provideFormlyMaterial } from '@metad/formly'
+import { provideFormlyUi } from '@metad/formly'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { InviteMutationComponent } from '../../@shared/invite'
@@ -18,6 +18,6 @@ import { UserModule } from './users/user.module'
 
     InviteMutationComponent
   ],
-  providers: [provideFormlyMaterial()]
+  providers: [provideFormlyUi()]
 })
 export class SettingModule {}

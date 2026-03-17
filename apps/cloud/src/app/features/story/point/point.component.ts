@@ -31,7 +31,7 @@ import { effectStoryTheme, registerStoryThemes } from '../../../@theme'
 import { AppService } from '../../../app.service'
 import { StoryScales } from '../types'
 import { provideStory } from '@metad/story'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { TranslationBaseComponent } from '../../../@shared/language'
 
 @Component({
@@ -47,7 +47,7 @@ import { TranslationBaseComponent } from '../../../@shared/language'
   imports: [
     CommonModule,
     NxStoryModule,
-    MaterialModule,
+    SharedUiModule,
     CdkMenuModule,
     TranslateModule,
     ContentLoaderModule,

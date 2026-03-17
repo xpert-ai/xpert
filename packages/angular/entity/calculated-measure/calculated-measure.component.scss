@@ -99,7 +99,7 @@ z-drawer-content {
 }
 
 #ngm-calculated-parameters {
-  .mat-mdc-list-item {
+  > li {
     .ngm-calculated-measure__parameter-edit {
       opacity: 0;
     }

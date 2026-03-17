@@ -9,7 +9,7 @@ import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { debounceTime, map, startWith, switchMap } from 'rxjs/operators'
 import { listAnimation, StoryTemplateType, StoryTemplateService, ToastrService, IStoryTemplate, ITag, getErrorMessage } from '../../../@core'
 import { InlineSearchComponent } from '../../form-fields'
-import { MaterialModule } from '../../material.module'
+import { SharedUiModule } from '../../ui.module'
 import { UserPipe } from '../../pipes'
 import { TagViewerComponent } from '../../tag'
 
@@ -24,7 +24,7 @@ import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     ButtonGroupDirective,
     AppearanceDirective,

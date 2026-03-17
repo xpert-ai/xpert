@@ -27,17 +27,24 @@
 
     <div class="flex-1 overflow-auto">
       @if (interactionApplyTo === LinkedInteractionApplyTo.OnlySelectedWidgets) {
-        <mat-selection-list
-          class="w-full"
-          displayDensity="cosy"
+        <ul
+          cdkListbox
+          cdkListboxMultiple
+          class="w-full ngm-selection-list ngm-cdk-listbox"
+          aria-label="{{ 'Story.LinkedAnalysis.SelectWidgets' | translate: { Default: 'Select widgets' } }}"
           formControlName="linkedWidgets"
           >
           @for (widget of widgets; track widget) {
-            <mat-list-option [value]="widget.key" class="rounded-lg">
+            <li [cdkOption]="widget.key" #option="cdkOption" class="ngm-cdk-option flex cursor-pointer items-center gap-3 rounded-lg pr-10">
               {{ widget.caption }}
-            </mat-list-option>
+              @if (option.isSelected()) {
+                <svg aria-hidden="true" viewBox="0 0 20 20" fill="currentColor" class="absolute right-3 h-4 w-4 text-primary-500">
+                  <path fill-rule="evenodd" clip-rule="evenodd" d="M16.704 5.29a1 1 0 0 1 .006 1.414l-7.001 7.06a1 1 0 0 1-1.42 0L3.29 8.764a1 1 0 1 1 1.414-1.414l4.295 4.295 6.294-6.349a1 1 0 0 1 1.41-.006Z"></path>
+                </svg>
+              }
+            </li>
           }
-        </mat-selection-list>
+        </ul>
       }
     </div>
   </form>

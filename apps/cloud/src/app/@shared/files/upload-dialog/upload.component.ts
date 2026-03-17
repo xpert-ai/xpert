@@ -9,7 +9,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { uniqWith } from 'lodash-es'
 import { catchError, combineLatest, of, startWith, tap } from 'rxjs'
 import { IStorageFile, StorageFileService, ToastrService, getErrorMessage, listAnimation } from '../../../@core'
-import { MaterialModule } from '../../material.module'
+import { SharedUiModule } from '../../ui.module'
 import { FilesUploadComponent, UploadFile } from '../upload/upload.component'
 
 import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
@@ -22,7 +22,7 @@ import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headle
   imports: [
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     ButtonGroupDirective,
     AppearanceDirective,

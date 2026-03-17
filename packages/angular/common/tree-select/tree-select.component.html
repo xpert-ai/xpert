@@ -26,36 +26,39 @@
         [placeholder]="placeholder"
         [formControl]="autoControl"
         [zChipInputFor]="chipGrid"
-        [matAutocomplete]="auto"
+        cdkOverlayOrigin
+        #autoTrigger="cdkOverlayOrigin"
         [zChipInputSeparatorKeyCodes]="separatorKeysCodes"
         (zChipInputTokenEnd)="add($event)"
-        (focus)="focus.emit($event)"
-        (blur)="blur.emit($event)"
+        (focus)="openAutocomplete(); focus.emit($event)"
+        (blur)="onAutocompleteBlur($event)"
         />
 
-      <!--
-      [class.multiple]="multiple"
-      [class.ngm-density__compact]="displayDensity==='compact'"
-      [class.ngm-density__cosy]="displayDensity==='cosy'" -->
-      <mat-autocomplete
-        #auto="matAutocomplete"
-        disableRipple
-        class="ngm-tree-select__panel"
-        [class]="
-          'ngm-autocomplete-panel ' +
-          (multiple ? 'multiple' : '') +
-          ' ' +
-          (displayDensity === 'compact' ? 'ngm-density__compact' : '') +
-          ' ' +
-          (displayDensity === 'cosy' ? 'ngm-density__cosy' : '')
-        "
-        [displayWith]="displayWith"
-        [panelWidth]="panelWidth() || null"
-        [autoActiveFirstOption]="autoActiveFirstOption"
-        [autoSelectActiveOption]="autoSelectActiveOption"
-        (opened)="onAutocompleteOpened()"
-        (optionSelected)="onAutocompleteSelected($event)"
+      <ng-template
+        cdkConnectedOverlay
+        [cdkConnectedOverlayOrigin]="autoTrigger"
+        [cdkConnectedOverlayOpen]="panelOpen()"
+        [cdkConnectedOverlayHasBackdrop]="true"
+        cdkConnectedOverlayBackdropClass="cdk-overlay-transparent-backdrop"
+        [cdkConnectedOverlayWidth]="panelWidth() || autoInput.offsetWidth"
+        [cdkConnectedOverlayPositions]="[
+          {
+            originX: 'start',
+            originY: 'bottom',
+            overlayX: 'start',
+            overlayY: 'top'
+          }
+        ]"
+        (attach)="onAutocompleteOpened()"
+        (backdropClick)="closeAutocomplete()"
         >
+      <div
+        class="ngm-tree-select__panel ngm-autocomplete-panel"
+        [class.multiple]="multiple"
+        [class.ngm-density__compact]="displayDensity==='compact'"
+        [class.ngm-density__cosy]="displayDensity==='cosy'"
+        [style.width]="panelWidth() ? null : ''"
+      >
         @if (virtualScroll) {
           <cdk-virtual-scroll-viewport
             [itemSize]="virtualScrollItemSize"
@@ -63,10 +66,13 @@
             maxBufferPx="400"
             class="ngm-tree-select__viewport"
             >
-            <mat-option
+            <div
               *cdkVirtualFor="let option of selectOptions$ | async; trackBy: trackByFun"
-              [value]="option"
-              [class.mat-selected]="isSelected(option)"
+              role="option"
+              tabindex="0"
+              class="ngm-tree-select__option"
+              [class.selected]="isSelected(option)"
+              (click)="multiple ? null : onAutocompleteSelected(option)"
               >
               <div class="flex-1 flex justify-start items-center">
                 <button
@@ -93,8 +99,8 @@
                     >
                     <ngm-display-behaviour
                       [option]="{ value: option.key, label: option.label }"
-                      [displayBehaviour]="displayBehaviour"
-                      [highlight]="autoHighlight"
+                    [displayBehaviour]="displayBehaviour"
+                    [highlight]="autoHighlight"
                       >
                     </ngm-display-behaviour>
                   </z-checkbox>
@@ -105,17 +111,21 @@
                     [option]="{ value: option.key, label: option.label }"
                     [displayBehaviour]="displayBehaviour"
                     [highlight]="autoHighlight"
+                    (click)="onAutocompleteSelected(option)"
                     >
                   </ngm-display-behaviour>
                 }
               </div>
-            </mat-option>
+            </div>
           </cdk-virtual-scroll-viewport>
         } @else {
           @for (option of selectOptions$ | async; track option) {
-            <mat-option
-              [value]="option"
-              (click)="$event.stopPropagation(); $event.preventDefault()"
+            <div
+              role="option"
+              tabindex="0"
+              class="ngm-tree-select__option"
+              [class.selected]="isSelected(option)"
+              (click)="multiple ? null : onAutocompleteSelected(option)"
               >
               <div class="flex-1 flex justify-start items-center">
                 <button
@@ -142,8 +152,8 @@
                     >
                     <ngm-display-behaviour
                       [option]="{ value: option.key, label: option.label }"
-                      [displayBehaviour]="displayBehaviour"
-                      [highlight]="autoHighlight"
+                    [displayBehaviour]="displayBehaviour"
+                    [highlight]="autoHighlight"
                       >
                     </ngm-display-behaviour>
                   </z-checkbox>
@@ -154,15 +164,16 @@
                     [option]="{ value: option.key, label: option.label }"
                     [displayBehaviour]="displayBehaviour"
                     [highlight]="autoHighlight"
+                    (click)="onAutocompleteSelected(option)"
                     >
                   </ngm-display-behaviour>
                 }
               </div>
-            </mat-option>
+            </div>
           }
         }
-
-      </mat-autocomplete>
+      </div>
+      </ng-template>
     }
 
     @if (useAutocomplete) {

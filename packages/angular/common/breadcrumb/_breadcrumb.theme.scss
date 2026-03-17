@@ -1,6 +1,6 @@
 @use "sass:map";
-@use '@angular/material' as mat;
-@use '@angular/material' as theming;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as theming;
 @use 'breadcrumb-variables';
 
 @mixin _ngm-breadcrumb-height($height) {
@@ -56,11 +56,6 @@
       display: flex;
       counter-reset: flag;
       transition: transform 500ms cubic-bezier(0.35, 0, 0.25, 1);
-
-      .mat-ink-bar {
-        bottom: 0;
-        top: auto;
-      }
     }
     .breadcrumb__step {
       text-decoration: none;

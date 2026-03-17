@@ -1,15 +1,15 @@
+import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { createFieldComponent } from '@ngx-formly/core/testing';
-import { FormlyMatTextAreaModule } from '@ngx-formly/material/textarea';
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
+import { PACFormlyTextAreaModule } from './textarea.module';
 
 const renderComponent = (field: FormlyFieldConfig) => {
   return createFieldComponent(field, {
-    imports: [NoopAnimationsModule, FormlyMatTextAreaModule],
+    imports: [NoopAnimationsModule, PACFormlyTextAreaModule],
   });
 };
 
-describe.skip('ui-material: Textarea Type', () => {
+describe.skip('textarea type', () => {
   it('should render textarea type', () => {
     const { query } = renderComponent({
       key: 'name',
@@ -20,7 +20,6 @@ describe.skip('ui-material: Textarea Type', () => {
       },
     });
 
-    expect(query('formly-wrapper-mat-form-field')).not.toBeNull();
     const { properties, attributes } = query('textarea');
     expect(properties).toMatchObject({
       cols: 5,

@@ -1,6 +1,6 @@
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 
 @mixin color($config-or-theme) {
   $config: mat.m2-get-color-config($config-or-theme);
@@ -18,7 +18,8 @@
     }
   }
 
-  .mat-tooltip.pac-model-query__statement-tip {
+  .mdc-tooltip.pac-model-query__statement-tip,
+  .pac-model-query__statement-tip {
     background-color: white;
     color: black;
     white-space: pre-wrap;

@@ -1,5 +1,5 @@
 <div role="group" class="example-tel-input-container"
-  [attr.aria-labelledby]="_formField?.getLabelId()"
+  [attr.aria-describedby]="userAriaDescribedBy || null"
   (focusin)="onFocusIn($event)"
   (focusout)="onFocusOut($event)">
   @for (control of formArray.controls; track control; let i = $index; let last = $last) {

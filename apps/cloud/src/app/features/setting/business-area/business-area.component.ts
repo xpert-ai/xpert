@@ -10,7 +10,7 @@ import { IBusinessArea, ToastrService, routeAnimations } from '../../../@core'
 import { AppService } from '../../../app.service'
 import { BusinessAreasComponent } from './business-areas/areas.component'
 import { SharedModule } from '../../../@shared/shared.module'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { ManageEntityBaseComponent } from '../../../@shared/directives'
 
 import { ZardDialogService } from '@xpert-ai/headless-ui'
@@ -25,7 +25,7 @@ import { ZardDialogService } from '@xpert-ai/headless-ui'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     NgmCommonModule,
     BusinessAreasComponent
 ]

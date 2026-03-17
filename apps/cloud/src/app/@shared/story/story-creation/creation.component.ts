@@ -10,7 +10,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { debounceTime, distinctUntilChanged, map, startWith } from 'rxjs/operators'
 import { ICollection, ISemanticModel } from '../../../@core'
 import { InlineSearchComponent } from '../../form-fields'
-import { MaterialModule } from '../../material.module'
+import { SharedUiModule } from '../../ui.module'
 
 import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
 @Component({
@@ -19,7 +19,7 @@ import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
     TranslateModule,
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     ButtonGroupDirective,
     NgmTreeSelectComponent,
     DensityDirective,

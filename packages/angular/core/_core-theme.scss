@@ -1,12 +1,8 @@
 @use 'sass:map';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 @use './style/card-theme' as card;
-@use './style/mat-list-theme' as mat-list;
-@use './style/mat-form-field-theme' as mat-formfield;
 @use './style/button-theme' as button-theme;
-@use './style/mat-viewport-theme' as mat-viewport;
 @use './style/density-theme' as mat-density;
-@use './style/mat-tab-theme' as mat-tab;
 @use './directives/appearance-theme' as appearance;
 @use './directives/button-group-theme' as button-group;
 
@@ -14,8 +10,6 @@
   $config: mat.m2-get-color-config($config-or-theme);
 
   @include card.color($config-or-theme);
-  @include mat-list.color($config-or-theme);
-  @include mat-formfield.color($config-or-theme);
   @include button-theme.color($config-or-theme);
   @include appearance.color($config-or-theme);
   @include button-group.color($config-or-theme);
@@ -26,12 +20,8 @@
 
 @mixin density($config-or-theme) {
   @include card.density($config-or-theme);
-  @include mat-list.density($config-or-theme);
-  @include mat-formfield.density($config-or-theme);
   @include button-theme.density($config-or-theme);
-  @include mat-viewport.density($config-or-theme);
   @include mat-density.density($config-or-theme);
-  @include mat-tab.density($config-or-theme);
   @include appearance.density($config-or-theme);
   @include button-group.density($config-or-theme);
 }

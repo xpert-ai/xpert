@@ -58,7 +58,7 @@ import { ReleaseStoryDialog } from '../release-story.component'
 import { SelectModelDialog } from '../select-model.component'
 import { collectionId, treeDataSourceFactory } from '../types'
 import { ProjectService } from '../project.service'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { StoryCreationComponent } from '../../../@shared/story'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { injectFetchModelDetails } from '@cloud/app/@shared/indicator'
@@ -79,7 +79,7 @@ import {
     DragDropModule,
     CdkMenuModule,
     RouterModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     DensityDirective,
     ButtonGroupDirective,

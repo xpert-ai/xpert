@@ -37,7 +37,7 @@ import { RecentsComponent } from '../recents/recents.component'
 import { StoryWidgetFeedComponent } from '../story-widget/story-widget.component'
 import { UserVisitComponent } from '../user-visit/user-visit.component'
 import { SharedModule } from '../../../@shared/shared.module'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { createTimer } from '../../../@shared/timer'
 
@@ -64,7 +64,7 @@ const QuickGuidesInit = {
   imports: [
     CommonModule,
     SharedModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     Gridster,
     GridsterItemComponent,

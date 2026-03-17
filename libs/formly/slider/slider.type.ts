@@ -2,10 +2,11 @@
 import { ChangeDetectionStrategy, Component, Type } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmSliderInputComponent } from '@metad/ocap-angular/common'
-import { FieldTypeConfig, FormlyFieldConfig } from '@ngx-formly/core'
-import { FieldType, FormlyFieldProps } from '@ngx-formly/material/form-field'
+import { NgmFieldColor } from '@metad/ocap-angular/core'
+import { FieldType, FieldTypeConfig, FormlyFieldConfig, FormlyFieldProps } from '@ngx-formly/core'
 
 interface SliderProps extends FormlyFieldProps {
+  color?: NgmFieldColor
   displayWith?: (value: number) => string
   invert?: boolean
   tickInterval?: number
@@ -28,7 +29,7 @@ export interface FormlySliderFieldConfig extends FormlyFieldConfig<SliderProps> 
 
 @Component({
   standalone: true,
-  selector: 'pac-formly-mat-slider',
+  selector: 'pac-formly-slider',
   template: `
 <ngm-slider-input class="w-full"
   [tabIndex]="props.tabindex"
@@ -54,8 +55,6 @@ export interface FormlySliderFieldConfig extends FormlyFieldConfig<SliderProps> 
 export class FormlyFieldSliderComponent extends FieldType<FieldTypeConfig<SliderProps>> {
   override defaultOptions = {
     props: {
-      hideFieldUnderline: true,
-      floatLabel: 'always' as const,
       thumbLabel: false,
     }
   }

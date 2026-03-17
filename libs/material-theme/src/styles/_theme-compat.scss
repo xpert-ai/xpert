@@ -1,0 +1,362 @@
+@use 'sass:color';
+@use 'sass:list';
+@use 'sass:map';
+@use 'sass:meta';
+@use 'sass:string';
+
+$m2-blue-grey-palette: (
+  50: #eceff1,
+  100: #cfd8dc,
+  200: #b0bec5,
+  300: #90a4ae,
+  400: #78909c,
+  500: #607d8b,
+  600: #546e7a,
+  700: #455a64,
+  800: #37474f,
+  900: #263238,
+  A100: #cfd8dc,
+  A200: #b0bec5,
+  A400: #78909c,
+  A700: #455a64,
+) !default;
+
+$m2-amber-palette: (
+  50: #fff8e1,
+  100: #ffecb3,
+  200: #ffe082,
+  300: #ffd54f,
+  400: #ffca28,
+  500: #ffc107,
+  600: #ffb300,
+  700: #ffa000,
+  800: #ff8f00,
+  900: #ff6f00,
+  A100: #ffe57f,
+  A200: #ffd740,
+  A400: #ffc400,
+  A700: #ffab00,
+) !default;
+
+$m2-blue-palette: (
+  50: #e3f2fd,
+  100: #bbdefb,
+  200: #90caf9,
+  300: #64b5f6,
+  400: #42a5f5,
+  500: #2196f3,
+  600: #1e88e5,
+  700: #1976d2,
+  800: #1565c0,
+  900: #0d47a1,
+  A100: #82b1ff,
+  A200: #448aff,
+  A400: #2979ff,
+  A700: #2962ff,
+) !default;
+
+$m2-green-palette: (
+  50: #e8f5e9,
+  100: #c8e6c9,
+  200: #a5d6a7,
+  300: #81c784,
+  400: #66bb6a,
+  500: #4caf50,
+  600: #43a047,
+  700: #388e3c,
+  800: #2e7d32,
+  900: #1b5e20,
+  A100: #b9f6ca,
+  A200: #69f0ae,
+  A400: #00e676,
+  A700: #00c853,
+) !default;
+
+$m2-indigo-palette: (
+  50: #e8eaf6,
+  100: #c5cae9,
+  200: #9fa8da,
+  300: #7986cb,
+  400: #5c6bc0,
+  500: #3f51b5,
+  600: #3949ab,
+  700: #303f9f,
+  800: #283593,
+  900: #1a237e,
+  A100: #8c9eff,
+  A200: #536dfe,
+  A400: #3d5afe,
+  A700: #304ffe,
+) !default;
+
+$m2-deep-orange-palette: (
+  50: #fbe9e7,
+  100: #ffccbc,
+  200: #ffab91,
+  300: #ff8a65,
+  400: #ff7043,
+  500: #ff5722,
+  600: #f4511e,
+  700: #e64a19,
+  800: #d84315,
+  900: #bf360c,
+  A100: #ff9e80,
+  A200: #ff6e40,
+  A400: #ff3d00,
+  A700: #dd2c00,
+) !default;
+
+$m2-teal-palette: (
+  50: #e0f2f1,
+  100: #b2dfdb,
+  200: #80cbc4,
+  300: #4db6ac,
+  400: #26a69a,
+  500: #009688,
+  600: #00897b,
+  700: #00796b,
+  800: #00695c,
+  900: #004d40,
+  A100: #a7ffeb,
+  A200: #64ffda,
+  A400: #1de9b6,
+  A700: #00bfa5,
+) !default;
+
+$m2-grey-palette: (
+  50: #fafafa,
+  100: #f5f5f5,
+  200: #eeeeee,
+  300: #e0e0e0,
+  400: #bdbdbd,
+  500: #9e9e9e,
+  600: #757575,
+  700: #616161,
+  800: #424242,
+  900: #212121,
+) !default;
+
+$m2-light-theme-background-palette: (
+  background: #f8fafc,
+  card: #ffffff,
+  dialog: #ffffff,
+  hover: rgba(15, 23, 42, 0.04),
+  darker: #334155,
+  focused-button: rgba(15, 23, 42, 0.08),
+) !default;
+
+$m2-dark-theme-background-palette: (
+  background: #0a0a0a,
+  card: #16181c,
+  dialog: #16181c,
+  hover: rgba(255, 255, 255, 0.06),
+  darker: #e2e8f0,
+  focused-button: rgba(255, 255, 255, 0.08),
+) !default;
+
+$m2-light-theme-foreground-palette: (
+  base: #000000,
+  text: rgba(15, 23, 42, 0.92),
+  secondary-text: rgba(15, 23, 42, 0.72),
+  divider: rgba(15, 23, 42, 0.12),
+) !default;
+
+$m2-dark-theme-foreground-palette: (
+  base: #ffffff,
+  text: rgba(255, 255, 255, 0.92),
+  secondary-text: rgba(255, 255, 255, 0.72),
+  divider: rgba(255, 255, 255, 0.12),
+) !default;
+
+@function _contrast-color($value) {
+  @if meta.type-of($value) != 'color' {
+    @return #ffffff;
+  }
+
+  @return if(color.channel($value, 'lightness', $space: hsl) > 58%, rgba(15, 23, 42, 0.92), #ffffff);
+}
+
+@function _normalize-key($key) {
+  @return if(meta.type-of($key) == 'string', string.unquote($key), $key);
+}
+
+@function _theme-background($is-dark) {
+  @return if($is-dark, $m2-dark-theme-background-palette, $m2-light-theme-background-palette);
+}
+
+@function _theme-foreground($is-dark) {
+  @return if($is-dark, $m2-dark-theme-foreground-palette, $m2-light-theme-foreground-palette);
+}
+
+@function _map-get-any($source, $keys...) {
+  @for $index from 1 through list.length($keys) {
+    $key: list.nth($keys, $index);
+    @if map.has-key($source, $key) {
+      @return map.get($source, $key);
+    }
+  }
+
+  @return null;
+}
+
+@function _with-contrast-entries($palette) {
+  $result: $palette;
+
+  @each $hue, $value in $palette {
+    @if meta.type-of($value) == 'color' {
+      $result: map.set($result, '#{$hue}-contrast', _contrast-color($value));
+    }
+  }
+
+  @return $result;
+}
+
+@function m2-define-palette($base-palette, $default: 500, $lighter: 100, $darker: 700) {
+  $palette: _with-contrast-entries($base-palette);
+  $default-color: m2-get-color-from-palette($palette, $default);
+  $lighter-color: m2-get-color-from-palette($palette, $lighter);
+  $darker-color: m2-get-color-from-palette($palette, $darker);
+
+  @return map.merge(
+    $palette,
+    (
+      default: $default-color,
+      lighter: $lighter-color,
+      darker: $darker-color,
+      text: $default-color,
+      default-contrast: m2-get-color-from-palette($palette, '#{$default}-contrast'),
+      lighter-contrast: m2-get-color-from-palette($palette, '#{$lighter}-contrast'),
+      darker-contrast: m2-get-color-from-palette($palette, '#{$darker}-contrast'),
+    )
+  );
+}
+
+@function m2-define-light-theme($config) {
+  $color-config: map.get($config, color);
+  $primary: map.get($color-config, primary);
+  $accent: map.get($color-config, accent);
+  $warn: if(map.has-key($color-config, warn), map.get($color-config, warn), m2-define-palette($m2-deep-orange-palette));
+
+  @return map.merge(
+    $config,
+    (
+      color: map.merge(
+        $color-config,
+        (
+          primary: $primary,
+          accent: $accent,
+          warn: $warn,
+          background: $m2-light-theme-background-palette,
+          foreground: $m2-light-theme-foreground-palette,
+        )
+      ),
+      is-dark: false,
+    )
+  );
+}
+
+@function m2-define-dark-theme($config) {
+  $color-config: map.get($config, color);
+  $primary: map.get($color-config, primary);
+  $accent: map.get($color-config, accent);
+  $warn: if(map.has-key($color-config, warn), map.get($color-config, warn), m2-define-palette($m2-deep-orange-palette));
+
+  @return map.merge(
+    $config,
+    (
+      color: map.merge(
+        $color-config,
+        (
+          primary: $primary,
+          accent: $accent,
+          warn: $warn,
+          background: $m2-dark-theme-background-palette,
+          foreground: $m2-dark-theme-foreground-palette,
+        )
+      ),
+      is-dark: true,
+    )
+  );
+}
+
+@function m2-define-typography-config($font-family: null) {
+  @return (
+    font-family: $font-family,
+  );
+}
+
+@function m2-get-color-config($theme-or-color-config) {
+  @if meta.type-of($theme-or-color-config) != 'map' {
+    @return null;
+  }
+
+  @if map.has-key($theme-or-color-config, color) {
+    @return map.get($theme-or-color-config, color);
+  }
+
+  @return $theme-or-color-config;
+}
+
+@function m2-get-density-config($theme) {
+  @if meta.type-of($theme) != 'map' {
+    @return null;
+  }
+
+  @return map.get($theme, density);
+}
+
+@function m2-get-typography-config($theme) {
+  @if meta.type-of($theme) != 'map' {
+    @return null;
+  }
+
+  @return map.get($theme, typography);
+}
+
+@function m2-get-color-from-palette($palette, $hue: default, $opacity: null) {
+  @if $palette == null {
+    @return null;
+  }
+
+  $normalized-hue: _normalize-key($hue);
+  $value: _map-get-any(
+    $palette,
+    $normalized-hue,
+    if(meta.type-of($normalized-hue) == 'string', string.unquote($normalized-hue), $normalized-hue),
+    if(meta.type-of($normalized-hue) == 'number', '#{$normalized-hue}', $normalized-hue)
+  );
+
+  @if $value == null and meta.type-of($normalized-hue) == 'string' and string.index($normalized-hue, '-contrast') == null {
+    $value: _map-get-any($palette, '#{$normalized-hue}-contrast');
+  }
+
+  @if $value == null {
+    $value: _map-get-any($palette, default, 500, 400, 300);
+  }
+
+  @if $opacity != null and meta.type-of($value) == 'color' {
+    @return color.change($value, $alpha: $opacity);
+  }
+
+  @return $value;
+}
+
+@mixin core() {}
+@mixin all-component-themes($theme) {}
+@mixin all-component-colors($theme) {}
+@mixin slider-density($config) {}
+@mixin icon-button-density($config) {}
+@mixin icon-density($config) {}
+@mixin form-field-density($config) {}
+@mixin list-density($config) {}
+@mixin button-toggle-typography($config) {}
+
+@mixin elevation($level) {
+  @if $level >= 8 {
+    box-shadow: 0 20px 40px rgba(15, 23, 42, 0.18);
+  } @else if $level >= 4 {
+    box-shadow: 0 12px 24px rgba(15, 23, 42, 0.14);
+  } @else {
+    box-shadow: 0 6px 16px rgba(15, 23, 42, 0.12);
+  }
+}

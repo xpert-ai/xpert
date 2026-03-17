@@ -21,11 +21,12 @@
       zType="ghost"
       zSize="icon"
       zShape="circle"
+      z-menu
       displayDensity="cosy"
       class="ngm-menu-trigger opacity-20 group-hover:opacity-100 duration-200"
       [color]="(hasSlicers$ | async) ? 'accent' : ''"
-      [matMenuTriggerFor]="filtersMenu"
-      #mt="matMenuTrigger"
+      [zMenuTriggerFor]="filtersMenu"
+      #mt="zMenuTrigger"
       [class.active]="mt.menuOpen"
       [zTooltip]="'Story.Common.Slicers' | translate: { Default: 'Slicers' }"
       zPosition="top"
@@ -50,18 +51,20 @@
   </div>
 }
 
-<mat-menu #filtersMenu="matMenu" class="pac-widget__slicer-menu">
-  <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: { Default: 'Slicers' } }}</div>
+<ng-template #filtersMenu>
+  <div z-menu-content class="pac-widget__slicer-menu">
+    <div class="text-base font-semibold">{{ 'Ngm.Selection.Slicers' | translate: { Default: 'Slicers' } }}</div>
 
-  <ngm-slicers
-    class="overflow-hidden"
-    inline
-    editable
-    [slicers]="selectOptions$ | async"
-    [dataSettings]="dataSettings$ | async"
-    [limit]="5"
-    [capacities]="[SlicersCapacity.CombinationSlicer, SlicersCapacity.AdvancedSlicer, SlicersCapacity.Variable]"
-    (valueChange)="setSelectOptions($event)"
-    (click)="$event.stopPropagation()"
-    />
-</mat-menu>
+    <ngm-slicers
+      class="overflow-hidden"
+      inline
+      editable
+      [slicers]="selectOptions$ | async"
+      [dataSettings]="dataSettings$ | async"
+      [limit]="5"
+      [capacities]="[SlicersCapacity.CombinationSlicer, SlicersCapacity.AdvancedSlicer, SlicersCapacity.Variable]"
+      (valueChange)="setSelectOptions($event)"
+      (click)="$event.stopPropagation()"
+      />
+  </div>
+</ng-template>

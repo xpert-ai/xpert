@@ -6,7 +6,7 @@ import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { getErrorMessage, TagCategoryEnum, TagService, ToastrService } from '../../../@core'
-import { MaterialModule } from '../../material.module'
+import { SharedUiModule } from '../../ui.module'
 
 import { ZardDialogRef } from '@xpert-ai/headless-ui'
 @Component({
@@ -14,7 +14,7 @@ import { ZardDialogRef } from '@xpert-ai/headless-ui'
   imports: [
     ReactiveFormsModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     CdkListboxModule,
     NgxFloatUiModule,
     ButtonGroupDirective

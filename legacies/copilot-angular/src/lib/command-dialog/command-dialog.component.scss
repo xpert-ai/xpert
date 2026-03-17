@@ -7,10 +7,6 @@
   background-color: var(--mdc-dialog-container-color, white);
 }
 
-.mat-mdc-progress-bar {
-  position: absolute;
-}
-
 xp-dialog-content {
   @apply flex flex-col;
 }

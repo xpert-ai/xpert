@@ -20,7 +20,6 @@ import {
   ZardYearPickerComponent,
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
-import { MatMenuModule } from '@angular/material/menu'
 import { FavoritesService, IndicatorsService } from '@metad/cloud/state'
 import { ReversePipe } from '@metad/core'
 import { AnalyticalCardModule } from '@metad/ocap-angular/analytical-card'
@@ -62,7 +61,6 @@ import { CdkMenuModule } from '@angular/cdk/menu'
     ZardButtonComponent,
     ZardDatePickerComponent,
     ZardIconComponent,
-    MatMenuModule,
     ...ZardChipsImports,
     ZardInputDirective,
     ZardMonthPickerComponent,

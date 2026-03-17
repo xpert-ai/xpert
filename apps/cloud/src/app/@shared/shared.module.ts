@@ -4,7 +4,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { MaterialModule } from './material.module'
+import { SharedUiModule } from './ui.module'
 import { CreatedByPipe, UserPipe } from './pipes/index'
 import { TagEditorComponent, TagViewerComponent } from './tag'
 import { CdkMenuModule } from '@angular/cdk/menu'
@@ -19,7 +19,7 @@ const Modules = [TranslateModule, FormsModule, ReactiveFormsModule, OcapCoreModu
   imports: [
     CommonModule,
     RouterModule,
-    MaterialModule,
+    SharedUiModule,
     ...Modules,
     CdkMenuModule,
     CreatedByPipe,
@@ -30,7 +30,7 @@ const Modules = [TranslateModule, FormsModule, ReactiveFormsModule, OcapCoreModu
   exports: [
     CommonModule,
     RouterModule,
-    MaterialModule,
+    SharedUiModule,
     ...Modules,
     CdkMenuModule,
     UserPipe,

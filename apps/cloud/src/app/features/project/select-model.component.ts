@@ -8,7 +8,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { SemanticModelServerService } from '@metad/cloud/state'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ISemanticModel } from '../../@core'
-import { MaterialModule } from '../../@shared/material.module'
+import { SharedUiModule } from '../../@shared/ui.module'
 
 @Component({
   standalone: true,
@@ -16,7 +16,7 @@ import { MaterialModule } from '../../@shared/material.module'
     DragDropModule,
     FormsModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     ButtonGroupDirective,
     DensityDirective
 ],

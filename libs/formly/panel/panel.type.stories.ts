@@ -1,8 +1,8 @@
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
+import { NgmFormlyModule } from '@metad/formly';
 import { FormlyModule } from '@ngx-formly/core';
-import { FormlyMaterialModule } from '@ngx-formly/material';
 import { Meta, moduleMetadata, Story } from '@storybook/angular';
 import { MetadFormlyPanelModule } from './panel.module';
 import { MetadFormlyPanelComponent } from './panel.type';
@@ -18,7 +18,7 @@ export default {
         ReactiveFormsModule,
         ZardButtonComponent,
         FormlyModule.forRoot(),
-        FormlyMaterialModule,
+        NgmFormlyModule,
         MetadFormlyPanelModule,
       ],
     }),

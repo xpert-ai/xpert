@@ -2,7 +2,6 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MatMenuModule } from '@angular/material/menu'
 import { NgmCommonModule, ResizerModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
@@ -22,7 +21,6 @@ import { CHART_ICON_ASSETS } from './types'
     ZardIconComponent,
     ZardButtonComponent,
     ZardComboboxComponent,
-    MatMenuModule,
     ZardDialogModule,
     ZardInputDirective,
     ZardCheckboxComponent,

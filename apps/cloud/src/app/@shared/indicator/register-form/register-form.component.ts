@@ -12,7 +12,7 @@ import {
 } from '@angular/forms'
 import { BusinessAreasService, hierarchizeBusinessAreas, NgmSemanticModel } from '@metad/cloud/state'
 import { nonBlank, nonNullable } from '@metad/core'
-import { NgmHierarchySelectComponent, NgmMatSelectComponent, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
+import { NgmAdvancedSelectComponent, NgmHierarchySelectComponent, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
 import { ISelectOption, NgmDSCoreService, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import { NgmCalculatedMeasureComponent } from '@metad/ocap-angular/entity'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
@@ -76,7 +76,7 @@ import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '../types'
     ZardDatePickerComponent,
     ZardInputDirective,
     ZardCheckboxComponent,
-    NgmMatSelectComponent,
+    NgmAdvancedSelectComponent,
     NgmTreeSelectComponent,
     TagEditorComponent,
     NgmHierarchySelectComponent,

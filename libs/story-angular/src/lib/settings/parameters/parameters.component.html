@@ -6,16 +6,16 @@
     </span>
   </div>
 
-  <mat-nav-list class="ngm-nav-list flex-1 overflow-auto">
+  <ul class="ngm-nav-list flex-1 overflow-auto">
     @for (entity of entities$(); track entity) {
-      <mat-list-item class="flex rounded-l-xl overflow-hidden mt-2"
+      <li class="mt-2 flex cursor-pointer rounded-l-xl overflow-hidden px-3 py-2 duration-300 hover:bg-white/10"
         [class.active]="activeLink.entity === entity.value"
         (click)="activeEntity(entity.dataSource, entity.value)"
         >
         <ngm-display-behaviour class="flex-1" [option]="entity"></ngm-display-behaviour>
-      </mat-list-item>
+      </li>
     }
-  </mat-nav-list>
+  </ul>
 
   <div class="flex justify-between">
     <div ngmButtonGroup>
@@ -40,10 +40,10 @@
         </button>
       </div>
       @if (parameters?.length) {
-        <mat-list class="flex-1 divide-y ml-4 dark:divide-neutral-800" displayDensity="cosy">
+        <ul class="ngm-list flex-1 ml-4 divide-y dark:divide-neutral-800">
           @for (parameter of parameters; track parameter) {
-            <mat-list-item>
-              <div class="flex item-center group">
+            <li class="group py-2">
+              <div class="flex items-center">
                 <ngm-display-behaviour class="flex-1" [option]="{value: parameter.name, label: parameter.caption}"></ngm-display-behaviour>
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="opacity-0 group-hover:opacity-90" (click)="openCreateParameter(parameter.name)">
                   <z-icon zType="edit"></z-icon>
@@ -52,9 +52,9 @@
                   <z-icon zType="close"></z-icon>
                 </button>
               </div>
-            </mat-list-item>
+            </li>
           }
-        </mat-list>
+        </ul>
       }
       <div class="flex justify-between items-center">
         <label class="text-lg p-2"> {{ 'Story.Common.Calculations' | translate: { Default: 'Calculations' } }} </label>
@@ -63,10 +63,10 @@
         </button>
       </div>
       @if (calculations?.length) {
-        <mat-list class="divide-y ml-4 dark:divide-neutral-800" displayDensity="cosy">
+        <ul class="ngm-list ml-4 divide-y dark:divide-neutral-800">
           @for (calculation of calculations; track calculation) {
-            <mat-list-item>
-              <div class="flex items-center group">
+            <li class="group py-2">
+              <div class="flex items-center">
                 <ngm-display-behaviour class="flex-1" [option]="{value: calculation.name, label: calculation.caption}"></ngm-display-behaviour>
                 <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="opacity-0 group-hover:opacity-90" (click)="openEditCalculation(calculation)">
                   <z-icon zType="edit"></z-icon>
@@ -75,9 +75,9 @@
                   <z-icon zType="close"></z-icon>
                 </button>
               </div>
-            </mat-list-item>
+            </li>
           }
-        </mat-list>
+        </ul>
       }
     </div>
   }

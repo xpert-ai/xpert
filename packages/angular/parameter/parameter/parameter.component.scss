@@ -9,21 +9,7 @@
   }
 }
 
-.mat-mdc-slider {
+z-slider {
   width: calc(100% - 30px);
   @apply block mx-auto;
-}
-
-.mat-mdc-slider-thumb-label-showing {
-  &.mat-mdc-slider-horizontal {
-    margin-top: 1rem;
-    margin-left: 1rem;
-    margin-right: 1rem;
-  }
-
-  &.mat-mdc-slider-vertical {
-    margin-left: 1rem;
-    margin-top: 1rem;
-    margin-bottom: 1rem;
-  }
 }

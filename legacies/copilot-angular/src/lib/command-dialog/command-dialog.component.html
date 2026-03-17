@@ -23,8 +23,8 @@
           <span
             class="flex items-center px-1 py-0.5 rounded-full bg-neutral-50 dark:bg-neutral-900 cursor-pointer"
             [zTooltip]="item.caption"
-            [matMenuTriggerFor]="contextMenu"
-            [matMenuTriggerData]="{ word: { text: item.uKey } }"
+            [cdkMenuTriggerFor]="contextMenu"
+            [cdkMenuTriggerData]="{ word: { text: item.uKey } }"
             (click)="$event.stopPropagation()"
             >{{ item.caption || item.key
             }}<button class="flex-shrink-0 hover:text-red-500" (click)="removeContext(item)">
@@ -56,64 +56,74 @@
     cdkTextareaAutosize
     cdkAutosizeMinRows="5"
     cdkAutosizeMaxRows="8"
-    [matAutocomplete]="autoPrompts"
-    matAutocompletePosition="above"
-    (keydown)="triggerFun($event, autoPrompts)"
+    cdkOverlayOrigin
+    #suggestionsTrigger="cdkOverlayOrigin"
+    (keydown)="triggerFun($event)"
   ></textarea>
-  <mat-autocomplete
-    #autoPrompts="matAutocomplete"
-    class="ngm-copilot-chat__autocomplete-panel ngm-autocomplete-panel ngm-density__cosy"
-    autoActiveFirstOption
-    hideSingleSelectionIndicator
-    (optionActivated)="onContextActivated($event)"
-    (opened)="suggestionsOpened$.next(true)"
-    (closed)="suggestionsOpened$.next(false)"
+  <ng-template
+    cdkConnectedOverlay
+    [cdkConnectedOverlayOrigin]="suggestionsTrigger"
+    [cdkConnectedOverlayOpen]="isContextTrigger() && (loadingContext() || !!filteredContextItems()?.length)"
+    [cdkConnectedOverlayOffsetY]="-8"
+    [cdkConnectedOverlayPositions]="[
+      {
+        originX: 'start',
+        originY: 'top',
+        overlayX: 'start',
+        overlayY: 'bottom'
+      }
+    ]"
+    (attach)="suggestionsOpened$.next(true)"
+    (detach)="suggestionsOpened$.next(false)"
   >
-    @if (loadingContext$ | async) {
-      <mat-progress-bar
-        mode="query"
-        role="progressbar"
-        color="accent"
-        class="top-0 left-0 w-full"
-        style="position: absolute; height: 2px"
-      />
-      <mat-option [value]="null"></mat-option>
-    } @else if (filteredContextItems()) {
-      <cdk-virtual-scroll-viewport
-        class="nx-formly__virtual-scroll-viewport"
-        minBufferPx="200"
-        maxBufferPx="400"
-        [style.height.px]="240"
-        [itemSize]="36"
-      >
-        <mat-option
-          *cdkVirtualFor="let item of filteredContextItems(); trackBy: trackByKey"
-          [value]="(beforeCurrentWord() ? beforeCurrentWord() + ' ' : '') + '@' + item.uKey + ' ' + afterCurrentWord()"
-        >
-          <div class="flex-1 flex items-center overflow-hidden">
-            <span
-              class="flex-1 text-ellipsis overflow-hidden"
-              [ngmHighlight]="contextSearch()"
-              [content]="item.caption"
-              >{{ item.caption }}</span
+    <div class="relative min-w-[320px] rounded-xl border border-light bg-components-card-bg p-2 shadow-md">
+      @if (loadingContext()) {
+        <z-progress-bar zIndeterminate zShape="square" zSize="sm" zType="accent" class="absolute left-0 top-0 w-full" />
+      } @else if (filteredContextItems()) {
+        <ul cdkListbox class="flex flex-col gap-1">
+          <cdk-virtual-scroll-viewport
+            class="nx-formly__virtual-scroll-viewport"
+            minBufferPx="200"
+            maxBufferPx="400"
+            [style.height.px]="240"
+            [itemSize]="36"
+          >
+            <li
+              *cdkVirtualFor="let item of filteredContextItems(); trackBy: trackByKey"
+              class="rounded-lg"
             >
-            <span
-              class="text-xs text-ellipsis overflow-hidden italic opacity-50"
-              [ngmHighlight]="contextSearch()"
-              [content]="item.key"
-              >{{ item.key }}</span
-            >
-          </div>
-        </mat-option>
-      </cdk-virtual-scroll-viewport>
-    }
-  </mat-autocomplete>
+              <button
+                type="button"
+                class="flex h-9 w-full items-center overflow-hidden rounded-lg px-2 py-1 text-left hover:bg-hover-bg"
+                [cdkOption]="'@' + item.key"
+                (focus)="onContextFocus(item)"
+                (click)="selectContext(item)"
+              >
+                <span
+                  class="flex-1 text-ellipsis overflow-hidden"
+                  [ngmHighlight]="contextSearch()"
+                  [content]="item.caption"
+                  >{{ item.caption }}</span
+                >
+                <span
+                  class="text-xs text-ellipsis overflow-hidden italic opacity-50"
+                  [ngmHighlight]="contextSearch()"
+                  [content]="item.key"
+                  >{{ item.key }}</span
+                >
+              </button>
+            </li>
+          </cdk-virtual-scroll-viewport>
+        </ul>
+      }
+    </div>
+  </ng-template>
 
   @if (error()) {
     <z-form-message zType="error">{{ error() }}</z-form-message>
   }
   @if (creating()) {
-    <mat-progress-bar class="absolute left-0 right-0 bottom-0" mode="buffer"></mat-progress-bar>
+    <z-progress-bar zIndeterminate zShape="square" zSize="sm" class="absolute bottom-0 left-0 right-0"></z-progress-bar>
   }
 </xp-dialog-content>
 
@@ -202,23 +212,19 @@
   }
 </xp-dialog-actions>
 
-<mat-menu #contextMenu="matMenu" class="ngm-menu__copilot-context-popper ngm-density__compact">
-  <ng-template matMenuContent let-word="word">
+<ng-template #contextMenu let-word="word">
+  <div cdkMenu class="ngm-menu__copilot-context-popper ngm-density__compact flex flex-col">
     <ngm-search class="m-2 mb-0" (click)="$event.stopPropagation()" [(ngModel)]="contextMenuSearch" />
 
-    @if (loadingContext$ | async) {
-      <mat-progress-bar
-        mode="query"
-        role="progressbar"
-        color="accent"
-        class="top-0 left-0 w-full"
-        style="position: absolute; height: 2px"
-      />
+    @if (loadingContext()) {
+      <z-progress-bar zIndeterminate zShape="square" zSize="sm" zType="accent" class="absolute left-0 top-0 w-full" />
     } @else if (filteredContextMenuItems()) {
       <cdk-virtual-scroll-viewport minBufferPx="200" maxBufferPx="400" [style.height.px]="240" [itemSize]="30">
         <button
-          mat-menu-item
+          cdkMenuItem
           *cdkVirtualFor="let item of filteredContextMenuItems(); trackBy: trackByKey"
+          type="button"
+          class="w-full px-2 py-1 rounded-lg h-8"
           [ngClass]="{ active: item.uKey === word.text }"
           (click)="repleaceContext(word.text, item)"
         >
@@ -239,5 +245,5 @@
         </button>
       </cdk-virtual-scroll-viewport>
     }
-  </ng-template>
-</mat-menu>
+  </div>
+</ng-template>

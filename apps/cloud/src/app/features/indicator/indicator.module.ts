@@ -11,7 +11,7 @@ import { InlineSearchComponent } from '../../@shared/form-fields'
 import { PACIndicatorRoutingModule } from './indicator-routing.module'
 import { NgmSelectionModule } from '@metad/ocap-angular/selection'
 import { SharedModule } from '../../@shared/shared.module'
-import { MaterialModule } from '../../@shared/material.module'
+import { SharedUiModule } from '../../@shared/ui.module'
 
 @NgModule({
   declarations: [],
@@ -20,7 +20,7 @@ import { MaterialModule } from '../../@shared/material.module'
     FormsModule,
     ReactiveFormsModule,
     SharedModule,
-    MaterialModule,
+    SharedUiModule,
 
     NxCoreModule,
     NgmSelectionModule,

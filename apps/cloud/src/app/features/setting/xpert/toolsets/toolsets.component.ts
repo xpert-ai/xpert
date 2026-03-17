@@ -8,7 +8,7 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, catchError, EMPTY, map, switchMap, tap } from 'rxjs'
 import { getErrorMessage, IXpertToolset, OrderTypeEnum, ToastrService, XpertToolsetService } from '../../../../@core'
 import { AvatarComponent } from 'apps/cloud/src/app/@shared/files'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 
 type XpertToolsetRowType = Partial<IXpertToolset> & { __edit__?: boolean }
 
@@ -20,7 +20,7 @@ type XpertToolsetRowType = Partial<IXpertToolset> & { __edit__?: boolean }
   imports: [
     RouterModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     FormsModule,
     ReactiveFormsModule,
     NgmCommonModule,

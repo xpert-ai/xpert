@@ -6,7 +6,7 @@ import { NgmDisplayBehaviourComponent } from './display-behaviour'
 import { NgmInputModule } from './input/input.module'
 import { ResizerModule } from './resizer/resizer.module'
 import { NgmSearchComponent } from './search/search.component'
-import { NgmMatSelectComponent, NgmSelectComponent } from './select'
+import { NgmAdvancedSelectComponent, NgmSelectComponent } from './select'
 import { NgmSliderInputComponent } from './slider-input'
 import { SplitterModule } from './splitter/splitter.module'
 import { NgmSelectionTableComponent, NgmTableComponent, TableVirtualScrollModule } from './table'
@@ -36,7 +36,7 @@ import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.componen
     NgmSearchComponent,
     TableVirtualScrollModule,
     NgmTreeSelectComponent,
-    NgmMatSelectComponent,
+    NgmAdvancedSelectComponent,
     NgmSelectComponent,
     NgmDisplayBehaviourComponent,
     NgmSliderInputComponent,
@@ -70,7 +70,7 @@ import { NgmProgressSpinnerComponent } from './progress-spinner/spinner.componen
     NgmSearchComponent,
     TableVirtualScrollModule,
     NgmTreeSelectComponent,
-    NgmMatSelectComponent,
+    NgmAdvancedSelectComponent,
     NgmSelectComponent,
     NgmSliderInputComponent,
     NgmInputModule,

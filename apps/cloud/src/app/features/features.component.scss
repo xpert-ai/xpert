@@ -1,7 +1,7 @@
 
 
-@use 'libs/material-theme/src/styles/material/token-utils-compat' as token-utils;
-@use '@angular/material/core/style/sass-utils';
+@use 'libs/material-theme/src/styles/token-utils' as token-utils;
+@use 'libs/material-theme/src/styles/sass-utils';
 @reference "../../styles/tailwind-reference.css";
 // The prefix used to generate the fully qualified name for tokens in this file.
 $prefix: (ngm, shell);
@@ -128,10 +128,4 @@ emoji-avatar.copilot-thinking {
 
 .pac-copilot-trigger.active {
   @apply shadow-lg bg-components-card-bg;
-}
-
-::ng-deep {
-  .pac-toolbar-search__autocomplete.mat-mdc-autocomplete-panel {
-    @apply relative mt-2 max-h-[456px] min-w-[240px];
-  }
 }

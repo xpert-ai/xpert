@@ -6,7 +6,7 @@ import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core
 import { TranslateModule } from '@ngx-translate/core'
 import { map } from 'rxjs/operators'
 import { CertificationService } from '../../@core'
-import { MaterialModule } from '../material.module'
+import { SharedUiModule } from '../ui.module'
 
 @Component({
   standalone: true,
@@ -14,7 +14,7 @@ import { MaterialModule } from '../material.module'
     CommonModule,
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     NgmSelectComponent,
     ButtonGroupDirective,

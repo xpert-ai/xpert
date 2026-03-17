@@ -1,4 +1,5 @@
 import { COMMA, ENTER } from '@angular/cdk/keycodes'
+import { OverlayModule } from '@angular/cdk/overlay'
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling'
 import { CommonModule } from '@angular/common'
 import {
@@ -21,7 +22,6 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { MatAutocompleteModule, MatAutocompleteSelectedEvent } from '@angular/material/autocomplete'
 
 import { 
   ZardButtonComponent, 
@@ -118,7 +118,7 @@ export interface SmartFilterState {
     ZardIconComponent,
     ...ZardFormImports,
     ZardLoaderComponent,
-    MatAutocompleteModule,
+    OverlayModule,
     ZardInputDirective,
     ...ZardTooltipImports,
     ZardCheckboxComponent,
@@ -178,6 +178,7 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
   // States
   readonly disabled$ = computed(() => this.disabled() || this._disabled())
   readonly slicerSignal = signal<ISlicer>(null)
+  readonly panelOpen = signal(false)
 
   readonly hierarchy = model<string>()
 
@@ -506,8 +507,7 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
     }))
   }
 
-  selectMember(event: MatAutocompleteSelectedEvent) {
-    const memberFlatNode = event.option.value as FlatTreeNode<IDimensionMember>
+  selectMember(memberFlatNode: FlatTreeNode<IDimensionMember>) {
     this.toggleMember({
       key: memberFlatNode.key,
       value: memberFlatNode.key,
@@ -515,6 +515,7 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
     })
     this.searchInput.nativeElement.value = ''
     this.valueControl.setValue(null)
+    this.closeAutocomplete()
     this.searchInput.nativeElement.blur()
   }
 
@@ -585,6 +586,23 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
 
   onAutocompleteOpened() {
     this.cdkVirtualScrollViewPort?.checkViewportSize()
+  }
+
+  openAutocomplete() {
+    this.panelOpen.set(true)
+  }
+
+  closeAutocomplete() {
+    this.panelOpen.set(false)
+  }
+
+  onAutocompleteBlur(event: FocusEvent) {
+    window.setTimeout(() => {
+      const activeElement = document.activeElement as HTMLElement | null
+      if (!activeElement?.closest('.ngm-tree-select__panel')) {
+        this.closeAutocomplete()
+      }
+    })
   }
 
   /**

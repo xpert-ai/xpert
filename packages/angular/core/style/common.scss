@@ -20,5 +20,5 @@
 }
 
 .ngm-error {
-  color: var(--mat-form-field-error-text-color);
+  color: var(--ngm-color-error, #ef4444);
 }

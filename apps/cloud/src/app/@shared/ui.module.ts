@@ -20,7 +20,7 @@ import {
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 
-const MATERIAL_MODULES = [
+const SHARED_UI_MODULES = [
   DragDropModule,
   CdkListboxModule,
   ZardIconComponent,
@@ -46,8 +46,8 @@ const MATERIAL_MODULES = [
  * @deprecated Use separate modules so they can be deprecated in the future.
  */
 @NgModule({
-  imports: [...MATERIAL_MODULES],
-  exports: [...MATERIAL_MODULES],
+  imports: [...SHARED_UI_MODULES],
+  exports: [...SHARED_UI_MODULES],
   declarations: []
 })
-export class MaterialModule {}
+export class SharedUiModule {}

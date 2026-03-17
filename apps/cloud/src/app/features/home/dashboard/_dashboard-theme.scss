@@ -2,7 +2,7 @@
 
 @use 'sass:map';
 @use 'sass:color';
-@use '@angular/material' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as mat;
 @reference "tailwindcss";
 @mixin color($theme) {
   $config: mat.m2-get-color-config($theme);
@@ -19,7 +19,7 @@
   }
 
   .assets-list {
-    .mat-mdc-list-item {
+    > li {
       &:hover {
         background-color: mat.m2-get-color-from-palette($background, hover);
       }

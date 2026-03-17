@@ -16,7 +16,8 @@
           zSize="icon"
           zShape="circle"
           [color]="(hasSlicers$ | async) ? 'accent' : ''"
-          [matMenuTriggerFor]="filtersMenu"
+          z-menu
+          [zMenuTriggerFor]="filtersMenu"
           >
           <z-icon zType="filter_alt"></z-icon>
         </button>
@@ -115,17 +116,19 @@
       </div>
     }
 
-    <mat-menu #filtersMenu="matMenu" class="pac-widget__slicer-menu">
-      <ngm-slicers
-        inline
-        editable
-        [slicers]="selectOptions$ | async"
-        [dataSettings]="dataSettings$ | async"
-        [limit]="5"
-        (valueChange)="setSelectOptions($event)"
-        (click)="$event.stopPropagation()"
-      ></ngm-slicers>
-    </mat-menu>
+    <ng-template #filtersMenu>
+      <div z-menu-content class="pac-widget__slicer-menu">
+        <ngm-slicers
+          inline
+          editable
+          [slicers]="selectOptions$ | async"
+          [dataSettings]="dataSettings$ | async"
+          [limit]="5"
+          (valueChange)="setSelectOptions($event)"
+          (click)="$event.stopPropagation()"
+        ></ngm-slicers>
+      </div>
+    </ng-template>
 
     @if (placeholder$ | async) {
       <div

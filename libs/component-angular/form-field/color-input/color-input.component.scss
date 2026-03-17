@@ -3,8 +3,16 @@
   @apply flex flex-col justify-start items-stretch;
 
   &.disabled {
-    .mtx-colorpicker-toggle {
+    .ngm-color-input__trigger {
       @apply opacity-50;
     }
   }
+}
+
+.ngm-color-input__trigger {
+  @apply inline-flex size-7 items-center justify-center rounded-full border border-dashed border-neutral-300 bg-white shadow-sm dark:border-neutral-700 dark:bg-neutral-900;
+}
+
+.ngm-color-input__swatch {
+  @apply block size-4 rounded-full border border-white/60 shadow-inner;
 }

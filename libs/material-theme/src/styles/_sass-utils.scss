@@ -1,0 +1,47 @@
+@use 'sass:list';
+@use 'sass:map';
+@use 'sass:meta';
+
+@function _deep-merge($left, $right) {
+  $result: $left;
+
+  @each $key, $value in $right {
+    $current: if(map.has-key($result, $key), map.get($result, $key), null);
+
+    @if meta.type-of($current) == 'map' and meta.type-of($value) == 'map' {
+      $result: map.set($result, $key, _deep-merge($current, $value));
+    } @else {
+      $result: map.set($result, $key, $value);
+    }
+  }
+
+  @return $result;
+}
+
+@function deep-merge-all($maps...) {
+  $result: ();
+  $count: list.length($maps);
+
+  @if $count == 0 {
+    @return $result;
+  }
+
+  @for $index from 1 through $count {
+    $candidate: list.nth($maps, $index);
+    @if $candidate != null {
+      $result: _deep-merge($result, $candidate);
+    }
+  }
+
+  @return $result;
+}
+
+@mixin current-selector-or-root() {
+  @if & {
+    @content;
+  } @else {
+    :root {
+      @content;
+    }
+  }
+}

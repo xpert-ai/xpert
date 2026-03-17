@@ -6,7 +6,7 @@ import { BehaviorSubject, Subject, firstValueFrom, map } from 'rxjs'
 import { Group, IUser, ROUTE_ANIMATIONS_ELEMENTS, routeAnimations } from '../../../@core/index'
 import { InviteMutationComponent } from '../../../@shared/invite'
 import { TranslationBaseComponent } from '../../../@shared/language'
-import { MaterialModule } from '../../../@shared/material.module'
+import { SharedUiModule } from '../../../@shared/ui.module'
 import { userLabel } from '../../../@shared/pipes'
 import { SharedModule } from '../../../@shared/shared.module'
 import { UserMutationComponent, UserUploadComponent } from '../../../@shared/user'
@@ -18,7 +18,7 @@ import { UserMutationComponent, UserUploadComponent } from '../../../@shared/use
   styleUrls: ['./users.component.scss'],
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  imports: [SharedModule, MaterialModule]
+  imports: [SharedModule, SharedUiModule]
 })
 export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseComponent {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS

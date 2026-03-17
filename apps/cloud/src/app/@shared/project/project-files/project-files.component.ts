@@ -7,7 +7,7 @@ import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@me
 import { TranslateModule } from '@ngx-translate/core'
 import { Subscription, firstValueFrom, of, startWith, switchMap, tap } from 'rxjs'
 import { IStorageFile, ProjectAPIService, StorageFileService, ToastrService, listAnimation } from '../../../@core'
-import { MaterialModule } from '../../material.module'
+import { SharedUiModule } from '../../ui.module'
 
 import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
 @Component({
@@ -19,7 +19,7 @@ import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
   imports: [
     FormsModule,
     ReactiveFormsModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     ButtonGroupDirective,
     AppearanceDirective,

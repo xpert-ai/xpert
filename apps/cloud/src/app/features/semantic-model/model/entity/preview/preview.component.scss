@@ -46,7 +46,7 @@
 }
 
 :host ::ng-deep {
-  .mdc-data-table__header-cell.mat-mdc-table-sticky {
+  th[z-table-head].sticky {
     background-color: var(--ngm-color-surface);
   }
 }

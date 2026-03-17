@@ -4,7 +4,7 @@ import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
 // import { FormsModule } from '@angular/forms'
 // import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
 // import { TranslateModule } from '@ngx-translate/core'
-// import { MaterialModule } from 'apps/cloud/src/app/@shared'
+// import { SharedUiModule } from 'apps/cloud/src/app/@shared'
 
 // export interface StorySaveAsData {
 // name?: string
@@ -15,7 +15,7 @@ import { Z_MODAL_DATA } from '@xpert-ai/headless-ui'
 // standalone: true,
 // imports: [
 // CommonModule,
-// MaterialModule,
+// SharedUiModule,
 // FormsModule,
 // TranslateModule
 // ],

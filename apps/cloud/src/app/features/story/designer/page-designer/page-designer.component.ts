@@ -6,7 +6,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { STORY_DESIGNER_FORM, STORY_DESIGNER_LIVE_MODE } from '@metad/story/designer'
 import { debounceTime, filter, isObservable, of } from 'rxjs'
 import { DesignerWidgetComponent } from '../widget/widget.component'
-import { MaterialModule } from 'apps/cloud/src/app/@shared/material.module'
+import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
 
 @Component({
@@ -15,7 +15,7 @@ import { InlineSearchComponent } from 'apps/cloud/src/app/@shared/form-fields'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    MaterialModule,
+    SharedUiModule,
     InlineSearchComponent,
     AppearanceDirective,
     DesignerWidgetComponent

@@ -20,14 +20,14 @@ import {
 } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { ITag, Store, TagCategoryEnum, TagService } from '../../../@core'
-import { MaterialModule } from '../../material.module'
+import { SharedUiModule } from '../../ui.module'
 import { NgmFieldColor } from '@metad/ocap-angular/core'
 
 @Component({
   standalone: true,
   imports: [
     CommonModule,
-    MaterialModule,
+    SharedUiModule,
     TranslateModule,
     NgmHighlightDirective,
     ZardComboboxComponent,

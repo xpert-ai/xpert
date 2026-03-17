@@ -1,7 +1,7 @@
 
 
-@use 'libs/material-theme/src/styles/material/token-utils-compat' as token-utils;
-@use '@angular/material/core/style/sass-utils';
+@use 'libs/material-theme/src/styles/token-utils' as token-utils;
+@use 'libs/material-theme/src/styles/sass-utils';
 @reference "../../../../styles/tailwind-reference.css";
 // The prefix used to generate the fully qualified name for tokens in this file.
 $global-prefix: ngm;
@@ -58,9 +58,4 @@ $prefix-color: (#{$prefix}, color);
   &.active {
     @apply bg-black/10 hover:bg-black/10 dark:bg-white/20 dark:hover:bg-white/20;
   }
-}
-
-.mat-mdc-list-item.mdc-list-item.pac-project__router-link {
-  --mdc-list-list-item-one-line-container-height: 30px;
-  @apply rounded-md p-0 cursor-pointer;
 }

@@ -13,7 +13,7 @@ import {
 import { BusinessAreasService, NgmSemanticModel } from '@metad/cloud/state'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { nonBlank, nonNullable } from '@metad/core'
-import { NgmHierarchySelectComponent, NgmMatSelectComponent, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
+import { NgmAdvancedSelectComponent, NgmHierarchySelectComponent, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
 import { DensityDirective, ISelectOption, NgmDSCoreService, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import { NgmCalculatedMeasureComponent } from '@metad/ocap-angular/entity'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
@@ -84,7 +84,7 @@ import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '@cloud/app/@shar
     ZardInputDirective,
     ZardCheckboxComponent,
     DensityDirective,
-    NgmMatSelectComponent,
+    NgmAdvancedSelectComponent,
     NgmTreeSelectComponent,
     TagEditorComponent,
     NgmHierarchySelectComponent,
