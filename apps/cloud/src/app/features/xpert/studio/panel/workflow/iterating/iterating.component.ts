@@ -191,6 +191,20 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
     })
   }
 
+  updateRestInputParam(item: NonNullable<IWFNIterating['inputParams']>[number], variable: string) {
+    this.inputParams.update((params) => {
+      params ??= []
+      const index = params.findIndex((param) => param === item)
+      if (index > -1) {
+        params[index] = {
+          ...params[index],
+          variable
+        }
+      }
+      return [...params]
+    })
+  }
+
   updateInputParamName(name: string, newName: string) {
     this.inputParams.update((params) => {
       params ??= []
@@ -205,9 +219,29 @@ export class XpertStudioPanelWorkflowIteratingComponent extends XpertWorkflowBas
     })
   }
 
+  updateRestInputParamName(item: NonNullable<IWFNIterating['inputParams']>[number], newName: string) {
+    this.inputParams.update((params) => {
+      params ??= []
+      const index = params.findIndex((param) => param === item)
+      if (index > -1) {
+        params[index] = {
+          ...params[index],
+          name: newName
+        }
+      }
+      return [...params]
+    })
+  }
+
   removeInputParam(name: string) {
     this.inputParams.update((params) => {
       return params?.filter((_) => _.name !== name)
+    })
+  }
+
+  removeRestInputParam(item: NonNullable<IWFNIterating['inputParams']>[number]) {
+    this.inputParams.update((params) => {
+      return params?.filter((param) => param !== item)
     })
   }
 

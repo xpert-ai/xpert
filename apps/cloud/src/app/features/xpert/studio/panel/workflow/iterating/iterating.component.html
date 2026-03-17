@@ -68,7 +68,7 @@
         </li>
       }
 
-      @for (item of restInputParams(); track item.name) {
+      @for (item of restInputParams(); track item) {
         <li
           class="group/item relative px-2 py-0.5 flex justify-between items-center text-text-secondary hover:bg-hover-bg"
         >
@@ -77,7 +77,7 @@
             class="overflow-hidden opacity-90 hover:opacity-100"
             [variables]="variables()"
             [ngModel]="item.name"
-            (ngModelChange)="updateInputParamName(item.name, $event)"
+            (ngModelChange)="updateRestInputParamName(item, $event)"
           />
 
           <div class="grow"></div>
@@ -89,13 +89,13 @@
             class="overflow-hidden opacity-90 hover:opacity-100"
             [varOptions]="subVarOptions()"
             [ngModel]="item.variable"
-            (ngModelChange)="updateInputParam(item.name, $event)"
+            (ngModelChange)="updateRestInputParam(item, $event)"
           />
 
           <button
             type="button"
             class="btn hidden group-hover/item:inline-flex w-6 h-6 justify-center ml-1 p-1 rounded-md hover:bg-black/5 cursor-pointer danger"
-            (click)="removeInputParam(item.name)"
+            (click)="removeRestInputParam(item)"
           >
             <i class="ri-delete-bin-line"></i>
           </button>
