@@ -132,8 +132,7 @@ export class XpertWorkflowToolComponent extends XpertWorkflowBaseComponent {
         if (this.tool()) {
           this.paramsSample.set({ loading: false, value: null })
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

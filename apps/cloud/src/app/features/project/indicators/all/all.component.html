@@ -1,13 +1,13 @@
 <div class="relative flex-1 overflow-x-auto">
-  <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-    <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
-      <tr class="sticky top-0 left-0 bg-gray-50 dark:bg-gray-700 z-10">
+  <table class="w-full text-sm text-left rtl:text-right text-text-tertiary dark:text-text-quaternary">
+    <thead class="text-sm text-text-secondary uppercase bg-background-default-subtle dark:text-text-quaternary">
+      <tr class="sticky top-0 left-0 bg-background-default-subtle z-10">
         <th scope="col" class="p-4">
           <div class="flex items-center">
             <input
               id="checkbox-all-search"
               type="checkbox"
-              class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+              class="w-4 h-4 text-blue-600 bg-components-input-bg-normal border-divider-deep rounded-sm focus:ring-primary-200 focus:ring-2"
               [ngModel]="allSelected()"
               (ngModelChange)="toggleAllSelection($event)"
             />
@@ -42,7 +42,7 @@
           {{ 'PAC.KEY_WORDS.PublishedAt' | translate: { Default: 'Published At' } }}
         </th>
 
-        <th scope="col" class="px-6 py-3 sticky right-0 bg-gray-50 dark:bg-gray-700">
+        <th scope="col" class="px-6 py-3 sticky right-0 bg-background-default-subtle">
           {{ 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' } }}
         </th>
       </tr>
@@ -50,21 +50,21 @@
     <tbody>
       @for (row of indicators(); track row.id) {
         <tr
-          class="group bg-white border-b dark:bg-gray-800 dark:border-gray-700 border-gray-200 hover:bg-gray-50 dark:hover:bg-gray-600"
+          class="group bg-surface-l1 border-b border-divider-deep hover:bg-hover-bg"
         >
           <td class="w-4 p-4">
             <div class="flex items-center">
               <input
                 id="checkbox-table-search-1"
                 type="checkbox"
-                class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded-sm focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 dark:focus:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600"
+                class="w-4 h-4 text-blue-600 bg-components-input-bg-normal border-divider-deep rounded-sm focus:ring-primary-200 focus:ring-2"
                 [ngModel]="isSelected(row)"
                 (ngModelChange)="toggleSelection(row, $event)"
               />
               <label for="checkbox-table-search-1" class="sr-only">checkbox</label>
             </div>
           </td>
-          <th scope="row" class="px-6 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+          <th scope="row" class="px-6 py-2 font-medium text-text-primary whitespace-nowrap">
             <a class="cursor-pointer hover:underline" (click)="editIndicator(row.id)">
               <span>{{ row.name }}</span>
             </a>
@@ -89,11 +89,11 @@
                   <span>{{ 'PAC.INDICATOR.Published' | translate: { Default: 'Published' } }}</span>
                 }
                 @case (eIndicatorStatusEnum.ARCHIVED) {
-                  <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-neutral-600 flex"></span>
+                  <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-text-tertiary flex"></span>
                   <span>({{ 'PAC.INDICATOR.Archived' | translate: { Default: 'Archived' } }})</span>
                 }
                 @default {
-                  <span class="text-neutral-500"
+                  <span class="text-text-tertiary"
                     >({{ 'PAC.INDICATOR.Unknown' | translate: { Default: 'Unknown' } }})</span
                   >
                 }
@@ -131,7 +131,7 @@
               @default {
                 <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
                   <div
-                    class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-neutral-500 border-neutral-800 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"
+                    class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-background-default-subtle border-divider-deep shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"
                   ></div>
                   <span class="">
                     {{ 'PAC.MODEL.NotIndexed' | translate: { Default: 'Not indexed' } }}
@@ -152,18 +152,18 @@
           <td class="px-6 py-2">
             {{ row.publishedAt | relative }}
           </td>
-          <td class="px-6 py-2 text-lg sticky right-0 bg-gray-50 dark:bg-gray-700">
+          <td class="px-6 py-2 text-lg sticky right-0 bg-background-default-subtle">
             <div class="pac__table-actions flex gap-1">
               <button
                 type="button"
-                class="w-8 h-8 rounded-full text-slate-500 hover:bg-hover-bg opacity-50 group-hover:opacity-100"
+                class="w-8 h-8 rounded-full text-text-tertiary hover:bg-hover-bg opacity-50 group-hover:opacity-100"
                 (click)="editIndicator(row.id)"
               >
                 <i class="ri-pencil-line"></i>
               </button>
               <button
                 type="button"
-                class="w-8 h-8 rounded-full text-slate-500 enabled:hover:bg-hover-bg opacity-50 enabled:group-hover:opacity-100"
+                class="w-8 h-8 rounded-full text-text-tertiary enabled:hover:bg-hover-bg opacity-50 enabled:group-hover:opacity-100"
                 [disabled]="!row.draft"
                 [zTooltip]="
                   row.draft
@@ -180,7 +180,7 @@
 
               <button
                 type="button"
-                class="w-8 h-8 rounded-full text-slate-500 enabled:hover:bg-hover-bg opacity-50 enabled:group-hover:opacity-100"
+                class="w-8 h-8 rounded-full text-text-tertiary enabled:hover:bg-hover-bg opacity-50 enabled:group-hover:opacity-100"
                 [disabled]="row.status !== eIndicatorStatusEnum.RELEASED"
                 [zTooltip]="
                   row.status === eIndicatorStatusEnum.RELEASED
@@ -199,7 +199,7 @@
 
               <button
                 type="button"
-                class="w-8 h-8 rounded-full text-slate-500 hover:bg-hover-bg hover:text-text-destructive opacity-50 group-hover:opacity-100"
+                class="w-8 h-8 rounded-full text-text-tertiary hover:bg-hover-bg hover:text-text-destructive opacity-50 group-hover:opacity-100"
                 (click)="onDelete({ id: row.id, name: row.name })"
               >
                 <i class="ri-delete-bin-line"></i>
@@ -213,28 +213,28 @@
 </div>
 <!-- <div class="p-2 flex justify-end">
   <nav class="flex items-center flex-column flex-wrap md:flex-row justify-between pt-4" aria-label="Table navigation">
-    <span class="text-sm font-normal text-gray-500 dark:text-gray-400 mb-4 md:mb-0 block w-full md:inline md:w-auto">Showing <span class="font-semibold text-gray-900 dark:text-white">1-10</span> of <span class="font-semibold text-gray-900 dark:text-white">1000</span></span>
+    <span class="text-sm font-normal text-text-tertiary dark:text-text-quaternary mb-4 md:mb-0 block w-full md:inline md:w-auto">Showing <span class="font-semibold text-text-primary dark:text-white">1-10</span> of <span class="font-semibold text-text-primary dark:text-white">1000</span></span>
     <ul class="inline-flex -space-x-px rtl:space-x-reverse text-sm h-8">
       <li>
-          <a href="#" class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-gray-500 bg-white border border-gray-300 rounded-s-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Previous</a>
+          <a href="#" class="flex items-center justify-center px-3 h-8 ms-0 leading-tight text-text-tertiary bg-surface-l1 border border-divider-deep rounded-s-lg hover:bg-hover-bg hover:text-text-secondary">Previous</a>
       </li>
       <li>
-          <a href="#" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">1</a>
+          <a href="#" class="flex items-center justify-center px-3 h-8 leading-tight text-text-tertiary bg-surface-l1 border border-divider-deep hover:bg-hover-bg hover:text-text-secondary">1</a>
       </li>
       <li>
-          <a href="#" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">2</a>
+          <a href="#" class="flex items-center justify-center px-3 h-8 leading-tight text-text-tertiary bg-surface-l1 border border-divider-deep hover:bg-hover-bg hover:text-text-secondary">2</a>
       </li>
       <li>
-          <a href="#" aria-current="page" class="flex items-center justify-center px-3 h-8 text-blue-600 border border-gray-300 bg-blue-50 hover:bg-blue-100 hover:text-blue-700 dark:border-gray-700 dark:bg-gray-700 dark:text-white">3</a>
+          <a href="#" aria-current="page" class="flex items-center justify-center px-3 h-8 text-blue-600 border border-divider-deep bg-blue-50 hover:bg-blue-100 hover:text-blue-700">3</a>
       </li>
       <li>
-          <a href="#" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">4</a>
+          <a href="#" class="flex items-center justify-center px-3 h-8 leading-tight text-text-tertiary bg-surface-l1 border border-divider-deep hover:bg-hover-bg hover:text-text-secondary">4</a>
       </li>
       <li>
-          <a href="#" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">5</a>
+          <a href="#" class="flex items-center justify-center px-3 h-8 leading-tight text-text-tertiary bg-surface-l1 border border-divider-deep hover:bg-hover-bg hover:text-text-secondary">5</a>
       </li>
       <li>
-        <a href="#" class="flex items-center justify-center px-3 h-8 leading-tight text-gray-500 bg-white border border-gray-300 rounded-e-lg hover:bg-gray-100 hover:text-gray-700 dark:bg-gray-800 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white">Next</a>
+        <a href="#" class="flex items-center justify-center px-3 h-8 leading-tight text-text-tertiary bg-surface-l1 border border-divider-deep rounded-e-lg hover:bg-hover-bg hover:text-text-secondary">Next</a>
       </li>
     </ul>
   </nav>
@@ -243,7 +243,7 @@
 @if (hasSelected()) {
   <div class="absolute bottom-12 w-full px-16 py-2 z-10">
     <div
-      class="rounded-xl flex justify-center items-center gap-4 p-2 shadow-lg border-[0.5px] border-solid border-divider-deep bg-neutral-200"
+      class="rounded-xl flex justify-center items-center gap-4 p-2 shadow-lg border-[0.5px] border-solid border-divider-deep bg-background-default-subtle"
     >
       <div>{{ selectedIndicators().length }} {{ 'PAC.Project.Indicators' | translate: { Default: 'Indicators' } }}</div>
       <button type="button" class="btn btn-large" (click)="exportSelected()">

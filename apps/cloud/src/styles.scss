@@ -7,6 +7,7 @@
 @source "../../../libs/**/*.{ts,html,scss,sass,css}";
 @source "../../../packages/**/*.{ts,html,scss,sass,css}";
 @source "../../../legacies/**/*.{ts,html,scss,sass,css}";
+@include meta.load-css('../../../packages/ui/src/styles.css');
 
 @import 'remixicon/fonts/remixicon.css';
 @include meta.load-css('app/@core/font-face');
@@ -16,7 +17,6 @@
 @include meta.load-css('styles/themes/base');
 @include meta.load-css('styles/themes/default');
 @include meta.load-css('styles/themes/dark');
-@include meta.load-css('styles/themes/dark-green');
 @include meta.load-css('styles/themes/thin');
 @include meta.load-css('styles/utilities');
 @include meta.load-css('styles/components/index');

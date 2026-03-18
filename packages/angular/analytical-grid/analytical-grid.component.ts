@@ -693,8 +693,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
           }
           this.analyticsService.dataSettings = dataSettings
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {
@@ -702,7 +701,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
       if (this.pageSize() !== defaultPageSize) {
         this.pageSize.set(defaultPageSize)
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       const total = this.resultsLength()
@@ -713,7 +712,7 @@ export class AnalyticalGridComponent<T> implements OnChanges, OnDestroy, Focusab
       if (this.pageIndex() > maxPageIndex) {
         this.pageIndex.set(maxPageIndex)
       }
-    }, { allowSignalWrites: true })
+    })
 
     afterNextRender(() => {
       this._focusMonitor.monitor(this.elementRef, true)

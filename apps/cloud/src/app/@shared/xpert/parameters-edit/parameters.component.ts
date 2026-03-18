@@ -54,8 +54,7 @@ export class XpertParametersEditComponent {
         if (value && !this.parameters.value.length) {
           this.initParameters(value)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

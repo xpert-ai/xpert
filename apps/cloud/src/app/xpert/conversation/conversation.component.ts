@@ -98,8 +98,7 @@ export class ChatConversationComponent {
     effect(
       () => {
         this.homeService.conversation.set(this.conversation() && { ...this.conversation(), messages: this.messages() })
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     this.destroyRef.onDestroy(() => {

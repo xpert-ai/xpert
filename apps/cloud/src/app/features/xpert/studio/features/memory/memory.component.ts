@@ -83,8 +83,7 @@ export class XpertStudioFeaturesMemoryComponent {
         if (this.profile()?.enabled && isNil(this.profile().afterSeconds)) {
           this.afterSeconds = 10
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

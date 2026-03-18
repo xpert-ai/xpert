@@ -102,8 +102,7 @@ export class ChatXpertComponent implements OnDestroy {
           })
           this.chatHomeComponent.historyExpanded.set(true)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     this.searchXpertSub = this.searchControl.valueChanges

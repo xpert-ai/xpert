@@ -440,8 +440,7 @@ export class XpertStudioPanelAgentComponent {
           this.prompt.set(this.xpertAgent().prompt)
           this.copilotModel.set(this.xpertAgent().copilotModel)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

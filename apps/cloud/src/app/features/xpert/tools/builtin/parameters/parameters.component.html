@@ -1,4 +1,4 @@
-<div class="flex items-center mb-4 leading-[18px] text-sm font-semibold text-gray-500 uppercase">
+<div class="flex items-center mb-4 leading-[18px] text-sm font-semibold text-text-tertiary uppercase">
   <div class="mr-3">{{'PAC.Xpert.Parameters' |translate: {Default: 'Parameters'} }}</div>
   <div class="grow w-0 h-px bg-[#f3f4f6]"></div>
 </div>
@@ -7,13 +7,13 @@
   @for (parameter of tool().parameters; track parameter.name) {
     <div>
       <div class="flex items-center space-x-2 leading-[18px]">
-        <div class="text-sm font-semibold text-gray-900">{{parameter.label | i18n}}</div>
-        <div class="text-xs font-medium font-mono text-gray-500">{{parameter.type}}</div>
+        <div class="text-sm font-semibold text-text-primary">{{parameter.label | i18n}}</div>
+        <div class="text-xs font-medium font-mono text-text-tertiary">{{parameter.type}}</div>
         @if (parameter.required) {
           <div class="text-xs font-medium text-[#EC4A0A]">Required</div>
         }
       </div>
-      <div class="mt-1 leading-[18px] text-xs font-body font-normal text-gray-600">{{parameter.human_description | i18n}}</div>
+      <div class="mt-1 leading-[18px] text-xs font-body font-normal text-text-secondary">{{parameter.human_description | i18n}}</div>
     </div>
   }
 </div>

@@ -282,8 +282,7 @@ export abstract class ChatService {
         if (this.conversation()?.xpert && !this.xpert()) {
           this.xpert.set(this.conversation().xpert)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -295,8 +294,7 @@ export abstract class ChatService {
             this.conversation.set(conversation)
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -306,8 +304,7 @@ export abstract class ChatService {
         if (feedbacks !== undefined) {
           this.feedbacks.set(feedbacks ?? null)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -315,8 +312,7 @@ export abstract class ChatService {
         if (!this.conversationId()) {
           this.suggestionQuestions.set([])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     // effect(() => {

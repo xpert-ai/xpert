@@ -2,7 +2,7 @@
   {{ 'PAC.Xpert.ActionToReview' | translate: {Default: 'Action to review'} }}
 </div>
 @for (action of actions(); track action.name; let i = $index) {
-  <section class="rounded-2xl border border-divider-deep bg-white/70 shadow-sm p-4 flex flex-col gap-3">
+  <section class="rounded-2xl border border-divider-deep bg-components-panel-bg/80 shadow-sm p-4 flex flex-col gap-3">
     <div class="flex flex-col items-start justify-start gap-3">
       <div class="space-y-1">
         <div class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
@@ -25,7 +25,7 @@
             class="px-3 py-1.5 text-sm font-medium transition-colors duration-150"
             [ngClass]="decisionFor(i)?.type === option
               ? 'bg-primary-500 text-white'
-              : 'text-text-tertiary hover:bg-neutral-50 hover:text-text-primary'"
+              : 'text-text-tertiary hover:bg-hover-bg hover:text-text-primary'"
             (click)="onDecisionSelect(i, option)">
             @switch (option) {
               @case ('approve') { {{ 'PAC.ACTIONS.Approve' | translate: {Default: 'Approve'} }} }
@@ -38,7 +38,7 @@
     </div>
 
     <div class="grid gap-3 md:grid-cols-2">
-      <div class="rounded-xl border border-dashed border-divider bg-neutral-50/60 p-3">
+      <div class="rounded-xl border border-dashed border-divider bg-background-default-subtle/60 p-3">
         <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
           {{ 'PAC.Xpert.ProposedArgs' | translate: {Default: 'Proposed arguments'} }}
         </label>
@@ -46,7 +46,7 @@
       </div>
 
       @if (decisionFor(i)?.type === 'edit') {
-        <div class="rounded-xl border border-divider bg-white p-3 space-y-2">
+        <div class="rounded-xl border border-divider bg-components-panel-bg p-3 space-y-2">
           <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
             {{ 'PAC.Xpert.EditArgs' | translate: {Default: 'Edit arguments (JSON)'} }}
           </label>
@@ -60,7 +60,7 @@
           }
         </div>
       } @else if (decisionFor(i)?.type === 'reject') {
-        <div class="rounded-xl border border-divider bg-white p-3 space-y-2">
+        <div class="rounded-xl border border-divider bg-components-panel-bg p-3 space-y-2">
           <label class="text-[11px] font-semibold uppercase tracking-[0.08em] text-text-tertiary">
             {{ 'PAC.Xpert.RejectReason' | translate: {Default: 'Reason for rejection (optional)'} }}
           </label>
@@ -72,7 +72,7 @@
           ></textarea>
         </div>
       } @else {
-        <div class="rounded-xl border border-divider bg-white p-3 text-sm text-text-secondary flex items-center justify-center">
+        <div class="rounded-xl border border-divider bg-components-panel-bg p-3 text-sm text-text-secondary flex items-center justify-center">
           {{ 'PAC.Xpert.HITLNoChanges' | translate: {Default: 'Approve without changes'} }}
         </div>
       }

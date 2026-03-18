@@ -10,7 +10,7 @@
         rounded-[9px]"
       type="button"
       role="radio"
-      [ngClass]="option === types()[0] ? 'bg-neutral-100 text-text-primary border-divider-deep' : 'border-transparent text-zinc-500'"
+      [ngClass]="option === types()[0] ? 'bg-components-card-bg text-text-primary border-divider-deep' : 'border-transparent text-text-secondary'"
       [cdkOption]="option"
     >
       <span class="font-semibold uppercase">{{ 'PAC.MODEL.Type_' + option | translate: {Default: option} }}</span>

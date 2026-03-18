@@ -11,7 +11,7 @@
     @for (dimension of dimensions(); track $index) {
       <div
         #dimensionRef
-        class="dimension group absolute bg-neutral-200 rounded-lg cursor-pointer z-10 w-64 flex flex-col border border-solid border-transparent dark:bg-neutral-800 dark:text-neutral-100 dark:hover:bg-neutral-700 dark:hover:border-neutral-500"
+        class="dimension group absolute bg-background-default-subtle rounded-lg cursor-pointer z-10 w-64 flex flex-col border border-solid border-transparent text-text-primary hover:border-divider-deep"
         [class.selected]="selected()?.key === dimension.__id__"
         [ngStyle]="{
           left: layout()[dimension.__id__]?.x + 'px',
@@ -56,7 +56,7 @@
               <div class="flex flex-col">
                 @for (level of hierarchy.levels; track level.__id__) {
                   <div
-                    class="level-item flex px-2 hover:bg-black/5 dark:hover:bg-white/10"
+                    class="level-item flex px-2 hover:bg-hover-bg"
                     [class.selected]="selected()?.key === level.__id__"
                     (click)="dimension.isUsage ? null : select($event, ModelDesignerType.level, level.__id__)"
                   >
@@ -70,7 +70,7 @@
           @for (hierarchy of dimension.hierarchies; track $index) {
             @if (hierarchy.name) {
               <div
-                class="hierarchy-item flex pr-2 hover:bg-black/5 dark:hover:bg-white/10"
+                class="hierarchy-item flex pr-2 hover:bg-hover-bg"
                 [class.selected]="selected()?.key === hierarchy.__id__"
                 (click)="dimension.isUsage ? null : select($event, ModelDesignerType.hierarchy, hierarchy.__id__)"
               >
@@ -95,7 +95,7 @@
             @if (expandStatus()[dimension.__id__ + hierarchy.__id__]) {
               @for (level of hierarchy.levels; track level.__id__) {
                 <div
-                  class="level-item flex pl-10 pr-2 hover:bg-black/5 dark:hover:bg-white/10"
+                  class="level-item flex pl-10 pr-2 hover:bg-hover-bg"
                   [class.selected]="selected()?.key === level.__id__"
                   (click)="dimension.isUsage ? null : select($event, ModelDesignerType.level, level.__id__)"
                 >
@@ -111,7 +111,7 @@
     @if (cube()) {
       <div
         #cubeRef
-        class="cube absolute bg-neutral-200 rounded-lg cursor-pointer z-10 w-64 flex flex-col border border-solid border-neutral-300 dark:bg-neutral-800 dark:text-neutral-100 dark:border-neutral-600 dark:hover:bg-neutral-700 dark:hover:border-neutral-500"
+        class="cube absolute bg-background-default-subtle rounded-lg cursor-pointer z-10 w-64 flex flex-col border border-solid border-divider-deep text-text-primary hover:border-divider-deep"
         [class.selected]="selected()?.key === cube().__id__"
         [ngStyle]="{
           left: layout()[cube().__id__]?.x + 'px',
@@ -132,7 +132,7 @@
         <div class="flex flex-col overflow-hidden hover:overflow-auto max-h-[200px]">
           @for (dimension of dimensions(); track dimension.__id__) {
             <div
-              class="dimension-item flex px-2 hover:bg-black/5 dark:hover:bg-white/10"
+              class="dimension-item flex px-2 hover:bg-hover-bg"
               [class.selected]="selected()?.key === dimension.__id__"
               (click)="
                 select(
@@ -147,7 +147,7 @@
           }
           @for (measure of measures(); track measure.__id__) {
             <div
-              class="measure-item flex px-2 hover:bg-black/5 dark:hover:bg-white/10"
+              class="measure-item flex px-2 hover:bg-hover-bg"
               [class.selected]="selected()?.key === measure.__id__"
               (click)="select($event, ModelDesignerType.measure, measure.__id__)"
             >
@@ -156,7 +156,7 @@
           }
           @for (member of calculatedMembers(); track member.__id__) {
             <div
-              class="measure-item calculated-member flex px-2 hover:bg-black/5 dark:hover:bg-white/10"
+              class="measure-item calculated-member flex px-2 hover:bg-hover-bg"
               [class.selected]="selected()?.key === member.__id__"
               (click)="select($event, ModelDesignerType.calculatedMember, member.__id__)"
             >

@@ -129,7 +129,7 @@
     <span>{{ environment()?.name }}</span>
   </button>
 
-  <div class="w-[1px] h-3.5 bg-gray-200"></div>
+  <div class="w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
 
   <div class="flex items-center p-0.5 rounded-lg border-[0.5px] border-(--border) shadow-sm bg-components-card-bg">
     <div
@@ -182,7 +182,7 @@
         <i class="ri-list-check-3"></i>
         @if (checklist()?.length) {
           <div
-            class="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-gray-100 bg-[#F79009] text-[11px] font-semibold text-white"
+            class="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-divider-regular bg-[#F79009] text-[11px] font-semibold text-white"
           >
             {{ checklist().length }}
           </div>
@@ -232,7 +232,7 @@
 
 <ng-template #publishMenu>
   <div class="cdk-menu__large w-80" cdkMenu @overlayAnimation1>
-    <div class="flex flex-col px-2 pt-2 pb-4 text-gray-500">
+    <div class="flex flex-col px-2 pt-2 pb-4 text-text-tertiary">
       <div class="flex items-center h-6 font-medium uppercase mb-2 text-sm">
         {{ 'PAC.Xpert.LatestPublish' | translate: { Default: 'Latest Publish' } }}
       </div>
@@ -309,7 +309,7 @@
       </button>
       <!-- 
       <div class="mt-8 pt-2 border-t-[0.5px] border-t-black/5">
-        <div class="group bg-gray-100 rounded-lg transition-colors cursor-pointer hover:bg-primary-50"
+        <div class="group bg-components-input-bg-normal rounded-lg transition-colors cursor-pointer hover:bg-primary-50"
           (click)="publishToIntegration()"
         >
           <div class="flex justify-start items-center gap-2 px-2.5 py-2">
@@ -321,7 +321,7 @@
             <div class="grow shrink basis-0 text-[13px] font-medium leading-[18px] truncate group-hover:text-primary-600">
               {{ 'PAC.Xpert.PublishToLarketc' | translate: {Default: 'Publish to Lark, etc.'} }}
             </div>
-            <span class="shrink-0 px-1 border border-black/8 rounded-[5px] bg-white text-[10px] font-medium leading-[18px] text-gray-500">
+            <span class="shrink-0 px-1 border border-divider-regular rounded-[5px] bg-components-card-bg text-[10px] font-medium leading-[18px] text-text-tertiary">
               {{ 'PAC.Xpert.ConfigurationRequired' | translate: {Default: 'Configuration required'} }}
             </span>
           </div>
@@ -385,7 +385,7 @@
       <ngm-spin class="absolute top-0 left-0 w-full h-full z-20" />
     }
 
-    <div class="sticky top-0 bg-white flex items-center justify-between p-2 text-base font-semibold text-gray-900">
+    <div class="sticky top-0 bg-components-card-bg flex items-center justify-between p-2 text-base font-semibold text-text-primary">
       <div class="grow">{{ 'PAC.Xpert.ChatHistory' | translate: { Default: 'Chat History' } }}</div>
     </div>
 
@@ -413,10 +413,10 @@
 <ng-template #agentMenu let-trigger="trigger">
   <div
     @overlayAnimation1
-    class="w-[640px] flex flex-col h-full bg-white border-[0.5px] border-gray-200 rounded-xl shadow-xl"
+    class="w-[640px] flex flex-col h-full bg-components-card-bg border-[0.5px] border-divider-deep rounded-xl shadow-xl"
   >
-    <div class="shrink-0 flex justify-between items-center pl-6 pr-5 h-14 border-b border-b-gray-100">
-      <div class="flex flex-col text-base font-semibold text-gray-900">
+    <div class="shrink-0 flex justify-between items-center pl-6 pr-5 h-14 border-b border-divider-regular">
+      <div class="flex flex-col text-base font-semibold text-text-primary">
         <div class="leading-6">{{ 'PAC.Xpert.AgentSettings' | translate: { Default: 'Agent Settings' } }}</div>
       </div>
       <div class="flex items-center">
@@ -431,10 +431,10 @@
     </div>
 
     <div class="grow p-6 pt-5 pb-[68px]">
-      <div class="mb-4 flex justify-between items-center h-12 px-3 rounded-lg bg-gray-50">
+      <div class="mb-4 flex justify-between items-center h-12 px-3 rounded-lg bg-background-default-subtle">
         <div class="flex items-center">
           <i class="ri-git-merge-line text-xl text-fuchsia-600"></i>
-          <div class="ml-3 mr-1 leading-6 text-sm font-semibold text-gray-800">
+          <div class="ml-3 mr-1 leading-6 text-sm font-semibold text-text-primary">
             {{ 'PAC.Xpert.MaxConcurrency' | translate: { Default: 'Max Concurrency' } }}
           </div>
           <i
@@ -459,18 +459,18 @@
             min="1"
             max="100"
             step="1"
-            class="block w-16 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600"
+            class="block w-16 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-components-input-bg-normal text-text-primary placeholder:text-components-input-text-placeholder focus:ring-1 focus:ring-inset focus:ring-primary-600"
             type="number"
             [(ngModel)]="maxConcurrency"
           />
         </div>
       </div>
 
-      <div class="mb-4 flex justify-between items-center h-12 px-3 rounded-lg bg-gray-50">
+      <div class="mb-4 flex justify-between items-center h-12 px-3 rounded-lg bg-background-default-subtle">
         <div class="flex-1 flex justify-start items-center">
           <i class="ri-infinity-line text-xl text-lime-600"></i>
 
-          <div class="ml-3 mr-1 leading-6 text-sm font-semibold text-gray-800">
+          <div class="ml-3 mr-1 leading-6 text-sm font-semibold text-text-primary">
             {{ 'PAC.Xpert.RecursionLimit' | translate: { Default: 'Recursion Limit' } }}
           </div>
 
@@ -496,7 +496,7 @@
             min="10"
             max="1000"
             step="10"
-            class="block w-16 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-gray-100 text-gray-900 placeholder:text-gray-400 focus:ring-1 focus:ring-inset focus:ring-primary-600"
+            class="block w-16 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-components-input-bg-normal text-text-primary placeholder:text-components-input-text-placeholder focus:ring-1 focus:ring-inset focus:ring-primary-600"
             type="number"
             [(ngModel)]="recursionLimit"
           />
@@ -516,7 +516,7 @@
       @if (diagram.image) {
         <img [src]="diagram.image" alt="Diagram Image" />
       } @else {
-        <div class="w-8 h-8 flex justify-center items-center mb-2 rounded-xl bg-slate-50 shadow-sm text-text-warning">
+        <div class="w-8 h-8 flex justify-center items-center mb-2 rounded-xl bg-background-default-subtle shadow-sm text-text-warning">
           <i class="ri-error-warning-line"></i>
         </div>
         <div class="text-sm text-text-warning">{{ diagram.error }}</div>

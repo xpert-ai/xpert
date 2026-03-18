@@ -259,13 +259,12 @@ export class ChatConversationPreviewComponent {
             }, {})
           )
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
-    effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()), { allowSignalWrites: true })
-    effect(() => this.#audioRecorder.xpert.set(this.xpert() as IXpert), { allowSignalWrites: true })
-    effect(() => this.input.set(this.#audioRecorder.text()), { allowSignalWrites: true })
+    effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()))
+    effect(() => this.#audioRecorder.xpert.set(this.xpert() as IXpert))
+    effect(() => this.input.set(this.#audioRecorder.text()))
 
     this.#destroyRef.onDestroy(() => {
       this.#destroyed = true

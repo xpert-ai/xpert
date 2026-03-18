@@ -69,7 +69,7 @@ export class PluginInstallComponent {
             this.latestVersion.set(null)
           }
         })
-    }, { allowSignalWrites: true })
+    })
   }
 
   close() {

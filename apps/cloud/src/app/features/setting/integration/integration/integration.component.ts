@@ -152,8 +152,7 @@ export class IntegrationComponent implements IsDirty {
         if (this._providerQuery() && !this.paramId()) {
           this.formGroup.get('provider').setValue(this._providerQuery())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -165,8 +164,7 @@ export class IntegrationComponent implements IsDirty {
         }
         this.formGroup.markAsPristine()
         this.loading.set(false)
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -174,8 +172,7 @@ export class IntegrationComponent implements IsDirty {
         if (this.integrationProvider()) {
           this.formGroup.get('features').setValue(this.integrationProvider().features || [])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

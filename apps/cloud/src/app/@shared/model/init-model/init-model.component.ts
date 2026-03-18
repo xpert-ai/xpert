@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, model, signal } from '@angular/core'
+import { Component, computed, effect, inject, Injector, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { uuid } from '@cloud/app/@core'
 import { ISemanticModel, OrderTypeEnum, SemanticModelServerService } from '@metad/cloud/state'
@@ -24,6 +24,7 @@ import { ModelCreationComponent } from '../creation/creation.component'
 export class InitModelComponent extends AbstractInterruptComponent<{name?: string}, {modelId?: string}> {
   readonly modelsAPI = inject(SemanticModelServerService)
   readonly #dialog = inject(Dialog)
+  readonly #injector = inject(Injector)
 
   readonly #models = myRxResource({
     request: () => ({}),
@@ -70,7 +71,7 @@ export class InitModelComponent extends AbstractInterruptComponent<{name?: strin
       if (this.name()) {
         this.types.set(['New'])
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   onNewModel() {
@@ -78,6 +79,7 @@ export class InitModelComponent extends AbstractInterruptComponent<{name?: strin
       .open<ISemanticModel>(ModelCreationComponent, {
         backdropClass: 'xp-overlay-share-sheet',
         panelClass: 'xp-overlay-pane-share-sheet',
+        injector: this.#injector,
         data: {
           name: this.data()?.name
         }

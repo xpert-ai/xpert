@@ -16,7 +16,7 @@
       <div class="grid grid-cols-1">
         @for (workspace of workspaces(); track workspace.id) {
           <div class="group rounded-xl py-2 pl-4 pr-2 flex items-center justify-between hover:bg-hover-bg">
-            <div class="text-gray-800 font-medium">
+            <div class="text-text-primary font-medium">
               @if (me().id === workspace.ownerId) {
                 <i
                   class="ri-user-2-fill text-text-secondary"

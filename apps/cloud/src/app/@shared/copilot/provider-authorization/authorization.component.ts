@@ -65,7 +65,7 @@ export class CopilotAiProviderAuthComponent {
       if (this.copilotProvider()) {
         this.credentials.set(this.copilotProvider().credentials)
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   cancel() {

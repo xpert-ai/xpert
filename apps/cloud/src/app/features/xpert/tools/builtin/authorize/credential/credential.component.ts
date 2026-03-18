@@ -70,8 +70,7 @@ export class XpertToolBuiltinCredentialComponent {
         if (this.valueModel() === undefined && !isNil(this.credential()?.default)) {
           this.valueModel.set(this.credential().default)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

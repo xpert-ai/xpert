@@ -74,8 +74,7 @@ export class ProjectInterruptSwitchComponent extends AbstractInterruptComponent<
         if (this.name()) {
           this.types.set(['New'])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

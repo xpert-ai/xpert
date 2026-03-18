@@ -14,7 +14,7 @@
 
     <textarea formControlName="description"
       class="w-full px-2 py-1 mt-2 text-sm outline-none rounded-lg border border-solid border-transparent active:border-divider-regular focus-within:border-divider-regular
-        bg-gray-50 focus-within:bg-gray-100"
+        bg-background-default-subtle focus-within:bg-components-input-bg-normal"
       [placeholder]="'PAC.Xpert.EnterToolsetDescription' | translate: {Default: 'Enter toolset description'} "
     ></textarea>
   </div>
@@ -52,7 +52,7 @@
 
           <ng-template #urlMenu>
             <div cdkMenu class="relative p-2">
-              <input class="w-[244px] h-9 pl-1.5 pr-[44px] overflow-x-auto border border-gray-200 rounded-lg text-sm"
+              <input class="w-[244px] h-9 pl-1.5 pr-[44px] overflow-x-auto border border-divider-deep rounded-lg text-sm"
                 placeholder="https://..."
                 type="text"
                 [(ngModel)]="url" [ngModelOptions]="{standalone: true}" >
@@ -88,17 +88,17 @@
       </div>
     </div>
     <textarea class="ngm-input w-full h-[240px] px-3 py-2 leading-5 text-sm font-normal rounded-lg overflow-y-auto
-        text-gray-900 bg-gray-100"
+        text-text-primary bg-components-input-bg-normal"
       [placeholder]="'PAC.Xpert.EnterYourOpenAPISchema' | translate: {Default: 'Enter your OpenAPI schema here'}"
       formControlName="schema"
       [ngClass]="{error: schema.invalid && (schema.dirty || schema.touched)}"
     ></textarea>
 
     <div formGroupName="options" >
-      <div class="py-2 leading-5 text-sm font-medium text-gray-900">
+      <div class="py-2 leading-5 text-sm font-medium text-text-primary">
         {{'PAC.Xpert.BaseUrl' | translate: {Default: 'Base Url'} }}
       </div>
-      <input z-input class="w-full h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg grow"
+      <input z-input class="w-full h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg grow"
         [placeholder]=" 'PAC.Xpert.EnterBaseUrl' | translate: {Default: 'Please enter base url'} "
         formControlName="baseUrl"
         >
@@ -110,13 +110,13 @@
   </div>
   @if (!toolset()) {
     <div>
-      <div class="py-2 leading-5 text-base font-medium text-gray-900">
+      <div class="py-2 leading-5 text-base font-medium text-text-primary">
         {{ 'PAC.Xpert.AvailableTools' | translate: {Default: 'Available Tools'} }}
       </div>
-      <div class="rounded-lg border border-gray-200 w-full overflow-x-auto">
-        <table class="w-full leading-[18px] text-sm text-gray-700 font-normal">
-          <thead class="text-gray-500 uppercase">
-            <tr class="border-gray-200">
+      <div class="rounded-lg border border-divider-deep w-full overflow-x-auto">
+        <table class="w-full leading-[18px] text-sm text-text-secondary font-normal">
+          <thead class="text-text-tertiary uppercase">
+            <tr class="border-divider-deep">
               <th class="">{{'PAC.KEY_WORDS.Enabled' | translate: {Default: 'Enabled'} }}</th>
               <th class="">{{'PAC.KEY_WORDS.Name' | translate: {Default: 'Name'} }}</th>
               <th class=" w-[236px]">{{'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</th>
@@ -127,10 +127,10 @@
           </thead>
           <tbody formArrayName="tools">
             @for (tool of tools.controls; track i; let i = $index) {
-              <tr class="border-gray-200" [formGroupName]="i">
+              <tr class="border-divider-deep" [formGroupName]="i">
                 <td class="p-2 pl-3 font-medium">
                   <input formControlName="enabled" id="tool-disabled-{{i}}" type="checkbox"
-                    class="w-4 h-4 text-blue-600 bg-gray-100 border-gray-300 rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
+                    class="w-4 h-4 text-blue-600 bg-components-input-bg-normal border-divider-deep rounded focus:ring-blue-500 dark:focus:ring-blue-600 dark:ring-offset-gray-800 focus:ring-2 dark:bg-gray-700 dark:border-gray-600">
                 </td>
                 <td class="p-2 pl-3 font-medium">
                   <xpert-tool-name-input formControlName="name" />
@@ -157,25 +157,25 @@
   <xpert-tool-authorization-input formControlName="credentials" />
 
   <div>
-    <div class="py-2 leading-5 text-sm font-medium text-gray-900">
+    <div class="py-2 leading-5 text-sm font-medium text-text-primary">
       {{'PAC.KEY_WORDS.Tags' | translate: {Default: 'Tags'} }}
     </div>
     <tag-select optional [category]="eTagCategoryEnum.TOOLSET" [formControl]="tags"></tag-select>
   </div>
   <div>
-    <div class="py-2 leading-5 text-sm font-medium text-gray-900">
+    <div class="py-2 leading-5 text-sm font-medium text-text-primary">
       {{'PAC.Xpert.PrivacyPolicy' | translate: {Default: 'Privacy Policy'} }}
     </div>
-    <input z-input class="w-full h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg grow"
+    <input z-input class="w-full h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg grow"
       [placeholder]=" 'PAC.Xpert.EnterPrivacyPolicy' | translate: {Default: 'Please enter privacy policy'} "
       formControlName="privacyPolicy"
       >
   </div>
   <div>
-    <div class="py-2 leading-5 text-sm font-medium text-gray-900">
+    <div class="py-2 leading-5 text-sm font-medium text-text-primary">
       {{'PAC.Xpert.CustomDisclaimer' | translate: {Default: 'Custom Disclaimer'} }}
     </div>
-    <input z-input class="w-full h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg grow"
+    <input z-input class="w-full h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg grow"
       [placeholder]=" 'PAC.Xpert.EnterCustomDisclaimer' | translate: {Default: 'Please enter custom disclaimer'} "
       formControlName="customDisclaimer"
       >

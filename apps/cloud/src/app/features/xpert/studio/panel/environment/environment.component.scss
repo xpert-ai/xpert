@@ -1,6 +1,6 @@
 @reference "../../../../../../styles/tailwind-reference.css";
 :host {
-  @apply relative flex flex-col w-[420px] bg-gray-50 rounded-l-2xl h-full border border-components-panel-border shadow-sm;
+  @apply relative flex flex-col w-[420px] bg-background-default-subtle rounded-l-2xl h-full border border-components-panel-border shadow-sm;
 }
 
 .variable-list-item.danger {

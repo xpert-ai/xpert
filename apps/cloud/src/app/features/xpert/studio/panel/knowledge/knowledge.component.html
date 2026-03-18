@@ -189,7 +189,7 @@
     </button>
 
     @if (knowledgebases()?.length) {
-      <div class="flex items-center mb-4 leading-[18px] text-base font-semibold text-gray-500 uppercase">
+      <div class="flex items-center mb-4 leading-[18px] text-base font-semibold text-text-tertiary uppercase">
         <div class="mr-3">{{ 'PAC.Xpert.OrReselect' | translate: { Default: 'Or reselect' } }}</div>
         <div class="grow w-0 h-px bg-divider-regular"></div>
       </div>
@@ -197,7 +197,7 @@
       <ul class="p-2 flex flex-col gap-1">
         @for (knowledgebase of knowledgebases(); track knowledgebase.id) {
           <li
-            class="group/item w-full flex flex-col items-stretch px-2 py-1 rounded-lg border-[0.5px] border-solid border-transparent hover:border-gray-100"
+            class="group/item w-full flex flex-col items-stretch px-2 py-1 rounded-lg border-[0.5px] border-solid border-transparent hover:border-divider-regular"
           >
             <div class="relative flex items-center w-full">
               <emoji-avatar
@@ -224,7 +224,7 @@
 
 @if (openedTest()) {
   <div
-    class="absolute top-0 left-0 w-full h-full z-50 rounded-t-2xl bg-black/20 dark:bg-neutral-500/50 backdrop-blur-[2px]"
+    class="absolute top-0 left-0 w-full h-full z-50 rounded-t-2xl bg-black/20 dark:bg-background-default-subtle/50 backdrop-blur-[2px]"
     @ifAnimationTrigger
     (click)="closeTest()"
   >

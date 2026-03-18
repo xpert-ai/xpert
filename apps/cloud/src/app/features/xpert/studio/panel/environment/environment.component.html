@@ -22,7 +22,7 @@
       [zTooltip]="'PAC.Xpert.HelpDocs' | translate: { Default: 'Help docs' }"
       zPosition="top"
     >
-      <i class="ri-book-open-line text-gray-500"></i>
+      <i class="ri-book-open-line text-text-tertiary"></i>
     </a>
 
     <div class="mx-1 w-[1px] h-3.5 bg-divider-deep"></div>
@@ -58,7 +58,7 @@
 >
   @for (item of variables(); track item.name; let index = $index) {
     <div
-      class="variable-list-item relative group mb-1 pl-6 pr-2.5 py-2 rounded-xl bg-components-card-bg border shadow-sm hover:bg-gray-50"
+      class="variable-list-item relative group mb-1 pl-6 pr-2.5 py-2 rounded-xl bg-components-card-bg border shadow-sm hover:bg-hover-bg"
       [class.danger]="hoverDelete() === index"
       cdkDrag
       cdkDragLockAxis="y"

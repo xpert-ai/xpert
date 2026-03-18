@@ -24,6 +24,8 @@ export interface PACAppState {
   zIndexs: number[]
 }
 
+const LEGACY_DARK_GREEN_THEME = 'dark-green'
+
 @Injectable({
   providedIn: 'root'
 })
@@ -86,6 +88,9 @@ export class AppService extends ComponentStore<PACAppState> {
   readonly theme$ = computed(() => {
     let preferredTheme = this.preferredTheme$()
     const systemColorScheme = this.systemColorScheme$()
+    if (String(preferredTheme) === LEGACY_DARK_GREEN_THEME) {
+      preferredTheme = ThemesEnum.dark
+    }
     if (preferredTheme === ThemesEnum.system || !preferredTheme) {
       preferredTheme = systemColorScheme
     }
@@ -124,6 +129,12 @@ export class AppService extends ComponentStore<PACAppState> {
       .subscribe((language) => {
         this.translate.use(language)
         this.#document.documentElement.lang = language
+      })
+
+    this.store.preferredTheme$
+      .pipe(filter((theme) => String(theme) === LEGACY_DARK_GREEN_THEME))
+      .subscribe(() => {
+        this.store.preferredTheme = ThemesEnum.dark
       })
   }
 

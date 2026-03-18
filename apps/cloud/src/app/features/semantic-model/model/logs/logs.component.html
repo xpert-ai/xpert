@@ -1,5 +1,5 @@
 <div class="mb-3 flex justify-between items-center">
-  <div class="h-[41px] flex items-center text-xl font-semibold text-gray-900">
+  <div class="h-[41px] flex items-center text-xl font-semibold text-text-primary">
     {{ 'PAC.MODEL.Logs' | translate: {Default: 'Logs'} }}
   </div>
 </div>
@@ -16,35 +16,35 @@
 <div class="w-full relative overflow-auto flex-1"
   waIntersectionObserver
   waIntersectionThreshold="0.5">
-  <table class="table-fixed w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-    <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+  <table class="table-fixed w-full text-sm text-left rtl:text-right text-text-tertiary dark:text-text-quaternary">
+    <thead class="text-sm text-text-secondary uppercase bg-background-default-subtle dark:bg-gray-700 dark:text-text-quaternary">
       <tr>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-36 truncate">
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3 w-36 truncate">
           {{ 'PAC.MODEL.Cube' | translate: {Default: 'Cube'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-28">
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3 w-28">
           {{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Status'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-48">
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3 w-48">
           {{ 'PAC.KEY_WORDS.UpdatedAt' | translate: {Default: 'Updated At'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3 w-32">
           {{ 'PAC.KEY_WORDS.CreatedBy' | translate: {Default: 'Created By'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3 w-32">
           {{ 'PAC.MODEL.WaitingTime' | translate: {Default: 'Waiting Time'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3 w-32">
           {{ 'PAC.MODEL.ExecutionTime' | translate: {Default: 'Execution Time'} }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 ">
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3 ">
           {{ 'PAC.MODEL.QueryStatement' | translate: {Default: 'Query Statement'} }}
         </th>
       </tr>
     </thead>
     <tbody>
       @for (log of logs(); track log.id) {
-        <tr class="row cursor-pointer bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+        <tr class="row cursor-pointer bg-components-card-bg border-b border-divider-regular"
           (click)="preview.set(log)"
         >
           <td class="px-4 py-2 whitespace-nowrap truncate">
@@ -78,7 +78,7 @@
   }
 
   @if (!done()) {
-    <button (waIntersectionObservee)="onIntersection()" class="w-full flex justify-center p-2 cursor-pointer hover:bg-gray-100"
+    <button (waIntersectionObservee)="onIntersection()" class="w-full flex justify-center p-2 cursor-pointer hover:bg-hover-bg"
       [disabled]="loading()"
       (click)="onIntersection()"
     >
@@ -148,7 +148,7 @@
         {{ 'PAC.MODEL.QueryStatement' | translate: {Default: 'Query Statement'} }}
       </div>
       <div class="relative text-sm">
-        <div class="whitespace-pre overflow-auto min-h-[60px] p-2 rounded-lg text-gray-500 bg-gray-50">
+        <div class="whitespace-pre overflow-auto min-h-[60px] p-2 rounded-lg text-text-tertiary bg-background-default-subtle">
           {{log.query}}
         </div>
         <copy2 [content]="log.query" class="absolute top-2 right-2 flex justify-center items-center w-6 h-6 rounded-md hover:bg-hover-bg" />
@@ -156,7 +156,7 @@
       <div class="text-text-secondary mt-2">
         {{ 'PAC.MODEL.QueryOptions' | translate: {Default: 'Query Options'} }}
       </div>
-      <div class="relative text-sm p-2 rounded-lg bg-gray-50">
+      <div class="relative text-sm p-2 rounded-lg bg-background-default-subtle">
         @if(log.params) {
           <ngx-json-viewer [json]="log.params" [depth]="1" />
           <copy2 [content]="log.params" class="absolute top-2 right-2 flex justify-center items-center w-6 h-6 rounded-md hover:bg-hover-bg" />
@@ -165,7 +165,7 @@
       <div class="text-text-secondary mt-2">
         {{ 'PAC.MODEL.QueryResult' | translate: {Default: 'Query Result'} }}
       </div>
-      <div class="relative text-sm p-2 rounded-lg bg-gray-50">
+      <div class="relative text-sm p-2 rounded-lg bg-background-default-subtle">
         @if(log.result) {
           <ngx-json-viewer [json]="log.result" [depth]="1" />
           <copy2 [content]="log.result" class="absolute top-2 right-2 flex justify-center items-center w-6 h-6 rounded-md hover:bg-hover-bg" />
@@ -195,7 +195,7 @@
     }
     @case (eQueryStatusEnum.PENDING) {
       <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
-        <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-neutral-500 border-neutral-800 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+        <div class="w-2 h-2 mr-1 border border-solid rounded-[3px] bg-background-default-subtle border-neutral-800 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
         <span class="">
           {{ 'PAC.MODEL.Pending' | translate: {Default: 'Pending'} }}
         </span>

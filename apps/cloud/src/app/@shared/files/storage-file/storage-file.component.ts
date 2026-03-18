@@ -44,13 +44,13 @@ export class StorageFileComponent {
   constructor() {
     effect(() => {
       this.onProgress.emit(this.progress())
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       if (this.file() && this.immediately()) {
         this.upload(this.file())
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   readonly upload = effectAction((file$: Observable<File>) => {

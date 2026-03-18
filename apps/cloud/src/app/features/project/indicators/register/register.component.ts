@@ -283,8 +283,7 @@ export class IndicatorRegisterComponent implements OnDestroy, IsDirty {
         if (this.indicator()?.id) {
           this.projectService.markDirty(this.indicator()?.id, this.dirty())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

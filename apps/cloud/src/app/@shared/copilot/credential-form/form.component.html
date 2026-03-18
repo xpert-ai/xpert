@@ -1,7 +1,7 @@
 <div class="space-y-2">
   @for (credential of credentialSchemas(); track credential) {
     <div class="">
-      <div class="flex items-center py-2 text-sm text-gray-900">
+      <div class="flex items-center py-2 text-sm text-text-primary">
         {{ credential.label | i18n }}
         @if (credential.required) {
           <span class="ml-1 text-red-500">*</span>
@@ -11,7 +11,7 @@
         @case ('secret-input') {
           <div class="relative">
             <input
-              class="block px-3 w-full h-9 bg-gray-100 text-sm rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-[rgba(0,0,0,0.08)] hover:bg-gray-50 focus:bg-white focus:border-gray-300 focus:shadow-xs placeholder:text-sm placeholder:text-gray-400 false false"
+              class="block px-3 w-full h-9 bg-components-input-bg-normal text-sm rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-[rgba(0,0,0,0.08)] hover:bg-hover-bg focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-sm placeholder:text-components-input-text-placeholder false false"
               [placeholder]="credential.placeholder | i18n"
               type="password"
               [ngModel]="credentials()[credential.variable]"
@@ -22,7 +22,7 @@
         @case ('text-input') {
           <div class="relative">
             <input
-              class="block px-3 w-full h-9 bg-gray-100 text-sm rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-[rgba(0,0,0,0.08)] hover:bg-gray-50 focus:bg-white focus:border-gray-300 focus:shadow-xs placeholder:text-sm placeholder:text-gray-400 false false"
+              class="block px-3 w-full h-9 bg-components-input-bg-normal text-sm rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-[rgba(0,0,0,0.08)] hover:bg-hover-bg focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-sm placeholder:text-components-input-text-placeholder false false"
               [placeholder]="credential.placeholder | i18n"
               type="text"
               [ngModel]="credentials()[credential.variable]"

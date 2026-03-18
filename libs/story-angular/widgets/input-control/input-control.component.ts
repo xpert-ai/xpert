@@ -289,8 +289,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
         if (this.measureControlProperty()?.value && !this.measureControl()) {
           this.measureControl.set(this.measureControlProperty()?.value as string)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -298,8 +297,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
         if (this.measureControl()) {
           this.onMeasureSelectChange(this.measureControl())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -321,8 +319,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
         } else {
           this.error.set(null)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -361,8 +358,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
             type: WidgetMenuType.Action
           }
         ])
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -374,8 +370,7 @@ export class NxInputControlComponent extends AbstractStoryWidget<
             members: defaultMembers ? structuredClone(defaultMembers) : []
           })
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

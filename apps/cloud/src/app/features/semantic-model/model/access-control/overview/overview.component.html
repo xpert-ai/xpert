@@ -2,7 +2,7 @@
 
 <div class="flex-1 h-1/2 flex flex-col">
   <h3 class="text-lg"> {{ 'PAC.MODEL.AccessControl.RolesManage' | translate: {Default: 'Roles Manage'} }} </h3>
-  <div class="flex-1 mt-4 overflow-auto rounded-lg border border-gray-200 dark:border-neutral-700">
+  <div class="flex-1 mt-4 overflow-auto rounded-lg border border-divider-deep dark:border-neutral-700">
     <table z-table class="ngm-density__compact w-full">
       <thead z-table-header>
         <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">
@@ -59,7 +59,7 @@
   </div>
 
   @if (userRoles$ | async; as userRoles) {
-    <div class="flex-1 mt-4 overflow-auto rounded-lg border border-gray-200 dark:border-neutral-700">
+    <div class="flex-1 mt-4 overflow-auto rounded-lg border border-divider-deep dark:border-neutral-700">
       <table z-table class="ngm-density__compact w-full">
         <thead z-table-header>
           <tr z-table-row class="border-b bg-muted/30 hover:bg-muted/30">

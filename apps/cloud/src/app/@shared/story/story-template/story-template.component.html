@@ -1,4 +1,4 @@
-<div class="ngm-theme-dark dark w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group">
+<div class="w-[300px] shrink-0 flex flex-col justify-start overflow-auto bg-components-panel-bg text-text-primary p-4 group">
   <div class="w-full flex justify-start items-center mb-4" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
     <span class="text-lg pointer-events-none">
@@ -60,10 +60,10 @@
     @for (template of templates$ | async; track trackById($index, template)) {
       <div class="pac-template h-64 overflow-hidden flex flex-col" [class.active]="template.id === appliedTemplateId">
       <div class="pac-template__preview flex-1 m-1 rounded-lg border-2 overflow-hidden relative group
-      border-slate-200 bg-slate-50 dark:border-slate-800 dark:bg-slate-700">
+      border-divider-deep bg-background-default-subtle dark:border-slate-800 dark:bg-slate-700">
           <img [src]="template.preview?.url ?? template.thumbnail" class="w-full h-44 object-cover" loading="lazy"/>
           <pac-tags [tags]="template.tags" [selectable]="true" (selectedChange)="onTagsChange($event)" class="absolute bottom-0 left-0 w-full p-2 z-10"></pac-tags>
-          <div class="w-full h-full absolute top-0 left-0 flex flex-col justify-center items-center gap-2 opacity-0 bg-slate-500/20 group-hover:opacity-100 group-hover:backdrop-blur-lg rounded-md overflow-hidden">
+          <div class="w-full h-full absolute top-0 left-0 flex flex-col justify-center items-center gap-2 opacity-0 bg-background-default-subtle/20 group-hover:opacity-100 group-hover:backdrop-blur-lg rounded-md overflow-hidden">
             <button z-button zType="default" color="primary" class="w-20" (click)="useTemplate(template.id)">
               {{ 'Story.Template.Use' | translate: {Default: "Use"} }}
             </button>

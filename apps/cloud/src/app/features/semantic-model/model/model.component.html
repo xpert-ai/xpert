@@ -78,7 +78,7 @@
           <i class="ri-list-check-3"></i>
 
           <div
-            class="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-gray-100 bg-[#F79009] text-[11px] font-semibold text-white"
+            class="absolute -right-1.5 -top-1.5 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border border-divider-regular bg-[#F79009] text-[11px] font-semibold text-white"
             >
             {{ checklist()?.length ?? 0 }}
           </div>
@@ -167,7 +167,7 @@
           <ul class="">
             @for (entity of cubeStates$ | async; track entity.id) {
               <li
-                class="group/item flex justify-start items-center gap-1 pl-2 h-8 rounded-md hover:bg-hover-bg cursor-pointer text-zinc-600 hover:text-text-primary"
+                class="group/item flex justify-start items-center gap-1 pl-2 h-8 rounded-md hover:bg-hover-bg cursor-pointer text-text-secondary hover:text-text-primary"
                 [class.bg-hover-bg]="rla.isActive"
                 [routerLink]="['cube', entity.id]"
                 routerLinkActive
@@ -205,7 +205,7 @@
           <ul class="">
             @for (entity of dimensionStates$ | async; track entity.id) {
               <li
-                class="group/item flex justify-start items-center gap-1 pl-2 h-8 rounded-md hover:bg-hover-bg cursor-pointer text-zinc-600 hover:text-text-primary"
+                class="group/item flex justify-start items-center gap-1 pl-2 h-8 rounded-md hover:bg-hover-bg cursor-pointer text-text-secondary hover:text-text-primary"
                 [class.bg-hover-bg]="rla2.isActive"
                 [routerLink]="['dimension', entity.id]"
                 routerLinkActive
@@ -241,7 +241,7 @@
           <ul>
             @for (entity of virtualCubes$ | async; track entity.__id__) {
               <li
-                class="group/item flex justify-start items-center gap-1 pl-2 h-8 rounded-md hover:bg-hover-bg cursor-pointer text-zinc-600 hover:text-text-primary"
+                class="group/item flex justify-start items-center gap-1 pl-2 h-8 rounded-md hover:bg-hover-bg cursor-pointer text-text-secondary hover:text-text-primary"
                 [class.bg-hover-bg]="rla3.isActive"
                 [routerLink]="['virtual-cube', entity.__id__]"
                 routerLinkActive
@@ -373,7 +373,7 @@
               <ul displayDensity="compact" disableRipple class="pac-model__nav-list ngm-list" id="pac-model-entitysets">
                 <li
                   *cdkVirtualFor="let entity of entities"
-                  class="group/item flex justify-start items-center gap-1 pl-2 h-8 text-sm rounded-md hover:bg-hover-bg cursor-pointer text-zinc-600 hover:text-text-primary"
+                  class="group/item flex justify-start items-center gap-1 pl-2 h-8 text-sm rounded-md hover:bg-hover-bg cursor-pointer text-text-secondary hover:text-text-primary"
                   cdkDrag
                   [cdkDragData]="entity"
                   (cdkDragReleased)="onDragReleased($event)"

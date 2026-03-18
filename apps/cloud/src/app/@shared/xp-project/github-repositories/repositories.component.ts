@@ -57,15 +57,13 @@ export class XpProjectGitHubRepositoriesComponent {
         if (this.installationId()) {
           this.checkInstallation()
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
       () => {
         this.repositoryUrl.set(this.repositoryName())
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

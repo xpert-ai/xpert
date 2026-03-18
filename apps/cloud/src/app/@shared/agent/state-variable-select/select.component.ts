@@ -86,8 +86,7 @@ export class StateVariableSelectComponent {
         if (this.#variables.value()) {
           this.variables.set(this.#variables.value())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

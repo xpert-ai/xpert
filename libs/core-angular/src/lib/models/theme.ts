@@ -5,7 +5,6 @@ export enum ThemesEnum {
   default = 'default',
   light = 'light',
   dark = 'dark',
-  'dark-green' = 'dark-green',
   thin = 'thin'
 }
 

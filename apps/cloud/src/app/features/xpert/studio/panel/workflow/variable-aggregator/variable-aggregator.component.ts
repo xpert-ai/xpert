@@ -52,8 +52,7 @@ export class XpertWorkflowVariableAggregatorComponent extends XpertWorkflowBaseC
         ) {
           this.outputType.set(this.firstVariableType())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

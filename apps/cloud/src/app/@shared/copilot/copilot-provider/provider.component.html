@@ -14,7 +14,7 @@
     <div class="flex gap-0.5">
       @for (modelType of supported_model_types(); track modelType) {
         <div
-          class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium uppercase text-gray-500 cursor-default"
+          class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium uppercase text-text-tertiary cursor-default"
         >
           {{ modelType }}
         </div>
@@ -35,9 +35,9 @@
 
   @if (usage(); as usage) {
     <div
-      class="group relative shrink-0 min-w-[112px] px-3 py-2 rounded-lg bg-white/[0.3] border-[0.5px] border-black/5 text-gray-500"
+      class="group relative shrink-0 min-w-[112px] px-3 py-2 rounded-lg bg-surface-l1 border-[0.5px] border-divider-regular text-text-tertiary"
     >
-      <div class="flex items-center mb-2 h-4 text-sm font-medium text-gray-500">
+      <div class="flex items-center mb-2 h-4 text-sm font-medium text-text-tertiary">
         {{ 'PAC.Copilot.Quota' | translate: { Default: 'Quota' } }}
         <div
           class="p-[1px] w-5 h-5 shrink-0"
@@ -65,11 +65,11 @@
           </svg>
         </div>
       </div>
-      <div class="flex items-center h-4 text-sm text-gray-500">
+      <div class="flex items-center h-4 text-sm text-text-tertiary">
         @if (usage.tokenLimit) {
-          <span class="mr-0.5 text-sm font-semibold text-gray-700">{{ usage.tokenLimit | number }}</span>
+          <span class="mr-0.5 text-sm font-semibold text-text-secondary">{{ usage.tokenLimit | number }}</span>
         } @else {
-          <span class="mr-0.5 text-sm font-semibold text-gray-700">∞</span>
+          <span class="mr-0.5 text-sm font-semibold text-text-secondary">∞</span>
         }
         {{ 'PAC.Copilot.Tokens' | translate: { Default: 'Tokens' } }}
       </div>
@@ -93,10 +93,10 @@
 
   @if (provider_credential_schema()) {
     <div
-      class="shrink-0 relative flex flex-col justify-between ml-1 p-1 w-[112px] rounded-lg bg-white/[0.3] border-[0.5px] border-black/5"
+      class="shrink-0 relative flex flex-col justify-between ml-1 p-1 w-[112px] rounded-lg bg-surface-l1 border-[0.5px] border-divider-regular"
     >
       <div
-        class="relative flex items-center justify-between mb-1 pt-1 pl-2 pr-[7px] h-5 text-sm font-medium text-gray-500"
+        class="relative flex items-center justify-between mb-1 pt-1 pl-2 pr-[7px] h-5 text-sm font-medium text-text-tertiary"
       >
         API-KEY
         <div
@@ -121,14 +121,14 @@
 
 @if (isShowModels()) {
   <div class="px-2 pb-2 rounded-b-xl">
-    <div class="py-1 bg-white rounded-lg">
+    <div class="py-1 bg-components-panel-bg rounded-lg">
       <div class="flex items-center pl-1 pr-[3px]">
         <span class="group shrink-0 flex items-center mr-2">
-          <span class="group-hover:hidden pl-1 pr-1.5 h-6 leading-6 text-sm font-medium text-gray-500">
+          <span class="group-hover:hidden pl-1 pr-1.5 h-6 leading-6 text-sm font-medium text-text-tertiary">
             {{ modelCount() }} {{ 'PAC.Copilot.Models' | translate: { Default: 'Models' } }}
           </span>
           <span
-            class="hidden group-hover:inline-flex items-center pl-1 pr-1.5 h-6 text-sm font-medium text-gray-500 bg-gray-50 cursor-pointer rounded-lg"
+            class="hidden group-hover:inline-flex items-center pl-1 pr-1.5 h-6 text-sm font-medium text-text-tertiary bg-background-default-subtle cursor-pointer rounded-lg"
             (click)="toggleShowModels()"
           >
             <i class="ri-arrow-up-double-line"></i>
@@ -139,7 +139,7 @@
           <div class="grow flex justify-end">
             @if (!readonly()) {
               <span
-                class="shrink-0 flex items-center px-1.5 h-6 text-sm font-medium text-gray-500 cursor-pointer hover:bg-primary-50 hover:text-primary-600 rounded-md undefined"
+                class="shrink-0 flex items-center px-1.5 h-6 text-sm font-medium text-text-tertiary cursor-pointer hover:bg-primary-50 hover:text-primary-600 rounded-md undefined"
                 (click)="addModel()"
               >
                 <i class="ri-add-circle-line"></i>
@@ -151,23 +151,23 @@
       </div>
 
       @for (model of customModels(); track model.id) {
-        <div class="group flex items-center pl-2 pr-2.5 h-8 rounded-lg hover:bg-gray-50">
+        <div class="group flex items-center pl-2 pr-2.5 h-8 rounded-lg hover:bg-hover-bg">
           @if (smallIcon()) {
             <img alt="model-icon" class="w-4 h-4 shrink-0 mr-2" [src]="smallIcon() | i18n" />
           }
 
-          <div class="flex items-center truncate text-[13px] grow text-sm font-normal text-gray-900">
+          <div class="flex items-center truncate text-[13px] grow text-sm font-normal text-text-primary">
             <div class="truncate" [title]="model.modelName">{{ model.modelName }}</div>
 
             <div
-              class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium uppercase text-gray-500 cursor-default ml-1"
+              class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium uppercase text-text-tertiary cursor-default ml-1"
             >
               {{ model.modelType }}
             </div>
 
             @if (model.modelProperties?.context_size) {
               <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium text-gray-500 cursor-default ml-1"
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
               >
                 {{ model.modelProperties.context_size / 1000 | number: '0.0-0' }}K
               </div>
@@ -175,7 +175,7 @@
             <!-- @todo move to plugin -->
             @if (model.modelProperties?.vision_support === 'support') {
               <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium text-gray-500 cursor-default ml-1"
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
               >
                 <i class="ri-eye-fill"></i>
               </div>
@@ -199,38 +199,38 @@
 
       @for (model of builtinModels(); track model.model) {
         <div
-          class="group flex items-center pl-2 pr-2.5 h-8 rounded-lg hover:bg-gray-50"
+          class="group flex items-center pl-2 pr-2.5 h-8 rounded-lg hover:bg-hover-bg"
           [ngClass]="model.deprecated ? 'opacity-60' : ''"
           [zTooltip]="model.deprecated ? ('PAC.Copilot.Deprecated' | translate: { Default: 'Deprecated' }) : ''"
           zPosition="left"
         >
           <img alt="model-icon" [src]="smallIcon() | i18n" class="w-4 h-4 shrink-0 mr-2" />
 
-          <div class="flex items-center truncate text-base grow font-normal text-gray-900">
+          <div class="flex items-center truncate text-base grow font-normal text-text-primary">
             <div class="truncate" [title]="model.model">{{ model.model }}</div>
 
             <div
-              class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium uppercase text-gray-500 cursor-default ml-1"
+              class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium uppercase text-text-tertiary cursor-default ml-1"
             >
               {{ model.model_type }}
             </div>
             @if (model.model_properties?.mode) {
               <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium uppercase text-gray-500 cursor-default ml-1"
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium uppercase text-text-tertiary cursor-default ml-1"
               >
                 {{ model.model_properties?.mode }}
               </div>
             }
             @if (model.model_properties?.context_size) {
               <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium text-gray-500 cursor-default ml-1"
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
               >
                 {{ model.model_properties.context_size / 1000 | number: '0.0-0' }}K
               </div>
             }
             @if (model.features?.includes(eModelFeature.VISION)) {
               <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium text-gray-500 cursor-default ml-1"
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
               >
                 <i class="ri-eye-fill"></i>
               </div>
@@ -242,7 +242,7 @@
   </div>
 } @else {
   <div
-    class="group flex items-center justify-between pl-2 py-1.5 pr-[11px] border-t border-t-black/5 bg-white/30 text-sm font-medium text-gray-500"
+    class="group flex items-center justify-between pl-2 py-1.5 pr-[11px] border-t border-t-divider-regular bg-surface-l1 text-sm font-medium text-text-tertiary"
   >
     <div class="group-hover:hidden pl-1 pr-1.5 h-6 leading-6">
       {{
@@ -251,7 +251,7 @@
       }}
     </div>
     <div
-      class="hidden group-hover:flex items-center pl-1 pr-1.5 h-6 rounded-lg hover:bg-white cursor-pointer"
+      class="hidden group-hover:flex items-center pl-1 pr-1.5 h-6 rounded-lg hover:bg-hover-bg cursor-pointer"
       (click)="toggleShowModels()"
     >
       <i class="ri-arrow-down-double-line"></i>
@@ -263,7 +263,7 @@
 
     @if (!readonly() && canCustomizableModel()) {
       <span
-        class="shrink-0 items-center px-1.5 h-6 text-sm font-medium text-gray-500 cursor-pointer hover:bg-primary-50 hover:text-primary-600 rounded-md flex group-hover:text-primary-600"
+        class="shrink-0 items-center px-1.5 h-6 text-sm font-medium text-text-tertiary cursor-pointer hover:bg-primary-50 hover:text-primary-600 rounded-md flex group-hover:text-primary-600"
         (click)="addModel()"
       >
         <i class="ri-add-circle-line"></i>

@@ -467,9 +467,9 @@
 <ng-template #pipelineMenu let-ref="ref">
   <div
     cdkMenu
-    class="bg-components-panel-bg-blur rounded-xl backdrop-blur-[5px] shadow-lg border-[0.5px] border-solid border-gray-300 !min-w-[200px]"
+    class="bg-components-panel-bg-blur rounded-xl backdrop-blur-[5px] shadow-lg border-[0.5px] border-solid border-divider-deep !min-w-[200px]"
   >
-    <div class="relative flex bg-neutral-100 pl-1.5 pt-1.5">
+    <div class="relative flex bg-components-input-bg-normal pl-1.5 pt-1.5">
       <div
         class="pipeline-tab system-sm-medium relative mr-0.5 flex h-9 cursor-pointer items-center rounded-t-lg px-2 text-text-tertiary hover:text-text-primary"
         [class.selected]="pipelineType() === 'source'"
@@ -582,7 +582,7 @@
           class="ri-search-2-line flex justify-center items-center absolute left-2 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder"
         ></i>
         <input
-          class="w-full appearance-none bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:bg-components-input-bg-hover focus:bg-components-input-bg-active focus:bg-neutral-50 px-3 radius-md system-sm-regular pl-[26px]"
+          class="w-full appearance-none bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:bg-components-input-bg-hover focus:bg-components-input-bg-active focus:bg-background-default-subtle px-3 radius-md system-sm-regular pl-[26px]"
           [placeholder]="'PAC.ACTIONS.Search' | translate: { Default: 'Search' }"
           [(ngModel)]="searchMiddlewares"
         />

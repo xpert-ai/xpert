@@ -174,8 +174,7 @@ export class CopilotExamplesComponent extends TranslationBaseComponent {
         if (this.items()) {
           this.loading.set(false)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

@@ -1,12 +1,12 @@
-<div class="py-2 leading-5 text-sm font-medium text-gray-900">
+<div class="py-2 leading-5 text-sm font-medium text-text-primary">
   {{ 'PAC.Xpert.AuthorizationMethod' | translate: {Default: 'Authorization Method'} }}
 </div>
 <div class="flex items-center h-9 justify-between px-2.5 rounded-lg cursor-pointer
-          bg-gray-100 hover:bg-gray-200"
+          bg-components-input-bg-normal hover:bg-button-ghost-hover"
   (click)="openAuth()">
-  <div class="text-sm font-normal text-gray-900">{{'PAC.Xpert.Auth_' + (credentials().auth_type ?? 'none') | translate: {Default: credentials().auth_type ?? 'None'} }}</div>
+  <div class="text-sm font-normal text-text-primary">{{'PAC.Xpert.Auth_' + (credentials().auth_type ?? 'none') | translate: {Default: credentials().auth_type ?? 'None'} }}</div>
   <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg"
-    class="w-4 h-4 text-gray-700 opacity-60" >
+    class="w-4 h-4 text-text-secondary opacity-60" >
     <g id="Left Icon" clip-path="url(#clip0_11961_30603)">
       <g id="Icon">
         <path d="M6.99935 8.74984C7.96585 8.74984 8.74935 7.96634 8.74935 6.99984C8.74935 6.03334 7.96585 5.24984 6.99935 5.24984C6.03285 5.24984 5.24935 6.03334 5.24935 6.99984C5.24935 7.96634 6.03285 8.74984 6.99935 8.74984Z" stroke="currentColor" stroke-width="1.25" stroke-linecap="round" stroke-linejoin="round"></path>

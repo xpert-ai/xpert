@@ -61,7 +61,7 @@ export class JsonSchemaWidgetOutletComponent {
         return
       }
       this.#componentRef.instance.writeValue?.(value)
-    }, { allowSignalWrites: true })
+    })
 
     effect(
       () => {
@@ -69,8 +69,7 @@ export class JsonSchemaWidgetOutletComponent {
           return
         }
         this.applyInputsToInstance()
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     afterNextRender(() => {

@@ -140,8 +140,7 @@ export class XpertRoleComponent extends UpsertEntityComponent<IXpertRole> {
         }
         this.formGroup.markAsPristine()
         this.loading.set(false)
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

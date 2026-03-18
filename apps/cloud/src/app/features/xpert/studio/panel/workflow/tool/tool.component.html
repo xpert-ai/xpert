@@ -9,9 +9,9 @@
     </button>
   </div>
 
-  <div class="group/toolset relative rounded-[9px] bg-zinc-100 p-0.5">
+  <div class="group/toolset relative rounded-[9px] bg-components-list-option-active-bg p-0.5">
     <div
-      class="bg-zinc-50 hover:bg-zinc-100 relative flex h-9 cursor-pointer items-center rounded-lg border border-dashed border-divider-deep px-1 text-sm text-text-placeholder"
+      class="bg-background-default-subtle hover:bg-hover-bg relative flex h-9 cursor-pointer items-center rounded-lg border border-dashed border-divider-deep px-1 text-sm text-text-placeholder"
       [cdkMenuTriggerFor]="toolsetMenu"
       [zTooltip]="toolsetDetail()?.description"
       zPosition="left"
@@ -22,7 +22,7 @@
           <span>{{ toolset.name }}</span>
         </div>
       } @else {
-        <div class="bg-neutral-100 text-lg mr-1.5 flex h-5 w-5 items-center justify-center rounded-[5px]">
+        <div class="bg-components-input-bg-normal text-lg mr-1.5 flex h-5 w-5 items-center justify-center rounded-[5px]">
           <i class="ri-add-line"></i>
         </div>
         <div class="flex items-center uppercase">
@@ -47,9 +47,9 @@
     <div class="flex"></div>
   </div>
 
-  <div class="group/tool relative rounded-[9px] bg-zinc-100 p-0.5">
+  <div class="group/tool relative rounded-[9px] bg-components-list-option-active-bg p-0.5">
     <div
-      class="bg-zinc-50 hover:bg-zinc-100 relative flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-dashed border-divider-deep px-2 text-sm text-text-placeholder"
+      class="bg-background-default-subtle hover:bg-hover-bg relative flex h-9 cursor-pointer items-center gap-1 rounded-lg border border-dashed border-divider-deep px-2 text-sm text-text-placeholder"
       #toolMenuTrigger
       [cdkMenuTriggerFor]="toolsMenu"
       [ariaDisabled]="!toolsetDetail()"
@@ -61,12 +61,12 @@
           {{ tool.label | i18n }}
         </div>
         <div
-          class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50"
+          class="border-[0.5px] border-divider-deep border-solid rounded-md px-2 text-xs font-mono truncate text-text-secondary bg-background-default-subtle"
         >
           {{ tool.name }}
         </div>
       } @else {
-        <div class="bg-neutral-100 text-lg flex h-5 w-5 items-center justify-center rounded-[5px]">
+        <div class="bg-components-input-bg-normal text-lg flex h-5 w-5 items-center justify-center rounded-[5px]">
           <i class="ri-add-line"></i>
         </div>
         <div class="flex items-center uppercase">
@@ -93,7 +93,7 @@
   <div class="my-2 system-sm-semibold-uppercase text-text-secondary">
     {{ 'PAC.Xpert.ParameterVariable' | translate: {Default: 'Parameter Variable'} }}
   </div>
-  <div class="relative rounded-[9px] bg-zinc-100 p-1">
+  <div class="relative rounded-[9px] bg-components-list-option-active-bg p-1">
     <xpert-state-variable-select class="rounded-lg border border-dashed border-divider-deep"
       [varOptions]="varOptions()"
       [(ngModel)]="parameterVariable" 
@@ -108,12 +108,12 @@
 
 <xp-tool-parameters-form [tool]="tool()" [variables]="variables()" [(ngModel)]="parameters" />
 
-<div class="flex flex-col gap-2 p-3 bg-gray-50 rounded-xl">
+<div class="flex flex-col gap-2 p-3 bg-background-default-subtle rounded-xl">
   <div class="flex items-center space-x-1 shrink-0">
     <div class="flex items-center justify-center w-6 h-6">
       <i class="ri-equalizer-3-line text-orange-600"></i>
     </div>
-    <div class="text-sm font-semibold text-gray-800">
+    <div class="text-sm font-semibold text-text-primary">
       {{ 'PAC.Xpert.ParameterSettings' | translate: { Default: 'Parameter Settings' } }}
     </div>
   </div>

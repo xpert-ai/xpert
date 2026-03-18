@@ -1,7 +1,7 @@
 @reference "../../../../styles/tailwind-reference.css";
 :host {
   .container {
-    @apply cursor-pointer bg-gray-100;
+    @apply cursor-pointer bg-components-input-bg-normal;
   }
   &.status-choose {
     .container {

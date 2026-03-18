@@ -1,6 +1,6 @@
 @for (item of attributes(); track i; let i = $index) {
   <div
-    class="flex items-center gap-0.5 bg-gray-100 rounded-lg p-1 border-[0.5px] border-solid border-transparent z-10"
+    class="flex items-center gap-0.5 bg-components-input-bg-normal rounded-lg p-1 border-[0.5px] border-solid border-transparent z-10"
     [style.margin-left.px]="(item.path.length - 1) * 10"
     [class.!border-orange-500]="!item.param.name"
     [zTooltip]="item.param.title || item.param.description | i18n"
@@ -9,7 +9,7 @@
     <xpert-parameter-icon [type]="item.param.type" />
     <input
       maxlength="30"
-      class="h-7 text-sm block w-full rounded-md border-0 px-1 py-1.5 text-gray-900 placeholder:text-gray-400 focus:outline-none bg-transparent hover:bg-white focus:bg-white"
+      class="h-7 text-sm block w-full rounded-md border-0 px-1 py-1.5 text-text-primary placeholder:text-components-input-text-placeholder focus:outline-none bg-transparent hover:bg-components-input-bg-hover focus:bg-components-input-bg-active"
       type="text"
       [placeholder]="'PAC.Xpert.EnterName' | translate: { Default: 'Enter name' }"
       [ngModel]="item.param.name"
@@ -25,7 +25,7 @@
     }
     <div
       tabindex="0"
-      class="p-1 rounded-md hover:bg-black/5 w-6 h-6 shrink-0 flex justify-center items-center cursor-pointer opacity-30 group-hover/item:opacity-100"
+      class="p-1 rounded-md hover:bg-hover-bg w-6 h-6 shrink-0 flex justify-center items-center cursor-pointer opacity-30 group-hover/item:opacity-100"
       #parammt="cdkMenuTriggerFor"
       [cdkMenuTriggerFor]="paramConfigMenu"
     >

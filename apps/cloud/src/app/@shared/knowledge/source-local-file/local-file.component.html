@@ -1,7 +1,7 @@
 <div class="w-full space-y-4">
   <!-- Upload box -->
   <div
-    class="border border-dashed border-gray-300 rounded-xl p-6 text-center cursor-pointer hover:border-primary-400 transition"
+    class="border border-dashed border-divider-deep rounded-xl p-6 text-center cursor-pointer hover:border-primary-400 transition"
     (drop)="onDrop($event)"
     (dragover)="onDragOver($event)"
   >
@@ -13,13 +13,13 @@
       [accept]="acceptsStr()"
       (change)="handleFiles(fileInput.files)"
     />
-    <div (click)="fileInput.click()" class="text-gray-600">
+    <div (click)="fileInput.click()" class="text-text-secondary">
       <p class="text-base font-medium">
         <i class="ri-upload-cloud-2-line"></i>
         {{ 'PAC.Knowledgebase.DragDropOr' | translate: {Default: 'Drag and drop files here, or'} }}
         <span class="text-blue-500 underline cursor-pointer">{{ 'PAC.Knowledgebase.SelectFiles' | translate: {Default: 'select files'} }}</span>
       </p>
-      <p class="text-sm font-body text-gray-400 mt-1 uppercase">
+      <p class="text-sm font-body text-text-quaternary mt-1 uppercase">
         {{ 'PAC.Knowledgebase.Supports' | translate: {Default: 'Supports'} }}
         {{ extensionStr() }}
         {{ 'PAC.Knowledgebase.FileMaxSize' | translate: {Default: 'and each file does not exceed 15MB.'} }}
@@ -31,7 +31,7 @@
   @if (files().length > 0) {
     <div class="space-y-2">
       @for (file of files(); track $index) {
-        <div class="relative flex flex-col border rounded-lg px-4 py-2 overflow-hidden bg-white shadow-sm hover:bg-gray-100 transition"
+        <div class="relative flex flex-col border rounded-lg px-4 py-2 overflow-hidden bg-components-card-bg shadow-sm hover:bg-hover-bg transition"
           [class.border-primary-300]="selected() === file"
           (click)="selected.set(file)">
           <div class="flex items-center justify-between">
@@ -40,8 +40,8 @@
                 <span class="text-blue-600 text-sm font-bold">M↓</span>
               </div>
               <div>
-                <p class="text-sm font-medium line-clamp-2 text-gray-800">{{ file.file.name }}</p>
-                <p class="text-xs text-gray-500">
+                <p class="text-sm font-medium line-clamp-2 text-text-primary">{{ file.file.name }}</p>
+                <p class="text-xs text-text-tertiary">
                   <span class="truncate">{{ file.file.type || 'FILE' }}</span> · {{ file.formatSize() }}
                 </p>
               </div>
@@ -53,7 +53,7 @@
               </button>
             } @else {
               <button
-                class="w-7 h-7 flex justify-center items-center rounded-lg text-gray-400 hover:text-red-500 transition hover:bg-hover-bg"
+                class="w-7 h-7 flex justify-center items-center rounded-lg text-text-quaternary hover:text-red-500 transition hover:bg-hover-bg"
                 (click)="removeFile($index)"
               >
                 <i class="ri-delete-bin-5-line"></i>
@@ -62,7 +62,7 @@
           </div>
 
            <!-- Progress bar -->
-          <div class="absolute left-0 bottom-0 w-full mt-3 h-[2px] bg-gray-100 rounded overflow-hidden">
+          <div class="absolute left-0 bottom-0 w-full mt-3 h-[2px] bg-components-input-bg-normal rounded overflow-hidden">
             <div
               class="h-full rounded"
               [style.width.%]="file.progress()"

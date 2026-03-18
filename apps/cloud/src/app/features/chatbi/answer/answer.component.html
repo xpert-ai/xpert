@@ -65,19 +65,19 @@
                   @for (id of answer.indicators; track id) {
                     @if (indicators()[id]; as indicator) {
                       <a
-                        class="w-full inline-flex items-center justify-between p-2 text-base font-medium cursor-pointer text-gray-500 rounded-lg bg-gray-50 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:hover:text-white"
+                        class="w-full inline-flex items-center justify-between p-2 text-base font-medium cursor-pointer text-text-tertiary rounded-lg bg-background-default-subtle hover:text-text-primary hover:bg-hover-bg dark:text-text-quaternary dark:bg-zinc-800 dark:hover:bg-zinc-700 dark:hover:text-white"
                         (click)="openIndicator(indicator, answer)"
                       >
                         <span class="flex-1">
                           <span class="w-full">{{ indicator.name }}</span>
                           @if (indicator.unit) {
-                            <span class="p-1 text-sm rounded-md bg-gray-100 dark:bg-zinc-600">{{
+                            <span class="p-1 text-sm rounded-md bg-components-input-bg-normal dark:bg-zinc-600">{{
                               indicator.unit
                             }}</span>
                           }
                           <br />
                           <span class="w-full text-sm">[{{ indicator.code }}]</span><br />
-                          <pre class="w-full p-1 text-xs rounded-md whitespace-pre-wrap bg-gray-100 dark:bg-zinc-900">{{
+                          <pre class="w-full p-1 text-xs rounded-md whitespace-pre-wrap bg-components-input-bg-normal dark:bg-zinc-900">{{
                             indicator.formula
                           }}</pre>
                         </span>

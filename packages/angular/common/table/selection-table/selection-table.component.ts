@@ -141,8 +141,7 @@ export class NgmSelectionTableComponent implements OnInit, ControlValueAccessor 
         if (this.pageIndex() > maxPageIndex) {
           this.pageIndex.set(maxPageIndex)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

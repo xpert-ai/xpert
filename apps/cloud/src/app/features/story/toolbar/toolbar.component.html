@@ -1,5 +1,5 @@
 <div
-  class="ngm-theme-dark dark w-16 py-2 flex flex-col items-center h-full overflow-auto bg-bluegray-800 text-neutral-100"
+  class="w-16 py-2 flex flex-col items-center h-full overflow-auto bg-components-panel-bg text-text-primary"
   >
   @if (expandLess() || !collapsible()) {
     <div class="w-full px-2 flex-1 flex flex-col items-center overflow-hidden hover:overflow-y-auto">
@@ -228,7 +228,7 @@
 
 @if (showDetails() === 'preferences') {
   <div
-    class="ngm-theme-dark dark w-16 h-full flex flex-col border-solid border-0 border-gray-500 bg-bluegray-800 text-neutral-100"
+    class="w-16 h-full flex flex-col border-solid border-0 border-gray-500 bg-components-panel-bg text-text-primary"
     [ngClass]="onRight ? 'border-r' : 'border-l'"
     >
     <div class="flex-1 flex flex-col p-2 overflow-y-auto overflow-x-hidden">
@@ -460,7 +460,7 @@
       <div class="grid grid-cols-3 gap-2">
         @for (chart of group.charts; track chart) {
           <button
-            class="h-16 m-2 flex justify-center items-center rounded-lg overflow-hidden ring-offset-2 ring-2 ring-transparent ring-offset-transparent hover:ring-violet-300 focus:ring-violet-500 hover:ring-offset-white dark:hover:ring-offset-black bg-white"
+            class="h-16 m-2 flex justify-center items-center rounded-lg overflow-hidden ring-offset-2 ring-2 ring-transparent ring-offset-transparent hover:ring-violet-300 focus:ring-violet-500 hover:ring-offset-components-card-bg bg-components-card-bg"
             [zTooltip]="'FORMLY.CHART.' + chart.label | translate: { Default: chart.label }"
             zPosition="top"
             draggable="true"
@@ -799,7 +799,7 @@
         (click)="setScale(item.value)"
         >
         <span
-          class="pac-story-bar__scale-point inline-flex items-center justify-center w-2 h-2 ml-2 mr-4 text-xs font-semibold bg-gray-200 rounded-full group-hover:bg-yellow-500"
+          class="pac-story-bar__scale-point inline-flex items-center justify-center w-2 h-2 ml-2 mr-4 text-xs font-semibold bg-components-list-option-active-bg rounded-full group-hover:bg-yellow-500"
           >
         </span>
 

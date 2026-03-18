@@ -75,8 +75,7 @@ export class StoryCalculationComponent {
     effect(
       () => {
         this.calculationsComponent.property.set(this.property())
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -84,8 +83,7 @@ export class StoryCalculationComponent {
         if (this.dataSettings()) {
           this.calculationsComponent.activeEntity(this.dataSettings().dataSource, this.dataSettings().entitySet)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     this.destroyRef.onDestroy(() => {

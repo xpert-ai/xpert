@@ -12,7 +12,7 @@
   @apply text-white rounded-lg duration-300;
 
   &.active {
-    @apply bg-slate-50 text-slate-500;
+    @apply bg-background-default-subtle text-text-tertiary;
   }
 }
 
@@ -29,11 +29,11 @@ input[z-input] {
 }
 
 .ngm-select {
-  @apply bg-transparent hover:bg-slate-100 focus:bg-slate-200;
+  @apply bg-transparent hover:bg-components-input-bg-normal focus:bg-slate-200;
 }
 
 .ngm-fileover {
-  @apply bg-gray-100;
+  @apply bg-components-input-bg-normal;
 }
 
 input[z-input] {

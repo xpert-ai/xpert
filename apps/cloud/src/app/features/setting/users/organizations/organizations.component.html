@@ -11,7 +11,7 @@
 </div>
 
 <div class="p-2">
-  <ngm-table class="overflow-hidden rounded-lg border border-gray-200 mt-2"
+  <ngm-table class="overflow-hidden rounded-lg border border-divider-deep mt-2"
     paging
     [data]="userOrganizations()"
     [columns]="[
@@ -38,7 +38,7 @@
 </ng-template>
 
 <ng-template #actionTempl let-loading="loading" let-id="id" let-organization="organization">
-  <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-gray-400" [disabled]="loading" (click)="removeOrg(id, organization)">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-text-quaternary" [disabled]="loading" (click)="removeOrg(id, organization)">
     <div class="flex justify-center items-center">
       <z-icon zType="delete"></z-icon>
     </div>

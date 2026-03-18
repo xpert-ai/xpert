@@ -81,8 +81,7 @@ export class IntegrationSelectComponent {
         if (this.integrations()) {
           this.integrationList.set(this.integrations())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

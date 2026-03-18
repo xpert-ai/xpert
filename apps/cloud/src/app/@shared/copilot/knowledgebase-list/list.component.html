@@ -5,7 +5,7 @@
   >
     @for (item of knowledgebaseList(); track item.id) {
       <li [cdkOption]="item" #option="cdkOption" class="ngm-cdk-option flex items-center cursor-pointer rounded-lg
-       hover:bg-black/5 dark:hover:bg-white/10"
+       hover:bg-hover-bg dark:hover:bg-white/10"
         [class.cdk-option-selected]="option.isSelected()"
         [cdkOptionDisabled]="disabled()"
       >

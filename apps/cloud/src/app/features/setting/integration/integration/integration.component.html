@@ -54,7 +54,7 @@
             @if (provider.icon) {
               <xp-icon
                 [icon]="provider.icon"
-                class="w-5 h-5 shrink-0 rounded-lg mr-1 bg-gray-100 flex justify-center items-center"
+                class="w-5 h-5 shrink-0 rounded-lg mr-1 bg-components-input-bg-normal flex justify-center items-center"
               />
             } @else if (provider.avatar) {
               <img class="w-5 h-5 rounded-lg mr-1" [src]="'/assets/images/integrations/' + provider.avatar" />
@@ -68,12 +68,12 @@
             } @else if (option._icon) {
               <xp-icon
                 [icon]="option._icon"
-                class="w-8 h-8 shrink-0 rounded-lg bg-gray-100 flex justify-center items-center"
+                class="w-8 h-8 shrink-0 rounded-lg bg-components-input-bg-normal flex justify-center items-center"
               />
             }
             <div class="flex flex-col">
-              <div class="text-gray-700 text-sm leading-5">{{ option.label | i18n }}</div>
-              <div class="text-gray-500 text-xs leading-3 line-clamp-3" [title]="option.description | i18n">
+              <div class="text-text-secondary text-sm leading-5">{{ option.label | i18n }}</div>
+              <div class="text-text-tertiary text-xs leading-3 line-clamp-3" [title]="option.description | i18n">
                 {{ option.description | i18n }}
               </div>
             </div>
@@ -105,7 +105,7 @@
     @if (webhookUrl()) {
       <div>
         <p>{{ 'PAC.Integration.WebhookUrl' | translate: { Default: 'Webhook url' } }}:</p>
-        <pre class="px-2 py-1 rounded-md text-sm whitespace-break-spaces bg-gray-50 dark:bg-white/10">{{
+        <pre class="px-2 py-1 rounded-md text-sm whitespace-break-spaces bg-background-default-subtle dark:bg-white/10">{{
           webhookUrl()
         }}</pre>
       </div>

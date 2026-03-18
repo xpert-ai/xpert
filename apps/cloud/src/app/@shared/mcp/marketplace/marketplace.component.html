@@ -32,12 +32,12 @@
             bg-components-card-bg">
         <div class="absolute right-0 top-0 flex pl-[13px] ">
           <svg width="13" height="20" viewBox="0 0 13 20" fill="none"
-            xmlns="http://www.w3.org/2000/svg" class="text-gray-50"
+            xmlns="http://www.w3.org/2000/svg" class="text-components-input-bg-normal"
           >
             <path id="Shape" d="M0 0H13V20C9.98017 20 7.26458 18.1615 6.14305 15.3576L0 0Z"
               fill="currentColor"></path>
           </svg>
-          <div class="text-xs font-semibold uppercase h-6 rounded-tr-xl bg-gray-50 pr-2 leading-6 text-text-tertiary"
+          <div class="text-xs font-semibold uppercase h-6 rounded-tr-xl bg-background-default-subtle pr-2 leading-6 text-text-tertiary"
           >{{template.type || 'Tool'}}</div>
         </div>
         <div class="flex">
@@ -45,7 +45,7 @@
             style="background-image: url({{template.icon}});"></div>
           <div class="ml-3 w-0 grow">
             <div class="flex h-5 items-center">
-              <div class="font-semibold truncate text-zinc-500" [ngmHighlight]="searchText()" [content]="template.title">
+              <div class="font-semibold truncate text-text-tertiary" [ngmHighlight]="searchText()" [content]="template.title">
                 {{template.title}}
               </div>
             </div>
@@ -83,7 +83,7 @@
         </div>
       </div>
       <div class="absolute bottom-0 hidden w-full items-center space-x-2 rounded-b-xl 
-        bg-gradient-to-tr from-white to-white/0 px-4 pb-4 pt-8 
+        bg-gradient-to-tr from-components-card-bg to-transparent px-4 pb-4 pt-8 
             group-hover:flex">
           <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium w-[calc(50%-4px)]"
             (click)="install(template)"

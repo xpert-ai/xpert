@@ -11,7 +11,7 @@
       [zTooltip]="'PAC.Xpert.HelpDocs' | translate: { Default: 'Help docs' }"
       zPosition="top"
     >
-      <i class="ri-book-open-line text-gray-500"></i>
+      <i class="ri-book-open-line text-text-tertiary"></i>
     </a>
 
     <div class="mx-3 w-[1px] h-3.5 bg-divider-deep"></div>
@@ -42,7 +42,7 @@
 <div class="variable-list grow px-4 rounded-b-2xl overflow-y-auto" cdkDropList (cdkDropListDropped)="drop($event)">
   @for (item of variables(); track item.variable.name; let index = $index) {
     <div
-      class="variable-list-item relative group mb-1 pl-6 pr-2.5 py-2 rounded-xl bg-components-card-bg border shadow-sm hover:bg-gray-50"
+      class="variable-list-item relative group mb-1 pl-6 pr-2.5 py-2 rounded-xl bg-components-card-bg border shadow-sm hover:bg-hover-bg"
       [class.danger]="item.__hover__"
       cdkDrag
       cdkDragLockAxis="y"

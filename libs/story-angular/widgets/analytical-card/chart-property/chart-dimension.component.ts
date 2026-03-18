@@ -41,8 +41,7 @@ export class NgmChartDimensionComponent implements ControlValueAccessor {
     effect(
       () => {
         this.onChange?.(this.model())
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

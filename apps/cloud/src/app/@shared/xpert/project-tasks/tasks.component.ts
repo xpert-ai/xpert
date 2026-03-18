@@ -45,8 +45,7 @@ export class XpertProjectTasksComponent {
         if (this.editable()) {
           this.refresh()
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

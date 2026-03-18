@@ -117,6 +117,9 @@ export class NgmTableComponent {
   })
   readonly tableSize = computed(() => displayDensityToTableSize(this.displayDensity()))
   readonly processedRows = computed(() => {
+    if(!Array.isArray(this.data())){
+      return [];
+    }
     let rows = [...(this.data() as any[])]
     rows = filterTableRowsByColumn(rows, this.searchingColumn(), this.searchValue())
     rows = sortTableRows(rows, this.sortState())
@@ -180,8 +183,7 @@ export class NgmTableComponent {
         if (!pageSizeOptions.includes(this.pageSize())) {
           this.pageSize.set(pageSizeOptions[0])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -192,8 +194,7 @@ export class NgmTableComponent {
         if (this.pageIndex() > maxPageIndex) {
           this.pageIndex.set(maxPageIndex)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

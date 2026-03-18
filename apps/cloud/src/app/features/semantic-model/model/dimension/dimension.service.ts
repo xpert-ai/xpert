@@ -92,8 +92,7 @@ export class ModelDimensionService {
     effect(
       () => {
         this.modelService.updateDirty(this.store.value.__id__, this.dirtyCheckResult.dirty())
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

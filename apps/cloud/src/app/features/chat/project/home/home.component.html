@@ -8,7 +8,7 @@
       <div class="flex-1 flex gap-2 justify-between items-center min-w-0" cdkTrapFocus cdkTrapFocusAutoCapture>
         @if (editing()) {
           <input
-            class="flex-1 bg-transparent text-2xl focus-visible:outline-none bg-white"
+            class="flex-1 bg-components-panel-bg text-2xl focus-visible:outline-none"
             cdkFocusInitial
             type="text"
             [(ngModel)]="name"
@@ -188,11 +188,11 @@
               <div class="ml-auto flex flex-row items-end gap-1">
                 <button
                   type="button"
-                  class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 bg-black disabled:opacity-10 disabled:text-gray-400 enabled:bg-black text-white dark:border-white dark:bg-white bottom-1.5 transition-transform origin-center enabled:hover:scale-110"
+                  class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 bg-primary-600 disabled:opacity-10 disabled:text-text-quaternary enabled:bg-primary-600 text-white enabled:hover:bg-primary-500 bottom-1.5 transition-transform origin-center enabled:hover:scale-110"
                   [disabled]="!input()"
                   (click)="onSubmit()"
                 >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-white dark:text-black">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-white">
                     <path
                       d="M7 11L12 6L17 11M12 18V7"
                       stroke="currentColor"
@@ -251,7 +251,7 @@
 
       <copilot-enable-model
         enableModel
-        class="absolute top-0 left-0 w-full h-full justify-center items-center z-10 rounded-3xl overflow-hidden backdrop-blur-md bg-white/2 hidden"
+        class="absolute top-0 left-0 w-full h-full justify-center items-center z-10 rounded-3xl overflow-hidden backdrop-blur-md bg-background-default-subtle/40 hidden"
       />
     </div>
 
@@ -265,7 +265,7 @@
         >
           <button
             type="button"
-            class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
+            class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-text-tertiary hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
             role="tab"
             [class.active]="viewType() === 'files'"
             (click)="viewType.set('files')"
@@ -276,7 +276,7 @@
 
           <button
             type="button"
-            class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
+            class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-text-tertiary hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
             role="tab"
             [class.active]="viewType() === 'tools'"
             (click)="viewType.set('tools')"
@@ -286,7 +286,7 @@
           </button>
           <button
             type="button"
-            class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
+            class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-text-tertiary hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
             role="tab"
             [class.active]="viewType() === 'knowledges'"
             (click)="viewType.set('knowledges')"
@@ -297,7 +297,7 @@
 
           <button
             type="button"
-            class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
+            class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-text-tertiary hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
             role="tab"
             [class.active]="viewType() === 'conversations'"
             (click)="viewType.set('conversations')"
@@ -309,7 +309,7 @@
           @if (project()?.vcsId) {
             <button
               type="button"
-              class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-gray-500 hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
+              class="view-option h-9 pl-4 pr-6 inline-flex items-center gap-x-2 border-b-2 border-transparent whitespace-nowrap text-text-tertiary hover:text-blue-600 focus:outline-hidden focus:text-blue-600 disabled:opacity-50 disabled:pointer-events-none"
               role="tab"
               [class.active]="viewType() === 'vcs'"
               (click)="viewType.set('vcs')"

@@ -44,7 +44,7 @@ export class NgmStepperComponent {
       if (this.cva.value$() != null && this.cva.value$() !== this.current()[0]) {
         this.current.set([this.cva.value$()])
       }
-    }, { allowSignalWrites: true})
+    })
   }
 
   onChange(index: number) {

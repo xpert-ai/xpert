@@ -46,15 +46,13 @@ export class NgmSchemaChartTypeComponent implements ControlValueAccessor {
     effect(
       () => {
         this.schema.chartType = this.chartType()
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
       () => {
         this.onChange?.(this.model())
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

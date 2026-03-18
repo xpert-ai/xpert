@@ -184,8 +184,7 @@ export class XpertWorkspaceHomeComponent {
             this.router.navigate(['/xpert/w/', this.selectedWorkspace().id])
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

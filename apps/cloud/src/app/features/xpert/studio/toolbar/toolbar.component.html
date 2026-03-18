@@ -3,7 +3,7 @@
   [cdkMenuTriggerFor]="zoomMenu"
 >
   <div
-    class="flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer active:scale-95 transition-transform hover:bg-black/5"
+    class="flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer active:scale-95 transition-transform hover:bg-hover-bg"
     [zTooltip]="'PAC.Xpert.ZoomOut' | translate: { Default: 'Zoom out' }"
     (click)="$event.stopPropagation(); onZoomOut()"
   >
@@ -22,7 +22,7 @@
   </div>
   <div class="w-[34px] text-center">{{ fZoomScale }}%</div>
   <div
-    class="flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer active:scale-95 transition-transform hover:bg-black/5"
+    class="flex items-center justify-center w-8 h-8 rounded-lg cursor-pointer active:scale-95 transition-transform hover:bg-hover-bg"
     [zTooltip]="'PAC.Xpert.ZoomIn' | translate: { Default: 'Zoom in' }"
     (click)="$event.stopPropagation(); onZoomIn()"
   >
@@ -47,7 +47,7 @@
   <button
     type="button"
     [zTooltip]="'PAC.Xpert.Undo' | translate: { Default: 'Undo' }"
-    class="flex items-center px-1.5 w-8 h-8 rounded-md text-sm font-medium enabled:hover:bg-black/5 enabled:hover:text-gray-700 enabled:cursor-pointer select-none"
+    class="flex items-center px-1.5 w-8 h-8 rounded-md text-sm font-medium enabled:hover:bg-hover-bg enabled:hover:text-text-secondary enabled:cursor-pointer select-none"
     [disabled]="!historyHasPast()"
     (click)="undo()"
   >
@@ -67,7 +67,7 @@
   <button
     type="button"
     [zTooltip]="'PAC.Xpert.Redo' | translate: { Default: 'Redo' }"
-    class="flex items-center px-1.5 w-8 h-8 rounded-md text-sm font-medium enabled:hover:bg-black/5 enabled:hover:text-gray-700 enabled:cursor-pointer select-none"
+    class="flex items-center px-1.5 w-8 h-8 rounded-md text-sm font-medium enabled:hover:bg-hover-bg enabled:hover:text-text-secondary enabled:cursor-pointer select-none"
     [disabled]="!historyHasFuture()"
     (click)="redo()"
   >
@@ -84,10 +84,10 @@
       ></path>
     </svg>
   </button>
-  <div class="mx-[3px] w-[1px] h-3.5 bg-gray-200"></div>
+  <div class="mx-[3px] w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
   <div class="inline-block">
     <div
-      class="flex items-center justify-center w-8 h-8 rounded-md hover:bg-black/5 cursor-pointer"
+      class="flex items-center justify-center w-8 h-8 rounded-md hover:bg-hover-bg cursor-pointer"
       [zTooltip]="'PAC.Xpert.ChangeHistory' | translate: { Default: 'Change History' }"
       [cdkMenuTriggerFor]="historyMenu"
       [cdkMenuPosition]="[
@@ -121,7 +121,7 @@
 >
   <div>
     <div
-      class="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-black/5 hover:text-gray-700 cursor-pointer"
+      class="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-hover-bg hover:text-text-secondary cursor-pointer"
       [cdkMenuTriggerFor]="menu.template"
       #menuTrigger="cdkMenuTriggerFor"
       [cdkMenuTriggerData]="{ menuTrigger: menuTrigger }"
@@ -139,9 +139,9 @@
     </div>
   </div>
 
-  <div class="mx-[3px] w-[1px] h-3.5 bg-gray-200"></div>
+  <div class="mx-[3px] w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
   <div
-    class="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-black/5 hover:text-gray-700 cursor-pointer active:scale-95 transition-transform"
+    class="flex items-center justify-center w-8 h-8 rounded-lg hover:bg-hover-bg hover:text-text-secondary cursor-pointer active:scale-95 transition-transform"
     [zTooltip]="'PAC.Xpert.ArrangeNodes' | translate: { Default: 'Arrange nodes' }"
     (click)="autoLayout()"
   >
@@ -153,18 +153,18 @@
   <div class="ngm-cdk-menu p-2" cdkMenu>
     @for (level of zoomScales; track level) {
       <button
-        class="ngm-cdk-menu-item flex items-center justify-start px-3 h-8 rounded-lg hover:bg-gray-50 cursor-pointer text-sm text-gray-700"
+        class="ngm-cdk-menu-item flex items-center justify-start px-3 h-8 rounded-lg hover:bg-hover-bg cursor-pointer text-sm text-text-secondary"
         (click)="onZoomTo(level)"
       >
         {{ level }}%
       </button>
     }
     <button
-      class="ngm-cdk-menu-item flex items-center justify-between px-3 h-8 rounded-lg hover:bg-gray-50 cursor-pointer text-sm text-gray-700"
+      class="ngm-cdk-menu-item flex items-center justify-between px-3 h-8 rounded-lg hover:bg-hover-bg cursor-pointer text-sm text-text-secondary"
       (click)="onFitToScreen()"
     >
       {{ 'PAC.Xpert.AdaptiveView' | translate: { Default: 'Adaptive View' } }}
-      <div class="flex items-center gap-0.5 h-4 text-xs text-gray-400">
+      <div class="flex items-center gap-0.5 h-4 text-xs text-text-quaternary">
         <div class="capitalize">⌘</div>
         <div class="capitalize">1</div>
       </div>
@@ -194,20 +194,20 @@
       </button>
     }
 
-    <div class="h-[1px] bg-gray-100 my-2"></div>
+    <div class="h-[1px] bg-components-input-bg-normal my-2"></div>
     <button
-      class="ngm-cdk-menu-item danger flex items-center justify-between px-3 h-8 rounded-lg hover:bg-gray-50 cursor-pointer text-sm text-gray-700"
+      class="ngm-cdk-menu-item danger flex items-center justify-between px-3 h-8 rounded-lg hover:bg-hover-bg cursor-pointer text-sm text-text-secondary"
       ngmAppearance="danger"
       (click)="clearHistory()"
     >
       {{ 'PAC.Xpert.ClearHistory' | translate: { Default: 'Clear History' } }}
     </button>
 
-    <div class="px-3 w-[240px] py-2 text-sm text-gray-500">
+    <div class="px-3 w-[240px] py-2 text-sm text-text-tertiary">
       <div class="flex items-center mb-1 h-[22px] font-medium uppercase">
         {{ 'PAC.Xpert.Hint' | translate: { Default: 'Hint' } }}
       </div>
-      <div class="mb-1 text-gray-700 leading-[18px]">
+      <div class="mb-1 text-text-secondary leading-[18px]">
         {{
           'PAC.Xpert.StudioHistoryHint'
             | translate

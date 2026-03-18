@@ -18,8 +18,7 @@ export function linkedModel<T>(options: LinkedModelOptions<T>): WritableSignal<T
     () => {
       currentValue = internalState()
       derived.set(currentValue)
-    },
-    { allowSignalWrites: true }
+    }
   )
 
   effect(() => {
@@ -27,7 +26,7 @@ export function linkedModel<T>(options: LinkedModelOptions<T>): WritableSignal<T
       update(derived(), currentValue)
       currentValue = derived()
     }
-  }, { allowSignalWrites: true })
+  })
 
   return derived
 }

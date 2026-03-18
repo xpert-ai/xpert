@@ -17,7 +17,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
         <span class="inline-block w-2 h-2 bg-yellow-400 rounded-full"></span>
       }
       @if (characterLength() < 4000) {
-        <span class="inline-block w-2 h-2 bg-gray-300 rounded-full"></span>
+        <span class="inline-block w-2 h-2 bg-components-card-bg rounded-full"></span>
       }
       {{ characterLength() }}
     </span>`,

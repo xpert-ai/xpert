@@ -132,8 +132,7 @@ export class XpertChatAppComponent {
     effect(
       () => {
         this.chatService.xpert.set(this.xpert())
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -143,8 +142,7 @@ export class XpertChatAppComponent {
         if (!this.paramConvId()) {
           this.parametersValue.set({})
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -152,8 +150,7 @@ export class XpertChatAppComponent {
         if (this.parametersValue()) {
           this.chatService.parametersValue.set(this.parametersValue())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -181,8 +178,7 @@ export class XpertChatAppComponent {
             }
           })
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

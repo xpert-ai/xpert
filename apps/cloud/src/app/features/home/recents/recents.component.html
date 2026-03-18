@@ -3,7 +3,7 @@
 </div>
 <div class="px-2 flex-1 overflow-auto">
   @for (recent of recents$ | async; track $index) {
-    <div class="p-1 rounded-md text-ellipsis whitespace-nowrap overflow-hidden flex hover:bg-gray-100/50 dark:hover:bg-white/5">
+    <div class="p-1 rounded-md text-ellipsis whitespace-nowrap overflow-hidden flex hover:bg-hover-bg/50 dark:hover:bg-white/5">
       @switch (recent.entity) {
         @case('SemanticModel') {
           <span class="font-notoColorEmoji">🧊</span>

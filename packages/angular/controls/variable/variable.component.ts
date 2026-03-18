@@ -76,8 +76,7 @@ export class NgmVariableComponent implements ControlValueAccessor {
     effect(
       () => {
         this.smartFilterService.dataSettings = this.dataSettings()
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -90,8 +89,7 @@ export class NgmVariableComponent implements ControlValueAccessor {
             }
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

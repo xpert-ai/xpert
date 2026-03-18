@@ -62,7 +62,7 @@
   <div class="flex-1 overflow-y-auto">
     <ul role="list" class="m-4">
       @for (item of results(); track item.doc.id) {
-        <li role="listitem" class="p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/10">
+        <li role="listitem" class="p-4 rounded-lg hover:bg-hover-bg dark:hover:bg-white/10">
           <div class="mb-2 flex justify-between items-center">
             <span></span>
             <ngm-tags class="text-sm" [tags]="[{ caption: 'Score: ' + (1 - item.score).toFixed(2) }]" color="green" />

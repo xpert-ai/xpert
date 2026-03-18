@@ -106,8 +106,7 @@ export class KnowledgeDocumentChunkComponent {
         if (this.document()) {
           this.docEnabled.set(!this.document().disabled)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     // effect(() => {

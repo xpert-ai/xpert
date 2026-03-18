@@ -69,8 +69,7 @@ export class PACFormlySelectComponent extends FieldType implements OnInit {
       } else {
         this.error.set(null)
       }
-    },
-    { allowSignalWrites: true }
+    }
   )
 
   ngOnInit(): void {

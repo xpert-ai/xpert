@@ -34,6 +34,6 @@ export class XpertTaskFormComponent {
         this.formGroup.patchValue(this.task())
         this.formGroup.markAsPristine()
       }
-    }, { allowSignalWrites: true })
+    })
   }
 }

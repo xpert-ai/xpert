@@ -79,21 +79,21 @@ export class SinglePageStoryComponent {
       if (story) {
         this.storyService.setStory(story, { fetched: true })
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       const pointKey = this.pointKey()
       if (pointKey) {
         this.storyService.setCurrentPageKey(pointKey)
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       const token = this.queryParams()['token']
       if (token) {
         this.storyService.patchState({ token })
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   resetScalePanState() {

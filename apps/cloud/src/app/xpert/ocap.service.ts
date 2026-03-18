@@ -87,8 +87,7 @@ export class XpertOcapService {
             }
           })
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     // Register the model when all conditions are ready
@@ -127,8 +126,7 @@ export class XpertOcapService {
             }, {})
           })
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

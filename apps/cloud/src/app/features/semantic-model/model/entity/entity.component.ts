@@ -194,8 +194,7 @@ export class ModelEntityComponent implements OnInit {
         if (this.entityService.selectedProperty()) {
           this.detailsOpen.set(true)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

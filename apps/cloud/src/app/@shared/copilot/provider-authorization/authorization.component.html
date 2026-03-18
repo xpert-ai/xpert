@@ -1,5 +1,5 @@
 <div class="flex justify-between items-center mb-2 cursor-move" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
-  <div class="text-2xl font-semibold text-gray-900">{{'PAC.Copilot.Setup' | translate: {Default: 'Setup'} }} {{provider().label | i18n}}</div>
+  <div class="text-2xl font-semibold text-text-primary">{{'PAC.Copilot.Setup' | translate: {Default: 'Setup'} }} {{provider().label | i18n}}</div>
   <img
     alt="provider-icon"
     [src]="icon()"
@@ -20,7 +20,7 @@
   <div class="p-2 text-sm text-text-destructive">{{error()}}</div>
 }
 
-<div class="sticky bottom-0 flex justify-between items-center mt-2 -mx-2 pt-4 px-2 pb-6 flex-wrap gap-y-2 bg-white">
+<div class="sticky bottom-0 flex justify-between items-center mt-2 -mx-2 pt-4 px-2 pb-6 flex-wrap gap-y-2 bg-components-card-bg">
   @if (help()) {
     <a
       [href]="help().url | i18n"

@@ -1,7 +1,7 @@
 <div class="flex justify-between items-center px-8 py-4">
   <div class="flex justify-between items-center">
     <div class="pac-page-title mr-2">{{ 'PAC.KEY_WORDS.Plugins' | translate: { Default: 'Plugins' } }}</div>
-    <div class="relative inline-flex items-center justify-center gap-1 rounded-[10px] h-10 bg-neutral-100 p-0.5">
+    <div class="relative inline-flex items-center justify-center gap-1 rounded-[10px] h-10 bg-components-input-bg-normal p-0.5">
       <div
         id="tab-0"
         class="tab relative z-10 flex cursor-pointer items-center justify-center gap-1 rounded-[10px] px-2.5 py-1.5 transition-colors duration-300 ease-in-out system-md-semibold text-text-tertiary"
@@ -93,7 +93,7 @@
       <div class="pb-3">
         <div class="grid grid-cols-2 gap-3">
           @for (plugin of filteredPlugins(); track plugin.__trackId) {
-            <div class="relative overflow-hidden rounded-xl border-[1.5px] border-(--border) p-1 bg-gray-100">
+            <div class="relative overflow-hidden rounded-xl border-[1.5px] border-(--border) p-1 bg-components-input-bg-normal">
               <div
                 class="relative z-10 rounded-xl border-[0.5px] bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
               >
@@ -104,7 +104,7 @@
                     viewBox="0 0 13 20"
                     fill="none"
                     xmlns="http://www.w3.org/2000/svg"
-                    class="-mr-[1px] text-gray-100"
+                    class="-mr-[1px] text-components-input-bg-normal"
                   >
                     <path
                       id="Shape"
@@ -113,7 +113,7 @@
                     ></path>
                   </svg>
                   <div
-                    class="text-xs font-semibold font-body uppercase h-[18px] rounded-tr-xl bg-gray-100 pr-2 leading-5 text-text-tertiary"
+                    class="text-xs font-semibold font-body uppercase h-[18px] rounded-tr-xl bg-components-input-bg-normal pr-2 leading-5 text-text-tertiary"
                   >
                     {{ 'PAC.Plugin.Category_' + plugin.meta.category | translate: { Default: plugin.meta.category } }}
                   </div>
@@ -200,7 +200,7 @@
                   <div class="flex w-full items-center gap-1 overflow-hidden text-text-tertiary">
                     @for (keyword of plugin.meta.keywords; track keyword) {
                       <div
-                        class="flex items-center gap-x-0.5 rounded-[5px] border border-divider-deep cursor-pointer bg-gray-50 px-[5px] py-[1px] hover:bg-gray-100"
+                        class="flex items-center gap-x-0.5 rounded-[5px] border border-divider-deep cursor-pointer bg-background-default-subtle px-[5px] py-[1px] hover:bg-hover-bg"
                         [ngClass]="{ 'text-primary-500': keywords().includes(keyword) }"
                         (click)="toggleKeyword(keyword)"
                       >
@@ -212,7 +212,7 @@
               </div>
 
               @if (removing() === plugin.name) {
-                <ngm-spin class="absolute inset-0 backdrop-blur-sm bg-white/10" />
+                <ngm-spin class="absolute inset-0 backdrop-blur-sm bg-components-card-bg/10" />
               }
             </div>
           }
@@ -232,7 +232,7 @@
 </ng-template>
 
 <ng-template #npmInstallDialog let-dialogRef="dialogRef">
-  <div class="w-full rounded-2xl bg-white px-6 py-5">
+  <div class="w-full rounded-2xl bg-components-card-bg px-6 py-5">
     <div class="flex items-start justify-between pb-3">
       <div class="text-xl font-semibold text-text-primary">
         {{ 'PAC.Plugin.InstallFromNpm' | translate: { Default: 'Install from NPM' } }}
@@ -270,7 +270,7 @@
         <div class="max-w-sm text-sm text-text-destructive">{{ npmInstallError() }}</div>
       }
       @if (npmInstalling()) {
-        <ngm-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-white/2" />
+        <ngm-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />
       }
     </div>
     <div class="flex items-center justify-end gap-2 pt-4">

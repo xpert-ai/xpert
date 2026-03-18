@@ -35,7 +35,7 @@
 </div>
 
 @if (error()) {
-  <div class="flex flex-col rounded-lg bg-gray-50">
+  <div class="flex flex-col rounded-lg bg-background-default-subtle">
     <div class="px-3 py-1 flex justify-between items-center">
       ERROR
       <copy [content]="error()" />
@@ -46,7 +46,7 @@
   </div>
 }
 
-<div class="flex flex-col rounded-lg m-4 bg-gray-50">
+<div class="flex flex-col rounded-lg m-4 bg-background-default-subtle">
   <div class="px-3 py-1 flex justify-between items-center">
     OUTPUT
     <copy [content]="results()" />

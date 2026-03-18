@@ -75,8 +75,7 @@ export class EmojiAvatarEditorComponent {
           this.set.set(this.avatar.emoji?.set)
           this.imageUrl.set(this.avatar.url)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

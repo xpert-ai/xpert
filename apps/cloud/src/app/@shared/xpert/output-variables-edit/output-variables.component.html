@@ -65,37 +65,37 @@
 <ng-template #parameterTypeMenu>
   <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu p-2">
     <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
+      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
       cdkMenuItem
       [type]="eXpertParameterTypeEnum.TEXT"
       (click)="addParameter({ type: eXpertParameterTypeEnum.TEXT, optional: true })"
     />
     <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
+      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
       cdkMenuItem
       [type]="eXpertParameterTypeEnum.NUMBER"
       (click)="addParameter({ type: eXpertParameterTypeEnum.NUMBER, optional: true })"
     />
     <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
+      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
       cdkMenuItem
       [type]="eXpertParameterTypeEnum.OBJECT"
       (click)="addParameter({ type: eXpertParameterTypeEnum.OBJECT, optional: true })"
     />
     <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
+      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
       cdkMenuItem
       [type]="eXpertParameterTypeEnum.SELECT"
       (click)="addParameter({ type: eXpertParameterTypeEnum.SELECT, optional: true })"
     />
     <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
+      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
       cdkMenuItem
       [type]="eXpertParameterTypeEnum.ARRAY_STRING"
       (click)="addParameter({ type: eXpertParameterTypeEnum.ARRAY_STRING, optional: true })"
     />
     <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
+      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
       cdkMenuItem
       [type]="eXpertParameterTypeEnum.ARRAY"
       (click)="addParameter({ type: eXpertParameterTypeEnum.ARRAY, optional: true })"

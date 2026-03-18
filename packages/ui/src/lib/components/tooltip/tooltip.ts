@@ -115,6 +115,9 @@ export class ZardTooltipDirective implements OnInit, OnDestroy {
         toObservable(this.tooltipPosition)
           .pipe(takeUntilDestroyed(this.destroyRef))
           .subscribe((position) => {
+            if (!this.overlayRef.hasAttached()) {
+              return;
+            }
             this.overlayRef?.updatePositionStrategy(
               this.overlayPositionBuilder
                 .flexibleConnectedTo(this.elementRef)

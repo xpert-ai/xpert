@@ -150,8 +150,7 @@ export class EntityQueryComponent {
         if (nonNullable(this.statement())) {
           this.entityService.statement = this.statement()
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

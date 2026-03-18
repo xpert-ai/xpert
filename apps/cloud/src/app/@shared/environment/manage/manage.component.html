@@ -7,7 +7,7 @@
       @for (env of environments(); track env.id) {
         <div
           class="group relative mb-0.5 flex h-[37px] cursor-pointer items-center rounded-lg p-1 pl-3 text-sm system-sm-medium hover:bg-hover-bg"
-          [class.bg-gray-200]="env.id === environment()?.id"
+          [class.bg-components-list-option-active-bg]="env.id === environment()?.id"
           [class.text-primary-500]="env.id === environment()?.id"
           [title]="env.name"
           (click)="setEnvironment(env)"

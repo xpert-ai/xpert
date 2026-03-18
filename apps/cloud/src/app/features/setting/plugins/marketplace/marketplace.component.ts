@@ -143,7 +143,7 @@ export class PluginsMarketplaceComponent {
       )
 
       this.pluginsWithDownloads.set(updated)
-    }, { allowSignalWrites: true })
+    })
 
     // effect(() => {
     //   console.log(this.pluginsWithDownloads())

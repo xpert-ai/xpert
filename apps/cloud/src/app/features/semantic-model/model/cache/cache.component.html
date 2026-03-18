@@ -1,5 +1,5 @@
 <div class="mb-3 flex justify-between items-center">
-  <div class="h-[41px] flex items-center text-xl font-semibold text-gray-900">
+  <div class="h-[41px] flex items-center text-xl font-semibold text-text-primary">
     {{ 'PAC.MODEL.Cache' | translate: { Default: 'Cache' } }}
   </div>
 </div>
@@ -47,22 +47,22 @@
 </div>
 
 <div class="w-full relative overflow-auto flex-1" waIntersectionObserver waIntersectionThreshold="0.5">
-  <table class="table-fixed w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-    <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+  <table class="table-fixed w-full text-sm text-left rtl:text-right text-text-secondary">
+    <thead class="text-sm text-text-secondary uppercase bg-background-default-subtle">
       <tr>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-36 truncate">
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3 w-36 truncate">
           {{ 'PAC.KEY_WORDS.Language' | translate: { Default: 'Language' } }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-48">
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3 w-48">
           {{ 'PAC.KEY_WORDS.UpdatedAt' | translate: { Default: 'Updated At' } }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3 w-32">
           {{ 'PAC.KEY_WORDS.CreatedBy' | translate: { Default: 'Created By' } }}
         </th>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
+        <th scope="col" class="sticky top-0 bg-background-default-subtle px-6 py-3">
           {{ 'PAC.MODEL.QueryStatement' | translate: { Default: 'Query Statement' } }}
         </th>
-        <th scope="col" class="w-36 sticky top-0 right-0 bg-gray-50 px-6 py-3">
+        <th scope="col" class="w-36 sticky top-0 right-0 bg-background-default-subtle px-6 py-3">
           {{ 'PAC.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}
         </th>
       </tr>
@@ -70,7 +70,7 @@
     <tbody>
       @for (item of caches(); track item.id) {
         <tr
-          class="row group cursor-pointer bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+          class="row group cursor-pointer bg-components-card-bg border-b border-divider-subtle"
           (click)="preview.set(item)"
         >
           <td class="px-4 py-2 whitespace-nowrap truncate">
@@ -83,11 +83,11 @@
           <td class="px-4 py-2">
             {{ item.query }}
           </td>
-          <td class="px-4 py-2 w-36 sticky right-0 bg-white dark:bg-gray-800">
+          <td class="px-4 py-2 w-36 sticky right-0 bg-components-card-bg">
             <div class="pac__table-actions flex gap-1">
               <button
                 type="button"
-                class="w-7 h-7 rounded-full text-slate-500 hover:bg-hover-bg hover:text-text-destructive opacity-50 group-hover:opacity-100"
+                class="w-7 h-7 rounded-full text-text-secondary hover:bg-hover-bg hover:text-text-destructive opacity-50 group-hover:opacity-100"
                 (click)="removeCache(item); $event.stopPropagation()"
               >
                 <i class="ri-delete-bin-line"></i>
@@ -108,7 +108,7 @@
   @if (!done()) {
     <button
       (waIntersectionObservee)="onIntersection()"
-      class="w-full flex justify-center p-2 cursor-pointer hover:bg-gray-100"
+      class="w-full flex justify-center p-2 cursor-pointer hover:bg-hover-bg"
       [disabled]="loading()"
       (click)="onIntersection()"
     >
@@ -143,7 +143,7 @@
         {{ 'PAC.MODEL.QueryStatement' | translate: { Default: 'Query Statement' } }}
       </div>
       <div class="relative text-sm">
-        <div class="whitespace-pre overflow-auto min-h-[60px] p-2 rounded-lg text-gray-500 bg-gray-50">
+        <div class="whitespace-pre overflow-auto min-h-[60px] p-2 rounded-lg text-text-secondary bg-background-default-subtle">
           {{ item.query }}
         </div>
         <copy2
@@ -154,11 +154,11 @@
       <div class="text-text-secondary mt-2">
         {{ 'PAC.MODEL.QueryOptions' | translate: { Default: 'Query Options' } }}
       </div>
-      <div class="relative text-sm p-2 rounded-lg bg-gray-50"></div>
+      <div class="relative text-sm p-2 rounded-lg bg-background-default-subtle"></div>
       <div class="text-text-secondary mt-2">
         {{ 'PAC.MODEL.QueryResult' | translate: { Default: 'Query Result' } }}
       </div>
-      <div class="relative text-sm p-2 rounded-lg overflow-auto bg-gray-50">
+      <div class="relative text-sm p-2 rounded-lg overflow-auto bg-background-default-subtle">
         {{ item.data }}
       </div>
     </div>

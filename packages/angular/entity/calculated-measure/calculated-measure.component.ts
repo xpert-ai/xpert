@@ -166,8 +166,7 @@ export class NgmCalculatedMeasureComponent implements ControlValueAccessor {
         if (this.opened()) {
           this.drawerOpened.set(this.opened())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

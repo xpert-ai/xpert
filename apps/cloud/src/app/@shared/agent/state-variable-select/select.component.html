@@ -1,4 +1,4 @@
-<div class="menu-trigger group flex justify-start items-center text-sm pl-2 p-1 rounded-lg bg-gray-100 hover:bg-gray-200"
+<div class="menu-trigger group flex justify-start items-center text-sm pl-2 p-1 rounded-lg bg-components-input-bg-normal hover:bg-button-ghost-hover"
   #trigger="cdkMenuTriggerFor"
   [cdkMenuTriggerFor]="varsMenu"
 >
@@ -13,7 +13,7 @@
     <div class="grow flex items-center truncate ml-0.5 text-text-accent font-medium">
       <span class="text-sm mr-1 truncate">{{ variable().name }}</span>
       <span class="flex-1 text-xs italic truncate text-text-secondary">{{variable().description | i18n}}</span>
-      <span class="ml-2 px-1 text-sm rounded-md bg-gray-50 text-primary-300">{{variable().type}}</span>
+      <span class="ml-2 px-1 text-sm rounded-md bg-background-default-subtle text-primary-300">{{variable().type}}</span>
     </div>
 
     @if (nullable()) {
@@ -26,7 +26,7 @@
 </div>
 
 <ng-template #varsMenu>
-  <xpert-variable-panel class="border-[0.5px] border-solid border-slate-200 rounded-xl shadow-lg bg-components-card-bg" (click)="$event.stopPropagation()" 
+  <xpert-variable-panel class="border-[0.5px] border-solid border-divider-deep rounded-xl shadow-lg bg-components-card-bg" (click)="$event.stopPropagation()" 
     [options]="varOptions()"
     [(variables)]="variables"
     [type]="type()"

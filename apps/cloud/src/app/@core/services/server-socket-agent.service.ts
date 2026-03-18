@@ -17,7 +17,9 @@ import { PAC_SERVER_DEFAULT_OPTIONS, PacServerDefaultOptions } from '../provider
 /**
  * Responsible for proxying the olap data requests of page components to the server through the websocket interface
  */
-@Injectable()
+@Injectable({
+   providedIn: 'root'
+})
 export class ServerSocketAgent extends AbstractAgent implements Agent {
   readonly #i18n = inject(I18nService)
   readonly #agentService = inject(AgentService)

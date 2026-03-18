@@ -50,7 +50,7 @@
             {{ provider.label | i18n }}
           }
         </div>
-        <div class="mt-1 leading-4 text-sm text-zinc-600 line-clamp-4" [title]="provider.description | i18n">
+        <div class="mt-1 leading-4 text-sm text-text-secondary line-clamp-4" [title]="provider.description | i18n">
           {{ provider.description | i18n }}
         </div>
       </div>
@@ -58,7 +58,7 @@
         <div class="flex flex-wrap group-hover:hidden gap-0.5">
           @for (type of provider.supported_model_types; track type) {
             <div
-              class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] uppercase font-medium text-gray-500 cursor-default"
+              class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] uppercase font-medium text-text-tertiary cursor-default"
             >
               {{ type }}
             </div>

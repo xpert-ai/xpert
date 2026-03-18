@@ -129,8 +129,7 @@ export class XpertProjectInstallComponent {
         if (dsl) {
           this.dsl.set(dsl)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

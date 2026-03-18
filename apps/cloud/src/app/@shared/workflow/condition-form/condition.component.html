@@ -2,13 +2,13 @@
   [class.danger]="hoverDelete()"
 >
   <div class="flex items-center p-1">
-    <xpert-state-variable-select [variables]="variables()" inline class="grow w-0 focus:bg-white" 
+    <xpert-state-variable-select [variables]="variables()" inline class="grow w-0 focus:bg-components-input-bg-active" 
       [(variables)]="variables"
       [(ngModel)]="_variableSelector"
     />
     <div class="mx-1 w-[1px] h-3 bg-divider-regular"></div>
 
-    <div class="flex items-center p-1 rounded-md text-xs hover:bg-gray-200"
+    <div class="flex items-center p-1 rounded-md text-xs hover:bg-button-ghost-hover"
       [cdkMenuTriggerFor]="opMenu"
     >
       <span class="grow mr-2">{{ operatorLabel() | i18n }}</span>
@@ -18,7 +18,7 @@
 
   @if (variableType() !== eXpertParameterTypeEnum.BOOLEAN) {
     <div class="px-2 pt-1 max-h-[100px] border-t border-t-divider-deep overflow-y-auto">
-      <xpert-variable-input #input2 class="w-full text-sm leading-5 text-gray-700 bg-transparent focus:bg-white"
+      <xpert-variable-input #input2 class="w-full text-sm leading-5 text-text-secondary bg-transparent focus:bg-components-input-bg-active"
         [placeholder]="'PAC.Workflow.InputValue' | translate: {Default: 'Input value'}"
         [variables]="envVariables()"
         [(ngModel)]="value"

@@ -82,8 +82,7 @@ export class ChatProjectConversationComponent {
     effect(
       () => {
         this.chatSercice.project.set(this.project() as IXpertProject)
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

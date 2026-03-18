@@ -18,32 +18,32 @@
       </div>
 
       <textarea
-        class="w-full px-2 py-1 mt-2 text-sm outline-none rounded-lg border border-solid border-transparent active:border-divider-regular focus-within:border-divider-regular bg-gray-50 focus-within:bg-gray-100"
+        class="w-full px-2 py-1 mt-2 text-sm outline-none rounded-lg border border-solid border-transparent active:border-divider-regular focus-within:border-divider-regular bg-background-default-subtle focus-within:bg-components-input-bg-normal"
         [placeholder]="'PAC.Xpert.EnterToolsetDescription' | translate: { Default: 'Enter toolset description' }"
         [(ngModel)]="description"
       ></textarea>
       <div>
-        <div class="py-2 leading-5 text-sm font-medium text-gray-900">
+        <div class="py-2 leading-5 text-sm font-medium text-text-primary">
           {{ 'PAC.KEY_WORDS.Tags' | translate: { Default: 'Tags' } }}
         </div>
         <tag-select optional [category]="eTagCategoryEnum.TOOLSET" [(ngModel)]="tags" />
       </div>
       <div>
-        <div class="py-2 leading-5 text-sm font-medium text-gray-900">
+        <div class="py-2 leading-5 text-sm font-medium text-text-primary">
           {{ 'PAC.Xpert.PrivacyPolicy' | translate: { Default: 'Privacy Policy' } }}
         </div>
         <input
-          class="w-full h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg grow"
+          class="w-full h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg grow"
           [placeholder]="'PAC.Xpert.EnterPrivacyPolicy' | translate: { Default: 'Please enter privacy policy' }"
           [(ngModel)]="privacyPolicy"
         />
       </div>
       <div>
-        <div class="py-2 leading-5 text-sm font-medium text-gray-900">
+        <div class="py-2 leading-5 text-sm font-medium text-text-primary">
           {{ 'PAC.Xpert.CustomDisclaimer' | translate: { Default: 'Custom Disclaimer' } }}
         </div>
         <input
-          class="w-full h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg grow"
+          class="w-full h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg grow"
           [placeholder]="'PAC.Xpert.EnterCustomDisclaimer' | translate: { Default: 'Please enter custom disclaimer' }"
           [(ngModel)]="customDisclaimer"
         />
@@ -61,7 +61,7 @@
           viewBox="0 0 14 14"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          class="mr-1 w-4 h-4 text-gray-500"
+          class="mr-1 w-4 h-4 text-text-tertiary"
         >
           <g id="Left Icon" clip-path="url(#clip0_11961_30603)">
             <g id="Icon">
@@ -85,7 +85,7 @@
             <clipPath id="clip0_11961_30603"><rect width="14" height="14" fill="white"></rect></clipPath>
           </defs>
         </svg>
-        <div class="leading-5 text-sm font-medium text-gray-700">
+        <div class="leading-5 text-sm font-medium text-text-secondary">
           {{ 'PAC.Xpert.Configure' | translate: { Default: 'Configure' } }}
         </div>
       </button>
@@ -93,7 +93,7 @@
 
     <div class="flex-1 flex flex-col overflow-y-auto">
       <div
-        class="sticky top-0 flex justify-between items-center text-sm font-medium leading-6 px-2 border-b-[0.5px] border-black/5 text-gray-500 bg-components-panel-bg"
+        class="sticky top-0 flex justify-between items-center text-sm font-medium leading-6 px-2 border-b-[0.5px] border-divider-regular text-text-tertiary bg-components-panel-bg"
       >
         <span class="uppercase"
           >{{ tools()?.length }} {{ 'PAC.Xpert.ToolsIncluded' | translate: { Default: 'Tools Included' } }}</span
@@ -106,20 +106,20 @@
       <div class="pt-3 grow" [@listSlideStagger]="tools()?.length">
         @for (tool of tools(); track tool.name) {
           <div
-            class="tool-item mb-2 px-4 py-3 rounded-xl bg-neutral-50 border-[0.5px] border-gary-200 cursor-pointer hover:bg-white hover:shadow-sm"
+            class="tool-item mb-2 px-4 py-3 rounded-xl bg-background-default-subtle border-[0.5px] border-divider-deep cursor-pointer hover:bg-hover-bg hover:shadow-sm"
             [class.selected]="tool.name === selectedTool()"
             [class.removed]="tool.deletedAt"
             (click)="selectTool(tool)"
           >
-            <div class="flex items-center gap-2 text-gray-800 font-semibold text-sm leading-5">
+            <div class="flex items-center gap-2 text-text-primary font-semibold text-sm leading-5">
               @if (tool.disabled ?? disableToolDefault()) {
-                <span class="inline-block w-2 h-2 rounded-full bg-gray-200 shadow-md shadow-gray-100"> </span>
+                <span class="inline-block w-2 h-2 rounded-full bg-components-list-option-active-bg shadow-md shadow-gray-100"> </span>
               } @else {
                 <span class="inline-block w-2 h-2 rounded-full bg-green-500 shadow-md shadow-green-100"> </span>
               }
               {{ tool.name }}
             </div>
-            <div class="mt-0.5 text-sm leading-[18px] text-gray-500 line-clamp-2" [title]="tool.description">
+            <div class="mt-0.5 text-sm leading-[18px] text-text-tertiary line-clamp-2" [title]="tool.description">
               {{ tool.description }}
             </div>
           </div>
@@ -179,10 +179,10 @@
       <div class="flex-1 flex flex-col overflow-auto">
         <div class="sticky top-0 z-20 !border-b-black/5 shrink-0 border-b border-b-gray-100 p-4 bg-components-panel-bg">
           <div class="flex justify-between items-center h-6">
-            <div class="text-base font-semibold text-gray-900">
+            <div class="text-base font-semibold text-text-primary">
               <div class="flex items-center">
                 <xpert-tool-name-input
-                  class="ml-2 leading-6 text-base font-semibold text-gray-900"
+                  class="ml-2 leading-6 text-base font-semibold text-text-primary"
                   disabled
                   [ngModel]="tool.name"
                   (ngModelChange)="updateTool({ name: $event })"
@@ -199,11 +199,11 @@
           </div>
         </div>
         <div class="flex flex-col px-4 mt-4">
-          <div class="py-1 leading-5 text-base font-medium text-gray-500">
+          <div class="py-1 leading-5 text-base font-medium text-text-tertiary">
             {{ 'PAC.Xpert.Description' | translate: { Default: 'Description' } }}
           </div>
           <textarea
-            class="w-full px-2 py-1 mt-2 text-sm outline-none rounded-lg border border-solid border-transparent active:border-divider-regular focus-within:border-divider-regular text-zinc-500 bg-gray-50 focus-within:bg-gray-100"
+            class="w-full px-2 py-1 mt-2 text-sm outline-none rounded-lg border border-solid border-transparent active:border-divider-regular focus-within:border-divider-regular text-text-tertiary bg-background-default-subtle focus-within:bg-components-input-bg-normal"
             [placeholder]="'PAC.Xpert.EnterToolDescription' | translate: { Default: 'Please enter tool description' }"
             [ngModel]="tool.description"
             (ngModelChange)="updateTool({ description: $event })"
@@ -212,9 +212,9 @@
 
         <div class="flex flex-col p-4">
           <!-- <div class="mt-6">
-            <div class="flex items-center mb-4 leading-5 text-base font-semibold text-gray-500 uppercase">
+            <div class="flex items-center mb-4 leading-5 text-base font-semibold text-text-tertiary uppercase">
               <div class="mr-3">{{'PAC.Xpert.Parameters' | translate: {Default: 'Parameters'} }}</div>
-              <div class="grow w-0 h-px bg-gradient-to-r from-neutral-300 to-white"></div>
+              <div class="grow w-0 h-px bg-gradient-to-r from-divider-deep to-transparent"></div>
             </div>
             <div class="px-2 space-y-4 max-h-60 overflow-y-auto">
               @for (parameter of tool.schema?.parameters; track parameter.name) {
@@ -225,8 +225,8 @@
   
                   <div>
                     <div class="flex items-center space-x-2 leading-[18px]">
-                      <div class="text-[13px] font-semibold text-gray-900">{{parameter.name}}</div>
-                      <div class="text-sm font-medium text-gray-500">{{parameter.type}}</div>
+                      <div class="text-[13px] font-semibold text-text-primary">{{parameter.name}}</div>
+                      <div class="text-sm font-medium text-text-tertiary">{{parameter.type}}</div>
                       @if (parameter.required) {
                         <div class="text-sm font-medium text-[#EC4A0A]">
                           {{'PAC.Xpert.Required' | translate: {Default: 'Required'} }}
@@ -243,10 +243,10 @@
           </div> -->
 
           <div class="flex items-center mt-6">
-            <div class="mr-3 shrink-0 leading-5 font-semibold uppercase text-gray-500">
+            <div class="mr-3 shrink-0 leading-5 font-semibold uppercase text-text-tertiary">
               {{ 'PAC.Xpert.Test' | translate: { Default: 'Test' } }}
             </div>
-            <div class="grow h-px bg-gradient-to-r from-neutral-300 to-white"></div>
+            <div class="grow h-px bg-gradient-to-r from-divider-deep to-transparent"></div>
           </div>
 
           <mcp-toolset-tool-test

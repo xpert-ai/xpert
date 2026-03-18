@@ -1,7 +1,7 @@
 <div
-  class="container grow flex flex-col rounded-xl bg-neutral-50 overflow-hidden shadow-sm border border-solid border-gray-200"
+  class="container grow flex flex-col rounded-xl bg-background-default-subtle overflow-hidden shadow-sm border border-solid border-divider-deep"
 >
-  <div class="shrink-0 flex justify-between items-center h-9 pl-3 pr-2 bg-gray-50 rounded-t-xl">
+  <div class="shrink-0 flex justify-between items-center h-9 pl-3 pr-2 bg-background-default-subtle rounded-t-xl">
     <div class="flex items-center space-x-1">
       @if (title()) {
         <div class="uppercase">{{ title() }}</div>
@@ -54,7 +54,7 @@
       class="absolute bottom-0 left-0 w-full flex justify-center h-2 cursor-row-resize"
       (mousedown)="onMouseDown($event)"
     >
-      <div class="w-5 h-[3px] rounded-sm bg-gray-300"></div>
+      <div class="w-5 h-[3px] rounded-sm bg-components-card-bg"></div>
     </div>
   </div>
 </div>

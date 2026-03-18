@@ -409,7 +409,7 @@ export class NxStoryPointComponent {
       if (this.key()) {
         this.storyPointService.init(this.key())
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   onGridsterItemChange({ item }: { item: GridsterItemConfig }, widget: StoryWidget) {

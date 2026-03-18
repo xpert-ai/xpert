@@ -156,6 +156,6 @@ button[z-menu].active,
 
 .cdk-menu-bar.cdk-menu-group {
   .cdk-menu-item {
-    @apply px-2 py-1 hover:bg-gray-200/50;
+    @apply px-2 py-1 hover:bg-hover-bg;
   }
 }

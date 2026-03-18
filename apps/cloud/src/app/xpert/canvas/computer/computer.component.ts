@@ -111,8 +111,7 @@ export class ChatCanvasComputerComponent {
             this.stepIndex.set(index)
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -120,8 +119,7 @@ export class ChatCanvasComputerComponent {
         if (this.stepMessageLength() && !this.pin()) {
           this.stepIndex.set(this.stepMessageLength() - 1)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

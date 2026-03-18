@@ -4,7 +4,7 @@
   [attr.data-collapsible]="sidebarState() === 'closed' ? 'icon' : 'expanded'"
 >
   <div
-    class="flex flex-col h-full w-(--sidebar-width) transition-[left,right,width] ease-linear group-data-[collapsible=icon]:w-(--sidebar-width-icon) border-r border-solid border-gray-200 dark:border-gray-700"
+    class="flex flex-col h-full w-(--sidebar-width) transition-[left,right,width] ease-linear group-data-[collapsible=icon]:w-(--sidebar-width-icon) border-r border-solid border-divider-deep dark:border-gray-700"
     [ngClass]="{
       'cursor-w-resize': sidebarState() === 'expanded',
       'cursor-e-resize': sidebarState() === 'closed'
@@ -48,7 +48,7 @@
             [zDisabled]="sidebarState() === 'expanded'"
           >
             <button
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem] text-zinc-600 hover:text-text-primary cursor-pointer"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem] text-text-secondary hover:text-text-primary cursor-pointer"
               type="button"
               (click)="newConversation()"
             >
@@ -78,7 +78,7 @@
             (mouseleave)="leaveMenuOverlay('task')"
           >
             <a
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem] text-zinc-600 hover:text-text-primary"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem] text-text-secondary hover:text-text-primary"
               data-sidebar="menu-button"
               tabindex="-1"
               routerLink="/chat/tasks"
@@ -140,7 +140,7 @@
           >
             <button
               aria-label="Projects"
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full bg-background text-zinc-600 hover:text-text-primary p-[.5rem]"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full bg-background text-text-secondary hover:text-text-primary p-[.5rem]"
               tabindex="-1"
               routerLink="/chat/p"
               routerLinkActive="bg-hover-bg"
@@ -234,7 +234,7 @@
           >
             <button
               aria-label="History"
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full bg-background text-zinc-600 hover:text-text-primary p-[.5rem]"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full bg-background text-text-secondary hover:text-text-primary p-[.5rem]"
               data-sidebar="menu-button"
               tabindex="-1"
               (click)="historyExpanded() ? historyExpanded.set(false) : historyExpanded.set(true)"
@@ -345,7 +345,7 @@
 >
   <div
     @overlayAnimation1
-    class="max-w-md p-3 rounded-3xl border-[0.5px] border-solid border-neutral-200 shadow-sm overflow-auto bg-components-card-bg"
+    class="max-w-md p-3 rounded-3xl border-[0.5px] border-solid border-divider-deep shadow-sm overflow-auto bg-components-card-bg"
     (mouseover)="enterMenuOverlay('history')"
     (mouseleave)="leaveMenuOverlay('history')"
   >
@@ -372,7 +372,7 @@
 >
   <div
     @overlayAnimation1
-    class="max-w-md p-3 rounded-3xl border-[0.5px] border-solid border-neutral-200 shadow-sm overflow-auto bg-components-card-bg"
+    class="max-w-md p-3 rounded-3xl border-[0.5px] border-solid border-divider-deep shadow-sm overflow-auto bg-components-card-bg"
     (mouseover)="enterMenuOverlay('project')"
     (mouseleave)="leaveMenuOverlay('project')"
   >
@@ -399,7 +399,7 @@
 >
   <div
     @overlayAnimation1
-    class="max-w-md p-3 rounded-3xl border-[0.5px] border-solid border-neutral-200 shadow-sm overflow-auto bg-components-card-bg"
+    class="max-w-md p-3 rounded-3xl border-[0.5px] border-solid border-divider-deep shadow-sm overflow-auto bg-components-card-bg"
     (mouseover)="enterMenuOverlay('task')"
     (mouseleave)="leaveMenuOverlay('task')"
   >
@@ -432,7 +432,7 @@
             <span class="font-mono">{{ conv.updatedAt | date: 'short' }}</span>
             @if (conv.xpert) {
               <span
-                class="border-[0.5px] border-slate-200 border-solid rounded-md px-1 ml-1 text-xs font-mono text-gray-600 bg-slate-50"
+                class="border-[0.5px] border-divider-deep border-solid rounded-md px-1 ml-1 text-xs font-mono text-text-secondary bg-background-default-subtle"
               >
                 {{ conv.xpert.title || conv.xpert.name }}
               </span>
@@ -513,7 +513,7 @@
                 <span class="truncate font-mono">{{ conv.updatedAt | date: 'H:mm M/d' }}</span>
                 @if (conv.xpert) {
                   <span
-                    class="truncate border-[0.5px] border-slate-200 border-solid rounded-md px-1 ml-1 text-xs font-mono text-gray-600 bg-slate-50"
+                    class="truncate border-[0.5px] border-divider-deep border-solid rounded-md px-1 ml-1 text-xs font-mono text-text-secondary bg-background-default-subtle"
                   >
                     @if (conv.taskId) {
                       <i class="ri-timer-line"></i>
@@ -528,7 +528,7 @@
 
             @if (sidebarState() === 'expanded') {
               <button
-                class="absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary disabled:hover:bg-transparent border border-transparent h-7 w-7 rounded-full hidden group-hover/conversation-item:flex bg-white/60 hover:bg-white"
+                class="absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary disabled:hover:bg-transparent border border-transparent h-7 w-7 rounded-full hidden group-hover/conversation-item:flex bg-components-card-bg/60 hover:bg-components-card-bg"
                 type="button"
                 #trigger="cdkMenuTriggerFor"
                 [cdkMenuTriggerFor]="conversationMenu"
@@ -616,7 +616,7 @@
           </a>
           @if (sidebarState() === 'expanded') {
             <button
-              class="absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none disabled:hover:bg-transparent border border-transparent h-7 w-7 rounded-full hidden group-hover/conversation-item:flex bg-white/60 hover:bg-white"
+              class="absolute right-1 top-1/2 -translate-y-1/2 items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none disabled:hover:bg-transparent border border-transparent h-7 w-7 rounded-full hidden group-hover/conversation-item:flex bg-components-card-bg/60 hover:bg-components-card-bg"
               type="button"
               aria-label="Show project menu"
               #trigger="cdkMenuTriggerFor"

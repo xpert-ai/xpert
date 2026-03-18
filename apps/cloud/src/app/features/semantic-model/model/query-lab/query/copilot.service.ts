@@ -30,8 +30,7 @@ export class QueryCopilotEngineService extends NgmCopilotEngineService {
             this.#queryService.setConversations(this.conversations$())
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

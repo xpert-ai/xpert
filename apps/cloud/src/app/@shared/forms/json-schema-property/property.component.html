@@ -86,7 +86,7 @@
             @switch (xUiComponent()) {
               @case ('textarea') {
                 <textarea
-                  class="w-full px-3 py-1 text-sm whitespace-nowrap text-gray-900 border-0 rounded-lg h-10 min-h-[36px] bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+                  class="w-full px-3 py-1 text-sm whitespace-nowrap text-text-primary border-0 rounded-lg h-10 min-h-[36px] bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
                   [placeholder]="
                     (meta().description || meta().title || '' | i18n) +
                     (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
@@ -101,7 +101,7 @@
               @default {
                 @if (variables()) {
                   <xpert-variable-input
-                    class="w-full px-2 py-1 text-gray-900 border-0 rounded-lg bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+                    class="w-full px-2 py-1 text-text-primary border-0 rounded-lg bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
                     [placeholder]="
                       (meta().description || meta().title || '' | i18n) +
                       (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
@@ -114,7 +114,7 @@
                   />
                 } @else {
                   <input
-                    class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+                    class="w-full px-3 text-sm leading-9 text-text-primary border-0 rounded-lg h-9 bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
                     [placeholder]="
                       (meta().description || meta().title || '' | i18n) +
                       (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
@@ -131,7 +131,7 @@
           }
           @case ('textarea') {
             <textarea
-              class="w-full px-3 py-1 text-sm whitespace-nowrap text-gray-900 border-0 rounded-lg h-10 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+              class="w-full px-3 py-1 text-sm whitespace-nowrap text-text-primary border-0 rounded-lg h-10 bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
               [placeholder]="
                 (meta().description || meta().title || '' | i18n) +
                 (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
@@ -145,7 +145,7 @@
           }
           @case ('number') {
             <input
-              class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+              class="w-full px-3 text-sm leading-9 text-text-primary border-0 rounded-lg h-9 bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
               [placeholder]="
                 (meta().description || meta().title || '' | i18n) +
                 (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
@@ -159,7 +159,7 @@
           }
           @case ('integer') {
             <input
-              class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+              class="w-full px-3 text-sm leading-9 text-text-primary border-0 rounded-lg h-9 bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
               [placeholder]="
                 (meta().description || meta().title || '' | i18n) +
                 (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
@@ -197,7 +197,7 @@
                   </div>
                 </div>
               } @empty {
-                <div class="flex justify-center text-sm rounded-lg p-2 text-text-secondary bg-neutral-50">
+                <div class="flex justify-center text-sm rounded-lg p-2 text-text-secondary bg-background-default-subtle">
                   {{ 'PAC.KEY_WORDS.AddItem' | translate: { Default: 'Add Item' } }}
                 </div>
               }
@@ -240,7 +240,7 @@
             } @else {
               @if (variables()) {
                 <xpert-variable-input
-                  class="w-full px-2 py-1 text-gray-900 border-0 rounded-lg bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+                  class="w-full px-2 py-1 text-text-primary border-0 rounded-lg bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
                   [placeholder]="
                     (meta().description || meta().title || '' | i18n) +
                     (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
@@ -253,7 +253,7 @@
                 />
               } @else {
                 <input
-                  class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+                  class="w-full px-3 text-sm leading-9 text-text-primary border-0 rounded-lg h-9 bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
                   [placeholder]="
                     (meta().description || meta().title || '' | i18n) +
                     (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')

@@ -83,8 +83,7 @@ export class SemancticModelCacheComponent {
         this.currentPage.set(0)
         this.done.set(false)
         this.loadLogs({ language, timeRange, currentPage: 0 })
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

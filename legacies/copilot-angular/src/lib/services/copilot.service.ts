@@ -106,7 +106,7 @@ export abstract class NgmCopilotService extends CopilotService {
       if (this.copilot()) {
         this.setCopilot(this.copilot())
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   setRole(role: string): void {

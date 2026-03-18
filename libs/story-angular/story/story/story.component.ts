@@ -326,8 +326,7 @@ export class NxStoryComponent implements AfterViewInit {
           queryParamsHandling: 'merge' // remove to replace all query params by provided
         })
       }
-    },
-    { allowSignalWrites: true }
+    }
   )
 
   private _storySub = this.story$
@@ -404,8 +403,7 @@ export class NxStoryComponent implements AfterViewInit {
     effect(
       () => {
         this.storyService.setEditable(this.editable())
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {
@@ -413,7 +411,7 @@ export class NxStoryComponent implements AfterViewInit {
       if (token) {
         this.storyService.patchState({ token })
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   // ngOnChanges({ filterBarOpened }: SimpleChanges): void {

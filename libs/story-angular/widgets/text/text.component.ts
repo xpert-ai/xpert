@@ -122,7 +122,7 @@ export class NxWidgetTextComponent extends AbstractStoryWidget<TextWidgetOptions
       if (this.preview() || !this.editable) {
         this.dataService.setMeasures(this.measures())
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       if (this.textSpan()) {

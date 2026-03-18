@@ -43,8 +43,7 @@ export class XpertStudioFeaturesSandboxComponent {
         if (providers.length && (!current || !providers.some((item) => item.type === current))) {
           this.provider.set(providers[0].type)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

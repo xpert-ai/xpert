@@ -126,8 +126,7 @@ export class ChatConversationsComponent {
           this.searchControl.setValue(cache.search ?? null, { emitEvent: false })
           this._filterXpert.set(cache.xpert ?? null)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

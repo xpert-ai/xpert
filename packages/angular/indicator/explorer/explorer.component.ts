@@ -289,13 +289,13 @@ export class NgmIndicatorExplorerComponent {
       if (this.dataSettings()) {
         this.dataService.dataSettings = this.dataSettings()
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       if (this.timeGranularity()) {
         this.dataService.timeGranularity = this.timeGranularity()
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(
       () => {
@@ -307,8 +307,7 @@ export class NgmIndicatorExplorerComponent {
         if (this.initied()) {
           this.dataService.refresh()
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

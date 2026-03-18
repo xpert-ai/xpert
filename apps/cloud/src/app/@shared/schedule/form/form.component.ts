@@ -50,7 +50,7 @@ export class ScheduleFormComponent {
     update: (value) => {
       this.options.update((opt) => ({
         ...opt,
-        date: format(value, 'yyyy-MM-dd')
+        date: value ? format(value, 'yyyy-MM-dd') : undefined
       }))
     }
   })

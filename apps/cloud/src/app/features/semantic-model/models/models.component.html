@@ -114,13 +114,14 @@
 
 <ng-template #actions let-item="raw" let-key="key">
   @if (item.__isModel__) {
-    <div class="pac__table-actions flex items-center gap-2">
+    <div class="flex items-center gap-2">
       <button
         z-button
         zType="ghost"
         zSize="icon"
         zShape="circle"
         displayDensity="cosy"
+        class="text-text-secondary hover:text-text-primary"
         [zTooltip]="'PAC.ACTIONS.Edit' | translate: { Default: '✒️Edit' }"
         zPosition="top"
         [routerLink]="['/models', key]"
@@ -133,6 +134,7 @@
         zSize="icon"
         zShape="circle"
         displayDensity="cosy"
+        class="text-text-secondary hover:text-text-primary"
         [zTooltip]="'PAC.ACTIONS.Download' | translate: { Default: 'Download' }"
         zPosition="top"
         (click)="onDownload(item.id)"
@@ -141,7 +143,7 @@
       </button>
       <button
         type="button"
-        class="w-8 h-8 rounded-full text-slate-500 hover:bg-hover-bg opacity-50 group-hover:opacity-100"
+        class="w-8 h-8 rounded-full text-text-secondary hover:text-text-primary hover:bg-hover-bg opacity-50 group-hover:opacity-100"
         [cdkMenuTriggerFor]="moreActions"
         [cdkMenuTriggerData]="{ item: item }"
       >
@@ -149,7 +151,7 @@
       </button>
     </div>
   } @else {
-    <div class="pac__table-actions flex items-center">
+    <div class="flex items-center">
       <button
         z-button
         zType="ghost"

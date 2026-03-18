@@ -5,7 +5,7 @@
     <div icon>
       @if (integrationProvider(); as provider) {
         @if (provider.icon) {
-          <xp-icon [icon]="provider.icon" class="w-5 h-5 shrink-0 rounded-lg mr-1 bg-gray-100 flex justify-center items-center" />
+          <xp-icon [icon]="provider.icon" class="w-5 h-5 shrink-0 rounded-lg mr-1 bg-components-input-bg-normal flex justify-center items-center" />
         } @else if (provider.avatar) {
           <img class="w-5 h-5 rounded-lg mr-1" [src]="'/assets/images/integrations/' + provider.avatar">
         }
@@ -16,11 +16,11 @@
         @if (option.avatar) {
           <img class="w-8 h-8 rounded-lg" [src]="'/assets/images/integrations/' + option.avatar">
         } @else if (option._icon) {
-          <xp-icon [icon]="option._icon" class="w-8 h-8 shrink-0 rounded-lg bg-gray-100 flex justify-center items-center" />
+          <xp-icon [icon]="option._icon" class="w-8 h-8 shrink-0 rounded-lg bg-components-input-bg-normal flex justify-center items-center" />
         }
         <div class="flex flex-col">
-          <div class="text-gray-700 text-sm leading-5">{{ option.label | i18n }}</div>
-          <div class="text-gray-500 text-xs leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
+          <div class="text-text-secondary text-sm leading-5">{{ option.label | i18n }}</div>
+          <div class="text-text-tertiary text-xs leading-3 line-clamp-3" [title]="option.description | i18n">{{ option.description | i18n }}</div>
         </div>
       </div>
     </ng-template>
@@ -39,7 +39,7 @@
   />
 
   @for (item of filteredIntegrations(); track item.id) {
-    <div class="ngm-card w-full p-4 group min-h-[160px] bg-gray-50 dark:bg-neutral-700 hover:bg-white dark:hover:bg-neutral-600">
+    <div class="ngm-card w-full p-4 group min-h-[160px] bg-background-default-subtle hover:bg-hover-bg">
       <div class="h-full flex flex-col cursor-pointer" (click)="open(item.id)">
         <div class="flex items-start gap-2">
           <emoji-avatar [avatar]="item.avatar" class="rounded-lg overflow-hidden shadow-sm" />
@@ -67,7 +67,7 @@
 
         <div class="flex-1"></div>
 
-        <button class="group flex items-center justify-center bg-gray-100 !bg-transparent h-8 w-8 !p-2 rounded-md border-none hover:!bg-black/5" type="button"
+        <button class="group flex items-center justify-center bg-components-input-bg-normal !bg-transparent h-8 w-8 !p-2 rounded-md border-none hover:!bg-black/5" type="button"
           #mt="cdkMenuTriggerFor"
           [cdkMenuTriggerFor]="menu"
           [cdkMenuTriggerData]="{item: item}"

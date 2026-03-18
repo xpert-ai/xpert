@@ -10,7 +10,7 @@
 
 .cdk-menu-trigger[aria-expanded='true'],
 [z-menu][data-state='open'] {
-  @apply bg-black/10 dark:bg-gray-100/20 text-neutral-600 dark:text-neutral-400;
+  @apply bg-button-ghost-active text-fg-secondary;
 }
 
 .cdk-menu,

@@ -155,8 +155,7 @@ export class NgmSmartSelectComponent implements ControlValueAccessor {
         if (this.options()?.defaultMembers) {
           this.setMembers(this.options().defaultMembers)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

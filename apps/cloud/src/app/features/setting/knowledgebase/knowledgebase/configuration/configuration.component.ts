@@ -142,8 +142,7 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
         if (knowledgebase && this.formGroup.pristine) {
           this.formGroup.patchValue(knowledgebase)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -153,8 +152,7 @@ export class KnowledgeConfigurationComponent extends TranslationBaseComponent {
         } else {
           this.formGroup.enable()
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

@@ -168,16 +168,14 @@ export class ModelVirtualCubeComponent extends ModelDraftBaseComponent {
         if (this.#modelId()) {
           this.modelId.set(this.#modelId())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
     effect(
       () => {
         if (this.#cubeName()) {
           this.cubeName.set(this.#cubeName())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

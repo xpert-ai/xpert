@@ -86,8 +86,7 @@ export class XpertStudioPanelExecutionComponent {
         if (this.#execution()) {
           this.executionService.setAgentExecution(this.#execution().agentKey, this.#execution())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     // Watch execution status and start/stop polling accordingly
@@ -98,7 +97,7 @@ export class XpertStudioPanelExecutionComponent {
       } else {
         this.#stopPolling()
       }
-    }, { allowSignalWrites: true })
+    })
 
     // Stop polling when component is destroyed
     this.#destroyRef.onDestroy(() => {

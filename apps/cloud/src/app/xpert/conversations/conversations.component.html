@@ -24,7 +24,7 @@
   @if (_filterXpert(); as xpert) {
     <div class="p-1">
       <span
-        class="truncate border-[0.5px] border-slate-200 border-solid rounded-md px-2 py-1 ml-1 text-xs font-mono text-gray-600 bg-slate-50"
+        class="truncate border-[0.5px] border-divider-subtle border-solid rounded-md px-2 py-1 ml-1 text-xs font-mono text-text-secondary bg-components-card-bg"
       >
         {{ xpert.title || xpert.name }}
         <i
@@ -50,7 +50,7 @@
             </div>
             @for (item of group.values; track item.id) {
               <li
-                class="pac-chat__conversation-item relative group flex justify-between items-center overflow-hidden px-3 py-2 rounded-xl text-text-primary hover:bg-black/5 dark:hover:bg-white/10"
+                class="pac-chat__conversation-item relative group flex justify-between items-center overflow-hidden px-3 py-2 rounded-xl text-text-primary hover:bg-hover-bg"
                 [ngClass]="{ active: item.id === conversationId() }"
               >
                 @if (editingConversation() === item.id) {
@@ -70,14 +70,14 @@
                   >
                   @if (item.project) {
                     <span
-                      class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 ml-1 text-xs font-mono truncate text-gray-600 bg-slate-50"
+                      class="border-[0.5px] border-divider-subtle border-solid rounded-md px-2 ml-1 text-xs font-mono truncate text-text-secondary bg-components-card-bg"
                     >
                       {{ item.project.name }}
                     </span>
                   }
                   @if (item.xpert) {
                     <span
-                      class="truncate border-[0.5px] border-slate-200 border-solid rounded-md px-1 ml-1 text-xs font-mono cursor-pointer text-gray-600 bg-slate-50"
+                      class="truncate border-[0.5px] border-divider-subtle border-solid rounded-md px-1 ml-1 text-xs font-mono cursor-pointer text-text-secondary bg-components-card-bg"
                       (click)="filterXpert(item.xpert)"
                     >
                       @if (item.taskId) {

@@ -19,10 +19,10 @@
 
   &.selectable {
     .tag {
-      @apply cursor-pointer bg-gray-100/80;
+      @apply cursor-pointer bg-components-input-bg-normal/80;
 
       &.selected {
-        @apply bg-gray-100;
+        @apply bg-components-input-bg-normal;
       }
 
       &.blue.selected {

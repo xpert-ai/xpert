@@ -4,7 +4,7 @@
 }
 
 [z-input] {
-  @apply w-12 text-xs bg-gray-200 text-gray-700 border-2 border-solid border-gray-200 rounded focus:outline-none focus:bg-white focus:border-slate-500 py-1 px-2;
+  @apply w-12 text-xs bg-components-list-option-active-bg text-text-secondary border-2 border-solid border-divider-deep rounded focus:outline-none focus:bg-components-input-bg-active focus:border-slate-500 py-1 px-2;
 }
 
 .pac-widget-designer__color {

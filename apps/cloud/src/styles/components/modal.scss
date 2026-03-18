@@ -1,6 +1,6 @@
 @reference "tailwindcss";
 .ngm-modal-sidenav {
-  @apply bg-bluegray-700 text-white dark:bg-bluegray-900;
+  @apply bg-components-panel-bg text-white;
 }
 
 /* for dialog container */
@@ -36,7 +36,7 @@ z-dialog.small {
 }
 
 z-dialog.xp-overlay-pane-share-sheet {
-  @apply overflow-hidden rounded-[36px] border-[0.5px] border-solid border-neutral-200 bg-components-card-bg shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(255,255,255,0.4)];
+  @apply overflow-hidden rounded-[36px] border-[0.5px] border-solid border-divider-deep bg-components-card-bg shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(255,255,255,0.4)];
   animation: custom-dialog-enter-bounce 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 

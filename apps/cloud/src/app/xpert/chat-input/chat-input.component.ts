@@ -130,9 +130,9 @@ export class ChatInputComponent {
       }
     })
 
-    effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()), { allowSignalWrites: true })
-    effect(() => this.#audioRecorder.xpert.set(this.xpert()), { allowSignalWrites: true })
-    effect(() => this.promptControl.setValue(this.#audioRecorder.text()), { allowSignalWrites: true })
+    effect(() => this.#audioRecorder.canvasRef.set(this.canvasRef()))
+    effect(() => this.#audioRecorder.xpert.set(this.xpert()))
+    effect(() => this.promptControl.setValue(this.#audioRecorder.text()))
   }
 
   send() {

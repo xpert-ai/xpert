@@ -5,8 +5,8 @@
 
   <ol class="grid grid-cols-3 gap-2 items-start" cdkListbox [(ngModel)]="sourceType">
     @for (option of fileTypeOptions; track option.value) {
-      <li #opt="cdkOption" class="type-option relative flex flex-col h-24 max-w-xs border-2 border-solid border-gray-100 rounded-2xl p-2 cursor-pointer
-        hover:border-gray-200 hover:bg-gray-50 hover:shadow-sm"
+      <li #opt="cdkOption" class="type-option relative flex flex-col h-24 max-w-xs border-2 border-solid border-divider-regular rounded-2xl p-2 cursor-pointer
+        hover:border-divider-deep hover:bg-hover-bg hover:shadow-sm"
         [cdkOption]="option.value"
         [class.active]="opt.isSelected()"
       >
@@ -14,12 +14,12 @@
           @if (opt.isSelected()) {
             <i class="ri-checkbox-circle-line text-2xl leading-none text-primary-500"></i>
           }
-          <h4 class="text-base font-semibold text-gray-900 capitalize transition-all duration-500 ">
+          <h4 class="text-base font-semibold text-text-primary capitalize transition-all duration-500 ">
             {{option.label | i18n}}
           </h4>
         </div>
         
-        <p class="grow text-sm font-normal text-gray-500 transition-all duration-500 leading-5 mb-4 line-clamp-2">
+        <p class="grow text-sm font-normal text-text-tertiary transition-all duration-500 leading-5 mb-4 line-clamp-2">
           {{option.description | i18n}}
         </p>
       </li>
@@ -47,7 +47,7 @@
         <div class="text-text-tertiary text-base font-semibold leading-6 mb-2">
           {{ 'PAC.Knowledgebase.UploadTextFile' | translate: {Default: 'Upload text file'} }}
         </div>
-        <div class="relative box-border flex flex-col justify-center items-center gap-1 mb-2 px-4 py-3 max-w-[640px] min-h-20 text-sm text-text-tertiary border border-dashed border-components-dropzone-border rounded-xl bg-gray-50"
+        <div class="relative box-border flex flex-col justify-center items-center gap-1 mb-2 px-4 py-3 max-w-[640px] min-h-20 text-sm text-text-tertiary border border-dashed border-components-dropzone-border rounded-xl bg-background-default-subtle"
           ngmDnd (fileDropped)="onFileDropped($event)"
         >
           <div class="flex justify-center items-center min-h-5 text-sm leading-4 text-text-secondary">
@@ -60,7 +60,7 @@
 
         <div class="space-y-1 max-w-[640px] cursor-default">
           @for (item of fileList(); track item) {
-            <div class="relative flex items-center h-14 max-w-[640px] text-sm leading-3 text-text-tertiary border-[0.5px] rounded-lg hover:shadow-sm hover:bg-gray-50"
+            <div class="relative flex items-center h-14 max-w-[640px] text-sm leading-3 text-text-tertiary border-[0.5px] rounded-lg hover:shadow-sm hover:bg-hover-bg"
               (click)="selectFile(item)"
             >
               <div class="grow shrink flex flex-col gap-0.5 px-2">
@@ -103,13 +103,13 @@
     @case (eKDocumentSourceType.WebCrawl) {
       <div class="my-6 w-full flex flex-col gap-2">
         <div class="mb-4">
-          <div class="font-medium text-gray-700 mb-2 h-6">
+          <div class="font-medium text-text-secondary mb-2 h-6">
             {{ 'PAC.Knowledgebase.ChooseaProvider' | translate: {Default: 'Choose a Provider'} }}
           </div>
           <ul class="flex flex-wrap gap-2" cdkListbox [(ngModel)]="webTypes" [cdkListboxCompareWith]="webTypeCompareWith">
             @for (type of webTypeOptions; track type) {
               <button class="web-option flex items-center px-4 py-2 text-base font-medium rounded-md
-                bg-gray-100 text-gray-600 hover:bg-gray-200"
+                bg-components-input-bg-normal text-text-secondary hover:bg-button-ghost-hover"
                 [class.active]="webTypes()[0]?.value === type.value"
                 [cdkOption]="type"
               >
@@ -130,9 +130,9 @@
                 {{optionSchema.type}} 
                 {{ 'PAC.Knowledgebase.ExtractWebContent' | translate: {Default: 'extract web content'} }}
               </div>
-              <div class="ml-2 mr-1 w-px h-3.5 bg-gray-200"></div>
+              <div class="ml-2 mr-1 w-px h-3.5 bg-components-list-option-active-bg"></div>
               @if (optionSchema.integrationProvider) {
-                <div class="px-2 py-1 text-sm rounded-md border-[0.5px] border-solid border-divider-deep bg-gray-50 hover:bg-black/5 cursor-pointer"
+                <div class="px-2 py-1 text-sm rounded-md border-[0.5px] border-solid border-divider-deep bg-background-default-subtle hover:bg-hover-bg cursor-pointer"
                   [class.border-orange-500]="!integration()"
                   [cdkMenuTriggerFor]="inteMenu">
                   <i class="ri-settings-4-line mr-1"></i>
@@ -155,7 +155,7 @@
           <div class="border border-solid border-divider-deep rounded-xl">
             <div class="p-4">
               <div class="flex items-end justify-between">
-                <input class="flex h-9 grow py-1 px-2 rounded-lg text-sm leading-normal bg-gray-100 caret-primary-600 hover:bg-gray-100 focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-gray-50 placeholder:text-gray-400"
+                <input class="flex h-9 grow py-1 px-2 rounded-lg text-sm leading-normal bg-components-input-bg-normal caret-primary-600 hover:bg-hover-bg focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-components-input-bg-active placeholder:text-components-input-text-placeholder"
                   placeholder="https://xpertai.cn/" type="text" [ngModel]="webOptions()?.url" (ngModelChange)="updateWebUrl($event)">
                 <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium ml-2 shrink-0"
                   [disabled]="loadingWeb() || !webOptions()?.url || optionSchema.integrationProvider && !integration()"
@@ -168,9 +168,9 @@
                 <div class="flex justify-between items-center h-[26px] py-1 cursor-pointer select-none"
                   (click)="toggleExpand()"
                 >
-                  <div class="flex items-center text-gray-700">
+                  <div class="flex items-center text-text-secondary">
                     <i class="ri-equalizer-2-line text-lg mr-1"></i>
-                    <div class="text-[13px] font-semibold text-gray-800">
+                    <div class="text-[13px] font-semibold text-text-primary">
                       {{ 'PAC.Knowledgebase.Settings' | translate: {Default: 'Settings'} }}
                     </div>
                   </div>
@@ -194,8 +194,8 @@
               }
             </div>
 
-            <div class="my-2 border-t border-gray-200">
-              <div class="flex items-center justify-between h-[34px] px-4 bg-gray-50 shadow-xs border-b-[0.5px] border-black/8 text-sm font-normal text-gray-700">
+            <div class="my-2 border-t border-divider-deep">
+              <div class="flex items-center justify-between h-[34px] px-4 bg-background-default-subtle shadow-xs border-b-[0.5px] border-black/8 text-sm font-normal text-text-secondary">
                 <div>
                   @if (loadingWeb()) {
                     <span>{{ 'PAC.Knowledgebase.Crawl' | translate: {Default: 'Crawl'} }}...</span>
@@ -221,17 +221,17 @@
                   <div class="text-sm p-2 whitespace-pre-wrap overflow-auto text-text-destructive">{{webError()}}</div>
                 } @else {
                   @for (page of webDocs(); track page) {
-                    <div class="page-item group hover:bg-gray-100 rounded-md px-2 py-[5px] cursor-pointer border border-transparent"
+                    <div class="page-item group hover:bg-hover-bg rounded-md px-2 py-[5px] cursor-pointer border border-transparent"
                       [class.active]="previewDoc()?.metadata?.scrapeId === page.metadata.scrapeId"
                     >
                       <div class="flex justify-between items-center h-5">
                         <ngm-checkbox class="grow truncate" [label]="page.metadata.title" [ngModel]="isSelectedPage(page)" (ngModelChange)="togglePage(page, $event)"/>
                         
-                        <div class="hidden group-hover:flex shrink-0 items-center h-6 px-2 text-sm rounded-md font-medium text-gray-500 uppercase hover:bg-gray-50"
+                        <div class="hidden group-hover:flex shrink-0 items-center h-6 px-2 text-sm rounded-md font-medium text-text-tertiary uppercase hover:bg-hover-bg"
                           (click)="previewDoc.set(page)"
                         >{{ 'PAC.Knowledgebase.Preview' | translate: {Default: 'Preview'} }}</div>
                       </div>
-                      <div class="mt-0.5 truncate pl-6 leading-[18px] text-xs font-normal text-gray-500"
+                      <div class="mt-0.5 truncate pl-6 leading-[18px] text-xs font-normal text-text-tertiary"
                         [title]="page.metadata.url">
                         {{page.metadata.url}}</div>
                     </div>
@@ -282,8 +282,8 @@
           <i class="ri-close-line"></i>
         </div>
       </div>
-      <div class="leading-5 text-sm font-medium text-gray-900 break-words">{{preview.metadata.title}}</div>
-      <div class="truncate leading-[18px] text-xs font-normal text-gray-500"
+      <div class="leading-5 text-sm font-medium text-text-primary break-words">{{preview.metadata.title}}</div>
+      <div class="truncate leading-[18px] text-xs font-normal text-text-tertiary"
         [title]="preview.metadata.url"
       >
         {{preview.metadata.url}}

@@ -208,8 +208,7 @@ export class NgmSettingsPanelComponent implements OnChanges {
     effect(
       () => {
         this.opened.set(this.editable())
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

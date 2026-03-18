@@ -1,7 +1,7 @@
 @switch (type()) {
   @case (eParameterTypeEnum.STRING) {
     <div class="flex py-[7px]">
-      <div class="flex items-center h-[18px] text-[13px] font-medium text-gray-900">
+      <div class="flex items-center h-[18px] text-[13px] font-medium text-text-primary">
         @if (required()) {
           <span class="mr-1 text-red-500">*</span>
         }
@@ -18,7 +18,7 @@
       }
     </div>
     <input
-      class="flex h-9 w-full py-1 px-2 rounded-lg text-sm leading-normal bg-gray-100 caret-primary-600 hover:bg-gray-100 focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-gray-50 placeholder:text-gray-400"
+      class="flex h-9 w-full py-1 px-2 rounded-lg text-sm leading-normal bg-components-input-bg-normal caret-primary-600 hover:bg-hover-bg focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-components-input-bg-active placeholder:text-components-input-text-placeholder"
       [placeholder]="schema().placeholder | i18n"
       type="text"
       [(ngModel)]="value$"
@@ -26,7 +26,7 @@
   }
   @case (eParameterTypeEnum.NUMBER) {
     <div class="flex py-[7px]">
-      <div class="flex items-center h-[18px] text-[13px] font-medium text-gray-900">
+      <div class="flex items-center h-[18px] text-[13px] font-medium text-text-primary">
         @if (required()) {
           <span class="mr-1 text-red-500">*</span>
         }
@@ -43,7 +43,7 @@
       }
     </div>
     <input
-      class="flex h-9 w-full py-1 px-2 rounded-lg text-sm leading-normal bg-gray-100 caret-primary-600 hover:bg-gray-100 focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-gray-50 placeholder:text-gray-400"
+      class="flex h-9 w-full py-1 px-2 rounded-lg text-sm leading-normal bg-components-input-bg-normal caret-primary-600 hover:bg-hover-bg focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-components-input-bg-active placeholder:text-components-input-text-placeholder"
       [placeholder]="schema().placeholder | i18n"
       type="number"
       [(ngModel)]="value$"
@@ -51,7 +51,7 @@
   }
   @case (eParameterTypeEnum.SECRET_INPUT) {
     <div class="flex py-[7px]">
-      <div class="flex items-center h-[18px] text-[13px] font-medium text-gray-900">
+      <div class="flex items-center h-[18px] text-[13px] font-medium text-text-primary">
         @if (required()) {
           <span class="mr-1 text-red-500">*</span>
         }
@@ -68,7 +68,7 @@
       }
     </div>
     <input
-      class="flex h-9 w-full py-1 px-2 rounded-lg text-sm leading-normal bg-gray-100 caret-primary-600 hover:bg-gray-100 focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-gray-50 placeholder:text-gray-400"
+      class="flex h-9 w-full py-1 px-2 rounded-lg text-sm leading-normal bg-components-input-bg-normal caret-primary-600 hover:bg-hover-bg focus:ring-1 focus:ring-inset focus:ring-gray-200 focus-visible:outline-none focus:bg-components-input-bg-active placeholder:text-components-input-text-placeholder"
       [placeholder]="schema().placeholder | i18n"
       type="password"
       [(ngModel)]="value$"
@@ -76,7 +76,7 @@
   }
   @case (eParameterTypeEnum.SELECT) {
     <div class="flex py-[7px]">
-      <div class="flex items-center h-[18px] text-[13px] font-medium text-gray-900">
+      <div class="flex items-center h-[18px] text-[13px] font-medium text-text-primary">
         @if (required()) {
           <span class="mr-1 text-red-500">*</span>
         }

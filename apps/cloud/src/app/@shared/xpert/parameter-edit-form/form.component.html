@@ -127,7 +127,7 @@
     <div>
       <input
         z-input
-        class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+        class="w-full px-3 text-sm leading-9 text-text-primary border-0 rounded-lg grow h-9 bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
         placeholder="{{ 'PAC.Xpert.PleaseEnter' | translate: { Default: 'Please enter' } }}"
         type="text"
         [ngModel]="name()"
@@ -138,9 +138,9 @@
   </div>
 
   <!-- <div>
-    <div class="leading-8 text-[13px] font-medium text-gray-700">{{ 'PAC.Xpert.ParameterTitle' | translate: {Default: 'Parameter title'} }}</div>
+    <div class="leading-8 text-[13px] font-medium text-text-secondary">{{ 'PAC.Xpert.ParameterTitle' | translate: {Default: 'Parameter title'} }}</div>
     <div>
-      <input z-input class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+      <input z-input class="w-full px-3 text-sm leading-9 text-text-primary border-0 rounded-lg grow h-9 bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
         placeholder="{{'PAC.Xpert.PleaseEnter' | translate: {Default: 'Please enter'} }}" type="text"
         [ngModel]="title()"
         [ngModelOptions]="{standalone: true}"
@@ -150,13 +150,13 @@
   </div> -->
 
   <div>
-    <div class="leading-8 text-[13px] font-medium text-gray-700">
+    <div class="leading-8 text-[13px] font-medium text-text-secondary">
       {{ 'PAC.Xpert.ParameterDescription' | translate: { Default: 'Parameter description' } }}
     </div>
     <div>
       <textarea
         z-input
-        class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+        class="w-full px-3 text-sm leading-9 text-text-primary border-0 rounded-lg grow h-9 bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
         placeholder="{{ 'PAC.Xpert.PleaseEnter' | translate: { Default: 'Please enter' } }}"
         type="text"
         [ngModel]="description()"
@@ -171,7 +171,7 @@
     @case (eXpertParameterTypeEnum.BOOLEAN) {}
     @case (eXpertParameterTypeEnum.SELECT) {
       <div>
-        <div class="leading-8 text-[13px] font-medium text-gray-700">
+        <div class="leading-8 text-[13px] font-medium text-text-secondary">
           {{ 'PAC.Xpert.SelectOptions' | translate: { Default: 'Select options' } }}
         </div>
         <div>
@@ -216,7 +216,7 @@
               </div>
             </div>
             <div
-              class="flex items-center h-9 px-3 gap-2 rounded-lg cursor-pointer text-gray-400 bg-gray-100 dark:bg-neutral-600 dark:text-neutral-300"
+              class="flex items-center h-9 px-3 gap-2 rounded-lg cursor-pointer text-text-tertiary bg-components-input-bg-normal"
               (click)="addOption()"
             >
               <svg
@@ -231,7 +231,7 @@
               >
                 <path stroke-linecap="round" stroke-linejoin="round" d="M12 4.5v15m7.5-7.5h-15"></path>
               </svg>
-              <div class="text-gray-500 text-[13px]">
+              <div class="text-text-tertiary text-[13px]">
                 {{ 'PAC.Xpert.AddOptions' | translate: { Default: 'Add option' } }}
               </div>
             </div>
@@ -255,13 +255,13 @@
         <div class="space-y-1">
           @for (param of item(); track i; let i = $index) {
             <div class="w-full flex justify-start items-start">
-              <div class="grow flex items-center gap-1 bg-gray-100 rounded-lg p-1 pl-2 group/item">
+              <div class="grow flex items-center gap-1 bg-components-input-bg-normal rounded-lg p-1 pl-2 group/item">
                 <xpert-parameter-icon [type]="param.type" />
                 <input
                   z-input
                   placeholder="name"
                   maxlength="30"
-                  class="h-6 leading-6 block w-full rounded-md border-0 px-1 py-1.5 text-gray-900 placeholder:text-gray-400 focus:outline-none bg-transparent hover:bg-white focus:bg-white"
+                  class="h-6 leading-6 block w-full rounded-md border-0 px-1 py-1.5 text-text-primary placeholder:text-components-input-text-placeholder focus:outline-none bg-transparent hover:bg-components-input-bg-hover focus:bg-components-input-bg-active"
                   type="text"
                   [ngModel]="param.name"
                   [ngModelOptions]="{ standalone: true }"
@@ -269,7 +269,7 @@
                 />
                 <div
                   tabindex="0"
-                  class="p-1 rounded-md hover:bg-black/5 w-6 h-6 flex justify-center items-center cursor-pointer opacity-30 group-hover/item:opacity-100"
+                  class="p-1 rounded-md hover:bg-hover-bg w-6 h-6 flex justify-center items-center cursor-pointer opacity-30 group-hover/item:opacity-100"
                   #parammt="cdkMenuTriggerFor"
                   [cdkMenuTriggerFor]="paramConfigMenu"
                   [cdkMenuTriggerData]="{ index: i, param: param, trigger: parammt }"
@@ -293,7 +293,7 @@
     }
     @default {
       <div>
-        <div class="leading-8 text-[13px] font-medium text-gray-700">
+        <div class="leading-8 text-[13px] font-medium text-text-secondary">
           {{ 'PAC.Xpert.MaxLength' | translate: { Default: 'Max length' } }}
         </div>
         <div>
@@ -302,7 +302,7 @@
               z-input
               max="256"
               min="1"
-              class="w-full px-3 text-sm leading-9 text-gray-900 border-0 rounded-lg grow h-9 bg-gray-100 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+              class="w-full px-3 text-sm leading-9 text-text-primary border-0 rounded-lg grow h-9 bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
               type="number"
               [ngModel]="maximum()"
               [ngModelOptions]="{ standalone: true }"
@@ -316,7 +316,7 @@
   }
 
   <div>
-    <div class="leading-8 text-[13px] font-medium text-gray-700">
+    <div class="leading-8 text-[13px] font-medium text-text-secondary">
       {{ 'PAC.Xpert.Optional' | translate: { Default: 'Optional' } }}
     </div>
     <div>
@@ -333,40 +333,40 @@
 <ng-template #parameterTypeMenu>
   <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu p-2">
     <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
+      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
       cdkMenuItem
       [type]="eXpertParameterTypeEnum.TEXT"
       (click)="addParameter({ type: eXpertParameterTypeEnum.TEXT, optional: true })"
     />
 
     <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
+      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
       cdkMenuItem
       [type]="eXpertParameterTypeEnum.PARAGRAPH"
       (click)="addParameter({ type: eXpertParameterTypeEnum.PARAGRAPH, optional: true })"
     />
 
     <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
+      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
       cdkMenuItem
       [type]="eXpertParameterTypeEnum.SELECT"
       (click)="addParameter({ type: eXpertParameterTypeEnum.SELECT, optional: true })"
     />
 
     <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
+      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
       cdkMenuItem
       [type]="eXpertParameterTypeEnum.NUMBER"
       (click)="addParameter({ type: eXpertParameterTypeEnum.NUMBER, optional: true })"
     />
     <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
+      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
       cdkMenuItem
       [type]="eXpertParameterTypeEnum.ARRAY_STRING"
       (click)="addParameter({ type: eXpertParameterTypeEnum.ARRAY_STRING, optional: true })"
     />
     <xpert-parameter-menu-item
-      class="flex items-center px-2 h-8 rounded-lg hover:bg-gray-50 cursor-pointer"
+      class="flex items-center px-2 h-8 rounded-lg hover:bg-hover-bg cursor-pointer"
       cdkMenuItem
       [type]="eXpertParameterTypeEnum.ARRAY"
       (click)="addParameter({ type: eXpertParameterTypeEnum.ARRAY, optional: true })"

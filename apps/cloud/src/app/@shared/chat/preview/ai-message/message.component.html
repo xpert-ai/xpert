@@ -1,8 +1,8 @@
 @if (reasoning(); as reasoning) {
-  <div class="relative group/reasoning w-full max-h-90 px-1 border-l-2 border-solid border-gray-200 overflow-auto">
+  <div class="relative group/reasoning w-full max-h-90 px-1 border-l-2 border-solid border-divider-deep overflow-auto">
     <div class="flex justify-between items-center">
       <div
-        class="flex items-center cursor-pointer pressable rounded-md px-1 text-gray-500 hover:bg-hover-bg"
+        class="flex items-center cursor-pointer pressable rounded-md px-1 text-text-tertiary hover:bg-hover-bg"
         (click)="expandReason.set(!expandReason())"
       >
         @if (expandReason()) {
@@ -30,7 +30,7 @@
     @if (expandReason()) {
       @for (item of reasoning; track item.id) {
         <markdown
-          class="ngm-copilot-markdown text-xs font-body text-zinc-500"
+          class="ngm-copilot-markdown text-xs font-body text-text-tertiary"
           lineNumbers
           [start]="5"
           [data]="item.text"
@@ -55,7 +55,7 @@
       @if (chunk.data.category === 'Tool') {
         <chat-tool-call-chunk [chunk]="chunk.data" [conversationStatus]="conversationStatus()" />
       } @else {
-        <div class="group rounded-lg flex flex-col items-stretch max-h-48 hover:bg-gray-50 transition-all">
+        <div class="group rounded-lg flex flex-col items-stretch max-h-48 hover:bg-hover-bg transition-all">
           <div class="flex justify-between items-center text-base p-2">
             <div>
               <span class="font-semibold shrink-0">{{
@@ -93,7 +93,7 @@
 }
 
 @if (thirdPartyMessage()) {
-  <div class="group rounded-lg flex flex-col items-stretch max-h-48 hover:bg-gray-50 transition-all">
+  <div class="group rounded-lg flex flex-col items-stretch max-h-48 hover:bg-hover-bg transition-all">
     <div class="text-base font-semibold shrink-0 p-2">
       {{ 'PAC.Xpert.ThirdPartyMessage' | translate: { Default: 'Third-party platform message' } }}
     </div>

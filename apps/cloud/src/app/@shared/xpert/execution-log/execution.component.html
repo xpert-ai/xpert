@@ -1,4 +1,4 @@
-<div class="flex items-center mb-4 leading-[18px] text-base font-semibold text-gray-500 uppercase">
+<div class="flex items-center mb-4 leading-[18px] text-base font-semibold text-text-tertiary uppercase">
   <div class="flex items-center cursor-pointer rounded-md hover:bg-hover-bg"
     (click)="toggleExpand()"
   >
@@ -15,18 +15,18 @@
 </div>
 
 @if (expand() && execution()) {
-  <!-- <div class="flex items-center my-4 leading-[18px] text-sm font-semibold text-gray-500 uppercase">
+  <!-- <div class="flex items-center my-4 leading-[18px] text-sm font-semibold text-text-tertiary uppercase">
     <div class="mr-3">{{execution().agent?.title || execution().agent?.name || execution().agentKey}}</div>
     <div class="grow w-0 h-px bg-divider-regular"></div>
   </div> -->
 
   @if (execution().summary) {
-    <div class="bg-gray-50 px-4 py-2 rounded-lg mb-4">
-      <h3 class="font-bold text-gray-500 mb-2">
+    <div class="bg-background-default-subtle px-4 py-2 rounded-lg mb-4">
+      <h3 class="font-bold text-text-tertiary mb-2">
         <i class="ri-chat-history-line"></i>
         <span class="text-sm">{{ 'PAC.Xpert.Summary' | translate: { Default: 'Summary'} }}</span>
       </h3>
-      <p class="text-xs text-gray-600">{{execution().summary}}</p>
+      <p class="text-xs text-text-secondary">{{execution().summary}}</p>
     </div>
   }
 

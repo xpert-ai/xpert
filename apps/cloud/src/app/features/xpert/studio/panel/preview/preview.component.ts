@@ -80,8 +80,7 @@ export class XpertStudioPreviewComponent {
           this.conversationId.set(this.executionService.conversationId())
           this.conversations.set([this.executionService.conversationId()])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -93,8 +92,7 @@ export class XpertStudioPreviewComponent {
           }
           this.executionService.setMessages(messages)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

@@ -11,7 +11,7 @@
     </div>
     <div class="mt-1">
       <xpert-state-variable-select
-        class="w-full focus:bg-white"
+        class="w-full focus:bg-components-input-bg-active"
         [variables]="variables()"
         [(ngModel)]="queryVariable"
         (focus)="onFocus($event)"
@@ -59,7 +59,7 @@
             @if (item.kb) {
               <div class="flex w-0 grow items-center space-x-1.5">
                 <div
-                  class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-[0.5px] border-slate-200 bg-slate-50 group-hover/dataset-item:text-primary-500"
+                  class="flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-[0.5px] border-divider-deep bg-background-default-subtle group-hover/dataset-item:text-primary-500"
                 >
                   <i class="ri-book-shelf-fill text-lg"></i>
                 </div>
@@ -88,7 +88,7 @@
                 HQ · VECTOR</div> -->
           </div>
         } @empty {
-          <div class="cursor-default select-none rounded-lg bg-neutral-50 p-3 text-center text-sm text-text-tertiary">
+          <div class="cursor-default select-none rounded-lg bg-background-default-subtle p-3 text-center text-sm text-text-tertiary">
             {{ 'PAC.Xpert.ClickAddToAddKB' | translate: { Default: 'Click the "+" button to add knowledge' } }}
           </div>
         }
@@ -164,7 +164,7 @@
           </div>
           <div class="text-sm mt-0.5 text-text-tertiary">
             <span>Retrieval segmented data</span>
-            <div class="ml-2 border-l border-gray-200 pl-2">
+            <div class="ml-2 border-l border-divider-deep pl-2">
               <div class="flex">
                 <div class="py-1">
                   <div class="flex">

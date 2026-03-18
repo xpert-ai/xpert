@@ -173,7 +173,7 @@ export class XpertWorkspaceDatabaseComponent implements OnInit, OnDestroy {
         }, 0)
       }
     }
-  }, { allowSignalWrites: true })
+  })
   
   readonly schemasOptions = computed(() => {
     return (this.#schemasRs.value() || []).map((schema) => ({

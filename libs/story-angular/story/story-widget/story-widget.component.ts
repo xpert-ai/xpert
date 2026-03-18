@@ -377,14 +377,14 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
       if (this.key()) {
         this.stateService.init(this.key())
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       if (this.componentInstance$.value) {
         this.componentInstance$.value.editable = this.editable()
         this.componentInstance$.next(this.componentInstance$.value)
       }
-    }, { allowSignalWrites: true })
+    })
   }
 
   ngAfterViewInit() {

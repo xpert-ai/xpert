@@ -4,7 +4,7 @@
     (addedModel)="onAddedModel($event)"
     />
 } @else {
-  <div class="w-full flex items-center px-3 py-2 mb-2 rounded-lg text-base text-text-secondary bg-gray-200 cursor-pointer hover:bg-gray-300 hover:text-text-primary"
+  <div class="w-full flex items-center px-3 py-2 mb-2 rounded-lg text-base text-text-secondary bg-components-list-option-active-bg cursor-pointer hover:bg-components-card-bg hover:text-text-primary"
     (click)="openAiProviders()"
   >
     <div class="grow mr-2 leading-5">
@@ -14,7 +14,7 @@
   </div>
 }
 
-<form [formGroup]="formGroup" class="relative w-full flex flex-col items-start gap-4 p-4 overflow-hidden bg-gray-50 rounded-xl shadow-sm border-light"
+<form [formGroup]="formGroup" class="relative w-full flex flex-col items-start gap-4 p-4 overflow-hidden bg-background-default-subtle rounded-xl shadow-sm border-light"
   (ngSubmit)="onSubmit()">
 
   <copilot-model-select class="w-full" formControlName="copilotModel" [copilot]="copilot()" [modelType]="defaultModelType()"

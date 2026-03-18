@@ -2,7 +2,7 @@
 
 @for (task of syncedTasks(); track task.id) {
   <div
-    class="task flex items-center w-full rounded-2xl px-6 py-4 shadow-sm border-[0.5px] border-solid border-gray-300 hover:shadow-md"
+    class="task flex items-center w-full rounded-2xl px-6 py-4 shadow-sm border-[0.5px] border-solid border-divider-regular hover:shadow-md"
     [class.deleted]="!!task.deletedAt"
     [zTooltip]="task.deletedAt ? ('PAC.Chat.TaskDeleted' | translate: { Default: 'The task has been deleted' }) : null"
     zPosition="top"
@@ -16,7 +16,7 @@
       @if (task.status === eXpertTaskStatus.SCHEDULED) {
         <button
           type="button"
-          class="w-8 h-8 flex justify-center items-center rounded-lg opacity-50 hover:bg-gray-50 hover:opacity-100"
+          class="w-8 h-8 flex justify-center items-center rounded-lg opacity-50 hover:bg-hover-bg hover:opacity-100"
           [zTooltip]="'PAC.Chat.PauseTask' | translate: { Default: 'Pause the Task' }"
           zPosition="top"
           (click)="pause(task)"
@@ -26,7 +26,7 @@
       } @else if (task.status === eXpertTaskStatus.PAUSED) {
         <button
           type="button"
-          class="w-8 h-8 flex justify-center items-center rounded-lg opacity-50 hover:bg-gray-50 hover:opacity-100"
+          class="w-8 h-8 flex justify-center items-center rounded-lg opacity-50 hover:bg-hover-bg hover:opacity-100"
           [zTooltip]="'PAC.Chat.ScheduleTask' | translate: { Default: 'Schedule the Task' }"
           zPosition="top"
           (click)="schedule(task)"
@@ -38,7 +38,7 @@
 
     <button
       type="button"
-      class="w-8 h-8 flex justify-center items-center rounded-full opacity-50 hover:bg-gray-50 hover:opacity-100"
+      class="w-8 h-8 flex justify-center items-center rounded-full opacity-50 hover:bg-hover-bg hover:opacity-100"
       [cdkMenuTriggerFor]="menu"
       [cdkMenuTriggerData]="{ task: task }"
     >

@@ -293,8 +293,7 @@ export class XpertStudioComponent {
         if (this.paramId()) {
           this.xpertService.paramId.set(this.paramId())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     afterNextRender(() => {

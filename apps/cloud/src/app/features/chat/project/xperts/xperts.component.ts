@@ -189,8 +189,7 @@ export class ChatProjectXpertsComponent {
           this.overlayRef()?.detach()
           this.element.set(null)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

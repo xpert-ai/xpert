@@ -43,6 +43,6 @@ export class ChatProjectComponent {
         })
         this.chatHomeComponent.projectsExpanded.set(true)
       }
-    }, { allowSignalWrites: true })
+    })
   }
 }

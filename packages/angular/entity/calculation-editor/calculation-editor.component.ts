@@ -150,8 +150,7 @@ export class NgmCalculationEditorComponent implements OnInit {
         if (this.dataSettings()) {
           this._dataSettings.set(this.dataSettings())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

@@ -19,7 +19,7 @@
         [(ngModel)]="modelId"
         [zTooltip]="'PAC.KEY_WORDS.SelectSemanticModel' | translate: { Default: 'Select Semantic Model' }"
         zPosition="right"
-        [ngClass]="modelId ? 'border-transparent' : 'border-neutral-300'"
+        [ngClass]="modelId ? 'border-transparent' : 'border-divider-deep'"
       />
 
       @if (isMobile() && modelId) {
@@ -48,14 +48,14 @@
 
   <div class="body w-full flex-1 flex flex-col lg:flex-row-reverse justify-between items-stretch overflow-hidden">
     <pac-chatbi-models
-      class="my-4 w-full min-h-[120px] lg:w-80 rounded-xl bg-white dark:border-zinc-800 dark:bg-neutral-950"
+      class="my-4 w-full min-h-[120px] lg:w-80 rounded-xl bg-components-card-bg dark:border-zinc-800"
       [ngClass]="
         isMobile() ? (openCubes() ? 'ngm-chatbi-cubes__mobile-opened' : 'ngm-chatbi-cubes__mobile-closed') : ''
       "
     />
 
     <pac-chatbi-chat
-      class="flex-1 lg:m-4 lg:flex-1 rounded-xl overflow-hidden grid grid-cols-1 border-zinc-200 bg-white dark:border-zinc-800 dark:bg-neutral-950"
+      class="flex-1 lg:m-4 lg:flex-1 rounded-xl overflow-hidden grid grid-cols-1 border-zinc-200 bg-components-card-bg dark:border-zinc-800"
     />
   </div>
 </div>

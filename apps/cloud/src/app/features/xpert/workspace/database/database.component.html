@@ -21,23 +21,23 @@
 </div>
 
 <div class="flex-1 overflow-x-auto px-4 mt-4">
-  <table class="min-w-full divide-y divide-gray-200">
-    <thead class="bg-gray-50">
+  <table class="min-w-full divide-y divide-divider-deep">
+    <thead class="bg-background-default-subtle">
       <tr>
-        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">{{ 'PAC.Workspace.TableName' | translate: {Default: 'Table Name'} }}</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">{{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Status'} }}</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">{{ 'PAC.KEY_WORDS.Version' | translate: {Default: 'Version'} }}</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">{{ 'PAC.Workspace.ActivatedAt' | translate: {Default: 'Activated At'} }}</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">{{ 'PAC.KEY_WORDS.Message' | translate: {Default: 'Message'} }}</th>
-        <th class="px-4 py-2 text-left text-sm font-medium text-gray-500 uppercase">{{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">{{ 'PAC.Workspace.TableName' | translate: {Default: 'Table Name'} }}</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">{{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">{{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Status'} }}</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">{{ 'PAC.KEY_WORDS.Version' | translate: {Default: 'Version'} }}</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">{{ 'PAC.Workspace.ActivatedAt' | translate: {Default: 'Activated At'} }}</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">{{ 'PAC.KEY_WORDS.Message' | translate: {Default: 'Message'} }}</th>
+        <th class="px-4 py-2 text-left text-sm font-medium text-text-tertiary uppercase">{{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}</th>
       </tr>
     </thead>
-    <tbody class="bg-white divide-y divide-gray-200">
+    <tbody class="bg-components-panel-bg divide-y divide-divider-deep">
       @for (table of tables(); track table.id) {
         <tr>
-          <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-900">{{ table.name }}</td>
-          <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ table.description || '-' }}</td>
+          <td class="px-4 py-2 whitespace-nowrap text-sm text-text-primary">{{ table.name }}</td>
+          <td class="px-4 py-2 whitespace-nowrap text-sm text-text-tertiary">{{ table.description || '-' }}</td>
           <td class="px-4 py-2 whitespace-nowrap text-sm">
             <span class="px-2 py-1 rounded-full text-xs font-semibold"
               [ngClass]="{
@@ -48,11 +48,11 @@
               {{ table.status }}
             </span>
           </td>
-          <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ table.version || '-' }}</td>
-          <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ table.activatedAt ? (table.activatedAt | date:'yyyy-MM-dd HH:mm') : '-' }}</td>
-          <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ table.message }}</td>
-          <!-- <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">{{ table.xpertId }}</td> -->
-          <td class="px-4 py-2 whitespace-nowrap text-sm text-gray-500">
+          <td class="px-4 py-2 whitespace-nowrap text-sm text-text-tertiary">{{ table.version || '-' }}</td>
+          <td class="px-4 py-2 whitespace-nowrap text-sm text-text-tertiary">{{ table.activatedAt ? (table.activatedAt | date:'yyyy-MM-dd HH:mm') : '-' }}</td>
+          <td class="px-4 py-2 whitespace-nowrap text-sm text-text-tertiary">{{ table.message }}</td>
+          <!-- <td class="px-4 py-2 whitespace-nowrap text-sm text-text-tertiary">{{ table.xpertId }}</td> -->
+          <td class="px-4 py-2 whitespace-nowrap text-sm text-text-tertiary">
             <div class="flex gap-1">
               <!-- Activate button hidden -->
               <button class="btn btn-ghost w-6 h-6 flex justify-center items-center rounded-lg" type="button"
@@ -86,17 +86,17 @@
 }
 
 @if (table()) {
-  <div class="absolute right-1 top-1 bottom-1 w-[800px] lg:w-[900px] xl:w-[1000px] px-6 py-4 bg-neutral-50 rounded-2xl border border-solid border-gray-200 shadow-lg max-w-[95vw] mx-auto overflow-auto z-10">
+  <div class="absolute right-1 top-1 bottom-1 w-[800px] lg:w-[900px] xl:w-[1000px] px-6 py-4 bg-background-default-subtle rounded-2xl border border-solid border-divider-deep shadow-lg max-w-[95vw] mx-auto overflow-auto z-10">
     <div class="flex justify-between items-center">
       <h2 class="text-xl font-semibold mb-4">{{ (table().id ? 'PAC.Workspace.EditTable' : 'PAC.Workspace.NewTable') | translate: {Default: table().id ? 'Edit Table' : 'New Table'} }}</h2>
-      <button type="button" class="flex justify-center items-center w-8 h-8 rounded-full hover:bg-gray-200 hover:text-text-destructive"
+      <button type="button" class="flex justify-center items-center w-8 h-8 rounded-full hover:bg-button-ghost-hover hover:text-text-destructive"
         (click)="closeTableDialog()">
         <i class="ri-close-line text-2xl"></i>
       </button>
     </div>
 
     <!-- Basic Information -->
-    <div class="space-y-4 bg-white p-4 rounded-lg border">
+    <div class="space-y-4 bg-components-panel-bg p-4 rounded-lg border border-divider-deep">
       <div>
         <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.Database' | translate: {Default: 'Database'} }} *</label>
         <div>
@@ -115,7 +115,7 @@
         <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.TableName' | translate: {Default: 'Table Name'} }} *</label>
         <input
           type="text"
-          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
+          class="w-full border border-divider-deep bg-components-panel-bg text-text-primary rounded-lg px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
           [(ngModel)]="name"
         />
       </div>
@@ -125,7 +125,7 @@
         <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.TableDescription' | translate: {Default: 'Table Description'} }}</label>
         <input
           type="text"
-          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
+          class="w-full border border-divider-deep bg-components-panel-bg text-text-primary rounded-lg px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
           [(ngModel)]="description"
         />
       </div>
@@ -133,7 +133,7 @@
       <div>
         <label class="block text-sm font-medium mb-1">{{ 'PAC.Workspace.QueryMode' | translate: {Default: 'Query Mode'} }}</label>
         <select
-          class="w-full border rounded-lg px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
+          class="w-full border border-divider-deep bg-components-panel-bg text-text-primary rounded-lg px-3 py-2 focus:outline-none focus:ring focus:ring-blue-300"
         >
           <option>{{ 'PAC.Workspace.SingleUserMode' | translate: {Default: 'Single User Mode'} }}</option>
           <option>{{ 'PAC.Workspace.MultiUserMode' | translate: {Default: 'Multi User Mode'} }}</option>
@@ -142,9 +142,9 @@
     </div>
 
     <!-- Field Definition -->
-    <div class="mt-6 bg-white p-4 rounded-lg border">
+    <div class="mt-6 bg-components-panel-bg p-4 rounded-lg border border-divider-deep">
       <div class="flex justify-between items-center mb-4">
-        <h3 class="text-md font-semibold text-gray-800">{{ 'PAC.Workspace.FieldDefinition' | translate: {Default: 'Field Definition'} }}</h3>
+        <h3 class="text-md font-semibold text-text-primary">{{ 'PAC.Workspace.FieldDefinition' | translate: {Default: 'Field Definition'} }}</h3>
         <button
           (click)="addColumn()"
           class="px-4 py-2 bg-blue-500 text-white text-sm rounded-lg hover:bg-blue-600 transition flex items-center gap-1"
@@ -155,7 +155,7 @@
 
       <div class="space-y-3 max-h-[500px] overflow-y-auto pr-2 pl-4">
         @for (col of table().columns; track col; let i = $index) {
-          <div class="relative border border-gray-200 rounded-xl p-4 bg-gradient-to-br from-white to-gray-50 hover:shadow-md hover:border-blue-300 transition-all ml-2">
+          <div class="relative border border-divider-deep rounded-xl p-4 bg-surface-l1 hover:shadow-md hover:border-blue-300 transition-all ml-2">
             <!-- Field sequence number marker -->
             <div class="absolute -left-5 top-1/2 -translate-y-1/2 w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
               {{i + 1}}
@@ -165,12 +165,12 @@
             <div class="flex items-start gap-3">
               <!-- Field Name -->
               <div style="width: 160px;">
-                <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
+                <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
                   <i class="ri-text text-blue-500"></i> {{ 'PAC.Workspace.FieldName' | translate: {Default: 'Field Name'} }} <span class="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
-                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                  class="w-full border border-divider-deep rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                   [(ngModel)]="col.name"
                   [placeholder]="'PAC.Workspace.FieldNamePlaceholder' | translate: {Default: 'e.g. user_id'}"
                 />
@@ -178,12 +178,12 @@
 
               <!-- Description -->
               <div style="width: 180px;">
-                <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
-                  <i class="ri-file-text-line text-gray-500"></i> {{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}
+                <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
+                  <i class="ri-file-text-line text-text-tertiary"></i> {{ 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'} }}
                 </label>
                 <input
                   type="text"
-                  class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                  class="w-full border border-divider-deep rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                   [(ngModel)]="col.label"
                   [placeholder]="'PAC.Workspace.FieldDescription' | translate: {Default: 'Field description'}"
                 />
@@ -191,7 +191,7 @@
 
               <!-- Data Type -->
               <div style="width: 140px;">
-                <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
+                <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
                   <i class="ri-code-box-line text-purple-500"></i> {{ 'PAC.Workspace.DataType' | translate: {Default: 'Data Type'} }} <span class="text-red-500">*</span>
                 </label>
                 <ngm-select class="text-sm" [selectOptions]="types()" [(ngModel)]="col.type" [nullable]="false" />
@@ -200,10 +200,10 @@
               <!-- Field Length (shown for CHAR, VARCHAR, and TEXT types) -->
               @if (col.type === 'char' || col.type === 'string' || col.type === 'text' || col.type === 'tinytext' || col.type === 'mediumtext' || col.type === 'longtext') {
                 <div style="width: 90px;">
-                  <label class="text-xs font-medium text-gray-700 block mb-1.5">{{ 'PAC.Workspace.Length' | translate: {Default: 'Length'} }}</label>
+                  <label class="text-xs font-medium text-text-secondary block mb-1.5">{{ 'PAC.Workspace.Length' | translate: {Default: 'Length'} }}</label>
                   <input
                     type="number"
-                    class="w-full border border-gray-300 rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
+                    class="w-full border border-divider-deep rounded-lg px-2 py-2 text-sm text-center focus:outline-none focus:ring-2 focus:ring-blue-400"
                     [(ngModel)]="col.length"
                     [placeholder]="'PAC.Workspace.Length' | translate: {Default: 'Length'}"
                   />
@@ -213,14 +213,14 @@
               <!-- Enum Values (for ENUM type) -->
               @if (col.type === 'enum') {
                 <div style="width: 200px;">
-                  <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
+                  <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
                     <i class="ri-list-check text-purple-500"></i> {{ 'PAC.Workspace.EnumValues' | translate: {Default: 'Enum Values'} }} <span class="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    class="w-full border border-divider-deep bg-components-panel-bg text-text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                     [class.border-red-300]="col.type === 'enum' && (!col.enumValues || col.enumValues.length === 0)"
-                    [class.border-gray-300]="col.type === 'enum' && col.enumValues && col.enumValues.length > 0"
+                    [class.border-divider-deep]="col.type === 'enum' && col.enumValues && col.enumValues.length > 0"
                     [value]="col.enumValues?.join(', ') || ''"
                     (blur)="onEnumValuesChange(col, $event)"
                     [placeholder]="'PAC.Workspace.EnumValuesPlaceholder' | translate: {Default: 'e.g. value1, value2, value3'}"
@@ -232,14 +232,14 @@
               <!-- Set Values (for SET type) -->
               @if (col.type === 'set') {
                 <div style="width: 200px;">
-                  <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
+                  <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
                     <i class="ri-list-check text-purple-500"></i> {{ 'PAC.Workspace.SetValues' | translate: {Default: 'Set Values'} }} <span class="text-red-500">*</span>
                   </label>
                   <input
                     type="text"
-                    class="w-full border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
+                    class="w-full border border-divider-deep bg-components-panel-bg text-text-primary rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent"
                     [class.border-red-300]="col.type === 'set' && (!col.setValues || col.setValues.length === 0)"
-                    [class.border-gray-300]="col.type === 'set' && col.setValues && col.setValues.length > 0"
+                    [class.border-divider-deep]="col.type === 'set' && col.setValues && col.setValues.length > 0"
                     [value]="col.setValues?.join(', ') || ''"
                     (blur)="onSetValuesChange(col, $event)"
                     [placeholder]="'PAC.Workspace.SetValuesPlaceholder' | translate: {Default: 'e.g. value1, value2, value3'}"
@@ -250,13 +250,13 @@
 
               <!-- Constraints -->
               <div style="width: 150px;">
-                <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
+                <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
                   <i class="ri-shield-line text-indigo-500"></i> {{ 'PAC.Workspace.Constraints' | translate: {Default: 'Constraints'} }}
                 </label>
                 <div class="relative">
                   <button
                     type="button"
-                    class="w-full border border-gray-300 rounded-lg px-2.5 py-2 text-xs bg-white hover:bg-gray-50 hover:border-blue-400 flex items-center justify-between transition"
+                    class="w-full border border-divider-deep rounded-lg px-2.5 py-2 text-xs bg-components-panel-bg hover:bg-hover-bg hover:border-blue-400 flex items-center justify-between transition"
                     [cdkMenuTriggerFor]="constraintMenu"
                   >
                     <div class="flex gap-1 flex-wrap">
@@ -273,10 +273,10 @@
                         <span class="px-1.5 py-0.5 bg-green-100 text-green-700 rounded text-xs font-medium">{{ getConstraintLabelText('autoIncrement') }}</span>
                       }
                       @if (!col.isPrimaryKey && !col.required && !col.isUnique && !col.autoIncrement) {
-                        <span class="text-gray-400 text-xs">{{ 'PAC.Workspace.NoConstraints' | translate: {Default: 'None'} }}</span>
+                        <span class="text-text-quaternary text-xs">{{ 'PAC.Workspace.NoConstraints' | translate: {Default: 'None'} }}</span>
                       }
                     </div>
-                    <i class="ri-arrow-down-s-line text-gray-500 ml-1 flex-shrink-0"></i>
+                    <i class="ri-arrow-down-s-line text-text-tertiary ml-1 flex-shrink-0"></i>
                   </button>
                   
                   <ng-template #constraintMenu>
@@ -293,7 +293,7 @@
                           <span class="text-sm flex items-center gap-2">
                             <i class="ri-error-warning-line text-red-600 text-base group-hover:scale-110 transition"></i>
                             <span class="font-medium">{{ 'PAC.Workspace.Required' | translate: {Default: 'Required'} }}</span>
-                            <span class="text-xs text-gray-500">(NOT NULL)</span>
+                            <span class="text-xs text-text-tertiary">(NOT NULL)</span>
                           </span>
                           <input type="checkbox" class="h-4 w-4 text-blue-600 rounded" [(ngModel)]="col.required" />
                         </label>
@@ -323,7 +323,7 @@
 
               <!-- Default Value -->
               <div style="width: 170px;">
-                <label class="text-xs font-medium text-gray-700 block mb-1.5 flex items-center gap-1">
+                <label class="text-xs font-medium text-text-secondary block mb-1.5 flex items-center gap-1">
                   <i class="ri-layout-column-line text-teal-500"></i> {{ 'PAC.Workspace.DefaultValue' | translate: {Default: 'Default Value'} }}
                   @if (col.type === 'date' || col.type === 'time') {
                     <span class="text-xs text-orange-500" title="MySQL does not support default value functions for DATE and TIME types">⚠️</span>
@@ -331,7 +331,7 @@
                 </label>
                 @if (col.type === 'datetime' || col.type === 'timestamp') {
                   <select
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    class="w-full border border-divider-deep rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-components-panel-bg disabled:bg-components-input-bg-normal disabled:cursor-not-allowed"
                     [(ngModel)]="col.defaultValue"
                     [disabled]="col.isPrimaryKey || col.autoIncrement"
                   >
@@ -340,7 +340,7 @@
                   </select>
                 } @else if (isPostgreSQL() && col.type === 'uuid') {
                   <select
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-white disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    class="w-full border border-divider-deep rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent bg-components-panel-bg disabled:bg-components-input-bg-normal disabled:cursor-not-allowed"
                     [(ngModel)]="col.defaultValue"
                     [disabled]="col.isPrimaryKey || col.autoIncrement"
                   >
@@ -350,7 +350,7 @@
                 } @else {
                   <input
                     type="text"
-                    class="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent disabled:bg-gray-100 disabled:cursor-not-allowed"
+                    class="w-full border border-divider-deep rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent disabled:bg-components-input-bg-normal disabled:cursor-not-allowed"
                     [(ngModel)]="col.defaultValue"
                     [placeholder]="'PAC.Workspace.DefaultValue' | translate: {Default: 'Default value'}"
                     [disabled]="col.isPrimaryKey || col.autoIncrement"
@@ -373,7 +373,7 @@
         }
 
         @if (table().columns?.length === 0) {
-          <div class="text-center py-12 text-gray-400">
+          <div class="text-center py-12 text-text-quaternary">
             <i class="ri-inbox-line text-5xl mb-2"></i>
             <p class="text-sm">{{ 'PAC.Workspace.NoFields' | translate: {Default: 'No fields'} }}</p>
             <p class="text-xs mt-1">{{ 'PAC.Workspace.ClickAddField' | translate: {Default: 'Click "Add Field" button above to add fields'} }}</p>

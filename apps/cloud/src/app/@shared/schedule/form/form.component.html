@@ -11,7 +11,7 @@
         class="inline-flex items-center justify-center gap-2 whitespace-nowrap font-medium cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none hover:bg-button-ghost-hover disabled:hover:bg-transparent border h-8 rounded-xl px-3 text-sm grow shrink"
         type="button"
         role="radio"
-        [ngClass]="option.value === _frequency()[0] ? 'bg-neutral-100 text-text-primary border-divider-deep' : 'border-transparent text-zinc-500'"
+        [ngClass]="option.value === _frequency()[0] ? 'bg-components-card-bg text-text-primary border-divider-deep' : 'border-transparent text-text-secondary'"
         [cdkOption]="option.value"
       >
         <span class="font-semibold">{{ 'PAC.Xpert.Frequency_' + option.label | translate: {Default: option.label} }}</span>

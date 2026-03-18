@@ -7,7 +7,7 @@
     <div
       #element
       role="button"
-      class="flex items-center max-w-xs text-primary text-sm font-medium rounded-2xl px-3 py-2 border border-input-border hover:bg-white cursor-pointer transition-all focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+      class="flex items-center max-w-xs text-primary text-sm font-medium rounded-2xl px-3 py-2 border border-input-border hover:bg-hover-bg cursor-pointer transition-all focus:outline-none focus-visible:ring-1 focus-visible:ring-ring"
       tabindex="0"
       cdkDrag
       (click)="selectXpert(xpert)"
@@ -63,7 +63,7 @@
     @overlayAnimation1
     [xpert]="xpert"
     [editable]="hasEditXpertPermission()"
-    class="w-96 border border-solid border-divider-deep !rounded-3xl shadow-lg bg-white/90 backdrop-blur-sm"
+    class="w-96 border border-solid border-divider-deep !rounded-3xl shadow-lg bg-components-card-bg/90 backdrop-blur-sm"
     (mouseenter)="mouseenterTooltip()"
     (mouseleave)="hoverTooltip.set(false)"
   >

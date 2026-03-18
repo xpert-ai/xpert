@@ -137,11 +137,11 @@ export class IndicatoryMarketComponent extends ComponentStore<{ id?: string }> {
           this.indicatorsStore.currentIndicator.set(this.indicatorsStore.firstIndicator().id)
         }
       }
-    }, { allowSignalWrites: true })
+    })
 
     effect(() => {
       this.dsCoreService.setTimeGranularity(this.timeGranularity())
-    }, { allowSignalWrites: true })
+    })
   }
 
   readonly openModal = this.effect((origin$: Observable<string>) => {

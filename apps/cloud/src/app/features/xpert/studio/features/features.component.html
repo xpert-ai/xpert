@@ -23,7 +23,7 @@
 </div>
 
 <div class="flex flex-col p-5 space-y-2">
-  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-gray-50 px-3 py-2">
+  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-background-default-subtle px-3 py-2">
     <div class="mb-2 flex items-center gap-2">
       <div class="shrink-0 w-6 h-6 flex justify-center items-center">
         <i class="ri-chat-smile-ai-fill text-lg text-teal-500"></i>
@@ -48,7 +48,7 @@
             {{ 'PAC.Xpert.Settings' | translate: { Default: 'Settings' } }}
           </div>
         </button>
-        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-gray-200"></div>
+        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
 
         <z-switch [(ngModel)]="opener_enabled" labelPosition="before" zSize="sm" />
       </div>
@@ -59,7 +59,7 @@
     }
   </div>
 
-  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-gray-50 px-3 py-2">
+  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-background-default-subtle px-3 py-2">
     <div class="mb-2 flex items-center gap-2">
       <div class="shrink-0 w-6 h-6 flex justify-center items-center">
         <i class="ri-chat-follow-up-fill text-lg text-teal-500"></i>
@@ -84,7 +84,7 @@
             {{ 'PAC.Xpert.Settings' | translate: { Default: 'Settings' } }}
           </div>
         </button>
-        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-gray-200"></div>
+        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
 
         <z-switch [(ngModel)]="suggestion_enabled" labelPosition="before" zSize="sm" />
       </div>
@@ -95,12 +95,12 @@
     }
   </div>
 
-  <div class="rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-gray-50">
+  <div class="rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-background-default-subtle">
     <div class="mb-2 flex items-center px-3 h-12 overflow-hidden">
       <div class="shrink-0 flex items-center justify-center mr-1 w-6 h-6">
         <i class="ri-paragraph shrink-0 text-lg text-[#06AED4]"></i>
       </div>
-      <div class="shrink-0 mr-2 whitespace-nowrap text-gray-800 font-semibold">
+      <div class="shrink-0 mr-2 whitespace-nowrap text-text-primary font-semibold">
         {{ 'PAC.Xpert.ConversationSummary' | translate: { Default: 'Conversation Summary' } }}
       </div>
       <div class="grow"></div>
@@ -118,7 +118,7 @@
             {{ 'PAC.Xpert.Settings' | translate: { Default: 'Settings' } }}
           </div>
         </button>
-        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-gray-200"></div>
+        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
 
         <z-switch
           [ngModel]="enabledSummarize()"
@@ -134,12 +134,12 @@
     }
   </div>
 
-  <div class="rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-gray-50">
+  <div class="rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-background-default-subtle">
     <div class="mb-2 flex items-center px-3 h-12 overflow-hidden">
       <div class="shrink-0 flex items-center justify-center mr-1 w-6 h-6">
         <i class="ri-brain-fill shrink-0 text-lg text-lime-600"></i>
       </div>
-      <div class="shrink-0 mr-2 whitespace-nowrap text-gray-800 font-semibold">
+      <div class="shrink-0 mr-2 whitespace-nowrap text-text-primary font-semibold">
         {{ 'PAC.Xpert.LongTermMemory' | translate: { Default: 'Long-term Memory' } }}
       </div>
       <div class="grow"></div>
@@ -157,7 +157,7 @@
             {{ 'PAC.Xpert.Settings' | translate: { Default: 'Settings' } }}
           </div>
         </button>
-        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-gray-200"></div>
+        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
 
         <z-switch
           [ngModel]="enabledMemory()"
@@ -173,7 +173,7 @@
     }
   </div>
 
-  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-gray-50 px-3 py-2">
+  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-background-default-subtle px-3 py-2">
     <div class="mb-2 flex items-center gap-2">
       <div class="shrink-0 w-6 h-6 flex justify-center items-center">
         <i class="ri-chat-quote-fill shrink-0 text-lg text-lime-600"></i>
@@ -198,7 +198,7 @@
             {{ 'PAC.Xpert.Settings' | translate: { Default: 'Settings' } }}
           </div>
         </button>
-        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-gray-200"></div>
+        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
 
         <z-switch [(ngModel)]="memoryReply_enabled" labelPosition="before" zSize="sm" />
       </div>
@@ -209,9 +209,9 @@
     }
   </div>
 
-  <xpert-studio-features-title class="rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-gray-50" />
+  <xpert-studio-features-title class="rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-background-default-subtle" />
 
-  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-gray-50 px-3 py-2">
+  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-background-default-subtle px-3 py-2">
     <div class="mb-2 flex items-center gap-2">
       <div
         class="shrink-0 rounded-lg border-[0.5px] border-divider-subtle bg-blue-500 w-6 h-6 flex justify-center items-center shadow-xs"
@@ -235,7 +235,7 @@
             {{ 'PAC.Xpert.Settings' | translate: { Default: 'Settings' } }}
           </div>
         </button>
-        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-gray-200"></div>
+        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
 
         <z-switch
           [ngModel]="enabledAttachment()"
@@ -269,7 +269,7 @@
     }
   </div>
 
-  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-gray-50 px-3 py-2">
+  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-background-default-subtle px-3 py-2">
     <div class="mb-2 flex items-center gap-2">
       <div class="shrink-0 w-6 h-6 flex justify-center items-center">
         <i class="ri-terminal-box-fill text-lg text-amber-500"></i>
@@ -294,7 +294,7 @@
             {{ 'PAC.Xpert.Settings' | translate: { Default: 'Settings' } }}
           </div>
         </button>
-        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-gray-200"></div>
+        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
 
         <z-switch [(ngModel)]="sandbox_enabled" labelPosition="before" zSize="sm" />
       </div>
@@ -305,7 +305,7 @@
     }
   </div>
 
-  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-gray-50 px-3 py-2">
+  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-background-default-subtle px-3 py-2">
     <div class="mb-2 flex items-center gap-2">
       <div class="shrink-0 w-6 h-6 flex justify-center items-center">
         <i class="ri-speak-ai-fill text-lg text-teal-500"></i>
@@ -330,7 +330,7 @@
             {{ 'PAC.Xpert.Settings' | translate: { Default: 'Settings' } }}
           </div>
         </button>
-        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-gray-200"></div>
+        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
 
         <z-switch [(ngModel)]="textToSpeech_enabled" labelPosition="before" zSize="sm" />
       </div>
@@ -341,7 +341,7 @@
     }
   </div>
 
-  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-gray-50 px-3 py-2">
+  <div class="group relative mb-1 rounded-xl border-l-[0.5px] border-t-[0.5px] border-slate-100 bg-background-default-subtle px-3 py-2">
     <div class="mb-2 flex items-center gap-2">
       <div class="shrink-0 w-6 h-6 flex justify-center items-center">
         <i class="ri-mic-ai-fill text-lg text-teal-500"></i>
@@ -366,7 +366,7 @@
             {{ 'PAC.Xpert.Settings' | translate: { Default: 'Settings' } }}
           </div>
         </button>
-        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-gray-200"></div>
+        <div class="ml-4 mr-3 w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
 
         <z-switch [(ngModel)]="speechToText_enabled" labelPosition="before" zSize="sm" />
       </div>

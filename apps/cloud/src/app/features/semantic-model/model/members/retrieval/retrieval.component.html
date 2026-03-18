@@ -23,7 +23,7 @@
   </div>
 
   <div class="relative bg-gradient-to-r from-blue-500 to-orange-500 rounded-[12px] p-[2px] mb-4 shadow-xs">
-    <div class="relative rounded-t-xl bg-neutral-100 pt-1.5">
+    <div class="relative rounded-t-xl bg-background-default-subtle pt-1.5">
       <div class="flex h-6 items-center justify-between pb-1 pl-4 pr-1.5">
         <span class="text-sm font-semibold uppercase leading-4 text-text-secondary">
           {{'PAC.MODEL.SourceText' | translate: {Default: 'Source Text'} }}
@@ -31,7 +31,7 @@
       </div>
     </div>
 
-    <div class="rounded-b-xl bg-white px-4 py-2 pb-11">
+    <div class="rounded-b-xl bg-components-card-bg px-4 py-2 pb-11">
       <textarea class="h-[160px] w-full resize-none border-none bg-transparent text-sm font-normal text-text-secondary caret-[#295EFF]
         placeholder:text-sm placeholder:font-normal placeholder:text-components-input-text-placeholder focus-visible:outline-none"
         [(ngModel)]="queryText"
@@ -52,7 +52,7 @@
 </div>
 
 <div class="p-4 w-[500px]">
-  <div class="relative flex h-full flex-col rounded-3xl bg-neutral-100">
+  <div class="relative flex h-full flex-col rounded-3xl bg-background-default-subtle">
     <div class="shrink-0 p-4 font-semibold leading-6 text-text-primary">
       @if (retrieving()) {
         <i class="ri-crosshair-2-line font-normal inline-block animate-spin"></i>
@@ -97,7 +97,7 @@
     </div>
 
     @if (!members()?.length) {
-      <div class="absolute left-0 top-0 w-full h-full flex flex-col justify-center items-center gap-2 rounded-3xl bg-neutral-100 text-text-tertiary">
+      <div class="absolute left-0 top-0 w-full h-full flex flex-col justify-center items-center gap-2 rounded-3xl bg-background-default-subtle text-text-tertiary">
         <i class="ri-crosshair-2-line text-6xl" [class.animate-spin]="retrieving()"></i>
         <div class="">{{'PAC.MODEL.RetrievalTestingResultsHere' | translate: {Default: 'Retrieval Testing results will show here'} }}
         </div>

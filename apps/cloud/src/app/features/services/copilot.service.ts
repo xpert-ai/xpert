@@ -92,8 +92,7 @@ export class PACCopilotService extends NgmCopilotService {
           apiHost: API_AI_HOST,
           apiKey: this.#store.token
         })
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     // effect(
@@ -121,7 +120,6 @@ export class PACCopilotService extends NgmCopilotService {
     //       }
     //     }
     //   },
-    //   { allowSignalWrites: true }
     // )
 
     effect(
@@ -129,15 +127,13 @@ export class PACCopilotService extends NgmCopilotService {
         if (this.#store.copilotRole()) {
           this.role.set(this.#store.copilotRole())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
       () => {
         this.#store.setCopilotRole(this.role())
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

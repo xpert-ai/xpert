@@ -1,12 +1,12 @@
 <div class="flex">
   <div
-    class="w-[44px] sm:w-[200px] px-[1px] py-4 sm:p-4 border border-gray-100 shrink-0 sm:shrink-1 flex flex-col items-center sm:items-start"
+    class="w-[44px] sm:w-[200px] px-[1px] py-4 sm:p-4 border border-divider-regular shrink-0 sm:shrink-1 flex flex-col items-center sm:items-start"
   >
-    <div class="mb-8 ml-0 sm:ml-2 text-sm sm:text-base font-medium leading-6 text-gray-900"
+    <div class="mb-8 ml-0 sm:ml-2 text-sm sm:text-base font-medium leading-6 text-text-primary"
       cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>{{ 'PAC.KEY_WORDS.Settings' | translate: {Default: 'Settings'} }}</div>
     <div class="w-full">
       <div class="mb-4">
-        <div class="px-2 mb-[6px] text-[10px] sm:text-sm font-medium uppercase text-gray-500">{{ 'PAC.KEY_WORDS.Workspace' | translate: {Default: 'Workspace'} }}</div>
+        <div class="px-2 mb-[6px] text-[10px] sm:text-sm font-medium uppercase text-text-tertiary">{{ 'PAC.KEY_WORDS.Workspace' | translate: {Default: 'Workspace'} }}</div>
         <ul cdkListbox [(ngModel)]="selectedMenus">
           <li
             class="menu-item"
@@ -91,7 +91,7 @@
     width="24"
     height="24"
     fill="currentColor"
-    class="shrink-0 w-4 h-4 text-gray-400"
+    class="shrink-0 w-4 h-4 text-text-quaternary"
   >
     <path
       d="M11.9997 10.5865L16.9495 5.63672L18.3637 7.05093L13.4139 12.0007L18.3637 16.9504L16.9495 18.3646L11.9997 13.4149L7.04996 18.3646L5.63574 16.9504L10.5855 12.0007L5.63574 7.05093L7.04996 5.63672L11.9997 10.5865Z"

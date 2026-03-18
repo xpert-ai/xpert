@@ -42,8 +42,7 @@ export class EditBusinessAreaComponent implements OnDestroy {
         if (this.businessArea()) {
           this.businessAreaComponent.setCurrentLink(this.businessArea())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

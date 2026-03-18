@@ -102,7 +102,7 @@ export class SemancticModelLogsComponent {
       this.currentPage.set(0)
       this.done.set(false)
       this.loadLogs({ cube, status, timeRange, currentPage: 0 })
-    }, { allowSignalWrites: true })
+    })
   }
 
   loadLogs = effectAction((origin$: Observable<{ cube: string; status: QueryStatusEnum; timeRange: string[]; currentPage: number }>) => {

@@ -254,8 +254,7 @@ export class StoryDesignerComponent extends TranslationBaseComponent implements 
     effect(
       () => {
         this.storyService.setAuthenticated(this.appService.isAuthenticated())
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {

@@ -162,8 +162,7 @@ export class ChatMessageDashboardComponent {
         if (this.type() === ChatDashboardMessageType.Indicator && this.data()?.data?.modelId) {
           this.xpertOcapService.refreshModel(this.data().data.modelId, true)
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -200,8 +199,7 @@ export class ChatMessageDashboardComponent {
             }
           ])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -219,8 +217,7 @@ export class ChatMessageDashboardComponent {
             }
           ])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -234,8 +231,7 @@ export class ChatMessageDashboardComponent {
             }))
           )
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

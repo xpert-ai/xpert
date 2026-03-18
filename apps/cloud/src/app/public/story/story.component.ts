@@ -70,7 +70,7 @@ export class StoryViewerComponent implements OnInit {
 
     effect(() => {
       this.storyService.setAuthenticated(this.appService.isAuthenticated())
-    }, { allowSignalWrites: true })
+    })
   }
 
   ngOnInit() {

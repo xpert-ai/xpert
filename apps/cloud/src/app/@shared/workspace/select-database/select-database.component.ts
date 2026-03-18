@@ -194,8 +194,7 @@ export class WorkspaceSelectDatabaseComponent {
         }
 
         this.filterChanged.emit(this.filters())
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

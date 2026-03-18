@@ -1,13 +1,13 @@
-<div class="flex flex-col w-16 max-w-[240px] shrink-0 transition-all bg-neutral-50"
+<div class="flex flex-col w-16 max-w-[240px] shrink-0 transition-all bg-background-default-subtle"
   [class.w-[240px]]="sideMenuOpened()"
 >
-  <div class="group flex flex-col p-2 mx-2 mt-2 rounded-xl hover:bg-gray-100 pressable cursor-pointer"
+  <div class="group flex flex-col p-2 mx-2 mt-2 rounded-xl hover:bg-hover-bg pressable cursor-pointer"
     (click)="manageOpened.set(true)"
   >
     <div class="flex justify-between items-center gap-2" [class.flex-col]="!sideMenuOpened()">
       <div class="relative shrink-0" >
         <emoji-avatar [avatar]="avatar()" [small]="!sideMenuOpened()" class="rounded-lg overflow-hidden" />
-        <span class="absolute bottom-[-3px] right-[-3px] w-4 h-4 p-0.5 bg-white rounded border-[0.5px] border-[rgba(0,0,0,0.02)] shadow-sm">
+        <span class="absolute bottom-[-3px] right-[-3px] w-4 h-4 p-0.5 bg-components-card-bg rounded border-[0.5px] border-divider-regular shadow-sm">
           @switch (xpert()?.type) {
             @case (eXpertTypeEnum.Copilot) {
               <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-3 h-3 text-indigo-600" >
@@ -37,7 +37,7 @@
         <div class="flex justify-between items-center text-base leading-5 font-medium text-text-secondary">
           <div class="truncate" [title]="latestXpert()?.title || latestXpert()?.name">{{latestXpert()?.title || latestXpert()?.name}}</div>
         </div>
-        <div class="flex items-center text-xs leading-[18px] font-medium text-gray-500 gap-1">
+        <div class="flex items-center text-xs leading-[18px] font-medium text-text-tertiary gap-1">
           <div class="shrink-0 px-1 border border-(--border) uppercase rounded-[5px] truncate">{{xpert()?.type}}</div>
         </div>
       </div>
@@ -173,7 +173,7 @@
   </nav>
 
   <div class="shrink-0 py-3 px-4">
-    <div class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-gray-500 hover:bg-hover-bg" (click)="toggleSideMenu()">
+    <div class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-text-tertiary hover:bg-hover-bg" (click)="toggleSideMenu()">
       @if (sideMenuOpened()) {
         <i class="ri-sidebar-fold-line text-2xl"></i>
       } @else {
@@ -193,7 +193,7 @@
       (click)="manageOpened.set(false)">
     </div>
 
-    <xpert-basic-manage class="w-[420px] rounded-2xl bg-gray-50 max-h-full" />
+    <xpert-basic-manage class="w-[420px] rounded-2xl bg-background-default-subtle max-h-full" />
   </div>
 }
  

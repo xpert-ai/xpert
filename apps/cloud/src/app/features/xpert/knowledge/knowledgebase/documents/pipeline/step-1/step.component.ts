@@ -148,8 +148,7 @@ export class KnowledgeDocumentPipelineStep1Component {
           this.taskId.set(this.createFileTask.value().id)
           this.setSelection(this.createFileTask.value().context?.documents?.map((doc) => doc.id) ?? [])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

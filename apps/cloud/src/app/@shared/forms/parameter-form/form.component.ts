@@ -61,8 +61,7 @@ export class ParameterFormComponent {
         //   this.form.patchValue(this.value$)
         //   assign(this.optionsModel, this.value$())
         // }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

@@ -131,8 +131,7 @@ export class XpertVariablePanelComponent {
         if (this.#variables.value()) {
           this.variables.set(this.#variables.value())
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

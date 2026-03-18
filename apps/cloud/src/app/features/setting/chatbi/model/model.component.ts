@@ -142,8 +142,7 @@ export class ChatBIModelComponent implements IsDirty {
             })
           }
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -155,8 +154,7 @@ export class ChatBIModelComponent implements IsDirty {
         }
         this.formGroup.markAsPristine()
         this.loading.set(false)
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

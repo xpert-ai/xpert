@@ -1,40 +1,11 @@
-@use 'sass:color';
 @use 'sass:map';
 @use 'libs/material-theme/src/styles/theme-compat' as mat;
 
-@mixin _legacy-button-color($name, $palette) {
-  [z-button][data-color='#{$name}'][data-z-type='default'],
-  z-button[data-color='#{$name}'][data-z-type='default'] {
-    background-color: mat.m2-get-color-from-palette($palette);
-    border-color: mat.m2-get-color-from-palette($palette);
-    color: mat.m2-get-color-from-palette($palette, default-contrast);
-  }
-
-  [z-button][data-color='#{$name}'][data-z-type='secondary'],
-  z-button[data-color='#{$name}'][data-z-type='secondary'] {
-    background-color: color.change(mat.m2-get-color-from-palette($palette), $alpha: 0.12);
-    color: mat.m2-get-color-from-palette($palette);
-  }
-
-  [z-button][data-color='#{$name}'][data-z-type='ghost'],
-  [z-button][data-color='#{$name}'][data-z-type='outline'],
-  z-button[data-color='#{$name}'][data-z-type='ghost'],
-  z-button[data-color='#{$name}'][data-z-type='outline'] {
-    color: mat.m2-get-color-from-palette($palette);
-  }
-
-  [z-button][data-color='#{$name}'][data-z-type='outline'],
-  z-button[data-color='#{$name}'][data-z-type='outline'] {
-    border-color: color.change(mat.m2-get-color-from-palette($palette), $alpha: 0.28);
-    background-color: color.change(mat.m2-get-color-from-palette($palette), $alpha: 0.06);
-  }
-}
-
-@mixin _legacy-toggle-group-color($name, $palette) {
+@mixin _legacy-toggle-group-color($name) {
   .z-toggle-group[data-color='#{$name}'],
   z-toggle-group[data-color='#{$name}'] {
-    --z-toggle-group-item-checked-bg: #{mat.m2-get-color-from-palette($palette)};
-    --z-toggle-group-item-checked-color: #{mat.m2-get-color-from-palette($palette, default-contrast)};
+    --z-toggle-group-item-checked-bg: var(--color-components-toggle-bg);
+    --z-toggle-group-item-checked-color: var(--color-components-button-primary-text);
   }
 }
 
@@ -107,12 +78,9 @@
     }
   }
 
-  @include _legacy-button-color('primary', $primary);
-  @include _legacy-button-color('accent', $accent);
-  @include _legacy-button-color('warn', $warn);
-  @include _legacy-toggle-group-color('primary', $primary);
-  @include _legacy-toggle-group-color('accent', $accent);
-  @include _legacy-toggle-group-color('warn', $warn);
+  @include _legacy-toggle-group-color('primary');
+  @include _legacy-toggle-group-color('accent');
+  @include _legacy-toggle-group-color('warn');
 
   .ngm-appearance-opacity {
     opacity: 0.5;

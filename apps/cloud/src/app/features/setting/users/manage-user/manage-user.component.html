@@ -18,7 +18,7 @@
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
   @for (user of users$ | async; track user.id) {
-    <div class="group flex flex-col px-2 py-3 border-[0.5px] border-solid border-gray-200 rounded-xl shadow-sm bg-gray-50 hover:bg-white hover:shadow-lg">
+    <div class="group flex flex-col px-2 py-3 border-[0.5px] border-solid border-divider-deep rounded-xl shadow-sm bg-background-default-subtle hover:bg-hover-bg hover:shadow-lg">
       <pac-user-profile-inline [user]="user" [routerLink]="['/settings/users/', user.id]" class="cursor-pointer"/>
       <div class="p-2 flex justify-start items-center">
         @if (user.role; as role) {
@@ -39,7 +39,7 @@
       </div>
 
       <div class="flex justify-end items-end">
-        <button type="button" class="w-6 h-6 flex justify-center items-center rounded-full opacity-0 group-hover:opacity-100 hover:bg-gray-100"
+        <button type="button" class="w-6 h-6 flex justify-center items-center rounded-full opacity-0 group-hover:opacity-100 hover:bg-hover-bg"
           [cdkMenuTriggerFor]="menu"
           [cdkMenuTriggerData]="{user: user}"
         >

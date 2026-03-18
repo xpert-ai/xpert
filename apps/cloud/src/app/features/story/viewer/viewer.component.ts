@@ -166,7 +166,7 @@ export class StoryViewerComponent extends TranslationBaseComponent implements On
   ) {
     super()
 
-    effect(() => this.storyService.setAuthenticated(this.appService.isAuthenticated()), { allowSignalWrites: true })
+    effect(() => this.storyService.setAuthenticated(this.appService.isAuthenticated()))
   }
 
   ngOnInit() {

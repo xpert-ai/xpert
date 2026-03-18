@@ -109,8 +109,7 @@ export class CopilotFormComponent {
           this.formGroup.patchValue(this.copilot())
           this.formGroup.markAsPristine()
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

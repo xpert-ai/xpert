@@ -279,8 +279,7 @@ export class NxSmartFilterBarComponent
       })
 
       this.defaultSlicers.set(defaultSlicers)
-    },
-    { allowSignalWrites: true }
+    }
   )
 
   private defaultSlicersEffect = effect(
@@ -288,8 +287,7 @@ export class NxSmartFilterBarComponent
       console.log(`defaultSlicers`, this.defaultSlicers())
       this.smartFilterBarService.change(this.defaultSlicers())
       this.onGo()
-    },
-    { allowSignalWrites: true }
+    }
   )
 
   ngAfterViewInit(): void {

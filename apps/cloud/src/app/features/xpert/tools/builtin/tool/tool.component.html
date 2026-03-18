@@ -1,8 +1,8 @@
 <button
-  class="px-4 py-3 text-left border-[0.5px] flex flex-col rounded-xl p-1 mb-2 bg-gray-50 border-gray-200 enabled:hover:bg-white enabled:shadow-sm disabled:opacity-50 cursor-default"
+  class="px-4 py-3 text-left border-[0.5px] flex flex-col rounded-xl p-1 mb-2 bg-background-default-subtle border-divider-deep enabled:hover:bg-hover-bg enabled:shadow-sm disabled:opacity-50 cursor-default"
   [disabled]="disabled()"
 >
-  <div class="w-full text-gray-800 font-semibold leading-5 flex items-center gap-1">
+  <div class="w-full text-text-primary font-semibold leading-5 flex items-center gap-1">
     <button
       class="w-6 h-6 rounded-md enabled:hover:bg-hover-bg enabled:cursor-pointer"
       [disabled]="disabled()"
@@ -23,7 +23,7 @@
 
     <div class="truncate">{{ tool().identity.label | i18n }}</div>
     <div
-      class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono text-gray-600 bg-slate-50"
+      class="border-[0.5px] border-divider-deep border-solid rounded-md px-2 text-xs font-mono text-text-secondary bg-background-default-subtle"
     >
       {{ tool().identity.name }}
     </div>
@@ -32,7 +32,7 @@
   </div>
 
   <div
-    class="mt-1 text-sm leading-[18px] font-body text-gray-500 line-clamp-2"
+    class="mt-1 text-sm leading-[18px] font-body text-text-tertiary line-clamp-2"
     [title]="tool().description.human | i18n"
   >
     {{ tool().description.human | i18n }}

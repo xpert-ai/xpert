@@ -58,8 +58,7 @@ export class NgmRadioSelectComponent {
         if (this.cva.value$() && this.cva.value$() !== this.value()?.[0]) {
           this.value.set([this.cva.value$()])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
@@ -67,8 +66,7 @@ export class NgmRadioSelectComponent {
         if (this.value()) {
           this.cva.value$.set(this.value()[0])
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     // effect(() => {

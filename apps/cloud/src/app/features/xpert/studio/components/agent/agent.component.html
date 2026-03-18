@@ -89,7 +89,7 @@
     <emoji-avatar [avatar]="xpertAgent().avatar" small class="shrink-0 mr-2 rounded-lg overflow-hidden shadow-sm" />
     @if (isRoot()) {
       <div
-        class="absolute left-2 top-1 w-[1.1rem] h-[1.1rem] rounded-[5px] flex justify-center items-center bg-gray-100 shadow-md"
+        class="absolute left-2 top-1 w-[1.1rem] h-[1.1rem] rounded-[5px] flex justify-center items-center bg-components-input-bg-normal shadow-md"
         [zTooltip]="'PAC.Xpert.MainAgentTip' | translate: { Default: 'Main agent, responsible for receiving messages' }"
         zPosition="top"
       >
@@ -98,7 +98,7 @@
     }
     @if (isStart()) {
       <div
-        class="absolute left-2 top-1 w-[1.1rem] h-[1.1rem] rounded-[5px] flex justify-center items-center bg-gray-100 shadow-md"
+        class="absolute left-2 top-1 w-[1.1rem] h-[1.1rem] rounded-[5px] flex justify-center items-center bg-components-input-bg-normal shadow-md"
         [zTooltip]="'PAC.Xpert.StartNodeTip' | translate: { Default: 'Start node, agent pre-processing logic entry' }"
         zPosition="top"
       >
@@ -182,7 +182,7 @@
   @if (retry()?.enabled && retry().stopAfterAttempt) {
     <div class="w-full px-3">
       <div
-        class="flex items-center justify-between px-[5px] py-1 bg-gray-100 border-[0.5px] border-transparent rounded-md uppercase font-medium text-sm text-text-warning"
+        class="flex items-center justify-between px-[5px] py-1 bg-components-input-bg-normal border-[0.5px] border-transparent rounded-md uppercase font-medium text-sm text-text-warning"
       >
         <div class="flex items-center">
           {{

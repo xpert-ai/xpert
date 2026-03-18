@@ -23,7 +23,7 @@
 <div class="relative gap-3 flex flex-col px-6">
   <xp-schedule-form [(ngModel)]="options" />
 
-  <button class="flex justify-start items-center gap-2 border-solid border-[0.5px] border-neutral-300 rounded-xl p-2 disabled:text-text-secondary disabled:shadow-none disabled:cursor-not-allowed"
+  <button class="flex justify-start items-center gap-2 border-solid border-[0.5px] border-divider-deep rounded-xl p-2 disabled:text-text-secondary disabled:shadow-none disabled:cursor-not-allowed"
     [cdkMenuTriggerFor]="xpertsMenu">
     <i class="ri-links-line ml-1 text-lg"></i>
     <emoji-avatar [avatar]="xpert()?.avatar" xs class="shrink-0 rounded-lg overflow-hidden" />
@@ -61,7 +61,7 @@
       {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
 
-    <button type="button" class="btn disabled:btn-disabled btn-primary btn-large" cdkFocusInitial
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
       [disabled]="!prompt() || !xpertId() || loading()"
       (click)="createTask()"
     >

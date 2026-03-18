@@ -224,8 +224,7 @@ export class CopilotModelSelectComponent implements ControlValueAccessor {
             }
           })
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     afterNextRender(() => {

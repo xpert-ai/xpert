@@ -375,14 +375,12 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
       // console.log(this.slicerSignal())
     })
 
-    // 由于 set dataSettings 会同步执行至 toSignal entityType，所以需要使用 allowSignalWrites 设置
     effect(
       () => {
         if (this.dataSettings()) {
           this.smartFilterService.dataSettings = this.dataSettings()
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {
@@ -400,8 +398,7 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
             members: [...this.options().defaultMembers]
           }))
         }
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(() => {
@@ -431,16 +428,14 @@ export class NgmSmartFilterComponent implements ControlValueAccessor {
       () => {
         const dimension = this.dimension()
         this.hierarchy.set(dimension.hierarchy || dimension.dimension)
-      },
-      { allowSignalWrites: true }
+      }
     )
 
     effect(
       () => {
         const dimension = this.dimension()
         this.displayBehaviour.set(dimension.displayBehaviour)
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 

@@ -164,8 +164,7 @@ export class NxStoryPointService {
             dirty: this.dirtyCheckResult.dirty()
           }
         })
-      },
-      { allowSignalWrites: true }
+      }
     )
   }
 
