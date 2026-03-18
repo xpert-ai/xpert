@@ -40,7 +40,7 @@
             @if (tableColumns().length) {
               <div class="mt-4 flex flex-wrap gap-2">
                 @for (column of tableColumnPreview(); track column.name) {
-                  <span class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-white px-3 py-1 text-xs font-medium text-text-secondary">
+                  <span class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-components-card-bg px-3 py-1 text-xs font-medium text-text-secondary">
                     <i [class]="tableColumnIcon(column)"></i>
                     {{ column.label || column.name }}
                   </span>
@@ -91,7 +91,7 @@
       <div class="px-4 space-y-3 mt-2">
         @if (columnEntries().length) {
           <div class="rounded-2xl border border-divider-regular">
-            <div class="grid grid-cols-[minmax(200px,0.45fr)_1fr_auto] gap-2 border-b border-divider-regular bg-gray-50 px-4 py-2 text-xs font-semibold uppercase text-text-tertiary">
+            <div class="grid grid-cols-[minmax(200px,0.45fr)_1fr_auto] gap-2 border-b border-divider-regular bg-background-default-subtle px-4 py-2 text-xs font-semibold uppercase text-text-tertiary">
               <span>变量名</span>
               <span>变量值</span>
               <span class="text-center">操作</span>
@@ -101,7 +101,7 @@
               <div class="grid grid-cols-[minmax(120px,0.45fr)_1fr_auto] gap-2 border-b border-divider-subtle px-4 py-3 last:border-b-0">
                 <div class="flex flex-col gap-2">
                   <div class="flex items-center gap-2">
-                    <select class="w-full rounded-lg border border-divider-regular bg-white px-3 py-1.5 text-sm text-text-primary"
+                    <select class="w-full rounded-lg border border-divider-regular bg-components-input-bg-normal px-3 py-1.5 text-sm text-text-primary"
                       [ngModel]="entry[0]"
                       (ngModelChange)="changeColumnName(entry[0], $event)">
                       @for (option of tableColumns(); track option.name) {
@@ -110,7 +110,7 @@
                         </option>
                       }
                     </select>
-                    <span class="shrink-0 rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-text-secondary">
+                    <span class="shrink-0 rounded-full bg-components-input-bg-normal px-2 py-0.5 text-xs font-medium text-text-secondary">
                       {{ columnTypeLabel(entry[0]) }}
                     </span>
                   </div>

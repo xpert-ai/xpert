@@ -5,7 +5,7 @@
   >
     @for (item of integrationList(); track item.id) {
       <li [cdkOption]="item" #option="cdkOption" class="ngm-cdk-option flex items-center cursor-pointer rounded-xl text-sm
-       hover:bg-black/5 dark:hover:bg-white/10"
+       hover:bg-hover-bg dark:hover:bg-white/10"
         [class.cdk-option-selected]="option.isSelected()"
       >
         @if (option.isSelected()) {

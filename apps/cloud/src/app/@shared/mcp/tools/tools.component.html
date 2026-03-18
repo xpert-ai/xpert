@@ -1,6 +1,6 @@
-<table class="w-full leading-[18px] text-sm text-gray-700 font-normal">
-  <thead class="text-gray-500 uppercase">
-    <tr class="border-gray-200">
+<table class="w-full leading-[18px] text-sm text-text-secondary font-normal">
+  <thead class="text-text-tertiary uppercase">
+    <tr class="border-divider-deep">
       <th class="p-0"></th>
       <th class="">{{ 'PAC.KEY_WORDS.Enabled' | translate: { Default: 'Enabled' } }}</th>
       <th class="">{{ 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' } }}</th>
@@ -11,7 +11,7 @@
   <tbody cdkDropList (cdkDropListDropped)="drop($event)">
     @for (tool of tools(); track i; let i = $index) {
       <tr
-        class="tool-row border-gray-200"
+        class="tool-row border-divider-deep"
         [class.disabled]="tool.disabled ?? disableToolDefault()"
         cdkDrag
         cdkDragLockAxis="y"

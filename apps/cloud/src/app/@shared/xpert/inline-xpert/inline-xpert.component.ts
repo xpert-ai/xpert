@@ -8,8 +8,8 @@ import { EmojiAvatarComponent } from '../../avatar'
   template: `<emoji-avatar [avatar]="avatar()" xs class="xpert-avatar shrink-0 overflow-hidden rounded-lg shadow-sm mr-1" />
   <span class="xpert-title truncate mr-8" [title]="xpert().title || xpert().name">{{xpert().title || xpert().name}}</span>
 @if (xpert().version) {
-  <div class="absolute right-0 text-xs font-medium flex h-5 shrink-0 items-center rounded-md border border-bg-slate-100 shadow-sm
-    px-[5px] text-text-secondary bg-slate-50">v{{xpert().version}}</div>
+  <div class="absolute right-0 text-xs font-medium flex h-5 shrink-0 items-center rounded-md border border-bg-components-input-bg-normal shadow-sm
+    px-[5px] text-text-secondary bg-background-default-subtle">v{{xpert().version}}</div>
 }
 `,
   styleUrl: 'inline-xpert.component.scss',

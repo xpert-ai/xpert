@@ -4,9 +4,9 @@
 }
 
 label {
-  @apply block mb-2 text-base font-medium text-gray-900 dark:text-white;
+  @apply block mb-2 text-base font-medium text-text-primary dark:text-white;
 }
 
 select, input, textarea {
-  @apply bg-gray-50;
+  @apply bg-background-default-subtle;
 }

@@ -18,7 +18,7 @@
 </div>
 <div class="px-2 flex-1 overflow-auto">
   @for (ranking of ranking$ | async; track ranking; let i = $index) {
-  <div class="p-1 rounded-md flex gap-1 hover:bg-gray-100/50 dark:hover:bg-white/5">
+  <div class="p-1 rounded-md flex gap-1 hover:bg-hover-bg/50 dark:hover:bg-white/5">
     <div class="name flex-1 basis-3/5 overflow-hidden text-ellipsis whitespace-nowrap">
       <span class="ranking">{{ i + 1 }}</span>
       <a [routerLink]="['/story', ranking.entityId]" [title]="ranking.entityName">{{ ranking.entityName }}</a>

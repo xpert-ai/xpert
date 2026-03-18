@@ -17,7 +17,7 @@
   />
 
   @for (item of knowledgebases(); track item.id) {
-    <div class="ngm-card min-h-[160px] flex-1 flex flex-col p-4 group bg-gray-50 hover:bg-white">
+    <div class="ngm-card min-h-[160px] flex-1 flex flex-col p-4 group bg-background-default-subtle hover:bg-hover-bg">
       <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-card__menu transition-opacity opacity-0 group-hover:opacity-100" displayDensity="cosy" #mt="cdkMenuTriggerFor" [cdkMenuTriggerFor]="menu" [cdkMenuTriggerData]="{item: item}" [class.active]="mt.isOpen()">
         <z-icon zType="more_vert"></z-icon>
       </button>
@@ -51,9 +51,9 @@
 
         <a class="inline-block cursor-pointer" (click)="openKnowledgebase(item.id)">
           <button
-            class="flex items-center gap-2 px-4 py-2 font-sans text-xs font-bold text-center whitespace-nowrap text-zinc-600 uppercase align-middle transition-all rounded-lg select-none disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none
+            class="flex items-center gap-2 px-4 py-2 font-sans text-xs font-bold text-center whitespace-nowrap text-text-secondary uppercase align-middle transition-all rounded-lg select-none disabled:opacity-50 disabled:shadow-none disabled:pointer-events-none
               hover:bg-gray-900/10 active:bg-gray-900/20 hover:text-zinc-800
-              dark:text-zinc-200 dark:hover:bg-neutral-700 dark:active:bg-neutral-500"
+              dark:text-zinc-200 dark:hover:bg-neutral-700 dark:active:bg-background-default-subtle"
             type="button">
             {{'PAC.KEY_WORDS.Open' | translate: {Default: 'Open'} }}
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke-width="2"

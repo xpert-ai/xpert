@@ -24,7 +24,7 @@
     }
   
     <div class="flex justify-end items-center">
-      <div class="pac-indicator__tag px-2 rounded-lg uppercase cursor-pointer bg-gray-100 hover:bg-gray-200" (click)="toggleTag($event)">
+      <div class="pac-indicator__tag px-2 rounded-lg uppercase cursor-pointer bg-components-card-bg hover:bg-gray-200" (click)="toggleTag($event)">
         {{ 'IndicatorApp.TagEnum.' + tagType() | translate: {Default: IndicatorTagEnum[tagType()]} }}
       </div>
 
@@ -40,7 +40,7 @@
   <cdk-virtual-scroll-viewport itemSize="70" [minBufferPx]="10 * 70" [maxBufferPx]="20 * 70" class="pac-indicator-market__infinite-container flex-1">
 
     <div class="w-full flex mb-2">
-      <div class="pac-indicator-market__search-input flex items-center flex-1 p-1 space-x-1 rounded-lg bg-gray-300 bg-opacity-25 dark:bg-opacity-10">
+      <div class="pac-indicator-market__search-input flex items-center flex-1 p-1 space-x-1 rounded-lg bg-components-card-bg bg-opacity-25 dark:bg-opacity-10">
         <i class="ri-search-2-line h-6 w-6 flex justify-center items-center opacity-30"></i>
         <input #searchInput class="outline-none bg-transparent flex-1" type="text" [placeholder]=" ('IndicatorApp.IndicatorNameOrCode' | translate: {Default: 'Indicator name or code'})+'...'"
           (keyup)="onSearch($event)"

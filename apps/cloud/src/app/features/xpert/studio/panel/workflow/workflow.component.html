@@ -20,11 +20,11 @@
     }
 
     <input
-      class="grow mr-2 px-1 h-6 text-base text-gray-900 font-semibold rounded-lg border border-transparent appearance-none outline-none hover:bg-gray-50 focus:border-gray-300 focus:shadow-xs focus:bg-white caret-[#295EFF] min-w-0"
+      class="grow mr-2 px-1 h-6 text-base text-text-primary font-semibold rounded-lg border border-transparent appearance-none outline-none hover:bg-hover-bg focus:border-components-input-border-active focus:shadow-xs focus:bg-components-input-bg-active caret-[#295EFF] min-w-0"
       placeholder="{{ 'PAC.Xpert.AddTitle' | translate: { Default: 'Add title' } }}..."
       [(ngModel)]="title"
     />
-    <div class="shrink-0 flex items-center text-gray-500">
+    <div class="shrink-0 flex items-center text-text-tertiary">
       <div
         class="flex items-center justify-center mr-1 w-7 h-7 rounded-md cursor-pointer hover:text-base-content hover:bg-hover-bg"
         [zTooltip]="'PAC.Xpert.TestWorkflowNode' | translate: { Default: 'Test Workflow Node' }"
@@ -51,7 +51,7 @@
         <i class="ri-book-open-line"></i>
       </a>
       <div
-        class="flex items-center justify-center w-7 h-7 rounded-md cursor-pointer hover:bg-black/5"
+        class="flex items-center justify-center w-7 h-7 rounded-md cursor-pointer hover:bg-hover-bg"
         [cdkMenuTriggerFor]="moreMenu"
       >
         <i class="ri-more-line"></i>
@@ -64,11 +64,11 @@
   </div>
   <div class="p-2">
     <div
-      class="group flex pl-2 py-[5px] max-h-[60px] rounded-lg overflow-y-auto border border-transparent hover:bg-gray-50 leading-0"
+      class="group flex pl-2 py-[5px] max-h-[60px] rounded-lg overflow-y-auto border border-transparent hover:bg-hover-bg leading-0"
     >
       <textarea
         rows="3"
-        class="w-full text-sm text-gray-900 leading-[18px] bg-transparent appearance-none outline-none resize-none placeholder:text-gray-400 caret-[#295EFF]"
+        class="w-full text-sm text-text-primary leading-[18px] bg-transparent appearance-none outline-none resize-none placeholder:text-components-input-text-placeholder caret-[#295EFF]"
         placeholder="{{ 'PAC.Xpert.AddDescription' | translate: { Default: 'Add description' } }}..."
         [(ngModel)]="description"
       ></textarea>
@@ -179,7 +179,7 @@
 
 @if (testing()) {
   <div
-    class="absolute top-0 left-0 w-full h-full rounded-2xl z-50 bg-black/20 dark:bg-neutral-500/50 backdrop-blur-[2px]"
+    class="absolute top-0 left-0 w-full h-full rounded-2xl z-50 bg-black/20 dark:bg-background-default-subtle/50 backdrop-blur-[2px]"
     @ifAnimationTrigger
     (click)="testing.set(false)"
   >
@@ -188,7 +188,7 @@
       (click)="$event.stopPropagation()"
     >
       <div class="flex h-8 shrink-0 items-center justify-between pl-4 pr-3 pt-4">
-        <div class="truncate text-lg font-semibold text-gray-900">
+        <div class="truncate text-lg font-semibold text-text-primary">
           {{ 'PAC.Xpert.TestRun' | translate: { Default: 'Test Run' } }} {{ title() || key() }}
         </div>
         <div
@@ -223,7 +223,7 @@
           />
         }
         @default {
-          <div class="select-none rounded-lg bg-neutral-50 p-3 m-4 text-center text-text-tertiary">
+          <div class="select-none rounded-lg bg-background-default-subtle p-3 m-4 text-center text-text-tertiary">
             {{ 'PAC.Workflow.NotSupportedYet' | translate: { Default: 'Not supported yet!' } }}
           </div>
         }

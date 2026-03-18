@@ -7,7 +7,7 @@
   @apply text-white rounded-lg duration-300;
 
   &.active {
-    @apply bg-slate-50 text-slate-500;
+    @apply bg-background-default-subtle text-text-tertiary;
   }
 }
 

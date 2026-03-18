@@ -22,7 +22,7 @@ export const buttonVariants = cva(
         secondary:
           'border-[0.5px] border-(--color-components-button-secondary-border) bg-(--color-components-button-secondary-bg) text-zinc-600 shadow-sm hover:border-(--color-components-button-secondary-border-hover) hover:bg-(--color-components-button-secondary-bg-hover) data-[color=warn]:border-red-50 data-[color=warn]:text-red-500 data-[color=warn]:hover:border-red-500 data-[color=warn]:hover:bg-red-50',
         ghost:
-          'border-transparent bg-transparent shadow-none hover:bg-gray-200 aria-expanded:bg-gray-200 data-[color=warn]:text-red-500 data-[color=warn]:hover:bg-red-50 data-[color=warn]:hover:text-red-500',
+          'border-transparent bg-transparent shadow-none hover:bg-hover-bg aria-expanded:bg-hover-bg data-[color=warn]:text-red-500 data-[color=warn]:hover:bg-red-50 data-[color=warn]:hover:text-red-500',
         link: 'h-auto border-transparent bg-transparent px-0 shadow-none text-primary underline-offset-4 hover:underline active:scale-100',
       },
       zSize: {

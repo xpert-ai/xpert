@@ -1,6 +1,6 @@
 <div class="!border-b-black/5 shrink-0 border-b border-b-gray-100 py-4">
   <div class="flex justify-between items-center pl-6 pr-5 h-6">
-    <div class="text-base font-semibold text-gray-900">
+    <div class="text-base font-semibold text-text-primary">
       {{ 'PAC.Xpert.SetUpAuthorization' | translate: { Default: 'Set Up Authorization' } }}
     </div>
     <div class="flex items-center">
@@ -11,7 +11,7 @@
           width="24"
           height="24"
           fill="currentColor"
-          class="remixicon w-4 h-4 text-gray-500"
+          class="remixicon w-4 h-4 text-text-tertiary"
         >
           <path
             d="M11.9997 10.5865L16.9495 5.63672L18.3637 7.05093L13.4139 12.0007L18.3637 16.9504L16.9495 18.3646L11.9997 13.4149L7.04996 18.3646L5.63574 16.9504L10.5855 12.0007L5.63574 7.05093L7.04996 5.63672L11.9997 10.5865Z"
@@ -20,7 +20,7 @@
       </div>
     </div>
   </div>
-  <div class="pl-6 pr-10 leading-[18px] text-xs font-normal text-gray-500">
+  <div class="pl-6 pr-10 leading-[18px] text-xs font-normal text-text-tertiary">
     {{
       'PAC.Xpert.AfterConfiguringCredentials'
         | translate: { Default: 'After configuring credentials, will created a toolset for this tools' }
@@ -31,14 +31,14 @@
 <div class="grow overflow-y-auto">
   <div class="px-4 py-3 h-full">
     <div class="flex flex-wrap">
-      <div class="flex items-center py-2 text-sm text-gray-900">
+      <div class="flex items-center py-2 text-sm text-text-primary">
         {{ 'PAC.Xpert.CustomName' | translate: { Default: 'Custom name' } }}
       </div>
 
       <div class="relative w-full">
         <input
           tabindex="0"
-          class="block px-3 w-full h-9 bg-gray-100 text-sm rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-[rgba(0,0,0,0.08)] hover:bg-gray-50 focus:bg-white focus:border-gray-300 focus:shadow-xs placeholder:text-sm placeholder:text-gray-400"
+          class="block px-3 w-full h-9 bg-components-input-bg-normal text-sm rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-[rgba(0,0,0,0.08)] hover:bg-hover-bg focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-sm placeholder:text-components-input-text-placeholder"
           type="text"
           [value]="toolset()?.name"
           [(ngModel)]="toolsetName"
@@ -47,14 +47,14 @@
     </div>
 
     <div class="flex flex-wrap">
-      <div class="flex items-center py-2 text-sm text-gray-900">
+      <div class="flex items-center py-2 text-sm text-text-primary">
         {{ 'PAC.Xpert.Description' | translate: { Default: 'Description' } }}
       </div>
 
       <div class="relative w-full">
         <textarea
           tabindex="0"
-          class="shrink-0 min-h-[30px] block px-3 py-1 w-full bg-gray-100 text-sm rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-[rgba(0,0,0,0.08)] hover:bg-gray-50 focus:bg-white focus:border-gray-300 focus:shadow-xs placeholder:text-sm placeholder:text-gray-400"
+          class="shrink-0 min-h-[30px] block px-3 py-1 w-full bg-components-input-bg-normal text-sm rounded-lg border border-transparent appearance-none outline-none caret-primary-600 hover:border-[rgba(0,0,0,0.08)] hover:bg-hover-bg focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-sm placeholder:text-components-input-text-placeholder"
           z-input
           cdkTextareaAutosize
           cdkAutosizeMinRows="1"
@@ -68,7 +68,7 @@
 
     @for (credential of credentialsSchema(); track $index) {
       <div class="py-3 flex flex-wrap">
-        <div class="flex-1 flex items-center py-2 text-sm text-gray-900">
+        <div class="flex-1 flex items-center py-2 text-sm text-text-primary">
           {{ credential.label | i18n }}
           @if (credential.required) {
             <span class="ml-1 text-red-500">*</span>

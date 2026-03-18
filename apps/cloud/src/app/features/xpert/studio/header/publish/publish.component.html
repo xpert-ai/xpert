@@ -46,7 +46,7 @@
     <textarea
       rows="3"
       [placeholder]="'PAC.Xpert.AddReleaseNotes' | translate: { Default: 'Add release notes' }"
-      class="w-full p-2 text-sm text-gray-900 leading-[18px] bg-neutral-50 appearance-none outline-none resize-none rounded-lg border border-solid border-transparent placeholder:text-gray-400 caret-[#295EFF]"
+      class="w-full p-2 text-sm text-text-primary leading-[18px] bg-background-default-subtle appearance-none outline-none resize-none rounded-lg border border-solid border-transparent placeholder:text-components-input-text-placeholder caret-[#295EFF]"
       [class.border-red-300]="releaseNotesError()"
       [(ngModel)]="releaseNotes"
     ></textarea>

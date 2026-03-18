@@ -6,12 +6,12 @@
 .tab {
   @apply hover:bg-components-card-bg;
   .badge {
-    @apply border-neutral-200;
+    @apply border-divider-deep;
   }
 }
 .tab.active {
   @apply bg-components-panel-bg text-text-primary;
   .badge {
-    @apply border-neutral-300;
+    @apply border-divider-deep;
   }
 }

@@ -27,7 +27,7 @@
       }
     }
   </div>
-  <div class="relative flex flex-wrap content-start items-start gap-1 self-stretch rounded-2xl bg-slate-100 p-2">
+  <div class="relative flex flex-wrap content-start items-start gap-1 self-stretch rounded-2xl bg-components-input-bg-normal p-2">
     <xp-plugin [plugin]="plugin()" [installed]="!!installed()">
       <div version>
         @if (installedVersion() && installedVersion() !== pluginVersion()) {
@@ -38,7 +38,7 @@
       </div>
     </xp-plugin>
     @if (status() === 'installing') {
-      <ngm-spin class="absolute inset-0 left-0 top-0 w-full h-full rounded-2xl backdrop-blur-sm bg-white/2" />
+      <ngm-spin class="absolute inset-0 left-0 top-0 w-full h-full rounded-2xl backdrop-blur-sm bg-components-card-bg/20" />
     }
   </div>
 </div>

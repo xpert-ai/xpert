@@ -14,8 +14,8 @@
     <div class="flex flex-1 justify-start items-center gap-1">
       @for (item of features(); track item) {
         <div
-          class="px-2 py-1 rounded-lg cursor-pointer transition-colors text-zinc-500 hover:bg-neutral-100 active:bg-neutral-200"
-          [ngClass]="{ '!bg-neutral-200': feature() === item, '!text-zinc-600': feature() === item }"
+          class="px-2 py-1 rounded-lg cursor-pointer transition-colors text-text-secondary hover:bg-hover-bg active:bg-components-card-bg"
+          [ngClass]="{ '!bg-components-card-bg': feature() === item, '!text-text-primary': feature() === item }"
           (click)="feature.set(item)"
         >
           @switch (item) {

@@ -1,6 +1,6 @@
 @reference "../../../../styles/tailwind-reference.css";
 :host {
-  @apply relative bg-white;
+  @apply relative bg-components-card-bg;
 }
 .img-figure {
   @apply w-12;

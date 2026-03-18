@@ -1,5 +1,5 @@
 <div
-  class="ngm-theme-dark dark w-[400px] shrink-0 flex flex-col justify-start overflow-auto bg-bluegray-700 text-white p-4 group"
+  class="w-[400px] shrink-0 flex flex-col justify-start overflow-auto bg-components-panel-bg text-text-primary p-4 group"
   >
   <div class="w-full flex justify-start items-center my-2" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     <z-icon zSize="default" class="-ml-2 opacity-0 group-hover:opacity-80" zType="drag_indicator"></z-icon>
@@ -173,7 +173,7 @@
                         <input
                           z-input
                           [(ngModel)]="header.fieldName"
-                          class="w-full py-2 bg-gray-50 border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-md system-sm-regular h-9"
+                          class="w-full py-2 bg-background-default-subtle border border-transparent text-components-input-text-filled hover:bg-components-input-bg-hover hover:border-components-input-border-hover focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs placeholder:text-components-input-text-placeholder appearance-none outline-none caret-primary-600 px-3 rounded-md system-sm-regular h-9"
                         />
                       </div>
                       <ng-template #context_menu>
@@ -214,7 +214,7 @@
     @case (2) {
       <ul role="list" class="ngm-list">
         @for (sheet of sheets; track sheet.name) {
-          <li role="listitem" class="hover:bg-slate-500/10 text-ellipsis overflow-hidden">
+          <li role="listitem" class="hover:bg-background-default-subtle/10 text-ellipsis overflow-hidden">
             <div class="flex items-center justify-start px-3 py-2">
               @switch (sheet.status) {
                 @case ('uploading') {

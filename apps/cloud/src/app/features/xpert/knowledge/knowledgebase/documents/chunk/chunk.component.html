@@ -52,7 +52,7 @@
         <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-emerald-500 flex"></span>
         <span class="">{{ 'PAC.Knowledgebase.Available' | translate: { Default: 'Available' } }}</span>
       } @else {
-        <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-gray-300 flex"></span>
+        <span class="w-2 h-2 mr-1 rounded-[2.5px] shadow-md bg-components-card-bg flex"></span>
         <span class="">{{ 'PAC.Knowledgebase.Disabled' | translate: { Default: 'Disabled' } }}</span>
       }
 
@@ -186,7 +186,7 @@
             <div class="w-[244px] shrink-0">
               @if (editMetadata()) {
                 <input
-                  class="text-sm p-1 truncate text-text-primary outline-none rounded-sm hover:bg-neutral-50 focus:bg-components-input-bg"
+                  class="text-sm p-1 truncate text-text-primary outline-none rounded-sm hover:bg-hover-bg focus:bg-components-input-bg"
                   [ngModel]="metadata()[field.key]"
                   (ngModelChange)="updateMetadata(field.key, $event)"
                 />
@@ -264,7 +264,7 @@
               <span class="text-components-button-secondary-text system-sm-medium">
                 {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
               </span>
-              <span class="px-[1px] bg-gray-100 rounded-[2.5px] shadow-md text-text-tertiary text-sm">ESC</span>
+              <span class="px-[1px] bg-components-input-bg-normal rounded-[2.5px] shadow-md text-text-tertiary text-sm">ESC</span>
             </div>
           </button>
           <button type="button" class="btn disabled:btn-disabled btn-primary btn-medium" (click)="saveEdit()">

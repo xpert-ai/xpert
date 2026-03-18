@@ -45,14 +45,14 @@
   } @else {
     @for (item of tools(); track item.name) {
       <div
-        class="relative flex flex-col p-1 rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
+        class="relative flex flex-col p-1 rounded-lg text-sm bg-components-input-bg-normal dark:bg-zinc-800"
         [zTooltip]="item.description"
         zPosition="right"
       >
         <div class="flex items-center gap-1 px-1 text-left">
           <i class="ri-hammer-line text-text-tertiary"></i>
           <div
-            class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50"
+            class="border-[0.5px] border-divider-deep border-solid rounded-md px-2 text-xs font-mono truncate text-text-secondary bg-background-default-subtle"
             [title]="item.description || item.name"
           >
             {{ item.name }}

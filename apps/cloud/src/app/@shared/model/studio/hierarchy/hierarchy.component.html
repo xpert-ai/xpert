@@ -1,4 +1,4 @@
-<div class="relative p-1 m-1 flex justify-between items-center cursor-move rounded-lg bg-neutral-50">
+<div class="relative p-1 m-1 flex justify-between items-center cursor-move rounded-lg bg-background-default-subtle">
   <div class="px-1 font-semibold truncate">
     {{ caption() }}
   </div>
@@ -24,7 +24,7 @@
       <i class="ri-sort-number-asc mr-1"></i>
       <span class="">{{level.caption}}</span>
       @if (level.name) {
-        <span class="ml-1 border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-sm font-mono truncate text-gray-600 bg-slate-50">{{ level.name }}</span>
+        <span class="ml-1 border-[0.5px] border-divider-deep border-solid rounded-md px-2 text-sm font-mono truncate text-text-secondary bg-background-default-subtle">{{ level.name }}</span>
       } @else {
         <span class="ml-1 text-sm text-text-destructive">{{'PAC.MODEL.NameEmpty' | translate: {Default: 'Name empty'} }}</span>
       }

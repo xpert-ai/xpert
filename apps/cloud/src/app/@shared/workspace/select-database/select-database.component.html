@@ -1,16 +1,16 @@
-<div class="xp-select-database fixed inset-0 z-[999] flex items-center justify-center text-gray-900 dark:text-gray-50">
+<div class="xp-select-database fixed inset-0 z-[999] flex items-center justify-center text-text-primary">
   <div class="absolute inset-0 bg-gray-900/40 backdrop-blur-sm" (click)="onOverlayClick()"></div>
 
-  <div class="relative z-10 flex h-[640px] w-[980px] max-w-[96vw] overflow-hidden rounded-[28px] bg-white shadow-2xl ring-1 ring-black/10 dark:bg-gray-900">
-    <aside class="flex w-64 flex-shrink-0 flex-col border-r border-gray-100 bg-gray-50/80 dark:border-gray-800 dark:bg-gray-900/60">
-      <div class="border-b border-gray-100 p-5 dark:border-gray-800">
+  <div class="relative z-10 flex h-[640px] w-[980px] max-w-[96vw] overflow-hidden rounded-[28px] bg-components-panel-bg shadow-2xl ring-1 ring-black/10">
+    <aside class="flex w-64 flex-shrink-0 flex-col border-r border-divider-regular bg-background-default-subtle/80">
+      <div class="border-b border-divider-regular p-5">
         <p class="text-lg font-semibold">{{ title() }}</p>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">{{ description() }}</p>
+        <p class="mt-1 text-sm text-text-tertiary dark:text-text-quaternary">{{ description() }}</p>
         <div class="mt-4 relative">
-          <i class="ri-search-2-line pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-gray-400"></i>
+          <i class="ri-search-2-line pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-text-quaternary"></i>
           <input
             type="search"
-            class="w-full rounded-xl border border-transparent bg-white/60 py-2 pl-9 pr-3 text-sm text-gray-700 shadow-inner outline-none transition focus:border-primary-200 focus:bg-white focus:ring-2 focus:ring-primary-100 dark:bg-gray-800 dark:text-gray-100"
+            class="w-full rounded-xl border border-transparent bg-components-input-bg-normal py-2 pl-9 pr-3 text-sm text-text-secondary shadow-inner outline-none transition focus:border-primary-200 focus:bg-components-input-bg-active focus:ring-2 focus:ring-primary-100"
             placeholder="搜索"
             [value]="searchTerm()"
             (input)="updateSearch($any($event.target).value)"
@@ -27,19 +27,19 @@
       </div>
 
       <div class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        <p class="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-gray-400">数据库资源</p>
+        <p class="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-text-quaternary">数据库资源</p>
         @for (item of navItems(); track item.value) {
           <button
             type="button"
-            class="group flex w-full items-start gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-white dark:hover:bg-gray-800/80"
-            [class.bg-white]="selectedNav() === item.value"
+            class="group flex w-full items-start gap-3 rounded-xl px-3 py-2 text-left text-sm transition hover:bg-hover-bg"
+            [class.bg-surface-l1]="selectedNav() === item.value"
             [class.shadow-sm]="selectedNav() === item.value"
-            [class.text-gray-900]="selectedNav() === item.value"
-            [class.text-gray-500]="selectedNav() !== item.value"
+            [class.text-text-primary]="selectedNav() === item.value"
+            [class.text-text-tertiary]="selectedNav() !== item.value"
             (click)="selectNav(item.value)"
           >
             <span
-              class="flex h-10 w-10 items-center justify-center rounded-xl bg-white text-lg shadow-sm group-hover:text-primary-500 dark:bg-gray-800 dark:text-gray-300"
+              class="flex h-10 w-10 items-center justify-center rounded-xl bg-surface-l1 text-lg text-text-secondary shadow-sm group-hover:text-primary-500"
               [class.bg-primary-50]="selectedNav() === item.value"
               [class.text-primary-500]="selectedNav() === item.value"
             >
@@ -48,7 +48,7 @@
             <span class="flex flex-1 flex-col">
               <span class="font-medium">{{ item.label }}</span>
               @if (item.description) {
-                <span class="text-xs text-gray-400">{{ item.description }}</span>
+                <span class="text-xs text-text-quaternary">{{ item.description }}</span>
               }
             </span>
           </button>
@@ -56,18 +56,18 @@
       </div>
     </aside>
 
-    <section class="flex flex-1 flex-col bg-white dark:bg-gray-950">
-      <header class="flex items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-800">
+    <section class="flex flex-1 flex-col bg-components-panel-bg">
+      <header class="flex items-center justify-between border-b border-divider-regular px-6 py-4">
         <div>
           <p class="text-base font-semibold">数据库列表</p>
-          <p class="text-xs text-gray-400">当前筛选：{{ selectedCollectionLabel() }} · {{ selectedOwnerLabel() }} · {{ selectedOrderLabel() }}</p>
+          <p class="text-xs text-text-quaternary">当前筛选：{{ selectedCollectionLabel() }} · {{ selectedOwnerLabel() }} · {{ selectedOrderLabel() }}</p>
         </div>
 
         <div class="flex items-center gap-2">
           <div class="relative">
             <button
               type="button"
-              class="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-sm text-gray-600 transition hover:border-gray-300 hover:text-gray-900 dark:border-gray-700 dark:text-gray-200"
+              class="inline-flex items-center gap-1 rounded-full border border-divider-deep px-3 py-1.5 text-sm text-text-secondary transition hover:border-divider-deep hover:text-text-primary"
               (click)="toggleFilter('owner')"
             >
               <i class="ri-team-line text-base text-primary-500"></i>
@@ -76,11 +76,11 @@
             </button>
 
             @if (filterPanel() === 'owner') {
-              <div class="absolute right-0 top-12 z-20 w-44 rounded-2xl border border-gray-100 bg-white p-1 text-sm shadow-xl dark:border-gray-800 dark:bg-gray-900">
+              <div class="absolute right-0 top-12 z-20 w-44 rounded-2xl border border-divider-regular bg-components-panel-bg p-1 text-sm shadow-xl">
                 @for (owner of ownerOptions(); track owner.value) {
                   <button
                     type="button"
-                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-gray-50 dark:hover:bg-gray-800"
+                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-hover-bg"
                     (click)="pickOwner(owner.value)"
                   >
                     <span>{{ owner.label }}</span>
@@ -96,7 +96,7 @@
           <div class="relative">
             <button
               type="button"
-              class="inline-flex items-center gap-1 rounded-full border border-gray-200 px-3 py-1.5 text-sm text-gray-600 transition hover:border-gray-300 hover:text-gray-900 dark:border-gray-700 dark:text-gray-200"
+              class="inline-flex items-center gap-1 rounded-full border border-divider-deep px-3 py-1.5 text-sm text-text-secondary transition hover:border-divider-deep hover:text-text-primary"
               (click)="toggleFilter('order')"
             >
               <i class="ri-time-line text-base text-primary-500"></i>
@@ -105,11 +105,11 @@
             </button>
 
             @if (filterPanel() === 'order') {
-              <div class="absolute right-0 top-12 z-20 w-44 rounded-2xl border border-gray-100 bg-white p-1 text-sm shadow-xl dark:border-gray-800 dark:bg-gray-900">
+              <div class="absolute right-0 top-12 z-20 w-44 rounded-2xl border border-divider-regular bg-components-panel-bg p-1 text-sm shadow-xl">
                 @for (order of orderOptions(); track order.value) {
                   <button
                     type="button"
-                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-gray-50 dark:hover:bg-gray-800"
+                    class="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left transition hover:bg-hover-bg"
                     (click)="pickOrder(order.value)"
                   >
                     <span>{{ order.label }}</span>
@@ -124,7 +124,7 @@
 
           <button
             type="button"
-            class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-gray-200 text-gray-500 transition hover:border-gray-300 hover:text-gray-900 dark:border-gray-700 dark:text-gray-100"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-divider-deep text-text-tertiary transition hover:border-divider-deep hover:text-text-primary"
             [class.animate-spin]="loading()"
             (click)="requestRefresh()"
           >
@@ -132,7 +132,7 @@
           </button>
 
           <button
-            class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent bg-black/5 p-2 text-gray-500 transition hover:bg-black/10 dark:bg-white/10 dark:text-gray-200"
+            class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-transparent bg-background-default-subtle p-2 text-text-tertiary transition hover:bg-hover-bg"
             (click)="close()"
             type="button"
           >
@@ -143,28 +143,28 @@
 
       <div class="flex-1 overflow-hidden">
         @if (loading()) {
-          <div class="flex h-full flex-col items-center justify-center gap-3 text-sm text-gray-400">
-            <span class="h-10 w-10 animate-spin rounded-full border-2 border-gray-200 border-t-primary-500"></span>
+          <div class="flex h-full flex-col items-center justify-center gap-3 text-sm text-text-quaternary">
+            <span class="h-10 w-10 animate-spin rounded-full border-2 border-divider-deep border-t-primary-500"></span>
             <span>正在加载数据库...</span>
           </div>
         } @else {
           @if (filteredDatabases().length) {
-            <ul class="h-full divide-y divide-gray-50 overflow-y-auto dark:divide-gray-800">
+            <ul class="h-full divide-y divide-divider-regular overflow-y-auto">
               @for (table of filteredDatabases(); track trackByTable($index, table)) {
-                <li class="flex items-center justify-between px-6 py-4 transition hover:bg-gray-50 dark:hover:bg-gray-900/60">
+                <li class="flex items-center justify-between px-6 py-4 transition hover:bg-hover-bg">
                   <div class="flex items-center gap-4">
                     <div class="flex h-12 w-12 items-center justify-center rounded-2xl bg-orange-100 text-2xl text-orange-500 dark:bg-orange-500/20">
                       <i class="ri-database-2-fill"></i>
                     </div>
                     <div class="min-w-0">
-                      <p class="font-medium text-gray-900 dark:text-gray-50">{{ table.name }}</p>
-                      <p class="text-sm text-gray-500 dark:text-gray-400">
+                      <p class="font-medium text-text-primary">{{ table.name }}</p>
+                      <p class="text-sm text-text-tertiary dark:text-text-quaternary">
                         {{ table.description || '暂无简介' }}
                       </p>
                     </div>
                   </div>
                   <div class="flex items-center gap-3 text-right">
-                    <div class="text-xs text-gray-400">
+                    <div class="text-xs text-text-quaternary">
                       <p>{{ table.database || '默认数据库' }}</p>
                       <p>{{ table.schema || '默认 Schema' }}</p>
                     </div>
@@ -180,7 +180,7 @@
               }
             </ul>
           } @else {
-            <div class="flex h-full flex-col items-center justify-center text-sm text-gray-400">
+            <div class="flex h-full flex-col items-center justify-center text-sm text-text-quaternary">
               <i class="ri-inbox-archive-line mb-3 text-4xl"></i>
               <p>没有匹配的数据库</p>
               <p class="text-xs">{{ emptyHint() }}</p>
@@ -190,10 +190,10 @@
       </div>
 
       @if (!loading() && hasMore()) {
-        <div class="border-t border-gray-100 px-6 py-3 text-center dark:border-gray-800">
+        <div class="border-t border-divider-regular px-6 py-3 text-center">
           <button
             type="button"
-            class="inline-flex items-center justify-center gap-2 rounded-full border border-gray-200 px-4 py-2 text-sm text-gray-600 transition hover:border-gray-300 hover:text-gray-900 dark:border-gray-700 dark:text-gray-100"
+            class="inline-flex items-center justify-center gap-2 rounded-full border border-divider-deep px-4 py-2 text-sm text-text-secondary transition hover:border-divider-deep hover:text-text-primary"
             (click)="requestLoadMore()"
           >
             <i class="ri-arrow-down-circle-line text-lg"></i>

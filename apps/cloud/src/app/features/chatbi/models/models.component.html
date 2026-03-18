@@ -1,4 +1,4 @@
-<div class="w-full px-3 py-1 border-b border-gray-100 flex items-center justify-between dark:border-neutral-800">
+<div class="w-full px-3 py-1 border-b border-divider-regular flex items-center justify-between dark:border-neutral-800">
   @if (isMobile()) {
     <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="compact" (click)="close()">
       <z-icon zType="close"></z-icon>
@@ -28,15 +28,15 @@
         <div class="w-full flex flex-col items-start px-3 py-3.5">
           <ngm-display-behaviour class="w-full line-clamp-1 transition group-hover:text-sky-600 text-base font-semibold" 
             [option]="option" [highlight]="searchText()" />
-          <p class="mt-0.5 text-zinc-500 text-xs line-clamp-1">
+          <p class="mt-0.5 text-text-tertiary text-xs line-clamp-1">
             {{option.value.description}}
           </p>
 
           @if (option.expanded) {
-            <z-icon class="cursor-pointer absolute top-4 right-2 rounded-full opacity-30 group-hover:opacity-100 hover:bg-neutral-100/50"
+            <z-icon class="cursor-pointer absolute top-4 right-2 rounded-full opacity-30 group-hover:opacity-100 hover:bg-hover-bg/50"
               (click)="toggleExpanded(option)" zType="expand_less"></z-icon>
           } @else {
-            <z-icon class="cursor-pointer absolute top-4 right-2 rounded-full opacity-30 group-hover:opacity-100 hover:bg-neutral-100/50"
+            <z-icon class="cursor-pointer absolute top-4 right-2 rounded-full opacity-30 group-hover:opacity-100 hover:bg-hover-bg/50"
               (click)="toggleExpanded(option)" zType="expand_more"></z-icon>
           }
         </div>

@@ -26,7 +26,7 @@
 />
 @if (!filterdData()?.length) {
   <div class="flex h-full items-center justify-center">
-    <div class="box-border h-fit w-[560px] rounded-2xl bg-neutral-100 px-5 py-4">
+    <div class="box-border h-fit w-[560px] rounded-2xl bg-components-input-bg-normal px-5 py-4">
       <span class="system-md-semibold text-text-secondary">
         {{ 'PAC.Xpert.NoMemories' | translate: {Default: 'No Memories'} }}
         <i class="ri-eye-close-line"></i>
@@ -42,7 +42,7 @@
   <div class="text-lg p-2">
     {{ 'PAC.Xpert.SemanticSearchTest' | translate: {Default: 'Semantic search test'} }}
   </div>
-  <div class="relative w-full p-[5.5px] max-h-[150px] bg-white border-[1.5px] border-gray-200 rounded-xl mb-2">
+  <div class="relative w-full p-[5.5px] max-h-[150px] bg-components-card-bg border-[1.5px] border-divider-deep rounded-xl mb-2">
     <textarea class="outline-none w-full pl-2 pr-16"
       [(ngModel)]="input"
       (keydown)="onKeydown($event)"
@@ -150,7 +150,7 @@
         }
       </div>
 
-      <div class="w-full flex justify-end gap-2 p-4 bg-neutral-50 border-t border-divider-subtle">
+      <div class="w-full flex justify-end gap-2 p-4 bg-background-default-subtle border-t border-divider-subtle">
         <button type="button" class="btn btn-secondary btn-large"
           (click)="showAddMemory.set(false)">{{ 'PAC.Xpert.Cancel' | translate: {Default: 'Cancel'} }}</button>
         <button type="submit" class="btn btn-primary btn-large"

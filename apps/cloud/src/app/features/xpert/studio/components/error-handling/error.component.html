@@ -1,15 +1,15 @@
 <div class="w-full relative">
-  <div class="relative flex items-center justify-between px-[5px] h-7 bg-gray-100 rounded-md">
+  <div class="relative flex items-center justify-between px-[5px] h-7 bg-components-input-bg-normal rounded-md">
     <div class="text-sm font-medium uppercase text-text-warning">
       {{'PAC.Xpert.OnFailure' | translate: {Default: 'On Failure'} }}
     </div>
     @if (errorHandling().type === 'defaultValue') {
-      <div class="system-xs-medium text-gray-500">
+      <div class="system-xs-medium text-text-tertiary">
         {{'PAC.Xpert.OutputDefaultValue' | translate: {Default: 'Output Default Value'} }}
       </div>
     }
     @if (errorHandling().type === 'failBranch') {
-      <div class="system-xs-medium text-gray-500">
+      <div class="system-xs-medium text-text-tertiary">
         {{'PAC.Xpert.FailBranch' | translate: {Default: 'Fail Branch'} }}
       </div>
     }

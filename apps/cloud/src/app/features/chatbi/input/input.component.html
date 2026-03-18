@@ -9,11 +9,11 @@
             : null
       "
       zPosition="top"
-      class="relative flex flex-col gap-2 px-2 py-2 lg:px-4 border border-gray-300 rounded-2xl shadow shadow-slate-200 bg-white dark:bg-neutral-900 dark:border-neutral-700"
+      class="relative flex flex-col gap-2 px-2 py-2 lg:px-4 border border-divider-deep rounded-2xl shadow bg-components-panel-bg"
     >
       <div class="flex items-center flex-grow">
         <button
-          class="p-1 rounded-lg hover:bg-black/5 dark:hover:bg-white/10"
+          class="p-1 rounded-lg hover:bg-hover-bg"
           [zTooltip]="'Copilot.NewChat' | translate: { Default: 'New chat' }"
           [cdkMenuTriggerFor]="menu"
         >
@@ -51,7 +51,7 @@
             @if (answering()) {
               <button
                 type="button"
-                class="rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 hover:opacity-60 text-white bg-black dark:bg-white dark:text-black"
+                class="rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 hover:opacity-60 text-white bg-primary-600 hover:bg-primary-500"
                 aria-label="停止生成"
                 (click)="stopGenerating()"
               >
@@ -69,13 +69,13 @@
             } @else {
               <button
                 type="button"
-                class="rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 bg-black disabled:opacity-10 disabled:text-gray-400 enabled:bg-black text-white dark:border-white dark:bg-white bottom-1.5 transition-colors hover:opacity-60"
+                class="rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 bg-primary-600 disabled:opacity-10 disabled:text-text-quaternary enabled:bg-primary-600 text-white enabled:hover:bg-primary-500 bottom-1.5 transition-colors hover:opacity-60"
                 data-testid="send-button"
                 [disabled]="!prompt() || answering() || !cube()"
                 (click)="ask()"
               >
                 <span class="" data-state="closed">
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-white dark:text-black">
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-white">
                     <path
                       d="M7 11L12 6L17 11M12 18V7"
                       stroke="currentColor"
@@ -94,7 +94,7 @@
 
     @if (!copilotEnabled()) {
       <div
-        class="absolute top-0 left-0 w-full h-full z-10 flex justify-center items-center rounded-2xl shadow bg-white shadow-slate-200 dark:bg-neutral-900 dark:border-neutral-700"
+        class="absolute top-0 left-0 w-full h-full z-10 flex justify-center items-center rounded-2xl shadow bg-components-panel-bg"
       >
         <button z-button zType="outline" (click)="navigateToConfig()">
           <div class="flex items-center">

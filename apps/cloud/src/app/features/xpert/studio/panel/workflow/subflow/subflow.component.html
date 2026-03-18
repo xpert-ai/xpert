@@ -33,13 +33,13 @@
             (ngModelChange)="updateInput(i, 'variable', $event)"
           />
 
-          <button type="button" class="btn hidden group-hover/item:inline-flex w-6 h-6 justify-center ml-1 p-1 rounded-md hover:bg-black/5 cursor-pointer danger"
+          <button type="button" class="btn hidden group-hover/item:inline-flex w-6 h-6 justify-center ml-1 p-1 rounded-md hover:bg-hover-bg cursor-pointer danger"
             (click)="removeInput(i)">
             <i class="ri-delete-bin-line"></i>
           </button>
         </li>
       } @empty {
-        <div class="p-3 rounded-lg flex justify-center items-center text-sm text-text-secondary bg-slate-50">
+        <div class="p-3 rounded-lg flex justify-center items-center text-sm text-text-secondary bg-background-default-subtle">
           {{ 'PAC.Xpert.AddInputVariables' | translate: {Default: 'Add input variables'} }}
         </div>
       }
@@ -85,13 +85,13 @@
             [ngModel]="param.variable" 
             (ngModelChange)="updateOutput(i, 'variable', $event)"
           />
-          <button type="button" class="btn hidden group-hover/item:inline-flex w-6 h-6 justify-center group p-1 rounded-md hover:bg-black/5 cursor-pointer danger"
+          <button type="button" class="btn hidden group-hover/item:inline-flex w-6 h-6 justify-center group p-1 rounded-md hover:bg-hover-bg cursor-pointer danger"
             (click)="removeOutput(i)">
             <i class="ri-delete-bin-line"></i>
           </button>
         </div>
       } @empty {
-        <div class="p-3 rounded-lg flex justify-center items-center text-sm text-text-secondary bg-slate-50">
+        <div class="p-3 rounded-lg flex justify-center items-center text-sm text-text-secondary bg-background-default-subtle">
           {{ 'PAC.Xpert.AddOutputVariables' | translate: {Default: 'Add output variables'} }}
         </div>
       }

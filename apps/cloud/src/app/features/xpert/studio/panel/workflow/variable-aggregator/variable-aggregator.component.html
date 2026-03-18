@@ -21,7 +21,7 @@
       <div class="space-y-2">
         @for (input of inputs(); track input; let i = $index) {
           <div class="flex items-center justify-between gap-2 rounded-[10px]">
-            <div class="flex-1 bg-gray-100 rounded-lg px-1 py-0.5">
+            <div class="flex-1 bg-components-input-bg-normal rounded-lg px-1 py-0.5">
               <xpert-state-variable-select class="w-full"
                 [variables]="variables()"
                 [ngModel]="input"
@@ -39,7 +39,7 @@
       </div>
     } @else {
       <div class="mt-1">
-        <div class="system-xs-regular flex min-h-[42px] w-full items-center justify-center rounded-lg cursor-pointer bg-gray-50 hover:bg-gray-100 text-text-tertiary"
+        <div class="system-xs-regular flex min-h-[42px] w-full items-center justify-center rounded-lg cursor-pointer bg-background-default-subtle hover:bg-hover-bg text-text-tertiary"
           (click)="addInput()">
           <i class="ri-add-line mr-1"></i>
           {{ 'PAC.Workflow.AddAssignVariables' | translate: {Default: 'Add the variables to be assigned'} }}

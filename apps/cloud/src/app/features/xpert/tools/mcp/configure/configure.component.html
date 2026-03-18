@@ -15,31 +15,31 @@
 
     <textarea formControlName="description"
       class="w-full px-2 py-1 mt-2 text-sm outline-none rounded-lg border border-solid border-transparent active:border-divider-regular focus-within:border-divider-regular
-        bg-gray-50 focus-within:bg-gray-100"
+        bg-background-default-subtle focus-within:bg-components-input-bg-normal"
       [placeholder]="'PAC.Xpert.EnterToolsetDescription' | translate: {Default: 'Enter toolset description'} "
     ></textarea>
   </div>
 
   <div>
-    <div class="py-2 leading-5 text-sm font-medium text-gray-900">
+    <div class="py-2 leading-5 text-sm font-medium text-text-primary">
       {{'PAC.KEY_WORDS.Tags' | translate: {Default: 'Tags'} }}
     </div>
     <tag-select optional [category]="eTagCategoryEnum.TOOLSET" [formControl]="tags" />
   </div>
   <div>
-    <div class="py-2 leading-5 text-sm font-medium text-gray-900">
+    <div class="py-2 leading-5 text-sm font-medium text-text-primary">
       {{'PAC.Xpert.PrivacyPolicy' | translate: {Default: 'Privacy Policy'} }}
     </div>
-    <input z-input class="w-full h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg grow"
+    <input z-input class="w-full h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg grow"
       [placeholder]=" 'PAC.Xpert.EnterPrivacyPolicy' | translate: {Default: 'Please enter privacy policy'} "
       formControlName="privacyPolicy"
       >
   </div>
   <div>
-    <div class="py-2 leading-5 text-sm font-medium text-gray-900">
+    <div class="py-2 leading-5 text-sm font-medium text-text-primary">
       {{'PAC.Xpert.CustomDisclaimer' | translate: {Default: 'Custom Disclaimer'} }}
     </div>
-    <input z-input class="w-full h-10 px-3 text-sm font-normal bg-gray-100 rounded-lg grow"
+    <input z-input class="w-full h-10 px-3 text-sm font-normal bg-components-input-bg-normal rounded-lg grow"
       [placeholder]=" 'PAC.Xpert.EnterCustomDisclaimer' | translate: {Default: 'Please enter custom disclaimer'} "
       formControlName="customDisclaimer"
       >

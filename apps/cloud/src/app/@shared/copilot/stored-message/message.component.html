@@ -17,11 +17,11 @@
 <div class="opacity-80 hover:opacity-100 p-2 flex flex-col max-h-[400px] font-body overflow-auto">
   @if (reasoning()) {
     <div
-      class="relative group/reasoning w-full max-h-90 px-1 mb-2 border-l-2 border-solid border-gray-200 overflow-auto"
+      class="relative group/reasoning w-full max-h-90 px-1 mb-2 border-l-2 border-solid border-divider-deep overflow-auto"
     >
       <div class="flex justify-between items-center">
         <div
-          class="flex items-center cursor-pointer pressable rounded-md px-1 text-gray-500 hover:bg-hover-bg"
+          class="flex items-center cursor-pointer pressable rounded-md px-1 text-text-tertiary hover:bg-hover-bg"
           (click)="expandReason.set(!expandReason())"
         >
           @if (expandReason()) {
@@ -48,7 +48,7 @@
       </div>
       @if (expandReason()) {
         <markdown
-          class="ngm-copilot-markdown text-xs text-zinc-500"
+          class="ngm-copilot-markdown text-xs text-text-tertiary"
           [disableSanitizer]="true"
           lineNumbers
           [start]="5"

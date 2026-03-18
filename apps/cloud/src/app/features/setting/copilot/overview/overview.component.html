@@ -1,8 +1,8 @@
 <div class="grid gap-6 grid-cols-1 xl:grid-cols-3 w-full mb-6">
-  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-gray-200 shadow-sm bg-lime-50/50">
+  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-divider-deep shadow-sm bg-lime-50/50">
     <div class="mb-3">
       <div class="flex items-start p-1">
-        <div class="flex flex-row items-center text-lg font-semibold text-gray-700 group-hover:text-gray-900 break-all">
+        <div class="flex flex-row items-center text-lg font-semibold text-text-secondary group-hover:text-text-primary break-all">
           {{ 'PAC.Copilot.TotalXperts' | translate: { Default: 'Total Xperts' } }}
           <div
             class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
@@ -18,15 +18,15 @@
       </div>
     </div>
 
-    <div class="text-3xl font-semibold text-lime-700 group-hover:text-gray-900">
+    <div class="text-3xl font-semibold text-lime-700 group-hover:text-text-primary">
       {{ xperts()?.[0]?.count }}
     </div>
   </div>
 
-  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-gray-200 shadow-sm bg-sky-50/50">
+  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-divider-deep shadow-sm bg-sky-50/50">
     <div class="mb-3">
       <div class="flex items-start p-1">
-        <div class="flex flex-row items-center text-lg font-semibold text-gray-700 group-hover:text-gray-900 break-all">
+        <div class="flex flex-row items-center text-lg font-semibold text-text-secondary group-hover:text-text-primary break-all">
           {{ 'PAC.Copilot.TotalXpertIntegrations' | translate: { Default: 'Total Integrations for Experts' } }}
           <div
             class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
@@ -42,15 +42,15 @@
       </div>
     </div>
 
-    <div class="text-3xl font-semibold text-sky-700 group-hover:text-gray-900">
+    <div class="text-3xl font-semibold text-sky-700 group-hover:text-text-primary">
       {{ xpertIntegrations()?.[0]?.count }}
     </div>
   </div>
 
-  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-gray-200 shadow-sm bg-violet-50/50">
+  <div class="group flex flex-col w-full px-6 py-4 border-[0.5px] rounded-xl border-divider-deep shadow-sm bg-violet-50/50">
     <div class="mb-3">
       <div class="flex items-start p-1">
-        <div class="flex flex-row items-center text-lg font-semibold text-gray-700 group-hover:text-gray-900 break-all">
+        <div class="flex flex-row items-center text-lg font-semibold text-text-secondary group-hover:text-text-primary break-all">
           {{ 'PAC.Copilot.TotalKnowledgebases' | translate: { Default: 'Total Knowledgebases' } }}
           <div
             class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
@@ -66,7 +66,7 @@
       </div>
     </div>
 
-    <div class="text-3xl font-semibold text-violet-700 group-hover:text-gray-900">
+    <div class="text-3xl font-semibold text-violet-700 group-hover:text-text-primary">
       {{ knowledgebases() }}
     </div>
   </div>
@@ -87,12 +87,12 @@
 </div>
 
 <div class="grid gap-6 grid-cols-1 xl:grid-cols-2 w-full mb-6">
-  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
     <div class="mb-3">
       <div class="flex items-start p-1">
         <div class="group">
           <div
-            class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+            class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
             {{ 'PAC.Copilot.TotalMessages' | translate: { Default: 'Total Messages' } }}
             <div
@@ -107,7 +107,7 @@
               <i class="ri-question-line text-text-secondary text-lg"></i>
             </div>
           </div>
-          <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+          <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
             {{ selectedTimeOption() | i18n }}
           </div>
           <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
@@ -122,12 +122,12 @@
     />
   </div>
 
-  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
     <div class="mb-3">
       <div class="flex items-start p-1">
         <div class="group">
           <div
-            class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+            class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
             {{ 'PAC.Copilot.TotalTokens' | translate: { Default: 'Total Tokens' } }}
             <div
@@ -141,7 +141,7 @@
               <i class="ri-question-line text-text-secondary text-lg"></i>
             </div>
           </div>
-          <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+          <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
             {{ selectedTimeOption() | i18n }}
           </div>
           <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
@@ -159,12 +159,12 @@
 </div>
 
 <div class="grid gap-6 grid-cols-1 xl:grid-cols-2 w-full mb-6">
-  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
     <div class="mb-3">
       <div class="flex items-start p-1">
         <div class="group">
           <div
-            class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+            class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
             {{ 'PAC.Xpert.TotalConversations' | translate: { Default: 'Total Conversations' } }}
             <div
@@ -178,7 +178,7 @@
               <i class="ri-question-line text-text-secondary text-lg"></i>
             </div>
           </div>
-          <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+          <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
             {{ selectedTimeOption() | i18n }}
           </div>
           <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
@@ -192,12 +192,12 @@
     />
   </div>
 
-  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
     <div class="mb-3">
       <div class="flex items-start p-1">
         <div class="group">
           <div
-            class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+            class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
             {{ 'PAC.Xpert.ActiveUsers' | translate: { Default: 'Active Users' } }}
             <div
@@ -211,7 +211,7 @@
               <i class="ri-question-line text-text-secondary text-lg"></i>
             </div>
           </div>
-          <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+          <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
             {{ selectedTimeOption() | i18n }}
           </div>
           <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
@@ -227,12 +227,12 @@
 </div>
 
 <div class="grid gap-6 grid-cols-1 xl:grid-cols-2 w-full mb-6">
-  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
     <div class="mb-3">
       <div class="flex items-start p-1">
         <div class="group">
           <div
-            class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+            class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
             {{ 'PAC.Xpert.AvgSessionInteractions' | translate: { Default: 'Avg. Session Interactions' } }}
             <div
@@ -246,7 +246,7 @@
               <i class="ri-question-line text-text-secondary text-lg"></i>
             </div>
           </div>
-          <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+          <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
             {{ selectedTimeOption() | i18n }}
           </div>
           <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
@@ -261,12 +261,12 @@
     />
   </div>
 
-  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
     <div class="mb-3">
       <div class="flex items-start p-1">
         <div class="group">
           <div
-            class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+            class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
             {{ 'PAC.Xpert.TotalMessages' | translate: { Default: 'Total Messages' } }}
             <div
@@ -279,7 +279,7 @@
               <i class="ri-question-line text-text-secondary text-lg"></i>
             </div>
           </div>
-          <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+          <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
             {{ selectedTimeOption() | i18n }}
           </div>
           <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
@@ -295,12 +295,12 @@
 </div>
 
 <div class="grid gap-6 grid-cols-1 xl:grid-cols-2 w-full mb-6">
-  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
     <div class="mb-3">
       <div class="flex items-start p-1">
         <div class="group">
           <div
-            class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+            class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
             {{ 'PAC.Xpert.UserSatisfactionRate' | translate: { Default: 'User Satisfaction Rate' } }}
             <div
@@ -318,7 +318,7 @@
               <i class="ri-question-line text-text-secondary text-lg"></i>
             </div>
           </div>
-          <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+          <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
             {{ selectedTimeOption() | i18n }}
           </div>
           <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
@@ -332,12 +332,12 @@
     />
   </div>
 
-  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+  <div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
     <div class="mb-3">
       <div class="flex items-start p-1">
         <div class="group">
           <div
-            class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all"
+            class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all"
           >
             {{ 'PAC.Xpert.TokenOutputSpeed' | translate: { Default: 'Token Output Speed' } }}
             <div
@@ -355,7 +355,7 @@
               <i class="ri-question-line text-text-secondary text-lg"></i>
             </div>
           </div>
-          <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+          <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
             {{ selectedTimeOption() | i18n }}
           </div>
           <div class="text-text-tertiary system-2xs-medium-uppercase"></div>
@@ -372,11 +372,11 @@
   </div>
 </div>
 
-<div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-gray-200 shadow-sm">
+<div class="flex flex-col w-full px-6 py-4 border-[0.5px] rounded-lg border-divider-deep shadow-sm">
   <div class="mb-3">
     <div class="flex items-start p-1">
       <div class="group">
-        <div class="flex flex-row items-center text-sm font-semibold text-gray-700 group-hover:text-gray-900 break-all">
+        <div class="flex flex-row items-center text-sm font-semibold text-text-secondary group-hover:text-text-primary break-all">
           {{ 'PAC.Xpert.TokenUsage' | translate: { Default: 'Token Usage' } }}
           <div
             class="w-5 h-5 ml-1 flex items-center justify-center opacity-30 hover:opacity-100"
@@ -390,7 +390,7 @@
             <i class="ri-question-line text-text-secondary text-lg"></i>
           </div>
         </div>
-        <div class="text-sm font-normal text-gray-500 group-hover:text-gray-700 break-all">
+        <div class="text-sm font-normal text-text-tertiary group-hover:text-text-secondary break-all">
           {{ selectedTimeOption() | i18n }}
         </div>
         <div class="text-text-tertiary system-2xs-medium-uppercase"></div>

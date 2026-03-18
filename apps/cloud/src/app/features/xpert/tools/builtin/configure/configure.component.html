@@ -1,16 +1,16 @@
 @if (provider(); as provider) {
-  <div class="flex items-center px-4 pt-4 pb-2 gap-2 sticky top-0 bg-gray-200 z-10">
+  <div class="flex items-center px-4 pt-4 pb-2 gap-2 sticky top-0 bg-components-list-option-active-bg z-10">
     <div class="relative shrink-0">
       <emoji-avatar [avatar]="avatar()" class="rounded-lg overflow-hidden shadow-sm" />
     </div>
     <div class="grow w-0 py-[1px]">
-      <div class="flex items-center text-md leading-6 font-semibold text-gray-900">
+      <div class="flex items-center text-md leading-6 font-semibold text-text-primary">
         <div class="truncate" [title]="provider.label | i18n">{{ provider.label | i18n }}</div>
       </div>
     </div>
   </div>
-  <div class="px-6 py-3 bg-gray-200">
-    <div class="min-h-[36px] text-gray-500 text-sm leading-[18px]">{{ provider.description | i18n }}</div>
+  <div class="px-6 py-3 bg-components-list-option-active-bg">
+    <div class="min-h-[36px] text-text-tertiary text-sm leading-[18px]">{{ provider.description | i18n }}</div>
 
     @if (authorizing()) {
       <xpert-tool-builtin-authorize
@@ -22,7 +22,7 @@
         (close)="closeAuthorize($event)"
       />
     } @else {
-      <div class="flex flex-col gap-1 border-b-[0.5px] border-black/5">
+      <div class="flex flex-col gap-1 border-b-[0.5px] border-divider-regular">
         @if (!proEnv && pro()) {
           <card-upgrade class="ngm-card-border-gradient shadow-lg" />
         } @else if (notImplemented()) {
@@ -60,7 +60,7 @@
         } @else if (toolset()) {
           <button
             type="button"
-            class="open-authorize-btn btn disabled:btn-disabled btn-medium shrink-0 my-3 w-full border border-solid border-transparent bg-white"
+            class="open-authorize-btn btn disabled:btn-disabled btn-medium shrink-0 my-3 w-full border border-solid border-transparent bg-components-panel-bg"
             [class.tempalte]="!toolset().id"
             (click)="openAuthorize(toolset())"
           >
@@ -68,7 +68,7 @@
               <div
                 class="w-2 h-2 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)] mr-2"
               ></div>
-              <div class="text-[13px] font-medium text-gray-700">
+              <div class="text-[13px] font-medium text-text-secondary">
                 {{ 'PAC.Xpert.Authorized' | translate: { Default: 'Authorized' } }}: {{ toolset()?.name }}
               </div>
             } @else {
@@ -93,8 +93,8 @@
     }
 
     @if (toolsets()?.length) {
-      <div class="flex flex-col gap-1 border-b-[0.5px] border-black/5">
-        <div class="text-sm font-medium leading-6 text-gray-500">
+      <div class="flex flex-col gap-1 border-b-[0.5px] border-divider-regular">
+        <div class="text-sm font-medium leading-6 text-text-tertiary">
           <span class=""
             >{{ toolsets()?.length ?? 0 }}
             {{ 'PAC.Xpert.Authorizations' | translate: { Default: 'Authorizations' } }}</span
@@ -103,13 +103,13 @@
         @for (toolset of toolsets(); track toolset.id) {
           <button
             type="button"
-            class="btn disabled:btn-disabled btn-medium shrink-0 my-1 w-full bg-white"
+            class="btn disabled:btn-disabled btn-medium shrink-0 my-1 w-full bg-components-panel-bg"
             (click)="openAuthorize(toolset)"
           >
             <div
               class="w-2 h-2 border border-solid rounded-[3px] bg-[#31C48D] border-[#0E9F6E] shadow-[0_0_5px_-3px_rgba(14,159,110,0.1),0.5px_0.5px_3px_rgba(14,159,110,0.3),inset_1.5px_1.5px_0px_rgba(255,255,255,0.2)] mr-2"
             ></div>
-            <div class="text-[13px] font-medium text-gray-700">
+            <div class="text-[13px] font-medium text-text-secondary">
               {{ 'PAC.Xpert.Authorized' | translate: { Default: 'Authorized' } }}: <span>{{ toolset.name }}</span>
             </div>
           </button>
@@ -118,7 +118,7 @@
     }
 
     <div class="pt-3">
-      <div class="text-sm font-medium leading-6 text-gray-500">
+      <div class="text-sm font-medium leading-6 text-text-tertiary">
         <span class=""
           >{{ builtinTools()?.length ?? 0 }}
           {{ 'PAC.Xpert.ToolsIncluded' | translate: { Default: 'Tools Included' } }}</span

@@ -9,7 +9,7 @@
 
 .pac-cdk-drop__placeholder {
   @apply border-dashed border-2 border-gray-400 min-h-[60px] transition-transform
-  bg-gray-200 dark:bg-neutral-800;
+  bg-components-list-option-active-bg dark:bg-neutral-800;
 }
 
 .ngm-list-item,

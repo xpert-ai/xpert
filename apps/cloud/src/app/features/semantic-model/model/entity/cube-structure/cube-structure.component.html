@@ -381,7 +381,7 @@
       <ul>
         @for (variable of variables(); track variable.__id__) {
           <li
-            class="group relative p-1.5 rounded-md text-sm hover:bg-gray-50"
+            class="group relative p-1.5 rounded-md text-sm hover:bg-hover-bg"
             [class.bg-orange-100]="!variable.name"
             [class.selected]="isSelected(ModelDesignerType.calculatedMember, variable.__id__)"
           >

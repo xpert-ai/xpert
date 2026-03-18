@@ -1,18 +1,18 @@
-<div class="sticky top-0 px-6 py-4 flex items-center h-14 mb-4 bg-white text-base font-medium text-gray-900 z-20">
+<div class="sticky top-0 px-6 py-4 flex items-center h-14 mb-4 bg-components-card-bg text-base font-medium text-text-primary z-20">
   <div class="shrink-0 text-xl">{{ 'PAC.Xpert.Members' | translate: { Default: 'Members' } }}</div>
   <div class="grow flex justify-end"></div>
 </div>
 
 <div class="px-4 sm:px-8 pt-2">
   <div class="flex flex-col">
-    <div class="flex items-center mb-4 p-3 bg-gray-50 rounded-2xl">
+    <div class="flex items-center mb-4 p-3 bg-background-default-subtle rounded-2xl">
       <div class="grow mx-2">
-        <div class="text-sm font-medium text-gray-900">
+        <div class="text-sm font-medium text-text-primary">
           {{ owner() | user }}'s {{ 'PAC.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
         </div>
       </div>
       <div
-        class="shrink-0 flex items-center py-[7px] px-3 border-[0.5px] border-gray-200 text-[13px] font-medium text-primary-600 bg-white shadow-xs rounded-lg cursor-pointer"
+        class="shrink-0 flex items-center py-[7px] px-3 border-[0.5px] border-divider-deep text-[13px] font-medium text-primary-600 bg-components-card-bg shadow-xs rounded-lg cursor-pointer"
         (click)="openAddUser()"
       >
         <svg
@@ -31,17 +31,17 @@
       </div>
     </div>
     <div class="overflow-visible lg:overflow-visible">
-      <div class="flex items-center py-[7px] border-b border-gray-200 min-w-[480px]">
-        <div class="grow px-3 text-sm font-medium text-gray-500">
+      <div class="flex items-center py-[7px] border-b border-divider-deep min-w-[480px]">
+        <div class="grow px-3 text-sm font-medium text-text-tertiary">
           {{ 'PAC.KEY_WORDS.User' | translate: { Default: 'User' } }}
         </div>
-        <div class="shrink-0 w-24 px-3 text-sm font-medium text-gray-500">
+        <div class="shrink-0 w-24 px-3 text-sm font-medium text-text-tertiary">
           {{ 'PAC.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}
         </div>
       </div>
       <div class="min-w-[480px] relative">
         @for (member of allMembers(); track member.id) {
-          <div class="flex items-center border-b p-2 border-gray-100 hover:bg-hover-bg">
+          <div class="flex items-center border-b p-2 border-divider-regular hover:bg-hover-bg">
             <pac-user-profile-inline class="grow" [user]="member" [isMe]="me().id === member.id" />
 
             <div class="shrink-0 w-24 px-3 flex items-center">

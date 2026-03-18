@@ -8,12 +8,12 @@
 }
 
 .ngm-fileover {
-  @apply shadow-sm bg-gray-100;
+  @apply shadow-sm bg-components-input-bg-normal;
 }
 
 .step {
   .step-num {
-    @apply border border-gray-200 rounded-full bg-gray-50;
+    @apply border border-divider-deep rounded-full bg-background-default-subtle;
   }
   &.active {
     @apply text-primary-500;

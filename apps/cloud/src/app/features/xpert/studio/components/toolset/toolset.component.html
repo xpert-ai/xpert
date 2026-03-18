@@ -11,7 +11,7 @@
   <emoji-avatar [avatar]="toolset().avatar" small class="shrink-0 mr-2 rounded-lg overflow-hidden shadow-sm" />
   @if (isSandbox() || needSandbox()) {
     <div
-      class="absolute left-7 bottom-1 flex justify-center items-center w-5 h-5 rounded-md shadow-sm bg-white"
+      class="absolute left-7 bottom-1 flex justify-center items-center w-5 h-5 rounded-md shadow-sm bg-components-card-bg"
       [zTooltip]="'PAC.Xpert.SandboxToolsetTip' | translate: { Default: 'Tools that to be run in a sandbox' }"
     >
       <i class="ri-instance-line text-green-700"></i>
@@ -20,7 +20,7 @@
 
   @if (needSandbox()) {
     <div
-      class="absolute left-7 bottom-1 flex justify-center items-center w-5 h-5 rounded-md shadow-sm bg-white"
+      class="absolute left-7 bottom-1 flex justify-center items-center w-5 h-5 rounded-md shadow-sm bg-components-card-bg"
       [zTooltip]="
         'PAC.Xpert.NeedSandboxToolsetTip'
           | translate
@@ -53,7 +53,7 @@
 >
   @for (item of tools(); track item.tool.id) {
     <div
-      class="relative flex flex-col px-2 py-1.5 rounded-lg text-sm bg-gray-100 dark:bg-zinc-800"
+      class="relative flex flex-col px-2 py-1.5 rounded-lg text-sm bg-components-input-bg-normal dark:bg-zinc-800"
       [zTooltip]="item.tool.description"
       zPosition="right"
     >
@@ -73,7 +73,7 @@
         </span>
         <span class="flex-1"></span>
         <div
-          class="border-[0.5px] border-slate-200 border-solid rounded-md px-2 text-xs font-mono truncate text-gray-600 bg-slate-50"
+          class="border-[0.5px] border-divider-deep border-solid rounded-md px-2 text-xs font-mono truncate text-text-secondary bg-background-default-subtle"
         >
           {{ item.tool.name }}
         </div>

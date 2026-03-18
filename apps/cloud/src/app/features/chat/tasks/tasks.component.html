@@ -14,21 +14,21 @@
   </div>
 
   <div class="w-full">
-    <div class="w-full mt-8 pb-2 border-b border-solid border-gray-300">
+    <div class="w-full mt-8 pb-2 border-b border-solid border-divider-regular">
       {{ 'PAC.Xpert.Scheduled' | translate: { Default: 'Scheduled' } }}
     </div>
     @for (task of scheduledTasks(); track task.id) {
       <ng-container *ngTemplateOutlet="taskTempl; context: { task: task }"></ng-container>
     }
 
-    <div class="w-full mt-8 pb-2 border-b border-solid border-gray-300">
+    <div class="w-full mt-8 pb-2 border-b border-solid border-divider-regular">
       {{ 'PAC.Xpert.Paused' | translate: { Default: 'Paused' } }}
     </div>
     @for (task of pausedTasks(); track task.id) {
       <ng-container *ngTemplateOutlet="taskTempl; context: { task: task }"></ng-container>
     }
 
-    <div class="w-full mt-8 pb-2 border-b border-solid border-gray-300">
+    <div class="w-full mt-8 pb-2 border-b border-solid border-divider-regular">
       {{ 'PAC.Xpert.Archived' | translate: { Default: 'Archived' } }}
     </div>
     @for (task of archivedTasks(); track task.id) {
@@ -216,10 +216,10 @@
 }
 
 <ng-template #taskTempl let-task="task">
-  <div class="task flex border-b border-solid border-neutral-200">
+  <div class="task flex border-b border-solid border-divider-deep">
     <div
-      class="flex-1 flex items-center cursor-pointer -mx-3 px-4 py-2 rounded-3xl text-sm hover:bg-neutral-50"
-      [class.bg-neutral-50]="taskId() === task.id"
+      class="flex-1 flex items-center cursor-pointer -mx-3 px-4 py-2 rounded-3xl text-sm hover:bg-hover-bg"
+      [class.bg-components-card-bg]="taskId() === task.id"
       [class.deleted]="!!task.deletedAt"
       (click)="openTask(task)"
     >

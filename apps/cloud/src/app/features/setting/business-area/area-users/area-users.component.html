@@ -13,7 +13,7 @@
 
 </div>
 
-<ngm-table class="mt-2 rounded-lg border border-gray-200 overflow-hidden"
+<ngm-table class="mt-2 rounded-lg border border-divider-deep overflow-hidden"
   paging
   [data]="businessAreaUsers$ | async"
   [columns]="[
@@ -45,7 +45,7 @@
 
 <ng-template #actionTempl let-loading="loading" let-id="id" let-user="user">
   @if (!loading) {
-    <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-slate-500" (click)="removeUser(id, user)">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-text-tertiary" (click)="removeUser(id, user)">
       <div class="flex items-center justify-center">
         <z-icon zType="delete"></z-icon>
       </div>

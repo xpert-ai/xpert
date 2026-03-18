@@ -2,7 +2,7 @@
   <div class="shrink-0 flex items-center justify-center mr-1 w-6 h-6">
     <i class="ri-ai-generate-text shrink-0 text-lg text-primary-500"></i>
   </div>
-  <div class="shrink-0 mr-2 whitespace-nowrap text-gray-800 font-semibold">
+  <div class="shrink-0 mr-2 whitespace-nowrap text-text-primary font-semibold">
     {{ 'PAC.Xpert.SummarizeTitle' | translate: { Default: 'Summarize Title' } }}
   </div>
   <div class="grow"></div>
@@ -20,7 +20,7 @@
         {{ 'PAC.Xpert.Settings' | translate: { Default: 'Settings' } }}
       </div>
     </button>
-    <div class="ml-4 mr-3 w-[1px] h-3.5 bg-gray-200"></div>
+    <div class="ml-4 mr-3 w-[1px] h-3.5 bg-components-list-option-active-bg"></div>
 
     <z-switch [(ngModel)]="enableSummarizeTitle" labelPosition="before" zSize="sm" />
   </div>

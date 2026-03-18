@@ -129,7 +129,7 @@ module.exports = {
       },
       backgroundImage: {
         'hero-gradient':
-          'linear-gradient(0deg,rgba(249,250,251,1) 60.27%,rgba(249,250,251,0))'
+          'linear-gradient(0deg,var(--color-hero-gradient-solid) 60.27%,var(--color-hero-gradient-transparent))'
       }
     },
     fontFamily: {

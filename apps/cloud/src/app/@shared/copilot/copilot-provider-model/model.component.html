@@ -1,5 +1,5 @@
 <div cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle 
-  class="flex justify-between items-center mb-2 px-8 py-4 cursor-move sticky top-0 z-10 bg-gradient-to-b to-white"
+  class="flex justify-between items-center mb-2 px-8 py-4 cursor-move sticky top-0 z-10 bg-gradient-to-b to-components-card-bg"
   [style.--tw-gradient-stops]="backgroundColor()+', var(--tw-gradient-to)'"
 >
   <div class="text-2xl font-semibold text-teext-primary">{{'PAC.ACTIONS.Add' | translate: {Default: 'Add'} }} {{label() | i18n}}</div>
@@ -33,16 +33,16 @@
   </div>
 
   <div class="py-3">
-    <div class="flex items-center py-2 text-base text-gray-900">
+    <div class="flex items-center py-2 text-base text-text-primary">
       {{ modelSchema().label | i18n }}
       <span class="ml-1 text-red-500">*</span>
     </div>
     <div class="relative">
-      <input class="block px-3 w-full h-9 bg-gray-100 text-sm rounded-lg border border-transparent
+      <input class="block px-3 w-full h-9 bg-components-input-bg-normal text-sm rounded-lg border border-transparent
         appearance-none outline-none caret-primary-600
-        hover:border-[rgba(0,0,0,0.08)] hover:bg-gray-50
-        focus:bg-white focus:border-gray-300 focus:shadow-xs
-        placeholder:text-sm placeholder:text-gray-400"
+        hover:border-[rgba(0,0,0,0.08)] hover:bg-hover-bg
+        focus:bg-components-input-bg-active focus:border-components-input-border-active focus:shadow-xs
+        placeholder:text-sm placeholder:text-components-input-text-placeholder"
         [placeholder]="modelSchema().placeholder | i18n"
         [(ngModel)]="modelName"
         type="text"
@@ -64,7 +64,7 @@
   
 </div>
 
-<div class="sticky bottom-0 mt-2 px-8 py-4 flex-wrap gap-y-2 border-t-[0.5px] border-t-gray-100 bg-white">
+<div class="sticky bottom-0 mt-2 px-8 py-4 flex-wrap gap-y-2 border-t-[0.5px] border-divider-regular bg-components-card-bg">
   @if (error()) {
     <div class="p-2 text-sm text-text-destructive">{{error()}}</div>
   }

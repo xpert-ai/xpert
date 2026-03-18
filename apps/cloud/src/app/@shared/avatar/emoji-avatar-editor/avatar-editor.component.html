@@ -19,7 +19,7 @@
 </div>
 
 <div id="default-tab-content">
-    <div class="hidden p-4 rounded-lg bg-gray-50 dark:bg-gray-800" id="emoji" role="tabpanel"
+    <div class="hidden p-4 rounded-lg bg-background-default-subtle dark:bg-gray-800" id="emoji" role="tabpanel"
       [ngClass]="{active: type() === 'emoji'}">
       <ul class="flex gap-2 p-2" cdkListbox [cdkListboxValue]="[set()]" (cdkListboxValueChange)="set.set($event.value[0])" cdkListboxOrientation="horizontal" >
         @for (item of sets; track item) {
@@ -50,7 +50,7 @@
     <div class="hidden px-3 py-1.5 w-[400px]" id="image" role="tabpanel"
       [ngClass]="{active: type() === 'image'}"
     >
-      <div class="relative aspect-square bg-gray-50 border-[1.5px] border-gray-200 border-dashed rounded-lg flex flex-col justify-center items-center text-gray-500"
+      <div class="relative aspect-square bg-background-default-subtle border-[1.5px] border-divider-deep border-dashed rounded-lg flex flex-col justify-center items-center text-text-tertiary"
         (dragover)="$event.preventDefault()"
         (dragenter)="$event.preventDefault()"
         (drop)="$event.preventDefault(); handleFileDrop($event)">

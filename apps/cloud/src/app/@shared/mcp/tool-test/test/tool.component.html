@@ -1,6 +1,6 @@
 <div>
   <div class="w-full flex justify-between items-center p-2">
-    <div class="py-2 leading-5 text-sm font-medium text-gray-900">
+    <div class="py-2 leading-5 text-sm font-medium text-text-primary">
       {{ 'PAC.Xpert.Parameters' | translate: { Default: 'Parameters' } }} &amp; {{ 'PAC.Xpert.Value' | translate: { Default: 'Value' } }}</div>
     <!-- <button type="button" class="btn btn-medium h-8"
       [disabled]="!parameters()"
@@ -8,18 +8,18 @@
       {{ 'PAC.Xpert.SaveAsDefault' | translate: { Default: 'Save as default' } }}</button> -->
   </div>
   
-  <div class="rounded-lg border border-gray-200 max-h-80 p-2 overflow-y-auto">
+  <div class="rounded-lg border border-divider-deep max-h-80 p-2 overflow-y-auto">
     @if (parameterList()) {
-      <table class="w-full leading-[18px] text-sm text-gray-700 font-normal">
-        <thead class="text-gray-500 uppercase">
-          <tr class="border-b border-gray-200">
+      <table class="w-full leading-[18px] text-sm text-text-secondary font-normal">
+        <thead class="text-text-tertiary uppercase">
+          <tr class="border-b border-divider-deep">
             <th class="p-2 pl-3 font-medium text-left">{{ 'PAC.Xpert.Parameters' | translate: { Default: 'Parameters' } }}</th>
             <th class="p-2 pl-3 font-medium text-left">{{ 'PAC.Xpert.Value' | translate: { Default: 'Value' } }}</th>
           </tr>
         </thead>
         <tbody>
           @for (parameter of parameterList(); track parameter.name) {
-            <tr class="border-b last:border-0 border-gray-200">
+            <tr class="border-b last:border-0 border-divider-deep">
               <td class="py-2 pl-3 pr-2.5">{{parameter.name}}
                 @if (parameter.required) {
                   <span class="inline-block text-sm font-medium text-[#EC4A0A]">*</span>
@@ -61,17 +61,17 @@
 
 <div class="relative mt-6">
   <div class="flex items-center space-x-3">
-    <div class="leading-[18px] text-sm font-semibold text-gray-500">
+    <div class="leading-[18px] text-sm font-semibold text-text-tertiary">
       {{ 'PAC.Xpert.TestResults' | translate: { Default: 'Test Results' } }}
     </div>
     <div class="grow w-0 h-px bg-[rgb(243, 244, 246)]"></div>
   </div>
   <div class="mt-2 px-3 py-2 h-[200px] overflow-auto rounded-lg leading-4 text-sm font-normal whitespace-pre-wrap
-    bg-gray-100 text-gray-700">
+    bg-components-input-bg-normal text-text-secondary">
     @if (testResult()) {
       {{testResult()}}
     } @else {
-      <span class="text-gray-400">{{ 'PAC.Xpert.TestResultsHere' | translate: { Default: 'Test result will show here' } }}</span>
+      <span class="text-text-quaternary">{{ 'PAC.Xpert.TestResultsHere' | translate: { Default: 'Test result will show here' } }}</span>
     }
   </div>
 

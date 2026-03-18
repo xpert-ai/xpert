@@ -1,6 +1,6 @@
 <div class="relative overflow-x-auto">
-  <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-    <thead class="text-base text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+  <table class="w-full text-sm text-left rtl:text-right text-text-tertiary dark:text-text-quaternary">
+    <thead class="text-base text-text-secondary uppercase bg-background-default-subtle dark:bg-gray-700 dark:text-text-quaternary">
       <tr>
         <th scope="col" class="px-4 py-2">
           {{ 'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Is Default' } }}
@@ -24,11 +24,11 @@
     </thead>
     <tbody>
       @for (row of organizations$ | async; track row.id) {
-        <tr class="group bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-neutral-50">
-          <th scope="row" class="px-4 py-2 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+        <tr class="group bg-components-card-bg border-b border-divider-regular hover:bg-hover-bg">
+          <th scope="row" class="px-4 py-2 font-medium text-text-primary whitespace-nowrap dark:text-white">
             @if (row.isDefault) {
               <i
-                class="ri-shield-star-line text-lg text-gray-500"
+                class="ri-shield-star-line text-lg text-text-tertiary"
                 [zTooltip]="'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Is Default' }"
               ></i>
             }

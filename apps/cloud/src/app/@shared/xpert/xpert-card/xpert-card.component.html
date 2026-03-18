@@ -62,7 +62,7 @@
     </span>
   </div>
   <div class="grow w-0 py-[1px]">
-    <div class="flex items-center text-base leading-5 font-semibold text-gray-800">
+    <div class="flex items-center text-base leading-5 font-semibold text-text-primary">
       <div
         class="truncate"
         [title]="xpert().title || xpert().name"
@@ -72,8 +72,8 @@
         {{ xpert().title || xpert().name }}
       </div>
     </div>
-    <div class="flex items-center text-xs leading-[18px] text-gray-500 font-medium">
-      <div class="mr-1 px-0.5 text-xs leading-4 rounded-md border-[0.5px] border-solid border-slate-200">
+    <div class="flex items-center text-xs leading-[18px] text-text-tertiary font-medium">
+      <div class="mr-1 px-0.5 text-xs leading-4 rounded-md border-[0.5px] border-solid border-divider-deep">
         @if (xpert().version) {
           <span>v{{ xpert().version }}</span>
         } @else {
@@ -92,7 +92,7 @@
 </div>
 
 <div
-  class="grow mb-2 px-[14px] max-h-[72px] text-sm leading-normal text-gray-500 line-clamp-2"
+  class="grow mb-2 px-[14px] max-h-[72px] text-sm leading-normal text-text-tertiary line-clamp-2"
   title="{{ xpert().description }}"
   [ngmHighlight]="highlight()"
   [content]="xpert().description"
@@ -101,7 +101,7 @@
 </div>
 <div class="flex items-center shrink-0 mt-1 pt-1 pl-[14px] pr-[6px] pb-[6px] h-[42px]">
   @if (xpert().tags?.length) {
-    <div class="relative w-full flex items-center gap-1 py-[7px] rounded-md text-gray-500">
+    <div class="relative w-full flex items-center gap-1 py-[7px] rounded-md text-text-tertiary">
       <svg
         width="14"
         height="14"
@@ -137,12 +137,12 @@
   (click)="$event.stopPropagation()"
 >
   <div class="grow flex items-center gap-1 w-0"></div>
-  <div class="shrink-0 mx-1 w-[1px] h-[14px] bg-gray-200"></div>
+  <div class="shrink-0 mx-1 w-[1px] h-[14px] bg-components-list-option-active-bg"></div>
   <div class="shrink-0">
     <div class="relative">
       <div>
         <button
-          class="group bg-gray-100 !bg-transparent h-8 w-8 rounded-md border-none hover:!bg-black/5"
+          class="group bg-components-input-bg-normal !bg-transparent h-8 w-8 rounded-md border-none hover:!bg-black/5"
           type="button"
           [cdkMenuTriggerFor]="cardMenu"
           [cdkMenuTriggerData]="{ xpert: xpert }"

@@ -1,22 +1,22 @@
-<div class="container grow flex flex-col rounded-xl bg-gray-50">
-  <div class="shrink-0 flex justify-between items-center h-9 pl-3 pr-2 bg-gray-50 rounded-t-xl">
+<div class="container grow flex flex-col rounded-xl bg-background-default-subtle">
+  <div class="shrink-0 flex justify-between items-center h-9 pl-3 pr-2 bg-background-default-subtle rounded-t-xl">
     <div class="flex items-center space-x-1">
       @if (role() === 'system') {
         <div class="h2 text-sm">{{ 'PAC.Copilot.Prompt' | translate: { Default: 'Prompt' } }}</div>
       } @else if (role() === 'ai') {
         <div
-          class="flex items-center h-6 pl-1 pr-0.5 rounded-md font-semibold text-gray-700 cursor-pointer hover:bg-black/5"
+          class="flex items-center h-6 pl-1 pr-0.5 rounded-md font-semibold text-text-secondary cursor-pointer hover:bg-hover-bg"
         >
-          <div class="text-sm font-semibold text-gray-700 uppercase">ai</div>
+          <div class="text-sm font-semibold text-text-secondary uppercase">ai</div>
         </div>
       } @else if (role() === 'human') {
         <div
-          class="flex items-center h-6 pl-1 pr-0.5 rounded-md font-semibold text-gray-700 cursor-pointer hover:bg-black/5"
+          class="flex items-center h-6 pl-1 pr-0.5 rounded-md font-semibold text-text-secondary cursor-pointer hover:bg-hover-bg"
         >
-          <div class="text-sm font-semibold text-gray-700 uppercase">user</div>
+          <div class="text-sm font-semibold text-text-secondary uppercase">user</div>
         </div>
       } @else if (role()) {
-        <div class="text-sm font-semibold text-gray-700 uppercase">{{ role() }}</div>
+        <div class="text-sm font-semibold text-text-secondary uppercase">{{ role() }}</div>
       }
 
       @if (tooltip()) {
@@ -31,7 +31,7 @@
     </div>
 
     <div class="flex items-center">
-      <div class="h-[18px] leading-[18px] px-1 rounded-md bg-gray-100 text-xs text-gray-500">{{ promptLength() }}</div>
+      <div class="h-[18px] leading-[18px] px-1 rounded-md bg-components-input-bg-normal text-xs text-text-tertiary">{{ promptLength() }}</div>
 
       @if (enableAi()) {
         <div
@@ -119,7 +119,7 @@
   </div>
 
   <div class="content gow relative">
-    <div class="edit-container pt-2 rounded-t-xl text-sm text-gray-700" [style.height.px]="height">
+    <div class="edit-container pt-2 rounded-t-xl text-sm text-text-secondary" [style.height.px]="height">
       <ngx-monaco-editor
         class="!h-full w-full max-h-full"
         [options]="editorOptions()"
@@ -134,14 +134,14 @@
       class="absolute bottom-0 left-0 w-full flex justify-center h-2 cursor-row-resize"
       (mousedown)="onMouseDown($event)"
     >
-      <div class="w-5 h-[3px] rounded-sm bg-gray-300"></div>
+      <div class="w-5 h-[3px] rounded-sm bg-divider-regular"></div>
     </div>
   </div>
 </div>
 
 <ng-template #suggestionsTemplate>
   <xpert-variable-panel
-    class="border-[0.5px] border-solid border-slate-200 rounded-xl shadow-lg bg-components-card-bg"
+    class="border-[0.5px] border-solid border-divider-deep rounded-xl shadow-lg bg-components-card-bg"
     (click)="$event.stopPropagation()"
     [options]="varOptions()"
     [(variables)]="variables"

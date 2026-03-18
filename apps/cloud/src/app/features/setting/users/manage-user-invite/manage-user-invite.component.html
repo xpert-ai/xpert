@@ -8,7 +8,7 @@
 </div>
 
 <div class="flex-1 overflow-y-auto">
-  <ngm-table class="rounded-xl border border-gray-200 overflow-hidden"
+  <ngm-table class="rounded-xl border border-divider-deep overflow-hidden"
     [columns]="[
         {
             name: 'email',
@@ -59,7 +59,7 @@
 </ng-template>
 
 <ng-template #statusTempl let-status="status" let-statusText="statusText">
-  <span class="bg-gray-100 text-gray-800 text-xs font-medium px-2.5 py-1.5 rounded-lg dark:bg-gray-700 dark:text-gray-300">
+  <span class="bg-components-input-bg-normal text-text-primary text-xs font-medium px-2.5 py-1.5 rounded-lg dark:bg-gray-700 dark:text-gray-300">
     @switch (status) {
       @case ('INVITED') {
         <span class="inline-block w-2 h-2 bg-blue-400 rounded-full"></span>

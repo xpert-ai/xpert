@@ -4,7 +4,7 @@
   <div class="flex justify-start items-center gap-4">
     <div
       type="button"
-      class="group flex-0 flex cursor-pointer items-center gap-1 rounded-lg py-1.5 px-3 text-lg font-semibold whitespace-nowrap bg-white text-token-text-secondary hover:bg-token-main-surface-secondary"
+      class="group flex-0 flex cursor-pointer items-center gap-1 rounded-lg py-1.5 px-3 text-lg font-semibold whitespace-nowrap bg-components-card-bg text-token-text-secondary hover:bg-token-main-surface-secondary"
       [cdkMenuTriggerFor]="workspaceMenu"
     >
       <div class="max-w-[160px] truncate text-token-text-secondary">
@@ -289,7 +289,7 @@
 
     <button cdkMenuItem class="ngm-cdk-menu-item p-2 w-full" (click)="newWorkspace()">
       <div
-        class="shrink-0 flex justify-center items-center w-6 h-6 bg-gray-50 rounded-[6px] border-gray-200 border"
+        class="shrink-0 flex justify-center items-center w-6 h-6 bg-background-default-subtle rounded-[6px] border-divider-deep border"
         role="none"
       >
         <svg
@@ -298,17 +298,17 @@
           width="24"
           height="24"
           fill="currentColor"
-          class="w-4 h-4 text-gray-500"
+          class="w-4 h-4 text-text-tertiary"
           role="none"
         >
           <path d="M11 11V5H13V11H19V13H13V19H11V13H5V11H11Z" role="none"></path>
         </svg>
       </div>
 
-      <div class="grow text-left font-normal ml-2 text-[14px] text-gray-700" role="none">
+      <div class="grow text-left font-normal ml-2 text-[14px] text-text-secondary" role="none">
         {{ 'PAC.ACTIONS.New' | translate: { Default: 'New' } }}
       </div>
-      <!-- <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="shrink-0 w-3.5 h-3.5  text-gray-500" role="none">
+      <!-- <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="currentColor" class="shrink-0 w-3.5 h-3.5  text-text-tertiary" role="none">
         <path d="M13.1717 12.0007L8.22192 7.05093L9.63614 5.63672L16.0001 12.0007L9.63614 18.3646L8.22192 16.9504L13.1717 12.0007Z" role="none"></path>
       </svg> -->
     </button>
@@ -316,7 +316,7 @@
     @if (workspace()) {
       <button class="ngm-cdk-menu-item p-2" cdkMenuItem (click)="openSettings()">
         <div
-          class="shrink-0 flex justify-center items-center w-6 h-6 bg-gray-50 rounded-[6px] border-gray-200 border mr-2"
+          class="shrink-0 flex justify-center items-center w-6 h-6 bg-background-default-subtle rounded-[6px] border-divider-deep border mr-2"
           role="none"
         >
           <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-4 h-4">

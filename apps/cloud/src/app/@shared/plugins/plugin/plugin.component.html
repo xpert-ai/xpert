@@ -1,5 +1,5 @@
 @if (plugin(); as plugin) {
-  <div class="relative overflow-hidden rounded-xl border-[0.5px] border-components-panel-border bg-neutral-50 shadow-sm hover:shadow-md hover:bg-components-card-bg">
+  <div class="relative overflow-hidden rounded-xl border-[0.5px] border-components-panel-border bg-background-default-subtle shadow-sm hover:shadow-md hover:bg-components-card-bg">
     <div class="p-4 pb-3">
       <div class="absolute right-0 top-0 flex pl-[13px]">
         <svg
@@ -8,7 +8,7 @@
           viewBox="0 0 13 20"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          class="-mr-[1px] text-gray-100"
+          class="-mr-[1px] text-components-input-bg-normal"
         >
           <path
             id="Shape"
@@ -16,7 +16,7 @@
             fill="currentColor"
           ></path>
         </svg>
-        <div class="text-xs font-semibold font-body uppercase h-[18px] rounded-tr-xl bg-gray-100 pr-2 leading-5 text-text-tertiary">
+        <div class="text-xs font-semibold font-body uppercase h-[18px] rounded-tr-xl bg-components-input-bg-normal pr-2 leading-5 text-text-tertiary">
           {{ 'PAC.Plugin.Category_' + plugin.category | translate: {Default: plugin.category} }}
         </div>
       </div>

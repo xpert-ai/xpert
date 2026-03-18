@@ -132,8 +132,8 @@
   </z-accordion-header>
 
   <div class="relative overflow-x-auto sm:rounded-lg">
-    <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
-      <thead class="text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+    <table class="w-full text-sm text-left rtl:text-right text-text-tertiary dark:text-text-quaternary">
+      <thead class="text-text-secondary uppercase bg-background-default-subtle dark:text-text-quaternary">
         <tr>
           <th scope="col" class="py-3 px-4 pe-0">
             <ngm-checkbox
@@ -143,7 +143,7 @@
               (ngModelChange)="setAll($event)"
             />
             <!-- <div class="flex items-center h-5">
-              <input id="hs-table-search-checkbox-all" type="checkbox" class="border-gray-200 rounded text-blue-600 focus:ring-blue-500 dark:bg-neutral-700 dark:border-neutral-500 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800"
+              <input id="hs-table-search-checkbox-all" type="checkbox" class="border-divider-deep rounded text-blue-600 focus:ring-blue-500 dark:bg-neutral-700 dark:border-neutral-500 dark:checked:bg-blue-500 dark:checked:border-blue-500 dark:focus:ring-offset-gray-800"
                 [disabled]="loading()"
                 [ngModel]="allSelected()"
                 [indeterminate]="someSelected()"
@@ -171,7 +171,7 @@
       </thead>
       <tbody>
         @for (dimension of dimensions(); track dimension.name) {
-          <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+          <tr class="bg-surface-l1 border-b border-divider-regular hover:bg-hover-bg">
             <td class="py-3 ps-4">
               <ngm-checkbox
                 [disabled]="loading() || dimension.semantics?.disableEmbeddingMembers"
@@ -179,7 +179,7 @@
                 (ngModelChange)="setSelected(dimension.name, $event)"
               />
             </td>
-            <th scope="row" class="px-6 py-4 font-semibold text-gray-900 whitespace-nowrap dark:text-white">
+            <th scope="row" class="px-6 py-4 font-semibold text-text-primary whitespace-nowrap">
               {{ dimension.caption || dimension.name }}
             </th>
             <td class="px-6 py-4 font-semibold">
@@ -210,7 +210,7 @@
           <!-- @if (dimension.expand) { -->
           @for (hierarchy of dimension.hierarchies; track hierarchy.name) {
             <tr
-              class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-100 dark:hover:bg-gray-500"
+              class="bg-surface-l1 border-b border-divider-regular hover:bg-hover-bg"
             >
               <td class="py-3 ps-4">
                 <div class="flex items-center h-5">
@@ -221,7 +221,7 @@
                   <!-- <label for="hs-table-search-checkbox-1" class="sr-only">Checkbox</label> -->
                 </div>
               </td>
-              <th scope="row" class="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
+              <th scope="row" class="px-6 py-4 font-medium text-text-primary whitespace-nowrap">
                 <div class="inline-block w-4"></div>
                 <a class="cursor-pointer hover:underline" (click)="openValueHelp(dimension.name, hierarchy.name)">
                   {{ hierarchy.caption || hierarchy.name }}</a

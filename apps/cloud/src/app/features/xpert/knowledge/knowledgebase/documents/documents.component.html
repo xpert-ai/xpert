@@ -4,7 +4,7 @@
       <ol class="inline-flex items-center space-x-1 md:space-x-2 rtl:space-x-reverse">
         <li class="inline-flex items-center">
           <a
-            class="inline-flex items-center font-medium cursor-pointer text-gray-700 hover:text-blue-600 dark:text-gray-400 dark:hover:text-white"
+            class="inline-flex items-center font-medium cursor-pointer text-text-secondary hover:text-text-accent"
             (click)="backHome()"
           >
             <i class="ri-home-2-line"></i>
@@ -14,12 +14,12 @@
         @if (grandParent(); as grand) {
           <li>
             <div class="flex items-center">
-              <i class="ri-arrow-right-s-line text-lg text-gray-400 mx-1"></i>
-              <i class="ri-folder-2-line text-gray-400"></i>
+              <i class="ri-arrow-right-s-line text-lg text-text-quaternary mx-1"></i>
+              <i class="ri-folder-2-line text-text-quaternary"></i>
               <a
                 [routerLink]="['.']"
                 [queryParams]="{ parentId: grand.id }"
-                class="ms-1 font-medium text-gray-700 hover:text-blue-600 md:ms-2 dark:text-gray-400 dark:hover:text-white"
+                class="ms-1 font-medium text-text-secondary hover:text-text-accent md:ms-2"
               >
                 {{ grand.name }}
               </a>
@@ -28,9 +28,9 @@
         }
         <li aria-current="page">
           <div class="flex items-center">
-            <i class="ri-arrow-right-s-line text-lg text-gray-400 mx-1"></i>
-            <i class="ri-folder-2-line text-gray-400"></i>
-            <span class="ms-1 font-medium text-gray-500 md:ms-2 dark:text-gray-400">
+            <i class="ri-arrow-right-s-line text-lg text-text-quaternary mx-1"></i>
+            <i class="ri-folder-2-line text-text-quaternary"></i>
+            <span class="ms-1 font-medium text-text-tertiary md:ms-2">
               {{ parentFolder()?.name }}
             </span>
           </div>
@@ -61,7 +61,7 @@
 </div>
 
 <div
-  class="flex items-center justify-between flex-column md:flex-row flex-wrap space-y-4 md:space-y-0 p-4 bg-white dark:bg-gray-900"
+  class="flex items-center justify-between flex-column md:flex-row flex-wrap space-y-4 md:space-y-0 p-4 bg-components-card-bg"
 >
   <div class="relative w-[160px]">
     <i
@@ -104,8 +104,8 @@
   </div>
 </div>
 <div class="relative px-4 overflow-auto">
-  <table class="table-fixed w-full text-sm text-left text-gray-500 dark:text-gray-400">
-    <thead class="text-sm text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
+  <table class="table-fixed w-full text-sm text-left text-text-tertiary">
+    <thead class="text-sm text-text-secondary uppercase bg-background-default-subtle">
       <tr>
         <th scope="col" class="px-6 py-3 w-20">
           <ngm-checkbox
@@ -149,7 +149,7 @@
 
     <tbody>
       @for (element of filteredData(); track element.id; let i = $index) {
-        <tr class="bg-white border-b dark:bg-gray-800 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-600">
+        <tr class="bg-components-card-bg border-b border-divider-regular hover:bg-hover-bg">
           <td class="px-6 py-2">
             <ngm-checkbox
               class="shrink-0"

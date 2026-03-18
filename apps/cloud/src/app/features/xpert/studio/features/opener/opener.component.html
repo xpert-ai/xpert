@@ -1,6 +1,6 @@
 <textarea
   rows="3"
-  class="system-md-regular w-full border-0 bg-transparent p-1 rounded-md text-text-secondary focus:outline-none focus:bg-white"
+  class="system-md-regular w-full border-0 bg-transparent p-1 rounded-md text-text-secondary focus:outline-none focus:bg-components-input-bg-active"
   [placeholder]="'PAC.Xpert.WriteOpenerMessage' | translate: {Default: 'Write your opener message here.'}"
   [(ngModel)]="message"
 ></textarea>
@@ -22,7 +22,7 @@
       >
         <i class="ri-draggable cursor-pointer"></i>
         <input
-          class="h-9 w-full grow cursor-pointer overflow-x-auto rounded-lg border-0 bg-transparent pl-1.5 pr-8 text-sm leading-9 text-text-secondary focus:outline-none focus:bg-white"
+          class="h-9 w-full grow cursor-pointer overflow-x-auto rounded-lg border-0 bg-transparent pl-1.5 pr-8 text-sm leading-9 text-text-secondary focus:outline-none focus:bg-components-input-bg-active"
           type="input"
           [ngModel]="question"
           (ngModelChange)="updateQuestion(i, $event)"
@@ -35,7 +35,7 @@
     }
   </div>
 
-  <div class="mt-1 flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-neutral-100 px-3 
+  <div class="mt-1 flex h-9 cursor-pointer items-center gap-2 rounded-lg bg-components-input-bg-normal px-3 
       text-components-button-tertiary-text hover:bg-hover-bg"
     (click)="addQuestion()"
   >

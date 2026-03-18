@@ -203,6 +203,8 @@ export class ZardToggleGroupItemComponent {
     '[attr.data-z-size]': 'zSize()',
     '[attr.data-z-type]': 'zType()',
     '[class]': 'classes()',
+    '[style.--z-toggle-group-item-checked-bg]': '"var(--color-components-toggle-bg)"',
+    '[style.--z-toggle-group-item-checked-color]': '"var(--color-components-button-primary-text)"',
     'role': 'group',
   },
   exportAs: 'zToggleGroup',

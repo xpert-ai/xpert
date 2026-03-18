@@ -30,7 +30,7 @@
           <div class="grow cursor-pointer overflow-hidden">
             <div class="!flex group/picker-trigger-wrap relative">
               <div
-                class="border-gray-100 relative group/wrap flex items-center gap-1 w-full h-9 p-1 rounded-lg bg-components-input-bg-normal"
+                class="border-divider-regular relative group/wrap flex items-center gap-1 w-full h-9 p-1 rounded-lg bg-components-input-bg-normal"
               >
                 <div class="grow h-full mr-1 overflow-hidden">
                   <xpert-state-variable-select
@@ -41,7 +41,7 @@
                 </div>
                 <button
                   type="button"
-                  class="btn invisible group-hover/wrap:visible group-hover/wrap:relative absolute w-6 h-6 justify-center right-1 group p-1 rounded-md hover:bg-black/5 cursor-pointer danger"
+                  class="btn invisible group-hover/wrap:visible group-hover/wrap:relative absolute w-6 h-6 justify-center right-1 group p-1 rounded-md hover:bg-hover-bg cursor-pointer danger"
                   (click)="removeInput(param)"
                 >
                   <i class="ri-delete-bin-line"></i>
@@ -105,7 +105,7 @@
             (ngModelChange)="updateOutput(i, 'type', $event)"
           />
           <div
-            class="flex justify-center items-center w-7 h-7 shrink-0 cursor-pointer rounded-md pressable danger hover:bg-black/5 text-gray-500 hover:text-text-destructive"
+            class="flex justify-center items-center w-7 h-7 shrink-0 cursor-pointer rounded-md pressable danger hover:bg-hover-bg text-text-tertiary hover:text-text-destructive"
             (click)="removeOutput(i)"
           >
             <i class="ri-delete-bin-line"></i>
@@ -150,7 +150,7 @@
       ></z-slider>
 
       <input
-        class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-gray-100 text-[13px] text-gra-900"
+        class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-components-input-bg-normal text-[13px] text-gra-900"
         [min]="1"
         [max]="10"
         [step]="1"
@@ -180,7 +180,7 @@
       ></z-slider>
 
       <input
-        class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-gray-100 text-[13px] text-gra-900"
+        class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-components-input-bg-normal text-[13px] text-gra-900"
         [min]="1"
         [max]="10"
         [step]="1"

@@ -1,8 +1,8 @@
 <button class="px-2 py-3 text-left border-[0.5px] flex flex-col items-stretch rounded-xl p-1 cursor-default
-  bg-gray-50 border-gray-200 enabled:hover:bg-white enabled:shadow-sm disabled:opacity-50"
+  bg-background-default-subtle border-divider-deep enabled:hover:bg-hover-bg enabled:shadow-sm disabled:opacity-50"
   [disabled]="disabled()"
 >
-  <div class="w-full text-gray-800 font-semibold leading-5 flex items-center">
+  <div class="w-full text-text-primary font-semibold leading-5 flex items-center">
     <button class="w-7 h-7 mr-1 flex justify-center items-center rounded-lg pressable enabled:hover:bg-hover-bg enabled:cursor-pointer"
       [disabled]="disabled()"
       (click)="toggleExpand()">

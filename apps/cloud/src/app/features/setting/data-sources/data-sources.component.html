@@ -14,7 +14,7 @@
   />
   @for (item of dataSources(); track item.id) {
     <div class="datasource-card group relative col-span-1 border-2 border-solid border-transparent rounded-xl shadow-sm min-h-[160px] flex flex-col transition-all duration-200 ease-in-out cursor-pointer hover:shadow-lg
-            bg-gray-50 hover:bg-white dark:bg-neutral-800 dark:hover:bg-neutral-700"
+            bg-background-default-subtle hover:bg-hover-bg"
       [ngClass]="routeAnimationsElements"
       [class.active]="mt.isOpen()"
       (click)="edit(item)"
@@ -50,7 +50,7 @@
         <div class="shrink-0 mx-1 w-[1px] h-[14px] bg-divider-regular"></div>
         <div class="shrink-0">
           <button
-            class="bg-gray-100 !bg-transparent h-8 w-8 rounded-md border-none active:!bg-black/5 hover:!bg-black/5 dark:bg-neutral-400"
+            class="bg-components-input-bg-normal !bg-transparent h-8 w-8 rounded-md border-none active:!bg-black/5 hover:!bg-black/5 dark:bg-neutral-400"
             type="button"
             [cdkMenuTriggerFor]="menu"
             [cdkMenuTriggerData]="{item: item}"

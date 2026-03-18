@@ -9,6 +9,6 @@
 
 :host::ng-deep {
   .ngm-list > li:not(.pointer-events-none) {
-    @apply hover:bg-gray-100 dark:hover:bg-gray-100/20;
+    @apply hover:bg-hover-bg dark:hover:bg-hover-bg/20;
   }
 }

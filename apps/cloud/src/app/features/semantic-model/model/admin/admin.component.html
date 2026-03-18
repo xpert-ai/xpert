@@ -42,7 +42,7 @@
     </div>
   </div>
   
-  <ngm-table class="overflow-hidden rounded-lg border border-gray-200 mt-2 px-8"
+  <ngm-table class="overflow-hidden rounded-lg border border-divider-deep mt-2 px-8"
     paging
     [data]="members"
     [columns]="[
@@ -92,7 +92,7 @@
 </ng-template>
 
 <ng-template #actionTempl let-loading="loading" let-id="id">
-  <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-gray-400" [disabled]="loading" (click)="removeMember(id)">
+  <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-text-quaternary" [disabled]="loading" (click)="removeMember(id)">
     <div class="flex justify-center items-center">
       <z-icon zType="delete"></z-icon>
     </div>

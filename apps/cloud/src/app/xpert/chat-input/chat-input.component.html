@@ -47,7 +47,7 @@
           ></textarea>
 
           <div
-            class="absolute left-0 bottom-0 w-full h-full z-10 p-2 overflow-hidden bg-white"
+            class="absolute left-0 bottom-0 w-full h-full z-10 p-2 overflow-hidden bg-components-card-bg"
             [ngClass]="{
               hidden: !speeching(),
               block: speeching()
@@ -161,7 +161,7 @@
             @if (answering()) {
               <button
                 type="button"
-                class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 text-white bg-black dark:bg-white dark:text-black transition-transform origin-center enabled:hover:scale-110"
+                class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border border-divider-regular p-1 text-text-primary bg-components-card-bg transition-transform origin-center enabled:hover:scale-110 enabled:hover:bg-hover-bg"
                 (click)="stopGenerating()"
               >
                 <svg
@@ -178,11 +178,11 @@
             } @else {
               <button
                 type="button"
-                class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border-solid p-1 bg-black disabled:opacity-10 disabled:text-gray-400 enabled:bg-black text-white dark:border-white dark:bg-white bottom-1.5 transition-transform origin-center enabled:hover:scale-110"
+                class="w-10 h-10 flex justify-center items-center rounded-full md:bottom-3 md:right-3 right-2 border border-divider-regular p-1 bg-components-card-bg disabled:opacity-10 disabled:text-text-quaternary text-text-primary bottom-1.5 transition-transform origin-center enabled:hover:scale-110 enabled:hover:bg-hover-bg"
                 [disabled]="!prompt() || disabled()"
                 (click)="send()"
               >
-                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-white dark:text-black">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" class="text-text-primary">
                   <path
                     d="M7 11L12 6L17 11M12 18V7"
                     stroke="currentColor"
@@ -200,7 +200,7 @@
   </form>
 
   <copilot-enable-model
-    class="absolute top-0 left-0 w-full h-full justify-center items-center z-10 rounded-3xl overflow-hidden backdrop-blur-md bg-white/2 hidden"
+    class="absolute top-0 left-0 w-full h-full justify-center items-center z-10 rounded-3xl overflow-hidden backdrop-blur-md bg-black/5 dark:bg-white/5 hidden"
     [enableModel]="!xpert()"
   />
 </div>

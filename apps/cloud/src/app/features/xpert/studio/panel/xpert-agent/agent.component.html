@@ -11,7 +11,7 @@
       />
       <div class="flex flex-col items-start min-w-0 flex-1">
         <input
-          class="ngm-input-inline ngm-input-sm min-w-[100px] max-w-full mr-2 px-1 py-0.5 text-base field font-semibold rounded-lg border border-transparent appearance-none outline-none text-gray-900 hover:bg-gray-50 focus:border-gray-300 focus:shadow-xs focus:bg-white caret-[#295EFF]"
+          class="ngm-input-inline ngm-input-sm min-w-[100px] max-w-full mr-2 px-1 py-0.5 text-base field font-semibold rounded-lg border border-transparent appearance-none outline-none text-text-primary hover:bg-hover-bg focus:border-components-input-border-active focus:shadow-xs focus:bg-components-input-bg-active caret-[#295EFF]"
           [placeholder]="'PAC.Xpert.EnterTitle' | translate: { Default: 'Enter title' }"
           [ngModel]="title()"
           (ngModelChange)="onTitleChange($event)"
@@ -128,7 +128,7 @@
   <div class="px-4 pb-4 space-y-4 mt-2 w-full">
     <div class="py-2 flex flex-col">
       <input
-        class="ngm-input-inline ngm-input-sm self-stretch mx-1 mb-1 px-1 py-0.5 text-sm font-mono rounded-lg border border-transparent appearance-none outline-none hover:bg-gray-50 focus:border-gray-300 focus:shadow-xs focus:bg-white caret-[#295EFF]"
+        class="ngm-input-inline ngm-input-sm self-stretch mx-1 mb-1 px-1 py-0.5 text-sm font-mono rounded-lg border border-transparent appearance-none outline-none hover:bg-hover-bg focus:border-components-input-border-active focus:shadow-xs focus:bg-components-input-bg-active caret-[#295EFF]"
         [ngClass]="{ 'ngm-error': nameError() }"
         [ngModel]="name()"
         (ngModelChange)="onNameChange($event)"
@@ -140,10 +140,10 @@
         [placeholder]="('PAC.Xpert.NameDefaultUseKey' | translate: { Default: 'Name, default use ' }) + key()"
       />
       <div
-        class="group flex px-2 py-[5px] rounded-lg overflow-y-auto border border-transparent text-text-secondary hover:bg-gray-50 focus:border-gray-300 focus:shadow-xs"
+        class="group flex px-2 py-[5px] rounded-lg overflow-y-auto border border-transparent text-text-secondary hover:bg-hover-bg focus:border-components-input-border-active focus:shadow-xs"
       >
         <textarea
-          class="rc-textarea w-full text-sm font-mono leading-[18px] bg-transparent appearance-none outline-none placeholder:text-gray-400 caret-[#295EFF]"
+          class="rc-textarea w-full text-sm font-mono leading-[18px] bg-transparent appearance-none outline-none placeholder:text-components-input-text-placeholder caret-[#295EFF]"
           [placeholder]="('PAC.Xpert.AddDescription' | translate: { Default: 'Add description' }) + '...'"
           [ngModel]="xpertAgent().description"
           (ngModelChange)="onDescChange($event)"
@@ -176,7 +176,7 @@
       (promptChange)="onPromptChange($event)"
     />
 
-    <div class="w-full px-4 pt-2 pb-4 space-y-2 rounded-xl bg-gray-50">
+    <div class="w-full px-4 pt-2 pb-4 space-y-2 rounded-xl bg-background-default-subtle">
       <div class="w-full flex justify-between items-center">
         <div class="flex items-center h-6">
           <div class="uppercase text-sm font-semibold text-text-secondary mr-2">
@@ -208,7 +208,7 @@
     <!-- @if (!enableMessageHistory()) { -->
     @for (template of promptTemplates(); track template.id; let i = $index) {
       <copilot-prompt-editor
-        class="prompt-template relative rounded-xl self-stretch border border-solid border-gray-100"
+        class="prompt-template relative rounded-xl self-stretch border border-solid border-divider-regular"
         [fullscreen]="promptTemplateFullscreen() === template.id"
         [tooltip]="
           'PAC.Xpert.SystemPromptTooltip'
@@ -296,12 +296,12 @@
     </div>
 
     <!-- Node part -->
-    <div class="w-full flex flex-col gap-2 p-3 bg-gray-50 rounded-xl">
+    <div class="w-full flex flex-col gap-2 p-3 bg-background-default-subtle rounded-xl">
       <div class="flex items-center space-x-1 shrink-0">
         <div class="flex items-center justify-center w-6 h-6">
           <i class="ri-git-commit-fill text-orange-600"></i>
         </div>
-        <div class="text-sm font-semibold text-gray-800">{{ 'PAC.Xpert.Node' | translate: { Default: 'Node' } }}</div>
+        <div class="text-sm font-semibold text-text-primary">{{ 'PAC.Xpert.Node' | translate: { Default: 'Node' } }}</div>
       </div>
 
       @if (!isPrimaryAgent()) {
@@ -381,13 +381,13 @@
     <xpert-parameters-edit [ngModel]="parameters()" (ngModelChange)="onParameters($event)" />
 
     <!-- Middlewares section -->
-    <xpert-studio-panel-middleware-section class="mt-3 rounded-xl p-1 bg-gray-50" [key]="key()" />
+    <xpert-studio-panel-middleware-section class="mt-3 rounded-xl p-1 bg-background-default-subtle" [key]="key()" />
 
     <!-- Knowledges part -->
-    <xpert-studio-panel-knowledge-section class="mt-3 rounded-xl bg-gray-50 pt-2 pb-3" [key]="key()" />
+    <xpert-studio-panel-knowledge-section class="mt-3 rounded-xl bg-background-default-subtle pt-2 pb-3" [key]="key()" />
 
     <!-- Toolsets part -->
-    <xpert-studio-panel-toolset-section class="mt-3 rounded-xl bg-gray-50 pt-2 pb-3" [key]="key()" />
+    <xpert-studio-panel-toolset-section class="mt-3 rounded-xl bg-background-default-subtle pt-2 pb-3" [key]="key()" />
 
     <div class="h-[0.5px] bg-divider-subtle"></div>
 
@@ -428,7 +428,7 @@
           ></z-slider>
 
           <input
-            class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-gray-100 text-[13px] text-gra-900"
+            class="shrink-0 block ml-4 pl-3 w-16 h-8 appearance-none outline-none rounded-lg bg-components-input-bg-normal text-[13px] text-gra-900"
             [min]="1"
             [max]="10"
             [step]="1"
@@ -505,7 +505,7 @@
 
       @if (structuredOutputMethod()) {
         @if (toolsets()?.length) {
-          <div class="my-4 px-2 text-sm rounded-lg border border-solid border-text-warning shadow-md bg-slate-50">
+          <div class="my-4 px-2 text-sm rounded-lg border border-solid border-text-warning shadow-md bg-background-default-subtle">
             <i class="ri-alarm-warning-line mr-2 text-lg text-text-destructive"></i>
             <span class="text-text-secondary">{{
               'PAC.Xpert.DonotToolCallingAndStructured'
@@ -554,7 +554,7 @@
 
 @if (openedExecution()) {
   <div
-    class="absolute top-0 left-0 w-full h-full z-50 bg-black/20 dark:bg-neutral-500/50 backdrop-blur-[2px]"
+    class="absolute top-0 left-0 w-full h-full z-50 bg-black/20 dark:bg-background-default-subtle/50 backdrop-blur-[2px]"
     @ifAnimationTrigger
     (click)="closeExecution()"
   >
@@ -632,7 +632,7 @@
       @if (diagram.image) {
         <img [src]="diagram.image" alt="Diagram Image" />
       } @else {
-        <div class="w-8 h-8 flex justify-center items-center mb-2 rounded-xl bg-slate-50 shadow-sm text-text-warning">
+        <div class="w-8 h-8 flex justify-center items-center mb-2 rounded-xl bg-background-default-subtle shadow-sm text-text-warning">
           <i class="ri-error-warning-line"></i>
         </div>
         <div class="text-sm text-text-warning">{{ diagram.error }}</div>

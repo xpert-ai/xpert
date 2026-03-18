@@ -59,7 +59,7 @@
               {{currentInstallation.accountName}}
             </h4>
 
-            <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 inset-ring inset-ring-gray-500/10">
+            <span class="inline-flex items-center rounded-md bg-background-default-subtle px-2 py-1 text-xs font-medium text-text-secondary inset-ring inset-ring-gray-500/10">
               @if (currentInstallation.accountType === "Organization") {
                 <i class="ri-community-line"></i>
                 Organization
@@ -86,7 +86,7 @@
     </div>
 
     <div class="flex items-center gap-3">
-      <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 inset-ring inset-ring-gray-500/10">
+      <span class="inline-flex items-center rounded-md bg-background-default-subtle px-2 py-1 text-xs font-medium text-text-secondary inset-ring inset-ring-gray-500/10">
         {{repositories().length}} repositories
       </span>
 
@@ -108,7 +108,7 @@
               <h3 class="text-primary hover:text-primary/80 cursor-pointer font-mono font-semibold">
                 {{repo.full_name}}
               </h3>
-              <span class="inline-flex items-center rounded-md bg-gray-50 px-2 py-1 text-xs font-medium text-gray-600 inset-ring inset-ring-gray-500/10">
+              <span class="inline-flex items-center rounded-md bg-background-default-subtle px-2 py-1 text-xs font-medium text-text-secondary inset-ring inset-ring-gray-500/10">
                 @if (repo.private) {
                   <i class="ri-git-repository-private-line mr-1"></i>
                   Private

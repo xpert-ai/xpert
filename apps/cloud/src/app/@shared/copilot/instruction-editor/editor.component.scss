@@ -6,7 +6,7 @@
 :host::ng-deep {
   .monaco-editor:not(.focused) {
     .margin, .monaco-editor-background {
-      @apply bg-gray-50;
+      @apply bg-background-default-subtle;
     }
   }
 }

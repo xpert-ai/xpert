@@ -27,7 +27,7 @@ export const chipVariants = cva(
         compact: 'min-h-6 px-2 py-0.5 text-xs'
       },
       interactive: {
-        true: 'cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 hover:border-neutral-300 hover:bg-neutral-200 dark:hover:border-neutral-600 dark:hover:bg-neutral-700',
+        true: 'cursor-pointer select-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50 hover:border-divider-deep hover:bg-hover-bg',
         false: ''
       },
       selected: {

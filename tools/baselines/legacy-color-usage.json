@@ -1,0 +1,3185 @@
+{
+  "version": 1,
+  "entries": [
+    {
+      "file": "apps/cloud/src/app/@shared/_components-theme.scss",
+      "match": "bg-gray-400/20;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/_components.scss",
+      "match": "bg-neutral-200/20;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/_components.scss",
+      "match": "bg-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/_components.scss",
+      "match": "border-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/_components.scss",
+      "match": "text-neutral-500;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/assets/assets.component.html",
+      "match": "dark:hover:bg-white/5",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/assets/assets.component.html",
+      "match": "dark:text-slate-300",
+      "count": 6
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/avatar/emoji-avatar-editor/avatar-editor.component.html",
+      "match": "dark:bg-gray-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/avatar/emoji-avatar-editor/avatar-editor.component.scss",
+      "match": "ring-gray-300;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/avatar/emoji-avatar/avatar.component.scss",
+      "match": "ring-gray-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/avatar/emoji-avatar/avatar.component.scss",
+      "match": "ring-gray-300;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/card/create/create.component.html",
+      "match": "dark:bg-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/card/create/create.component.html",
+      "match": "dark:bg-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/card/create/create.component.html",
+      "match": "dark:border-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/card/create/create.component.html",
+      "match": "dark:hover:bg-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/card/create/create.component.html",
+      "match": "dark:hover:bg-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/card/create/create.component.html",
+      "match": "dark:text-gray-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/card/pro/pro.component.html",
+      "match": "dark:bg-gray-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/chat/file-list/file-list.component.html",
+      "match": "bg-neutral-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/chat/preview/preview.component.html",
+      "match": "text-gray-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/chat/preview/preview.component.html",
+      "match": "text-gray-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/chat/tool-call-chunk/tool-call-chunk.component.html",
+      "match": "dark:border-neutral-700/50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/copilot/copilot-model-select/select.component.html",
+      "match": "border-zinc-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/copilot/copilot-model-select/select.component.html",
+      "match": "dark:bg-zinc-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/copilot/copilot-model-select/select.component.html",
+      "match": "dark:border-zinc-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/copilot/knowledgebase-list/list.component.html",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/copilot/prompt-generator/generator.component.html",
+      "match": "dark:bg-slate-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/copilot/prompt-generator/generator.component.html",
+      "match": "dark:bg-slate-950",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/copilot/toolset-list/list.component.html",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/environment/manage/manage.component.html",
+      "match": "dark:border-neutral-900",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/files/avatar/avatar-editor.component.html",
+      "match": "border-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/files/upload-dialog/upload.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/files/upload/upload.component.html",
+      "match": "dark:bg-gray-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/files/upload/upload.component.html",
+      "match": "dark:hover:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/files/upload/upload.component.html",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/files/upload/upload.component.html",
+      "match": "dark:text-neutral-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/files/upload/upload.component.html",
+      "match": "hover:bg-bluegray-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/form-fields/inline-search/inline-search.component.html",
+      "match": "dark:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/form-fields/inline-search/inline-search.component.html",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/forms/json-schema-property/property.component.html",
+      "match": "ring-gray-200",
+      "count": 8
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/forms/parameter/parameter.component.html",
+      "match": "ring-gray-200",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/indicator-form/indicator-form.component.html",
+      "match": "bg-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/indicator-form/indicator-form.component.html",
+      "match": "dark:border-neutral-900",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/indicator-form/indicator-form.component.html",
+      "match": "text-neutral-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/indicator-form/indicator-form.component.scss",
+      "match": "bg-neutral-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/indicator-form/indicator-form.component.scss",
+      "match": "dark:bg-white/20",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/indicator-form/indicator-form.component.scss",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/indicator-form/indicator-form.component.scss",
+      "match": "dark:text-neutral-100;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/indicator-form/indicator-form.component.scss",
+      "match": "dark:text-neutral-200;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/indicator-form/indicator-form.component.scss",
+      "match": "focus:bg-neutral-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/indicator-form/indicator-form.component.scss",
+      "match": "text-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/indicator-form/indicator-form.component.scss",
+      "match": "text-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/list-indicators/list-indicators.component.html",
+      "match": "bg-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/list-indicators/list-indicators.component.html",
+      "match": "border-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/list-indicators/list-indicators.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/list-indicators/list-indicators.component.html",
+      "match": "dark:bg-gray-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/list-indicators/list-indicators.component.html",
+      "match": "dark:border-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/list-indicators/list-indicators.component.html",
+      "match": "text-neutral-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/register-form/register-form.component.html",
+      "match": "border-neutral-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/indicator/register-form/register-form.component.html",
+      "match": "dark:border-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/integration/integration-form/integration.component.html",
+      "match": "dark:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/integration/integration-list/list.component.html",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/knowledge/knowledge-card/card.component.html",
+      "match": "text-gray-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/knowledge/knowledge-card/card.component.html",
+      "match": "text-zinc-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/mcp/marketplace/marketplace.component.html",
+      "match": "text-gray-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/model/creation/creation.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/model/cube/cube.component.html",
+      "match": "dark:border-neutral-900",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/model/members/members.component.html",
+      "match": "dark:border-neutral-900",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/model/virtual-cube/virtual-cube.component.html",
+      "match": "border-neutral-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/model/virtual-cube/virtual-cube.component.html",
+      "match": "dark:border-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/model/virtual-cube/virtual-cube.component.html",
+      "match": "dark:border-neutral-900",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/plugins/plugin/plugin.component.html",
+      "match": "text-gray-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/project/creation/creation.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/project/project-files/project-files.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/story/story-card/story-card.component.html",
+      "match": "dark:text-neutral-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/story/story-card/story-card.component.html",
+      "match": "dark:text-neutral-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/story/story-card/story-card.component.html",
+      "match": "dark:text-neutral-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/story/story-card/story-card.component.html",
+      "match": "text-neutral-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/story/story-card/story-card.component.html",
+      "match": "text-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/story/story-card/story-card.component.html",
+      "match": "text-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/story/story-creation/creation.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/story/story-template/story-template.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/story/story-template/story-template.component.html",
+      "match": "dark:bg-slate-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/story/story-template/story-template.component.html",
+      "match": "dark:border-slate-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/tag/creator/creator.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/tag/creator/creator.component.html",
+      "match": "dark:border-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/tag/creator/creator.component.html",
+      "match": "dark:text-white",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/tag/creator/creator.component.html",
+      "match": "placeholder:text-gray-300",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/tag/creator/creator.component.scss",
+      "match": "dark:text-white",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/tag/editor/editor.component.html",
+      "match": "text-slate-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/tag/maintain/maintain.component.scss",
+      "match": "border-slate-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/tag/maintain/maintain.component.scss",
+      "match": "dark:border-slate-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/tag/maintain/maintain.component.scss",
+      "match": "dark:text-slate-400;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/tag/tag-select/tag-select.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/tag/tag-select/tag-select.component.html",
+      "match": "dark:border-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/user/profile-inline/profile.component.html",
+      "match": "bg-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/user/profile-inline/profile.component.html",
+      "match": "ring-neutral-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/user/profile/profile.component.html",
+      "match": "dark:text-white",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/workspace/select-database/select-database.component.html",
+      "match": "bg-gray-900/40",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/workspace/select-database/select-database.component.html",
+      "match": "dark:bg-gray-800",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/workspace/select-database/select-database.component.html",
+      "match": "dark:bg-gray-900",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/workspace/select-database/select-database.component.html",
+      "match": "dark:bg-gray-900/60",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/workspace/select-database/select-database.component.html",
+      "match": "dark:bg-gray-950",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/workspace/select-database/select-database.component.html",
+      "match": "dark:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/workspace/select-database/select-database.component.html",
+      "match": "dark:border-gray-700",
+      "count": 4
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/workspace/select-database/select-database.component.html",
+      "match": "dark:border-gray-800",
+      "count": 6
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/workspace/select-database/select-database.component.html",
+      "match": "dark:hover:bg-gray-800",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/workspace/select-database/select-database.component.html",
+      "match": "dark:hover:bg-gray-800/80",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/workspace/select-database/select-database.component.html",
+      "match": "dark:hover:bg-gray-900/60",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/workspace/select-database/select-database.component.html",
+      "match": "dark:text-gray-100",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/workspace/select-database/select-database.component.html",
+      "match": "dark:text-gray-200",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/workspace/select-database/select-database.component.html",
+      "match": "dark:text-gray-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/workspace/select-database/select-database.component.html",
+      "match": "dark:text-gray-50",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xp-project/github-installation/installation.component.html",
+      "match": "ring-gray-500/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xp-project/github-repositories/repositories.component.html",
+      "match": "ring-gray-500/10",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/about-xpert/about-xpert.component.html",
+      "match": "dark:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/execution-status/execution.component.html",
+      "match": "dark:border-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/output-variables-edit/output-variables.component.scss",
+      "match": "dark:bg-neutral-900;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/parameter-edit-form/form.component.html",
+      "match": "dark:bg-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/parameter-edit-form/form.component.html",
+      "match": "dark:text-neutral-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/parameter-edit-form/form.component.html",
+      "match": "ring-gray-200",
+      "count": 4
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/parameters-edit/parameters.component.html",
+      "match": "dark:bg-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/parameters-edit/parameters.component.html",
+      "match": "dark:bg-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/parameters-edit/parameters.component.html",
+      "match": "dark:bg-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/parameters-edit/parameters.component.html",
+      "match": "dark:border-neutral-600",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/parameters-edit/parameters.component.html",
+      "match": "dark:text-neutral-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/parameters-edit/parameters.component.html",
+      "match": "ring-gray-200",
+      "count": 5
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/parameters-edit/parameters.component.scss",
+      "match": "dark:bg-neutral-900;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/parameters-form/parameters.component.html",
+      "match": "ring-gray-200",
+      "count": 4
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/publish/publish.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/tool-parameters/tool-parameters.component.html",
+      "match": "ring-gray-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@shared/xpert/toolset-card/toolset.component.html",
+      "match": "text-gray-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@theme/features/in-development.component.ts",
+      "match": "dark:text-zinc-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@theme/features/in-development.component.ts",
+      "match": "text-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@theme/notification/notification.component.html",
+      "match": "dark:hover:bg-white/5",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/@theme/tune/tune.component.html",
+      "match": "dark:hover:bg-white/5",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/_chat.component.scss",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/home/home.component.html",
+      "match": "dark:border-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/project/attachments/attachments.component.html",
+      "match": "border-gray-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/project/attachments/attachments.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/project/attachments/attachments.component.html",
+      "match": "dark:border-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/project/attachments/attachments.component.html",
+      "match": "dark:hover:bg-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/project/files/files.component.html",
+      "match": "border-gray-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/project/files/files.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/project/files/files.component.html",
+      "match": "dark:border-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/project/files/files.component.html",
+      "match": "dark:hover:bg-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/project/home/home.component.html",
+      "match": "dark:bg-white",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/project/home/home.component.html",
+      "match": "dark:border-white",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/project/home/home.component.html",
+      "match": "dark:text-black",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/project/home/home.component.html",
+      "match": "ring-zinc-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/project/home/home.component.html",
+      "match": "ring-zinc-200",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/project/home/home.component.html",
+      "match": "ring-zinc-300",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/chat/project/vcs/vcs.component.html",
+      "match": "ring-gray-500/10",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/answer/answer.component.html",
+      "match": "dark:bg-zinc-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/answer/answer.component.html",
+      "match": "dark:bg-zinc-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/answer/answer.component.html",
+      "match": "dark:bg-zinc-900",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/answer/answer.component.html",
+      "match": "dark:hover:bg-zinc-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/answer/answer.component.html",
+      "match": "dark:hover:text-white",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/answer/answer.component.html",
+      "match": "dark:text-stone-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/answer/answer.component.html",
+      "match": "text-stone-400",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/answer/answer.component.scss",
+      "match": "dark:text-zinc-300;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/answer/answer.component.scss",
+      "match": "text-zinc-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/chat/chat.component.html",
+      "match": "dark:bg-neutral-900",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/chat/chat.component.html",
+      "match": "dark:hover:bg-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/chat/chat.component.html",
+      "match": "dark:text-zinc-300",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/chat/chat.component.html",
+      "match": "fill-stone-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/chat/chat.component.html",
+      "match": "text-stone-400",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/chat/chat.component.html",
+      "match": "text-stone-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/chat/chat.component.html",
+      "match": "text-zinc-700",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/home.component.html",
+      "match": "border-neutral-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/home.component.html",
+      "match": "border-zinc-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/home.component.html",
+      "match": "dark:bg-neutral-950",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/home.component.html",
+      "match": "dark:border-zinc-800",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/input/input.component.html",
+      "match": "dark:bg-neutral-900",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/input/input.component.html",
+      "match": "dark:bg-white",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/input/input.component.html",
+      "match": "dark:border-neutral-700",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/input/input.component.html",
+      "match": "dark:border-white",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/input/input.component.html",
+      "match": "dark:hover:bg-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/input/input.component.html",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/input/input.component.html",
+      "match": "dark:text-black",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/input/input.component.html",
+      "match": "hover:bg-neutral-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/input/input.component.scss",
+      "match": "bg-zinc-200",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/input/input.component.scss",
+      "match": "bg-zinc-400",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/input/input.component.scss",
+      "match": "dark:bg-zinc-500;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/input/input.component.scss",
+      "match": "dark:bg-zinc-600;",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/models/models.component.html",
+      "match": "dark:border-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/models/models.component.scss",
+      "match": "dark:bg-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/chatbi/models/models.component.scss",
+      "match": "dark:bg-neutral-900",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/features.component.html",
+      "match": "dark:hover:text-neutral-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/features.component.html",
+      "match": "dark:text-neutral-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/features.component.html",
+      "match": "hover:text-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/features.component.html",
+      "match": "text-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/home/catalog/catalog.component.html",
+      "match": "dark:text-neutral-400",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/home/catalog/catalog.component.html",
+      "match": "text-neutral-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/home/recents/recents.component.html",
+      "match": "dark:hover:bg-white/5",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/home/trending/trending.component.html",
+      "match": "bg-slate-200",
+      "count": 5
+    },
+    {
+      "file": "apps/cloud/src/app/features/home/trending/trending.component.html",
+      "match": "dark:bg-slate-200/10",
+      "count": 5
+    },
+    {
+      "file": "apps/cloud/src/app/features/home/user-visit/user-visit.component.html",
+      "match": "dark:hover:bg-white/5",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/indicator/viewer/viewer.component.html",
+      "match": "dark:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/_project.component.scss",
+      "match": "border-gray-400",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/_project.component.scss",
+      "match": "border-neutral-400;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/_project.component.scss",
+      "match": "border-neutral-500;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/_project.component.scss",
+      "match": "dark:border-neutral-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/_project.component.scss",
+      "match": "dark:border-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/home/home.component.html",
+      "match": "fill-bluegray-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/home/home.component.html",
+      "match": "fill-bluegray-200",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/all/all.component.html",
+      "match": "bg-neutral-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/all/all.component.html",
+      "match": "bg-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/all/all.component.html",
+      "match": "border-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/all/all.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 7
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/all/all.component.html",
+      "match": "dark:bg-gray-800",
+      "count": 7
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/all/all.component.html",
+      "match": "dark:border-gray-600",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/all/all.component.html",
+      "match": "dark:border-gray-700",
+      "count": 8
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/all/all.component.html",
+      "match": "dark:hover:bg-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/all/all.component.html",
+      "match": "dark:hover:bg-gray-700",
+      "count": 6
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/all/all.component.html",
+      "match": "dark:hover:text-white",
+      "count": 6
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/all/all.component.html",
+      "match": "dark:text-white",
+      "count": 4
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/all/all.component.html",
+      "match": "text-neutral-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/indicator-import/indicator-import.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/register-form/register-form.component.html",
+      "match": "border-neutral-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/register-form/register-form.component.html",
+      "match": "dark:border-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/register/register.component.scss",
+      "match": "bg-neutral-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/register/register.component.scss",
+      "match": "dark:bg-white/20",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/register/register.component.scss",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/register/register.component.scss",
+      "match": "dark:text-neutral-100;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/register/register.component.scss",
+      "match": "dark:text-neutral-200;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/register/register.component.scss",
+      "match": "focus:bg-neutral-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/register/register.component.scss",
+      "match": "text-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/indicators/register/register.component.scss",
+      "match": "text-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/project/project.component.html",
+      "match": "hover:text-slate-400",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/project/project.component.html",
+      "match": "text-slate-200",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/project/project.component.scss",
+      "match": "dark:bg-white/20",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/project/project.component.scss",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/project/project/project.component.scss",
+      "match": "dark:hover:bg-white/20",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/access-control/access-control.component.html",
+      "match": "text-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/access-control/overview/overview.component.html",
+      "match": "dark:border-neutral-700",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/access-control/role/cube/cube.component.html",
+      "match": "text-bluegray-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/admin/admin.component.html",
+      "match": "text-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/create-entity/create-entity.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/create-entity/create-entity.component.html",
+      "match": "dark:border-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/create-entity/create-entity.component.html",
+      "match": "dark:text-gray-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/create-entity/create-entity.component.scss",
+      "match": "dark:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/create-table/create-table.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/create-table/create-table.component.html",
+      "match": "dark:bg-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/create-table/create-table.component.html",
+      "match": "dark:bg-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/create-table/create-table.component.html",
+      "match": "dark:border-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/create-table/create-table.component.html",
+      "match": "dark:hover:bg-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/create-table/create-table.component.html",
+      "match": "dark:text-neutral-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/create-table/create-table.component.html",
+      "match": "hover:bg-bluegray-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/create-table/create-table.component.scss",
+      "match": "bg-slate-200;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/create-table/create-table.component.scss",
+      "match": "bg-slate-300;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/create-table/create-table.component.scss",
+      "match": "focus:bg-slate-200;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/create-table/create-table.component.scss",
+      "match": "hover:bg-slate-200;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/dimension/dimension.component.html",
+      "match": "dark:bg-black/5",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/cube-structure/cube-structure.component.scss",
+      "match": "bg-neutral-200;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/cube-structure/cube-structure.component.scss",
+      "match": "border-gray-400",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/cube-structure/cube-structure.component.scss",
+      "match": "dark:bg-neutral-800;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/dimension/_dimension.component.scss",
+      "match": "dark:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/dimension/_dimension.component.scss",
+      "match": "dark:hover:bg-white/20",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/entity.component.html",
+      "match": "text-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/er/er.component.html",
+      "match": "bg-neutral-200",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/er/er.component.html",
+      "match": "border-neutral-500",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/er/er.component.html",
+      "match": "dark:bg-neutral-800",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/er/er.component.html",
+      "match": "dark:border-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/er/er.component.html",
+      "match": "dark:hover:bg-neutral-700",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/er/er.component.html",
+      "match": "dark:hover:bg-white/10",
+      "count": 6
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/er/er.component.html",
+      "match": "dark:text-neutral-100",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/er/er.component.scss",
+      "match": "dark:border-neutral-600;",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/er/er.component.scss",
+      "match": "dark:stroke-neutral-600;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/er/er.component.scss",
+      "match": "dark:stroke-neutral-800;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/er/er.component.scss",
+      "match": "stroke-neutral-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/er/er.component.scss",
+      "match": "stroke-neutral-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/fact/fact.component.scss",
+      "match": "dark:border-neutral-800;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/entity/structure/structure.component.scss",
+      "match": "dark:border-neutral-800;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/logs/logs.component.html",
+      "match": "border-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/logs/logs.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/logs/logs.component.html",
+      "match": "dark:bg-gray-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/logs/logs.component.html",
+      "match": "dark:border-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/members/cube/cube.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/members/cube/cube.component.html",
+      "match": "dark:bg-gray-800",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/members/cube/cube.component.html",
+      "match": "dark:bg-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/members/cube/cube.component.html",
+      "match": "dark:border-gray-700",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/members/cube/cube.component.html",
+      "match": "dark:border-neutral-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/members/cube/cube.component.html",
+      "match": "dark:hover:bg-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/members/cube/cube.component.html",
+      "match": "dark:text-white",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/members/members.component.html",
+      "match": "text-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/model.component.html",
+      "match": "text-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/model.component.scss",
+      "match": "bg-slate-400/50;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/overview/overview.component.html",
+      "match": "text-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/query-lab/query-lab.component.html",
+      "match": "text-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/virtual-cube/virtual-cube.component.html",
+      "match": "border-neutral-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/model/virtual-cube/virtual-cube.component.html",
+      "match": "dark:border-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/upload/upload.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/upload/upload.component.scss",
+      "match": "dark:hover:bg-white/10",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/upload/upload.component.scss",
+      "match": "focus:bg-slate-300",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/features/semantic-model/upload/upload.component.scss",
+      "match": "hover:bg-slate-200",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/copilot/usages/usages.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/copilot/usages/usages.component.html",
+      "match": "dark:bg-gray-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/copilot/usages/usages.component.html",
+      "match": "dark:border-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/copilot/users/users.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/copilot/users/users.component.html",
+      "match": "dark:bg-gray-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/copilot/users/users.component.html",
+      "match": "dark:border-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/data-sources/creation/creation.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/data-sources/data-sources.component.html",
+      "match": "dark:bg-neutral-400",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/data-sources/data-sources.component.html",
+      "match": "dark:bg-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/data-sources/data-sources.component.html",
+      "match": "dark:hover:bg-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/email-templates/email-templates.component.html",
+      "match": "dark:bg-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/email-templates/email-templates.component.html",
+      "match": "dark:hover:bg-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/integration/home.component.html",
+      "match": "dark:bg-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/integration/home.component.html",
+      "match": "dark:hover:bg-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/integration/integration/integration.component.html",
+      "match": "dark:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/knowledgebase/home.component.html",
+      "match": "bg-gray-900/20",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/knowledgebase/home.component.html",
+      "match": "dark:hover:bg-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/knowledgebase/home.component.html",
+      "match": "dark:text-zinc-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/knowledgebase/home.component.html",
+      "match": "hover:bg-gray-900/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/knowledgebase/home.component.html",
+      "match": "hover:text-zinc-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/knowledgebase/knowledgebase/documents/chunk/chunk.component.html",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/knowledgebase/knowledgebase/documents/documents.component.html",
+      "match": "border-neutral-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/knowledgebase/knowledgebase/test/test.component.html",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/organizations/organizations/organizations.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/organizations/organizations/organizations.component.html",
+      "match": "dark:bg-gray-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/organizations/organizations/organizations.component.html",
+      "match": "dark:border-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/organizations/organizations/organizations.component.html",
+      "match": "dark:text-white",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/plugins/plugins.component.html",
+      "match": "text-gray-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/users/manage-user-invite/manage-user-invite.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/setting/users/manage-user-invite/manage-user-invite.component.html",
+      "match": "dark:text-gray-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/story/calculations/calculations.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/story/calculations/calculations.component.scss",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/story/designer/image-upload/image-upload.component.html",
+      "match": "dark:bg-slate-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/story/designer/widget/widget.component.html",
+      "match": "dark:hover:bg-slate-800",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/story/designer/widget/widget.component.html",
+      "match": "hover:bg-slate-200",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/story/designer/widget/widget.component.scss",
+      "match": "focus:border-slate-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/story/save-as-template/save-as-template.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/story/story-details/story-details.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/story/toolbar/_toolbar.component.scss",
+      "match": "bg-bluegray-800;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/story/toolbar/_toolbar.component.scss",
+      "match": "bg-gray-400/20;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/story/toolbar/toolbar.component.html",
+      "match": "bg-bluegray-800",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/story/toolbar/toolbar.component.html",
+      "match": "border-gray-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/story/toolbar/toolbar.component.html",
+      "match": "text-neutral-100",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/home.component.html",
+      "match": "bg-gray-900/20",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/home.component.html",
+      "match": "border-neutral-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/home.component.html",
+      "match": "dark:hover:bg-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/home.component.html",
+      "match": "dark:text-zinc-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/home.component.html",
+      "match": "hover:bg-gray-900/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/home.component.html",
+      "match": "hover:text-zinc-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/api/api.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/api/api.component.html",
+      "match": "dark:border-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/create/preview/preview.component.html",
+      "match": "dark:bg-gray-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/create/preview/preview.component.html",
+      "match": "dark:bg-gray-800/50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/create/preview/preview.component.html",
+      "match": "dark:border-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/create/preview/preview.component.html",
+      "match": "dark:text-white",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/create/step-1/step.component.html",
+      "match": "ring-gray-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/documents.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/documents.component.html",
+      "match": "dark:bg-gray-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/documents.component.html",
+      "match": "dark:bg-gray-900",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/documents.component.html",
+      "match": "dark:border-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/documents.component.html",
+      "match": "dark:hover:bg-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/documents.component.html",
+      "match": "dark:hover:text-white",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/documents/pipeline/step-1/step.component.html",
+      "match": "ring-gray-50]=",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/knowledgebase.component.html",
+      "match": "border-neutral-600",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/knowledge/knowledgebase/knowledgebase.component.scss",
+      "match": "dark:bg-neutral-700;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/knowledge-menu/knowledge.component.scss",
+      "match": "dark:border-neutral-600;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/toolset-menu/toolset.component.html",
+      "match": "bg-gray-25",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/toolset-menu/toolset.component.html",
+      "match": "bg-zinc-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/toolset-menu/toolset.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/toolset-menu/toolset.component.html",
+      "match": "hover:bg-zinc-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/toolset-menu/toolset.component.scss",
+      "match": "dark:border-neutral-500;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/toolset/toolset.component.html",
+      "match": "dark:bg-zinc-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/assigner/assigner.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/assigner/assigner.component.html",
+      "match": "hover:bg-zinc-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/chunker/chunker.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/db-delete/db-delete.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/db-insert/db-insert.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/db-query/db-query.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/db-sql/db-sql.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/db-update/db-update.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/json-parse/json-parse.component.html",
+      "match": "bg-zinc-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/json-parse/json-parse.component.html",
+      "match": "bg-zinc-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/json-parse/json-parse.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/json-parse/json-parse.component.html",
+      "match": "text-zinc-400",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/json-stringify/json-stringify.component.html",
+      "match": "bg-zinc-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/json-stringify/json-stringify.component.html",
+      "match": "bg-zinc-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/json-stringify/json-stringify.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/json-stringify/json-stringify.component.html",
+      "match": "text-zinc-400",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/list-operator/list-operator.component.html",
+      "match": "bg-zinc-50",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/middleware/middleware.component.html",
+      "match": "dark:bg-zinc-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/processor/processor.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/source/source.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/tool/tool.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/tool/tool.component.html",
+      "match": "hover:bg-zinc-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/trigger/trigger.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/understanding/understanding.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/components/workflow/variable-aggregator/variable-aggregator.component.html",
+      "match": "bg-zinc-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/features/features.component.html",
+      "match": "border-slate-100",
+      "count": 10
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/panel/agent-execution/execution.component.html",
+      "match": "dark:bg-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/panel/agent-execution/execution.component.html",
+      "match": "ring-gray-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/panel/knowledge/test/test.component.html",
+      "match": "ring-gray-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/panel/workflow/classifier/classifier.component.html",
+      "match": "border-neutral-100",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/panel/workflow/tool/tool.component.html",
+      "match": "bg-zinc-100",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/panel/workflow/tool/tool.component.html",
+      "match": "bg-zinc-50",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/panel/workflow/tool/tool.component.html",
+      "match": "hover:bg-zinc-100",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/studio.component.scss",
+      "match": "border-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/studio/studio.component.scss",
+      "match": "dark:border-neutral-500;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/templates/templates.component.html",
+      "match": "dark:text-zinc-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/tools/api-tool/api-tool.component.html",
+      "match": "bg-gray-25",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/tools/builtin/authorize/credential/credential.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/tools/builtin/authorize/credential/credential.component.html",
+      "match": "dark:border-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/tools/builtin/authorize/credential/credential.component.html",
+      "match": "dark:text-white",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/tools/mcp/create/create.component.html",
+      "match": "border-gray-500",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/tools/mcp/create/create.component.html",
+      "match": "dark:bg-gray-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/tools/mcp/create/create.component.html",
+      "match": "dark:border-gray-400",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/tools/mcp/create/create.component.html",
+      "match": "dark:border-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/tools/odata/configure/configure.component.html",
+      "match": "text-zinc-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/tools/openapi/configure/configure.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/tools/openapi/configure/configure.component.html",
+      "match": "dark:border-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/tools/openapi/configure/configure.component.html",
+      "match": "text-zinc-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/workspace/knowledges/knowledges.component.html",
+      "match": "bg-gray-900/20",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/workspace/knowledges/knowledges.component.html",
+      "match": "border-neutral-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/workspace/knowledges/knowledges.component.html",
+      "match": "dark:hover:bg-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/workspace/knowledges/knowledges.component.html",
+      "match": "dark:text-zinc-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/workspace/knowledges/knowledges.component.html",
+      "match": "hover:bg-gray-900/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/workspace/knowledges/knowledges.component.html",
+      "match": "hover:text-zinc-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/workspace/knowledges/knowledges.component.html",
+      "match": "ring-gray-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/workspace/settings/models/models.component.html",
+      "match": "dark:text-zinc-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/xpert/api/api.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/xpert/api/api.component.html",
+      "match": "dark:border-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/xpert/app/app.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/xpert/app/app.component.html",
+      "match": "dark:border-gray-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/xpert/basic/basic.component.html",
+      "match": "dark:bg-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/xpert/develop/embedded/embedded.component.html",
+      "match": "text-slate-700",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/xpert/logs/logs.component.html",
+      "match": "border-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/xpert/logs/logs.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/xpert/logs/logs.component.html",
+      "match": "dark:bg-gray-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/xpert/logs/logs.component.html",
+      "match": "dark:border-gray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/xpert/memory/store/store.component.html",
+      "match": "bg-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/features/xpert/xpert/xpert.component.scss",
+      "match": "dark:bg-neutral-700;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/onboarding/onboarding.component.ts",
+      "match": "border-gray-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/onboarding/onboarding.component.ts",
+      "match": "hover:bg-gray-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/onboarding/onboarding.component.ts",
+      "match": "text-gray-900",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/onboarding/tenant-details/tenant-details.component.html",
+      "match": "text-bluegray-500",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/onboarding/welcome/welcome.component.html",
+      "match": "border-gray-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/onboarding/welcome/welcome.component.html",
+      "match": "dark:text-white",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/onboarding/welcome/welcome.component.html",
+      "match": "text-bluegray-500",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/onboarding/welcome/welcome.component.scss",
+      "match": "dark:text-slate-400;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/onboarding/welcome/welcome.component.scss",
+      "match": "text-slate-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/public/trending/trending.component.html",
+      "match": "bg-slate-200",
+      "count": 5
+    },
+    {
+      "file": "apps/cloud/src/app/public/trending/trending.component.html",
+      "match": "dark:bg-white/10",
+      "count": 5
+    },
+    {
+      "file": "apps/cloud/src/app/public/trending/trending.component.html",
+      "match": "dark:border-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/ai-message/ai-message.component.html",
+      "match": "dark:hover:bg-white",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/ai-message/ai-message.component.html",
+      "match": "dark:hover:bg-white/10",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/ai-message/content/content.component.html",
+      "match": "hover:bg-neutral-50",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/ai-message/dashboard/indicator/indicator.component.html",
+      "match": "bg-gray-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/ai-message/dashboard/indicator/indicator.component.scss",
+      "match": "border-neutral-200;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/ai-message/dashboard/indicators/indicators.component.html",
+      "match": "dark:border-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/computer/computer.component.html",
+      "match": "bg-neutral-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/computer/computer.component.html",
+      "match": "dark:border-black/30",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/computer/computer.component.html",
+      "match": "text-zinc-500",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/dashboard/dashboard.component.html",
+      "match": "hover:bg-neutral-50",
+      "count": 6
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/file-editor/file-editor.component.html",
+      "match": "bg-neutral-100",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/file-editor/file-editor.component.html",
+      "match": "text-zinc-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/file-viewer/file-viewer.component.html",
+      "match": "bg-neutral-100",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/file-viewer/file-viewer.component.html",
+      "match": "text-zinc-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/knowledges/knowledges.component.html",
+      "match": "bg-neutral-50",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/knowledges/knowledges.component.html",
+      "match": "text-zinc-500",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/terminal/terminal.component.html",
+      "match": "bg-zinc-100",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/terminal/terminal.component.html",
+      "match": "bg-zinc-200",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/terminal/terminal.component.html",
+      "match": "bg-zinc-300",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/terminal/terminal.component.html",
+      "match": "border-zinc-200/20",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/terminal/terminal.component.html",
+      "match": "dark:bg-neutral-800",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/terminal/terminal.component.html",
+      "match": "dark:bg-neutral-900",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/terminal/terminal.component.html",
+      "match": "dark:bg-zinc-800",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/terminal/terminal.component.html",
+      "match": "dark:border-zinc-700/50",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/terminal/terminal.component.html",
+      "match": "dark:text-zinc-300",
+      "count": 4
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/terminal/terminal.component.html",
+      "match": "text-zinc-600",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/terminal/terminal.component.html",
+      "match": "text-zinc-700",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/web-terminal/terminal.component.html",
+      "match": "bg-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/web-terminal/terminal.component.html",
+      "match": "text-gray-200",
+      "count": 3
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/canvas/web-terminal/terminal.component.html",
+      "match": "text-gray-300",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/chat-input/chat-input.component.html",
+      "match": "border-zinc-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/chat-input/chat-input.component.html",
+      "match": "border-zinc-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/chat-input/chat-input.component.html",
+      "match": "border-zinc-300",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/chat-input/chat-input.component.html",
+      "match": "dark:bg-white/5",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/component-message/component-message.component.scss",
+      "match": "border-neutral-200",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/component-message/component-message.component.scss",
+      "match": "dark:border-neutral-700;",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/component-message/files/files.component.html",
+      "match": "bg-neutral-200/50",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/component-message/files/files.component.html",
+      "match": "hover:bg-neutral-200/80",
+      "count": 2
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/component-message/files/files.component.html",
+      "match": "text-zinc-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/component-message/iframe/iframe.component.html",
+      "match": "border-neutral-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/component-message/iframe/iframe.component.html",
+      "match": "dark:bg-black/20",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/component-message/iframe/iframe.component.html",
+      "match": "dark:bg-white/5",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/component-message/iframe/iframe.component.html",
+      "match": "dark:border-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/component-message/iframe/iframe.component.html",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/conversation/conversation.component.html",
+      "match": "dark:text-neutral-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/conversation/conversation.component.html",
+      "match": "text-neutral-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/home/home.component.html",
+      "match": "border-gray-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/home/home.component.html",
+      "match": "hover:bg-gray-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/home/home.component.html",
+      "match": "text-gray-900",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/app/xpert/thought/thought.component.html",
+      "match": "text-gray-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/animation.scss",
+      "match": "dark:bg-white",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/menu.scss",
+      "match": "dark:bg-gray-100/10",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/menu.scss",
+      "match": "dark:text-neutral-400;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/menu.scss",
+      "match": "dark:text-neutral-500;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/menu.scss",
+      "match": "text-neutral-500",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/menu.scss",
+      "match": "text-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/modal.scss",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/modal.scss",
+      "match": "dark:bg-bluegray-900;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/popper.scss",
+      "match": "border-gray-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/popper.scss",
+      "match": "dark:border-neutral-600",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/prismjs.scss",
+      "match": "bg-gray-950",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/prismjs.scss",
+      "match": "text-gray-200;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/prismjs.scss",
+      "match": "text-neutral-50;",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/radio.scss",
+      "match": "border-gray-200",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/radio.scss",
+      "match": "border-neutral-100",
+      "count": 1
+    },
+    {
+      "file": "apps/cloud/src/styles/components/radio.scss",
+      "match": "dark:border-neutral-600;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/.storybook/peview.scss",
+      "match": "dark:bg-black",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/.storybook/peview.scss",
+      "match": "dark:text-neutral-100;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/.storybook/peview.scss",
+      "match": "text-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/analytical-grid/_analytical-grid.component.scss",
+      "match": "bg-gray-300/10",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/analytical-grid/_analytical-grid.component.scss",
+      "match": "bg-gray-300/20",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/analytical-grid/_analytical-grid.component.scss",
+      "match": "bg-gray-300/50",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/analytical-grid/_analytical-grid.component.scss",
+      "match": "bg-neutral-50;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/analytical-grid/_analytical-grid.component.scss",
+      "match": "dark:bg-gray-500/10;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/analytical-grid/_analytical-grid.component.scss",
+      "match": "dark:bg-gray-500/20;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/analytical-grid/_analytical-grid.component.scss",
+      "match": "dark:bg-gray-700/50;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/analytical-grid/_analytical-grid.component.scss",
+      "match": "dark:bg-white",
+      "count": 2
+    },
+    {
+      "file": "packages/angular/common/checkbox/checkbox.component.html",
+      "match": "border-gray-300",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/copy/copy.component.scss",
+      "match": "text-gray-500;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/drawer-trigger/drawer-trigger.component.html",
+      "match": "bg-slate-800",
+      "count": 2
+    },
+    {
+      "file": "packages/angular/common/drawer-trigger/drawer-trigger.component.html",
+      "match": "dark:bg-slate-200",
+      "count": 2
+    },
+    {
+      "file": "packages/angular/common/drawer/drawer-container/drawer-container.component.scss",
+      "match": "bg-neutral-800/10",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/drawer/drawer-container/drawer-container.component.scss",
+      "match": "dark:bg-neutral-100/10;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/input/_input.component.scss",
+      "match": "border-neutral-800;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/input/_input.component.scss",
+      "match": "border-slate-200",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/input/_input.component.scss",
+      "match": "dark:focus:bg-gray-800;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/input/_input.component.scss",
+      "match": "dark:placeholder:text-slate-500/50",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/input/_input.component.scss",
+      "match": "dark:text-white",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/input/_input.component.scss",
+      "match": "placeholder:text-slate-400/50",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/input/_input.component.scss",
+      "match": "text-gray-700",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/input/_input.component.scss",
+      "match": "text-slate-500",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/progress-spinner/spinner.component.html",
+      "match": "dark:text-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/progress-spinner/spinner.component.html",
+      "match": "text-gray-200",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/remote-select/select.component.html",
+      "match": "bg-gray-100",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/remote-select/select.component.html",
+      "match": "bg-gray-50",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/remote-select/select.component.html",
+      "match": "border-gray-200",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/remote-select/select.component.html",
+      "match": "border-gray-300",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/remote-select/select.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/remote-select/select.component.html",
+      "match": "dark:border-gray-600",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/remote-select/select.component.html",
+      "match": "hover:bg-gray-100",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/remote-select/select.component.html",
+      "match": "hover:bg-gray-50",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/remote-select/select.component.html",
+      "match": "placeholder:text-gray-500",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/remote-select/select.component.html",
+      "match": "text-gray-500",
+      "count": 2
+    },
+    {
+      "file": "packages/angular/common/remote-select/select.component.html",
+      "match": "text-gray-700",
+      "count": 4
+    },
+    {
+      "file": "packages/angular/common/scroll/scroll-back.component.ts",
+      "match": "dark:bg-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/scroll/scroll-back.component.ts",
+      "match": "dark:border-white/10",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/scroll/scroll-back.component.ts",
+      "match": "dark:text-gray-200",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/scroll/scroll-back.component.ts",
+      "match": "dark:text-white",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/scroll/scroll-back.component.ts",
+      "match": "text-gray-600",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/search/_search.component.scss",
+      "match": "dark:focus:bg-white/20",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/search/_search.component.scss",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/search/_search.component.scss",
+      "match": "focus:bg-gray-500/20",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/search/_search.component.scss",
+      "match": "hover:bg-gray-500/10",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/search/search.component.html",
+      "match": "text-gray-200",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/search/search.component.html",
+      "match": "text-gray-400",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/search/search.component.html",
+      "match": "text-gray-600",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/select/_select.component.scss",
+      "match": "border-neutral-800;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/select/_select.component.scss",
+      "match": "border-slate-200",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/select/_select.component.scss",
+      "match": "dark:text-white",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/select/_select.component.scss",
+      "match": "text-gray-700",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/select/_select.component.scss",
+      "match": "text-slate-500",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/slider-input/slider-input.component.html",
+      "match": "dark:focus:bg-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/slider-input/slider-input.component.html",
+      "match": "dark:hover:bg-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/slider-input/slider-input.component.html",
+      "match": "focus:bg-neutral-100",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/slider-input/slider-input.component.html",
+      "match": "hover:bg-neutral-100",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/stepper/stepper.component.html",
+      "match": "bg-gray-50",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/stepper/stepper.component.html",
+      "match": "border-gray-200",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/table/table/table.component.scss",
+      "match": "dark:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/tag/tag.component.scss",
+      "match": "bg-gray-100",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/tag/tag.component.scss",
+      "match": "bg-gray-100;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/tag/tag.component.scss",
+      "match": "bg-gray-200",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/tag/tag.component.scss",
+      "match": "dark:bg-gray-100/80;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/tag/tag.component.scss",
+      "match": "dark:bg-gray-500;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/tag/tag.component.scss",
+      "match": "dark:text-gray-800;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/common/tag/tag.component.scss",
+      "match": "text-gray-500",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/controls/member-list/member-list.component.html",
+      "match": "bg-gray-50",
+      "count": 2
+    },
+    {
+      "file": "packages/angular/controls/member-list/member-list.component.html",
+      "match": "border-gray-300",
+      "count": 2
+    },
+    {
+      "file": "packages/angular/controls/smart-filter/smart-filter.component.html",
+      "match": "text-neutral-400",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/controls/timer/datepicker/datepicker.component.html",
+      "match": "dark:hover:bg-white/10",
+      "count": 8
+    },
+    {
+      "file": "packages/angular/controls/value-help/value-help.component.html",
+      "match": "bg-neutral-50",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/directives/_appearance.scss",
+      "match": "bg-gray-100",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/directives/_appearance.scss",
+      "match": "border-gray-100",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/directives/_appearance.scss",
+      "match": "dark:bg-gray-500/10;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/directives/_appearance.scss",
+      "match": "dark:border-gray-800;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/style/card.scss",
+      "match": "border-gray-100",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/style/card.scss",
+      "match": "dark:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/style/card.scss",
+      "match": "dark:border-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/style/card.scss",
+      "match": "dark:hover:bg-white/20",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/style/cdk-dialog.scss",
+      "match": "border-neutral-200",
+      "count": 2
+    },
+    {
+      "file": "packages/angular/core/style/cdk-dialog.scss",
+      "match": "border-neutral-300",
+      "count": 2
+    },
+    {
+      "file": "packages/angular/core/style/list.scss",
+      "match": "dark:bg-white/5",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/style/list.scss",
+      "match": "dark:hover:bg-white/5",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/style/menu.scss",
+      "match": "bg-gray-100/10;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/style/menu.scss",
+      "match": "bg-gray-50",
+      "count": 2
+    },
+    {
+      "file": "packages/angular/core/style/menu.scss",
+      "match": "bg-slate-100",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/style/menu.scss",
+      "match": "border-neutral-200",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/style/menu.scss",
+      "match": "dark:bg-white/10",
+      "count": 2
+    },
+    {
+      "file": "packages/angular/core/style/menu.scss",
+      "match": "dark:bg-white/5",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/style/menu.scss",
+      "match": "dark:border-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/core/style/menu.scss",
+      "match": "hover:bg-gray-200/50;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/entity/calculated-measure/calculated-measure.component.html",
+      "match": "dark:hover:bg-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/entity/calculated-measure/calculated-measure.component.html",
+      "match": "hover:bg-gray-100",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/entity/calculated-measure/calculated-measure.component.html",
+      "match": "hover:bg-neutral-100",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/entity/calculated-measure/calculated-measure.component.scss",
+      "match": "bg-gray-100",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/entity/calculated-measure/calculated-measure.component.scss",
+      "match": "dark:bg-neutral-700;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/entity/calculation-editor/calculation-editor.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/entity/entity-dialog/entity-dialog.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/indicator/explorer/explorer.component.scss",
+      "match": "bg-neutral-200",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/indicator/explorer/explorer.component.scss",
+      "match": "dark:bg-white/20",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/indicator/explorer/explorer.component.scss",
+      "match": "dark:focus:bg-white/20",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/indicator/explorer/explorer.component.scss",
+      "match": "dark:hover:bg-white/10",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/indicator/explorer/explorer.component.scss",
+      "match": "dark:text-neutral-100;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/indicator/explorer/explorer.component.scss",
+      "match": "dark:text-neutral-200;",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/indicator/explorer/explorer.component.scss",
+      "match": "focus:bg-neutral-200",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/indicator/explorer/explorer.component.scss",
+      "match": "hover:bg-neutral-100",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/indicator/explorer/explorer.component.scss",
+      "match": "text-neutral-700",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/indicator/explorer/explorer.component.scss",
+      "match": "text-neutral-800",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/indicator/indicator/indicator.component.html",
+      "match": "bg-gray-500",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/indicator/indicator/indicator.component.html",
+      "match": "text-gray-500]=",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/indicator/indicator/indicator.component.scss",
+      "match": "text-neutral-100;",
+      "count": 2
+    },
+    {
+      "file": "packages/angular/parameter/parameter-create/parameter-create.component.html",
+      "match": "bg-bluegray-700",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/parameter/parameter/parameter.component.html",
+      "match": "bg-gray-100",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/parameter/parameter/parameter.component.html",
+      "match": "border-gray-300",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/parameter/parameter/parameter.component.html",
+      "match": "dark:bg-gray-700",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/parameter/parameter/parameter.component.html",
+      "match": "dark:border-gray-600",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/parameter/parameter/parameter.component.html",
+      "match": "dark:text-gray-300",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/parameter/parameter/parameter.component.html",
+      "match": "text-gray-900",
+      "count": 1
+    },
+    {
+      "file": "packages/angular/selection/slicer/slicer.component.html",
+      "match": "bg-neutral-50",
+      "count": 1
+    }
+  ]
+}

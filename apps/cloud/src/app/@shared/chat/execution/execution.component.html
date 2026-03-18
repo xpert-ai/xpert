@@ -3,7 +3,7 @@
     <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
   }
   <div
-    class="flex items-center cursor-pointer pressable rounded-md text-gray-500 hover:bg-hover-bg"
+    class="flex items-center cursor-pointer pressable rounded-md text-text-tertiary hover:bg-hover-bg"
     (click)="expand.set(!expand())"
   >
     @if (expand()) {
@@ -37,7 +37,7 @@
     </div>
   }
 
-  <div class="group rounded-xl min-h-[40px] max-h-52 w-full text-sm bg-gray-100">
+  <div class="group rounded-xl min-h-[40px] max-h-52 w-full text-sm bg-components-input-bg-normal">
     <div class="flex justify-between items-center p-2">
       <span class="uppercase">{{ 'PAC.Xpert.Input' | translate: { Default: 'Input' } }}</span>
 
@@ -58,7 +58,7 @@
   </div>
 
   @if (execution().outputs) {
-    <div class="group rounded-xl min-h-[40px] max-h-52 w-full text-sm overflow-auto bg-gray-100">
+    <div class="group rounded-xl min-h-[40px] max-h-52 w-full text-sm overflow-auto bg-components-input-bg-normal">
       <div class="flex justify-between items-center p-2">
         <span class="uppercase">{{ 'PAC.Xpert.Output' | translate: { Default: 'Output' } }}</span>
 

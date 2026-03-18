@@ -49,5 +49,5 @@ $prefix: (ngm, story-calculation);
 }
 
 .ngm-nav-list > li {
-  @apply rounded-md hover:bg-black/5 dark:hover:bg-white/10;
+  @apply rounded-md hover:bg-hover-bg dark:hover:bg-white/10;
 }

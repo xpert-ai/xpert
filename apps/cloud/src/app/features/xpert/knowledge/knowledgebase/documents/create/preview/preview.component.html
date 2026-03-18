@@ -1,12 +1,12 @@
 <div class="h-full flex flex-col overflow-auto">
   @if (category() === eKBDocumentCategoryEnum.Sheet) {
-    <table class="w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
+    <table class="w-full text-sm text-left rtl:text-right text-text-tertiary dark:text-text-quaternary">
       <thead class="">
         <tr>
           @for (field of fields(); track field.value) {
-            <th scope="col" class="px-6 py-3 bg-gray-50 dark:bg-gray-800 whitespace-nowrap sticky top-0 z-10">
+            <th scope="col" class="px-6 py-3 bg-background-default-subtle dark:bg-gray-800 whitespace-nowrap sticky top-0 z-10">
               <div class="inline-flex items-center gap-2">
-                <div class="inline-block text-gray-700 uppercase dark:text-gray-400">
+                <div class="inline-block text-text-secondary uppercase dark:text-text-quaternary">
                   {{field.label}}
                 </div>
                 <div class="inline-block font-normal">
@@ -22,9 +22,9 @@
       </thead>
       <tbody>
         @for (doc of docs(); track doc) {
-          <tr class="border-b border-gray-200 dark:border-gray-700">
+          <tr class="border-b border-divider-deep dark:border-gray-700">
             @for (field of fields(); track field.value) {
-              <td scope="col" class="px-6 py-1 font-medium text-gray-900 whitespace-nowrap bg-gray-50/50 dark:text-white dark:bg-gray-800/50">
+              <td scope="col" class="px-6 py-1 font-medium text-text-primary whitespace-nowrap bg-background-default-subtle/50 dark:text-white dark:bg-gray-800/50">
                 {{doc.metadata.raw?.[field.value] || 'N/A'}}
               </td>
             }

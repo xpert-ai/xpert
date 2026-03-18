@@ -9,7 +9,7 @@
 
   @for (item of checklist(); track item) {
     <div class="mb-2 cursor-pointer rounded-lg border-[0.5px] shadow-xs last-of-type:mb-0
-      border-components-panel-border bg-components-panel-bg hover:bg-neutral-50 hover:shadow-md active:shadow-sm"
+      border-components-panel-border bg-components-panel-bg hover:bg-hover-bg hover:shadow-md active:shadow-sm"
       (click)="clickItem.emit(item)">
       <div class="flex justify-start h-9 items-center p-2 text-sm font-medium text-text-secondary">
         <span class="truncate uppercase">{{ item.field }}:</span>

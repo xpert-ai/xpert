@@ -79,7 +79,7 @@
 
           <button
             type="button"
-            class="btn hidden group-hover/item:inline-flex w-6 h-6 justify-center ml-1 p-1 rounded-md hover:bg-black/5 cursor-pointer danger"
+            class="btn hidden group-hover/item:inline-flex w-6 h-6 justify-center ml-1 p-1 rounded-md hover:bg-hover-bg cursor-pointer danger"
             (click)="removeOutputParam(item.name)"
           >
             <i class="ri-delete-bin-line"></i>
@@ -88,7 +88,7 @@
       }
     </ul>
   } @else {
-    <div class="cursor-default select-none rounded-lg bg-neutral-50 p-3 text-center text-sm text-text-tertiary">
+    <div class="cursor-default select-none rounded-lg bg-background-default-subtle p-3 text-center text-sm text-text-tertiary">
       {{ 'PAC.Xpert.ClickAddToAddVariable' | translate: { Default: 'Click the "+" button to add variable' } }}
     </div>
   }

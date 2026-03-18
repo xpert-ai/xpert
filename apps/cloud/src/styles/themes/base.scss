@@ -39,10 +39,13 @@
   --color-components-dropzone-bg: theme('colors.neutral.50');
   --color-components-input-bg: theme('colors.gray.100');
   --color-components-input-bg-normal: theme('colors.gray.100');
+  --color-components-input-bg-disabled: theme('colors.gray.100');
   --color-components-input-bg-hover: theme('colors.gray.50');
   --color-components-input-bg-active: theme('colors.gray.50');
   --color-components-input-border-hover: theme('colors.gray.200');
   --color-components-input-border-active: theme('colors.gray.200');
+  --color-components-input-text-filled: var(--color-text-primary);
+  --color-components-input-text-filled-disabled: var(--color-text-secondary);
   --color-components-input-text-placeholder: var(--color-text-tertiary);
   --color-components-list-option-bg: theme('colors.gray.50');
   --color-components-list-option-active-bg: theme('colors.gray.100');
@@ -70,11 +73,21 @@
   --color-text-destructive: theme('colors.red.500');
   --color-text-accent: theme('colors.amber.500');
   --color-text-accent-secondary: theme('colors.amber.400');
+  --color-fg-primary: var(--color-text-primary);
+  --color-fg-secondary: var(--color-text-secondary);
 
   --color-hover-bg: oklch(0 0 0 / 0.05);
+  --color-button-ghost-active: var(--color-components-list-option-active-bg);
   --color-danger-bg: theme('colors.red.50');
   --color-state-destructive-hover: theme('colors.red.50');
   --color-state-success-solid: theme('colors.green.600');
+  --color-background-default-subtle: var(--color-components-list-option-bg);
+  --color-hero-gradient-solid: #f9fafb;
+  --color-hero-gradient-transparent: rgb(249 250 251 / 0);
+  --color-surface-l1: var(--color-components-card-bg);
+  --color-surface-neutral: var(--color-components-list-option-bg);
+  --color-border-l2: var(--color-divider-deep);
+  --color-input-border: var(--border-medium);
 
   --background: var(--ngm-app-background-color);
   --foreground: var(--color-text-primary);
@@ -136,16 +149,22 @@
   --color-components-button-secondary-border: theme('colors.neutral.600');
   --color-components-button-secondary-border-hover: #10182833;
   --color-components-button-secondary-bg: theme('colors.neutral.700');
-  --color-components-button-secondary-bg-hover: #f9fafb;
+  --color-components-button-secondary-bg-hover: theme('colors.neutral.800');
   --color-components-input-bg: theme('colors.neutral.800');
   --color-components-input-bg-normal: theme('colors.neutral.800');
+  --color-components-input-bg-disabled: theme('colors.neutral.800');
   --color-components-input-bg-hover: theme('colors.neutral.700');
   --color-components-input-bg-active: theme('colors.neutral.700');
   --color-components-input-border-hover: theme('colors.neutral.600');
   --color-components-input-border-active: theme('colors.neutral.600');
+  --color-components-input-text-filled: var(--color-text-primary);
+  --color-components-input-text-filled-disabled: var(--color-text-tertiary);
   --color-components-input-text-placeholder: var(--color-text-tertiary);
   --color-components-list-option-bg: theme('colors.neutral.800');
   --color-components-list-option-active-bg: theme('colors.neutral.700');
+  --color-components-toggle-bg: theme('colors.primary.500');
+  --color-components-toggle-bg-unchecked: theme('colors.neutral.600');
+  --color-components-toggle-knob: theme('colors.neutral.50');
   --color-components-kbd-bg-white: #ffffff1f;
   // Divider
   --ngm-divider-color-secondary: theme('colors.neutral.900');
@@ -159,12 +178,22 @@
   --color-text-success: theme('colors.green.500');
   --color-text-secondary: theme('colors.zinc.500');
   --color-text-tertiary: theme('colors.neutral.600');
-  --color-text-quaternary: theme('colors.neutral.700');
+  --color-text-quaternary: theme('colors.neutral.600');
   --color-text-warning: theme('colors.red.300');
+  --color-fg-primary: var(--color-text-primary);
+  --color-fg-secondary: var(--color-text-secondary);
 
   --color-hover-bg: oklch(1 0 0 / 0.1);
+  --color-button-ghost-active: var(--color-components-list-option-active-bg);
   --color-danger-bg: #991b1b52;
   --color-danger-content: #ffd4d4;
+  --color-background-default-subtle: var(--color-components-list-option-bg);
+  --color-hero-gradient-solid: #16181c;
+  --color-hero-gradient-transparent: rgb(22 24 28 / 0);
+  --color-surface-l1: var(--color-components-card-bg);
+  --color-surface-neutral: var(--color-components-list-option-bg);
+  --color-border-l2: var(--border-medium);
+  --color-input-border: var(--border-medium);
 
   --background: var(--ngm-app-background-color);
   --foreground: var(--color-text-primary);

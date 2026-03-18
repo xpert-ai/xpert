@@ -97,7 +97,7 @@
 
 .ngm-tables-join__container {
   .join-table {
-    @apply bg-slate-100;
+    @apply bg-components-input-bg-normal;
 
     &::before {
       @apply bg-primary-200;
@@ -118,11 +118,11 @@
     cursor: pointer;
 
     &:hover {
-      @apply bg-slate-50;
+      @apply bg-background-default-subtle;
     }
 
     &.selected {
-      @apply bg-slate-100;
+      @apply bg-components-input-bg-normal;
     }
   }
 

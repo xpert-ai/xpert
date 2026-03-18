@@ -16,7 +16,7 @@
 }
 
 <div
-  class="container group/container flex items-center px-1 h-8 rounded-lg border border-gray-100 hover:border-gray-200 dark:bg-zinc-800 dark:border-zinc-700 dark:hover:border-zinc-600"
+  class="container group/container flex items-center px-1 h-8 rounded-lg border border-divider-regular bg-components-input-bg-normal hover:border-divider-deep"
 >
   <div
     class="flex-1 relative flex items-center rounded-md px-1 overflow-hidden"
@@ -59,35 +59,35 @@
           @switch (model.model_type) {
             @case (eModelType.LLM) {
               <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1"
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
               >
                 {{ 'PAC.Copilot.Chat' | translate: { Default: 'Chat' } }}
               </div>
             }
             @case (eModelType.RERANK) {
               <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1"
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
               >
                 <i class="ri-sort-number-asc"></i>
               </div>
             }
             @case (eModelType.TEXT_EMBEDDING) {
               <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1"
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
               >
                 <i class="ri-text-block"></i>
               </div>
             }
             @case (eModelType.SPEECH2TEXT) {
               <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1"
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
               >
                 <i class="ri-speech-to-text-line"></i>
               </div>
             }
             @case (eModelType.TTS) {
               <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1"
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1"
               >
                 <i class="ri-text-to-speech-line"></i>
               </div>
@@ -98,14 +98,14 @@
             model.features?.includes(eModelFeature.TOOL_CALL) || model.features?.includes(eModelFeature.MULTI_TOOL_CALL)
           ) {
             <div
-              class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60"
+              class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 w-[18px] justify-center opacity-60"
             >
               <i class="ri-hammer-fill"></i>
             </div>
           }
           @if (model.features?.includes(eModelFeature.VISION)) {
             <div
-              class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60"
+              class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 w-[18px] justify-center opacity-60"
             >
               <i class="ri-eye-fill"></i>
             </div>
@@ -121,14 +121,14 @@
         }
       </div>
     } @else {
-      <div class="mr-1.5 flex items-center justify-center w-4 h-4 rounded-[5px] border border-dashed border-black/5">
+      <div class="mr-1.5 flex items-center justify-center w-4 h-4 rounded-[5px] border border-dashed border-divider-regular">
         <svg
           width="16"
           height="17"
           viewBox="0 0 16 17"
           fill="none"
           xmlns="http://www.w3.org/2000/svg"
-          class="w-3 h-3 text-gray-400"
+          class="w-3 h-3 text-text-quaternary"
         >
           <g id="cube-outline">
             <g id="Solid">
@@ -176,7 +176,7 @@
         width="24"
         height="24"
         fill="currentColor"
-        class="absolute right-0 w-3.5 h-3.5 text-gray-500"
+        class="absolute right-0 w-3.5 h-3.5 text-text-tertiary"
       >
         <path
           d="M11.9999 13.1714L16.9497 8.22168L18.3639 9.63589L11.9999 15.9999L5.63599 9.63589L7.0502 8.22168L11.9999 13.1714Z"
@@ -187,7 +187,7 @@
 
   @if (!readonly()) {
     <div
-      class="cursor-pointer p-1 rounded-lg border border-transparent hover:bg-black/5 hover:border-slate-200"
+      class="cursor-pointer p-1 rounded-lg border border-transparent hover:bg-hover-bg hover:border-divider-deep"
       #menuTrigger="cdkMenuTriggerFor"
       [cdkMenuTriggerFor]="parametersMenu"
       [class.active]="menuTrigger.isOpen()"
@@ -198,7 +198,7 @@
         viewBox="0 0 24 24"
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
-        class="text-gray-500 shrink-0 w-4 h-4"
+        class="text-text-tertiary shrink-0 w-4 h-4"
       >
         <path
           d="M3 5H9M9 5C9 6.10457 9.89543 7 11 7C12.1046 7 13 6.10457 13 5C13 3.89543 12.1046 3 11 3C9.89543 3 9 3.89543 9 5ZM17 5L21 5M3 12H9M17 12H21M17 12C17 10.8954 16.1046 10 15 10C13.8954 10 13 10.8954 13 12C13 13.1046 13.8954 14 15 14C16.1046 14 17 13.1046 17 12ZM3 19H7M7 19C7 20.1046 7.89543 21 9 21C10.1046 21 11 20.1046 11 19C11 17.8954 10.1046 17 9 17C7.89543 17 7 17.8954 7 19ZM15 19H21"
@@ -219,7 +219,7 @@
     class="ngm-cdk-menu copilot-model-parameters-menu w-[400px] max-h-[480px] overflow-y-auto px-6 py-4 rounded-2xl"
   >
     <div class="flex items-center justify-between mb-2">
-      <div class="font-semibold text-lg text-gray-900">
+      <div class="font-semibold text-lg text-text-primary">
         {{ 'PAC.Copilot.Parameters' | translate: { Default: 'Parameters' } }}
       </div>
     </div>
@@ -227,7 +227,7 @@
       <div class="flex items-center justify-between">
         <div class="flex-1 mr-4">
           <div class="w-full shrink-0 flex items-center">
-            <div class="mr-0.5 text-[13px] font-medium text-gray-700 truncate" [title]="parameter.label | i18n">
+            <div class="mr-0.5 text-[13px] font-medium text-text-secondary truncate" [title]="parameter.label | i18n">
               {{ parameter.label | i18n }}
             </div>
             <div class="mr-1 w-4 h-4 shrink-0" [zTooltip]="parameter.help | i18n" zPosition="left">
@@ -291,10 +291,10 @@
         @for (item of copilot.providerWithModels?.models; track item.model) {
           <button
             type="button"
-            class="w-full flex justify-start items-center gap-1 px-4 py-2 rounded-xl cursor-pointer enabled:hover:bg-neutral-100/50 hover:text-primary-500 disabled:cursor-not-allowed"
+            class="w-full flex justify-start items-center gap-1 px-4 py-2 rounded-xl cursor-pointer enabled:hover:bg-hover-bg hover:text-primary-500 disabled:cursor-not-allowed"
             [ngClass]="
               copilot.id === copilotId() && model() === item.model && modelType() === item.model_type
-                ? 'bg-neutral-100/50 text-primary-600 font-semibold'
+                ? 'bg-components-card-bg text-primary-600 font-semibold'
                 : ''
             "
             [class.opacity-60]="item.deprecated"
@@ -317,35 +317,35 @@
             @switch (item.model_type) {
               @case (eModelType.LLM) {
                 <div
-                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60"
+                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
                 >
                   {{ 'PAC.Copilot.Chat' | translate: { Default: 'Chat' } }}
                 </div>
               }
               @case (eModelType.RERANK) {
                 <div
-                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60"
+                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
                 >
                   <i class="ri-sort-number-asc"></i>
                 </div>
               }
               @case (eModelType.TEXT_EMBEDDING) {
                 <div
-                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60"
+                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
                 >
                   <i class="ri-text-block"></i>
                 </div>
               }
               @case (eModelType.SPEECH2TEXT) {
                 <div
-                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60"
+                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
                 >
                   <i class="ri-speech-to-text-line"></i>
                 </div>
               }
               @case (eModelType.TTS) {
                 <div
-                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default whitespace-nowrap opacity-60"
+                  class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default whitespace-nowrap opacity-60"
                 >
                   <i class="ri-text-to-speech-line"></i>
                 </div>
@@ -355,14 +355,14 @@
               item.features?.includes(eModelFeature.TOOL_CALL) || item.features?.includes(eModelFeature.MULTI_TOOL_CALL)
             ) {
               <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60"
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 w-[18px] justify-center opacity-60"
               >
                 <i class="ri-hammer-fill"></i>
               </div>
             }
             @if (item.features?.includes(eModelFeature.VISION)) {
               <div
-                class="flex items-center px-1 h-[18px] rounded-[5px] border border-black/8 bg-white/[0.48] text-[10px] font-medium cursor-default ml-1 w-[18px] justify-center opacity-60"
+                class="flex items-center px-1 h-[18px] rounded-[5px] border border-divider-regular bg-components-panel-bg text-[10px] font-medium text-text-tertiary cursor-default ml-1 w-[18px] justify-center opacity-60"
               >
                 <i class="ri-eye-fill"></i>
               </div>

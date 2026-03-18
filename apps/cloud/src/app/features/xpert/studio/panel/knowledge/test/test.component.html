@@ -1,5 +1,5 @@
 <div class="shrink-0 flex justify-between items-center pl-4 pr-3 py-3">
-  <div class="flex-1 text-lg font-semibold text-gray-900 truncate">{{ 'PAC.Xpert.Test' | translate: { Default: 'Test' } }} {{ knowledgebase().name || ('PAC.Xpert.Knowledgebase' | translate: { Default: 'Knowledgebase' }) }}</div>
+  <div class="flex-1 text-lg font-semibold text-text-primary truncate">{{ 'PAC.Xpert.Test' | translate: { Default: 'Test' } }} {{ knowledgebase().name || ('PAC.Xpert.Knowledgebase' | translate: { Default: 'Knowledgebase' }) }}</div>
   <div class="ml-2 shrink-0 p-1 cursor-pointer action-btn rounded-lg"
     (click)="onClose()">
     <i class="ri-close-line w-4 h-4 text-base leading-4"></i>
@@ -13,7 +13,7 @@
     </div>
     <div class="grow">
       <textarea
-        class="w-full px-3 py-1 text-sm leading-[18px] text-gray-900 border-0 rounded-lg grow h-[120px] bg-gray-50 focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
+        class="w-full px-3 py-1 text-sm leading-[18px] text-text-primary border-0 rounded-lg grow h-[120px] bg-background-default-subtle focus:outline-none focus:ring-1 focus:ring-inset focus:ring-gray-200"
         [placeholder]="'PAC.Xpert.PleaseEnter' | translate: {Default: 'Please enter'} "
         [(ngModel)]="query"
       ></textarea>
@@ -41,21 +41,21 @@
   <div class="grow flex flex-col items-stretch gap-4 mt-4 pb-4">
     @for (item of docs(); track $index) {
       <div class="group rounded-xl border border-solid border-transparent cursor-pointer overflow-hidden hover:shadow-lg
-                  bg-gray-50 hover:bg-white hover:border-gray-200"
+                  bg-background-default-subtle hover:bg-hover-bg hover:border-divider-deep"
         (click)="openChunk(item)"
       >
         <div class="h-[140px] p-4 overflow-hidden text-ellipsis text-sm font-normal text-text-secondary">{{item.pageContent}}</div>
 
-        <div class="w-full h-[1px] bg-gray-100"></div>
-        <div class="w-full bg-gray-50 group-hover:bg-white p-2">
+        <div class="w-full h-[1px] bg-components-input-bg-normal"></div>
+        <div class="w-full bg-background-default-subtle group-hover:bg-hover-bg p-2">
           <div class="relative flex items-center w-full pb-1">
             <div class="flex items-center justify-start flex-1 gap-2 w-full text-sm text-text-tertiary group-hover:text-text-primary">
-              <div class="font-semibold px-2 border border-solid border-gray-100 rounded-lg shadow-sm bg-gray-50">{{(item.metadata.score) | number: '0.2-2'}}</div>
-              <div class=" px-2 border border-solid border-gray-100 rounded-lg shadow-sm bg-gray-50">{{item.metadata.blobType}}</div>
+              <div class="font-semibold px-2 border border-solid border-divider-regular rounded-lg shadow-sm bg-background-default-subtle">{{(item.metadata.score) | number: '0.2-2'}}</div>
+              <div class=" px-2 border border-solid border-divider-regular rounded-lg shadow-sm bg-background-default-subtle">{{item.metadata.blobType}}</div>
               @if (item.metadata.loc?.lines) {
-                <div class=" px-2 border border-solid border-gray-100 rounded-lg shadow-sm bg-gray-50">Lines: {{item.metadata.loc.lines.from}}-{{item.metadata.loc.lines.to}}</div>
+                <div class=" px-2 border border-solid border-divider-regular rounded-lg shadow-sm bg-background-default-subtle">Lines: {{item.metadata.loc.lines.from}}-{{item.metadata.loc.lines.to}}</div>
               }
-              <span class="px-2 font-semibold ml-1 text-xs text-gray-700 overflow-hidden whitespace-nowrap text-ellipsis">
+              <span class="px-2 font-semibold ml-1 text-xs text-text-secondary overflow-hidden whitespace-nowrap text-ellipsis">
               </span>
             </div>
           </div>
