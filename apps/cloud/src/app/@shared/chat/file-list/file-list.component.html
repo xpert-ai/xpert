@@ -11,7 +11,7 @@
 </div>
 <div class="flex-1 min-h-0 overflow-auto mt-4">
   <div class="flex flex-col first:pt-0 pt-2">
-    @for (item of flatFiles(); track item) {
+    @for (item of flatFiles(); track item.fullPath ?? ((item.directory ?? '') + '/' + item.filePath)) {
       <div class="group flex justify-between items-center gap-2 flex-1 min-w-0 min-h-10 px-2 rounded-lg hover:bg-hover-bg">
         @for (level of item.levels; track $index) {
           <div class="shrink-0 w-[14px] h-full flex justify-center">
