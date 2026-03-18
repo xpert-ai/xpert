@@ -46,7 +46,6 @@ import { TCopilotChatMessage } from '../types'
 import { ChatMessageContentComponent } from './content/content.component'
 import { ChatMessageAvatarComponent } from './avatar/avatar.component'
 
-
 @Component({
   standalone: true,
   imports: [
@@ -66,7 +65,7 @@ import { ChatMessageAvatarComponent } from './avatar/avatar.component'
     CopyComponent,
     ChatMessageContentComponent,
     ChatThoughtComponent,
-    ChatMessageAvatarComponent,
+    ChatMessageAvatarComponent
   ],
   selector: 'pac-ai-message',
   templateUrl: './ai-message.component.html',
@@ -75,7 +74,7 @@ import { ChatMessageAvatarComponent } from './avatar/avatar.component'
   animations: [ListHeightStaggerAnimation],
   providers: [SynthesizeService, TtsStreamPlayerService],
   host: {
-    '[class.busy]': 'busy()',
+    '[class.busy]': 'busy()'
   }
 })
 export class ChatAiMessageComponent {
@@ -106,9 +105,15 @@ export class ChatAiMessageComponent {
   readonly feedbacks = this.chatService.feedbacks
   readonly executionId = computed(() => this.message()?.executionId)
   readonly status = computed(() => this.message()?.status)
-  readonly busy = computed(() => this.chatService.answering() && ['thinking', 'reasoning', 'answering'].includes(this.status()))
+  readonly busy = computed(
+    () => this.chatService.answering() && ['thinking', 'reasoning', 'answering'].includes(this.status())
+  )
   readonly answering = computed(() => this.chatService.answering() && ['thinking', 'answering'].includes(this.status()))
-  readonly canRetry = computed(() => !!this.message()?.id && !this.chatService.answering())
+  // Only assistant messages with an execution context can be retried
+  readonly canRetry = computed(() => {
+    const msg = this.message()
+    return !!msg?.id && !!msg?.executionId && ['ai', 'assistant'].includes(msg?.role) && !this.chatService.answering()
+  })
   readonly feedbackReady = computed(() => {
     const status = this.status() as XpertAgentExecutionStatusEnum | string
     const endedStatuses = new Set<XpertAgentExecutionStatusEnum | string>([
@@ -205,7 +210,7 @@ export class ChatAiMessageComponent {
   }
 
   updateCollapse(id: string, status: boolean) {
-    this.collapseMessages.update((state) => ({...state, [id]: status}))
+    this.collapseMessages.update((state) => ({ ...state, [id]: status }))
   }
 
   onCopy(copyButton) {
@@ -289,18 +294,10 @@ export class ChatAiMessageComponent {
   }
 
   onRetryMessage() {
-    // Trigger retry for the current AI message
     if (!this.canRetry()) {
       return
     }
-    // this.chatService.retryMessageById(this.message().id)
-    this.chatService.chat({
-      retry: true,
-      command: {
-        resume: {
-        }
-      },
-      messageId: this.message().id
-    })
+    // Truncate following messages and regenerate response from the selected message
+    this.chatService.retryMessageById(this.message().id)
   }
 }
