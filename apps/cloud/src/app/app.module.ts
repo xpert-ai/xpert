@@ -9,6 +9,7 @@ import { ServiceWorkerModule } from '@angular/service-worker'
 import { Ability, PureAbility } from '@casl/ability'
 import { NxCoreModule } from '@metad/core'
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
+import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { NgxPermissionsModule } from 'ngx-permissions'
 import { provideUiI18nAdapterFactory, provideZard, type UiI18nAdapter, ZardToastComponent } from '@xpert-ai/headless-ui'
 import {
@@ -57,6 +58,7 @@ function detectSubjectType(subject) {
       colorScheme: ['purple', 'teal', 'gray', 'gray', 'red', 'red', 'red'],
       enableSourceMaps: true
     }),
+    MonacoEditorModule.forRoot(),
     NxCoreModule.forRoot(),
     ServiceWorkerModule.register('ngsw-worker.js', {
       enabled: false, // environment.production,
