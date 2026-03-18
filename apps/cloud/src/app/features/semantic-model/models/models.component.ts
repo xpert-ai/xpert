@@ -2,7 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { HttpErrorResponse } from '@angular/common/http'
-import { AfterViewInit, Component, inject, Inject, signal, TemplateRef, viewChild, ViewChild } from '@angular/core'
+import { AfterViewInit, Component, inject, Inject, Injector, signal, TemplateRef, viewChild, ViewChild } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup } from '@angular/forms'
 
@@ -71,6 +71,7 @@ export class ModelsComponent implements AfterViewInit {
   readonly #toastr = injectToastr()
   readonly translateService = inject(TranslateService)
   readonly #dialog = inject(Dialog)
+  readonly #injector = inject(Injector)
 
   displayedColumns = ['name', 'dataSource']
   columns: Array<
@@ -250,6 +251,7 @@ export class ModelsComponent implements AfterViewInit {
       .open<Partial<ISemanticModel>>(ModelCreationComponent, {
         backdropClass: 'xp-overlay-share-sheet',
         panelClass: 'xp-overlay-pane-share-sheet',
+        injector: this.#injector,
         data: { businessAreaId, type }
       })
       .closed.pipe(
@@ -300,6 +302,7 @@ export class ModelsComponent implements AfterViewInit {
       this.#dialog.open<Partial<ISemanticModel>>(ModelCreationComponent, {
         backdropClass: 'xp-overlay-share-sheet',
         panelClass: 'xp-overlay-pane-share-sheet',
+        injector: this.#injector,
         data: {
           name: model.name,
           description: model.description,
