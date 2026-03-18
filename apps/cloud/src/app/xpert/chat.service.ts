@@ -435,6 +435,12 @@ export abstract class ChatService {
       retry: options.retry
     } as TChatRequest
 
+    // Track which AI message this stream is targeting so all updates hit the correct message
+    let activeMessageId: string | null = options.messageId ?? null
+    // Track whether this stream receives any real message payload.
+    // If not, we will remove the empty placeholder bubble on completion.
+    let hasMessagePayload = false
+
     this.chatSubscription = this.chatRequest(this.xpert()?.slug, request, {
       xpertId: this.xpert()?.id,
       messageId: options.messageId
@@ -444,31 +450,29 @@ export abstract class ChatService {
           this.#toastr.error(msg.data)
         } else {
           if (msg.data) {
-            // Ignore non-data events
             if (msg.data.startsWith(':')) {
               return
             }
             const event = JSON.parse(msg.data)
             if (event.type === ChatMessageTypeEnum.MESSAGE) {
-              const latestMessageId = this.messages()[this.messages().length - 1]?.id
+              hasMessagePayload = true
               const { messageContext } = this.messageAppendContextTracker.resolve({
                 incoming: event.data,
                 fallbackSource: typeof event.data === 'string' ? 'chat_stream' : undefined,
-                fallbackStreamId: String(latestMessageId ?? this.conversation()?.id ?? 'chat_stream')
+                fallbackStreamId: String(activeMessageId ?? this.conversation()?.id ?? 'chat_stream')
               })
 
-              if (typeof event.data === 'string') {
-                this.appendStreamMessage(event.data, messageContext)
-              } else {
-                this.appendMessageComponent(event.data, messageContext)
-              }
+              this.updateMessageByIdOrLatest(activeMessageId, (lastM) => {
+                appendMessageContent(lastM, event.data, messageContext)
+                return { ...lastM }
+              })
             } else if (event.type === ChatMessageTypeEnum.EVENT) {
               switch (event.event) {
                 case ChatMessageEventTypeEnum.ON_CONVERSATION_START:
                 case ChatMessageEventTypeEnum.ON_CONVERSATION_END:
                   this.updateConversation(omit(event.data, 'messages'))
                   if (event.data.status === 'error') {
-                    this.updateLatestMessage((lastM) => {
+                    this.updateMessageByIdOrLatest(activeMessageId, (lastM) => {
                       return {
                         ...lastM,
                         status: XpertAgentExecutionStatusEnum.ERROR
@@ -477,34 +481,25 @@ export abstract class ChatService {
                   }
                   break
                 case ChatMessageEventTypeEnum.ON_MESSAGE_START:
-                  if (options.content) {
-                    this.appendMessage({
-                      id: uuid(),
-                      role: 'ai',
-                      content: ``,
-                      status: 'thinking'
-                    })
-                  }
-                  this.updateLatestMessage((lastM) => {
-                    return {
-                      ...lastM,
-                      ...event.data
-                    }
-                  })
+                  // Backend returns the new AI message (with server-generated id).
+                  // Use upsert so it is inserted or merged into the list correctly.
+                  activeMessageId = event.data?.id ?? activeMessageId
+                  this.upsertMessageById({ ...event.data, status: 'thinking' })
                   break
                 case ChatMessageEventTypeEnum.ON_MESSAGE_END:
-                  this.updateLatestMessage((lastM) => {
+                  this.updateMessageByIdOrLatest(activeMessageId, (lastM) => {
                     return {
                       ...lastM,
-                      status: event.data.status,
-                      error: event.data.error
+                      // Sync full message snapshot from server on end event
+                      // so UI state stays consistent even in retry/resume branches.
+                      ...event.data
                     }
                   })
                   break
                 case ChatMessageEventTypeEnum.ON_AGENT_START:
                 case ChatMessageEventTypeEnum.ON_AGENT_END: {
                   const execution = event.data
-                  this.updateLatestMessage((message) => {
+                  this.updateMessageByIdOrLatest(activeMessageId, (message) => {
                     const executions = (message.executions ?? []).filter((_) => _.id !== execution.id)
                     return {
                       ...message,
@@ -530,7 +525,7 @@ export abstract class ChatService {
                       }
                     })
                   }
-                  this.updateLatestMessage((message) => {
+                  this.updateMessageByIdOrLatest(activeMessageId, (message) => {
                     message.events ??= []
                     const step = event.data as TChatMessageStep
                     if (step?.id) {
@@ -565,7 +560,7 @@ export abstract class ChatService {
         this.answering.set(false)
         this.messageAppendContextTracker.reset()
         this.#toastr.error(getErrorMessage(error))
-        this.updateLatestMessage((message) => {
+        this.updateMessageByIdOrLatest(activeMessageId, (message) => {
           return {
             ...message,
             status: XpertAgentExecutionStatusEnum.ERROR,
@@ -576,7 +571,12 @@ export abstract class ChatService {
       complete: () => {
         this.answering.set(false)
         this.messageAppendContextTracker.reset()
-        this.updateLatestMessage((message) => {
+        // Cleanup empty placeholder when retry completes without any payload chunks.
+        if (!hasMessagePayload) {
+          this.removeMessageIfPlaceholder(activeMessageId)
+          return
+        }
+        this.updateMessageByIdOrLatest(activeMessageId, (message) => {
           return {
             ...message,
             status: XpertAgentExecutionStatusEnum.SUCCESS,
@@ -690,8 +690,121 @@ export abstract class ChatService {
     })
   }
 
+  /**
+   * Retry a message by id.
+   * It first truncates the visible conversation from the selected message onward,
+   * then starts a retry request for that selected message.
+   */
+  retryMessageById(messageId: string) {
+    if (!messageId) {
+      return
+    }
+    this.truncateConversationFromMessage(messageId)
+    this.chat({
+      retry: true,
+      messageId
+    })
+  }
+
+  /**
+   * Truncate local visible messages so everything after the selected message is cleared.
+   * For retrying an AI message, keep up to its parent user message and remove the AI message itself.
+   */
+  truncateConversationFromMessage(messageId: string) {
+    this.#messages.update((messages) => {
+      const list = [...(messages ?? [])]
+      const selectedIndex = list.findIndex((m) => m?.id === messageId)
+      if (selectedIndex < 0) {
+        return list
+      }
+
+      const selected = list[selectedIndex]
+      const keepUntilId = ['ai', 'assistant'].includes(selected?.role) ? selected?.parentId : selected?.id
+
+      if (!keepUntilId) {
+        return []
+      }
+
+      const keepIndex = list.findIndex((m) => m?.id === keepUntilId)
+      if (keepIndex < 0) {
+        return list.slice(0, selectedIndex)
+      }
+
+      return list.slice(0, keepIndex + 1)
+    })
+  }
+
   appendMessage(message: TCopilotChatMessage) {
     this.#messages.update((messages) => [...(messages ?? []), message])
+  }
+
+  /**
+   * Insert a new message or merge into an existing one matched by id.
+   * Skips messages without an id to prevent empty placeholder bubbles.
+   */
+  upsertMessageById(incoming: TCopilotChatMessage) {
+    if (!incoming?.id) {
+      return
+    }
+    this.#messages.update((messages) => {
+      const list = [...(messages ?? [])]
+      const idx = list.findIndex((m) => m?.id === incoming.id)
+      if (idx >= 0) {
+        list[idx] = { ...list[idx], ...incoming }
+      } else {
+        list.push(incoming)
+      }
+      return list
+    })
+  }
+
+  /**
+   * Update a specific message by id; falls back to the latest message
+   * when id is null/undefined or not found in the list.
+   */
+  updateMessageByIdOrLatest(
+    id: string | null | undefined,
+    updateFn: (value: TCopilotChatMessage) => TCopilotChatMessage
+  ) {
+    this.#messages.update((messages) => {
+      const list = [...(messages ?? [])]
+      const idx = id ? list.findIndex((m) => m?.id === id) : -1
+      const targetIdx = idx >= 0 ? idx : list.length - 1
+      if (targetIdx >= 0) {
+        list[targetIdx] = updateFn(list[targetIdx] as TCopilotChatMessage)
+      }
+      return list
+    })
+  }
+
+  /**
+   * Remove an AI placeholder message when stream finished with no payload.
+   * This prevents empty bubbles from accumulating after repeated retries.
+   */
+  removeMessageIfPlaceholder(messageId: string | null | undefined) {
+    if (!messageId) {
+      return
+    }
+    this.#messages.update((messages) => {
+      const list = [...(messages ?? [])]
+      const idx = list.findIndex((m) => m?.id === messageId)
+      if (idx < 0) {
+        return list
+      }
+
+      const message = list[idx]
+      const hasText = typeof message?.content === 'string' ? message.content.trim().length > 0 : false
+      const hasContentArray = Array.isArray(message?.content) ? message.content.length > 0 : false
+      const hasReasoning = Array.isArray(message?.reasoning) ? message.reasoning.length > 0 : false
+      const hasEvents = Array.isArray(message?.events) ? message.events.length > 0 : false
+      const hasError = !!message?.error
+
+      if (!hasText && !hasContentArray && !hasReasoning && !hasEvents && !hasError) {
+        list.splice(idx, 1)
+      }
+
+      return list
+    })
   }
 
   updateEvent(event) {

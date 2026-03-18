@@ -9,7 +9,7 @@ import {
   inject,
   input,
   model,
-  output,
+  output
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -83,9 +83,11 @@ export class ChatConversationComponent {
   })
 
   readonly primaryAgent = computed(() => this.xpert()?.agent)
-  readonly parameters = computed(() => this.xpert()?.agentConfig?.parameters ?? (
-    this.primaryAgent()?.options?.hidden ? null : this.primaryAgent()?.parameters
-  ))
+  readonly parameters = computed(
+    () =>
+      this.xpert()?.agentConfig?.parameters ??
+      (this.primaryAgent()?.options?.hidden ? null : this.primaryAgent()?.parameters)
+  )
 
   readonly parametersValue = this.chatService.parametersValue
   readonly suggestion_enabled = this.chatService.suggestion_enabled
@@ -94,7 +96,7 @@ export class ChatConversationComponent {
 
   // Task
   readonly task = computed(() => this.conversation()?.task)
-  
+
   constructor() {
     effect(
       () => {
@@ -132,13 +134,17 @@ export class ChatConversationComponent {
   }
 
   onRetry() {
-    this.chatService.updateConversation({
-      status: 'busy',
-      error: null
-    })
-    this.chatService.chat({
-      retry: true
-    })
+    // Find the latest AI message with an executionId as the retry target
+    const latestAiMsg = [...this.messages()]
+      .reverse()
+      .find((m) => ['ai', 'assistant'].includes(m.role) && !!m.executionId)
+
+    if (!latestAiMsg?.id) {
+      return
+    }
+
+    // Keep behavior consistent with message-level retry
+    this.chatService.retryMessageById(latestAiMsg.id)
   }
 
   onSelectSuggestionQuestion(question: string) {
