@@ -7,24 +7,27 @@ import { XpertPublicDTO } from '../../xpert/dto'
 
 @Expose()
 export class ChatConversationPublicDTO {
-	@Expose()
-	@Transform((params: TransformFnParams) => (params.value ? params.value : params.obj.parameters?.input))
-	title?: string
+    @Expose()
+    @Transform((params: TransformFnParams) => (params.value ? params.value : params.obj.parameters?.input))
+    title?: string
 
-	@Transform((params: TransformFnParams) => (params.value ? new UserPublicDTO(params.value) : null))
-	createdBy?: IUser
+    @Transform((params: TransformFnParams) => (params.value ? new UserPublicDTO(params.value) : null))
+    createdBy?: IUser
 
-	@Transform((params: TransformFnParams) => (params.value ? new XpertPublicDTO(params.value) : null))
-	xpert?: IXpert
+    @Transform((params: TransformFnParams) => (params.value ? new UserPublicDTO(params.value) : null))
+    fromEndUser?: IUser
 
-	@Transform((params: TransformFnParams) => (params.value ? new XpertProjectIdentiDto(params.value) : null))
-	project?: IProject
+    @Transform((params: TransformFnParams) => (params.value ? new XpertPublicDTO(params.value) : null))
+    xpert?: IXpert
 
-	@Expose()
-	@Transform((params: TransformFnParams) => params.value?.map((_) => new XpertAgentExecutionDTO(_)))
-	executions?: IXpertAgentExecution[]
+    @Transform((params: TransformFnParams) => (params.value ? new XpertProjectIdentiDto(params.value) : null))
+    project?: IProject
 
-	constructor(partial: Partial<ChatConversationPublicDTO> | Partial<IChatConversation>) {
-		Object.assign(this, partial)
-	}
+    @Expose()
+    @Transform((params: TransformFnParams) => params.value?.map((_) => new XpertAgentExecutionDTO(_)))
+    executions?: IXpertAgentExecution[]
+
+    constructor(partial: Partial<ChatConversationPublicDTO> | Partial<IChatConversation>) {
+        Object.assign(this, partial)
+    }
 }
