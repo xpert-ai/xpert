@@ -19,50 +19,53 @@ import { CreateToolsetCommand } from '../../commands'
 export * from './builtin-tool'
 
 export const BUILTIN_TOOLSET_REPOSITORY: {
-	baseUrl: string
-	providers: Array<Type<any> & { provider: string }>
+    baseUrl: string
+    providers: Array<Type<any> & { provider: string }>
 }[] = [
-	{
-		baseUrl: ToolsetFolderPath,
-		providers: [
-			TaskToolset,
-			PlanningToolset,
-			TavilyToolset,
-			SearchAPIToolset,
-			EmailToolset,
-			DuckDuckGoToolset,
-			BingToolset,
-			DingTalkToolset,
-			SlackToolset,
-			DiscordToolset,
-			SerperToolset
-		]
-	}
+    {
+        baseUrl: ToolsetFolderPath,
+        providers: [
+            TaskToolset,
+            PlanningToolset,
+            TavilyToolset,
+            SearchAPIToolset,
+            EmailToolset,
+            DuckDuckGoToolset,
+            BingToolset,
+            DingTalkToolset,
+            SlackToolset,
+            DiscordToolset,
+            SerperToolset
+        ]
+    }
 ]
 
 export function getBuiltinToolsetBaseUrl(name: string) {
-	return BUILTIN_TOOLSET_REPOSITORY.find((item) => item.providers.some((_) => _.provider === name))?.baseUrl
+    return BUILTIN_TOOLSET_REPOSITORY.find((item) => item.providers.some((_) => _.provider === name))?.baseUrl
 }
 
 export async function createBuiltinToolset(provider: string, toolset?: IXpertToolset, params?: TBuiltinToolsetParams) {
-	let providerTypeClass = null
-	BUILTIN_TOOLSET_REPOSITORY.find((item) => {
-		providerTypeClass = item.providers.find((_) => _.provider === provider)
-		return !!providerTypeClass
-	})
+    let providerTypeClass = null
+    BUILTIN_TOOLSET_REPOSITORY.find((item) => {
+        providerTypeClass = item.providers.find((_) => _.provider === provider)
+        return !!providerTypeClass
+    })
 
-	if (providerTypeClass) {
-		return new providerTypeClass(toolset, params)
-	} else {
-		return await params?.commandBus.execute(
-			new CreateToolsetCommand(
-				{
-					...(toolset ?? ({ type: provider } as IXpertToolset))
-				},
-				params
-			)
-		)
-	}
+    if (providerTypeClass) {
+        return new providerTypeClass(toolset, params)
+    } else {
+        const pluginToolset = await params?.commandBus.execute(
+            new CreateToolsetCommand(
+                {
+                    ...(toolset ?? ({ type: provider } as IXpertToolset))
+                },
+                params
+            )
+        )
+        if (pluginToolset) {
+            return pluginToolset
+        }
+    }
 
-	throw new ToolProviderNotFoundError(`Builtin tool provider '${provider}' not found!`)
+    throw new ToolProviderNotFoundError(`Builtin tool provider '${provider}' not found!`)
 }
