@@ -10,6 +10,7 @@ import { OverlayAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
+  derivedHelpUrl,
   getErrorMessage,
   injectApiBaseUrl,
   injectToastr,
@@ -47,6 +48,7 @@ export class XpertAPIComponent {
   readonly #clipboard = inject(Clipboard)
   readonly #dialog = inject(Dialog)
   readonly apiBaseUrl = injectApiBaseUrl()
+  readonly apiReferenceUrl = derivedHelpUrl(() => `/api-reference/aiv1`)
 
   readonly xpert = this.xpertComponent.latestXpert
 
@@ -81,7 +83,7 @@ export class XpertAPIComponent {
   }
 
   openApiReference() {
-    this.#router.navigate(['xpert', this.xpert().id, 'develop'])
+    window.open(this.apiReferenceUrl(), '_blank')
   }
 
   openApiKey() {
