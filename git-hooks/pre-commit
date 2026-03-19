@@ -3,5 +3,6 @@ FILES=$(git diff --cached --name-only --diff-filter=ACMR | sed 's| |\\ |g')
 [ -z "$FILES" ] && exit 0
 echo "$FILES" | xargs yarn format:fix
 echo "$FILES" | xargs git add
+node tools/scripts/check-hardcoded-colors.cjs --staged
 
 exit 0
