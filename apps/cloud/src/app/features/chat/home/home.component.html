@@ -4,7 +4,7 @@
   [attr.data-collapsible]="sidebarState() === 'closed' ? 'icon' : 'expanded'"
 >
   <div
-    class="flex flex-col h-full w-(--sidebar-width) transition-[left,right,width] ease-linear group-data-[collapsible=icon]:w-(--sidebar-width-icon) border-r border-solid border-divider-deep dark:border-gray-700"
+    class="flex flex-col h-full w-(--sidebar-width) pt-3 transition-[left,right,width] ease-linear group-data-[collapsible=icon]:w-(--sidebar-width-icon) border-r border-solid border-divider-deep"
     [ngClass]="{
       'cursor-w-resize': sidebarState() === 'expanded',
       'cursor-e-resize': sidebarState() === 'closed'
@@ -12,28 +12,6 @@
     (click)="toggleSidebar()"
   >
     <div class="grow overflow-auto">
-      <div
-        data-sidebar="group"
-        class="relative flex w-full min-w-0 flex-col px-1.5 py-[2px] shrink-0 transition-[width,transform,opacity] duration-200 my-1"
-        (click)="$event.stopPropagation()"
-      >
-        <button
-          data-sidebar="menu-button"
-          tabindex="-1"
-          class="peer/menu-button flex items-center gap-2 overflow-hidden text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 text-sm hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active py-2.5 ps-[11px] pe-[11px] rounded-full border border-(--border) bg-surface-l1 justify-between text-text-secondary hover:text-text-primary h-[2.5rem] mx-[.125rem]"
-          aria-label="Search"
-          (click)="openConversations()"
-        >
-          @if (sidebarState() === 'expanded') {
-            <span class="space-x-1 align-baseline whitespace-nowrap truncate">
-              <span>{{ 'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' } }}</span>
-              <span class="text-xs text-muted-foreground">⌘K</span>
-            </span>
-          }
-          <i class="ri-search-2-line text-lg absolute right-5"></i>
-        </button>
-      </div>
-
       <div
         data-sidebar="group"
         class="relative flex w-full min-w-0 flex-col px-1.5 py-[2px] shrink-0 transition-[width,transform,opacity] duration-200"
@@ -56,7 +34,42 @@
                 <i class="ri-chat-new-line text-lg"></i>
               </div>
               @if (sidebarState() === 'expanded') {
-                {{ 'PAC.Chat.NewChat' | translate: { Default: 'New Chat' } }}
+                <span class="min-w-0 flex-1 truncate">
+                  {{ 'PAC.Chat.NewChat' | translate: { Default: 'New Chat' } }}
+                </span>
+                <span
+                  class="shrink-0 text-xs text-muted-foreground opacity-0 transition-opacity duration-200 group-hover/menu-item:opacity-100"
+                >
+                  ⌘J
+                </span>
+              }
+            </button>
+          </li>
+          <li
+            data-sidebar="menu-item"
+            class="group/menu-item whitespace-nowrap mx-[.125rem] relative"
+            [zTooltip]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
+            zPosition="right"
+            [zDisabled]="sidebarState() === 'expanded'"
+          >
+            <button
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem] text-text-secondary hover:text-text-primary cursor-pointer"
+              type="button"
+              aria-label="Search"
+              (click)="openConversations()"
+            >
+              <div data-sidebar="icon" class="w-5 h-5 flex items-center justify-center shrink-0 ms-[2px]">
+                <i class="ri-search-2-line text-lg"></i>
+              </div>
+              @if (sidebarState() === 'expanded') {
+                <span class="min-w-0 flex-1 truncate">
+                  {{ 'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' } }}
+                </span>
+                <span
+                  class="shrink-0 text-xs text-muted-foreground opacity-0 transition-opacity duration-200 group-hover/menu-item:opacity-100"
+                >
+                  ⌘K
+                </span>
               }
             </button>
           </li>
@@ -452,7 +465,7 @@
   <div class="flex flex-col w-full min-w-0 relative">
     @for (g of groups(); track g) {
       <div
-        class="py-2 pl-2 text-sm font-semibold text-secondary whitespace-nowrap sticky -top-3 z-20"
+        class="py-2 pl-2 text-sm font-semibold text-text-secondary whitespace-nowrap sticky -top-3 z-20"
         [class.bg-components-card-bg]="panel"
       >
         {{ g.name }}

@@ -5,19 +5,24 @@
     [zWidth]="250"
     [zCollapsible]="true"
     [zCollapsed]="sidebarCollapsed()"
-    [zCollapsedWidth]="70"
+    [zCollapsedWidth]="50"
     (zCollapsedChange)="onCollapsedChange($event)"
     class="p-0!"
   >
     <nav class="h-full flex flex-col overflow-auto">
-      <div class="flex items-center justify-between p-3">
-        @if (sidebarCollapsed()) {
-          <div></div>
-        } @else {
+      <div class="flex items-center p-3" [class.justify-center]="sidebarCollapsed()" [class.justify-between]="!sidebarCollapsed()">
+        @if (!sidebarCollapsed()) {
           <div class="pac-home-title w-36 h-12 inline-block" routerLink="/home">
           </div>
         }
-        <button type="button" z-button zType="ghost" zSize="lg" class="cursor-pointer" (click)="toggleSidebar()">
+        <button
+          type="button"
+          z-button
+          zType="ghost"
+          zSize="icon"
+          class="m-1.5 h-auto w-auto rounded-lg p-1.5 cursor-pointer"
+          (click)="toggleSidebar()"
+        >
           <z-icon zType="panel-left" zSize="lg" />
         </button>
       </div>
@@ -27,7 +32,9 @@
         />
       </div>
 
-      <pac-menu class="flex-1 p-2 flex overflow-hidden hover:overflow-y-auto"
+      <pac-menu class="flex-1 flex overflow-hidden hover:overflow-y-auto"
+        [class.p-0]="sidebarCollapsed()"
+        [class.p-2]="!sidebarCollapsed()"
         [isCollapsed]="sidebarCollapsed()"
         [isMobile]="isMobile()"
         [menus]="menus()"
@@ -38,9 +45,16 @@
         </div>
       </pac-menu>
 
-      <div class="mt-auto">
+      <div class="mt-auto flex" [class.justify-center]="sidebarCollapsed()">
         @if (isAuthenticated$ | async; as user) {
-          <pac-header-user [user]="user" />
+          <pac-header-user
+            class="block pb-1"
+            [class.w-full]="!sidebarCollapsed()"
+            [class.px-1.5]="!sidebarCollapsed()"
+            [user]="user"
+            [compact]="sidebarCollapsed()"
+            [fullWidth]="!sidebarCollapsed()"
+          />
         }
       </div>
     </nav>

@@ -58,6 +58,8 @@ export class HeaderUserComponent {
 
   // Inputs
   readonly user = input<IUser>()
+  readonly compact = input(false)
+  readonly fullWidth = input(false)
 
   // States
   readonly preferredTheme$ = toSignal(this.store.preferredTheme$)

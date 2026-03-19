@@ -3,6 +3,10 @@
   @apply flex flex-col rounded-3xl bg-components-card-bg;
 }
 
+.container {
+  @apply min-h-[70vh];
+}
+
 .container.expand {
   @apply w-[80vw] h-[80vh];
 

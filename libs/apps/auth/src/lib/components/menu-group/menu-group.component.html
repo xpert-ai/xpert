@@ -2,7 +2,9 @@
   @for (item of menus(); track $index) {
     <li class="flex flex-col items-center">
       <div
-        class="pac-router-link w-full shrink-0 flex justify-start items-center rounded-lg cursor-pointer"
+        class="pac-router-link w-full shrink-0 flex items-center rounded-lg cursor-pointer"
+        [class.justify-center]="isCollapsed"
+        [class.justify-start]="!isCollapsed"
         [class.has-submenu]="item.children"
         [routerLink]="item.children ? null : item.link"
         routerLinkActive
@@ -13,7 +15,7 @@
         @if (isCollapsed) {
           <button
             type="button"
-            class="menu-button shrink-0 w-[52px] flex justify-center items-center py-2 p-1 leading-4 rounded-xl opacity-80 hover:opacity-100 hover:scale-110 transition-all duration-200 hover:bg-hover-bg"
+            class="menu-button m-1.5 shrink-0 flex items-center justify-center p-1.5 leading-4 opacity-80 transition-all duration-200 hover:rounded-lg hover:bg-hover-bg hover:opacity-100"
             [routerLink]="isCollapsed ? item.link : null"
             routerLinkActive
             #rla="routerLinkActive"
@@ -26,11 +28,8 @@
             cdkOverlayOrigin
             #subMenuTrigger="cdkOverlayOrigin"
           >
-            <div class="flex flex-col justify-start items-center">
-              <z-icon [zType]="item.icon"></z-icon>
-              <span class="text-xs">
-                {{ item.title }}
-              </span>
+            <div class="flex justify-center items-center">
+              <z-icon class="size-5 text-[20px]" [zType]="item.icon"></z-icon>
             </div>
           </button>
 
@@ -69,9 +68,9 @@
                     >
                       <div class="flex items-center">
                         @if (child.icon) {
-                          <z-icon class="text-text-secondary mr-2" [zType]="child.icon"></z-icon>
+                          <z-icon class="mr-2 size-5 text-[20px] text-text-secondary" [zType]="child.icon"></z-icon>
                         }
-                        <span>{{ child.title }}</span>
+                        <span class="text-[14px]">{{ child.title }}</span>
                       </div>
                     </button>
                   }
@@ -80,11 +79,11 @@
             </ng-template>
           }
         } @else if (item.icon) {
-          <z-icon zSize="default" [zType]="item.icon"></z-icon>
+          <z-icon class="size-5 text-[20px]" [zType]="item.icon"></z-icon>
         }
 
         @if (!isCollapsed) {
-          <span class="flex-1 ml-3">{{ item.title }}</span>
+          <span class="flex-1 ml-3 text-[14px]">{{ item.title }}</span>
 
           @if (item.children) {
             <svg
@@ -130,9 +129,9 @@
                 (click)="clicked.emit()"
               >
                 @if (child.icon) {
-                  <z-icon zSize="sm" [zType]="child.icon"></z-icon>
+                  <z-icon class="size-5 text-[20px]" [zType]="child.icon"></z-icon>
                 }
-                <span class="ml-3">{{ child.title }}</span>
+                <span class="ml-3 text-[14px]">{{ child.title }}</span>
               </li>
             }
           }

@@ -46,10 +46,19 @@ export class ScheduleFormComponent {
 
   readonly date = linkedModel({
     initialValue: null,
-    compute: () => parse(this.options().date, 'yyyy-MM-dd', new Date()),
+    compute: () => {
+      const options = this.options() ?? ({} as TScheduleOptions)
+      const date = options.date
+      return date ? parse(date, 'yyyy-MM-dd', new Date()) : null
+    },
     update: (value) => {
+      const fallbackOptions: TScheduleOptions = {
+        frequency: this.frequency() ?? TaskFrequency.Once,
+        time: this.time() ?? '00:00'
+      }
+
       this.options.update((opt) => ({
-        ...opt,
+        ...(opt ?? fallbackOptions),
         date: value ? format(value, 'yyyy-MM-dd') : undefined
       }))
     }
