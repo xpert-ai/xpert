@@ -17,11 +17,18 @@ export class IntegrationService extends TenantOrganizationAwareCrudService<Integ
 	}
 
 	getProviders() {
-		const providers = [
-			...Object.values(INTEGRATION_PROVIDERS),
-			...this.strategyRegistry.list(RequestContext.getOrganizationId()).map((strategy) => strategy.meta)
-		]
-		return providers
+		const providers = new Map<string, any>()
+
+		for (const provider of Object.values(INTEGRATION_PROVIDERS)) {
+			providers.set(provider.name, provider)
+		}
+
+		// Prefer plugin-registered strategies when they override a builtin provider
+		for (const provider of this.strategyRegistry.list(RequestContext.getOrganizationId()).map((strategy) => strategy.meta)) {
+			providers.set(provider.name, provider)
+		}
+
+		return Array.from(providers.values())
 	}
 
 	getIntegrationStrategy(type: string) {

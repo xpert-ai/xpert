@@ -20,6 +20,7 @@ export const USER_PERMISSION_SERVICE_TOKEN = 'XPERT_PLUGIN_USER_PERMISSION_SERVI
 
 export interface UserProvisionByThirdPartyIdentityInput {
   tenantId: string
+  organizationId?: string
   thirdPartyId: string
   profile?: Partial<
     Pick<

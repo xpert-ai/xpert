@@ -114,7 +114,9 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 						{
 							id: conversationId,
 							status: 'busy',
-							error: null
+							error: null,
+							...(from ? { from } : {}),
+							...(fromEndUserId ? { fromEndUserId } : {})
 						},
 						['messages']
 					)

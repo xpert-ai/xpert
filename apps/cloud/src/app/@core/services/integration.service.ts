@@ -12,6 +12,15 @@ export interface IntegrationTestResult {
   mode?: string
   capabilities?: Record<string, boolean>
   warnings?: string[]
+  probe?: {
+    connectionMode: 'webhook' | 'long_connection'
+    connected: boolean
+    state: 'connected' | 'failed'
+    checkedAt: number
+    endpointValidated: boolean
+    lastError?: string | null
+    recoverable?: boolean
+  }
 }
 
 export interface LarkRuntimeStatus {

@@ -4,12 +4,31 @@ import { Expose, Transform, TransformFnParams } from 'class-transformer'
 import { XpertAgentExecutionDTO } from '../../xpert-agent-execution/dto'
 import { XpertProjectIdentiDto } from '../../xpert-project/dto'
 import { XpertPublicDTO } from '../../xpert/dto'
+import { TChatConversationStatus, TChatFrom } from '@metad/contracts'
 
 @Expose()
 export class ChatConversationPublicDTO {
 	@Expose()
 	@Transform((params: TransformFnParams) => (params.value ? params.value : params.obj.parameters?.input))
 	title?: string
+
+	@Expose()
+	status?: TChatConversationStatus
+
+	@Expose()
+	from?: TChatFrom
+
+	@Expose()
+	fromEndUserId?: string
+
+	@Expose()
+	messageCount?: number
+
+	@Expose()
+	createdAt?: Date
+
+	@Expose()
+	updatedAt?: Date
 
 	@Transform((params: TransformFnParams) => (params.value ? new UserPublicDTO(params.value) : null))
 	createdBy?: IUser

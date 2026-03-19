@@ -14,6 +14,7 @@ import { ChatConversationService, DateRelativePipe, OrderTypeEnum, routeAnimatio
 import { XpertComponent } from '../xpert.component'
 import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
 import { ChatConversationPreviewComponent, ChatMessageExecutionPanelComponent } from '@cloud/app/@shared/chat'
+import { UsersService } from '@metad/cloud/state'
 
 @Component({
   standalone: true,
@@ -41,6 +42,7 @@ export class XpertLogsComponent {
   TimeRanges = TimeRangeOptions
   readonly xpertService = inject(XpertAPIService)
   readonly conversationService = inject(ChatConversationService)
+  readonly usersService = inject(UsersService)
   readonly xpertComponent = inject(XpertComponent)
 
   readonly xpert = this.xpertComponent.latestXpert
@@ -53,6 +55,7 @@ export class XpertLogsComponent {
   readonly done = signal(false)
 
   readonly conversations = signal<TChatConversationLog[]>([])
+  readonly endUsers = signal<Record<string, any>>({})
 
   readonly timeRangeValue = model<TimeRangeEnum>(TimeRangeEnum.Last7Days)
   readonly timeRange = computed(() => calcTimeRange(this.timeRangeValue()))
@@ -68,6 +71,38 @@ export class XpertLogsComponent {
       this.done.set(false)
       this.loadConversations()
     })
+
+    effect(
+      () => {
+        const endUsers = this.endUsers()
+        const missingIds = [
+          ...new Set(
+            this.conversations()
+              .map((conversation) => conversation.fromEndUserId)
+              .filter((id): id is string => !!id && !endUsers[id])
+          )
+        ]
+
+        if (!missingIds.length) {
+          return
+        }
+
+        void Promise.all(
+          missingIds.map((id) =>
+            this.usersService.getUserById(id).catch(() => null)
+          )
+        ).then((users) => {
+          this.endUsers.update((state) => {
+            const nextState = { ...state }
+            missingIds.forEach((id, index) => {
+              nextState[id] = users[index]
+            })
+            return nextState
+          })
+        })
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   loadConversations = effectAction((origin$) => {
@@ -99,6 +134,13 @@ export class XpertLogsComponent {
     )
   })
 
+  refreshConversations() {
+    this.conversations.set([])
+    this.currentPage.set(0)
+    this.done.set(false)
+    this.loadConversations()
+  }
+
   onIntersection() {
     if (!this.loading() && !this.done()) {
       this.loadConversations()
@@ -115,6 +157,15 @@ export class XpertLogsComponent {
 
   closeExecution() {
     this.executionId.set(null)
+  }
+
+  endUserLabel(id: string | null | undefined) {
+    if (!id) {
+      return ''
+    }
+
+    const user = this.endUsers()[id]
+    return user?.name || user?.fullName || user?.firstName || user?.email || user?.username || id
   }
 
   cancelConversation(event: MouseEvent, conversation: TChatConversationLog) {

@@ -35,6 +35,52 @@ function ensureDir(dir: string) {
 	}
 }
 
+function shouldStageEntry(source: string) {
+	const base = path.basename(source)
+	return !['.git', '.DS_Store'].includes(base)
+}
+
+function copyWorkspaceEntry(sourcePath: string, destinationPath: string) {
+	const entry = fs.lstatSync(sourcePath)
+
+	if (entry.isSymbolicLink()) {
+		const resolvedTarget = fs.realpathSync.native(sourcePath)
+		const targetStats = fs.statSync(sourcePath)
+		ensureDir(path.dirname(destinationPath))
+
+		if (process.platform === 'win32') {
+			// Windows often rejects regular symlink creation without elevated
+			// privileges. Preserve directory links as junctions and materialize
+			// file links so pnpm-based plugin layouts remain loadable in dev.
+			if (targetStats.isDirectory()) {
+				fs.symlinkSync(resolvedTarget, destinationPath, 'junction')
+			} else {
+				fs.copyFileSync(resolvedTarget, destinationPath)
+			}
+			return
+		}
+
+		const type = targetStats.isDirectory() ? 'dir' : 'file'
+		fs.symlinkSync(fs.readlinkSync(sourcePath), destinationPath, type)
+		return
+	}
+
+	if (entry.isDirectory()) {
+		ensureDir(destinationPath)
+		for (const child of fs.readdirSync(sourcePath)) {
+			const childSourcePath = path.join(sourcePath, child)
+			if (!shouldStageEntry(childSourcePath)) {
+				continue
+			}
+			copyWorkspaceEntry(childSourcePath, path.join(destinationPath, child))
+		}
+		return
+	}
+
+	ensureDir(path.dirname(destinationPath))
+	fs.copyFileSync(sourcePath, destinationPath)
+}
+
 function isWithinRoot(targetPath: string, rootPath: string): boolean {
 	const relative = path.relative(rootPath, targetPath)
 	return relative === '' || (!relative.startsWith('..') && !path.isAbsolute(relative))
@@ -171,15 +217,7 @@ export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string 
 
 	fs.rmSync(pluginDir, { recursive: true, force: true })
 	ensureDir(targetBaseDir)
-
-	fs.cpSync(workspacePath, targetPackageDir, {
-		recursive: true,
-		dereference: true,
-		filter: (source) => {
-			const base = path.basename(source)
-			return !['node_modules', '.git', '.DS_Store'].includes(base)
-		}
-	})
+	copyWorkspaceEntry(workspacePath, targetPackageDir)
 
 	return pluginDir
 }
@@ -251,3 +289,4 @@ export function installOrganizationPlugins(
 
 	writeOrganizationManifest(organizationId, Array.from(manifest), opts)
 }
+

@@ -657,7 +657,8 @@ export class XpertController extends CrudController<Xpert> {
 				where: {
 					...(where ?? {}),
 					xpertId: id,
-					createdAt: start ? Between(new Date(start), new Date(end)) : LessThanOrEqual(new Date(end))
+					// Logs should reflect recently active conversations, not only newly created ones.
+					updatedAt: start ? Between(new Date(start), new Date(end)) : LessThanOrEqual(new Date(end))
 				},
 			},
 		))
