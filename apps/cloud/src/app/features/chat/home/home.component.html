@@ -298,7 +298,7 @@
                 <div class="cursor-pointer ms-[6px] me-[4px]">
                   <div class="border-l border-(--border) h-full ms-[12px] me-[4px]"></div>
                 </div>
-                <ng-container *ngTemplateOutlet="histories"></ng-container>
+                <ng-container *ngTemplateOutlet="histories; context: { groups: previewHistoryGroups() }"></ng-container>
               </div>
             </div>
           }
@@ -365,7 +365,7 @@
     <div class="text-text-primary font-semibold px-2 pb-2">
       {{ 'PAC.Chat.Histories' | translate: { Default: 'Histories' } }}
     </div>
-    <ng-container *ngTemplateOutlet="histories; context: { panel: true }"></ng-container>
+    <ng-container *ngTemplateOutlet="histories; context: { panel: true, groups: allHistoryGroups() }"></ng-container>
   </div>
 </ng-template>
 
@@ -461,9 +461,9 @@
   </div>
 </ng-template>
 
-<ng-template #histories let-panel="panel">
+<ng-template #histories let-panel="panel" let-groups="groups">
   <div class="flex flex-col w-full min-w-0 relative">
-    @for (g of groups(); track g) {
+    @for (g of groups ?? allHistoryGroups(); track g.name) {
       <div
         class="py-2 pl-2 text-sm font-semibold text-text-secondary whitespace-nowrap sticky -top-3 z-20"
         [class.bg-components-card-bg]="panel"
@@ -516,7 +516,7 @@
             >
               <span
                 class="flex-1 select-none whitespace-nowrap w-full overflow-hidden inline-block"
-                style="mask-image: linear-gradient(to right, black 85%, transparent 100%)"
+                style="mask-image: linear-gradient(to right, black 92%, transparent 100%)"
                 >{{ conv.title || conv.options?.parameters?.input || conv.id }}</span
               >
 

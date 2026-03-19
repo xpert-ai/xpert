@@ -1,7 +1,5 @@
 <div class="flex items-center gap-3 px-5 pt-5 pb-3">
-  <div
-    class="flex items-center flex-1 gap-2 rounded-2xl bg-background-default-subtle/80 px-3 py-2.5"
-  >
+  <div class="flex items-center flex-1 gap-2 rounded-2xl bg-background-default-subtle/80 px-3 py-2.5">
     <i class="ri-search-2-line text-lg text-text-secondary"></i>
     <input
       [placeholder]="'搜索聊天...'"
@@ -29,7 +27,9 @@
           type="button"
           (click)="newConversation()"
         >
-          <span class="flex h-9 w-9 items-center justify-center rounded-xl bg-background-default-subtle text-text-primary">
+          <span
+            class="flex h-9 w-9 items-center justify-center rounded-xl bg-background-default-subtle text-text-primary"
+          >
             <i class="ri-chat-new-line text-lg"></i>
           </span>
           <span class="flex-1 truncate font-medium">
@@ -81,9 +81,9 @@
                       (keydown.esc)="exitEdit($event)"
                     />
                   } @else {
-                    <div class="min-w-0 flex flex-1 items-center gap-2">
+                    <div class="min-w-0 pr-2 flex flex-1 items-center gap-2">
                       <a
-                        class="truncate cursor-pointer"
+                        class="flex-1 min-w-0 truncate cursor-pointer"
                         [ngmHighlight]="searchValue"
                         [content]="(item.title | i18n) || item.id"
                         (click)="selectConversation(item)"
@@ -111,8 +111,6 @@
                       }
                     </div>
                   }
-
-                  <span class="grow"></span>
 
                   <div class="z-20 relative flex items-center">
                     <span

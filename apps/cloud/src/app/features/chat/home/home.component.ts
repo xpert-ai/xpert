@@ -6,6 +6,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  effect,
   HostListener,
   inject,
   signal,
@@ -165,11 +166,15 @@ export class ChatHomeComponent {
       .slice(0, 10)
   )
 
-  readonly groups = computed(() => {
+  readonly allHistoryGroups = computed(() => {
     const conversations = this.conversations()
     return conversations ? groupConversations(conversations) : []
   })
-  readonly historyExpanded = signal(false)
+  readonly previewHistoryGroups = computed(() => {
+    const conversations = this.conversations()?.slice(0, 5)
+    return conversations ? groupConversations(conversations) : []
+  })
+  readonly historyExpanded = signal(true)
   readonly editingConversation = signal<string>(null)
   readonly editingTitle = signal<string>(null)
   readonly convLoading = linkedModel({
@@ -180,6 +185,21 @@ export class ChatHomeComponent {
 
   // Composition state for input method
   readonly isComposing = signal(false)
+
+  constructor() {
+    effect(() => {
+      const conversation = this.homeService.conversation()
+      if (!conversation?.id || conversation.projectId || !['platform', 'job'].includes(conversation.from)) {
+        return
+      }
+
+      this.conversations.update((items) => {
+        const next = (items ?? []).filter((item) => item.id !== conversation.id)
+        next.unshift(conversation)
+        return next.slice(0, 20)
+      })
+    })
+  }
 
   toggleSidebar() {
     this.sidebarState.update((state) => (state === 'expanded' ? 'closed' : 'expanded'))
