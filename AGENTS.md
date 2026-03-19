@@ -23,7 +23,7 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - Use signals/models for state, prefer `getAllInOrg` patterns for org-scoped data.
 - Styling: Tailwind utility classes in templates; Do not add any new SCSS stylesheets. For all new features, new components, and new pages, use CSS by default.
 - Use translate for text in html.
-- Support light/dark modes via Tailwind CSS classes.
+- Support light/dark modes via Tailwind CSS classes, No hard-coded color classes or color literals introduced.
 
 ## API Endpoints
 

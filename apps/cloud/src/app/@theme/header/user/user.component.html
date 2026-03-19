@@ -1,4 +1,7 @@
-<button type="button" class="inline-flex items-center rounded-3xl py-1 pr-2.5 pl-1 text-sm text-text-primary hover:bg-hover-bg mobile:px-1 cursor-pointer"
+<button type="button"
+  class="inline-flex items-center rounded-3xl p-1.5 text-sm text-text-primary cursor-pointer hover:rounded-lg hover:bg-hover-bg"
+  [class.m-1.5]="!fullWidth()"
+  [class.w-full]="fullWidth()"
   [cdkMenuTriggerFor]="menu"
   [cdkMenuPosition]="[
     {
@@ -15,18 +18,32 @@
       <img class="avatar h-auto w-full" [src]="user().imageUrl || '/assets/images/avatar-default.svg'" />
     </div>
   } @else {
-    <div class="hidden sm:flex shrink-0 items-center rounded-full bg-primary-600 sm:mr-2 mr-0"
-      style="width: 32px; height: 32px; font-size: 32px; line-height: 32px"
-    >
-      <div class="text-center text-white scale-[0.4]"
-        style="width: 32px; height: 32px; font-size: 32px; line-height: 32px"
+    @if (compact()) {
+      <div class="flex shrink-0 items-center rounded-full bg-primary-600"
+        style="width: 24px; height: 24px; font-size: 24px; line-height: 24px"
       >
-        {{firstLetter()}}
+        <div class="text-center text-components-button-primary-text scale-[0.4]"
+          style="width: 24px; height: 24px; font-size: 24px; line-height: 24px"
+        >
+          {{firstLetter()}}
+        </div>
       </div>
-    </div>
+    } @else {
+      <div class="hidden sm:flex shrink-0 items-center rounded-full bg-primary-600 sm:mr-2 mr-0"
+        style="width: 24px; height: 24px; font-size: 24px; line-height: 24px"
+      >
+        <div class="text-center text-components-button-primary-text scale-[0.4]"
+          style="width: 24px; height: 24px; font-size: 24px; line-height: 24px"
+        >
+          {{firstLetter()}}
+        </div>
+      </div>
+    }
   }
-  {{ user() | user }}
-  <i class="ri-arrow-drop-down-line"></i>
+  @if (!compact()) {
+    {{ user() | user }}
+    <i class="ri-arrow-drop-down-line"></i>
+  }
 </button>
 
 <ng-template #menu>

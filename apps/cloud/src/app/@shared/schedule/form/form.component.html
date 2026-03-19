@@ -29,7 +29,7 @@
 
     @if (!frequency() || frequency() === eTaskFrequency.Once || frequency() === eTaskFrequency.Yearly) {
       <div class="grow min-h-11">
-        <z-date-picker [(ngModel)]="date" zFormat="MM-dd" />
+        <z-date-picker zSize="lg" [(ngModel)]="date" zFormat="MM-dd" />
       </div>
     }
 

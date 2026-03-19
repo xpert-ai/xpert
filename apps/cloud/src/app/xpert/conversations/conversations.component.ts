@@ -143,6 +143,27 @@ export class ChatConversationsComponent {
     this.#dialogRef.close()
   }
 
+  newConversation() {
+    let url = this.#data.basePath ?? '/chat'
+
+    if (this.projectId()) {
+      url += `/p/${this.projectId()}`
+    }
+
+    if (this.xpertSlug()) {
+      url += `/x/${this.xpertSlug()}`
+    }
+
+    this.homeService.conversationId.set(null)
+    this.homeService.conversation.set(null)
+    this.#router.navigateByUrl(url)
+    this.#dialogRef.close()
+  }
+
+  closeDialog() {
+    this.#dialogRef.close()
+  }
+
   deleteConv(id: string) {
     this.loading.set(true)
     this.homeService.deleteConversation(this.xpertId(), id).subscribe({

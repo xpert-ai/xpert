@@ -26,7 +26,7 @@
   ],
   "scripts": {
     "start": "concurrently \"pnpm start:api\" \"pnpm start:cloud\"",
-    "start:cloud": "cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=12288 pnpm nx serve cloud",
+    "start:cloud": "pnpm run theme:check-hardcoded-colors && cross-env NODE_ENV=development NODE_OPTIONS=--max-old-space-size=12288 pnpm nx serve cloud",
     "start:analytics": "pnpm -C ./packages/analytics start",
     "start:angular": "nx serve --project ng --port 4400",
     "start:nest": "nx serve --project nest",
@@ -64,6 +64,7 @@
     "b:stats": "pnpm nx build cloud --stats-json",
     "analyze": "webpack-bundle-analyzer dist/apps/cloud/stats.json",
     "show": "pnpm nx show project cloud --web",
+    "theme:check-hardcoded-colors": "node tools/scripts/check-hardcoded-colors.cjs",
     "theme:check-legacy-colors": "node tools/scripts/check-legacy-colors.cjs",
     "theme:update-legacy-colors-baseline": "node tools/scripts/check-legacy-colors.cjs --write-baseline",
     "tw:workspace:check-reference": "node tools/scripts/check-tailwind-reference-workspace.cjs",

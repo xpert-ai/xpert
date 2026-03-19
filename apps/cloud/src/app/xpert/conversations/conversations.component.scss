@@ -1,6 +1,10 @@
 @reference "../../../styles/tailwind-reference.css";
 :host {
-  @apply flex flex-col rounded-3xl bg-components-card-bg;
+  @apply flex flex-col rounded-3xl border border-components-panel-border bg-components-card-bg shadow-sm;
+}
+
+.container {
+  @apply min-h-[70vh];
 }
 
 .container.expand {
