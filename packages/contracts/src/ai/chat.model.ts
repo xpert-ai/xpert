@@ -21,6 +21,7 @@ export type TChatConversationOptions = {
   features?: Array<'timeline' | 'sandbox' | 'files'>
   workspacePath?: string
   workspaceUrl?: string
+  sandboxEnvironmentId?: string
 }
 
 export type TChatConversationStatus = 'idle' | 'busy' | 'interrupted' | 'error'
