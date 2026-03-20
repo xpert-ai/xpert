@@ -22,20 +22,62 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		organizationId: string
 	): Promise<IUserOrganization | IUserOrganization[]> {
 		const roleName: string = user.role?.name;
+		const tenantId = user.tenant?.id ?? user.tenantId
 
-		if (roleName === RolesEnum.SUPER_ADMIN) {
-			// Ensure tenant is available before accessing tenant.id
-			if (!user.tenant?.id) {
-				throw new Error('User tenant is required for SUPER_ADMIN role')
-			}
-			return this._addUserToAllOrganizations(user.id, user.tenant.id);
+		if (!user.id || !tenantId) {
+			throw new Error('User id and tenant are required')
 		}
 
-		const entity: IUserOrganization = new UserOrganization();
-		entity.organizationId = organizationId;
-		entity.tenantId = user.tenantId;
-		entity.userId = user.id;
-		return await this.create(entity);
+		if (roleName === RolesEnum.SUPER_ADMIN) {
+			return this._addUserToAllOrganizations(user.id, tenantId);
+		}
+
+		const [membership] = await this.ensureUserOrganizations(user.id, tenantId, [organizationId])
+		return membership
+	}
+
+	private async ensureUserOrganizations(
+		userId: string,
+		tenantId: string,
+		organizationIds: string[]
+	): Promise<IUserOrganization[]> {
+		const normalizedOrganizationIds = Array.from(new Set(organizationIds.filter(Boolean)))
+		if (!normalizedOrganizationIds.length) {
+			return []
+		}
+
+		const existingRelations = await this.repository.find({
+			where: normalizedOrganizationIds.map((organizationId) => ({
+				tenantId,
+				userId,
+				organizationId
+			}))
+		})
+		const membershipByOrganizationId = new Map(
+			existingRelations.map((membership) => [membership.organizationId, membership])
+		)
+		const missingOrganizationIds = normalizedOrganizationIds.filter(
+			(organizationId) => !membershipByOrganizationId.has(organizationId)
+		)
+
+		if (missingOrganizationIds.length) {
+			const createdMemberships = await this.repository.save(
+				missingOrganizationIds.map((organizationId) =>
+					this.repository.create({
+						tenantId,
+						userId,
+						organizationId
+					})
+				)
+			)
+			for (const membership of createdMemberships) {
+				membershipByOrganizationId.set(membership.organizationId, membership)
+			}
+		}
+
+		return normalizedOrganizationIds
+			.map((organizationId) => membershipByOrganizationId.get(organizationId))
+			.filter((membership): membership is IUserOrganization => !!membership)
 	}
 
 	private async _addUserToAllOrganizations(
@@ -47,15 +89,11 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 			where: { tenant: { id: tenantId } },
 			relations: ['tenant']
 		});
-		const entities: IUserOrganization[] = [];
 
-		for await (const organization of organizations) {
-			const entity: IUserOrganization = new UserOrganization();
-			entity.organizationId = organization.id;
-			entity.tenantId = tenantId;
-			entity.userId = userId;
-			entities.push(entity);
-		}
-		return await this.repository.save(entities);
+		return this.ensureUserOrganizations(
+			userId,
+			tenantId,
+			organizations.map((organization) => organization.id)
+		);
 	}
 }

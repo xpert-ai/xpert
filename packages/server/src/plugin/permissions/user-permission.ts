@@ -194,6 +194,11 @@ export class PluginUserPermissionService implements UserPermissionService {
       return
     }
 
+    if (user.role?.name === RolesEnum.SUPER_ADMIN) {
+      await userOrganizationService.addUserToOrganization(user as any, input.organizationId)
+      return
+    }
+
     try {
       await userOrganizationService.findOneByWhereOptions({
         tenantId: input.tenantId,
