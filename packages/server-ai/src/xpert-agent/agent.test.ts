@@ -1,5 +1,5 @@
 import { TXpertGraph } from '@metad/contracts'
-import { getSwarmPartners } from './agent'
+import { getSwarmPartners, normalizeOnChatEventPayload } from './agent'
 
 const graph = {
 	nodes: [
@@ -172,5 +172,40 @@ describe('getSwarmPartners', () => {
 		console.log(partners)
 
 		expect(partners).toContain('Agent_ZFpv3an8VX')
+	})
+})
+
+describe('normalizeOnChatEventPayload', () => {
+	it('adds stable presentation fields for thread context usage events', () => {
+		const normalized = normalizeOnChatEventPayload({
+			tags: ['thread-1'],
+			rest: {
+				run_id: 'run-1',
+				metadata: {
+					__pregel_task_id: 'task-1'
+				}
+			},
+			data: {
+				type: 'thread_context_usage',
+				runId: 'run-1',
+				usage: {
+					inputTokens: 120,
+					outputTokens: 30,
+					contextTokens: 120,
+					totalTokens: 150,
+					totalPrice: 1.25,
+					currency: 'USD'
+				}
+			}
+		})
+
+		expect(normalized).toMatchObject({
+			id: 'chat:thread_context_usage:run-1',
+			title: 'Thread context usage',
+			status: 'info'
+		})
+		expect(normalized.message).toBe(
+			'Total 150 tokens, input 120, output 30, context 120, cost 1.25 USD'
+		)
 	})
 })

@@ -442,12 +442,11 @@ export function createMapStreamEvents(
 							data: {
 								type: ChatMessageTypeEnum.EVENT,
 								event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
-								data: {
+								data: normalizeOnChatEventPayload({
 									tags,
-									...rest,
-									...data,
-									created_date: new Date()
-								}
+									data,
+									rest
+								})
 							}
 						} as MessageEvent)
 					}
@@ -464,6 +463,101 @@ export function createMapStreamEvents(
 		const content = processFun(event)
 		return content
 	}
+}
+
+export function normalizeOnChatEventPayload(params: {
+	tags: string[]
+	data: Record<string, unknown>
+	rest?: Record<string, unknown>
+}): Record<string, unknown> {
+	const payload = {
+		tags: params.tags,
+		...(params.rest ?? {}),
+		...(params.data ?? {}),
+		created_date: new Date()
+	} as Record<string, unknown>
+	const eventType = toNonEmptyString(payload.type) ?? 'chat_event'
+	const metadata = toRecord(payload.metadata)
+	const stableSource =
+		toNonEmptyString(payload.id) ??
+		toNonEmptyString(payload.runId) ??
+		toNonEmptyString(payload.run_id) ??
+		toNonEmptyString(metadata?.__pregel_task_id) ??
+		toNonEmptyString(metadata?.langgraph_checkpoint_ns) ??
+		toNonEmptyString(metadata?.executionId) ??
+		toNonEmptyString(payload.threadId) ??
+		toNonEmptyString(metadata?.thread_id)
+
+	if (!payload.id && stableSource) {
+		payload.id = `chat:${eventType}:${stableSource}`
+	}
+
+	if (eventType === 'thread_context_usage') {
+		const usage = toRecord(payload.usage)
+		payload.title = toNonEmptyString(payload.title) ?? 'Thread context usage'
+		payload.status = toNonEmptyString(payload.status) ?? 'info'
+		payload.message = toNonEmptyString(payload.message) ?? formatThreadContextUsageSummary(usage)
+	}
+
+	return payload
+}
+
+function formatThreadContextUsageSummary(usage: Record<string, unknown> | null): string {
+	if (!usage) {
+		return 'Token usage updated.'
+	}
+
+	const totalTokens = toFiniteNumber(
+		usage.totalTokens,
+		toFiniteNumber(usage.inputTokens) + toFiniteNumber(usage.outputTokens)
+	)
+	const parts = [`Total ${totalTokens} tokens`]
+	const inputTokens = toFiniteNumber(usage.inputTokens)
+	const outputTokens = toFiniteNumber(usage.outputTokens)
+	const contextTokens = toFiniteNumber(usage.contextTokens)
+	const embedTokens = toFiniteNumber(usage.embedTokens)
+	const totalPrice = toFiniteNumber(usage.totalPrice)
+	const currency = toNonEmptyString(usage.currency)
+
+	parts.push(`input ${inputTokens}`)
+	parts.push(`output ${outputTokens}`)
+	if (contextTokens > 0) {
+		parts.push(`context ${contextTokens}`)
+	}
+	if (embedTokens > 0) {
+		parts.push(`embed ${embedTokens}`)
+	}
+	if (totalPrice > 0) {
+		parts.push(`cost ${totalPrice}${currency ? ` ${currency}` : ''}`)
+	}
+
+	return parts.join(', ')
+}
+
+function toRecord(value: unknown): Record<string, unknown> | null {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		return null
+	}
+
+	return value as Record<string, unknown>
+}
+
+function toNonEmptyString(value: unknown): string | null {
+	return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function toFiniteNumber(value: unknown, fallback = 0): number {
+	if (typeof value === 'number' && Number.isFinite(value)) {
+		return value
+	}
+	if (typeof value === 'string') {
+		const parsed = Number.parseFloat(value)
+		if (Number.isFinite(parsed)) {
+			return parsed
+		}
+	}
+
+	return fallback
 }
 
 /**
