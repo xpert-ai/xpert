@@ -50,7 +50,7 @@ import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
 import { instanceToPlain } from 'class-transformer'
 import { Request, Response } from 'express'
-import { Between, DeleteResult, IsNull, LessThanOrEqual, Like, Not } from 'typeorm'
+import { Between, DeleteResult, IsNull, LessThanOrEqual, Like, MoreThanOrEqual, Not } from 'typeorm'
 import { I18nLang, I18nService } from 'nestjs-i18n'
 import { v4 as uuidv4 } from 'uuid'
 import { ChatConversation, XpertAgentExecution } from '../core/entities/internal'
@@ -73,6 +73,9 @@ import { XpertDeleteCommand } from './commands/delete.command'
 import { EnqueueAgentChatMessageCommand } from '../handoff/commands'
 import { XPERT_HANDOFF_QUEUE } from '../handoff/constants'
 import { AGENT_CHAT_MESSAGE_TYPE } from '../handoff/local-sync-task.service'
+
+type ConversationDateField = 'createdAt' | 'updatedAt'
+type ConversationSortOrder = 'ASC' | 'DESC'
 
 
 @ApiTags('Xpert')
@@ -648,18 +651,29 @@ export class XpertController extends CrudController<Xpert> {
 		@Param('id') id: string,
 		@Query('data', ParseJsonPipe) data: PaginationParams<ChatConversation>,
 		@Query('start') start: string,
-		@Query('end') end: string
+		@Query('end') end: string,
+		@Query('dateField') dateField?: ConversationDateField,
+		@Query('sortField') sortField?: ConversationDateField,
+		@Query('sortOrder') sortOrder?: ConversationSortOrder
 	) {
 		const {where} = data
+		const resolvedDateField = this.resolveConversationDateField(dateField)
+		const resolvedSortField = sortField ? this.resolveConversationDateField(sortField) : null
+		const dateFilter = this.buildConversationDateFilter(start, end)
 		const result = await this.queryBus.execute(new ChatConversationLogsQuery(
 			{
 				...data,
 				where: {
 					...(where ?? {}),
 					xpertId: id,
-					// Logs should reflect recently active conversations, not only newly created ones.
-					updatedAt: start ? Between(new Date(start), new Date(end)) : LessThanOrEqual(new Date(end))
+					...(dateFilter ? { [resolvedDateField]: dateFilter } : {})
 				},
+				order: resolvedSortField
+					? {
+							...(data.order ?? {}),
+							[resolvedSortField]: this.resolveConversationSortOrder(sortOrder)
+					  }
+					: data.order
 			},
 		))
 		return {
@@ -690,6 +704,30 @@ export class XpertController extends CrudController<Xpert> {
 		const userId = RequestContext.currentUserId()
 		const fromEndUserId = (<Request>(<unknown>RequestContext.currentRequest())).cookies['anonymous.id']
 		return userId ? fromEndUserId ? {createdById: userId, fromEndUserId} : {createdById: userId} : {fromEndUserId}
+	}
+
+	private resolveConversationDateField(field?: string): ConversationDateField {
+		return field === 'updatedAt' ? 'updatedAt' : 'createdAt'
+	}
+
+	private resolveConversationSortOrder(order?: string): ConversationSortOrder {
+		return order === 'ASC' ? 'ASC' : 'DESC'
+	}
+
+	private buildConversationDateFilter(start?: string, end?: string) {
+		if (start && end) {
+			return Between(new Date(start), new Date(end))
+		}
+
+		if (start) {
+			return MoreThanOrEqual(new Date(start))
+		}
+
+		if (end) {
+			return LessThanOrEqual(new Date(end))
+		}
+
+		return null
 	}
 
 	@Public()
