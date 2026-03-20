@@ -35,16 +35,59 @@ function ensureDir(dir: string) {
 	}
 }
 
-function shouldStageEntry(source: string) {
+interface StageCopyOptions {
+	includeNodeModules?: boolean
+	materializeExternalSymlinks?: boolean
+}
+
+function shouldStageEntry(source: string, options: StageCopyOptions = {}) {
 	const base = path.basename(source)
+	if (base === 'node_modules') {
+		return !!options.includeNodeModules
+	}
 	return !['.git', '.DS_Store'].includes(base)
 }
 
-function copyWorkspaceEntry(sourcePath: string, destinationPath: string) {
+function getStagedSymlinkTarget(
+	sourcePath: string,
+	destinationPath: string,
+	resolvedTarget: string,
+	workspaceRoot: string,
+	stageRoot: string
+) {
+	const sourceLinkTarget = fs.readlinkSync(sourcePath)
+	if (path.isAbsolute(sourceLinkTarget)) {
+		const stagedAbsoluteTarget = path.join(stageRoot, path.relative(workspaceRoot, resolvedTarget))
+		return path.relative(path.dirname(destinationPath), stagedAbsoluteTarget) || '.'
+	}
+
+	const resolvedFromSourceDir = path.resolve(path.dirname(sourcePath), sourceLinkTarget)
+	const stagedSourceDir = path.join(stageRoot, path.relative(workspaceRoot, path.dirname(sourcePath)))
+	const stagedAbsoluteTarget = path.join(stageRoot, path.relative(workspaceRoot, resolvedFromSourceDir))
+	return path.relative(stagedSourceDir, stagedAbsoluteTarget) || '.'
+}
+
+function copyWorkspaceEntry(
+	sourcePath: string,
+	destinationPath: string,
+	workspaceRoot: string,
+	stageRoot: string,
+	options: StageCopyOptions = {}
+) {
 	const entry = fs.lstatSync(sourcePath)
 
 	if (entry.isSymbolicLink()) {
 		const resolvedTarget = fs.realpathSync.native(sourcePath)
+		if (!isWithinRoot(resolvedTarget, workspaceRoot)) {
+			if (!options.materializeExternalSymlinks) {
+				throw new Error(
+					`Symlink target '${resolvedTarget}' for '${sourcePath}' is outside workspace root '${workspaceRoot}'`
+				)
+			}
+
+			copyWorkspaceEntry(resolvedTarget, destinationPath, resolvedTarget, destinationPath, options)
+			return
+		}
 		const targetStats = fs.statSync(sourcePath)
 		ensureDir(path.dirname(destinationPath))
 
@@ -61,7 +104,11 @@ function copyWorkspaceEntry(sourcePath: string, destinationPath: string) {
 		}
 
 		const type = targetStats.isDirectory() ? 'dir' : 'file'
-		fs.symlinkSync(fs.readlinkSync(sourcePath), destinationPath, type)
+		fs.symlinkSync(
+			getStagedSymlinkTarget(sourcePath, destinationPath, resolvedTarget, workspaceRoot, stageRoot),
+			destinationPath,
+			type
+		)
 		return
 	}
 
@@ -69,10 +116,10 @@ function copyWorkspaceEntry(sourcePath: string, destinationPath: string) {
 		ensureDir(destinationPath)
 		for (const child of fs.readdirSync(sourcePath)) {
 			const childSourcePath = path.join(sourcePath, child)
-			if (!shouldStageEntry(childSourcePath)) {
+			if (!shouldStageEntry(childSourcePath, options)) {
 				continue
 			}
-			copyWorkspaceEntry(childSourcePath, path.join(destinationPath, child))
+			copyWorkspaceEntry(childSourcePath, path.join(destinationPath, child), workspaceRoot, stageRoot, options)
 		}
 		return
 	}
@@ -104,6 +151,52 @@ function assertWorkspacePathAllowed(workspacePath: string) {
 	if (!roots.some((root) => isWithinRoot(workspacePath, root))) {
 		throw new Error(`workspacePath '${workspacePath}' is outside allowed roots: ${roots.join(', ')}`)
 	}
+}
+
+function getPackageDirFromWorkspace(workspacePath: string, packageName: string) {
+	return path.join(workspacePath, 'node_modules', ...packageName.split('/'))
+}
+
+function hasStageableEntrypoint(workspacePath: string) {
+	return (
+		fs.existsSync(path.join(workspacePath, 'dist')) ||
+		fs.existsSync(path.join(workspacePath, 'src', 'index.ts'))
+	)
+}
+
+function resolveWorkspacePackageRoot(workspacePath: string, expectedPackageName: string) {
+	const normalizedPackageName = normalizePluginName(expectedPackageName)
+	const directPackageDir = getPackageDirFromWorkspace(workspacePath, normalizedPackageName)
+	const candidatePackageRoots = [workspacePath]
+
+	if (fs.existsSync(directPackageDir)) {
+		candidatePackageRoots.push(fs.realpathSync.native(directPackageDir))
+	}
+
+	const pnpmVirtualStorePackageDir = path.join(workspacePath, 'node_modules', '.pnpm', 'node_modules', ...normalizedPackageName.split('/'))
+	if (fs.existsSync(pnpmVirtualStorePackageDir)) {
+		candidatePackageRoots.push(fs.realpathSync.native(pnpmVirtualStorePackageDir))
+	}
+
+	for (const candidateRoot of candidatePackageRoots) {
+		const packageJsonPath = path.join(candidateRoot, 'package.json')
+		if (!fs.existsSync(packageJsonPath)) {
+			continue
+		}
+
+		try {
+			const packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')) as { name?: string }
+			if (packageJson.name === normalizedPackageName && hasStageableEntrypoint(candidateRoot)) {
+				return candidateRoot
+			}
+		} catch {
+			// Ignore invalid candidate package.json and continue to the next candidate.
+		}
+	}
+
+	throw new Error(
+		`workspacePath must contain plugin sources/build output for '${normalizedPackageName}' directly or under node_modules`
+	)
 }
 
 function isPluginInstalled(pluginDir: string, pluginName: string) {
@@ -241,28 +334,10 @@ export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string 
 	const workspacePath = fs.realpathSync.native(opts.workspacePath)
 	assertWorkspacePathAllowed(workspacePath)
 
-	const pkgJsonPath = path.join(workspacePath, 'package.json')
-	if (!fs.existsSync(pkgJsonPath)) {
-		throw new Error(`package.json not found in workspacePath: ${workspacePath}`)
-	}
-
-	const packageJson = JSON.parse(fs.readFileSync(pkgJsonPath, 'utf8')) as { name?: string }
-	if (!packageJson?.name) {
-		throw new Error(`Invalid package.json in workspacePath: missing 'name'`)
-	}
-
 	const normalizedPackageName = normalizePluginName(opts.expectedPackageName)
-	if (packageJson.name !== normalizedPackageName) {
-		throw new Error(
-			`workspace package name mismatch: expected '${normalizedPackageName}', got '${packageJson.name}'`
-		)
-	}
-
-	const hasDist = fs.existsSync(path.join(workspacePath, 'dist'))
-	const hasSrcEntry = fs.existsSync(path.join(workspacePath, 'src', 'index.ts'))
-	if (!hasDist && !hasSrcEntry) {
-		throw new Error(`workspacePath must contain either 'dist/' or 'src/index.ts' for plugin loading`)
-	}
+	const sourcePackageDir = resolveWorkspacePackageRoot(workspacePath, normalizedPackageName)
+	const includeNodeModules =
+		sourcePackageDir !== workspacePath || sourcePackageDir.split(path.sep).includes('node_modules')
 
 	const pluginDir = getOrganizationPluginPath(opts.organizationId, opts.pluginName, opts)
 	const targetPackageDir = path.join(pluginDir, 'node_modules', normalizedPackageName)
@@ -270,7 +345,10 @@ export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string 
 
 	fs.rmSync(pluginDir, { recursive: true, force: true })
 	ensureDir(targetBaseDir)
-	copyWorkspaceEntry(workspacePath, targetPackageDir)
+	copyWorkspaceEntry(sourcePackageDir, targetPackageDir, sourcePackageDir, targetPackageDir, {
+		includeNodeModules,
+		materializeExternalSymlinks: includeNodeModules
+	})
 	prunePackagedPeerDependencies(targetPackageDir)
 
 	return pluginDir
