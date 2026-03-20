@@ -42,6 +42,14 @@ export type TXpertVariablesOptions = {
   inputs?: string[];
 }
 
+export type TConversationLogsDateField = 'createdAt' | 'updatedAt'
+
+export interface TXpertConversationLogsQueryOptions {
+  dateField?: TConversationLogsDateField
+  sortField?: TConversationLogsDateField
+  sortOrder?: 'ASC' | 'DESC'
+}
+
 export type TSandboxProvider = {
   type: string
   meta: TSandboxProviderMeta
@@ -278,11 +286,29 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
   }
 
   // Conversations
-  getConversations(id: string, options: PaginationParams<IChatConversation>, timeRange: string[]) {
-    const params = toHttpParams(options)
+  getConversations(
+    id: string,
+    options: PaginationParams<IChatConversation>,
+    timeRange: string[],
+    queryOptions: TXpertConversationLogsQueryOptions = {}
+  ) {
+    let params = toHttpParams(options)
+    params = timeRangeToParams(params, timeRange)
+
+    if (queryOptions.dateField) {
+      params = params.set('dateField', queryOptions.dateField)
+    }
+
+    if (queryOptions.sortField) {
+      params = params.set('sortField', queryOptions.sortField)
+    }
+
+    if (queryOptions.sortOrder) {
+      params = params.set('sortOrder', queryOptions.sortOrder)
+    }
 
     return this.httpClient.get<{items: TChatConversationLog[]; total: number;}>(this.apiBaseUrl + `/${id}/conversations`, {
-      params: timeRangeToParams(params, timeRange)
+      params
     })
   }
 

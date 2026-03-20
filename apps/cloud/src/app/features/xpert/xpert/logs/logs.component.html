@@ -6,6 +6,13 @@
 
 <div class="flex items-center mb-2 gap-2">
   <ngm-select [placeholder]="'PAC.Xpert.SelectTimeRange' | translate: {Default: 'Select time range'}" icon="ri-calendar-line" [selectOptions]="TimeRanges" [(ngModel)]="timeRangeValue" class="min-w-[150px] rounded-lg shadow-sm" />
+  <ngm-select
+    [placeholder]="'PAC.Xpert.LogDateField' | translate: {Default: 'Filter by'}"
+    [selectOptions]="conversationDateFields"
+    [(ngModel)]="dateField"
+    (ngModelChange)="onDateFieldChange()"
+    class="min-w-[160px] rounded-lg shadow-sm"
+  />
   <button
     class="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
     [disabled]="loading()"

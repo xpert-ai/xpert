@@ -219,59 +219,6 @@ function getPluginDirName(pluginName: string) {
 	return version ? `${normalized}@${version}` : normalized
 }
 
-function prunePackagedPeerDependencies(pluginPackageDir: string) {
-	const packageJsonPath = path.join(pluginPackageDir, 'package.json')
-	if (!fs.existsSync(packageJsonPath)) {
-		return
-	}
-
-	let packageJson: { name?: string; peerDependencies?: Record<string, string> }
-	try {
-		packageJson = JSON.parse(fs.readFileSync(packageJsonPath, 'utf8')) as {
-			name?: string
-			peerDependencies?: Record<string, string>
-		}
-	} catch (error) {
-		console.warn(`Failed to read plugin package.json for peer dependency pruning at ${packageJsonPath}:`, error)
-		return
-	}
-
-	const peerDependencyNames = Object.keys(packageJson.peerDependencies ?? {})
-	if (!peerDependencyNames.length) {
-		return
-	}
-
-	const pluginNodeModulesDir = path.join(pluginPackageDir, 'node_modules')
-	if (!fs.existsSync(pluginNodeModulesDir)) {
-		return
-	}
-
-	const removedDependencies: string[] = []
-	for (const dependencyName of peerDependencyNames) {
-		const dependencyPath = path.join(pluginNodeModulesDir, ...dependencyName.split('/'))
-		if (!fs.existsSync(dependencyPath)) {
-			continue
-		}
-
-		fs.rmSync(dependencyPath, { recursive: true, force: true })
-		removedDependencies.push(dependencyName)
-	}
-
-	if (removedDependencies.length) {
-		console.log(
-			chalk.yellow(
-				`Pruned packaged peer dependencies for plugin ${packageJson.name ?? pluginPackageDir}: ${removedDependencies.join(', ')}`
-			)
-		)
-	}
-}
-
-export function sanitizeStagedPluginPackage(pluginDir: string, pluginName: string) {
-	const normalizedName = normalizePluginName(pluginName)
-	const pluginPackageDir = path.join(pluginDir, 'node_modules', normalizedName)
-	prunePackagedPeerDependencies(pluginPackageDir)
-}
-
 export function getOrganizationPluginRoot(organizationId: string, opts?: OrganizationPluginStoreOptions) {
 	return path.join(opts?.rootDir ?? DEFAULT_ORG_PLUGIN_ROOT, organizationId)
 }
@@ -349,7 +296,6 @@ export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string 
 		includeNodeModules,
 		materializeExternalSymlinks: includeNodeModules
 	})
-	prunePackagedPeerDependencies(targetPackageDir)
 
 	return pluginDir
 }
@@ -384,7 +330,6 @@ export function installOrganizationPlugins(
 	for (const plugin of plugins) {
 		const pluginDir = getOrganizationPluginPath(organizationId, plugin, opts)
 		if (isPluginInstalled(pluginDir, plugin)) {
-			sanitizeStagedPluginPackage(pluginDir, plugin)
 			console.log(chalk.yellow(`Plugin ${plugin} already installed at ${pluginDir}, skipping install.`))
 			manifest.add(plugin)
 			continue
@@ -413,7 +358,6 @@ export function installOrganizationPlugins(
 					npm_config_lockfile: 'false'
 				}
 			})
-			sanitizeStagedPluginPackage(pluginDir, plugin)
 			console.log(chalk.green(`Installed plugin ${plugin} for org ${organizationId} at ${pluginDir}`))
 			manifest.add(plugin)
 		} catch (error) {

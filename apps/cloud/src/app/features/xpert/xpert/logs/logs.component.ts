@@ -10,7 +10,15 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { UserPipe } from '@cloud/app/@shared/pipes'
 import { delayWhen, filter, switchMap, tap } from 'rxjs/operators'
-import { ChatConversationService, DateRelativePipe, OrderTypeEnum, routeAnimations, TChatConversationLog, XpertAPIService } from '@cloud/app/@core'
+import {
+  ChatConversationService,
+  DateRelativePipe,
+  OrderTypeEnum,
+  routeAnimations,
+  TChatConversationLog,
+  TConversationLogsDateField,
+  XpertAPIService
+} from '@cloud/app/@core'
 import { XpertComponent } from '../xpert.component'
 import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
 import { ChatConversationPreviewComponent, ChatMessageExecutionPanelComponent } from '@cloud/app/@shared/chat'
@@ -40,6 +48,10 @@ import { UsersService } from '@metad/cloud/state'
 })
 export class XpertLogsComponent {
   TimeRanges = TimeRangeOptions
+  readonly conversationDateFields = [
+    { value: 'createdAt', label: 'Created Time' },
+    { value: 'updatedAt', label: 'Updated Time' }
+  ] satisfies Array<{ value: TConversationLogsDateField; label: string }>
   readonly xpertService = inject(XpertAPIService)
   readonly conversationService = inject(ChatConversationService)
   readonly usersService = inject(UsersService)
@@ -58,6 +70,7 @@ export class XpertLogsComponent {
   readonly endUsers = signal<Record<string, any>>({})
 
   readonly timeRangeValue = model<TimeRangeEnum>(TimeRangeEnum.Last7Days)
+  readonly dateField = model<TConversationLogsDateField>('createdAt')
   readonly timeRange = computed(() => calcTimeRange(this.timeRangeValue()))
   readonly timeRange$ = toObservable(this.timeRange)
 
@@ -116,7 +129,11 @@ export class XpertLogsComponent {
           order: { updatedAt: OrderTypeEnum.DESC },
           take: this.pageSize,
           skip: this.currentPage() * this.pageSize
-        }, this.timeRange())
+        }, this.timeRange(), {
+          dateField: this.dateField(),
+          sortField: 'updatedAt',
+          sortOrder: 'DESC'
+        })
       }),
       tap({
         next: ({ items, total }) => {
@@ -139,6 +156,10 @@ export class XpertLogsComponent {
     this.currentPage.set(0)
     this.done.set(false)
     this.loadConversations()
+  }
+
+  onDateFieldChange() {
+    this.refreshConversations()
   }
 
   onIntersection() {
