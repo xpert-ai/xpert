@@ -15,6 +15,24 @@ export interface PluginLoadOptions {
 const isProd = process.env.NODE_ENV === 'production'
 const dynamicImport = new Function('specifier', 'return import(specifier)') as (specifier: string) => Promise<any>
 
+function isFileSystemSpecifier(target: string) {
+	return (
+		target.startsWith('.') ||
+		target.startsWith('/') ||
+		target.startsWith('file://') ||
+		/^[a-zA-Z]:[\\/]/.test(target) ||
+		target.startsWith('\\\\')
+	)
+}
+
+export function toPluginImportTarget(target: string) {
+	if (target.startsWith('file://')) {
+		return target
+	}
+
+	return isFileSystemSpecifier(target) ? pathToFileURL(target).href : target
+}
+
 function getRequire(basedir?: string) {
 	if (!basedir) return require
 	try {
@@ -77,9 +95,7 @@ async function loadModule(modName: string, opts: PluginLoadOptions = {}): Promis
 		}
 	}
 	const target = resolveFromBase(modName)
-	const importTarget = target.startsWith('.') || target.includes('\\') || target.includes('/')
-		? pathToFileURL(target).href
-		: target
+	const importTarget = toPluginImportTarget(target)
 	let errorMessage = ''
 	// Try ESM import
 	try {
