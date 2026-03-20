@@ -226,7 +226,7 @@ export class IntegrationComponent implements IsDirty {
   }
 
   test() {
-    if (this.formGroup.value.id && this.isLarkProvider() && this.isLongConnectionMode()) {
+    if (this.#shouldReconnectSavedLarkRuntimeForTest()) {
       this.loading.set(true)
       this.integrationAPI.reconnectLarkRuntimeStatus(this.formGroup.value.id).subscribe({
         next: (status) => {
@@ -278,8 +278,24 @@ export class IntegrationComponent implements IsDirty {
     })
   }
 
+  #shouldReconnectSavedLarkRuntimeForTest(): boolean {
+    return !!this.formGroup.value.id && this.isLarkProvider() && this.isLongConnectionMode() && !this.formGroup.dirty
+  }
+
   upsert() {
     this.loading.set(true)
+    const currentIntegration = this.integration()
+    const previousLarkConnectionMode = this.#resolveLarkConnectionMode(
+      currentIntegration?.provider,
+      currentIntegration?.options
+    )
+    const nextLarkConnectionMode = this.#resolveLarkConnectionMode(
+      this.formGroup.value.provider,
+      this.formGroup.value.options
+    )
+    const shouldReconnectLarkRuntime = nextLarkConnectionMode === 'long_connection'
+    const shouldDisconnectLarkRuntime =
+      !!currentIntegration?.id && previousLarkConnectionMode === 'long_connection' && !shouldReconnectLarkRuntime
     const payload = this.formGroup.value.id
       ? this.integrationAPI.update(this.formGroup.value.id, {
           ...this.formGroup.value
@@ -293,7 +309,7 @@ export class IntegrationComponent implements IsDirty {
           this.formGroup.patchValue({ id: integration.id }, { emitEvent: false })
         }
         this.formGroup.markAsPristine()
-        if (integrationId && this.isLarkProvider() && this.isLongConnectionMode()) {
+        if (integrationId && shouldReconnectLarkRuntime) {
           this.integrationAPI.reconnectLarkRuntimeStatus(integrationId).subscribe({
             next: (status) => {
               this.larkRuntimeStatus.set(status)
@@ -318,6 +334,27 @@ export class IntegrationComponent implements IsDirty {
           return
         }
 
+        if (integrationId && shouldDisconnectLarkRuntime) {
+          this.integrationAPI.disconnectLarkRuntimeStatus(integrationId).subscribe({
+            next: () => {
+              this.larkRuntimeStatus.set(null)
+              this.loading.set(false)
+              this.#toastr.success('PAC.Messages.UpdatedSuccessfully', {
+                Default: 'Saved successfully and long connection deactivated.'
+              })
+              this.#router.navigate(['..'], { relativeTo: this.#route })
+            },
+            error: (error) => {
+              this.loading.set(false)
+              this.#toastr.warning(
+                getErrorMessage(error) || 'Saved successfully, but long connection deactivation failed.'
+              )
+              this.#router.navigate(['..'], { relativeTo: this.#route })
+            }
+          })
+          return
+        }
+
         this.loading.set(false)
         this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created Successfully!' })
         this.#router.navigate(['..'], { relativeTo: this.#route })
@@ -327,6 +364,17 @@ export class IntegrationComponent implements IsDirty {
         this.#toastr.error(getErrorMessage(error))
       }
     })
+  }
+
+  #resolveLarkConnectionMode(
+    provider: string | null | undefined,
+    options: { connectionMode?: 'webhook' | 'long_connection' } | null | undefined
+  ): 'webhook' | 'long_connection' | null {
+    if (provider !== 'lark') {
+      return null
+    }
+
+    return options?.connectionMode === 'long_connection' ? 'long_connection' : 'webhook'
   }
 
   reconnectLarkRuntimeStatus() {

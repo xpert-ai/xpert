@@ -73,6 +73,10 @@ export class IntegrationService extends OrganizationBaseCrudService<IIntegration
   reconnectLarkRuntimeStatus(id: string) {
     return this.httpClient.post<LarkRuntimeStatus>(`${API_PREFIX}/lark/${id}/runtime-status/reconnect`, {})
   }
+
+  disconnectLarkRuntimeStatus(id: string) {
+    return this.httpClient.post<LarkRuntimeStatus>(`${API_PREFIX}/lark/${id}/runtime-status/disconnect`, {})
+  }
 }
 
 export function injectIntegrationAPI() {
