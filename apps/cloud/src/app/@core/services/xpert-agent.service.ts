@@ -3,7 +3,7 @@ import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, shareReplay, switchMap } from 'rxjs'
 import { API_XPERT_AGENT } from '../constants/app.constants'
 import { injectApiBaseUrl } from '../providers'
-import { IXpertAgent, JsonSchemaObjectType, TAgentMiddlewareMeta, TChatAgentParams } from '../types'
+import { IXpertAgent, JsonSchemaObjectType, TAgentMiddlewareMeta, TXpertAgentChatRequest } from '../types'
 import { injectFetchEventSource } from './fetch-event-source'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
@@ -24,7 +24,7 @@ export class XpertAgentService extends XpertWorkspaceBaseCrudService<IXpertAgent
     super(API_XPERT_AGENT)
   }
 
-  chatAgent(data: TChatAgentParams) {
+  chatAgent(data: TXpertAgentChatRequest) {
     return this.fetchEventSource(
       this.baseUrl + this.apiBaseUrl + `/chat`,
       JSON.stringify({

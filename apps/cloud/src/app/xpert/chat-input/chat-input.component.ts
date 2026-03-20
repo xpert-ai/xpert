@@ -172,10 +172,6 @@ export class ChatInputComponent {
 
   constructor() {
     effect(() => {
-      console.log(this.contextUsage())
-    })
-
-    effect(() => {
       if (this.disabled()) {
         this.promptControl.disable()
       } else {
@@ -217,7 +213,7 @@ export class ChatInputComponent {
     this.promptControl.setValue('')
 
     // Send message
-    this.chatService.chat({
+    this.chatService.sendMessage({
       id,
       content,
       files: this.files()?.map((file) => ({

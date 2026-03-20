@@ -1,17 +1,63 @@
 import { validateRunCreateInput } from './run-create-stream.handler'
 
 describe('validateRunCreateInput', () => {
-	it('normalizes simple string payloads', () => {
-		const result = validateRunCreateInput({ input: 'Tell me a joke.' })
-		expect(result.input).toEqual({ input: 'Tell me a joke.' })
-	})
+    it('accepts send payloads', () => {
+        const result = validateRunCreateInput({
+            action: 'send',
+            message: {
+                input: { input: 'Hi' }
+            },
+            state: {
+                human: {
+                    input: 'Hi'
+                }
+            }
+        })
 
-	it('accepts already structured input', () => {
-		const result = validateRunCreateInput({ input: { input: 'Hi' } })
-		expect(result.input).toEqual({ input: 'Hi' })
-	})
+        expect(result).toMatchObject({
+            action: 'send',
+            message: {
+                input: { input: 'Hi' }
+            },
+            state: {
+                human: {
+                    input: 'Hi'
+                }
+            }
+        })
+    })
 
-	it('rejects missing input', () => {
-		expect(() => validateRunCreateInput({})).toThrow()
-	})
+    it('accepts resume payloads', () => {
+        const result = validateRunCreateInput({
+            action: 'resume',
+            conversationId: 'conversation-1',
+            target: {
+                aiMessageId: 'message-1',
+                executionId: 'execution-1'
+            },
+            decision: {
+                type: 'confirm'
+            }
+        })
+
+        expect(result).toEqual({
+            action: 'resume',
+            conversationId: 'conversation-1',
+            target: {
+                aiMessageId: 'message-1',
+                executionId: 'execution-1'
+            },
+            decision: {
+                type: 'confirm'
+            }
+        })
+    })
+
+    it('rejects legacy payloads', () => {
+        expect(() => validateRunCreateInput({ input: { input: 'Tell me a joke.' } })).toThrow()
+    })
+
+    it('rejects missing input', () => {
+        expect(() => validateRunCreateInput({})).toThrow()
+    })
 })

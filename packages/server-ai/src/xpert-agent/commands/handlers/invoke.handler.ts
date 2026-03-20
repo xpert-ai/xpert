@@ -57,7 +57,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
     public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
         const { state, agentKeyOrName, xpert, options } = command
-        const { execution, subscriber, reject, memories } = options
+        const { execution, subscriber, memories } = options
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
         const userId = RequestContext.currentUserId()
@@ -198,71 +198,65 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
 
         const languageCode = options.language || user.preferredLanguage || 'en-US'
         let graphInput = null
-        if (reject) {
-            await this.reject(graph, config, options.command)
-        } else if (options.command) {
-            if (options.command.toolCalls?.length) {
-                await this.updateToolCalls(graph, config, options.command)
+        const interruptCommand = toInterruptCommand(options.resume)
+        if (options.resume) {
+            const commandAgentKey = interruptCommand?.agentKey ?? agent.key
+            const commandPayload = interruptCommand
+                ? {
+                      ...interruptCommand,
+                      agentKey: commandAgentKey
+                  }
+                : ({
+                      agentKey: commandAgentKey
+                  } as TInterruptCommand)
+
+            if (commandPayload.toolCalls?.length) {
+                await this.updateToolCalls(graph, config, commandPayload)
             }
-            if (options.command.resume) {
-                graphInput = new Command(pick(options.command, 'resume', 'update'))
+            if (shouldRejectResumeWithGraph(options.resume)) {
+                await this.reject(graph, config, commandPayload)
+            } else {
+                graphInput = new Command(pick(commandPayload, 'resume', 'update'))
             }
         } else if (state[STATE_VARIABLE_HUMAN]) {
             // English note: Validate human-provided parameter values before building graph input.
             // This prevents oversized strings (max length) from silently passing into runtime.
             validateXpertParameterValues(agent?.parameters, state[STATE_VARIABLE_HUMAN] as any)
-
-            const volumeClient = new VolumeClient({ tenantId, catalog: 'users', userId, projectId: options.projectId })
-            // const agentChannel = channelName(agent.key)
-            // const hasRootMessages = !!state?.messages?.length
-            // const hasAgentMessages = !!state?.[agentChannel]?.messages?.length
-            // // When resuming from checkpoint (checkpointId exists), don't inject HumanMessage
-            // // because the checkpoint already contains the conversation history including HumanMessage.
-            // // We only need to re-generate the AI response.
-            // const isResumeFromCheckpoint = !!options.checkpointId
-            // const shouldInjectHumanMessage = !isResumeFromCheckpoint && !hasRootMessages && !hasAgentMessages && !!state[STATE_VARIABLE_HUMAN]?.input
-            // const humanMessage = shouldInjectHumanMessage
-            // 	? await createHumanMessage(
-            // 			this.commandBus,
-            // 			this.queryBus,
-            // 			{ [STATE_VARIABLE_HUMAN]: state[STATE_VARIABLE_HUMAN] },
-            // 			agent.options?.vision
-            // 		)
-            // 	: null
-            graphInput = {
-                ...(state ?? {}),
-                ...omit(state[STATE_VARIABLE_HUMAN], 'input', 'files'),
-                /**
-                 * @deprecated use `human.input` instead
-                 */
-                input: state[STATE_VARIABLE_HUMAN].input,
-                // // Ensure graph has the real human message for execution logs and prompt input
-                // // Skip injecting when resuming from checkpoint to avoid duplicates
-                // ...(shouldInjectHumanMessage
-                // 	? {
-                // 			messages: [humanMessage],
-                // 			[agentChannel]: {
-                // 				...(state?.[agentChannel] ?? {}),
-                // 				messages: [humanMessage]
-                // 			}
-                // 		}
-                // 	: {}),
-                [STATE_VARIABLE_SYS]: {
-                    language: languageCode,
-                    user_email: user.email,
-                    timezone: user.timeZone || options.timeZone,
-                    date: format(new Date(), 'yyyy-MM-dd'),
-                    datetime: new Date().toLocaleString(),
-                    [STATE_SYS_VOLUME]: volumeClient.getVolumePath(
-                        getWorkspace(options.projectId, options.conversationId)
-                    ),
-                    [STATE_SYS_WORKSPACE_PATH]: workspacePath,
-                    [STATE_SYS_WORKSPACE_URL]: workspaceUrl
-                },
-                [STATE_VARIABLE_HUMAN]: {
-                    ...state[STATE_VARIABLE_HUMAN]
-                },
-                memories
+            if (options.checkpointId) {
+                // Replay from the saved checkpoint state instead of submitting a fresh input.
+                // This matches LangGraph time-travel semantics and avoids injecting a new HumanMessage on retry.
+                graphInput = null
+            } else {
+                const volumeClient = new VolumeClient({
+                    tenantId,
+                    catalog: 'users',
+                    userId,
+                    projectId: options.projectId
+                })
+                graphInput = {
+                    ...(state ?? {}),
+                    ...omit(state[STATE_VARIABLE_HUMAN], 'input', 'files'),
+                    /**
+                     * @deprecated use `human.input` instead
+                     */
+                    input: state[STATE_VARIABLE_HUMAN].input,
+                    [STATE_VARIABLE_SYS]: {
+                        language: languageCode,
+                        user_email: user.email,
+                        timezone: user.timeZone || options.timeZone,
+                        date: format(new Date(), 'yyyy-MM-dd'),
+                        datetime: new Date().toLocaleString(),
+                        [STATE_SYS_VOLUME]: volumeClient.getVolumePath(
+                            getWorkspace(options.projectId, options.conversationId)
+                        ),
+                        [STATE_SYS_WORKSPACE_PATH]: workspacePath,
+                        [STATE_SYS_WORKSPACE_URL]: workspaceUrl
+                    },
+                    [STATE_VARIABLE_HUMAN]: {
+                        ...state[STATE_VARIABLE_HUMAN]
+                    },
+                    memories
+                }
             }
         }
 
@@ -459,4 +453,40 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
             )
         }
     }
+}
+
+type TResumeCommand = {
+    decision: {
+        type: 'confirm' | 'reject'
+        payload?: unknown
+    }
+    patch?: Pick<TInterruptCommand, 'agentKey' | 'toolCalls' | 'update'>
+}
+
+function toInterruptCommand(resume?: TResumeCommand | null): TInterruptCommand | null {
+    if (!resume) {
+        return null
+    }
+
+    const command: TInterruptCommand = {}
+    if (resume.decision.type === 'confirm') {
+        command.resume = resume.decision.payload ?? {}
+    } else if (resume.decision.payload !== undefined) {
+        command.resume = resume.decision.payload
+    }
+    if (resume.patch?.toolCalls?.length) {
+        command.toolCalls = resume.patch.toolCalls
+    }
+    if (resume.patch?.update !== undefined) {
+        command.update = resume.patch.update
+    }
+    if (resume.patch?.agentKey) {
+        command.agentKey = resume.patch.agentKey
+    }
+
+    return Object.keys(command).length ? command : null
+}
+
+function shouldRejectResumeWithGraph(resume?: TResumeCommand | null): boolean {
+    return resume?.decision.type === 'reject' && resume.decision.payload === undefined
 }

@@ -24,6 +24,8 @@ import {
   STATE_VARIABLE_HUMAN,
   TThreadContextUsageEvent,
   TInterruptCommand,
+  TXpertAgentChatRequest,
+  TXpertChatResumeDecision,
   ToastrService,
   TToolCall,
   TXpertParameter,
@@ -43,6 +45,7 @@ import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
 import { isThreadContextUsageEvent } from '../../../../../@shared/chat/context/thread-context-usage'
+import { buildResumeDecision, extractInterruptPatch } from '../../../../../@shared/chat/interrupt-request'
 
 function extractPromptVariables(promptText: string): string[] {
   // Parse mustache-style variables like {{sys.language}} from prompt text.
@@ -296,13 +299,7 @@ export class XpertStudioPanelAgentExecutionComponent {
     return result
   }
 
-  startRunAgent(options?: {
-    /**
-     * @deprecated use onConfirm with command resume instead
-     */
-    reject: boolean
-    confirm?: boolean
-  }) {
+  startRunAgent(options?: { decision?: TXpertChatResumeDecision['type'] }) {
     // English note: Validate user inputs against parameter definitions before sending to server.
     // This provides instant feedback and prevents avoidable backend errors.
     if (!this.validateParameterValues(this.parameters(), this.parameterValue() ?? {})) {
@@ -310,6 +307,10 @@ export class XpertStudioPanelAgentExecutionComponent {
     }
 
     const executionId = this.execution()?.id
+    if (options?.decision && !executionId) {
+      this.#toastr.error('Execution not found')
+      return
+    }
     this.loading.set(true)
     // Clear
     this.clearStatus()
@@ -321,47 +322,56 @@ export class XpertStudioPanelAgentExecutionComponent {
     // Call chat server
     // Structure: input.human.input must be a string to ensure backend creates user message
     // Other parameters are placed at the same level as input for template access
-    this.#agentSubscription = this.xpertAgentService
-      .chatAgent({
-        state: {
-          [STATE_VARIABLE_HUMAN]: {
-            input: userInput
+    const state = {
+      [STATE_VARIABLE_HUMAN]: {
+        input: userInput
+      },
+      ...nestedParams
+    }
+    const patch = extractInterruptPatch(this.command())
+    const request = options?.decision
+      ? ({
+          action: 'resume',
+          state,
+          agentKey: this.xpertAgent().key,
+          xpertId: this.xpert().id,
+          environmentId: this.environment()?.id,
+          target: {
+            executionId
           },
-          ...nestedParams
-        },
-        agentKey: this.xpertAgent().key,
-        xpertId: this.xpert().id,
-        executionId,
-        environmentId: this.environment()?.id,
-        command: this.command(),
-        // operation: (options?.reject || this.#toolCalls()) ? {
-        //   ...this.operation(),
-        //   toolCalls: this.#toolCalls()?.map((call) => ({call}))
-        // } : null,
-        reject: options?.reject
-      })
-      .subscribe({
-        next: (msg) => {
-          if (msg.event === 'error') {
-            this.onChatError(msg.data)
-          } else {
-            if (msg.data) {
-              const event = JSON.parse(msg.data)
-              if (event.type === ChatMessageTypeEnum.MESSAGE) {
-                this.output.update((state) => state + messageContentText(event.data))
-              } else if (event.type === ChatMessageTypeEnum.EVENT) {
-                processEvents(event, this.executionService)
-              }
+          decision: buildResumeDecision(options.decision, this.command()),
+          ...(patch ? { patch } : {})
+        } as TXpertAgentChatRequest)
+      : ({
+          action: 'run',
+          state,
+          agentKey: this.xpertAgent().key,
+          xpertId: this.xpert().id,
+          environmentId: this.environment()?.id
+        } as TXpertAgentChatRequest)
+
+    this.#agentSubscription = this.xpertAgentService.chatAgent(request).subscribe({
+      next: (msg) => {
+        if (msg.event === 'error') {
+          this.onChatError(msg.data)
+        } else {
+          if (msg.data) {
+            const event = JSON.parse(msg.data)
+            if (event.type === ChatMessageTypeEnum.MESSAGE) {
+              this.output.update((state) => state + messageContentText(event.data))
+            } else if (event.type === ChatMessageTypeEnum.EVENT) {
+              processEvents(event, this.executionService)
             }
           }
-        },
-        error: (error) => {
-          this.onChatError(getErrorMessage(error))
-        },
-        complete: () => {
-          this.loading.set(false)
         }
-      })
+      },
+      error: (error) => {
+        this.onChatError(getErrorMessage(error))
+      },
+      complete: () => {
+        this.loading.set(false)
+      }
+    })
   }
 
   /**
@@ -438,7 +448,7 @@ export class XpertStudioPanelAgentExecutionComponent {
 
   onConfirm() {
     this.input.set(null)
-    this.startRunAgent()
+    this.startRunAgent({ decision: 'confirm' })
   }
 
   /**
@@ -446,7 +456,7 @@ export class XpertStudioPanelAgentExecutionComponent {
    */
   onReject() {
     this.input.set(null)
-    this.startRunAgent({ reject: true })
+    this.startRunAgent({ decision: 'reject' })
   }
 
   toggleExpand(key: string) {

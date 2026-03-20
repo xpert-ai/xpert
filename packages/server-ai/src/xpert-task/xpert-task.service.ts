@@ -1,4 +1,12 @@
-import { generateCronExpression, IUser, IXpertTask, RolesEnum, TChatOptions, ScheduleTaskStatus, TaskFrequency } from '@metad/contracts'
+import {
+    generateCronExpression,
+    IUser,
+    IXpertTask,
+    RolesEnum,
+    TChatOptions,
+    ScheduleTaskStatus,
+    TaskFrequency
+} from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { ConfigService } from '@metad/server-config'
 import { RequestContext, runWithRequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
@@ -14,185 +22,188 @@ import { XpertTask } from './xpert-task.entity'
 
 @Injectable()
 export class XpertTaskService extends TenantOrganizationAwareCrudService<XpertTask> implements OnModuleInit {
-	readonly #logger = new Logger(XpertTaskService.name)
+    readonly #logger = new Logger(XpertTaskService.name)
 
-	@Inject(ConfigService)
-	protected readonly configService: ConfigService
+    @Inject(ConfigService)
+    protected readonly configService: ConfigService
 
-	constructor(
-		@InjectRepository(XpertTask)
-		repository: Repository<XpertTask>,
-		private readonly schedulerRegistry: SchedulerRegistry,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
-	) {
-		super(repository)
-	}
+    constructor(
+        @InjectRepository(XpertTask)
+        repository: Repository<XpertTask>,
+        private readonly schedulerRegistry: SchedulerRegistry,
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus
+    ) {
+        super(repository)
+    }
 
-	async onModuleInit() {
-		const { items: jobs, total } = await this.getActiveJobs()
-		jobs.filter((job) => job.options).forEach((job) => {
-			try {
-				this.scheduleCronJob(job, job.createdBy)
-			} catch (err) {
-				console.error(chalk.red('Schedule "' + job.name + '" error:' + getErrorMessage(err)))
-			}
-		})
-		console.log(chalk.magenta(`Scheduled ${total} tasks for xpert`))
-	}
+    async onModuleInit() {
+        const { items: jobs, total } = await this.getActiveJobs()
+        jobs.filter((job) => job.options).forEach((job) => {
+            try {
+                this.scheduleCronJob(job, job.createdBy)
+            } catch (err) {
+                console.error(chalk.red('Schedule "' + job.name + '" error:' + getErrorMessage(err)))
+            }
+        })
+        console.log(chalk.magenta(`Scheduled ${total} tasks for xpert`))
+    }
 
-	async executeTask(id: string, options: TChatOptions) {
-		const task = await this.findOne(id, { relations: ['xpert'] })
-		const observable = await this.commandBus.execute(
-			new XpertChatCommand(
-				{
-					input: {
-						input: task.prompt
-					},
-				},
-				{
-					...options,
-					xpertId: task.xpertId,
-					timeZone: task.timeZone || options.timeZone,
-					from: 'job',
-					taskId: task.id
-				}
-			)
-		)
-		observable.subscribe({
-			next: (message) => {
-				// console.log('Test message:', message)
-			},
-			error: (err) => {
-				this.#logger.error('Test error:', getErrorMessage(err))
-			}
-		})
-	}
+    async executeTask(id: string, options: TChatOptions) {
+        const task = await this.findOne(id, { relations: ['xpert'] })
+        const observable = await this.commandBus.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    message: {
+                        input: {
+                            input: task.prompt
+                        }
+                    }
+                },
+                {
+                    ...options,
+                    xpertId: task.xpertId,
+                    timeZone: task.timeZone || options.timeZone,
+                    from: 'job',
+                    taskId: task.id
+                }
+            )
+        )
+        observable.subscribe({
+            next: (message) => {
+                // console.log('Test message:', message)
+            },
+            error: (err) => {
+                this.#logger.error('Test error:', getErrorMessage(err))
+            }
+        })
+    }
 
-	scheduleCronJob(task: IXpertTask, user: IUser) {
-		const MaximumRuns = 10
-		let runs = 0
+    scheduleCronJob(task: IXpertTask, user: IUser) {
+        const MaximumRuns = 10
+        let runs = 0
 
-		const cronTime = generateCronExpression(task.options)
-		const scheduleJob = () => {
-			const job = CronJob.from({
-				cronTime: cronTime,
-				timeZone: task.timeZone,
-				
-				onTick: () => {
-					runs += 1
-					this.#logger.verbose(`Times (${runs}) for job ${task.name} to run!`)
-					if (task.xpertId) {
-						// Trial account limit
-						if (RequestContext.hasRole(RolesEnum.TRIAL) && runs > MaximumRuns) {
-							this.pause(task.id).catch((err) => {
-								this.#logger.error(err)
-							})
-							return
-						}
+        const cronTime = generateCronExpression(task.options)
+        const scheduleJob = () => {
+            const job = CronJob.from({
+                cronTime: cronTime,
+                timeZone: task.timeZone,
 
-						this.executeTask(task.id, { timeZone: task.timeZone }).catch((err) => {
-							this.#logger.error(err)
-						})
-					}
-				}
-			})
-			if (task.options.frequency === TaskFrequency.Once) {
-				job.runOnce = true
-			}
-			this.schedulerRegistry.addCronJob(task.id, job)
-			job.start()
-		}
+                onTick: () => {
+                    runs += 1
+                    this.#logger.verbose(`Times (${runs}) for job ${task.name} to run!`)
+                    if (task.xpertId) {
+                        // Trial account limit
+                        if (RequestContext.hasRole(RolesEnum.TRIAL) && runs > MaximumRuns) {
+                            this.pause(task.id).catch((err) => {
+                                this.#logger.error(err)
+                            })
+                            return
+                        }
 
-		if (RequestContext.currentUser()) {
-			scheduleJob()
-		} else {
-			runWithRequestContext({ user: user, headers: { ['organization-id']: task.organizationId } }, () => {
-				try {
-					scheduleJob()
-				} catch (err) {
-					console.error(chalk.red('Schedule "' + task.name + '" error: ' + getErrorMessage(err)))
-				}
-			})
-		}
+                        this.executeTask(task.id, { timeZone: task.timeZone }).catch((err) => {
+                            this.#logger.error(err)
+                        })
+                    }
+                }
+            })
+            if (task.options.frequency === TaskFrequency.Once) {
+                job.runOnce = true
+            }
+            this.schedulerRegistry.addCronJob(task.id, job)
+            job.start()
+        }
 
-		this.#logger.warn(`job ${task.name} added for '${cronTime}' and timezone '${task.timeZone}'!`)
-	}
+        if (RequestContext.currentUser()) {
+            scheduleJob()
+        } else {
+            runWithRequestContext({ user: user, headers: { ['organization-id']: task.organizationId } }, () => {
+                try {
+                    scheduleJob()
+                } catch (err) {
+                    console.error(chalk.red('Schedule "' + task.name + '" error: ' + getErrorMessage(err)))
+                }
+            })
+        }
 
-	async removeTasks(tasks: XpertTask[]) {
-		tasks.forEach((task) => {
-			this.deleteJob(task.id)
-		})
+        this.#logger.warn(`job ${task.name} added for '${cronTime}' and timezone '${task.timeZone}'!`)
+    }
 
-		await this.repository.remove(tasks)
-	}
+    async removeTasks(tasks: XpertTask[]) {
+        tasks.forEach((task) => {
+            this.deleteJob(task.id)
+        })
 
-	async getActiveJobs() {
-		return this.findAll({
-			where: {
-				status: ScheduleTaskStatus.SCHEDULED
-			},
-			relations: ['createdBy', 'createdBy.role']
-		})
-	}
+        await this.repository.remove(tasks)
+    }
 
-	rescheduleTask(task: IXpertTask, user: IUser) {
-		try {
-			const job = this.schedulerRegistry.getCronJob(task.id)
-			if (job) {
-				this.schedulerRegistry.deleteCronJob(task.id)
-			}
-		} catch (err) {
-			//
-		}
+    async getActiveJobs() {
+        return this.findAll({
+            where: {
+                status: ScheduleTaskStatus.SCHEDULED
+            },
+            relations: ['createdBy', 'createdBy.role']
+        })
+    }
 
-		this.scheduleCronJob(task, user)
-	}
+    rescheduleTask(task: IXpertTask, user: IUser) {
+        try {
+            const job = this.schedulerRegistry.getCronJob(task.id)
+            if (job) {
+                this.schedulerRegistry.deleteCronJob(task.id)
+            }
+        } catch (err) {
+            //
+        }
 
-	deleteJob(id: string) {
-		try {
-			const job = this.schedulerRegistry.getCronJob(id)
-			if (job) {
-				this.schedulerRegistry.deleteCronJob(id)
-			}
-		} catch (err) {
-			//
-		}
-	}
+        this.scheduleCronJob(task, user)
+    }
 
-	/**
-	 * Update task and reschedule if necessary
-	 */
-	async updateTask(id: string, entity: Partial<IXpertTask>) {
-		await super.update(id, entity)
-		const task = await this.findOne(id, { relations: ['xpert'] })
-		if (task.status === ScheduleTaskStatus.SCHEDULED) {
-			this.rescheduleTask(task, RequestContext.currentUser())
-		} else {
-			this.deleteJob(task.id)
-		}
-		return task
-	}
+    deleteJob(id: string) {
+        try {
+            const job = this.schedulerRegistry.getCronJob(id)
+            if (job) {
+                this.schedulerRegistry.deleteCronJob(id)
+            }
+        } catch (err) {
+            //
+        }
+    }
 
-	async schedule(id: string) {
-		const task = await this.findOne(id, { relations: ['createdBy', 'createdBy.role'] })
-		this.rescheduleTask(task, RequestContext.currentUser() ?? task.createdBy)
-		return await this.update(id, { status: ScheduleTaskStatus.SCHEDULED })
-	}
+    /**
+     * Update task and reschedule if necessary
+     */
+    async updateTask(id: string, entity: Partial<IXpertTask>) {
+        await super.update(id, entity)
+        const task = await this.findOne(id, { relations: ['xpert'] })
+        if (task.status === ScheduleTaskStatus.SCHEDULED) {
+            this.rescheduleTask(task, RequestContext.currentUser())
+        } else {
+            this.deleteJob(task.id)
+        }
+        return task
+    }
 
-	async pause(id: string) {
-		const task = await this.findOne(id)
-		this.deleteJob(task.id)
-		return await this.update(id, { status: ScheduleTaskStatus.PAUSED })
-	}
+    async schedule(id: string) {
+        const task = await this.findOne(id, { relations: ['createdBy', 'createdBy.role'] })
+        this.rescheduleTask(task, RequestContext.currentUser() ?? task.createdBy)
+        return await this.update(id, { status: ScheduleTaskStatus.SCHEDULED })
+    }
 
-	async archive(id: string) {
-		const task = await this.findOne(id)
-		this.deleteJob(task.id)
-		return await this.update(id, { status: ScheduleTaskStatus.ARCHIVED })
-	}
+    async pause(id: string) {
+        const task = await this.findOne(id)
+        this.deleteJob(task.id)
+        return await this.update(id, { status: ScheduleTaskStatus.PAUSED })
+    }
 
-	async test(id: string, options: TChatOptions) {
-		await this.executeTask(id, options)
-	}
+    async archive(id: string) {
+        const task = await this.findOne(id)
+        this.deleteJob(task.id)
+        return await this.update(id, { status: ScheduleTaskStatus.ARCHIVED })
+    }
+
+    async test(id: string, options: TChatOptions) {
+        await this.executeTask(id, options)
+    }
 }

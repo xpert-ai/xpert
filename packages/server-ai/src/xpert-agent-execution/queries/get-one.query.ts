@@ -1,12 +1,15 @@
 import { PaginationParams } from '@metad/server-core'
-import { IQuery } from '@nestjs/cqrs'
+import { Query } from '@nestjs/cqrs'
 import { XpertAgentExecution } from '../agent-execution.entity'
+import { IXpertAgentExecution } from '@metad/contracts'
 
-export class XpertAgentExecutionOneQuery implements IQuery {
-	static readonly type = '[Xpert Agent Execution] Get one'
+export class XpertAgentExecutionOneQuery extends Query<IXpertAgentExecution> {
+    static readonly type = '[Xpert Agent Execution] Get one'
 
-	constructor(
-		public readonly id: string,
-		public readonly paginationParams?: Partial<PaginationParams<XpertAgentExecution>>,
-	) {}
+    constructor(
+        public readonly id: string,
+        public readonly paginationParams?: Partial<PaginationParams<XpertAgentExecution>>
+    ) {
+        super()
+    }
 }

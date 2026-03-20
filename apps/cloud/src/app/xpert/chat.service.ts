@@ -22,6 +22,7 @@ import {
   TChatMessageStep,
   TChatOptions,
   TChatRequest,
+  TXpertChatResumeDecision,
   TThreadContextUsageEvent,
   TInterruptCommand,
   TMessageAppendContext,
@@ -38,94 +39,23 @@ import {
   XpertAPIService
 } from '../@core/services'
 import { AppService } from '../app.service'
+import { filterLatestMessages } from '../@shared/chat/filter-latest-messages'
+import { buildResumeDecision, extractInterruptPatch } from '../@shared/chat/interrupt-request'
 import { XpertHomeService } from './home.service'
 import { isThreadContextUsageEvent, upsertThreadContextUsage } from '../@shared/chat/context/thread-context-usage'
 import { TCopilotChatMessage } from './types'
 
-function getCreatedAtMs(value: unknown): number {
-  if (!value) {
-    return 0
-  }
-  const date = value instanceof Date ? value : new Date(value as string)
-  const time = date.getTime()
-  return Number.isFinite(time) ? time : 0
+function findLastAiMessageId(messages: Array<{ id?: string; role?: string }> | null | undefined): string | null {
+  return [...(messages ?? [])].reverse().find((message) => message?.role === 'ai')?.id ?? null
 }
 
-/**
- * Keep only the newest child per parentId chain, while preserving the original list order.
- */
-function filterLatestMessages<T extends { id?: string; parentId?: string | null; createdAt?: Date }>(
-  messages?: T[] | null
-): T[] | null | undefined {
-  if (!messages?.length) {
-    return messages ?? null
+function createRetryPlaceholderMessage(): TCopilotChatMessage {
+  return {
+    id: uuid(),
+    role: 'ai',
+    content: '',
+    status: 'thinking'
   }
-
-  const byId = new Map<string, T>()
-  const indexById = new Map<string, number>()
-  const childrenByParent = new Map<string | null, T[]>()
-
-  messages.forEach((message, index) => {
-    if (!message?.id) {
-      return
-    }
-    byId.set(message.id, message)
-    indexById.set(message.id, index)
-    const parentId = message.parentId ?? null
-    const siblings = childrenByParent.get(parentId)
-    if (siblings) {
-      siblings.push(message)
-    } else {
-      childrenByParent.set(parentId, [message])
-    }
-  })
-
-  const roots = messages.filter((message) => {
-    if (!message?.id) {
-      return false
-    }
-    const parentId = message.parentId
-    return !parentId || !byId.has(parentId)
-  })
-
-  const keep = new Set<string>()
-
-  const pickLatest = (children: T[]) => {
-    return children.reduce<T | null>((latest, child) => {
-      if (!latest) {
-        return child
-      }
-      const childTime = getCreatedAtMs(child.createdAt)
-      const latestTime = getCreatedAtMs(latest.createdAt)
-      if (childTime > latestTime) {
-        return child
-      }
-      if (childTime < latestTime) {
-        return latest
-      }
-      const childIndex = indexById.get(child.id) ?? -1
-      const latestIndex = indexById.get(latest.id) ?? -1
-      return childIndex > latestIndex ? child : latest
-    }, null)
-  }
-
-  roots.forEach((root) => {
-    let current: T | null = root
-    while (current && !keep.has(current.id)) {
-      keep.add(current.id)
-      const children = childrenByParent.get(current.id)
-      if (!children?.length) {
-        break
-      }
-      current = pickLatest(children)
-    }
-  })
-
-  if (!keep.size) {
-    return messages
-  }
-
-  return messages.filter((message) => !message?.id || keep.has(message.id))
 }
 
 /**
@@ -360,15 +290,90 @@ export abstract class ChatService {
       humanMessage.attachments = params.files as IStorageFile[]
     }
     this.appendMessage(humanMessage)
-    // Send message
-    this.chat({ id, content, files: params.files })
+    this.sendMessage({ id, content, files: params.files })
   }
 
   chatRequest(name: string, request: TChatRequest, options: TChatOptions) {
-    if (this.project()) {
+    if (this.project() && (!('action' in request) || request.action === 'send')) {
       request.projectId = this.project().id
     }
     return this.chatService.chat(request, options)
+  }
+
+  sendMessage(options: { id?: string; content: string; files?: Partial<IStorageFile>[] }) {
+    const request: TChatRequest = {
+      action: 'send',
+      conversationId: this.conversation()?.id,
+      projectId: this.project()?.id,
+      message: {
+        clientMessageId: options.id,
+        input: {
+          ...(this.parametersValue() ?? {}),
+          input: options.content,
+          files: options.files
+        }
+      }
+    }
+
+    this.executeChatRequest(request, {
+      mode: 'send',
+      content: options.content
+    })
+  }
+
+  resumeOperation(options?: { decision?: TXpertChatResumeDecision['type']; command?: TInterruptCommand }) {
+    const conversationId = this.conversation()?.id
+    const aiMessageId = findLastAiMessageId(this.messages())
+    if (!conversationId || !aiMessageId) {
+      this.#toastr.error('Conversation not found')
+      return
+    }
+
+    const patch = extractInterruptPatch(options?.command)
+    const request: TChatRequest = {
+      action: 'resume',
+      conversationId,
+      target: {
+        aiMessageId
+      },
+      decision: buildResumeDecision(options?.decision ?? 'confirm', options?.command),
+      ...(patch ? { patch } : {})
+    }
+
+    this.executeChatRequest(request, {
+      mode: 'resume'
+    })
+  }
+
+  retryMessage(messageId?: string) {
+    const conversationId = this.conversation()?.id
+    const messages = this.messages()
+    const aiMessageId = messageId ?? findLastAiMessageId(messages)
+    if (!conversationId || !aiMessageId) {
+      this.#toastr.error('Conversation not found')
+      return
+    }
+
+    const targetIndex = messages.findIndex((message) => message?.id === aiMessageId)
+    if (targetIndex < 0) {
+      this.#toastr.error('Message not found')
+      return
+    }
+
+    this.#messages.set(messages.slice(0, targetIndex))
+
+    const request: TChatRequest = {
+      action: 'retry',
+      conversationId,
+      source: {
+        aiMessageId
+      }
+    }
+
+    this.executeChatRequest(request, {
+      mode: 'retry',
+      messageId: aiMessageId
+    })
   }
 
   chat(
@@ -392,6 +397,36 @@ export abstract class ChatService {
       messageId?: string
     }>
   ) {
+    if (options.retry) {
+      this.retryMessage(options.messageId)
+      return
+    }
+
+    if (options.confirm || options.reject || options.command) {
+      this.resumeOperation({
+        decision: options.reject ? 'reject' : 'confirm',
+        command: options.command
+      })
+      return
+    }
+
+    if (options.content) {
+      this.sendMessage({
+        id: options.id,
+        content: options.content,
+        files: options.files
+      })
+    }
+  }
+
+  private executeChatRequest(
+    request: TChatRequest,
+    options: {
+      mode: 'send' | 'resume' | 'retry'
+      content?: string
+      messageId?: string
+    }
+  ) {
     // Clear previous suggestion questions when starting a new round of chat.
     // Purpose: avoid showing stale suggestions until the current round generates new ones.
     if (this.suggestion_enabled()) {
@@ -403,14 +438,16 @@ export abstract class ChatService {
     this.messageAppendContextTracker.reset()
     this.conversation.update((state) => ({ ...(state ?? {}), status: 'busy', error: null }) as IChatConversation)
 
-    if (options.confirm) {
+    if (options.mode === 'resume') {
       this.updateLatestMessage((message) => {
         return {
           ...message,
           status: 'thinking'
         }
       })
-    } else if (options.content) {
+    } else if (options.mode === 'retry') {
+      this.appendMessage(createRetryPlaceholderMessage())
+    } else if (options.mode === 'send' && options.content) {
       // Add ai message placeholder
       // this.appendMessage({
       //   id: uuid(),
@@ -419,21 +456,6 @@ export abstract class ChatService {
       //   status: 'thinking'
       // })
     }
-
-    const request = {
-      input: options.retry
-        ? null
-        : {
-            ...(this.parametersValue() ?? {}),
-            input: options.content,
-            files: options.files
-          },
-      conversationId: this.conversation()?.id,
-      id: options.id,
-      command: options.command,
-      confirm: options.confirm,
-      retry: options.retry
-    } as TChatRequest
 
     this.chatSubscription = this.chatRequest(this.xpert()?.slug, request, {
       xpertId: this.xpert()?.id,
@@ -477,7 +499,7 @@ export abstract class ChatService {
                   }
                   break
                 case ChatMessageEventTypeEnum.ON_MESSAGE_START:
-                  if (options.content) {
+                  if (options.mode === 'send' && options.content) {
                     this.appendMessage({
                       id: uuid(),
                       role: 'ai',
