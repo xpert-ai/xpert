@@ -1,12 +1,12 @@
-import { ICommand } from '@nestjs/cqrs'
+// import { ICommand } from '@nestjs/cqrs'
 
-/**
- * Get project vcs credentials
- */
-export class GetVcsCredentialsCommand implements ICommand {
-    static readonly type = '[Xpert Project] Get VCS Credentials'
+// /**
+//  * Get project vcs credentials
+//  */
+// export class GetVcsCredentialsCommand implements ICommand {
+//     static readonly type = '[Xpert Project] Get VCS Credentials'
 
-    constructor(
-        public readonly projectId: string,
-    ) {}
-}
+//     constructor(
+//         public readonly projectId: string,
+//     ) {}
+// }

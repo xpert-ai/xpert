@@ -81,7 +81,7 @@ import {
     XpertAgentExecutionOneQuery,
     XpertAgentExecutionUpsertCommand
 } from '../../../xpert-agent-execution'
-import { CreateProjectToolsetCommand, GetVcsCredentialsCommand, XpertProjectService } from '../../../xpert-project/'
+import { CreateProjectToolsetCommand, XpertProjectService } from '../../../xpert-project/'
 import { ChatCommonCommand } from '../chat-common.command'
 import { _normalizeAgentName, createHandoffBackMessages, createHandoffTool } from './handoff'
 import {
@@ -133,7 +133,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
         let input: TChatRequestHuman | null = request.action === 'send' ? request.message.input : null
         let projectId = request.action === 'send' ? request.projectId : undefined
         let checkpointId: string | undefined
-        let interruptCommand = request.action === 'resume' ? toInterruptCommand(request) : null
+        const interruptCommand = request.action === 'resume' ? toInterruptCommand(request) : null
         const retry = request.action === 'retry'
         const confirm = request.action === 'resume'
 
@@ -327,10 +327,10 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
 
                 let graph: CompiledStateGraph<any, any, any> = null
                 try {
-                    // Vcs credentials
-                    const vcsCredentials = projectId
-                        ? await this.commandBus.execute(new GetVcsCredentialsCommand(projectId))
-                        : null
+                    // // Vcs credentials
+                    // const vcsCredentials = projectId
+                    //     ? await this.commandBus.execute(new GetVcsCredentialsCommand(projectId))
+                    //     : null
                     const thread_id = execution.threadId
                     const mute = [] as TXpertAgentConfig['mute']
                     graph = await this.createReactAgent(
@@ -502,7 +502,7 @@ export class ChatCommonHandler implements ICommandHandler<ChatCommonCommand> {
                                 projectId: project?.id,
                                 subscriber,
                                 [CONFIG_KEY_CREDENTIALS]: {
-                                    ...vcsCredentials
+                                    // ...vcsCredentials
                                 }
                             },
                             recursionLimit: GeneralAgentRecursionLimit,
