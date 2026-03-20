@@ -52,6 +52,24 @@ export function createMapStreamEvents(
 	let prevEvent = ''
 	const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
 
+	const logReplacementCharacter = (
+		stage: string,
+		value: string | null | undefined,
+		extra?: Record<string, unknown>
+	) => {
+		if (!value || !value.includes('\uFFFD')) {
+			return
+		}
+
+		const preview = value.length > 240 ? `${value.slice(0, 240)}...(truncated)` : value
+		logger.warn(
+			`[encoding] replacement char detected at ${stage}: ${JSON.stringify({
+				preview,
+				...extra
+			})}`
+		)
+	}
+
 	const processFun = ({ event, tags, data, ...rest }: any) => {
 		const metadata = rest?.metadata ?? {}
 		if (metadata.internal === true) {
@@ -111,11 +129,16 @@ export function createMapStreamEvents(
 				if (prevEvent !== 'on_chat_model_stream') {
 					if (!isMute(tags, unmutes)) {
 						const msg = data.output as AIMessageChunk
-						return createTextChunk(msg?.content ?? '', {
+						const chunk = createTextChunk(msg?.content ?? '', {
 							streamId: msg?.id || rest?.run_id,
 							agentKey,
 							xpertName
 						})
+						logReplacementCharacter('agent.on_chat_model_end', chunk?.text, {
+							runId: rest?.run_id,
+							streamId: chunk?.id
+						})
+						return chunk
 					}
 				}
 				return null
@@ -127,15 +150,32 @@ export function createMapStreamEvents(
 					const msg = data.chunk as AIMessageChunk
 					if (!msg.tool_call_chunks?.length) {
 						if (msg.content) {
-							return createTextChunk(msg.content, {
+							const chunk = createTextChunk(msg.content, {
 								streamId: msg.id || rest?.run_id,
 								agentKey,
 								xpertName
 							})
+							logReplacementCharacter('agent.on_chat_model_stream', chunk?.text, {
+								runId: rest?.run_id,
+								streamId: chunk?.id
+							})
+							return chunk
 						}
 
 						// Reasoning content in additional_kwargs
-						if (msg.additional_kwargs?.reasoning_content) {
+						const reasoningContent =
+							typeof msg.additional_kwargs?.reasoning_content === 'string'
+								? msg.additional_kwargs.reasoning_content
+								: null
+						if (reasoningContent) {
+							logReplacementCharacter(
+								'agent.on_chat_model_stream.reasoning',
+								reasoningContent,
+								{
+									runId: rest?.run_id,
+									streamId: msg.id || rest?.run_id
+								}
+							)
 							const chunk = {
 								type: 'reasoning',
 								text: '',
@@ -149,7 +189,7 @@ export function createMapStreamEvents(
 								chunk.xpertName = xpertName
 							}
 
-							chunk.text += msg.additional_kwargs.reasoning_content
+							chunk.text += reasoningContent
 							return chunk
 						}
 					}
@@ -162,11 +202,16 @@ export function createMapStreamEvents(
 					const chunk = data?.chunk as unknown
 
 					if (typeof chunk === 'string') {
-						return createTextChunk(chunk, {
+						const textChunk = createTextChunk(chunk, {
 							streamId: rest?.run_id,
 							agentKey,
 							xpertName
 						})
+						logReplacementCharacter('agent.on_chain_stream.string', textChunk?.text, {
+							runId: rest?.run_id,
+							streamId: textChunk?.id
+						})
+						return textChunk
 					}
 
 					if (!chunk || typeof chunk !== 'object') {
@@ -184,11 +229,16 @@ export function createMapStreamEvents(
 					}
 
 					if (typeof message.content === 'string' || Array.isArray(message.content)) {
-						return createTextChunk(message.content, {
+						const textChunk = createTextChunk(message.content, {
 							streamId: message.id ?? rest?.run_id,
 							agentKey,
 							xpertName
 						})
+						logReplacementCharacter('agent.on_chain_stream.message', textChunk?.text, {
+							runId: rest?.run_id,
+							streamId: textChunk?.id
+						})
+						return textChunk
 					}
 				}
 				break

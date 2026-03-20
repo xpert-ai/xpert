@@ -1,6 +1,5 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
-import { MetadataScanner, Reflector } from '@nestjs/core';
-import { DiscoveryService } from '@nestjs/core/discovery';
+import { DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
 
 import { McpServer, ResourceTemplate } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';

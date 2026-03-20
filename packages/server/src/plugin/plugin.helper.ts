@@ -16,7 +16,8 @@ import {
 	getOrganizationPluginPath,
 	getOrganizationPluginRoot,
 	installOrganizationPlugins,
-	OrganizationPluginStoreOptions
+	OrganizationPluginStoreOptions,
+	sanitizeStagedPluginPackage
 } from './organization-plugin.store'
 import {
 	isClassProvider,
@@ -254,6 +255,9 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 			const pluginBaseDir = opts.organizationId
 				? getOrganizationPluginPath(organizationId, name, opts)
 				: baseDirRoot
+			if (opts.organizationId) {
+				sanitizeStagedPluginPackage(pluginBaseDir, name)
+			}
 			// 2) Load each plugin and build its configuration.
 			const plugin = await loadPlugin(name, { basedir: pluginBaseDir })
 			const cfgRaw = opts.configs?.[plugin.meta.name] ?? {}

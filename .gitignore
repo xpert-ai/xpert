@@ -79,3 +79,5 @@ Thumbs.db
 .volumes/
 
 docker/volumes/
+/.codex-plugin-check/
+/lark-callback-debug.log
