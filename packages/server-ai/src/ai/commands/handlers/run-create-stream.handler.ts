@@ -246,10 +246,6 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 
         this.#logger.warn(chatRequest, `validateRunCreateInput ${threadId}`)
 
-        // Resolve sandboxEnvironmentId: prefer request, fallback to conversation options
-        const sandboxEnvironmentId =
-            chatRequest.action === 'send' ? chatRequest.sandboxEnvironmentId : conversation.options.sandboxEnvironmentId
-
         // Update conversation if xpertId is missing or sandboxEnvironmentId needs to be persisted
         let needsUpdate = false
         // Update xpert id for chat conversation
@@ -257,8 +253,15 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             conversation.xpertId = xpert.id
             needsUpdate = true
         }
-        if (sandboxEnvironmentId && conversation.options?.sandboxEnvironmentId !== sandboxEnvironmentId) {
-            conversation.options = { ...conversation.options, sandboxEnvironmentId }
+        if (
+            chatRequest.action === 'send' &&
+            chatRequest.sandboxEnvironmentId &&
+            conversation.options?.sandboxEnvironmentId !== chatRequest.sandboxEnvironmentId
+        ) {
+            conversation.options = {
+                ...(conversation.options || {}),
+                sandboxEnvironmentId: chatRequest.sandboxEnvironmentId
+            }
             needsUpdate = true
         }
         if (needsUpdate) {
@@ -283,7 +286,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 xpertId: xpert.id,
                 from: 'api',
                 execution: chatRequest.action === 'resume' ? undefined : execution,
-                sandboxEnvironmentId
+                sandboxEnvironmentId: conversation.options?.sandboxEnvironmentId
             })
         )
         return {
