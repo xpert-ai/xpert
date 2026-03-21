@@ -76,7 +76,11 @@
                   "zh-hans/guides/handoff",
                   "zh-hans/guides/icon-schema",
                   "zh-hans/guides/release",
-                  "zh-hans/guides/message-assembly-v2"
+                  "zh-hans/guides/message-assembly-v2",
+                  "zh-hans/guides/permission",
+                  "zh-hans/guides/newroles",
+                  "zh-hans/guides/features-current",
+                  "zh-hans/guides/permissions-current"
                 ]
               }
             ]
