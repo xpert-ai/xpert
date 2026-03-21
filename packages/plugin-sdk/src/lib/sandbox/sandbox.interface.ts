@@ -6,10 +6,10 @@ export type SandboxProviderCreateOptions = {
    * Working space directory for the sandbox instance
    */
   workingDirectory?: string
-  // /**
-  //  * Canonical sandbox environment identifier that owns the container lifecycle.
-  //  */
-  // environmentId?: string
+  /**
+   * Canonical sandbox environment identifier that owns the container lifecycle.
+   */
+  environmentId?: string
   /**
    * Tenant identifier
    */
@@ -18,14 +18,6 @@ export type SandboxProviderCreateOptions = {
     type: TSandboxWorkForType
     id: string
   }
-  // /**
-  //  * User identifier
-  //  */
-  // userId?: string
-  // /**
-  //  * Project identifier
-  //  */
-  // projectId?: string
 }
 
 export interface ISandboxProvider<T extends SandboxBackendProtocol = SandboxBackendProtocol> {
