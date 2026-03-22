@@ -139,18 +139,47 @@
                       <i class="ri-verified-badge-line shrink-0 ml-1 text-primary-500"></i>
                       <div
                         class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] font-body text-text-tertiary text-xs font-medium uppercase ml-1 shrink-0"
+                        [class.text-text-warning]="plugin.hasUpdate"
+                        [matTooltip]="
+                          ('PAC.Plugin.LatestVersion' | translate: { Default: 'Latest version' }) +
+                          ': ' +
+                          (plugin.latestVersion || '-')
+                        "
+                        matTooltipPosition="above"
+                        [matTooltipDisabled]="!plugin.hasUpdate"
                       >
-                        {{ plugin.meta.version }}
+                        {{ plugin.meta.version || '-' }}
                       </div>
                     </div>
                     <div class="flex items-center justify-between">
-                      <div
-                        class="text-sm text-text-tertiary font-body truncate"
-                        [title]="plugin.meta.description"
-                        [ngmHighlight]="searchText()"
-                        [content]="plugin.meta.description"
-                      >
-                        {{ plugin.meta.description }}
+                      <div class="min-w-0 grow">
+                        <div
+                          class="text-sm text-text-tertiary font-body truncate"
+                          [title]="plugin.meta.description"
+                          [ngmHighlight]="searchText()"
+                          [content]="plugin.meta.description"
+                        >
+                          {{ plugin.meta.description }}
+                        </div>
+                        @if (plugin.configurationStatus === 'invalid') {
+                          <div
+                            class="mt-2 flex items-center gap-1 text-xs text-text-warning"
+                            [matTooltip]="
+                              plugin.configurationError ||
+                              ('PAC.Plugin.RequiresConfiguration'
+                                | translate: { Default: 'This plugin needs configuration before it can be used.' })
+                            "
+                            matTooltipPosition="above"
+                          >
+                            <i class="ri-alert-line"></i>
+                            <span>
+                              {{
+                                'PAC.Plugin.RequiresConfiguration'
+                                  | translate: { Default: 'This plugin needs configuration before it can be used.' }
+                              }}
+                            </span>
+                          </div>
+                        }
                       </div>
                       <div class="flex space-x-1">
                         @if (plugin.isGlobal) {
@@ -168,7 +197,9 @@
                         @if (plugin.canConfigure && plugin.configSchema) {
                           <button
                             type="button"
-                            class="action-btn action-btn-m text-text-tertiary hover:bg-gray-100 hover:text-text-primary flex items-center justify-center"
+                            class="action-btn action-btn-m hover:bg-gray-100 hover:text-text-primary flex items-center justify-center"
+                            [class.text-text-warning]="plugin.configurationStatus === 'invalid'"
+                            [class.text-text-tertiary]="plugin.configurationStatus !== 'invalid'"
                             [matTooltip]="
                               'PAC.Plugin.ConfigurePlugin' | translate: { Default: 'Configure this plugin' }
                             "
@@ -176,6 +207,21 @@
                             (click)="configure(plugin)"
                           >
                             <i class="ri-settings-4-line"></i>
+                          </button>
+                        }
+                        @if (plugin.canUpdate && plugin.hasUpdate) {
+                          <button
+                            type="button"
+                            class="action-btn action-btn-m text-text-tertiary hover:bg-gray-100 hover:text-text-primary flex items-center justify-center"
+                            [matTooltip]="
+                              'PAC.Plugin.UpdatePlugin'
+                                | translate: { Default: 'Update this plugin to the latest version' }
+                            "
+                            matTooltipPosition="above"
+                            [disabled]="updating() === plugin.name"
+                            (click)="update(plugin)"
+                          >
+                            <i class="ri-refresh-line"></i>
                           </button>
                         }
                         @if (!plugin.isGlobal) {
@@ -227,8 +273,8 @@
                 </div>
               </div>
 
-              @if (removing() === plugin.name) {
-                <ngm-spin class="absolute inset-0 backdrop-blur-sm bg-white/10" />
+              @if (removing() === plugin.name || updating() === plugin.name) {
+                <ngm-spin class="absolute inset-0 z-10 backdrop-blur-sm bg-white/10" />
               }
             </div>
           }

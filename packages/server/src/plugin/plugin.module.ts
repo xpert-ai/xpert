@@ -1,6 +1,7 @@
 import { ConfigModule, ConfigService, getConfig } from '@metad/server-config'
 import { DynamicModule, Global, Inject, Module, OnModuleDestroy, OnModuleInit } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
+import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import {
 	INTEGRATION_PERMISSION_SERVICE_TOKEN,
@@ -12,7 +13,10 @@ import {
 import chalk from 'chalk'
 import { PluginController } from './plugin.controller'
 import { getPluginModules, hasLifecycleMethod, loaded } from './plugin.helper'
+import { PluginManagementService } from './plugin-management.service'
 import { PluginConfigResolver, PluginConfigResolverProvider } from './plugin-config.resolver'
+import { CommandHandlers } from './commands/handlers'
+import { QueryHandlers } from './queries/handlers'
 import { LOADED_PLUGINS } from './types'
 import { PluginInstance } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
@@ -20,7 +24,7 @@ import { PluginIntegrationPermissionService, PluginUserPermissionService } from 
 
 @Global()
 @Module({
-	imports: [ConfigModule, TypeOrmModule.forFeature([PluginInstance])],
+	imports: [ConfigModule, TypeOrmModule.forFeature([PluginInstance]), CqrsModule],
 	controllers: [PluginController],
 	exports: [StrategyBus, PluginConfigResolver, PLUGIN_CONFIG_RESOLVER_TOKEN],
 	providers: [
@@ -30,9 +34,12 @@ import { PluginIntegrationPermissionService, PluginUserPermissionService } from 
 		{ provide: USER_PERMISSION_SERVICE_TOKEN, useExisting: PluginUserPermissionService },
 		PluginConfigResolver,
 		PluginInstanceService,
+		PluginManagementService,
 		PluginIntegrationPermissionService,
 		PluginUserPermissionService,
-		StrategyBus
+		StrategyBus,
+		...CommandHandlers,
+		...QueryHandlers
 	]
 })
 export class PluginModule implements OnModuleInit, OnModuleDestroy {

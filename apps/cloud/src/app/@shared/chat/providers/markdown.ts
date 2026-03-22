@@ -19,9 +19,7 @@ export function markedOptionsFactory(): MarkedOptions {
   }
 
   return {
-    renderer,
-    // Enable async mode for KaTeX extension
-    async: true
+    renderer
   }
 }
 

@@ -384,6 +384,8 @@ export interface SandboxBackendProtocol extends BackendProtocol {
 
   /** Unique identifier for the sandbox backend instance */
   readonly id: string
+  /** Canonical sandbox environment identifier bound to this backend */
+  readonly environmentId?: string | null
 }
 
 /**

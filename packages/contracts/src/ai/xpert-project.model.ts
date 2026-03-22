@@ -81,14 +81,17 @@ export interface IXpertProjectTaskLog extends IBasePerXpertProjectEntityModel {
   content: string
 }
 
+/**
+ * @deprecated use CodeXpert instead
+ */
 export interface IXpertProjectVCS extends IBasePerXpertProjectEntityModel {
   integrationId?: string
   integration?: IIntegration
   auth?: {
-		token_type?: string
-		access_token?: string
+    token_type?: string
+    access_token?: string
     state?: string
-	}
+  }
   installationId?: number | string // For GitHub Apps
   repository?: string
 }
