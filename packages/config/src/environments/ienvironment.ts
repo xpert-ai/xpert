@@ -98,4 +98,22 @@ export interface IEnvironment {
 
   // Rag
   vectorStore?: VectorTypeEnum
+
+  // Sandbox
+  sandboxConfig?: {
+    /**
+     * The Docker image to use for the sandbox environment.
+     * It is also used in local development to determine whether to use the docker image to start the sandbox.
+     */
+    image: string
+    network: string
+    host: string
+    port: string
+    volume: string
+    expiredTime: number // xxx second
+    memory?: number
+    cpuShares?: number
+    shmSize?: number
+    ipcMode?: string
+  }
 }
