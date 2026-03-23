@@ -169,7 +169,14 @@ export class XpertLogsComponent {
   }
 
   togglePreview(id: string) {
-    this.preview.update((state) => state === id ? null : id)
+    const nextPreview = this.preview() === id ? null : id
+    this.executionId.set(null)
+    this.preview.set(nextPreview)
+  }
+
+  closePreview() {
+    this.executionId.set(null)
+    this.preview.set(null)
   }
 
   selectExecution(id: string) {

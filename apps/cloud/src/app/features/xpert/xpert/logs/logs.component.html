@@ -142,29 +142,6 @@
           </td>
         </tr>
 
-        @if (preview() === conv.id) {
-          <tr class="bg-slate-50/70 border-b border-slate-200">
-            <td colspan="8" class="p-3">
-              <div class="grid gap-3 xl:grid-cols-[minmax(0,1fr)_420px]">
-                <xp-chat-conversation-preview #prev
-                  class="min-h-[480px] rounded-2xl overflow-auto border border-gray-100 bg-components-panel-bg-blur"
-                  readonly
-                  [conversationId]="conv.id"
-                  (execution)="selectExecution($event)"
-                  (close)="preview.set(null)"
-                />
-
-                @if (executionId()) {
-                  <chat-message-execution-panel class="min-h-[480px] rounded-2xl overflow-y-auto border-[0.5px] border-components-panel-border bg-components-panel-bg shadow-lg"
-                    [id]="executionId()"
-                    [xpert]="xpert()"
-                    (close)="closeExecution()"
-                  />
-                }
-              </div>
-            </td>
-          </tr>
-        }
       }
     </tbody>
   </table>
@@ -185,3 +162,23 @@
   }
 
 </div>
+
+@if (preview()) {
+  <div class="absolute right-0 top-0 bottom-0 p-4 flex gap-2">
+    @if (executionId()) {
+      <chat-message-execution-panel class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto
+        w-[420px]"
+        [id]="executionId()"
+        [xpert]="xpert()"
+        (close)="closeExecution()"
+      />
+    }
+
+    <xp-chat-conversation-preview #prev class="h-full w-[420px] rounded-2xl shadow-lg overflow-auto border border-gray-100 bg-components-panel-bg-blur"
+      readonly
+      [conversationId]="preview()"
+      (close)="closePreview()"
+      (execution)="selectExecution($event)"
+    />
+  </div>
+}
