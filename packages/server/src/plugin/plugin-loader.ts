@@ -4,7 +4,6 @@ import type { XpertPlugin } from '@xpert-ai/plugin-sdk'
 import { existsSync, readFileSync } from 'fs'
 import { createRequire } from 'node:module'
 import { join, resolve } from 'path'
-import { pathToFileURL } from 'url'
 import { PluginLoadError } from './errors'
 
 export interface PluginLoadOptions {
@@ -13,25 +12,6 @@ export interface PluginLoadOptions {
 }
 
 const isProd = process.env.NODE_ENV === 'production'
-const dynamicImport = new Function('specifier', 'return import(specifier)') as (specifier: string) => Promise<any>
-
-function isFileSystemSpecifier(target: string) {
-	return (
-		target.startsWith('.') ||
-		target.startsWith('/') ||
-		target.startsWith('file://') ||
-		/^[a-zA-Z]:[\\/]/.test(target) ||
-		target.startsWith('\\\\')
-	)
-}
-
-export function toPluginImportTarget(target: string) {
-	if (target.startsWith('file://')) {
-		return target
-	}
-
-	return isFileSystemSpecifier(target) ? pathToFileURL(target).href : target
-}
 
 function getRequire(basedir?: string) {
 	if (!basedir) return require
@@ -95,11 +75,10 @@ async function loadModule(modName: string, opts: PluginLoadOptions = {}): Promis
 		}
 	}
 	const target = resolveFromBase(modName)
-	const importTarget = toPluginImportTarget(target)
 	let errorMessage = ''
 	// Try ESM import
 	try {
-		return await dynamicImport(importTarget)
+		return await import(target)
 	} catch (e1) {
 		console.warn(`ESM import failed for ${target}:`, e1)
 		errorMessage += `ESM import failed for ${target}: ${getErrorMessage(e1)}\n`
