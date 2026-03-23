@@ -2,3 +2,7 @@
 :host {
   @apply contents;
 }
+
+:host input[type='time']::-webkit-calendar-picker-indicator {
+  opacity: 0;
+}

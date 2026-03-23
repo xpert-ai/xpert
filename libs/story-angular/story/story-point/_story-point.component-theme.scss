@@ -1,9 +1,9 @@
 @use "sass:map";
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 @mixin ngm-story-point($config-or-theme) {
-  $config: mat.m2-get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $foreground: map.get($config, foreground);
   $background: map.get($config, background);
   $primary: map.get($config, primary);
@@ -14,7 +14,7 @@
   %widget-editable {
     border-color: map.get($accent, 500);
     .ngm-drag-handler {
-      background-color: mat.m2-get-color-from-palette($foreground, divider);
+      background-color: themeCompat.m2-get-color-from-palette($foreground, divider);
     }
   }
 

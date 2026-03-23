@@ -1,10 +1,10 @@
 
 
 @use 'sass:map';
-@use 'libs/material-theme/src/styles/theme-compat' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 @reference "../../../tailwind-workspace-reference.css";
 @mixin color($config-or-theme) {
-  $config: mat.m2-get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $accent: map.get($config, accent);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
@@ -18,12 +18,12 @@
   table[z-table] {
     &.striped {
       tr[z-table-row]:nth-child(even) {
-        background-color: lighten(mat.m2-get-color-from-palette($background, hover), 50%);
+        background-color: lighten(themeCompat.m2-get-color-from-palette($background, hover), 50%);
       }
 
       tr[z-table-row] {
         &:hover {
-          background-color: mat.m2-get-color-from-palette($background, hover);
+          background-color: themeCompat.m2-get-color-from-palette($background, hover);
         }
       }
     }
@@ -43,21 +43,21 @@
       tr[z-table-row]:first-child {
         border-top-width: 1px;
         border-top-style: solid;
-        border-top-color: mat.m2-get-color-from-palette($foreground, divider);
+        border-top-color: themeCompat.m2-get-color-from-palette($foreground, divider);
       }
       [z-table-cell],
       [z-table-head] {
-        border-right: 1px solid mat.m2-get-color-from-palette($foreground, divider);
+        border-right: 1px solid themeCompat.m2-get-color-from-palette($foreground, divider);
   
         &:first-child {
-          border-left: 1px solid mat.m2-get-color-from-palette($foreground, divider);
+          border-left: 1px solid themeCompat.m2-get-color-from-palette($foreground, divider);
         }
       }
     }
 
     tr[z-table-row] {
       &:hover {
-        background-color: mat.m2-get-color-from-palette($background, hover);
+        background-color: themeCompat.m2-get-color-from-palette($background, hover);
       }
     }
   }

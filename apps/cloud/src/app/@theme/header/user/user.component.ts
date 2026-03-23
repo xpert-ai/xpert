@@ -19,7 +19,7 @@ import { HeaderAboutComponent } from '../about/about.component'
 
 const THEMES = [
   {
-    key: 'system',
+    key: 'default',
     caption: 'System',
     icon: 'settings_suggest'
   },
@@ -80,7 +80,7 @@ export class HeaderUserComponent {
 
   readonly langLabel = computed(() => LANGUAGES.find((_) => _.value === this.language$())?.label)
   readonly themeLabel = computed(
-    () => this.themeOptions$().find((_) => _.key === (this.preferredTheme$() ?? ThemesEnum.system))?.caption
+    () => this.themeOptions$().find((_) => _.key === (this.preferredTheme$() ?? ThemesEnum.default))?.caption
   )
 
   readonly firstLetter = computed(() => new UserPipe().transform(this.user())?.[0].toUpperCase())

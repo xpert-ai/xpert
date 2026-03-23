@@ -1,9 +1,9 @@
 @use 'sass:map';
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 @mixin color($config-or-theme) {
-  $config: mat.m2-get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
@@ -23,7 +23,7 @@
     background-color: white;
     color: black;
     white-space: pre-wrap;
-    @include mat.elevation(8);
+    @include themeCompat.elevation(8);
   }
 
 }

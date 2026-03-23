@@ -2,38 +2,41 @@
   ngmDynamicGrid colWidth="280"
   box="content-box"
   >
-  <div class="flex min-h-[160px] flex-col p-2 space-y-2 rounded-xl border-[0.5px] border-components-panel-border transition-all duration-200 ease-in-out bg-components-list-option-active-bg">
-    <a class="group flex cursor-pointer items-start p-2 rounded-lg hover:bg-components-card-bg"
-      (click)="newKnowledgebase()">
-      <div class="flex items-center gap-3">
-        <div class="flex h-10 w-10 items-center justify-center rounded-lg border border-dashed border-divider-deep bg-background-default-subtle p-2
-          group-hover:border-solid group-hover:border-divider-deep group-hover:bg-components-card-bg">
-          <i class="ri-add-line text-text-tertiary"></i>
-        </div>
-        <div class="system-md-semibold text-text-secondary group-hover:text-text-accent">{{ 'PAC.Knowledgebase.AddKnowledgebase' | translate: {Default: 'Add knowledgebase'} }}</div>
+  <div class="ngm-card-shadow relative col-span-1 flex min-h-[160px] flex-col justify-between rounded-xl border-[0.5px] border-components-panel-border bg-components-card-bg">
+    <div class="grow rounded-t-xl p-2">
+      <div class="px-6 pb-1 pt-2 text-sm font-medium leading-[18px] text-text-tertiary">
+        {{ 'PAC.Knowledgebase.CreateKnowledgebase' | translate: {Default: 'Create knowledgebase'} }}
       </div>
-    </a>
-    <a type="button" class="flex w-full items-center gap-x-2 rounded-lg bg-transparent px-4 py-2 cursor-pointer
-      shadow-shadow-shadow-3 text-text-secondary hover:bg-components-card-bg hover:text-text-secondary hover:shadow-sm"
-      [routerLink]="['/xpert/knowledges/create-from-pipeline']" [queryParams]="{ workspaceId: workspaceId() }"
+      <a
+        class="mb-1 flex cursor-pointer items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600"
+        (click)="newKnowledgebase()"
       >
-      <i class="ri-mind-map"></i>
-      <span class="system-sm-medium grow text-left">
+        <i class="ri-add-line mr-2 shrink-0 text-base"></i>
+        {{ 'PAC.Knowledgebase.AddKnowledgebase' | translate: {Default: 'Add knowledgebase'} }}
+      </a>
+      <a
+        class="flex cursor-pointer items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600"
+        [routerLink]="['/xpert/knowledges/create-from-pipeline']"
+        [queryParams]="{ workspaceId: workspaceId() }"
+      >
+        <i class="ri-mind-map mr-2 shrink-0 text-base"></i>
         {{ 'PAC.Knowledgebase.CreateFromKnowledgePipeline' | translate: {Default: 'Create from Knowledge Pipeline'} }}
-      </span>
-    </a>
-    <div class="grow"></div>
-    <a class="group flex cursor-pointer items-center gap-1 rounded-lg border-t-[0.5px] border-neutral-100 p-2
-      text-text-secondary hover:bg-components-card-bg hover:text-text-accent"
-      [routerLink]="['/xpert/knowledges/connect']" [queryParams]="{ workspaceId: workspaceId() }">
-      <i class="ri-plug-line"></i>
-      <div class="text-sm font-mono">{{ 'PAC.Knowledgebase.ConnectExternalKnowledgebase' | translate: {Default: 'Connect External Knowledgebase'} }}</div>
-      <i class="ri-arrow-right-line"></i>
-    </a>
+      </a>
+    </div>
+    <div class="rounded-b-xl border-t-[0.5px] border-components-panel-border p-2">
+      <a
+        class="flex cursor-pointer items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600"
+        [routerLink]="['/xpert/knowledges/connect']"
+        [queryParams]="{ workspaceId: workspaceId() }"
+      >
+        <i class="ri-plug-line mr-2 shrink-0 text-base"></i>
+        {{ 'PAC.Knowledgebase.ConnectExternalKnowledgebase' | translate: {Default: 'Connect External Knowledgebase'} }}
+      </a>
+    </div>
   </div>
 
   @for (item of knowledgebases(); track item.id) {
-    <div class="ngm-card group relative min-h-[160px] flex-1 flex flex-col p-4 overflow-hidden cursor-pointer bg-components-card-bg hover:bg-hover-bg"
+    <div class="ngm-card-shadow group relative min-h-[160px] flex-1 flex flex-col rounded-xl border-2 border-solid border-transparent p-4 overflow-hidden cursor-pointer bg-components-card-bg hover:bg-hover-bg"
       (click)="openKnowledgebase(item.id)">
       <div class="flex-1">
         <div class="flex items-start gap-2">

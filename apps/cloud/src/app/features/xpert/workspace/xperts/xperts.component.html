@@ -2,7 +2,7 @@
   ngmDynamicGrid colWidth="280"
   box="content-box"
 >
-  <a class="ngm-card-shadow relative col-span-1 flex flex-col justify-between min-h-[160px] bg-components-list-option-active-bg rounded-xl border-[0.5px] border-black/5">
+  <a class="ngm-card-shadow relative col-span-1 flex flex-col justify-between min-h-[160px] bg-components-card-bg rounded-xl border-[0.5px] border-components-panel-border">
     <div class="grow p-2 rounded-t-xl">
       <div class="px-6 pt-2 pb-1 text-sm font-medium leading-[18px] text-text-tertiary">
         {{ 'PAC.Xpert.CreateXpert' | translate: {Default: 'Create Xpert'} }}
@@ -33,7 +33,7 @@
           {{ 'PAC.Xpert.CreateBlankXpert' | translate: {Default: 'Create blank Xpert'} }}
       </div>
     </div>
-    <div class="p-2 border-t-[0.5px] border-black/5 rounded-b-xl">
+    <div class="p-2 border-t-[0.5px] border-components-panel-border rounded-b-xl">
       <div
         class="flex items-center px-6 py-[7px] rounded-lg text-[13px] font-medium leading-[18px] text-text-secondary cursor-pointer hover:text-primary-600 hover:bg-hover-bg"
         (click)="importDSL()"

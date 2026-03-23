@@ -14,7 +14,7 @@ module.exports = {
     join(__dirname, 'libs/formly/**/!(*.stories|*.spec).{ts,html,scss,sass,css}'),
     join(__dirname, 'packages/**/!(*.stories|*.spec).{ts,html,scss,sass,css}')
   ],
-  darkMode: 'class',
+  darkMode: ['selector', '[data-theme="dark"]'],
   theme: {
     extend: {
       colors: {

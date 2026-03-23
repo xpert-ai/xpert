@@ -181,7 +181,7 @@ export interface StoryOptions {
    * @deprecated use preferences.story.themeName
    * 主题
    */
-  themeName?: 'system' | 'light' | 'dark' | 'thin' | string
+  themeName?: 'default' | 'light' | 'dark' | string
   /**
    * 显示为全屏
    */

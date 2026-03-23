@@ -1,9 +1,9 @@
 @use 'sass:map';
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 @mixin color($theme) {
-  $config: mat.m2-get-color-config($theme);
+  $config: themeCompat.m2-get-color-config($theme);
 
   $primary-palette: map.get($config, 'primary');
   $accent-palette: map.get($config, 'accent');
@@ -16,7 +16,7 @@
         background-color: rgba(80, 127, 242, 0.08);
 
         &::before {
-          background-color: mat.m2-get-color-from-palette($primary-palette, 300);
+          background-color: themeCompat.m2-get-color-from-palette($primary-palette, 300);
         }
       }
     }
@@ -30,9 +30,9 @@
 }
 
 @mixin theme($theme) {
-  $color: mat.m2-get-color-config($theme);
-  $density: mat.m2-get-density-config($theme);
-  $typography: mat.m2-get-typography-config($theme);
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

@@ -1,16 +1,16 @@
 @use 'sass:map';
-@use 'libs/material-theme/src/styles/theme-compat' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 @use './table/table-theme' as table-theme;
 @reference "../../../tailwind-workspace-reference.css";
 @mixin removeable($foreground) {
   border: 1px dashed transparent;
   &:hover {
-    border-color: mat.m2-get-color-from-palette($foreground, divider);
+    border-color: themeCompat.m2-get-color-from-palette($foreground, divider);
   }
 }
 
 @mixin color($config-or-theme) {
-  $config: mat.m2-get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $foreground: map.get($config, foreground);
   $background: map.get($config, background);
   $primary: map.get($config, primary);
@@ -60,7 +60,7 @@
 
   pac-formly-slider {
     // slider-density 官方还没实现
-    @include mat.slider-density(-1);
+    @include themeCompat.slider-density(-1);
     .mdc-slider {
       --mdc-slider-inactive-track-height: 2px;
       --mdc-slider-active-track-height: 4px;
@@ -81,7 +81,7 @@
   }
 
   .pac-formly-chart-type {
-    @include mat.icon-button-density(
+    @include themeCompat.icon-button-density(
       (
         density: -2
       )
@@ -92,7 +92,7 @@
       padding: 0;
 
       .z-icon {
-        @include mat.icon-density(
+        @include themeCompat.icon-density(
           (
             density: -2
           )
@@ -117,9 +117,9 @@
 }
 
 @mixin theme($theme) {
-  $color: mat.m2-get-color-config($theme);
-  $density: mat.m2-get-density-config($theme);
-  $typography: mat.m2-get-typography-config($theme);
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

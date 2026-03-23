@@ -5,7 +5,8 @@
 @use '../../app/@shared/components-theme' as shared;
 @use '../../app/public/public-theme' as public;
 
-body.default, body.light {
+:root[data-theme='light'],
+[data-theme='light'] {
   --ngm-bg-color: theme(colors.gray.50);
   --ngm-card-bg-color: theme(colors.white);
   --ngm-card-border-color: theme(colors.gray.100);
@@ -18,7 +19,7 @@ body.default, body.light {
 @include shared.theme(light-theme.$mat-theme);
 @include public.theme(light-theme.$mat-theme);
 
-.ngm-theme-light, .ngm-theme-default {
+[data-theme='light'] {
   @include indicator-market.color(light-theme.$mat-theme);
   @include features.color(light-theme.$mat-theme);
   @include shared.color(light-theme.$mat-theme);

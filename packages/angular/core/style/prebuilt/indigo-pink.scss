@@ -1,17 +1,17 @@
 @use 'sass:map';
-@use 'libs/material-theme/src/styles/theme-compat' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 @use '../../../theming' as ocap;
 
 // Define a theme.
-$primary: mat.m2-define-palette(mat.$m2-blue-grey-palette, 600);
-$accent:  mat.m2-define-palette(mat.$m2-amber-palette, A700, A400, A200);
+$primary: themeCompat.m2-define-palette(themeCompat.$m2-blue-grey-palette, 600);
+$accent:  themeCompat.m2-define-palette(themeCompat.$m2-amber-palette, A700, A400, A200);
 
 // $material-typeface: "Lato, 'Noto Serif SC', monospace";
-// // mat.$m2-light-theme-background-palette: map-merge(mat.$m2-light-theme-background-palette, (surface: rgba(255, 255, 255, 0.875)));
-// $custom-typography: mat.m2-define-typography-config(
+// // Example: merge a translucent surface tone into the light theme background palette.
+// $custom-typography: themeCompat.m2-define-typography-config(
 //   $font-family: $material-typeface
 // );
-$mat-theme: mat.m2-define-light-theme((
+$light-theme: themeCompat.m2-define-light-theme((
   color: (
     primary: $primary,
     accent:  $accent,
@@ -19,13 +19,13 @@ $mat-theme: mat.m2-define-light-theme((
   density: -1,
 ));
 
-@include mat.core();
-@include mat.all-component-themes($mat-theme);
+@include themeCompat.core();
+@include themeCompat.all-component-themes($light-theme);
 
-@include ocap.core-theme($mat-theme);
-@include ocap.analytical-grid-theme($mat-theme);
-@include ocap.breadcrumb-theme($mat-theme);
-@include ocap.controls-theme($mat-theme);
-@include ocap.entity-theme($mat-theme);
-@include ocap.common-color($mat-theme);
-@include ocap.common-density($mat-theme);
+@include ocap.core-theme($light-theme);
+@include ocap.analytical-grid-theme($light-theme);
+@include ocap.breadcrumb-theme($light-theme);
+@include ocap.controls-theme($light-theme);
+@include ocap.entity-theme($light-theme);
+@include ocap.common-color($light-theme);
+@include ocap.common-density($light-theme);

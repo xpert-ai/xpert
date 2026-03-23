@@ -3,6 +3,7 @@
 
 @config "../tailwind.config.js";
 @import 'tailwindcss' source(none);
+@custom-variant dark (&:where([data-theme='dark'], [data-theme='dark'] *));
 @source "./app/**/*.{ts,html,scss,sass,css}";
 @source "../../../libs/**/*.{ts,html,scss,sass,css}";
 @source "../../../packages/**/*.{ts,html,scss,sass,css}";
@@ -17,7 +18,6 @@
 @include meta.load-css('styles/themes/base');
 @include meta.load-css('styles/themes/default');
 @include meta.load-css('styles/themes/dark');
-@include meta.load-css('styles/themes/thin');
 @include meta.load-css('styles/utilities');
 @include meta.load-css('styles/components/index');
 @include meta.load-css('app/_app.component');

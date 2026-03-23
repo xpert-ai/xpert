@@ -2,7 +2,7 @@ import { BreakpointObserver, Breakpoints, BreakpointState } from '@angular/cdk/l
 import { DOCUMENT } from '@angular/common'
 import { computed, inject, Injectable, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { prefersColorScheme, ThemesEnum } from '@metad/ocap-angular/core'
+import { normalizeTheme, resolveTheme } from '@metad/ocap-angular/core'
 import { nonNullable } from '@metad/ocap-core'
 import { ComponentStore } from '@metad/store'
 import { TranslateService } from '@ngx-translate/core'
@@ -23,8 +23,6 @@ export interface PACAppState {
   dark: boolean
   zIndexs: number[]
 }
-
-const LEGACY_DARK_GREEN_THEME = 'dark-green'
 
 @Injectable({
   providedIn: 'root'
@@ -83,24 +81,14 @@ export class AppService extends ComponentStore<PACAppState> {
   )
 
   readonly preferredTheme$ = toSignal(this.store.preferredTheme$)
-  readonly systemColorScheme$ = toSignal(prefersColorScheme())
 
   readonly theme$ = computed(() => {
-    let preferredTheme = this.preferredTheme$()
-    const systemColorScheme = this.systemColorScheme$()
-    if (String(preferredTheme) === LEGACY_DARK_GREEN_THEME) {
-      preferredTheme = ThemesEnum.dark
-    }
-    if (preferredTheme === ThemesEnum.system || !preferredTheme) {
-      preferredTheme = systemColorScheme
-    }
-
-    const [primary, color] = preferredTheme.split('-')
+    const preferredTheme = normalizeTheme(this.preferredTheme$())
+    const primary = resolveTheme(preferredTheme)
 
     return {
       preferredTheme,
-      primary,
-      color
+      primary
     }
   })
 
@@ -131,11 +119,9 @@ export class AppService extends ComponentStore<PACAppState> {
         this.#document.documentElement.lang = language
       })
 
-    this.store.preferredTheme$
-      .pipe(filter((theme) => String(theme) === LEGACY_DARK_GREEN_THEME))
-      .subscribe(() => {
-        this.store.preferredTheme = ThemesEnum.dark
-      })
+    this.store.preferredTheme$.pipe(filter((theme) => normalizeTheme(theme) !== theme)).subscribe((theme) => {
+      this.store.preferredTheme = normalizeTheme(theme)
+    })
   }
 
   public toggleInsight = this.updater((state) => {

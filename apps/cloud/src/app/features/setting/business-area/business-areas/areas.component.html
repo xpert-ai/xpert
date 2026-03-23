@@ -29,15 +29,15 @@
 
 <ng-template #actionTempl let-item="raw">
     <div class="flex justify-start items-center gap-2">
-        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="text-text-tertiary" (click)="editBusinessArea(item)">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="text-text-tertiary hover:text-text-primary" (click)="editBusinessArea(item)">
             <z-icon zType="edit"></z-icon>
         </button>
 
-        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="text-text-tertiary" (click)="addBusinessArea(item)">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="text-text-tertiary hover:text-text-primary" (click)="addBusinessArea(item)">
             <z-icon zType="add"></z-icon>
         </button>
         
-        <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-text-tertiary" (click)="deleteBusinessArea(item)">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-text-tertiary hover:text-text-destructive" (click)="deleteBusinessArea(item)">
             <z-icon zType="remove"></z-icon>
         </button>
     </div>

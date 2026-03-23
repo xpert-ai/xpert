@@ -12,7 +12,7 @@ import { ENTITY_SALES, SEMANTIC_MODEL_NAME } from '../semantic-model'
 export const STORY_NAME = 'Demo - 门店销售监控大屏'
 export const STORY_OPTIONS = {
 	options: {
-		themeName: 'thin',
+		themeName: 'dark',
 		preferences: {
 			story: {
 				watermarkOptions: { color: '' },

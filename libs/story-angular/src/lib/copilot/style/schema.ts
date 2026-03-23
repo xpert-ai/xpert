@@ -28,7 +28,7 @@ export const ComponentStylingSchema = z.object({
 
 export const StoryStyleSchema = z.object({
   story: z.object({
-    themeName: z.enum(['system', 'light', 'dark', 'thin']).describe('The theme name of story'),
+    themeName: z.enum(['default', 'light', 'dark']).describe('The theme name of story'),
     enableWatermark: z.boolean().optional().default(false).describe('Enable watermark of story'),
     watermarkOptions: z
       .object({

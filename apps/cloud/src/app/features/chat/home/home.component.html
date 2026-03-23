@@ -26,7 +26,7 @@
             [zDisabled]="sidebarState() === 'expanded'"
           >
             <button
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem] text-text-secondary hover:text-text-primary cursor-pointer"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem] text-text-primary hover:text-text-primary cursor-pointer"
               type="button"
               (click)="newConversation()"
             >
@@ -53,7 +53,7 @@
             [zDisabled]="sidebarState() === 'expanded'"
           >
             <button
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem] text-text-secondary hover:text-text-primary cursor-pointer"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem] text-text-primary hover:text-text-primary cursor-pointer"
               type="button"
               aria-label="Search"
               (click)="openConversations()"
@@ -91,7 +91,7 @@
             (mouseleave)="leaveMenuOverlay('task')"
           >
             <a
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem] text-text-secondary hover:text-text-primary"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full p-[.5rem] text-text-primary hover:text-text-primary"
               data-sidebar="menu-button"
               tabindex="-1"
               routerLink="/chat/tasks"
@@ -153,7 +153,7 @@
           >
             <button
               aria-label="Projects"
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full bg-background text-text-secondary hover:text-text-primary p-[.5rem]"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full bg-background text-text-primary hover:text-text-primary p-[.5rem]"
               tabindex="-1"
               routerLink="/chat/p"
               routerLinkActive="bg-hover-bg"
@@ -224,7 +224,7 @@
                 <div class="cursor-pointer ms-[10px] me-[4px]">
                   <div class="border-l border-(--border) h-full ms-[6px] me-[4px]"></div>
                 </div>
-                <ng-container *ngTemplateOutlet="projectsTempl"></ng-container>
+                <ng-container *ngTemplateOutlet="projectsTempl; context: { projects: previewProjects() }"></ng-container>
               </div>
             </div>
           }
@@ -247,7 +247,7 @@
           >
             <button
               aria-label="History"
-              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full bg-background text-text-secondary hover:text-text-primary p-[.5rem]"
+              class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full bg-background text-text-primary hover:text-text-primary p-[.5rem]"
               data-sidebar="menu-button"
               tabindex="-1"
               (click)="historyExpanded() ? historyExpanded.set(false) : historyExpanded.set(true)"
@@ -355,7 +355,7 @@
       overlayY: 'top'
     }
   ]"
->
+  >
   <div
     @overlayAnimation1
     class="max-w-md p-3 rounded-3xl border-[0.5px] border-solid border-divider-deep shadow-sm overflow-auto bg-components-card-bg"
@@ -392,7 +392,7 @@
     <div class="text-text-primary font-semibold px-2 pb-2">
       {{ 'PAC.Chat.Projects' | translate: { Default: 'Projects' } }}
     </div>
-    <ng-container *ngTemplateOutlet="projectsTempl"></ng-container>
+    <ng-container *ngTemplateOutlet="projectsTempl; context: { projects: projects() }"></ng-container>
   </div>
 </ng-template>
 
@@ -571,9 +571,9 @@
   </div>
 </ng-template>
 
-<ng-template #projectsTempl>
+<ng-template #projectsTempl let-items="projects">
   <div class="flex flex-col gap-1 w-full min-w-0">
-    @for (project of projects(); track project.id) {
+    @for (project of items ?? projects(); track project.id) {
       @if (editingProject() === project.id) {
         <div class="flex items-center relative h-10">
           <input
@@ -613,7 +613,7 @@
       } @else {
         <div class="relative group/conversation-item">
           <a
-            class="peer/menu-button relative items-center overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active pl-2 pr-1 py-1 text-sm w-full flex flex-row gap-2 text-primary"
+            class="peer/menu-button relative items-center overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active pl-2 pr-1 py-1 text-sm w-full flex flex-row gap-2 text-text-primary"
             [class.bg-hover-bg]="currentPage().type === 'project' && currentPage().id === project.id"
             tabindex="-1"
             [routerLink]="['/chat/p', project.id]"

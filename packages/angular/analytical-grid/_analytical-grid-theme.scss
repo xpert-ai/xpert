@@ -1,8 +1,8 @@
 @use 'sass:map';
-@use 'libs/material-theme/src/styles/theme-compat' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 @mixin color($config-or-theme) {
-  $config: mat.m2-get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
@@ -13,11 +13,11 @@
     /* For analytical grid in dashboard styles */
     table[z-table] {
       thead, tfoot {
-        background: lighten(mat.m2-get-color-from-palette($background, hover), 50%);
+        background: lighten(themeCompat.m2-get-color-from-palette($background, hover), 50%);
       }
     }
     z-paginator {
-      background: lighten(mat.m2-get-color-from-palette($background, hover), 50%);
+      background: lighten(themeCompat.m2-get-color-from-palette($background, hover), 50%);
     }
 
     .ngm-analytical-grid__want-order {
@@ -33,16 +33,16 @@
       position: absolute;
       left: 1px;
       top: 1px;
-      background-color: mat.m2-get-color-from-palette($primary);
+      background-color: themeCompat.m2-get-color-from-palette($primary);
 
       &.bar-negative {
-        background-color: mat.m2-get-color-from-palette($warn);
+        background-color: themeCompat.m2-get-color-from-palette($warn);
       }
     }
 
     [z-table-cell].ngm-analytical-grid__measure {
       &:hover {
-        background-color: mat.m2-get-color-from-palette($background, hover);
+        background-color: themeCompat.m2-get-color-from-palette($background, hover);
       }
     }
     
@@ -80,10 +80,10 @@
 @mixin density($config-or-theme) {
   .ngm-analytical-grid__filtering-card {
     &.ngm-density__cosy {
-      @include mat.list-density(-1);
+      @include themeCompat.list-density(-1);
     }
     &.ngm-density__compact {
-      @include mat.list-density(-2);
+      @include themeCompat.list-density(-2);
     }
   }
 
@@ -135,9 +135,9 @@
 }
 
 @mixin theme($theme) {
-  $color: mat.m2-get-color-config($theme);
-  $density: mat.m2-get-density-config($theme);
-  $typography: mat.m2-get-typography-config($theme);
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

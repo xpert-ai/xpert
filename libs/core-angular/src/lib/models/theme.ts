@@ -1,11 +1,35 @@
 import { Observable } from 'rxjs'
 
 export enum ThemesEnum {
-  system = 'system',
   default = 'default',
   light = 'light',
-  dark = 'dark',
-  thin = 'thin'
+  dark = 'dark'
+}
+
+export type ThemeHost = ThemesEnum.light | ThemesEnum.dark
+
+export function normalizeTheme(theme?: string | null): ThemesEnum {
+  switch (theme) {
+    case ThemesEnum.dark:
+      return ThemesEnum.dark
+    case ThemesEnum.light:
+      return ThemesEnum.light
+    case ThemesEnum.default:
+    case 'system':
+    case '':
+    case null:
+    case undefined:
+      return ThemesEnum.default
+    case 'thin':
+    case 'dark-green':
+      return ThemesEnum.dark
+    default:
+      return ThemesEnum.default
+  }
+}
+
+export function resolveTheme(theme?: string | null): ThemeHost {
+  return normalizeTheme(theme) === ThemesEnum.dark ? ThemesEnum.dark : ThemesEnum.light
 }
 
 // Window pregers color scheme
