@@ -40,7 +40,9 @@
       "USER": "User",
       "SUCCEED": "Succeed",
       "Conversation": "Conversation",
-      "SecretKey": "Key"
+      "SecretKey": "Key",
+      "Middleware": "Middleware",
+      "Skills": "Skills"
     },
     "Common": {
       "Tools": "Tools",
@@ -165,6 +167,14 @@
       "NoXpertFound": "No matching digital experts found",
       "NoPublishedXpert": "No published digital experts. Please create one in the workspace and click \"Publish\" to publish it",
       "GotoWorkspace": "Go to Workspace"
+    },
+    "Workflow": {
+      "Trigger": "Trigger",
+      "Skill": "Skill",
+      "Chat": "Chat",
+      "NoTriggersAvailable": "No trigger providers available",
+      "NoSkillsAdded": "No skills added yet",
+      "NoMiddlewaresAvailable": "No middleware providers available"
     },
     "title": {
       "short": "Analytics Cloud"
@@ -374,7 +384,29 @@
       "SelectTimeRange": "Select time range",
       "DuplicateExternalExpert": "Cannot create duplicate external expert",
       "APIKey": "API Key",
-      "APIReference": "API Reference"
+      "APIReference": "API Reference",
+      "BasicInformation": "Basic information",
+      "DataSource": "Data Source",
+      "Processor": "Processor",
+      "Chunker": "Chunker",
+      "ImageUnderstanding": "Image Understanding",
+      "KnowledgeBase": "Knowledge Base",
+      "SelectTriggerProviders": "Choose the triggers you want to prepare now. You can skip this and configure details later in Studio.",
+      "SelectKnowledgeTriggers": "Choose the triggers for this knowledge pipeline. You can skip this step and add more later in Studio.",
+      "SelectDataSources": "Choose the data source providers to seed this knowledge pipeline. You can adjust their configuration later in Studio.",
+      "SelectProcessors": "Choose the processors to run after the data source step. Detailed configuration stays in Studio.",
+      "SelectChunkers": "Choose the chunkers to split processed content before it reaches the knowledge base.",
+      "SelectImageUnderstandings": "Choose the image understanding providers if this pipeline needs OCR or visual extraction. You can skip this step.",
+      "AddSkillsPlaceholder": "Add placeholder skills for this blank expert. The corresponding skill nodes will be created now, and you can refine them later in Studio.",
+      "AddSkillNames": "Enter a skill name, then press Enter or comma",
+      "SelectMiddlewares": "Choose the middlewares to preload for the primary agent. Detailed configuration stays in Studio.",
+      "PreconfigurationNotSaved": "Expert created, but the preconfiguration could not be saved. You can continue in Studio.",
+      "KnowledgeBaseStepDescription": "A Knowledge Base node will be created automatically as the final stage of this pipeline. You can complete its detailed settings after entering Studio.",
+      "KnowledgeBaseNodeWillBeCreated": "The node is added by default so the new knowledge pipeline has a complete output target.",
+      "NoDataSourcesAvailable": "No data source providers available",
+      "NoProcessorsAvailable": "No processor providers available",
+      "NoChunkersAvailable": "No chunker providers available",
+      "NoImageUnderstandingsAvailable": "No image understanding providers available"
     }
   },
   "STORY_DESIGNER": {
