@@ -68,6 +68,7 @@ export class XpertLogsComponent {
 
   readonly conversations = signal<TChatConversationLog[]>([])
   readonly endUsers = signal<Record<string, any>>({})
+  readonly pendingEndUserIds = signal<Record<string, true>>({})
 
   readonly timeRangeValue = model<TimeRangeEnum>(TimeRangeEnum.Last7Days)
   readonly dateField = model<TConversationLogsDateField>('createdAt')
@@ -88,17 +89,26 @@ export class XpertLogsComponent {
     effect(
       () => {
         const endUsers = this.endUsers()
+        const pendingEndUserIds = this.pendingEndUserIds()
         const missingIds = [
           ...new Set(
             this.conversations()
               .map((conversation) => conversation.fromEndUserId)
-              .filter((id): id is string => !!id && !endUsers[id])
+              .filter((id): id is string => !!id && !endUsers[id] && !pendingEndUserIds[id])
           )
         ]
 
         if (!missingIds.length) {
           return
         }
+
+        this.pendingEndUserIds.update((state) => {
+          const nextState = { ...state }
+          missingIds.forEach((id) => {
+            nextState[id] = true
+          })
+          return nextState
+        })
 
         void Promise.all(
           missingIds.map((id) =>
@@ -109,6 +119,14 @@ export class XpertLogsComponent {
             const nextState = { ...state }
             missingIds.forEach((id, index) => {
               nextState[id] = users[index]
+            })
+            return nextState
+          })
+        }).finally(() => {
+          this.pendingEndUserIds.update((state) => {
+            const nextState = { ...state }
+            missingIds.forEach((id) => {
+              delete nextState[id]
             })
             return nextState
           })

@@ -284,6 +284,7 @@ export class IntegrationComponent implements IsDirty {
 
   upsert() {
     this.loading.set(true)
+    const isUpdate = !!this.formGroup.value.id
     const currentIntegration = this.integration()
     const previousLarkConnectionMode = this.#resolveLarkConnectionMode(
       currentIntegration?.provider,
@@ -314,7 +315,7 @@ export class IntegrationComponent implements IsDirty {
             next: (status) => {
               this.larkRuntimeStatus.set(status)
               this.loading.set(false)
-              this.#toastr.success('PAC.Messages.UpdatedSuccessfully', {
+              this.#toastr.success(isUpdate ? 'PAC.Messages.UpdatedSuccessfully' : 'PAC.Messages.CreatedSuccessfully', {
                 Default: 'Saved successfully and long connection activation requested!'
               })
               if (!this.paramId() && integrationId) {
@@ -356,6 +357,11 @@ export class IntegrationComponent implements IsDirty {
         }
 
         this.loading.set(false)
+        if (isUpdate) {
+          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated Successfully!' })
+          return
+        }
+
         this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created Successfully!' })
         this.#router.navigate(['..'], { relativeTo: this.#route })
       },
