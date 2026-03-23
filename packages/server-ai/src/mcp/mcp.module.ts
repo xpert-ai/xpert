@@ -1,7 +1,5 @@
 import { DynamicModule, Module, Provider, Type } from '@nestjs/common';
-import { DiscoveryModule } from '@nestjs/core';
-import { DiscoveryService } from '@nestjs/core/discovery';
-import { MetadataScanner, Reflector } from '@nestjs/core';
+import { DiscoveryModule, DiscoveryService, MetadataScanner, Reflector } from '@nestjs/core';
 
 import { IMCPOptions } from './types/mcp-options.interface';
 import { IMCPAsyncOptions } from './types/mcp-async-options.interface';

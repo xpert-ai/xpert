@@ -76,7 +76,7 @@
         <parameter-form #optionsForm 
           [schema]="schema()" 
           [ngModel]="optionsControl.value" 
-          (ngModelChange)="optionsControl.setValue($event)" 
+          (ngModelChange)="onOptionsChange($event)" 
           [ngModelOptions]="{standalone: true}"
         />
       }
@@ -89,9 +89,89 @@
       </div>
     }
 
+    @if (isLarkProvider() && larkTestResult()?.warnings?.length) {
+      <div class="rounded-md border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+        <p class="font-medium">{{ 'PAC.KEY_WORDS.Warning' | translate: {Default: 'Warnings'} }}</p>
+        @for (warning of larkTestResult()?.warnings; track warning) {
+          <p>{{ warning }}</p>
+        }
+      </div>
+    }
+
+    @if (isLarkProvider() && isLongConnectionMode() && larkTestResult()?.probe; as probe) {
+      <div
+        class="rounded-md px-3 py-2 text-sm"
+        [class.border]="true"
+        [class.border-emerald-200]="probe.connected"
+        [class.bg-emerald-50]="probe.connected"
+        [class.text-emerald-950]="probe.connected"
+        [class.border-rose-200]="!probe.connected"
+        [class.bg-rose-50]="!probe.connected"
+        [class.text-rose-950]="!probe.connected"
+      >
+        <p class="font-medium">{{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Connection Probe'} }}</p>
+        <p>State: {{ probe.state }}</p>
+        <p>Connected: {{ probe.connected ? 'Yes' : 'No' }}</p>
+        <p>Endpoint Ready: {{ probe.endpointValidated ? 'Yes' : 'No' }}</p>
+        <p>Checked At: {{ formatRuntimeTimestamp(probe.checkedAt) }}</p>
+        @if (probe.lastError) {
+          <p>Last Error: {{ probe.lastError }}</p>
+        }
+        <p>
+          {{ probe.connected ? 'Long connection probe succeeded. You can save this integration now.' : 'Long connection probe did not pass yet. You can adjust config and try again before saving.' }}
+        </p>
+      </div>
+    }
+
+    @if (isLarkProvider() && larkTestResult()?.capabilities; as capabilities) {
+      <div class="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+        <p class="font-medium">{{ 'PAC.Integration.Provider' | translate: {Default: 'Capabilities'} }}</p>
+        <p>Inbound Message: {{ capabilities.supportsInboundMessage ? 'Yes' : 'No' }}</p>
+        <p>Mention Trigger: {{ capabilities.supportsMentionTrigger ? 'Yes' : 'No' }}</p>
+        <p>Card Send: {{ capabilities.supportsCardSend ? 'Yes' : 'No' }}</p>
+        <p>Card Action: {{ capabilities.supportsCardAction ? 'Yes' : 'No' }}</p>
+        <p>Webhook Callback: {{ capabilities.supportsWebhookCallback ? 'Yes' : 'No' }}</p>
+      </div>
+    }
+
+    @if (isLarkProvider() && isLongConnectionMode() && larkRuntimeStatus(); as status) {
+      <div class="rounded-md border border-sky-200 bg-sky-50 px-3 py-2 text-sm text-sky-950">
+        <p class="font-medium">{{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Runtime Status'} }}</p>
+        <p>State: {{ status.state }}</p>
+        <p>Connected: {{ status.connected ? 'Yes' : 'No' }}</p>
+        @if (status.ownerInstanceId) {
+          <p>Owner: {{ status.ownerInstanceId }}</p>
+        }
+        @if (status.lastConnectedAt) {
+          <p>Last Connected: {{ formatRuntimeTimestamp(status.lastConnectedAt) }}</p>
+        }
+        @if (status.nextReconnectAt) {
+          <p>Next Reconnect: {{ formatRuntimeTimestamp(status.nextReconnectAt) }}</p>
+        }
+        @if (status.failureCount !== undefined) {
+          <p>Failure Count: {{ status.failureCount }}</p>
+        }
+        @if (status.lastError) {
+          <p>Last Error: {{ status.lastError }}</p>
+        }
+        @if (status.disabledReason) {
+          <p>Disabled Reason: {{ status.disabledReason }}</p>
+        }
+        <div class="mt-2">
+          <button mat-stroked-button type="button" (click)="reconnectLarkRuntimeStatus()">
+            {{ 'PAC.KEY_WORDS.Refresh' | translate: {Default: 'Reconnect'} }}
+          </button>
+        </div>
+      </div>
+    }
+
     <div class="w-full filter-bar p-2 flex justify-between items-center gap-4">
-      <button mat-flat-button type="button" [disabled]="!integrationProvider() || optionsInvalid" (click)="test()">
-        {{ 'PAC.KEY_WORDS.Test' | translate: {Default: 'Test'} }}
+      <button mat-flat-button type="button" [disabled]="loading() || !integrationProvider() || optionsInvalid" (click)="test()">
+        {{
+          isLarkProvider() && isLongConnectionMode()
+            ? ('PAC.KEY_WORDS.Test' | translate: {Default: 'Try Connect'})
+            : ('PAC.KEY_WORDS.Test' | translate: {Default: 'Test'})
+        }}
       </button>
       <div ngmButtonGroup class="flex items-center gap-2">
         <button mat-flat-button type="button" (click)="cancel()">
@@ -100,7 +180,7 @@
         <button mat-raised-button color="primary"
           [matTooltip]=" 'PAC.KEY_WORDS.Save' | translate: {Default: 'Save' }"
           matTooltipPosition="above"
-          [disabled]="formGroup.invalid || formGroup.pristine || optionsInvalid" 
+          [disabled]="loading() || formGroup.invalid || formGroup.pristine || optionsInvalid" 
           (click)="upsert()"
         >
           <mat-icon fontSet="material-icons-outlined">save</mat-icon>

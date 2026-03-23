@@ -1,70 +1,96 @@
 <div class="mb-3 flex justify-between items-center">
   <div class="h-[41px] flex items-center text-lg font-semibold text-gray-900">
-    {{ 'PAC.Xpert.Logs' | translate: { Default: 'Logs' } }}
+    {{ 'PAC.Xpert.Logs' | translate: {Default: 'Logs'} }}
   </div>
 </div>
 
 <div class="flex items-center mb-2 gap-2">
+  <ngm-select [placeholder]="'PAC.Xpert.SelectTimeRange' | translate: {Default: 'Select time range'}" icon="ri-calendar-line" [selectOptions]="TimeRanges" [(ngModel)]="timeRangeValue" class="min-w-[150px] rounded-lg shadow-sm" />
   <ngm-select
-    [placeholder]="'PAC.Xpert.SelectTimeRange' | translate: { Default: 'Select time range' }"
-    icon="ri-calendar-line"
-    [selectOptions]="TimeRanges"
-    [(ngModel)]="timeRangeValue"
-    class="min-w-[150px] rounded-lg shadow-sm"
+    [placeholder]="'PAC.Xpert.LogDateField' | translate: {Default: 'Filter by'}"
+    [selectOptions]="conversationDateFields"
+    [(ngModel)]="dateField"
+    (ngModelChange)="onDateFieldChange()"
+    class="min-w-[160px] rounded-lg shadow-sm"
   />
+  <button
+    class="inline-flex items-center gap-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-700 hover:bg-gray-50 disabled:opacity-40"
+    [disabled]="loading()"
+    (click)="refreshConversations()"
+  >
+    <i class="ri-refresh-line"></i>
+    <span>{{ 'PAC.ACTIONS.Refresh' | translate: {Default: 'Refresh'} }}</span>
+  </button>
 </div>
 
-<div class="w-full relative overflow-auto flex-1" waIntersectionObserver waIntersectionThreshold="0.5">
+<div class="w-full relative overflow-auto flex-1"
+  waIntersectionObserver
+  waIntersectionThreshold="0.5">
   <table class="table-fixed w-full text-sm text-left rtl:text-right text-gray-500 dark:text-gray-400">
     <thead class="text-xs text-gray-700 uppercase bg-gray-50 dark:bg-gray-700 dark:text-gray-400">
       <tr>
-        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-80 truncate">
-          {{ 'PAC.KEY_WORDS.Title' | translate: { Default: 'Title' } }}
+        <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-96">
+          {{ 'PAC.KEY_WORDS.Title' | translate: {Default: 'Title'} }}
         </th>
         <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
-          {{ 'PAC.KEY_WORDS.CreatedBy' | translate: { Default: 'Created By' } }}
+          {{ 'PAC.KEY_WORDS.CreatedBy' | translate: {Default: 'Created By'} }}
         </th>
         <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
-          {{ 'PAC.Xpert.ChatFrom' | translate: { Default: 'Chat From' } }}
+          {{ 'PAC.Xpert.ChatFrom' | translate: {Default: 'Chat From'} }}
         </th>
         <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
-          {{ 'PAC.KEY_WORDS.EndUser' | translate: { Default: 'End User' } }}
+          {{ 'PAC.KEY_WORDS.EndUser' | translate: {Default: 'End User'} }}
         </th>
         <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
-          {{ 'PAC.KEY_WORDS.MessageCount' | translate: { Default: 'Message Count' } }}
+          {{ 'PAC.KEY_WORDS.MessageCount' | translate: {Default: 'Message Count'} }}
         </th>
         <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-32">
-          {{ 'PAC.KEY_WORDS.Status' | translate: { Default: 'Status' } }}
+          {{ 'PAC.KEY_WORDS.Status' | translate: {Default: 'Status'} }}
         </th>
         <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3">
-          {{ 'PAC.KEY_WORDS.UpdatedAt' | translate: { Default: 'Updated At' } }}
+          {{ 'PAC.KEY_WORDS.UpdatedAt' | translate: {Default: 'Updated At'} }}
         </th>
         <th scope="col" class="sticky top-0 bg-gray-50 px-6 py-3 w-28">
-          {{ 'PAC.KEY_WORDS.Actions' | translate: { Default: 'Actions' } }}
+          {{ 'PAC.KEY_WORDS.Actions' | translate: {Default: 'Actions'} }}
         </th>
       </tr>
     </thead>
     <tbody>
       @for (conv of conversations(); track conv.id) {
-        <tr
-          class="row cursor-pointer bg-white border-b dark:bg-gray-800 dark:border-gray-700"
+        <tr class="row cursor-pointer bg-white border-b dark:bg-gray-800 dark:border-gray-700"
           [class.selected]="preview() === conv.id"
           (click)="togglePreview(conv.id)"
         >
-          <td class="px-4 py-2 whitespace-nowrap truncate">
-            {{ conv.title }}
+          <td class="px-4 py-2 align-top">
+            <div class="flex flex-col gap-1">
+              <div class="font-medium text-gray-900 whitespace-normal break-words">
+                {{ conv.title || ('PAC.KEY_WORDS.Empty' | translate: {Default: 'Untitled'}) }}
+              </div>
+              <div class="flex flex-wrap gap-2 text-xs text-gray-500">
+                @if (conv.from) {
+                  <span class="px-2 py-0.5 rounded-full bg-gray-100 text-gray-700 border border-gray-200">
+                    {{ conv.from }}
+                  </span>
+                }
+                @if (conv.fromEndUserId) {
+                  <span class="px-2 py-0.5 rounded-full bg-sky-50 text-sky-700 border border-sky-200">
+                    {{ endUserLabel(conv.fromEndUserId) }}
+                  </span>
+                }
+              </div>
+            </div>
           </td>
           <td class="px-4 py-2">
-            {{ conv.createdBy | user }}
+            {{conv.createdBy | user }}
           </td>
           <td class="px-4 py-2">
-            {{ conv.from }}
+            {{conv.from }}
           </td>
           <td class="px-4 py-2">
-            {{ conv.fromEndUser ? (conv.fromEndUser | user) : conv.fromEndUserId }}
+            {{ endUserLabel(conv.fromEndUserId) }}
           </td>
           <td class="px-4 py-2">
-            {{ conv.messageCount | number: '0.0-0' }}
+            {{conv.messageCount | number:'0.0-0'}}
           </td>
           <td class="px-4 py-2">
             @switch (conv.status) {
@@ -72,39 +98,35 @@
                 <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
                   <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
                   <span class="">
-                    {{ 'PAC.Xpert.Busy' | translate: { Default: 'Busy' } }}
+                    {{ 'PAC.Xpert.Busy' | translate: {Default: 'Busy'} }}
                   </span>
                 </div>
               }
               @case ('error') {
                 <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
-                  <div
-                    class="w-2 h-2 border border-solid rounded-[3px] bg-red-400 border-red-600 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"
-                  ></div>
+                  <div class="w-2 h-2 border border-solid rounded-[3px] bg-red-400 border-red-600 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
                   <span class="text-red-600">
-                    {{ 'PAC.Xpert.Failure' | translate: { Default: 'Failure' } }}
+                    {{ 'PAC.Xpert.Failure' | translate: {Default: 'Failure'} }}
                   </span>
                 </div>
               }
               @case ('interrupted') {
                 <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
-                  <div
-                    class="w-2 h-2 border border-solid rounded-[3px] bg-neutral-500 border-neutral-800 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"
-                  ></div>
+                  <div class="w-2 h-2 border border-solid rounded-[3px] bg-neutral-500 border-neutral-800 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
                   <span class="">
-                    {{ 'PAC.Xpert.Interrupted' | translate: { Default: 'Interrupted' } }}
+                    {{ 'PAC.Xpert.Interrupted' | translate: {Default: 'Interrupted'} }}
                   </span>
                 </div>
               }
               @case ('idle') {
                 <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
                   <span class="">
-                    {{ 'PAC.Xpert.Idle' | translate: { Default: 'Idle' } }}
+                    {{ 'PAC.Xpert.Idle' | translate: {Default: 'Idle'} }}
                   </span>
                 </div>
               }
               @default {
-                {{ conv.status }}
+                {{conv.status}}
               }
             }
           </td>
@@ -115,10 +137,11 @@
               [disabled]="conv.status !== 'busy'"
               (click)="cancelConversation($event, conv)"
             >
-              {{ 'PAC.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
+              {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
             </button>
           </td>
         </tr>
+
       }
     </tbody>
   </table>
@@ -130,34 +153,31 @@
   }
 
   @if (!done()) {
-    <button
-      (waIntersectionObservee)="onIntersection()"
-      class="w-full flex justify-center p-2 cursor-pointer hover:bg-gray-100"
+    <button (waIntersectionObservee)="onIntersection()" class="w-full flex justify-center p-2 cursor-pointer hover:bg-gray-100"
       [disabled]="loading()"
       (click)="onIntersection()"
     >
       <i class="ri-arrow-down-wide-line"></i>
     </button>
   }
+
 </div>
 
 @if (preview()) {
   <div class="absolute right-0 top-0 bottom-0 p-4 flex gap-2">
     @if (executionId()) {
-      <chat-message-execution-panel
-        class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto w-[420px]"
+      <chat-message-execution-panel class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto
+        w-[420px]"
         [id]="executionId()"
-        [xpert]="prev.xpert()"
+        [xpert]="xpert()"
         (close)="closeExecution()"
       />
     }
 
-    <xp-chat-conversation-preview
-      #prev
-      class="h-full w-[420px] rounded-2xl shadow-lg overflow-auto border border-gray-100 bg-components-panel-bg-blur"
+    <xp-chat-conversation-preview #prev class="h-full w-[420px] rounded-2xl shadow-lg overflow-auto border border-gray-100 bg-components-panel-bg-blur"
       readonly
       [conversationId]="preview()"
-      (close)="preview.set(null)"
+      (close)="closePreview()"
       (execution)="selectExecution($event)"
     />
   </div>

@@ -19,16 +19,20 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { EmojiAvatarComponent, IconComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CardProComponent } from 'apps/cloud/src/app/@shared/card'
 import { ParameterFormComponent } from 'apps/cloud/src/app/@shared/forms'
+import cloneDeep from 'lodash-es/cloneDeep'
+import isEqual from 'lodash-es/isEqual'
 import omit from 'lodash-es/omit'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
-import { BehaviorSubject, distinctUntilChanged, EMPTY, pipe, startWith, switchMap } from 'rxjs'
+import { BehaviorSubject, distinctUntilChanged, EMPTY, map, pipe, startWith, switchMap } from 'rxjs'
 import {
   getErrorMessage,
   injectApiBaseUrl,
+  IntegrationTestResult,
   injectTranslate,
   IntegrationService,
+  LarkRuntimeStatus,
   routeAnimations,
   Store,
   ToastrService
@@ -146,6 +150,22 @@ export class IntegrationComponent implements IsDirty {
   readonly loading = signal(true)
 
   readonly webhookUrl = signal('')
+  readonly larkTestResult = signal<IntegrationTestResult | null>(null)
+  readonly larkRuntimeStatus = signal<LarkRuntimeStatus | null>(null)
+  readonly isLarkProvider = computed(() => this.provider() === 'lark')
+  readonly optionsValue = toSignal(
+    this.optionsControl.valueChanges.pipe(
+      startWith(this.optionsControl.value),
+      map((value) => cloneDeep(value)),
+      distinctUntilChanged(isEqual)
+    ),
+    {
+      initialValue: cloneDeep(this.optionsControl.value)
+    }
+  )
+  readonly isLongConnectionMode = computed(
+    () => this.optionsValue()?.connectionMode === 'long_connection'
+  )
 
   constructor() {
     effect(
@@ -179,6 +199,22 @@ export class IntegrationComponent implements IsDirty {
       },
       { allowSignalWrites: true }
     )
+
+    effect(
+      () => {
+        const integration = this.integration()
+        if (!integration?.id || !this.isLarkProvider() || !this.isLongConnectionMode()) {
+          this.larkRuntimeStatus.set(null)
+          return
+        }
+
+        this.integrationAPI.getLarkRuntimeStatus(integration.id).subscribe({
+          next: (status) => this.larkRuntimeStatus.set(status),
+          error: () => this.larkRuntimeStatus.set(null)
+        })
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   isDirty(): boolean {
@@ -190,16 +226,49 @@ export class IntegrationComponent implements IsDirty {
   }
 
   test() {
+    if (this.#shouldReconnectSavedLarkRuntimeForTest()) {
+      this.loading.set(true)
+      this.integrationAPI.reconnectLarkRuntimeStatus(this.formGroup.value.id).subscribe({
+        next: (status) => {
+          this.larkRuntimeStatus.set(status)
+          this.larkTestResult.update((result) => ({
+            ...(result ?? {}),
+            mode: 'long_connection',
+            capabilities: status.capabilities ?? result?.capabilities,
+            warnings:
+              status.connected || status.state === 'connected'
+                ? ['Long connection activation succeeded.']
+                : [status.lastError || 'Long connection activation did not succeed yet.']
+          }))
+          this.loading.set(false)
+          if (status.connected || status.state === 'connected') {
+            this.#toastr.success('PAC.Messages.TestSuccessfully', { Default: 'Long connection activated!' })
+            return
+          }
+          this.#toastr.warning(status.lastError || 'Long connection activation did not succeed yet.')
+        },
+        error: (error) => {
+          this.loading.set(false)
+          this.#toastr.danger(getErrorMessage(error))
+        }
+      })
+      return
+    }
+
     this.loading.set(true)
     this.integrationAPI.test(this.formGroup.value).subscribe({
       next: (result) => {
+        this.larkTestResult.set(result ?? null)
         if (result?.webhookUrl) {
           this.webhookUrl.set(result.webhookUrl)
-        } else if (result) {
-          this.formGroup.patchValue(result)
+        } else {
+          this.webhookUrl.set('')
         }
-        this.formGroup.markAsDirty()
         this.loading.set(false)
+        if (result?.probe && !result.probe.connected) {
+          this.#toastr.warning(result.probe.lastError || 'Long connection probe failed.')
+          return
+        }
         this.#toastr.success('PAC.Messages.TestSuccessfully', { Default: 'Test successfully!' })
       },
       error: (error) => {
@@ -209,22 +278,148 @@ export class IntegrationComponent implements IsDirty {
     })
   }
 
+  #shouldReconnectSavedLarkRuntimeForTest(): boolean {
+    return !!this.formGroup.value.id && this.isLarkProvider() && this.isLongConnectionMode() && !this.formGroup.dirty
+  }
+
   upsert() {
-    ;(this.formGroup.value.id
+    this.loading.set(true)
+    const currentIntegration = this.integration()
+    const previousLarkConnectionMode = this.#resolveLarkConnectionMode(
+      currentIntegration?.provider,
+      currentIntegration?.options
+    )
+    const nextLarkConnectionMode = this.#resolveLarkConnectionMode(
+      this.formGroup.value.provider,
+      this.formGroup.value.options
+    )
+    const shouldReconnectLarkRuntime = nextLarkConnectionMode === 'long_connection'
+    const shouldDisconnectLarkRuntime =
+      !!currentIntegration?.id && previousLarkConnectionMode === 'long_connection' && !shouldReconnectLarkRuntime
+    const payload = this.formGroup.value.id
       ? this.integrationAPI.update(this.formGroup.value.id, {
           ...this.formGroup.value
         })
       : this.integrationAPI.create(omit(this.formGroup.value, 'id'))
-    ).subscribe({
-      next: () => {
+
+    payload.subscribe({
+      next: (integration: any) => {
+        const integrationId = integration?.id || this.formGroup.value.id
+        if (integration?.id && integration?.id !== this.formGroup.value.id) {
+          this.formGroup.patchValue({ id: integration.id }, { emitEvent: false })
+        }
         this.formGroup.markAsPristine()
+        if (integrationId && shouldReconnectLarkRuntime) {
+          this.integrationAPI.reconnectLarkRuntimeStatus(integrationId).subscribe({
+            next: (status) => {
+              this.larkRuntimeStatus.set(status)
+              this.loading.set(false)
+              this.#toastr.success('PAC.Messages.UpdatedSuccessfully', {
+                Default: 'Saved successfully and long connection activation requested!'
+              })
+              if (!this.paramId() && integrationId) {
+                this.#router.navigate(['../', integrationId], { relativeTo: this.#route })
+              }
+            },
+            error: (error) => {
+              this.loading.set(false)
+              this.#toastr.warning(
+                getErrorMessage(error) || 'Saved successfully, but long connection activation failed.'
+              )
+              if (!this.paramId() && integrationId) {
+                this.#router.navigate(['../', integrationId], { relativeTo: this.#route })
+              }
+            }
+          })
+          return
+        }
+
+        if (integrationId && shouldDisconnectLarkRuntime) {
+          this.integrationAPI.disconnectLarkRuntimeStatus(integrationId).subscribe({
+            next: () => {
+              this.larkRuntimeStatus.set(null)
+              this.loading.set(false)
+              this.#toastr.success('PAC.Messages.UpdatedSuccessfully', {
+                Default: 'Saved successfully and long connection deactivated.'
+              })
+              this.#router.navigate(['..'], { relativeTo: this.#route })
+            },
+            error: (error) => {
+              this.loading.set(false)
+              this.#toastr.warning(
+                getErrorMessage(error) || 'Saved successfully, but long connection deactivation failed.'
+              )
+              this.#router.navigate(['..'], { relativeTo: this.#route })
+            }
+          })
+          return
+        }
+
+        this.loading.set(false)
         this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created Successfully!' })
         this.#router.navigate(['..'], { relativeTo: this.#route })
       },
       error: (error) => {
+        this.loading.set(false)
         this.#toastr.error(getErrorMessage(error))
       }
     })
+  }
+
+  #resolveLarkConnectionMode(
+    provider: string | null | undefined,
+    options: { connectionMode?: 'webhook' | 'long_connection' } | null | undefined
+  ): 'webhook' | 'long_connection' | null {
+    if (provider !== 'lark') {
+      return null
+    }
+
+    return options?.connectionMode === 'long_connection' ? 'long_connection' : 'webhook'
+  }
+
+  reconnectLarkRuntimeStatus() {
+    const integrationId = this.formGroup.value.id
+    if (!integrationId) {
+      return
+    }
+
+    this.loading.set(true)
+    this.integrationAPI.reconnectLarkRuntimeStatus(integrationId).subscribe({
+      next: (status) => {
+        this.larkRuntimeStatus.set(status)
+        this.loading.set(false)
+        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Long connection reactivated!' })
+      },
+      error: (error) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
+  }
+
+  formatRuntimeTimestamp(value: number | null | undefined) {
+    if (!value) {
+      return ''
+    }
+    return new Date(value).toLocaleString()
+  }
+
+  onOptionsChange(options: unknown) {
+    const currentValue = this.optionsValue()
+    const nextValue = cloneDeep(options)
+    this.optionsControl.setValue(nextValue)
+
+    if (isEqual(currentValue, nextValue)) {
+      return
+    }
+
+    this.optionsControl.markAsDirty()
+    this.formGroup.markAsDirty()
+    this.webhookUrl.set('')
+    this.larkTestResult.set(null)
+    if (this.formGroup.value.id) {
+      this.larkRuntimeStatus.set(null)
+    }
   }
 
   cancel() {

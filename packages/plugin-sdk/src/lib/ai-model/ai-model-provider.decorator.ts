@@ -1,9 +1,42 @@
 import { SetMetadata } from '@nestjs/common'
 import path from 'path'
+import { fileURLToPath } from 'url'
 import { STRATEGY_META_KEY } from '../types'
 
 
 export const AI_MODEL_PROVIDER = 'AI_MODEL_PROVIDER'
+
+function normalizeStackFilePath(file?: string) {
+  if (!file) {
+    return file
+  }
+
+  if (file.startsWith('file:///')) {
+    try {
+      file = fileURLToPath(file)
+    } catch {
+      file = file.replace('file://', '')
+    }
+  }
+
+  // Strip :line:col suffix (e.g. "/path/file.js:37:5" -> "/path/file.js")
+  file = file.replace(/:\d+:\d+$/, '')
+
+  // Decode URL-encoded paths (e.g. Chinese characters: %E9%A1%B9%E7%9B%AE -> 项目)
+  try {
+    file = decodeURIComponent(file)
+  } catch {
+    // keep as-is if decode fails
+  }
+
+  // Some Windows ESM stacks still keep a leading slash ("/D:/..."), which
+  // later turns into "D:\\D:\\..." when joined again.
+  if (/^\/[A-Za-z]:[\\/]/.test(file)) {
+    file = file.slice(1)
+  }
+
+  return file
+}
 
 export function AIModelProviderStrategy(provider: string) {
   const err = new Error()
@@ -24,27 +57,7 @@ export function AIModelProviderStrategy(provider: string) {
     callerLine?.match(/at (file:\/\/\/[^\s]+)/) || // case 3: at file:///...
     callerLine?.match(/at (\/[^\s]+)/) // case 4: at /Users/xxx
 
-  let file = match?.[1]
-
-  // remove the file:/// prefix
-  if (file?.startsWith('file:///')) {
-    file = file.replace('file://', '')
-  }
-
-  // Strip :line:col suffix (e.g. "/path/file.js:37:5" -> "/path/file.js")
-  if (file) {
-    file = file.replace(/:\d+:\d+$/, '')
-  }
-
-  // Decode URL-encoded paths (e.g. Chinese characters: %E9%A1%B9%E7%9B%AE -> 项目)
-  if (file) {
-    try {
-      file = decodeURIComponent(file)
-    } catch {
-      // keep as-is if decode fails
-    }
-  }
-
+  const file = normalizeStackFilePath(match?.[1])
   const dir = file ? path.dirname(file) : process.cwd()
 
   return function (target: any) {

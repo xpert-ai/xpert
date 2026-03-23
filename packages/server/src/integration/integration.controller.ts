@@ -1,10 +1,20 @@
 import { IIntegration, INTEGRATION_PROVIDERS, IntegrationEnum, IntegrationFeatureEnum } from '@metad/contracts'
-import { Body, Controller, Get, InternalServerErrorException, Post, Query, UseInterceptors } from '@nestjs/common'
+import {
+	Body,
+	Controller,
+	Delete,
+	Get,
+	InternalServerErrorException,
+	Param,
+	Post,
+	Query,
+	UseInterceptors
+} from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiTags } from '@nestjs/swagger'
 import { FindOptionsWhere } from 'typeorm'
 import { TransformInterceptor } from '../core/interceptors'
-import { ParseJsonPipe } from '../shared/pipes'
+import { ParseJsonPipe, UUIDValidationPipe } from '../shared/pipes'
 import { CrudController, PaginationParams, transformWhere } from './../core/crud'
 import { IntegrationPublicDTO } from './dto'
 import { Integration } from './integration.entity'
@@ -59,5 +69,15 @@ export class IntegrationController extends CrudController<Integration> {
 	@Get('providers')
 	async getProviders() {
 		return this.service.getProviders()
+	}
+
+	@Delete(':id')
+	async delete(@Param('id', UUIDValidationPipe) id: string) {
+		const integration = await this.service.readOneById(id, { relations: ['tenant'] })
+		if (integration) {
+			const strategy = this.service.getIntegrationStrategy(integration.provider)
+			await strategy?.onDelete?.(integration as any)
+		}
+		return this.service.delete(id)
 	}
 }
