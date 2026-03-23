@@ -11,7 +11,6 @@
         {{ 'PAC.Plugin.Installed' | translate: { Default: 'Installed' } }}
         <div class="badge badge-s px-[5px] py-[3px] text-xs leading-3 font-medium uppercase">
           {{ plugins().length }}
-          {{ plugins().length }}
         </div>
       </div>
       <div
@@ -77,8 +76,6 @@
         [placeholder]="'PAC.Plugin.AllKeywords' | translate: { Default: 'All Keywords' }"
         [(ngModel)]="keywords"
       />
-        [(ngModel)]="keywords"
-      />
 
       <div class="relative flex w-[200px] items-center rounded-lg">
         <i class="ri-search-line absolute left-2 top-1/2 -translate-y-1/2 text-components-input-text-placeholder"></i>
@@ -130,14 +127,6 @@
                   />
                   <div class="ml-3 w-0 grow">
                     <div class="flex h-5 items-center">
-                      <div
-                        class="system-md-semibold truncate text-text-primary"
-                        [title]="plugin.meta.displayName"
-                        [ngmHighlight]="searchText()"
-                        [content]="plugin.meta.displayName"
-                      >
-                        {{ plugin.meta.displayName }}
-                      </div>
                       <div
                         class="system-md-semibold truncate text-text-primary"
                         [title]="plugin.meta.displayName"
