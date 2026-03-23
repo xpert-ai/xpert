@@ -12,6 +12,7 @@ export * from './entity-with-members.model'
 
 export * from './feature.model'
 export * from './file-provider'
+export * from './file-asset.model'
 
 export * from './http-status.enum'
 
@@ -34,7 +35,11 @@ export * from './tenant.model'
 
 export * from './translation.model'
 
-export type { IBasePerTenantAndOrganizationEntityModel, IBasePerTenantEntityModel, IBaseRelationsEntityModel } from './base-entity.model'
+export type {
+  IBasePerTenantAndOrganizationEntityModel,
+  IBasePerTenantEntityModel,
+  IBaseRelationsEntityModel
+} from './base-entity.model'
 export type { IBaseEntityModel as BaseEntityModel } from './base-entity.model'
 export * from './role.model'
 export * from './user-organization.model'

@@ -124,7 +124,25 @@
               </button>
             </div>
           </div>
-          <div class="ml-auto flex flex-row items-end gap-1">
+          <div class="ml-auto flex flex-row items-end gap-2">
+            @if (showContextUsage()) {
+              <button
+                type="button"
+                class="context-usage-trigger mb-1 inline-flex h-7 w-7 items-center justify-center rounded-full overflow-hidden text-text-tertiary transition-colors hover:text-text-primary"
+                [zTooltip]="contextUsageTooltip()"
+                zTooltipClass="context-usage-tooltip"
+                zPosition="top"
+                [zDisabled]="!contextUsageTooltip()"
+                aria-label="Context window usage"
+              >
+                <span class="context-usage-ring" [ngStyle]="contextUsageRingStyle()">
+                  <span class="context-usage-ring__inner">
+                    <span class="context-usage-ring__label">{{ contextUsagePercent() }}</span>
+                  </span>
+                </span>
+              </button>
+            }
+
             @if (speechToText_enabled()) {
               <div class="flex items-center px-2 z-10">
                 <div class="grow">

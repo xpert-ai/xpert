@@ -5,7 +5,7 @@ import {
   TChatMessageStep,
   TProgramToolMessage
 } from '@metad/contracts'
-import { BaseSandbox, ExecuteResponse } from '@xpert-ai/plugin-sdk'
+import { BaseSandbox, ExecuteResponse, SandboxExecutionOptions } from '@xpert-ai/plugin-sdk'
 import ShortUniqueId from 'short-unique-id'
 
 const uid = new ShortUniqueId({ length: 10 })
@@ -38,7 +38,9 @@ export async function withToolMessage<T>(
     status: 'running',
     created_date: new Date(),
     input
-  } as TChatMessageStep).catch((e) => { console.warn('[ToolMessage] dispatch failed:', e?.message) })
+  } as TChatMessageStep).catch((e) => {
+    console.warn('[ToolMessage] dispatch failed:', e?.message)
+  })
 
   try {
     const result = await fn()
@@ -51,7 +53,9 @@ export async function withToolMessage<T>(
       status: 'success',
       end_date: new Date(),
       output: typeof result === 'string' ? result : JSON.stringify(result)
-    } as TChatMessageStep).catch((e) => { console.warn('[ToolMessage] dispatch failed:', e?.message) })
+    } as TChatMessageStep).catch((e) => {
+      console.warn('[ToolMessage] dispatch failed:', e?.message)
+    })
     return result
   } catch (err: any) {
     await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
@@ -63,7 +67,9 @@ export async function withToolMessage<T>(
       status: 'fail',
       end_date: new Date(),
       error: err.message
-    } as TChatMessageStep).catch((e) => { console.warn('[ToolMessage] dispatch failed:', e?.message) })
+    } as TChatMessageStep).catch((e) => {
+      console.warn('[ToolMessage] dispatch failed:', e?.message)
+    })
     throw err
   }
 }
@@ -86,18 +92,26 @@ export async function withStreamingToolMessage(
   toolCallId: string,
   toolName: string,
   command: string,
-  backend: BaseSandbox
+  backend: BaseSandbox,
+  executionOptions?: SandboxExecutionOptions
 ): Promise<ExecuteResponse> {
-  const makeStep = (
-    overrides: Partial<TChatMessageStep<TProgramToolMessage>>
-  ): TChatMessageStep<TProgramToolMessage> =>
+  const input = {
+    command,
+    ...(executionOptions?.timeoutMs
+      ? {
+          timeout_sec: Number((executionOptions.timeoutMs / 1000).toFixed(3))
+        }
+      : {})
+  }
+
+  const makeStep = (overrides: Partial<TChatMessageStep<TProgramToolMessage>>): TChatMessageStep<TProgramToolMessage> =>
     ({
       id: toolCallId,
       category: 'Tool',
       type: ChatMessageStepCategory.Program,
       tool: toolName,
       title: toolName,
-      input: { command },
+      input,
       ...overrides
     }) as TChatMessageStep<TProgramToolMessage>
 
@@ -110,7 +124,9 @@ export async function withStreamingToolMessage(
       output: '',
       data: { code: command, output: '' }
     })
-  ).catch((e) => { console.warn('[ToolMessage] dispatch failed:', e?.message) })
+  ).catch((e) => {
+    console.warn('[ToolMessage] dispatch failed:', e?.message)
+  })
 
   // Phase 2: streaming execution
   let result: ExecuteResponse
@@ -118,23 +134,29 @@ export async function withStreamingToolMessage(
     let accumulatedOutput = ''
     let lastDispatchTime = 0
 
-    result = await backend.streamExecute(command, (line) => {
-      accumulatedOutput += (accumulatedOutput ? '\n' : '') + line
-      const now = Date.now()
-      if (now - lastDispatchTime >= STREAM_THROTTLE_MS) {
-        lastDispatchTime = now
-        dispatchCustomEvent(
-          ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
-          makeStep({
-            status: 'running',
-            output: accumulatedOutput,
-            data: { code: command, output: accumulatedOutput }
+    result = await backend.streamExecute(
+      command,
+      (line) => {
+        accumulatedOutput += (accumulatedOutput ? '\n' : '') + line
+        const now = Date.now()
+        if (now - lastDispatchTime >= STREAM_THROTTLE_MS) {
+          lastDispatchTime = now
+          dispatchCustomEvent(
+            ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
+            makeStep({
+              status: 'running',
+              output: accumulatedOutput,
+              data: { code: command, output: accumulatedOutput }
+            })
+          ).catch((e) => {
+            console.warn('[ToolMessage] dispatch failed:', e?.message)
           })
-        ).catch((e) => { console.warn('[ToolMessage] dispatch failed:', e?.message) })
-      }
-    })
+        }
+      },
+      executionOptions
+    )
   } else {
-    result = await backend.execute(command)
+    result = await backend.execute(command, executionOptions)
   }
 
   // Phase 3: completion
@@ -148,7 +170,9 @@ export async function withStreamingToolMessage(
       data: { code: command, output: finalOutput },
       error: result.exitCode !== 0 ? finalOutput : undefined
     })
-  ).catch((e) => { console.warn('[ToolMessage] dispatch failed:', e?.message) })
+  ).catch((e) => {
+    console.warn('[ToolMessage] dispatch failed:', e?.message)
+  })
 
   return result
 }

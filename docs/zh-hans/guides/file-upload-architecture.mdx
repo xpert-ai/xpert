@@ -1,0 +1,423 @@
+# 统一文件上传架构
+
+## 概览
+
+统一文件上传栈现在分成四层：
+
+1. `server/file/file-upload`
+2. `server/file/file-storage`
+3. `server-ai/shared/file-upload-targets`
+4. `plugin-sdk`
+
+这样上传编排、存储驱动、业务目标和插件扩展点就能各自独立。
+
+## 分层职责
+
+### 1. Source 归一化
+
+`UploadFileService` 当前支持三类 source：
+
+- `multipart`
+- `storage_file`
+- `local_file`
+
+所有 source 都会被归一化为统一的 resolved source，包含：
+
+- 文件 buffer
+- 文件名
+- 原始文件名
+- MIME type
+- 文件大小
+- source metadata
+
+### 2. Target 编排
+
+Target 描述“文件要传到哪里”。
+
+内建 target kind：
+
+- `storage`
+- `volume`
+- `sandbox`
+
+内建 target strategy：
+
+- `storage`
+- `volume`
+- `sandbox:mounted_workspace`
+- `sandbox:backend_upload`
+
+`UploadFileService` 会从 `target.strategy` 或内建映射中解析具体 strategy。
+
+每个 target 产出一个 destination，最终聚合成一个 `FileAsset`。
+
+### 3. 文件存储 Provider
+
+`storage` target 本身并不直接写字节。
+
+真实链路是：
+
+1. `StorageTargetStrategy` 负责生成 object key 并创建 `StorageFile`
+2. `FileStorage` 负责解析具体 provider
+3. 最终由 `IFileStorageProvider` 完成字节读写
+
+宿主当前只内建保留一个 provider：
+
+- `LOCAL`
+
+对象存储 provider，如 `MINIO`、`RUSTFS`、`S3`、`WASABI`、`OSS`，都通过插件方式接入。
+
+### 3.5. `storage-file` 在哪里
+
+`storage-file` 不是另一层上传编排框架。
+
+它的职责更窄，主要是：
+
+1. 在 `storage` 上传成功后持久化一条 `StorageFile` 记录
+2. 作为对象存储文件的元数据索引
+3. 在实现迁移到统一上传后，继续兼容旧的 `StorageFile` API
+
+当前 `storage` target 的真实链路是：
+
+1. `UploadFileService` 先解析 source，并选择 `storage` target strategy
+2. `StorageTargetStrategy` 通过 `FileStorage` 找到具体 provider
+3. provider 负责把字节写入真实存储后端
+4. `StorageFileService` 为这个对象存储文件写入一条 `StorageFile` 记录
+5. destination 同时返回存储路径和 `StorageFile` 引用
+
+所以三者关系应理解为：
+
+- `file-upload` 负责上传编排
+- `file-storage` 负责字节存储接入
+- `storage-file` 负责对象存储记录的持久化、查询和兼容层
+
+并不是所有上传都会创建 `StorageFile`。
+
+只有目标是对象存储的上传才应该这样做。`volume` 和 `sandbox` 上传可以成功，但不一定需要任何 `StorageFile` 记录，因为它们不属于对象存储目录。
+
+### 4. 插件扩展点
+
+`plugin-sdk` 对文件体系暴露两个扩展面：
+
+1. `IFileUploadTargetStrategy`
+2. `IFileStorageProvider`
+
+这就是当前唯一保留的文件扩展模型。
+
+不再保留 upload-specific storage provider 这一层，因为它与 `IFileStorageProvider` 的职责重复。
+
+## 插件配置模型
+
+插件型存储 provider 可以通过三部分暴露配置能力：
+
+1. `config.schema`
+   用于运行时校验
+2. `config.formSchema`
+   可选，用于前端配置表单渲染
+3. 通过 `PluginConfigResolver` 读取生效配置
+
+宿主会把插件配置持久化在 `PluginInstance.config` 中。
+
+如果配置包含敏感信息，当前实现会在落库前对整段配置对象进行加密。
+
+运行时配置优先级如下：
+
+1. 解密后的 `PluginInstance.config`
+2. 插件自己的 `registerAs(...)` env 默认值
+3. provider 内部默认值
+
+## 请求与返回模型
+
+### 请求
+
+`POST /files/upload`
+
+字段：
+
+- `file`：multipart 文件
+- `targets`：JSON 字符串数组
+- `metadata`：可选 JSON 字符串
+
+示例：
+
+```bash
+curl -X POST http://localhost:3000/api/files/upload \
+  -F 'file=@./README.md' \
+  -F 'targets=[{"kind":"storage","provider":"S3","directory":"files","prefix":"docs"}]'
+```
+
+### 返回
+
+统一返回 `FileAsset`：
+
+```json
+{
+  "status": "success",
+  "originalName": "README.md",
+  "destinations": [
+    {
+      "kind": "storage",
+      "status": "success",
+      "path": "files/tenant-id/docs-123456.md",
+      "url": "https://...",
+      "referenceId": "storage-file-id"
+    }
+  ]
+}
+```
+
+## 各项能力怎么用
+
+### 上传到对象存储
+
+使用 `storage` target：
+
+```json
+[
+  {
+    "kind": "storage",
+    "provider": "S3",
+    "directory": "files",
+    "prefix": "knowledge"
+  }
+]
+```
+
+这里的 provider 可以是：
+
+- 宿主内建本地 provider `LOCAL`
+- 插件型 provider，如 `MINIO`、`RUSTFS`、`S3`、`WASABI`、`OSS`
+
+### 上传到 volume
+
+```json
+[
+  {
+    "kind": "volume",
+    "catalog": "projects",
+    "projectId": "project-id",
+    "folder": "docs"
+  }
+]
+```
+
+返回 metadata 包含：
+
+- `filePath`
+- `fileUrl`
+- `absolutePath`
+- `mimeType`
+
+### 上传到 sandbox mounted workspace
+
+```json
+[
+  {
+    "kind": "sandbox",
+    "mode": "mounted_workspace",
+    "workspacePath": "/workspace",
+    "workspaceUrl": "http://sandbox.local/workspace",
+    "folder": "attachments"
+  }
+]
+```
+
+返回 metadata 包含：
+
+- `localPath`
+- `workspacePath`
+- `workspaceUrl`
+
+### 上传到 sandbox backend
+
+```json
+[
+  {
+    "kind": "sandbox",
+    "mode": "backend_upload",
+    "workspaceId": "workspace-id",
+    "sandboxUrl": "http://sandbox.local"
+  }
+]
+```
+
+当前限制：
+
+- `sandbox:backend_upload` 只支持 UTF-8 文本文件
+- 二进制文件请继续使用 `mounted_workspace`
+
+### 一次上传多个目标
+
+一次请求可以把同一个文件写入多个 destination：
+
+```json
+[
+  { "kind": "storage", "provider": "OSS", "directory": "files" },
+  { "kind": "volume", "catalog": "knowledges", "knowledgeId": "kb-id" },
+  { "kind": "sandbox", "mode": "mounted_workspace", "workspacePath": "/workspace" }
+]
+```
+
+聚合规则：
+
+- 全部成功 -> `success`
+- 部分成功 -> `partial_success`
+- 全部失败 -> `failed`
+
+## 旧接口兼容
+
+旧上传接口仍然保留，但内部都已经改走统一上传链路。
+
+例如：
+
+- storage 上传接口仍返回 `StorageFile`
+- project、knowledgebase 上传接口仍返回原来的响应结构
+- agent 附件同步也复用了同一条上传服务
+
+因此 `storage-file` 仍然重要，但更偏向：
+
+- 对象存储上传的持久化模型
+- 旧 API 的兼容外观
+- 已存储对象的删除钩子等生命周期处理
+
+## 存储 provider 配置
+
+对象存储 provider 已经不再作为宿主内建能力存在。
+
+`MINIO`、`RUSTFS`、`S3`、`WASABI`、`OSS` 现在都由 `@xpert-ai/plugin-draft` 这个 draft 插件统一注册。
+
+插件配置当前按子属性拆分，方便后续独立拆成单独插件：
+
+- `minio`
+- `rustfs`
+- `s3`
+- `wasabi`
+- `oss`
+
+插件仍然支持各 provider 自己的环境变量作为插件内部默认值，但它们已经不再属于宿主 `environment` 合同。
+
+详见专门文档：[MinIO 文件存储插件](/zh-hans/guides/minio-file-storage)
+另见：[RustFS 文件存储插件](/zh-hans/guides/rustfs-file-storage)
+
+## 如何通过插件扩展
+
+### 新增自定义 target strategy
+
+```ts
+import { FileUploadTargetStrategy, IFileUploadTargetStrategy } from '@xpert-ai/plugin-sdk'
+import { Injectable } from '@nestjs/common'
+
+@Injectable()
+@FileUploadTargetStrategy('archive')
+export class ArchiveTargetStrategy implements IFileUploadTargetStrategy {
+  async upload(source, target, context) {
+    return {
+      kind: 'storage',
+      status: 'success',
+      path: `archive/${source.originalName}`
+    }
+  }
+}
+```
+
+### 新增自定义 file-storage provider
+
+```ts
+import { FileStorageProvider, IFileStorageProvider } from '@xpert-ai/plugin-sdk'
+import { Injectable } from '@nestjs/common'
+
+@Injectable()
+@FileStorageProvider('R2')
+export class R2Provider implements IFileStorageProvider {
+  name = 'R2'
+  config = { rootPath: '' }
+
+  url(path: string) {
+    return `https://r2.example.com/${path}`
+  }
+
+  path(path: string) {
+    return path
+  }
+
+  handler() {
+    return undefined
+  }
+
+  async getFile() {
+    return Buffer.from('')
+  }
+
+  async putFile() {
+    throw new Error('Not implemented')
+  }
+
+  async deleteFile() {}
+}
+```
+
+### 为插件提供配置 UI
+
+如果插件 provider 需要用户可管理配置：
+
+1. 定义 `config.schema` 做运行时校验
+2. 可选定义 `config.formSchema` 描述前端表单
+3. 在 provider 中通过 `PluginConfigResolver` 读取生效配置
+
+当插件提供 `config.formSchema` 时，已安装插件页会自动展示 `Configure` 按钮，并通过 `JSONSchemaFormComponent` 渲染配置 dialog。
+
+## 未来开发方向
+
+整体方向是继续把职责边界收紧，而不是让三层互相渗透。
+
+### `file-upload`
+
+这里应该继续作为所有新上传能力的统一入口。
+
+未来凡是涉及以下场景，优先落在这一层：
+
+- 新的 source 类型
+- 新的上传目标
+- 多目标上传编排
+- 通用上传校验、metadata、状态聚合
+
+新的业务上传接口应优先包装 `UploadFileCommand`，而不是再新增一套平行的上传实现。
+
+### `file-storage`
+
+这里应该继续作为存储驱动层。
+
+未来凡是涉及以下场景，优先落在这一层：
+
+- 新的 storage provider
+- provider 特有的 URL、路径或对象 key 规则
+- 插件化存储配置
+- 存储 SDK 升级或替换
+
+它不应该继续吸收业务流程逻辑，也不应该承担旧 API 兼容外观。
+
+### `storage-file`
+
+这里未来应该越来越薄，而不是越来越厚。
+
+它的长期职责应该收敛为：
+
+- 持久化对象存储元数据
+- 通过已存储文件 ID 做查询
+- 承担删除与生命周期钩子
+- 在必要时继续兼容旧的 `StorageFile` 响应模型
+
+新的上传编排不应该直接继续加到 `storage-file` 中。
+
+如果一个功能的描述是“上传一个文件然后……”，第一反应通常应该是：“这是不是应该新增或复用某个 `file-upload` target？”
+
+### 预期中的后续工作
+
+- 如果要持久化任意自定义 provider 名称，需要把 `StorageFile.storageProvider` 从 enum 放宽为 string
+- 继续把剩余旧上传接口收敛成 `UploadFileCommand` 的薄封装
+- 保持 `storage-file` 只负责持久化与兼容，不再新增上传分支
+
+## 说明
+
+- `StorageFile.storageProvider` 当前仍然通过内建 enum 持久化 provider 名称
+- 如果后续需要持久化任意自定义 provider 名称，还需要再把该字段从 enum 放宽到 string

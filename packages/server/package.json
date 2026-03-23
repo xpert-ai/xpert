@@ -1,9 +1,10 @@
 {
 	"name": "@metad/server-core",
-	"version": "3.8.1",
+	"version": "3.8.4",
 	"type": "commonjs",
 	"license": "AGPL-3.0",
 	"dependencies": {
+		"@xpert-ai/plugin-sdk": "^3.8.1",
 		"@casl/ability": "^5.4.3",
 		"@keyv/redis": "^5.1.1",
 		"@nestjs/bull": "^11.0.3",
@@ -71,7 +72,8 @@
 		"swagger-ui-express": "^4.1.6",
 		"typeorm": "^0.3.24",
 		"underscore": "^1.13.1",
-		"unzipper": "^0.12.3"
+		"unzipper": "^0.12.3",
+		"zod-to-json-schema": "^3.23.2"
 	},
 	"devDependencies": {
 		"@types/cache-manager": "^5.0.0",

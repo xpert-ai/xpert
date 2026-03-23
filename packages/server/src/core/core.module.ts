@@ -1,16 +1,11 @@
-import {
-	MiddlewareConsumer,
-	Module,
-	NestModule
-} from '@nestjs/common';
+import { MiddlewareConsumer, Module, NestModule } from '@nestjs/common'
 import { RequestContextMiddleware } from '@xpert-ai/plugin-sdk'
-import { RequestContextMiddleware as DeprecatedRCM, TenantDomainMiddleware } from './context';
-import { FileStorageModule } from './file-storage';
-import { DatabaseModule } from '../database/database.module';
+import { RequestContextMiddleware as DeprecatedRCM, TenantDomainMiddleware } from './context'
+import { DatabaseModule } from '../database/database.module'
 
 @Module({
 	imports: [
-		DatabaseModule,
+		DatabaseModule
 		// GraphqlApiModule,
 		// GraphqlModule.registerAsync((configService: ConfigService) => ({
 		// 	path: configService.graphqlConfigOptions.path,
@@ -36,15 +31,14 @@ import { DatabaseModule } from '../database/database.module';
 		// 	],
 		// 	resolverModule: GraphqlApiModule
 		// })) as DynamicModule,
-		FileStorageModule
 	],
 	controllers: [],
 	providers: []
 })
 export class CoreModule implements NestModule {
 	configure(consumer: MiddlewareConsumer) {
-		consumer.apply(DeprecatedRCM).forRoutes('*');
-		consumer.apply(TenantDomainMiddleware).forRoutes('*');
-		consumer.apply(RequestContextMiddleware).forRoutes('*');
+		consumer.apply(DeprecatedRCM).forRoutes('*')
+		consumer.apply(TenantDomainMiddleware).forRoutes('*')
+		consumer.apply(RequestContextMiddleware).forRoutes('*')
 	}
 }

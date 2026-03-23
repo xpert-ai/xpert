@@ -1,4 +1,12 @@
-import { AIPermissionsEnum, IKnowledgebase, IKnowledgebaseTask, IPagination, KnowledgebasePermission, KnowledgeDocumentMetadata, RolesEnum } from '@metad/contracts'
+import {
+	AIPermissionsEnum,
+	IKnowledgebase,
+	IKnowledgebaseTask,
+	IPagination,
+	KnowledgebasePermission,
+	KnowledgeDocumentMetadata,
+	RolesEnum
+} from '@metad/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -9,6 +17,8 @@ import {
 	RoleGuard,
 	Roles,
 	TransformInterceptor,
+	UploadFileCommand,
+	getFileAssetDestination,
 	transformWhere
 } from '@metad/server-core'
 import { getErrorMessage } from '@metad/server-common'
@@ -36,13 +46,11 @@ import { StatisticsKnowledgebasesQuery } from './queries'
 import { WorkspaceGuard } from '../xpert-workspace'
 import { KnowledgebasePublicDTO } from './dto'
 import { FileInterceptor } from '@nestjs/platform-express'
-import { VolumeClient } from '../shared'
 import { join } from 'path'
 import { KnowledgeDocumentService } from '../knowledge-document'
 import { KnowledgebaseTask } from './task/task.entity'
 import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs'
 import moment from 'moment'
-
 
 @ApiTags('Knowledgebase')
 @ApiBearerAuth()
@@ -50,7 +58,6 @@ import moment from 'moment'
 @Controller()
 export class KnowledgebaseController extends CrudController<Knowledgebase> {
 	readonly #logger = new Logger(KnowledgebaseController.name)
-
 
 	@Inject(KnowledgeDocumentService)
 	private readonly documentService: KnowledgeDocumentService
@@ -190,17 +197,20 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 	async getUnderstandingStrategies() {
 		return this.service.getUnderstandingStrategies()
 	}
-	
+
 	@Get('source/strategies')
 	async getDocumentSourceStrategies() {
 		return this.service.getDocumentSourceStrategies()
 	}
 
 	@Post(':id/test')
-	async test(@Param('id') id: string, @Body() body: { query: string; k: number; score: number; filter: KnowledgeDocumentMetadata }) {
+	async test(
+		@Param('id') id: string,
+		@Body() body: { query: string; k: number; score: number; filter: KnowledgeDocumentMetadata }
+	) {
 		try {
 			return await this.service.test(id, body)
-		} catch(err) {
+		} catch (err) {
 			throw new InternalServerErrorException(getErrorMessage(err))
 		}
 	}
@@ -209,18 +219,17 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 	async createPipeline(@Param('id') id: string) {
 		try {
 			return await this.service.createPipeline(id)
-		}
-		catch(err) {
+		} catch (err) {
 			throw new InternalServerErrorException(getErrorMessage(err))
 		}
 	}
 
 	/**
 	 * Create a new task for a knowledgebase.
-	 * 
+	 *
 	 * @param id Knowledgebase ID
 	 * @param body Partial task entity
-	 * @returns 
+	 * @returns
 	 */
 	@Post(':id/task')
 	async createTask(@Param('id') id: string, @Body() body: Partial<IKnowledgebaseTask>) {
@@ -228,13 +237,20 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 	}
 
 	@Get(':id/task/:taskId')
-	async getTask(@Param('id') id: string, @Param('taskId') taskId: string, @Query('data', ParseJsonPipe) params: PaginationParams<KnowledgebaseTask>,) {
+	async getTask(
+		@Param('id') id: string,
+		@Param('taskId') taskId: string,
+		@Query('data', ParseJsonPipe) params: PaginationParams<KnowledgebaseTask>
+	) {
 		return this.service.getTask(id, taskId, params)
 	}
 
 	@Post(':id/task/:taskId/process')
-	async processTask(@Param('id') id: string, @Param('taskId') taskId: string,
-		@Body() body: { sources?: { [key: string]: { documents: string[] } }; stage: 'preview'| 'prod'; options?: any }) {
+	async processTask(
+		@Param('id') id: string,
+		@Param('taskId') taskId: string,
+		@Body() body: { sources?: { [key: string]: { documents: string[] } }; stage: 'preview' | 'prod'; options?: any }
+	) {
 		return this.service.processTask(id, taskId, body)
 	}
 
@@ -244,7 +260,8 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 	 */
 	@Post(':id/file')
 	@UseInterceptors(FileInterceptor('file'))
-	async uploadFile(@Param('id') id: string,
+	async uploadFile(
+		@Param('id') id: string,
 		@Body('parentId') parentId: string,
 		@Body('path') subpath: string,
 		@UploadedFile() file: Express.Multer.File
@@ -254,42 +271,54 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 			const parents = await this.documentService.findAncestors(parentId)
 			parentFolder = parents.map((i) => i.name).join('/')
 		}
-		
-		const client = new VolumeClient({
-			tenantId: RequestContext.currentTenantId(),
-			userId: RequestContext.currentUserId(),
-			catalog: 'knowledges',
-			knowledgeId: id
-		})
 
 		const targetFolder = join(parentFolder || '', subpath || '')
-		
+
 		// Filename
 		const originalname = Buffer.from(file.originalname, 'latin1').toString('utf8')
-		let fileNameString = '';
-		const fileNameParts = originalname.split('.');
-		const ext = fileNameParts.length > 1 ? fileNameParts.pop() : '';
-		fileNameString = `${fileNameParts.join('.')}-${moment().unix()}-${parseInt(
-			'' + Math.random() * 1000,
-			10
-		)}`;
+		let fileNameString = ''
+		const fileNameParts = originalname.split('.')
+		const ext = fileNameParts.length > 1 ? fileNameParts.pop() : ''
+		fileNameString = `${fileNameParts.join('.')}-${moment().unix()}-${parseInt('' + Math.random() * 1000, 10)}`
 		if (ext) {
-			fileNameString += `.${ext}`;
+			fileNameString += `.${ext}`
 		}
-		// Put file
-		const filePath = join(targetFolder, fileNameString)
-		const url = await client.putFile(targetFolder, {
-			...file,
-			originalname: fileNameString
-		})
-		return { url, filePath, fileUrl: url, mimeType: file.mimetype }
+
+		const asset = await this.commandBus.execute(
+			new UploadFileCommand({
+				source: {
+					kind: 'multipart',
+					file
+				},
+				targets: [
+					{
+						kind: 'volume',
+						catalog: 'knowledges',
+						knowledgeId: id,
+						folder: targetFolder,
+						fileName: fileNameString
+					}
+				]
+			})
+		)
+		const destination = getFileAssetDestination(asset, 'volume')
+		if (!destination || destination.status !== 'success') {
+			throw new InternalServerErrorException(destination?.error || 'Failed to upload knowledgebase file')
+		}
+
+		return {
+			url: destination.url,
+			filePath: destination.path,
+			fileUrl: destination.url,
+			mimeType: file.mimetype
+		}
 	}
 
 	@Get(':id/file/:name/preview')
 	async previewFile(@Param('id') id: string, @Param('name') name: string) {
 		return this.service.previewFile(id, decodeURIComponent(name))
 	}
-	
+
 	// Statistics
 
 	@UseGuards(RoleGuard)
@@ -301,12 +330,15 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 
 	// Logs
 	@Get(':id/logs')
-	async getLogs(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<KnowledgeRetrievalLog>) {
+	async getLogs(
+		@Param('id') id: string,
+		@Query('data', ParseJsonPipe) params: PaginationParams<KnowledgeRetrievalLog>
+	) {
 		return this.retrievalLogService.findAll({
 			...(params ?? {}),
 			where: {
 				...(transformWhere(params?.where) ?? {}),
-				knowledgebaseId: id,
+				knowledgebaseId: id
 			}
 		})
 	}

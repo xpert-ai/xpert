@@ -11,6 +11,7 @@
         {{ 'PAC.Plugin.Installed' | translate: { Default: 'Installed' } }}
         <div class="badge badge-s px-[5px] py-[3px] text-xs leading-3 font-medium uppercase">
           {{ plugins().length }}
+          {{ plugins().length }}
         </div>
       </div>
       <div
@@ -76,6 +77,8 @@
         [placeholder]="'PAC.Plugin.AllKeywords' | translate: { Default: 'All Keywords' }"
         [(ngModel)]="keywords"
       />
+        [(ngModel)]="keywords"
+      />
 
       <div class="relative flex w-[200px] items-center rounded-lg">
         <i class="ri-search-line absolute left-2 top-1/2 -translate-y-1/2 text-components-input-text-placeholder"></i>
@@ -95,6 +98,7 @@
           @for (plugin of filteredPlugins(); track plugin.__trackId) {
             <div class="relative overflow-hidden rounded-xl border-[1.5px] border-(--border) p-1 bg-components-input-bg-normal">
               <div
+                class="relative z-10 rounded-xl border-[0.5px] bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
                 class="relative z-10 rounded-xl border-[0.5px] bg-components-card-bg border-components-panel-border p-4 pb-3 shadow-sm"
               >
                 <div class="absolute right-0 top-0 flex pl-[13px]">
@@ -134,35 +138,103 @@
                       >
                         {{ plugin.meta.displayName }}
                       </div>
+                      <div
+                        class="system-md-semibold truncate text-text-primary"
+                        [title]="plugin.meta.displayName"
+                        [ngmHighlight]="searchText()"
+                        [content]="plugin.meta.displayName"
+                      >
+                        {{ plugin.meta.displayName }}
+                      </div>
                       <i class="ri-verified-badge-line shrink-0 ml-1 text-primary-500"></i>
                       <div
                         class="relative inline-flex h-5 items-center rounded-[5px] border border-divider-deep px-[5px] font-body text-text-tertiary text-xs font-medium uppercase ml-1 shrink-0"
+                        [class.text-text-warning]="plugin.hasUpdate"
+                        [zTooltip]="
+                          ('PAC.Plugin.LatestVersion' | translate: { Default: 'Latest version' }) +
+                          ': ' +
+                          (plugin.latestVersion || '-')
+                        "
+                        zPosition="top"
+                        [zDisabled]="!plugin.hasUpdate"
                       >
-                        {{ plugin.meta.version }}
+                        {{ plugin.meta.version || '-' }}
                       </div>
                     </div>
                     <div class="flex items-center justify-between">
-                      <div
-                        class="text-sm text-text-tertiary font-body truncate"
-                        [title]="plugin.meta.description"
-                        [ngmHighlight]="searchText()"
-                        [content]="plugin.meta.description"
-                      >
-                        {{ plugin.meta.description }}
-                      </div>
-                      @if (plugin.isGlobal) {
+                      <div class="min-w-0 grow">
                         <div
-                          class="w-7 h-7 flex justify-center items-center"
+                          class="text-sm text-text-tertiary font-body truncate"
+                          [title]="plugin.meta.description"
+                          [ngmHighlight]="searchText()"
+                          [content]="plugin.meta.description"
+                        >
+                          {{ plugin.meta.description }}
+                        </div>
+                        @if (plugin.configurationStatus === 'invalid') {
+                          <div
+                            class="mt-2 flex items-center gap-1 text-xs text-text-warning"
                           [zTooltip]="
-                            'PAC.Plugin.GlobalPlugin'
-                              | translate: { Default: 'This is a global plugin available to all organizations' }
+                            plugin.configurationError ||
+                            ('PAC.Plugin.RequiresConfiguration'
+                              | translate: { Default: 'This plugin needs configuration before it can be used.' })
                           "
                           zPosition="top"
-                        >
-                          <i class="ri-global-line text-text-tertiary"></i>
-                        </div>
-                      } @else {
-                        <div class="flex space-x-1">
+                          >
+                            <i class="ri-alert-line"></i>
+                            <span>
+                              {{
+                                'PAC.Plugin.RequiresConfiguration'
+                                  | translate: { Default: 'This plugin needs configuration before it can be used.' }
+                              }}
+                            </span>
+                          </div>
+                        }
+                      </div>
+                      <div class="flex space-x-1">
+                        @if (plugin.isGlobal) {
+                          <div
+                            class="w-7 h-7 flex justify-center items-center"
+                            [zTooltip]="
+                              'PAC.Plugin.GlobalPlugin'
+                                | translate: { Default: 'This is a global plugin available to all organizations' }
+                            "
+                            zPosition="top"
+                          >
+                            <i class="ri-global-line text-text-tertiary"></i>
+                          </div>
+                        }
+                        @if (plugin.canConfigure && plugin.configSchema) {
+                          <button
+                            type="button"
+                            class="action-btn action-btn-m hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
+                            [class.text-text-warning]="plugin.configurationStatus === 'invalid'"
+                            [class.text-text-tertiary]="plugin.configurationStatus !== 'invalid'"
+                            [zTooltip]="
+                              'PAC.Plugin.ConfigurePlugin' | translate: { Default: 'Configure this plugin' }
+                            "
+                            zPosition="top"
+                            (click)="configure(plugin)"
+                          >
+                            <i class="ri-settings-4-line"></i>
+                          </button>
+                        }
+                        @if (plugin.canUpdate && plugin.hasUpdate) {
+                          <button
+                            type="button"
+                            class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
+                            [zTooltip]="
+                              'PAC.Plugin.UpdatePlugin'
+                                | translate: { Default: 'Update this plugin to the latest version' }
+                            "
+                            zPosition="top"
+                            [disabled]="updating() === plugin.name"
+                            (click)="update(plugin)"
+                          >
+                            <i class="ri-refresh-line"></i>
+                          </button>
+                        }
+                        @if (!plugin.isGlobal) {
                           <button
                             type="button"
                             class="action-btn action-btn-m text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive flex items-center justify-center"
@@ -175,8 +247,8 @@
                           >
                             <i class="ri-delete-bin-line"></i>
                           </button>
-                        </div>
-                      }
+                        }
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -211,8 +283,11 @@
                 </div>
               </div>
 
-              @if (removing() === plugin.name) {
-                <ngm-spin class="absolute inset-0 backdrop-blur-sm bg-components-card-bg/10" />
+              @if (removing() === plugin.name || updating() === plugin.name) {
+                <ngm-spin
+                  class="absolute inset-0 z-10 backdrop-blur-sm"
+                  style="background-color: color-mix(in oklab, var(--background) 10%, transparent)"
+                />
               }
             </div>
           }

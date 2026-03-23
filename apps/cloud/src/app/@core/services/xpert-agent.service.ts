@@ -1,9 +1,9 @@
 import { inject, Injectable } from '@angular/core'
 import { NGXLogger } from 'ngx-logger'
-import { shareReplay } from 'rxjs'
+import { BehaviorSubject, shareReplay, switchMap } from 'rxjs'
 import { API_XPERT_AGENT } from '../constants/app.constants'
 import { injectApiBaseUrl } from '../providers'
-import { IXpertAgent, JsonSchemaObjectType, TAgentMiddlewareMeta, TChatAgentParams } from '../types'
+import { IXpertAgent, JsonSchemaObjectType, TAgentMiddlewareMeta, TXpertAgentChatRequest } from '../types'
 import { injectFetchEventSource } from './fetch-event-source'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
@@ -13,13 +13,18 @@ export class XpertAgentService extends XpertWorkspaceBaseCrudService<IXpertAgent
   readonly baseUrl = injectApiBaseUrl()
   readonly fetchEventSource = injectFetchEventSource()
 
-  readonly agentMiddlewares$ = this.getAgentMiddlewareStrategies().pipe(shareReplay(1))
+  readonly #refresh$ = new BehaviorSubject<void>(null)
+
+  readonly agentMiddlewares$ = this.#refresh$.pipe(
+    switchMap(() => this.getAgentMiddlewareStrategies()),
+    shareReplay(1)
+  )
 
   constructor() {
     super(API_XPERT_AGENT)
   }
 
-  chatAgent(data: TChatAgentParams) {
+  chatAgent(data: TXpertAgentChatRequest) {
     return this.fetchEventSource(
       this.baseUrl + this.apiBaseUrl + `/chat`,
       JSON.stringify({
@@ -41,6 +46,13 @@ export class XpertAgentService extends XpertWorkspaceBaseCrudService<IXpertAgent
       stateSchema?: JsonSchemaObjectType
       tools: { name: string; description?: string; schema: JsonSchemaObjectType }[]
     }>(this.apiBaseUrl + `/middlewares/${provider}/tools`, options)
+  }
+
+  /**
+   * Refresh cached strategy data (e.g., after plugin install/uninstall)
+   */
+  refresh() {
+    this.#refresh$.next()
   }
 
   testAgentMiddlewareTool(provider: string, toolName: string, options: any, parameters: Record<string, any>) {

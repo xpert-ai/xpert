@@ -32,14 +32,35 @@ const API_KNOWLEDGEBASE = API_PREFIX + '/knowledgebase'
 export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowledgebase> {
   readonly #logger = inject(NGXLogger)
 
-  // Package into hot stream + cache the last value
-  readonly documentSourceStrategies$ = this.getDocumentSourceStrategies().pipe(shareReplay(1))
-  readonly documentTransformerStrategies$ = this.getDocumentTransformerStrategies().pipe(shareReplay(1))
-  readonly understandingStrategies$ = this.getUnderstandingStrategies().pipe(shareReplay(1))
-  readonly textSplitterStrategies$ = this.getTextSplitterStrategies().pipe(shareReplay(1))
+  readonly #refresh$ = new BehaviorSubject<void>(null)
+
+  // Package into hot stream + cache the last value (refreshable via refresh$)
+  readonly documentSourceStrategies$ = this.#refresh$.pipe(
+    switchMap(() => this.getDocumentSourceStrategies()),
+    shareReplay(1)
+  )
+  readonly documentTransformerStrategies$ = this.#refresh$.pipe(
+    switchMap(() => this.getDocumentTransformerStrategies()),
+    shareReplay(1)
+  )
+  readonly understandingStrategies$ = this.#refresh$.pipe(
+    switchMap(() => this.getUnderstandingStrategies()),
+    shareReplay(1)
+  )
+  readonly textSplitterStrategies$ = this.#refresh$.pipe(
+    switchMap(() => this.getTextSplitterStrategies()),
+    shareReplay(1)
+  )
 
   constructor() {
     super(API_KNOWLEDGEBASE)
+  }
+
+  /**
+   * Refresh cached strategy data (e.g., after plugin install/uninstall)
+   */
+  refresh() {
+    this.#refresh$.next()
   }
 
   getMyAllInOrg(options?: PaginationParams<IKnowledgebase>) {
@@ -66,13 +87,15 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   }
 
   getDocumentTransformerStrategies() {
-    return this.httpClient.get<{meta: IDocumentProcessorProvider; integration: { service: string } }[]>(this.apiBaseUrl + '/transformer/strategies')
+    return this.httpClient.get<{ meta: IDocumentProcessorProvider; integration: { service: string } }[]>(
+      this.apiBaseUrl + '/transformer/strategies'
+    )
   }
 
   getUnderstandingStrategies() {
-    return this.httpClient.get<{ meta: IDocumentUnderstandingProvider; requireVisionModel: boolean; integration: { service: string } }[]>(
-      this.apiBaseUrl + '/understanding/strategies'
-    )
+    return this.httpClient.get<
+      { meta: IDocumentUnderstandingProvider; requireVisionModel: boolean; integration: { service: string } }[]
+    >(this.apiBaseUrl + '/understanding/strategies')
   }
 
   getDocumentSourceStrategies() {
@@ -142,19 +165,28 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   /**
    * Start processing a documents task
    */
-  processTask(id: string, taskId: string, body: { sources?: { [key: string]: { documents: string[] } }; stage: 'preview'| 'prod';  options?: any; isDraft?: boolean }) {
+  processTask(
+    id: string,
+    taskId: string,
+    body: {
+      sources?: { [key: string]: { documents: string[] } }
+      stage: 'preview' | 'prod'
+      options?: any
+      isDraft?: boolean
+    }
+  ) {
     return this.httpClient.post<IKnowledgebaseTask>(this.apiBaseUrl + `/${id}/task/${taskId}/process`, body)
   }
 
   /**
    * Poll the task status until it's done
-   * 
-   * @param taskId 
+   *
+   * @param taskId
    * @param period Poll every 2 seconds
-   * @returns 
+   * @returns
    */
   pollTaskStatus(id: string, taskId: string, period = 2000) {
-    return interval(period).pipe( 
+    return interval(period).pipe(
       switchMap(() => this.getTask(id, taskId)),
       // tap((res) => console.log('Current status:', res.status)),
       takeWhile((res) => res.status === 'pending' || res.status === 'running', true) // True if the last time 'done' was included
@@ -181,7 +213,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseCrudService<IKnowled
   }
 
   getLogs(id: string, params: PaginationParams<any>) {
-    return this.httpClient.get<{items: IKnowledgeRetrievalLog[]}>(this.apiBaseUrl + `/${id}/logs`, {
+    return this.httpClient.get<{ items: IKnowledgeRetrievalLog[] }>(this.apiBaseUrl + `/${id}/logs`, {
       params: params ? toHttpParams(params) : null
     })
   }
@@ -235,7 +267,7 @@ export class KnowledgeFileUploader {
               const type = this.file.type?.split('/').pop().toLowerCase() || 'unknown'
               const metadata: DocumentMetadata = {
                 chunkId: uuidv4(),
-                title: this.file.name,
+                title: this.file.name
               }
               if (event.body.mimeType?.startsWith('image/')) {
                 metadata.assets = [
@@ -252,7 +284,7 @@ export class KnowledgeFileUploader {
                 name: this.file.name,
                 size: `${this.file.size}`,
                 type,
-                category: classificateDocumentCategory({type}),
+                category: classificateDocumentCategory({ type }),
                 metadata
               })
               this.document.set(this.document$.value)

@@ -244,6 +244,7 @@
           <div class="w-full flex items-center mt-4 leading-[18px] text-sm text-text-tertiary uppercase">
             <div class="grow w-0 h-px bg-divider-deep"></div>
             <div class="mx-3">{{ 'PAC.Xpert.YouMightAsk' | translate: { Default: 'You might want to ask' } }}</div>
+            <div class="mx-3">{{ 'PAC.Xpert.YouMightAsk' | translate: { Default: 'You might want to ask' } }}</div>
             <div class="grow w-0 h-px bg-divider-deep"></div>
           </div>
 
@@ -253,7 +254,7 @@
             @for (starter of starters(); track starter) {
               <div
                 class="max-w-full px-2 py-1 border-light rounded-lg cursor-pointer truncate shadow-sm hover:shadow-md"
-                (click)="chat({ input: starter })"
+                (click)="sendMessage(starter)"
               >
                 {{ starter }}
               </div>
@@ -274,14 +275,20 @@
       } @else if (suggestionQuestions()?.length) {
         <div class="mb-2 py-2">
           <div class="mb-2.5 flex items-center justify-between gap-2">
-            <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow rotate-180"></div>
-            <div class="shrink-0 text-text-tertiary">
+            <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow rotate-180">
               {{ 'PAC.Xpert.TryAsking' | translate: { Default: 'Try asking' } }}
             </div>
             <div class="w-full my-2 bg-gradient-to-r from-divider-regular to-divider-deep h-px grow"></div>
           </div>
           <div class="flex flex-wrap justify-center">
             @for (question of suggestionQuestions(); track question) {
+              <button
+                type="button"
+                class="btn disabled:btn-disabled btn-secondary btn-small mb-1 mr-1 last:mr-0"
+                (click)="onSelectSuggestionQuestion(question)"
+              >
+                {{ question }}
+              </button>
               <button
                 type="button"
                 class="btn disabled:btn-disabled btn-secondary btn-small mb-1 mr-1 last:mr-0"
@@ -309,7 +316,7 @@
 
     @if (conversationStatus() === eExecutionStatusEnum.ERROR) {
       <div
-        class="w-full flex items-start gap-2 p-4 rounded-3xl text-orange-500 bg-orange-50 border border-solid border-orange-200"
+        class="w-full flex items-start gap-2 p-4 rounded-3xl text-text-warning bg-background-default-subtle border border-solid border-text-warning"
       >
         <div>
           <i class="ri-information-2-line text-xl"></i>
@@ -340,7 +347,7 @@
   @if (!readonly()) {
     <div
       class="sticky bottom-0 px-4 rounded-bl-2xl"
-      style="background: linear-gradient(0deg, rgb(239, 247, 255) 40%, rgba(255, 255, 255, 0) 100%)"
+      style="background: linear-gradient(0deg, color-mix(in oklab, var(--background) 94%, transparent) 40%, color-mix(in oklab, var(--background) 0%, transparent) 100%)"
     >
       <div class="pb-4 w-full max-w-full mx-auto">
         <div class="relative bg-components-panel-bg border border-divider-deep rounded-xl mb-2">
@@ -402,7 +409,7 @@
                 <button
                   class="group action-btn action-btn-md primary"
                   [disabled]="loading() || !input()"
-                  (click)="chat({ input: input() })"
+                  (click)="sendMessage(input())"
                 >
                   <svg
                     width="20"

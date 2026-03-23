@@ -1,0 +1,191 @@
+# MinIO 文件存储插件
+
+## 概览
+
+MinIO 现在不再作为宿主内建 provider 进行配置。
+
+它已经被做成 draft 对象存储插件包的一部分，当前实现位于 `packages/plugins/draft`，并以 `MINIO` 名称注册为一个 `IFileStorageProvider`。
+
+同一个插件包里也同时注册了 `RUSTFS`、`S3`、`WASABI`、`OSS`。
+
+这意味着 MinIO 现在遵循统一的插件生命周期：
+
+- 安装插件
+- 在插件页或插件 API 中配置
+- 在统一上传目标里使用 `provider: "MINIO"`
+
+## 代码位置
+
+- 插件入口：`packages/plugins/draft/src/index.ts`
+- Nest 模块：`packages/plugins/draft/src/lib/draft.ts`
+- Provider 实现：`packages/plugins/draft/src/lib/minio.provider.ts`
+- 插件 env 默认配置：`packages/plugins/draft/src/lib/file-storage.config.ts`
+- 插件校验与表单 schema：`packages/plugins/draft/src/lib/file-storage.types.ts`
+
+## 配置模型
+
+MinIO 运行时配置按以下优先级解析，越靠前优先级越高：
+
+1. 加密存储在 `PluginInstance.config` 中的配置
+2. 插件通过 `registerAs('plugins.file-storage.draft', ...)` 提供的 env 默认值
+3. provider 内部默认值
+
+当前内部默认值：
+
+- `region = us-east-1`
+- `forcePathStyle = true`
+- `signedUrlExpires = 3600`
+
+宿主会将插件配置保存到 `PluginInstance.config`，并在落库前对整段配置进行加密。
+
+## 安装插件
+
+你可以在前端插件页安装，也可以直接调用安装 API：
+
+```bash
+curl -X POST http://localhost:3000/api/plugin \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "pluginName": "@xpert-ai/plugin-draft",
+    "version": "0.0.1",
+    "source": "npm"
+  }'
+```
+
+插件安装完成后，已安装插件列表会显示 `Configure` 按钮，因为该插件暴露了配置 schema。
+
+## 在前端中配置
+
+安装完成后：
+
+1. 打开 `Settings -> Plugins`
+2. 找到 `Draft File Storage Providers`，进入其中的 `MinIO` 配置分组
+3. 点击 `Configure`
+4. 在弹出的 JSON Schema 表单中填写配置
+5. 保存
+
+这个 dialog 由 `JSONSchemaFormComponent` 自动根据插件提供的 `config.formSchema` 渲染。
+
+## 通过插件 API 配置
+
+读取当前配置：
+
+```bash
+curl -X POST http://localhost:3000/api/plugin/configuration \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "pluginName": "@xpert-ai/plugin-draft"
+  }'
+```
+
+保存配置：
+
+```bash
+curl -X PUT http://localhost:3000/api/plugin/configuration \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "pluginName": "@xpert-ai/plugin-draft",
+    "config": {
+      "minio": {
+        "endpoint": "http://127.0.0.1:9000",
+        "bucket": "xpert-files",
+        "accessKeyId": "minioadmin",
+        "secretAccessKey": "minioadmin",
+        "publicUrl": "http://localhost:9000"
+      }
+    }
+  }'
+```
+
+## 环境变量默认值
+
+插件仍然支持环境变量，但它们现在只是插件内部的默认配置来源。
+
+支持的变量：
+
+- `MINIO_ROOT_PATH`
+- `MINIO_ACCESS_KEY_ID`
+- `MINIO_ACCESS_KEY`
+- `MINIO_ROOT_USER`
+- `MINIO_SECRET_ACCESS_KEY`
+- `MINIO_SECRET_KEY`
+- `MINIO_ROOT_PASSWORD`
+- `MINIO_REGION`
+- `MINIO_BUCKET`
+- `MINIO_ENDPOINT`
+- `MINIO_PUBLIC_URL`
+- `MINIO_FORCE_PATH_STYLE`
+- `MINIO_SIGNED_URL_EXPIRES`
+
+示例：
+
+```env
+MINIO_ENDPOINT=http://127.0.0.1:9000
+MINIO_BUCKET=xpert-files
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_REGION=us-east-1
+MINIO_PUBLIC_URL=http://localhost:9000
+MINIO_FORCE_PATH_STYLE=true
+MINIO_SIGNED_URL_EXPIRES=3600
+```
+
+这些默认值会在插件内部通过下面的方式读取：
+
+```ts
+ConfigModule.forFeature(draftFileStoragePluginConfig)
+```
+
+它们不再属于宿主 `environment` 合同的一部分。
+
+## 在统一上传里使用 MinIO
+
+安装并配置好插件后，就可以在统一上传接口里使用 MinIO：
+
+```bash
+curl -X POST http://localhost:3000/api/files/upload \
+  -F 'file=@./README.md' \
+  -F 'targets=[{"kind":"storage","provider":"MINIO","directory":"files","prefix":"docs"}]'
+```
+
+对应 target 示例：
+
+```json
+[
+  {
+    "kind": "storage",
+    "provider": "MINIO",
+    "directory": "files",
+    "prefix": "docs"
+  }
+]
+```
+
+## 将 MinIO 设为默认存储后端
+
+如果宿主默认文件 provider 配置为 `MINIO`，`FileStorage` 会从 file-storage plugin registry 中解析该 provider。
+
+示例：
+
+```env
+FILE_PROVIDER=MINIO
+```
+
+只有当 MinIO 插件在当前作用域中可用时，这个默认解析才会成功。
+
+## URL 返回规则
+
+`MinioProvider` 返回 URL 的优先级：
+
+1. 优先使用 `publicUrl`
+2. 否则回退为基于 MinIO endpoint 生成的签名 URL
+
+如果服务端访问 MinIO 使用的是容器内地址，比如 `http://minio:9000`，请配置 `publicUrl`，否则返回给浏览器的 URL 可能不可达。
+
+## 说明
+
+- 当前插件包名仍然是 `@xpert-ai/plugin-draft`
+- MinIO 配置现在位于 `config.minio`
+- 该 provider 现在可以按组织安装和按组织配置
+- 配置会以加密形式存储在 `PluginInstance`
+- `StorageFile.storageProvider` 现在按字符串持久化，因此像 `MINIO` 这样的插件 provider 名称不需要再硬编码进 contracts

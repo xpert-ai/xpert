@@ -1,0 +1,554 @@
+---
+title: 新版默认角色权限体系设计
+description: 面向 server-ai 与 analytics 能力重构默认角色权限体系的 V2 方案
+---
+
+# 新版默认角色权限体系设计
+
+本文档是面向未来落地的 V2 方案，不是现状说明。
+
+如果说 [现有角色与权限设计说明](/zh-hans/guides/permission) 回答的是“系统现在怎么做”，那么这篇文档回答的是：
+
+1. 当前默认角色为什么已经不适合现在的产品形态
+2. 面向 `server-ai + analytics + platform settings`，默认角色应该如何重构
+3. 如何在不一次性重写所有权限代码的前提下，平滑迁移到新体系
+
+## 1. 为什么要重构
+
+当前系统最早的默认角色集合更像一套传统协同/组织管理产品角色：
+
+- `SUPER_ADMIN`
+- `ADMIN`
+- `DATA_ENTRY`
+- `EMPLOYEE`
+- `CANDIDATE`
+- `MANAGER`
+- `VIEWER`
+- `TRIAL`
+
+但当前产品已经不再只是组织管理后台，而是同时包含了 3 条明显产品线：
+
+1. 平台治理与设置
+2. AI 产品能力
+3. Analytics/BI 产品能力
+
+具体业务已经覆盖：
+
+- 用户、组织、角色、租户、集成、邮件模板、SMTP 等平台能力
+- Knowledgebase、Copilot、Xpert、Chat、ChatBI 等 AI 能力
+- Data Source、Semantic Model、Story/Project、Indicator、Business Area、Data Factory 等分析能力
+
+在这种产品结构下，旧角色体系的问题就很明显：
+
+### 1.1 角色名与产品职责不匹配
+
+`EMPLOYEE`、`CANDIDATE`、`DATA_ENTRY` 这些名字很难准确表达：
+
+- 谁能配置 AI
+- 谁能建设语义模型
+- 谁能只做消费分析
+- 谁能管理租户治理
+
+### 1.2 AI 和 Analytics 的构建者没有独立身份
+
+当前体系里：
+
+- AI Builder 往往只能挂在 `ADMIN` 或 `TRIAL`
+- Analytics Builder 也往往需要借道 `ADMIN`
+
+这会导致“为了做某一类工作，不得不拿到过宽权限”。
+
+### 1.3 权限设计存在几处明显的产品语义错位
+
+基于现有代码，至少有以下几类错位：
+
+1. Chat BI 设置页当前依赖 `XPERT_EDIT`，语义上不准确
+2. Dashboard 路由当前依赖 `BUSINESS_AREA_EDIT`，语义上不准确
+3. Knowledgebase 只有 `KNOWLEDGEBASE_EDIT`，缺少明确的只读权限
+4. Xpert 当前主要靠 `XPERT_EDIT`，缺少“运行”和“管理”的分层
+5. Features 页面仍然偏角色白名单，而不是标准权限点
+
+因此，V2 的目标不是只换几个角色名字，而是把默认角色改造成一套真正围绕产品职责的授权模型。
+
+## 2. V2 设计目标
+
+新版默认角色体系应满足 6 个目标：
+
+1. 角色名称表达“职责”，而不是表达“组织身份”
+2. 平台治理、AI 构建、Analytics 构建、内容消费四类职责清晰分开
+3. 默认角色数量控制在 6 到 8 个之间，避免维护成本过高
+4. 平台高危权限只保留给极少数系统角色
+5. 功能开关继续保留，角色权限只决定“有资格”，Feature 决定“是否启用”
+6. 允许旧角色平滑映射，不要求一次性改写全量数据
+
+## 3. V2 建议的默认角色集合
+
+考虑到系统兼容性、现有代码枚举和外部配置成本，`SUPER_ADMIN`、`ADMIN`、`TRIAL` 三个角色建议继续保留并沿用。
+
+因此，V2 不再采用“整体换名”的方式，而采用下面这种策略：
+
+1. 保留 3 个系统兼容角色：`SUPER_ADMIN`、`ADMIN`、`TRIAL`
+2. 新增 3 个职责型角色，覆盖 AI、Analytics 和消费场景
+3. 逐步淘汰不再适合当前产品语义的旧默认角色
+
+### 3.1 保留的系统角色
+
+| 角色        | 枚举名        | 产品定位                                       |
+| ----------- | ------------- | ---------------------------------------------- |
+| Super Admin | `SUPER_ADMIN` | 平台最高治理权限，保留最高危能力               |
+| Admin       | `ADMIN`       | 日常租户管理员，负责组织、成员、配置治理       |
+| Trial       | `TRIAL`       | 试用租户管理员，接近全功能，但不拥有最高危权限 |
+
+### 3.2 新增的职责型角色
+
+| 新角色            | 建议枚举名          | 产品定位                                                     |
+| ----------------- | ------------------- | ------------------------------------------------------------ |
+| AI Builder        | `AI_BUILDER`        | 负责知识库、Copilot、Xpert、Agent 工作流设计                 |
+| Analytics Builder | `ANALYTICS_BUILDER` | 负责数据源、模型、Story、指标与数据工厂建设                  |
+| Viewer            | `VIEWER`            | 统一消费型用户角色，负责查看分析结果、使用 AI 助手和轻量浏览 |
+
+### 3.3 不再建议继续作为默认角色的旧角色
+
+以下旧角色建议保留兼容，但不再作为新租户默认角色下发：
+
+- `DATA_ENTRY`
+- `EMPLOYEE`
+- `CANDIDATE`
+- `MANAGER`
+
+原因不是这些角色不能继续存在，而是它们已经不能准确表达当前产品职责。
+
+## 4. 权限域重新分组
+
+为让默认角色更稳定，建议先把权限按业务域重新分组，而不是直接从历史枚举堆角色。
+
+## 4.1 平台治理域
+
+这组权限面向租户治理和基础配置：
+
+- `ORG_USERS_VIEW`
+- `ORG_USERS_EDIT`
+- `ALL_ORG_VIEW`
+- `ALL_ORG_EDIT`
+- `CHANGE_SELECTED_ORGANIZATION`
+- `CHANGE_ROLES_PERMISSIONS`
+- `SUPER_ADMIN_EDIT`
+- `ACCESS_DELETE_ACCOUNT`
+- `ACCESS_DELETE_ALL_DATA`
+
+## 4.2 工作区运营域
+
+这组权限面向组织运营和基础维护：
+
+- `PROFILE_EDIT`
+- `ADMIN_DASHBOARD_VIEW`
+- `ORG_EMPLOYEES_VIEW`
+- `ORG_EMPLOYEES_EDIT`
+- `ORG_INVITE_VIEW`
+- `ORG_INVITE_EDIT`
+- `ORG_CONTACT_VIEW`
+- `ORG_CONTACT_EDIT`
+- `ORG_TAGS_EDIT`
+- `ORG_DEMO_EDIT`
+
+## 4.3 集成与消息域
+
+这组权限面向连接器、通知、模板和基础设施：
+
+- `INTEGRATION_VIEW`
+- `INTEGRATION_EDIT`
+- `VIEW_ALL_EMAILS`
+- `VIEW_ALL_EMAIL_TEMPLATES`
+- `FILE_STORAGE_VIEW`
+- `SMS_GATEWAY_VIEW`
+- `CUSTOM_SMTP_VIEW`
+- `VIEW_ALL_ACCOUNTING_TEMPLATES`
+
+## 4.4 AI 能力域
+
+这组权限面向 `server-ai`：
+
+- `KNOWLEDGEBASE_EDIT`
+- `COPILOT_VIEW`
+- `COPILOT_EDIT`
+- `XPERT_EDIT`
+- `CHAT_VIEW`
+
+## 4.5 Analytics 能力域
+
+这组权限面向 `analytics`：
+
+- `DATA_SOURCE_VIEW`
+- `DATA_SOURCE_EDIT`
+- `MODELS_VIEW`
+- `MODELS_EDIT`
+- `STORIES_VIEW`
+- `STORIES_EDIT`
+- `BUSINESS_AREA_VIEW`
+- `BUSINESS_AREA_EDIT`
+- `CERTIFICATION_EDIT`
+- `INDICATOR_VIEW`
+- `INDICATOR_MARTKET_VIEW`
+- `INDICATOR_EDIT`
+- `DATA_FACTORY_VIEW`
+- `DATA_FACTORY_EDIT`
+
+## 5. 新版默认角色矩阵
+
+下面的矩阵是 V2 的核心。
+
+说明：
+
+- `Y` 表示默认启用
+- `-` 表示默认不启用
+- `*` 表示当前实现受限，需要过渡兼容
+
+| 权限域 / 角色    | SUPER_ADMIN | ADMIN         | TRIAL | AI_BUILDER         | ANALYTICS_BUILDER                 | VIEWER                     |
+| ---------------- | ----------- | ------------- | ----- | ------------------ | --------------------------------- | -------------------------- |
+| 平台治理域       | Y           | Y，不含最高危 | 部分  | -                  | -                                 | -                          |
+| 工作区运营域     | Y           | Y             | Y     | 部分               | 部分                              | 只读                       |
+| 集成与消息域     | Y           | Y             | 部分  | 部分               | 部分                              | -                          |
+| AI 能力域        | Y           | Y             | Y     | Y                  | `CHAT_VIEW`，必要时 `XPERT_EDIT*` | `CHAT_VIEW` `COPILOT_VIEW` |
+| Analytics 能力域 | Y           | Y             | Y     | `MODELS_VIEW` 可选 | Y                                 | 只读                       |
+| 高危删除域       | Y           | -             | -     | -                  | -                                 | -                          |
+
+## 6. 每个新角色的推荐默认权限
+
+下面给出可直接用于实现的权限建议。为了保持落地可行，优先使用现有权限枚举，不要求第一期先新增代码权限。
+
+## 6.1 `SUPER_ADMIN`
+
+定位：
+
+- 系统最高治理者
+- 负责租户级最终控制和高危操作审批
+
+默认权限：
+
+- 平台治理域全部
+- 工作区运营域全部
+- 集成与消息域全部
+- AI 能力域全部
+- Analytics 能力域全部
+
+额外保留：
+
+- `SUPER_ADMIN_EDIT`
+- `ACCESS_DELETE_ACCOUNT`
+- `ACCESS_DELETE_ALL_DATA`
+
+说明：
+
+- 建议作为隐藏型系统角色，不允许普通后台用户编辑自身核心权限
+
+## 6.2 `ADMIN`
+
+定位：
+
+- 日常管理员
+- 对业务治理、成员和配置负责
+
+默认权限：
+
+- `PROFILE_EDIT`
+- `ADMIN_DASHBOARD_VIEW`
+- `ORG_EMPLOYEES_VIEW`
+- `ORG_EMPLOYEES_EDIT`
+- `ORG_USERS_VIEW`
+- `ORG_USERS_EDIT`
+- `ORG_INVITE_VIEW`
+- `ORG_INVITE_EDIT`
+- `ALL_ORG_VIEW`
+- `ALL_ORG_EDIT`
+- `CHANGE_SELECTED_ORGANIZATION`
+- `CHANGE_ROLES_PERMISSIONS`
+- `ORG_TAGS_EDIT`
+- `ORG_CONTACT_VIEW`
+- `ORG_CONTACT_EDIT`
+- `ORG_DEMO_EDIT`
+- `INTEGRATION_VIEW`
+- `INTEGRATION_EDIT`
+- `VIEW_ALL_EMAILS`
+- `VIEW_ALL_EMAIL_TEMPLATES`
+- `FILE_STORAGE_VIEW`
+- `SMS_GATEWAY_VIEW`
+- `CUSTOM_SMTP_VIEW`
+- `VIEW_ALL_ACCOUNTING_TEMPLATES`
+- `KNOWLEDGEBASE_EDIT`
+- `COPILOT_VIEW`
+- `COPILOT_EDIT`
+- `XPERT_EDIT`
+- `CHAT_VIEW`
+- `DATA_SOURCE_VIEW`
+- `DATA_SOURCE_EDIT`
+- `MODELS_VIEW`
+- `MODELS_EDIT`
+- `STORIES_VIEW`
+- `STORIES_EDIT`
+- `BUSINESS_AREA_VIEW`
+- `BUSINESS_AREA_EDIT`
+- `CERTIFICATION_EDIT`
+- `INDICATOR_VIEW`
+- `INDICATOR_MARTKET_VIEW`
+- `INDICATOR_EDIT`
+- `DATA_FACTORY_VIEW`
+- `DATA_FACTORY_EDIT`
+
+默认不包含：
+
+- `SUPER_ADMIN_EDIT`
+- `ACCESS_DELETE_ACCOUNT`
+- `ACCESS_DELETE_ALL_DATA`
+
+说明：
+
+- 它应该是企业客户最常见的“默认管理员”
+- 原本 `WORKSPACE_OPERATOR` 承担的运营类职责，统一由 `ADMIN` 覆盖
+
+## 6.3 `TRIAL`
+
+定位：
+
+- 试用环境下的管理员
+- 体验尽量完整，但不具备最高危治理能力
+
+默认权限：
+
+- 接近 `ADMIN`
+- 默认包含 AI 与 Analytics 主要构建权限
+- 默认不包含 `SUPER_ADMIN_EDIT`
+- 默认不包含 `ACCESS_DELETE_ACCOUNT`
+- 默认不包含 `ACCESS_DELETE_ALL_DATA`
+
+说明：
+
+- 这个角色继续保留
+- 目标是尽量降低试用期的产品体验摩擦
+
+## 6.4 `AI_BUILDER`
+
+定位：
+
+- AI 产品管理员和构建者
+- 负责知识库、Copilot、Xpert、Agent 配置与维护
+
+默认权限：
+
+- `PROFILE_EDIT`
+- `ADMIN_DASHBOARD_VIEW`
+- `CHANGE_SELECTED_ORGANIZATION`
+- `ORG_INVITE_VIEW`
+- `ORG_CONTACT_VIEW`
+- `KNOWLEDGEBASE_EDIT`
+- `COPILOT_VIEW`
+- `COPILOT_EDIT`
+- `XPERT_EDIT`
+- `CHAT_VIEW`
+- `INTEGRATION_VIEW`
+- `INTEGRATION_EDIT`
+
+建议可选权限：
+
+- `MODELS_VIEW`
+- `STORIES_VIEW`
+
+说明：
+
+- AI Builder 需要连接知识源和外部工具，所以第一期建议保留 `INTEGRATION_EDIT`
+- 后续如果集成能力进一步拆分，建议把它收敛到更细的连接器权限
+
+## 6.5 `ANALYTICS_BUILDER`
+
+定位：
+
+- 数据与分析产品构建者
+- 负责数据接入、模型建设、指标与 Story 发布
+
+默认权限：
+
+- `PROFILE_EDIT`
+- `ADMIN_DASHBOARD_VIEW`
+- `CHANGE_SELECTED_ORGANIZATION`
+- `DATA_SOURCE_VIEW`
+- `DATA_SOURCE_EDIT`
+- `MODELS_VIEW`
+- `MODELS_EDIT`
+- `STORIES_VIEW`
+- `STORIES_EDIT`
+- `BUSINESS_AREA_VIEW`
+- `BUSINESS_AREA_EDIT`
+- `CERTIFICATION_EDIT`
+- `INDICATOR_VIEW`
+- `INDICATOR_MARTKET_VIEW`
+- `INDICATOR_EDIT`
+- `DATA_FACTORY_VIEW`
+- `DATA_FACTORY_EDIT`
+- `CHAT_VIEW`
+- `COPILOT_VIEW`
+
+过渡兼容建议：
+
+- 当 Chat BI 仍然依赖 `XPERT_EDIT` 时，允许临时追加 `XPERT_EDIT`
+
+说明：
+
+- 从产品语义上，`ANALYTICS_BUILDER` 不应默认拥有完整 Xpert 编辑权
+- 但在现有实现下，Chat BI 与 Xpert 仍有耦合，第一期需要兼容
+
+## 6.6 `VIEWER`
+
+定位：
+
+- 统一消费型用户角色
+- 负责查看分析结果、使用 AI 助手、轻量浏览和基础协作
+
+默认权限：
+
+- `PROFILE_EDIT`
+- `CHANGE_SELECTED_ORGANIZATION`
+- `CHAT_VIEW`
+- `COPILOT_VIEW`
+- `MODELS_VIEW`
+- `STORIES_VIEW`
+- `BUSINESS_AREA_VIEW`
+- `INDICATOR_VIEW`
+- `INDICATOR_MARTKET_VIEW`
+
+说明：
+
+- 这个角色保留，但含义应从“最小可读角色”升级为“统一消费型角色”
+- 原本由 `ANALYST` 承担的消费职责，统一合并到 `VIEWER`
+- 如果未来引入访客或外部用户体系，它也可以继续下沉为 Guest 的上位角色
+
+## 7. 需要补齐的权限空洞
+
+为了让新角色体系真正长期稳定，建议在第二阶段补齐以下权限点。
+
+### 7.1 AI 侧建议新增
+
+- `KNOWLEDGEBASE_VIEW`
+- `XPERT_VIEW`
+- `XPERT_RUN`
+- `CHATBI_VIEW`
+- `CHATBI_EDIT`
+
+原因：
+
+- 当前 AI 权限更偏“编辑型”，缺少稳定的只读与运行权限
+- Chat BI 语义上不应该长期借道 `XPERT_EDIT`
+
+### 7.2 Analytics 侧建议新增
+
+- `DASHBOARD_VIEW`
+- `PROJECT_VIEW`
+- `PROJECT_EDIT`
+
+原因：
+
+- 当前 dashboard 与 project 的路由权限和业务语义并不完全一致
+- Story/Project 在产品上已经值得独立建模
+
+### 7.3 平台治理侧建议新增
+
+- `FEATURE_TOGGLE_VIEW`
+- `FEATURE_TOGGLE_EDIT`
+- `INTEGRATION_CONNECTION_EDIT`
+- `INTEGRATION_SYSTEM_EDIT`
+
+原因：
+
+- Features 页面不应继续只靠角色白名单
+- 集成管理需要区分“业务连接器配置”和“系统级集成治理”
+
+## 8. 与 Feature 开关的协同原则
+
+V2 角色体系仍然必须和 Feature 开关协同工作。
+
+建议坚持下面这个原则：
+
+`Feature 决定这个租户/组织有没有这项产品能力，RolePermission 决定这个用户能不能使用这项能力`
+
+因此默认角色设计时，不需要把 Feature 和 Permission 合并，而应该分别维护：
+
+1. 功能是否向租户开放
+2. 开放后谁有权进入和操作
+
+## 9. 旧角色到新角色的建议映射
+
+| 旧角色        | 建议映射                       | 说明                      |
+| ------------- | ------------------------------ | ------------------------- |
+| `SUPER_ADMIN` | `SUPER_ADMIN`                  | 保留，不迁移名称          |
+| `ADMIN`       | `ADMIN`                        | 保留，不迁移名称          |
+| `TRIAL`       | `TRIAL`                        | 保留，不迁移名称          |
+| `DATA_ENTRY`  | `ADMIN`                        | 运营职责并回管理员角色    |
+| `EMPLOYEE`    | `VIEWER`                       | 消费职责统一并到 `VIEWER` |
+| `VIEWER`      | `VIEWER`                       | 保留但重新定义            |
+| `CANDIDATE`   | `VIEWER` 或停用                | 建议不再默认下发          |
+| `MANAGER`     | `ADMIN` 或 `ANALYTICS_BUILDER` | 需按实际使用场景迁移      |
+
+## 10. 推荐落地顺序
+
+如果后续真的要实施，建议按 3 个阶段推进。
+
+### 阶段一：只改默认角色方案，不动权限枚举
+
+动作：
+
+- 保留 `SUPER_ADMIN` `ADMIN` `TRIAL`
+- 新增职责型角色
+- 新租户按 V2 默认角色下发
+- 旧租户逐步把 `DATA_ENTRY` `EMPLOYEE` `CANDIDATE` `MANAGER` 映射到精简后的新角色集合
+
+收益：
+
+- 风险最低
+- 最快能让产品、售前、实施统一口径
+
+### 阶段二：补齐权限空洞
+
+动作：
+
+- 为 Chat BI、Knowledgebase、Xpert、Dashboard、Features 等补齐专属权限
+- 清理借道的角色白名单和跨域权限
+
+收益：
+
+- 让角色边界更干净
+- 降低“为了一个页面拿到一整类编辑权”的问题
+
+### 阶段三：评估是否引入组织级角色
+
+动作：
+
+- 判断是否要支持“同一用户在不同组织拥有不同角色”
+
+收益：
+
+- 如果企业客户组织结构复杂，这会显著提升授权表达能力
+
+代价：
+
+- 模型复杂度明显上升，不建议和 V2 角色重命名在同一阶段一起做
+
+## 11. 最终建议
+
+如果只给一句产品建议，我会推荐：
+
+保留 `SUPER_ADMIN`、`ADMIN`、`TRIAL` 三个系统角色，同时把默认角色体系从“历史组织身份”切换到“当前产品职责”，形成下面这套稳定组合：
+
+- `SUPER_ADMIN`
+- `ADMIN`
+- `TRIAL`
+- `AI_BUILDER`
+- `ANALYTICS_BUILDER`
+- `VIEWER`
+
+这套组合比现有默认角色更适合今天的 Xpert，因为它能同时覆盖：
+
+- 平台治理
+- AI 构建
+- Analytics 构建
+- 业务消费
+- 试用场景
+
+并且它保留了足够清晰的迁移路径，不需要一次性推翻所有现有实现。

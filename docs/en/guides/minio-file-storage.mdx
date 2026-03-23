@@ -1,0 +1,191 @@
+# MinIO File Storage Plugin
+
+## Overview
+
+MinIO is no longer configured as a host built-in provider.
+
+It is delivered as part of the draft object-storage plugin package in `packages/plugins/draft`, and registered as an `IFileStorageProvider` under provider name `MINIO`.
+
+The same plugin package also registers `RUSTFS`, `S3`, `WASABI`, and `OSS`.
+
+That means MinIO now follows the same lifecycle as other installable plugins:
+
+- install the plugin
+- configure it from the Plugins page or plugin API
+- use `provider: "MINIO"` in unified upload targets
+
+## Where the code lives
+
+- Plugin entry: `packages/plugins/draft/src/index.ts`
+- Nest module: `packages/plugins/draft/src/lib/draft.ts`
+- Provider implementation: `packages/plugins/draft/src/lib/minio.provider.ts`
+- Plugin env defaults: `packages/plugins/draft/src/lib/file-storage.config.ts`
+- Plugin validation and UI schema: `packages/plugins/draft/src/lib/file-storage.types.ts`
+
+## Configuration model
+
+MinIO runtime configuration is resolved from three layers, highest priority first:
+
+1. encrypted `PluginInstance.config`
+2. plugin env defaults from `registerAs('plugins.file-storage.draft', ...)`
+3. provider internal defaults
+
+Current internal defaults:
+
+- `region = us-east-1`
+- `forcePathStyle = true`
+- `signedUrlExpires = 3600`
+
+The host persists plugin configuration in `PluginInstance.config` and encrypts the full value at rest before storing it.
+
+## Install the plugin
+
+Use the Plugins page in the application, or call the install API:
+
+```bash
+curl -X POST http://localhost:3000/api/plugin \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "pluginName": "@xpert-ai/plugin-draft",
+    "version": "0.0.1",
+    "source": "npm"
+  }'
+```
+
+After installation, the Installed Plugins page shows a `Configure` action because the plugin exposes a configuration schema.
+
+## Configure from the UI
+
+After the plugin is installed:
+
+1. open `Settings -> Plugins`
+2. find `Draft File Storage Providers` and use its `MinIO` section
+3. click `Configure`
+4. fill the JSON-schema-based dialog form
+5. save
+
+The dialog is rendered automatically by `JSONSchemaFormComponent` from the plugin's `config.formSchema`.
+
+## Configure through the plugin API
+
+Read current configuration:
+
+```bash
+curl -X POST http://localhost:3000/api/plugin/configuration \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "pluginName": "@xpert-ai/plugin-draft"
+  }'
+```
+
+Save configuration:
+
+```bash
+curl -X PUT http://localhost:3000/api/plugin/configuration \
+  -H 'Content-Type: application/json' \
+  -d '{
+    "pluginName": "@xpert-ai/plugin-draft",
+    "config": {
+      "minio": {
+        "endpoint": "http://127.0.0.1:9000",
+        "bucket": "xpert-files",
+        "accessKeyId": "minioadmin",
+        "secretAccessKey": "minioadmin",
+        "publicUrl": "http://localhost:9000"
+      }
+    }
+  }'
+```
+
+## Environment defaults
+
+The plugin still supports environment variables, but only as plugin-local defaults.
+
+Supported variables:
+
+- `MINIO_ROOT_PATH`
+- `MINIO_ACCESS_KEY_ID`
+- `MINIO_ACCESS_KEY`
+- `MINIO_ROOT_USER`
+- `MINIO_SECRET_ACCESS_KEY`
+- `MINIO_SECRET_KEY`
+- `MINIO_ROOT_PASSWORD`
+- `MINIO_REGION`
+- `MINIO_BUCKET`
+- `MINIO_ENDPOINT`
+- `MINIO_PUBLIC_URL`
+- `MINIO_FORCE_PATH_STYLE`
+- `MINIO_SIGNED_URL_EXPIRES`
+
+Example:
+
+```env
+MINIO_ENDPOINT=http://127.0.0.1:9000
+MINIO_BUCKET=xpert-files
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=minioadmin
+MINIO_REGION=us-east-1
+MINIO_PUBLIC_URL=http://localhost:9000
+MINIO_FORCE_PATH_STYLE=true
+MINIO_SIGNED_URL_EXPIRES=3600
+```
+
+These values are read inside the plugin with:
+
+```ts
+ConfigModule.forFeature(draftFileStoragePluginConfig)
+```
+
+They are not part of the host `environment` contract anymore.
+
+## Use MinIO in unified upload
+
+Once the plugin is installed and configured, MinIO can be used in the unified upload endpoint:
+
+```bash
+curl -X POST http://localhost:3000/api/files/upload \
+  -F 'file=@./README.md' \
+  -F 'targets=[{"kind":"storage","provider":"MINIO","directory":"files","prefix":"docs"}]'
+```
+
+Example target:
+
+```json
+[
+  {
+    "kind": "storage",
+    "provider": "MINIO",
+    "directory": "files",
+    "prefix": "docs"
+  }
+]
+```
+
+## Use MinIO as the default storage backend
+
+If the host default file provider is set to `MINIO`, `FileStorage` will resolve the provider from the file-storage plugin registry.
+
+Example:
+
+```env
+FILE_PROVIDER=MINIO
+```
+
+This only works when the MinIO plugin is available in the active scope.
+
+## URL behavior
+
+`MinioProvider` returns URLs in this order:
+
+1. `publicUrl`, if configured
+2. otherwise a signed URL generated from the MinIO endpoint
+
+If the server talks to MinIO through an internal address such as `http://minio:9000`, configure `publicUrl` so external clients receive usable URLs.
+
+## Notes
+
+- The plugin is currently packaged as `@xpert-ai/plugin-draft`.
+- MinIO configuration now lives under `config.minio`.
+- The provider is organization-installable and organization-configurable.
+- Configuration is encrypted at rest in `PluginInstance`.
+- `StorageFile.storageProvider` is persisted as a string, so plugin provider names such as `MINIO` do not need to be hardcoded in contracts.

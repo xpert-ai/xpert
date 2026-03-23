@@ -1,22 +1,28 @@
-import { IApiKey, TChatOptions, TChatRequest, UploadedFile } from '@metad/contracts'
+import {
+	IApiKey,
+	IFileAssetDestination,
+	IStorageFile,
+	IUploadFileTarget,
+	TChatOptions,
+	TChatRequest
+} from '@metad/contracts'
 import { keepAlive, takeUntilClose } from '@metad/server-common'
 import {
 	ApiKeyAuthGuard,
 	ApiKeyOrClientSecretAuthGuard,
 	ApiKeyDecorator,
-	FileStorage,
-	LazyFileInterceptor,
 	Public,
 	RequestContext,
 	SecretTokenService,
-	StorageFileService,
-	UploadedFileStorage
+	UploadFileCommand,
+	getFileAssetDestination,
+	getStorageFileFromAsset
 } from '@metad/server-core'
 import {
+	BadRequestException,
 	Body,
 	Controller,
 	Delete,
-	ExecutionContext,
 	Get,
 	Header,
 	Logger,
@@ -26,14 +32,15 @@ import {
 	Query,
 	Res,
 	Sse,
+	UploadedFile,
 	UseGuards,
 	UseInterceptors
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
-import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger'
+import { FileInterceptor } from '@nestjs/platform-express'
+import { ApiBearerAuth, ApiBody, ApiConsumes, ApiTags } from '@nestjs/swagger'
 import { Response } from 'express'
 import { randomBytes } from 'crypto'
-import path from 'path'
 import { In } from 'typeorm'
 import { ChatCommand } from '../chat/commands'
 import { CreateKnowledgebaseDTO, KnowledgebaseService } from '../knowledgebase'
@@ -54,8 +61,7 @@ export class AIV1Controller {
 		private readonly commandBus: CommandBus,
 		private readonly kbService: KnowledgebaseService,
 		private readonly docService: KnowledgeDocumentService,
-		private readonly secretTokenService: SecretTokenService,
-		private readonly storageFileService: StorageFileService
+		private readonly secretTokenService: SecretTokenService
 	) {}
 
 	@Header('content-type', 'text/event-stream')
@@ -81,9 +87,9 @@ export class AIV1Controller {
 	}
 
 	@Post('kb')
-	@ApiBody({ 
+	@ApiBody({
 		type: CreateKnowledgebaseDTO,
-		description: 'Knowledgebase',
+		description: 'Knowledgebase'
 	})
 	async createKnowledgebase(@Body() body: CreateKnowledgebaseDTO) {
 		return this.kbService.create(body)
@@ -93,7 +99,7 @@ export class AIV1Controller {
 	@Put('kb/:id')
 	@ApiBody({
 		type: CreateKnowledgebaseDTO,
-		description: 'Knowledgebase',
+		description: 'Knowledgebase'
 	})
 	async updateKnowledgebase(@Param('id') id: string, @Body() body: CreateKnowledgebaseDTO) {
 		return this.kbService.update(id, body)
@@ -109,10 +115,10 @@ export class AIV1Controller {
 	@Post('kb/:id/bulk')
 	@ApiBody({
 		type: [KnowledgeDocument],
-		description: 'Knowledge documents',
+		description: 'Knowledge documents'
 	})
 	async createDocBulk(@Param('id') id: string, @Body() entities: KnowledgeDocument[]) {
-		return await this.docService.createBulk(entities?.map((entity) => ({...entity, knowledgebaseId: id})))
+		return await this.docService.createBulk(entities?.map((entity) => ({ ...entity, knowledgebaseId: id })))
 	}
 
 	@UseGuards(KnowledgebaseOwnerGuard)
@@ -133,28 +139,69 @@ export class AIV1Controller {
 	}
 
 	@Post('file')
-	@UseInterceptors(
-		LazyFileInterceptor('file', {
-			storage: (request: ExecutionContext) => {
-				return new FileStorage().storage({
-					dest: path.join('files'),
-					prefix: 'files'
-				})
+	@UseInterceptors(FileInterceptor('file'))
+	@ApiConsumes('multipart/form-data')
+	@ApiBody({
+		description: 'Upload a file. The optional target field must be a JSON-encoded IUploadFileTarget.',
+		schema: {
+			type: 'object',
+			required: ['file'],
+			properties: {
+				file: {
+					type: 'string',
+					format: 'binary'
+				},
+				target: {
+					type: 'string',
+					description:
+						'Optional JSON-encoded target. Defaults to {"kind":"storage","directory":"files","prefix":"files"}.'
+				}
 			}
-		})
-	)
-	async create(@UploadedFileStorage() file: UploadedFile) {
-		return await this.storageFileService.createStorageFile(file)
+		}
+	})
+	async create(
+		@UploadedFile() file: Express.Multer.File,
+		@Body('target') targetValue?: string
+	): Promise<IStorageFile | IFileAssetDestination> {
+		const target = this.resolveUploadTarget(targetValue)
+		const asset = await this.commandBus.execute(
+			new UploadFileCommand({
+				source: {
+					kind: 'multipart',
+					file
+				},
+				targets: [target]
+			})
+		)
+
+		const destination = getFileAssetDestination(asset, target.kind)
+		if (!destination || destination.status !== 'success') {
+			throw new BadRequestException(destination?.error || `Failed to upload file to target '${target.kind}'`)
+		}
+
+		if (target.kind === 'storage') {
+			const storageFile = getStorageFileFromAsset(asset)
+			if (!storageFile) {
+				throw new BadRequestException('Failed to upload file')
+			}
+			return storageFile
+		}
+
+		return destination
 	}
 
 	@Post('chatkit/sessions')
 	@UseGuards(ApiKeyAuthGuard)
-	async createChatkitSession(@ApiKeyDecorator() apiKey: IApiKey, @Body() body: {
-		/**
-		 * Optional override for session expiration timing in seconds from creation. Defaults to 10 minutes.
-		 */
-		expires_after?: number
-	}) {
+	async createChatkitSession(
+		@ApiKeyDecorator() apiKey: IApiKey,
+		@Body()
+		body: {
+			/**
+			 * Optional override for session expiration timing in seconds from creation. Defaults to 10 minutes.
+			 */
+			expires_after?: number
+		}
+	) {
 		const token = `cs-x-${randomBytes(32).toString('hex')}`
 
 		const expires_after = body.expires_after && body.expires_after > 0 ? body.expires_after : 600
@@ -170,6 +217,40 @@ export class AIV1Controller {
 			client_secret: token,
 			expires_at: validUntil,
 			expires_after: expires_after
+		}
+	}
+
+	private resolveUploadTarget(targetValue?: string): IUploadFileTarget {
+		const defaultTarget: IUploadFileTarget = {
+			kind: 'storage',
+			directory: 'files',
+			prefix: 'files'
+		}
+
+		if (!targetValue) {
+			return defaultTarget
+		}
+
+		const target = this.parseJson<IUploadFileTarget>(targetValue, 'target')
+		if (!target || Array.isArray(target) || !target.kind) {
+			throw new BadRequestException('Invalid target payload')
+		}
+
+		if (target.kind === 'storage') {
+			return {
+				...defaultTarget,
+				...target
+			}
+		}
+
+		return target
+	}
+
+	private parseJson<T>(value: string, field: string): T {
+		try {
+			return JSON.parse(value) as T
+		} catch {
+			throw new BadRequestException(`Invalid ${field} JSON`)
 		}
 	}
 }

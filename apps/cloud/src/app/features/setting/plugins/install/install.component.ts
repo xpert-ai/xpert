@@ -14,11 +14,11 @@ import { TranslateModule } from '@ngx-translate/core'
   imports: [TranslateModule, FormsModule, NgmSpinComponent, PluginComponent],
   selector: 'xp-settings-plugin-install',
   templateUrl: './install.component.html',
-  styleUrls: ['./install.component.scss'],
+  styleUrls: ['./install.component.scss']
 })
 export class PluginInstallComponent {
   readonly #dialogRef = inject(DialogRef)
-  readonly #data = inject<{plugin: TPlugin; reload: () => void}>(DIALOG_DATA)
+  readonly #data = inject<{ plugin: TPlugin; reload: () => void; refreshStrategies?: () => void }>(DIALOG_DATA)
   readonly installHelpUrl = injectHelpWebsite('/docs/plugin/install')
   readonly pluginAPI = injectPluginAPI()
   readonly #toastr = injectToastr()
@@ -31,7 +31,7 @@ export class PluginInstallComponent {
         name: this.pluginName()
       }
     },
-    loader: ({request}) => {
+    loader: ({ request }) => {
       return request.name ? this.pluginAPI.getByNames([request.name]) : null
     }
   })
@@ -44,17 +44,18 @@ export class PluginInstallComponent {
   readonly error = signal<string | null>(null)
 
   constructor() {
-    effect((onCleanup) => {
-      const name = this.pluginName()
-      if (!name) {
-        this.latestVersion.set(null)
-        return
-      }
+    effect(
+      (onCleanup) => {
+        const name = this.pluginName()
+        if (!name) {
+          this.latestVersion.set(null)
+          return
+        }
 
-      let cancelled = false
-      onCleanup(() => {
-        cancelled = true
-      })
+        let cancelled = false
+        onCleanup(() => {
+          cancelled = true
+        })
 
       const encoded = encodeURIComponent(name)
       fetch(`https://registry.npmjs.org/${encoded}`)
@@ -79,19 +80,22 @@ export class PluginInstallComponent {
   install() {
     this.status.set('installing')
     this.error.set(null)
-    this.pluginAPI.create({
-      pluginName: this.pluginName(),
-      version: this.pluginVersion()
-    }).subscribe({
-      next: () => {
-        this.status.set('installed')
-        this.#installedPlugin.reload()
-        this.#data.reload()
-      },
-      error: (err) => {
-        this.error.set(getErrorMessage(err))
-        this.status.set('error')
-      }
-    })
+    this.pluginAPI
+      .create({
+        pluginName: this.pluginName(),
+        version: this.pluginVersion()
+      })
+      .subscribe({
+        next: () => {
+          this.status.set('installed')
+          this.#installedPlugin.reload()
+          this.#data.reload()
+          this.#data.refreshStrategies?.()
+        },
+        error: (err) => {
+          this.error.set(getErrorMessage(err))
+          this.status.set('error')
+        }
+      })
   }
 }

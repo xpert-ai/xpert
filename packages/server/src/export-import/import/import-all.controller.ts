@@ -1,20 +1,14 @@
-import {
-	Controller,
-	HttpStatus,
-	Get,
-	Post,
-	UseInterceptors,
-	Body
-} from '@nestjs/common';
-import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
-import { FileInterceptor } from '@nestjs/platform-express';
-import path from 'path';
-import { CommandBus } from '@nestjs/cqrs';
-import { IImportHistory, ImportHistoryStatusEnum, IPagination, UploadedFile } from '@metad/contracts';
+import { Controller, HttpStatus, Get, Post, UseInterceptors, Body } from '@nestjs/common'
+import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger'
+import { FileInterceptor } from '@nestjs/platform-express'
+import path from 'path'
+import { CommandBus } from '@nestjs/cqrs'
+import { IImportHistory, ImportHistoryStatusEnum, IPagination, UploadedFile } from '@metad/contracts'
 // import { ImportAllService } from './import-all.service';
-import { RequestContext } from './../../core/context/request-context';
-import { FileStorage, UploadedFileStorage } from '../../core/file-storage';
-import { ImportHistoryCreateCommand, ImportHistoryService } from './../import-history';
+import { RequestContext } from './../../core/context/request-context'
+import { FileStorage } from '../../file/file-storage/file-storage'
+import { UploadedFileStorage } from '../../file/file-storage/uploaded-file-storage'
+import { ImportHistoryCreateCommand, ImportHistoryService } from './../import-history'
 
 @ApiTags('Import')
 @Controller()
@@ -43,7 +37,7 @@ export class ImportAllController {
 			order: {
 				importDate: 'DESC'
 			}
-		});
+		})
 	}
 
 	@UseInterceptors(
@@ -64,11 +58,8 @@ export class ImportAllController {
 		description: 'Record not found'
 	})
 	@Post()
-	async parse(
-		@Body() { importType }, 
-		@UploadedFileStorage() file: UploadedFile
-	) {
-		const { key, originalname, size } = file;
+	async parse(@Body() { importType }, @UploadedFileStorage() file: UploadedFile) {
+		const { key, originalname, size } = file
 		const history = {
 			file: originalname,
 			path: key,
@@ -79,18 +70,18 @@ export class ImportAllController {
 			// await this.importAllService.unzipAndParse(key, importType === 'clean');
 			// this.importAllService.removeExtractedFiles();
 			return await this.commandBus.execute(
-				new ImportHistoryCreateCommand({ 
-					...history, 
-					status: ImportHistoryStatusEnum.SUCCESS 
+				new ImportHistoryCreateCommand({
+					...history,
+					status: ImportHistoryStatusEnum.SUCCESS
 				})
-			);
+			)
 		} catch (error) {
 			return await this.commandBus.execute(
-				new ImportHistoryCreateCommand({ 
-					...history, 
-					status: ImportHistoryStatusEnum.FAILED 
+				new ImportHistoryCreateCommand({
+					...history,
+					status: ImportHistoryStatusEnum.FAILED
 				})
-			);
+			)
 		}
 	}
 }

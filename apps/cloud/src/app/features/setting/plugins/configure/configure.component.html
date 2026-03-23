@@ -1,0 +1,78 @@
+<div class="relative w-[min(760px,92vw)] max-h-[70vh] rounded-2xl bg-components-card-bg overflow-auto">
+  <div class="flex items-start justify-between px-6 pt-4 pb-3 sticky top-0 bg-components-card-bg z-10">
+    <div>
+      <div class="text-2xl font-semibold text-text-primary">
+        {{ 'PAC.Plugin.ConfigurePlugin' | translate: { Default: 'Configure Plugin' } }}
+      </div>
+      <div class="pt-1 text-sm text-text-tertiary">
+        {{ plugin()?.meta?.displayName || plugin()?.name }}
+      </div>
+    </div>
+    <button
+      type="button"
+      class="btn btn-ghost btn-small flex h-8 w-8 items-center justify-center hover:text-text-destructive"
+      (click)="close()"
+    >
+      <i class="ri-close-line"></i>
+    </button>
+  </div>
+
+  @if (needsConfiguration()) {
+    <div class="mx-6 mb-4 rounded-xl border border-text-warning bg-background-default-subtle px-4 py-3 text-sm text-text-warning">
+      <div class="flex items-start gap-2">
+        <i class="ri-alert-line mt-0.5"></i>
+        <div class="min-w-0">
+          <div class="font-medium">
+            {{
+              'PAC.Plugin.RequiresConfiguration'
+                | translate: { Default: 'This plugin needs configuration before it can be used.' }
+            }}
+          </div>
+          @if (configurationError()) {
+            <div class="mt-1 break-words text-text-secondary">{{ configurationError() }}</div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+
+  <div class="relative min-h-[200px] px-6 pb-6">
+    @if (schema(); as schema) {
+      <json-schema-form class="grid grid-cols-2 gap-3" [schema]="schema" [(ngModel)]="config" />
+    } @else {
+      <div class="rounded-xl border border-divider-deep bg-components-card-bg px-4 py-6 text-sm text-text-tertiary">
+        {{
+          'PAC.Plugin.NoConfigSchema' | translate: { Default: 'This plugin does not expose a configuration schema.' }
+        }}
+      </div>
+    }
+
+    @if (loading() || saving()) {
+      <ngm-spin
+        class="absolute inset-0 rounded-xl backdrop-blur-sm"
+        style="background-color: color-mix(in oklab, var(--background) 40%, transparent)"
+      />
+    }
+  </div>
+
+  @if (error()) {
+    <div class="p-3 text-sm text-text-destructive">{{ error() }}</div>
+  }
+
+  <div class="flex items-center justify-end gap-2 px-6 py-4 sticky bottom-0 bg-components-card-bg z-10">
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="close()">
+      {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+    </button>
+    <button
+      type="button"
+      class="btn disabled:btn-disabled btn-primary btn-large flex items-center gap-1"
+      [disabled]="invalid()"
+      (click)="save()"
+    >
+      @if (saving()) {
+        <ngm-spin small class="!text-primary-200" />
+      }
+      <span>{{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}</span>
+    </button>
+  </div>
+</div>

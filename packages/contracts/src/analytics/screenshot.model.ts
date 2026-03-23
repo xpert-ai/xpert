@@ -1,6 +1,4 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
-import { FileStorageProviderEnum } from '../file-provider'
-
 export interface IScreenshot extends IBasePerTenantAndOrganizationEntityModel {
   file: string
   url?: string
@@ -12,7 +10,7 @@ export interface IScreenshot extends IBasePerTenantAndOrganizationEntityModel {
   thumbUrl?: string
   recordedAt?: Date
   size?: number
-  storageProvider?: FileStorageProviderEnum
+  storageProvider?: string
 }
 
 export interface IUpdateScreenshotInput extends ICreateScreenshotInput {

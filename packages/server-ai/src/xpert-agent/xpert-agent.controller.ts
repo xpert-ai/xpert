@@ -1,7 +1,21 @@
-import { LanguagesEnum, TChatAgentParams } from '@metad/contracts'
+import { LanguagesEnum, TXpertAgentChatRequest } from '@metad/contracts'
 import { getErrorMessage, keepAlive, takeUntilClose } from '@metad/server-common'
 import { CrudController, TimeZone, TransformInterceptor } from '@metad/server-core'
-import { BadRequestException, Body, Controller, Get, Header, HttpException, HttpStatus, Logger, Param, Post, Res, Sse, UseInterceptors } from '@nestjs/common'
+import {
+    BadRequestException,
+    Body,
+    Controller,
+    Get,
+    Header,
+    HttpException,
+    HttpStatus,
+    Logger,
+    Param,
+    Post,
+    Res,
+    Sse,
+    UseInterceptors
+} from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Response } from 'express'
@@ -16,76 +30,75 @@ import { EnvironmentService } from '../environment'
 @UseInterceptors(TransformInterceptor)
 @Controller()
 export class XpertAgentController extends CrudController<XpertAgent> {
-	readonly #logger = new Logger(XpertAgentController.name)
+    readonly #logger = new Logger(XpertAgentController.name)
 
-	constructor(
-		private readonly service: XpertAgentService,
-		private readonly environmentService: EnvironmentService,
-		private readonly commandBus: CommandBus
-	) {
-		super(service)
-	}
+    constructor(
+        private readonly service: XpertAgentService,
+        private readonly environmentService: EnvironmentService,
+        private readonly commandBus: CommandBus
+    ) {
+        super(service)
+    }
 
-	@Header('content-type', 'text/event-stream')
-	@Header('Connection', 'keep-alive')
-	@Post('chat')
-	@Sse()
-	async chatAgent(
-		@Res() res: Response,
-		@Body() body: TChatAgentParams,
-		@I18nLang() language: LanguagesEnum,
-		@TimeZone() timeZone: string
-	) {
-		let environment = null
-		if (body.environmentId) {
-			environment = await this.environmentService.findOne(body.environmentId)
-		}
-		const observable = await this.service.chatAgent(body, {
-			language,
-			timeZone,
-			environment
-		})
-		return observable.pipe(
-			// Add an operator to send a comment event periodically (30s) to keep the connection alive
-			keepAlive(30000),
-			takeUntilClose(res)
-		)
-	}
+    @Header('content-type', 'text/event-stream')
+    @Header('Connection', 'keep-alive')
+    @Post('chat')
+    @Sse()
+    async chatAgent(
+        @Res() res: Response,
+        @Body() body: TXpertAgentChatRequest,
+        @I18nLang() language: LanguagesEnum,
+        @TimeZone() timeZone: string
+    ) {
+        let environment = null
+        if (body.environmentId) {
+            environment = await this.environmentService.findOne(body.environmentId)
+        }
+        const observable = await this.service.chatAgent(body, {
+            language,
+            timeZone,
+            environment
+        })
+        return observable.pipe(
+            // Add an operator to send a comment event periodically (30s) to keep the connection alive
+            keepAlive(30000),
+            takeUntilClose(res)
+        )
+    }
 
-	@Post('xpert/:id/test/:key')
-	async testNode(@Param('id') id: string, @Param('key') key: string, @Body() body: {state: any}) {
-		try {
-			return await this.commandBus.execute(new WorkflowTestNodeCommand(id, key, body.state))
-		} catch(err) {
-			throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
-		}
-	}
+    @Post('xpert/:id/test/:key')
+    async testNode(@Param('id') id: string, @Param('key') key: string, @Body() body: { state: any }) {
+        try {
+            return await this.commandBus.execute(new WorkflowTestNodeCommand(id, key, body.state))
+        } catch (err) {
+            throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
+        }
+    }
 
+    @Get('middlewares')
+    async getMiddlewareStrategies() {
+        return this.service.getMiddlewareStrategies()
+    }
 
-	@Get('middlewares')
-	async getMiddlewareStrategies() {
-		return this.service.getMiddlewareStrategies()
-	}
+    @Post('middlewares/:provider/tools')
+    async getMiddlewareTools(@Param('provider') provider: string, @Body() body: any) {
+        try {
+            return await this.service.getMiddlewareTools(provider, body)
+        } catch (err) {
+            throw new BadRequestException(getErrorMessage(err))
+        }
+    }
 
-	@Post('middlewares/:provider/tools')
-	async getMiddlewareTools(@Param('provider') provider: string, @Body() body: any) {
-		try {
-			return await this.service.getMiddlewareTools(provider, body)
-		} catch (err) {
-			throw new BadRequestException(getErrorMessage(err))
-		}
-	}
-
-	@Post('middlewares/:provider/tools/:toolName/test')
-	async testMiddlewareTool(
-		@Param('provider') provider: string,
-		@Param('toolName') toolName: string,
-		@Body() body: { options?: any; parameters?: Record<string, any> }
-	) {
-		try {
-			return await this.service.testMiddlewareTool(provider, toolName, body)
-		} catch (err) {
-			throw new BadRequestException(getErrorMessage(err))
-		}
-	}
+    @Post('middlewares/:provider/tools/:toolName/test')
+    async testMiddlewareTool(
+        @Param('provider') provider: string,
+        @Param('toolName') toolName: string,
+        @Body() body: { options?: any; parameters?: Record<string, any> }
+    ) {
+        try {
+            return await this.service.testMiddlewareTool(provider, toolName, body)
+        } catch (err) {
+            throw new BadRequestException(getErrorMessage(err))
+        }
+    }
 }

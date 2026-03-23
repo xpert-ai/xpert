@@ -211,6 +211,9 @@ importers:
       json5:
         specifier: ^2.2.3
         version: 2.2.3
+      katex:
+        specifier: ^0.16.11
+        version: 0.16.28
       langchain:
         specifier: 0.3.31
         version: 0.3.31(6e95839de10dc570c1a5e7d3819b77ce)
@@ -226,6 +229,9 @@ importers:
       marked:
         specifier: ^17.0.2
         version: 17.0.2
+      marked-katex-extension:
+        specifier: ^5.0.1
+        version: 5.1.7(katex@0.16.28)(marked@17.0.2)
       mermaid:
         specifier: ^11.12.3
         version: 11.12.3
@@ -1187,6 +1193,45 @@ importers:
         specifier: '*'
         version: 3.7.2(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@metad/contracts@3.7.0)(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(@nestjs/cqrs@11.0.3(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2))(ajv@8.18.0)(fs@0.0.1-security)(i18next-fs-backend@2.6.1)(i18next@23.14.0)(json-schema@0.4.0)(jsonwebtoken@9.0.3)(lodash-es@4.17.23)(passport-jwt@4.0.1)(path@0.12.7)(rxjs@7.8.2)(stream@0.0.3)(yaml@2.8.2)(zod@3.25.67)
 
+  packages/plugins/draft:
+    dependencies:
+      '@metad/contracts':
+        specifier: '*'
+        version: 3.7.0
+      '@nestjs/common':
+        specifier: '*'
+        version: 11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2)
+      '@nestjs/config':
+        specifier: '*'
+        version: 4.0.3(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: '*'
+        version: 11.1.13(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/microservices@11.1.13)(@nestjs/platform-express@11.1.13)(@nestjs/websockets@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2)
+      '@xpert-ai/chatkit-types':
+        specifier: ^0.0.12
+        version: 0.0.12(@a2ui/lit@0.8.1(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+      '@xpert-ai/plugin-sdk':
+        specifier: '*'
+        version: 3.8.3(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@metad/contracts@3.7.0)(@metad/ocap-core@3.7.5(date-fns@3.6.0)(i18next@23.14.0)(idb-keyval@6.2.2)(money-clip@3.0.5)(rxjs@7.8.2)(uuid@10.0.0))(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(@nestjs/cqrs@11.0.3(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2))(ajv@8.18.0)(fs@0.0.1-security)(i18next-fs-backend@2.6.1)(i18next@23.14.0)(json-schema@0.4.0)(jsonwebtoken@9.0.3)(lodash-es@4.17.23)(passport-jwt@4.0.1)(path@0.12.7)(rxjs@7.8.2)(stream@0.0.3)(yaml@2.8.2)(zod@3.25.67)
+      ali-oss:
+        specifier: 6.17.1
+        version: 6.17.1
+      aws-sdk:
+        specifier: ^2.995.0
+        version: 2.1693.0
+      moment:
+        specifier: ^2.29.1
+        version: 2.30.1
+      multer-s3:
+        specifier: ^2.9.0
+        version: 2.10.0
+      uuid:
+        specifier: ^10.0.0
+        version: 10.0.0
+      zod:
+        specifier: 3.25.67
+        version: 3.25.67
+
   packages/plugins/integration-github:
     dependencies:
       '@nestjs/common':
@@ -1356,6 +1401,9 @@ importers:
       '@sentry/node':
         specifier: ^6.13.2
         version: 6.19.7
+      '@xpert-ai/plugin-sdk':
+        specifier: ^3.8.1
+        version: 3.8.3(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@metad/contracts@3.7.0)(@metad/ocap-core@3.7.5(date-fns@3.6.0)(i18next@23.14.0)(idb-keyval@6.2.2)(money-clip@3.0.5)(rxjs@7.8.2)(uuid@10.0.0))(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(@nestjs/cqrs@11.0.3(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2))(ajv@8.18.0)(fs@0.0.1-security)(i18next-fs-backend@2.6.1)(i18next@23.14.0)(json-schema@0.4.0)(jsonwebtoken@8.5.1)(lodash-es@4.17.23)(passport-jwt@4.0.1)(path@0.12.7)(rxjs@7.8.2)(stream@0.0.3)(yaml@2.8.2)(zod@3.25.67)
       ali-oss:
         specifier: 6.17.1
         version: 6.17.1
@@ -1506,6 +1554,9 @@ importers:
       unzipper:
         specifier: ^0.12.3
         version: 0.12.3
+      zod-to-json-schema:
+        specifier: ^3.23.2
+        version: 3.25.1(zod@3.25.67)
     devDependencies:
       '@types/ali-oss':
         specifier: ^6.16.7
@@ -8451,6 +8502,29 @@ packages:
       yaml: '*'
       zod: 3.25.67
 
+  '@xpert-ai/plugin-sdk@3.8.3':
+    resolution: {integrity: sha512-Ga+Lms6mnIEswyorsjkB+lYmCsBPtlADi3i98+G2PrToKjt/sVZeXOCCyAz4X+4bjuRMXeWYdIhgfiKp7Dgsqw==}
+    peerDependencies:
+      '@langchain/core': 0.3.72
+      '@metad/contracts': '*'
+      '@metad/ocap-core': '*'
+      '@nestjs/common': '*'
+      '@nestjs/core': '*'
+      '@nestjs/cqrs': '*'
+      ajv: '*'
+      fs: '*'
+      i18next: '*'
+      i18next-fs-backend: '*'
+      json-schema: '*'
+      jsonwebtoken: '*'
+      lodash-es: '*'
+      passport-jwt: '*'
+      path: '*'
+      rxjs: '*'
+      stream: '*'
+      yaml: '*'
+      zod: 3.25.67
+
   '@xtuc/ieee754@1.2.0':
     resolution: {integrity: sha512-DX8nKgqcGwsc0eJSqYt5lwP4DH5FlHnmuWWBRy7X0NcaGR0ZtuyeESgMwTYVEtxmsNGY+qit4QYT/MIYTOTPeA==}
 
@@ -14047,6 +14121,12 @@ packages:
 
   markdown-table@2.0.0:
     resolution: {integrity: sha512-Ezda85ToJUBhM6WGaG6veasyym+Tbs3cMAw/ZhOPqXiYsr0jgocBV3j3nx+4lk47plLlIqjwuTm/ywVI+zjJ/A==}
+
+  marked-katex-extension@5.1.7:
+    resolution: {integrity: sha512-CVFzrqwpXGVaHByqcVvO/JfzW/OMWrAF3pEfNYNIruzBzM64moANSHapCg1qbzEN+NGf5unHwkMfwJIXHzyDAw==}
+    peerDependencies:
+      katex: '>=0.16 <0.17'
+      marked: '>=4 <18'
 
   marked@16.4.2:
     resolution: {integrity: sha512-TI3V8YYWvkVf3KJe1dRkpnjs68JUPyEa5vjKrp1XEEJUAOaQc+Qj+L1qWbPd0SJuAdQkFU0h73sXXqwDYxsiDA==}
@@ -28664,6 +28744,52 @@ snapshots:
       yaml: 2.8.2
       zod: 3.25.67
 
+  '@xpert-ai/plugin-sdk@3.8.3(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@metad/contracts@3.7.0)(@metad/ocap-core@3.7.5(date-fns@3.6.0)(i18next@23.14.0)(idb-keyval@6.2.2)(money-clip@3.0.5)(rxjs@7.8.2)(uuid@10.0.0))(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(@nestjs/cqrs@11.0.3(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2))(ajv@8.18.0)(fs@0.0.1-security)(i18next-fs-backend@2.6.1)(i18next@23.14.0)(json-schema@0.4.0)(jsonwebtoken@8.5.1)(lodash-es@4.17.23)(passport-jwt@4.0.1)(path@0.12.7)(rxjs@7.8.2)(stream@0.0.3)(yaml@2.8.2)(zod@3.25.67)':
+    dependencies:
+      '@langchain/core': 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
+      '@metad/contracts': 3.7.0
+      '@metad/ocap-core': 3.7.5(date-fns@3.6.0)(i18next@23.14.0)(idb-keyval@6.2.2)(money-clip@3.0.5)(rxjs@7.8.2)(uuid@10.0.0)
+      '@nestjs/common': 11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.13(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/microservices@11.1.13)(@nestjs/platform-express@11.1.13)(@nestjs/websockets@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2)
+      '@nestjs/cqrs': 11.0.3(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2)
+      ajv: 8.18.0
+      fs: 0.0.1-security
+      i18next: 23.14.0
+      i18next-fs-backend: 2.6.1
+      js-tiktoken: 1.0.21
+      json-schema: 0.4.0
+      jsonwebtoken: 8.5.1
+      lodash-es: 4.17.23
+      passport-jwt: 4.0.1
+      path: 0.12.7
+      rxjs: 7.8.2
+      stream: 0.0.3
+      yaml: 2.8.2
+      zod: 3.25.67
+
+  '@xpert-ai/plugin-sdk@3.8.3(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@metad/contracts@3.7.0)(@metad/ocap-core@3.7.5(date-fns@3.6.0)(i18next@23.14.0)(idb-keyval@6.2.2)(money-clip@3.0.5)(rxjs@7.8.2)(uuid@10.0.0))(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(@nestjs/cqrs@11.0.3(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2))(ajv@8.18.0)(fs@0.0.1-security)(i18next-fs-backend@2.6.1)(i18next@23.14.0)(json-schema@0.4.0)(jsonwebtoken@9.0.3)(lodash-es@4.17.23)(passport-jwt@4.0.1)(path@0.12.7)(rxjs@7.8.2)(stream@0.0.3)(yaml@2.8.2)(zod@3.25.67)':
+    dependencies:
+      '@langchain/core': 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
+      '@metad/contracts': 3.7.0
+      '@metad/ocap-core': 3.7.5(date-fns@3.6.0)(i18next@23.14.0)(idb-keyval@6.2.2)(money-clip@3.0.5)(rxjs@7.8.2)(uuid@10.0.0)
+      '@nestjs/common': 11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2)
+      '@nestjs/core': 11.1.13(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/microservices@11.1.13)(@nestjs/platform-express@11.1.13)(@nestjs/websockets@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2)
+      '@nestjs/cqrs': 11.0.3(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2)
+      ajv: 8.18.0
+      fs: 0.0.1-security
+      i18next: 23.14.0
+      i18next-fs-backend: 2.6.1
+      js-tiktoken: 1.0.21
+      json-schema: 0.4.0
+      jsonwebtoken: 9.0.3
+      lodash-es: 4.17.23
+      passport-jwt: 4.0.1
+      path: 0.12.7
+      rxjs: 7.8.2
+      stream: 0.0.3
+      yaml: 2.8.2
+      zod: 3.25.67
+
   '@xtuc/ieee754@1.2.0': {}
 
   '@xtuc/long@4.2.2': {}
@@ -29696,7 +29822,7 @@ snapshots:
   buffer@4.9.2:
     dependencies:
       base64-js: 1.5.1
-      ieee754: 1.1.13
+      ieee754: 1.2.1
       isarray: 1.0.0
 
   buffer@5.7.1:
@@ -35315,6 +35441,11 @@ snapshots:
   markdown-table@2.0.0:
     dependencies:
       repeat-string: 1.6.1
+
+  marked-katex-extension@5.1.7(katex@0.16.28)(marked@17.0.2):
+    dependencies:
+      katex: 0.16.28
+      marked: 17.0.2
 
   marked@16.4.2: {}
 

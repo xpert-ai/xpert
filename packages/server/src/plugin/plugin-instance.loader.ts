@@ -3,6 +3,7 @@ import { PluginLevel } from '@metad/contracts'
 import { GLOBAL_ORGANIZATION_SCOPE } from '@xpert-ai/plugin-sdk'
 import { DataSource, DataSourceOptions } from 'typeorm'
 import { PluginInstance } from './plugin-instance.entity'
+import { deserializePluginConfig } from './plugin-config.crypto'
 
 export interface OrganizationPluginConfig {
 	organizationId?: string
@@ -58,7 +59,7 @@ export async function loadOrganizationPluginConfigs(): Promise<OrganizationPlugi
 				source: instance.source,
 				level: instance.level
 			})
-			record.configs[instance.pluginName] = instance.config || {}
+			record.configs[instance.pluginName] = deserializePluginConfig(instance.config)
 			byOrg.set(orgId, record)
 		}
 

@@ -37,7 +37,7 @@ import { XpertNewKnowledgeComponent } from '../../knowledge'
     AppearanceDirective,
     DynamicGridDirective,
     EmojiAvatarComponent,
-    UserProfileInlineComponent,
+    UserProfileInlineComponent
   ],
   animations: [routeAnimations]
 })
@@ -87,7 +87,7 @@ export class XpertWorkspaceKnowledgesComponent {
     const items = this.#knowledgebases()
     const searchText = this.searchText()
     return searchText
-      ? items.filter(
+      ? items?.filter(
           (item) => item.name.toLowerCase().includes(searchText) || item.description?.toLowerCase().includes(searchText)
         )
       : items
@@ -102,21 +102,23 @@ export class XpertWorkspaceKnowledgesComponent {
   }
 
   newKnowledgebase() {
-    this.#dialog.open<IKnowledgebase>(XpertNewKnowledgeComponent, {
-      data: {
-        workspaceId: this.workspaceId()
-      }
-    }).closed.subscribe({
-      next: (knowledgebase) => {
-        if (knowledgebase) {
-          this.#router.navigate(['/xpert/knowledges/', knowledgebase.id,])
+    this.#dialog
+      .open<IKnowledgebase>(XpertNewKnowledgeComponent, {
+        data: {
+          workspaceId: this.workspaceId()
         }
-      }
-    })
+      })
+      .closed.subscribe({
+        next: (knowledgebase) => {
+          if (knowledgebase) {
+            this.#router.navigate(['/xpert/knowledges/', knowledgebase.id])
+          }
+        }
+      })
   }
 
   edit(item: IKnowledgebase) {
-    this.#router.navigate(['/xpert/knowledges/', item.id, 'configuration'],)
+    this.#router.navigate(['/xpert/knowledges/', item.id, 'configuration'])
   }
 
   remove(item: IKnowledgebase) {

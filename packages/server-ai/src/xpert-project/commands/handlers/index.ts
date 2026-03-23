@@ -1,9 +1,4 @@
-import { CreateProjectToolsetHandler } from "./create-toolset.handler";
-import { ExportProjectHandler } from "./export.handler";
-import { GetVcsCredentialsHandler } from "./get-vcs-credentials.handler";
+import { CreateProjectToolsetHandler } from './create-toolset.handler'
+import { ExportProjectHandler } from './export.handler'
 
-export const CommandHandlers = [
-    CreateProjectToolsetHandler,
-    ExportProjectHandler,
-    GetVcsCredentialsHandler
-]
+export const CommandHandlers = [CreateProjectToolsetHandler, ExportProjectHandler]

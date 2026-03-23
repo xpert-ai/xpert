@@ -37,7 +37,7 @@ import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs/'
 		forwardRef(() => XpertWorkspaceModule),
 		forwardRef(() => IntegrationModule),
 		forwardRef(() => KnowledgeDocumentModule),
-		forwardRef(() => XpertModule),
+		forwardRef(() => XpertModule)
 	],
 	controllers: [KnowledgebaseController],
 	providers: [

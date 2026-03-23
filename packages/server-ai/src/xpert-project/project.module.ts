@@ -12,24 +12,17 @@ import { XpertProjectTaskLog } from './entities/project-task-log.entity'
 import { CommandHandlers } from './commands/handlers'
 import { XpertProjectTaskService } from './services'
 import { VcsService } from './services/vcs-service'
-import { IntegrationGithubModule } from '../integration-github'
 
 @Module({
-	imports: [
-		RouterModule.register([{ path: '/xpert-project', module: XpertProjectModule }]),
-		TypeOrmModule.forFeature([
-			XpertProject,
-			XpertProjectTask,
-			XpertProjectTaskStep,
-			XpertProjectTaskLog,
-		]),
-		TenantModule,
-		CqrsModule,
-		IntegrationModule,
-		IntegrationGithubModule
-	],
-	controllers: [XpertProjectController],
-	providers: [XpertProjectService, XpertProjectTaskService, VcsService, ...CommandHandlers],
-	exports: [XpertProjectService]
+    imports: [
+        RouterModule.register([{ path: '/xpert-project', module: XpertProjectModule }]),
+        TypeOrmModule.forFeature([XpertProject, XpertProjectTask, XpertProjectTaskStep, XpertProjectTaskLog]),
+        TenantModule,
+        CqrsModule,
+        IntegrationModule
+    ],
+    controllers: [XpertProjectController],
+    providers: [XpertProjectService, XpertProjectTaskService, VcsService, ...CommandHandlers],
+    exports: [XpertProjectService]
 })
 export class XpertProjectModule {}

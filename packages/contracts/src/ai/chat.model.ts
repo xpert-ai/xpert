@@ -9,7 +9,7 @@ import { IStorageFile } from '../storage-file.model'
 import { IXpertTask } from './xpert-task.model'
 import { TToolCall } from '../agent'
 import { TInterrupt } from '../agent/interrupt'
-
+import { IUser } from '../user.model'
 
 export type TChatConversationOptions = {
   parameters?: {
@@ -21,11 +21,22 @@ export type TChatConversationOptions = {
   features?: Array<'timeline' | 'sandbox' | 'files'>
   workspacePath?: string
   workspaceUrl?: string
+  sandboxEnvironmentId?: string
 }
 
-export type TChatConversationStatus = "idle" | "busy" | "interrupted" | "error"
+export type TChatConversationStatus = 'idle' | 'busy' | 'interrupted' | 'error'
 export type TToolCallType = 'agent' | 'tool'
-export type TChatFrom = 'platform' | 'webapp' | 'debugger' | 'knowledge' | 'job' | 'api' | 'feishu' | 'lark' | 'dingtalk' | 'wecom'
+export type TChatFrom =
+  | 'platform'
+  | 'webapp'
+  | 'debugger'
+  | 'knowledge'
+  | 'job'
+  | 'api'
+  | 'feishu'
+  | 'lark'
+  | 'dingtalk'
+  | 'wecom'
 
 /**
  * Operation for interrupt
@@ -33,21 +44,21 @@ export type TChatFrom = 'platform' | 'webapp' | 'debugger' | 'knowledge' | 'job'
 export type TSensitiveOperation = {
   messageId?: string
   tasks?: {
-    name: string;
-    interrupts: TInterrupt[];
-    type?: TToolCallType;
+    name: string
+    interrupts: TInterrupt[]
+    type?: TToolCallType
     info?: {
       name: string
       title?: string
       description: string
     }
     parameters?: {
-      name: string;
+      name: string
       title: I18nObject | string
-      type: string;
+      type: string
       description: I18nObject | string
       placeholder?: I18nObject | string
-    }[],
+    }[]
     call?: TToolCall
     agent?: IXpertAgent
   }[]
@@ -55,7 +66,7 @@ export type TSensitiveOperation = {
 
 /**
  * Chat conversation for xpert ai agent.
- * 
+ *
  * Corresponds to the thread in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
  */
 export interface IChatConversation extends IBasePerTenantAndOrganizationEntityModel {
@@ -95,6 +106,10 @@ export interface IChatConversation extends IBasePerTenantAndOrganizationEntityMo
    * End anonymous user
    */
   fromEndUserId?: string
+  /**
+   * Internal user matched by fromEndUserId when available
+   */
+  fromEndUser?: IUser
 
   // Many to one
   /**
@@ -123,8 +138,8 @@ export type TChatConversationLog = IChatConversation & {
 
 // Types
 export type ChatMessage = {
-  conversationId: string;
-  id: string;
+  conversationId: string
+  id: string
   content: string
 }
 
@@ -152,52 +167,61 @@ export enum ChatGatewayEvent {
   Agent = 'agent'
 }
 
-
 /**
  * @deprecated use ChatMessageEventTypeEnum
  */
 export type ChatGatewayMessage = {
-  organizationId?: string;
+  organizationId?: string
   xpert?: {
     id: string
-		knowledgebases?: string[]
+    knowledgebases?: string[]
     toolsets: string[] | null
   }
-} & ({
-  event: ChatGatewayEvent.CancelChain
-  data: {
-    conversationId: string // Conversation ID
-  }
-} | {
-  event: ChatGatewayEvent.ChainAborted
-  data: {
-    conversationId: string // Conversation ID
-    id?: string // Message id
-  }
-} | {
-  event: ChatGatewayEvent.ConversationCreated
-  data: IChatConversation
-} | {
-  event: ChatGatewayEvent.MessageStream
-  data: ChatUserMessage
-} | {
-  event: ChatGatewayEvent.ToolStart | ChatGatewayEvent.ToolEnd
-  data: CopilotMessageGroup | CopilotMessageGroup[]
-} | {
-  event: ChatGatewayEvent.ChainStart | ChatGatewayEvent.ChainEnd
-  data: {
-    id: string
-  }
-} | {
-  event: ChatGatewayEvent.StepStart | ChatGatewayEvent.StepEnd
-  data: CopilotChatMessage
-} | {
-  event: ChatGatewayEvent.Message | ChatGatewayEvent.Error
-  data: CopilotChatMessage
-} | {
-  event: ChatGatewayEvent.Agent
-  data: {
-    id: string
-    message: CopilotChatMessage
-  }
-})
+} & (
+  | {
+      event: ChatGatewayEvent.CancelChain
+      data: {
+        conversationId: string // Conversation ID
+      }
+    }
+  | {
+      event: ChatGatewayEvent.ChainAborted
+      data: {
+        conversationId: string // Conversation ID
+        id?: string // Message id
+      }
+    }
+  | {
+      event: ChatGatewayEvent.ConversationCreated
+      data: IChatConversation
+    }
+  | {
+      event: ChatGatewayEvent.MessageStream
+      data: ChatUserMessage
+    }
+  | {
+      event: ChatGatewayEvent.ToolStart | ChatGatewayEvent.ToolEnd
+      data: CopilotMessageGroup | CopilotMessageGroup[]
+    }
+  | {
+      event: ChatGatewayEvent.ChainStart | ChatGatewayEvent.ChainEnd
+      data: {
+        id: string
+      }
+    }
+  | {
+      event: ChatGatewayEvent.StepStart | ChatGatewayEvent.StepEnd
+      data: CopilotChatMessage
+    }
+  | {
+      event: ChatGatewayEvent.Message | ChatGatewayEvent.Error
+      data: CopilotChatMessage
+    }
+  | {
+      event: ChatGatewayEvent.Agent
+      data: {
+        id: string
+        message: CopilotChatMessage
+      }
+    }
+)

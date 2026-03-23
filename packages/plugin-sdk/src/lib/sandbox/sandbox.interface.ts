@@ -1,5 +1,5 @@
-import { TSandboxProviderMeta } from "@metad/contracts"
-import { SandboxBackendProtocol } from "./protocol"
+import { TSandboxProviderMeta, TSandboxWorkForType } from '@metad/contracts'
+import { SandboxBackendProtocol } from './protocol'
 
 export type SandboxProviderCreateOptions = {
   /**
@@ -7,32 +7,28 @@ export type SandboxProviderCreateOptions = {
    */
   workingDirectory?: string
   /**
-   * Sandbox container environment identifier
+   * Canonical sandbox environment identifier that owns the container lifecycle.
    */
   environmentId?: string
   /**
    * Tenant identifier
    */
   tenantId?: string
-  /**
-   * User identifier
-   */
-  userId?: string
-  /**
-   * Project identifier
-   */
-  projectId?: string
+  workFor: {
+    type: TSandboxWorkForType
+    id: string
+  }
 }
 
 export interface ISandboxProvider<T extends SandboxBackendProtocol = SandboxBackendProtocol> {
   type: string
-  
+
   meta: TSandboxProviderMeta
 
   /**
    * Create a new sandbox instance
-   * 
-   * @param options 
+   *
+   * @param options
    */
   create(options?: SandboxProviderCreateOptions): Promise<T>
   /**

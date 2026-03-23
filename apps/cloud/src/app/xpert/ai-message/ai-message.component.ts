@@ -207,6 +207,7 @@ export class ChatAiMessageComponent {
 
   updateCollapse(id: string, status: boolean) {
     this.collapseMessages.update((state) => ({ ...state, [id]: status }))
+    this.collapseMessages.update((state) => ({ ...state, [id]: status }))
   }
 
   onCopy(copyButton) {
@@ -294,13 +295,6 @@ export class ChatAiMessageComponent {
     if (!this.canRetry()) {
       return
     }
-    // this.chatService.retryMessageById(this.message().id)
-    this.chatService.chat({
-      retry: true,
-      command: {
-        resume: {}
-      },
-      messageId: this.message().id
-    })
+    this.chatService.retryMessage(this.message().id)
   }
 }
