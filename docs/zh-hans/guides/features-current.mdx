@@ -1,0 +1,242 @@
+---
+title: Features 现状说明
+description: 基于当前代码实现，梳理 Xpert 系统 Feature 体系的枚举、默认定义和实际接入现状
+---
+
+# Features 现状说明
+
+本文档聚焦系统当前的 Feature 现状，不讨论未来改造方案。
+
+如果用一句话概括当前设计：
+
+`Feature 负责决定某项产品能力是否向租户/组织开放，Permission 负责决定当前用户是否有资格使用该能力。`
+
+## 1. Feature 在系统里的两层含义
+
+当前代码里“Feature”其实有两层概念：
+
+1. 产品功能目录
+2. 运行时开关
+
+### 1.1 产品功能目录
+
+这层由下面几个对象组成：
+
+- `IFeature`
+- `IFeatureOrganization`
+- `FeatureEnum`
+- `AiFeatureEnum`
+- `AnalyticsFeatures`
+
+它们共同表达的是：
+
+- 系统有哪些功能模块
+- 这些功能属于哪个租户、哪个组织
+- 某个功能在当前范围内是否启用
+
+### 1.2 运行时开关
+
+代码里还定义了 `IFeatureToggle` 及其类型：
+
+- `release`
+- `kill-switch`
+- `experiment`
+- `operational`
+- `permission`
+
+这说明系统还保留了一层更偏运行时/策略化的 feature toggle 设计。不过从当前仓库现状看，真正被大量使用的还是“功能目录 + 组织启用状态”这一层。
+
+## 2. 当前 Feature 枚举总览
+
+当前 Feature 相关枚举共有 3 组：
+
+| 枚举                | 数量 | 用途               |
+| ------------------- | ---- | ------------------ |
+| `FeatureEnum`       | 19   | 平台与基础设置能力 |
+| `AiFeatureEnum`     | 4    | AI 产品能力        |
+| `AnalyticsFeatures` | 17   | Analytics/BI 能力  |
+
+总计可识别的 Feature Key 为 40 个。
+
+## 3. 平台 Feature 现状
+
+### 3.1 `FeatureEnum` 已定义的能力
+
+当前 `FeatureEnum` 定义了以下平台能力：
+
+| 分组             | Feature                                                                                                                                                                                             |
+| ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 首页与基础工作台 | `FEATURE_HOME` `FEATURE_DASHBOARD`                                                                                                                                                                  |
+| 组织与成员       | `FEATURE_JOB` `FEATURE_EMPLOYEES` `FEATURE_MANAGE_INVITE` `FEATURE_ORGANIZATION` `FEATURE_ORGANIZATION_TAG` `FEATURE_ORGANIZATION_PROJECT` `FEATURE_CONTACT` `FEATURE_USER` `FEATURE_ORGANIZATIONS` |
+| 设置中心         | `FEATURE_SETTING`                                                                                                                                                                                   |
+| 邮件与消息       | `FEATURE_EMAIL_HISTORY` `FEATURE_EMAIL_TEMPLATE` `FEATURE_SMS_GATEWAY` `FEATURE_SMTP`                                                                                                               |
+| 治理与集成       | `FEATURE_FILE_STORAGE` `FEATURE_ROLES_PERMISSION` `FEATURE_INTEGRATION`                                                                                                                             |
+
+### 3.2 当前真正进入默认定义的平台 Feature
+
+`packages/server/src/feature/default-features.ts` 当前明确注册的默认功能目录主要有：
+
+| 类型     | Feature                                                                                                                                                |
+| -------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 顶层功能 | `FEATURE_HOME` `FEATURE_ORGANIZATION` `FEATURE_USER` `FEATURE_EMAIL` `FEATURE_SETTING` `FEATURE_SMTP` `FEATURE_ROLES_PERMISSION` `FEATURE_INTEGRATION` |
+| 子功能   | `FEATURE_DASHBOARD` `FEATURE_EMAIL_TEMPLATE` `FEATURE_FILE_STORAGE`                                                                                    |
+
+这里有 3 个值得注意的现状点：
+
+1. 当前默认定义里实际注册的是 8 个顶层功能和 3 个子功能。
+2. `FEATURE_ORGANIZATION_TAG`、`FEATURE_SMS_GATEWAY` 等能力在默认定义中是注释状态，没有真正启用。
+3. 默认定义里使用了字符串 `FEATURE_EMAIL`，但它并不在 `FeatureEnum` 中，说明平台 Feature 的定义源目前并不完全统一。
+
+## 4. AI Feature 现状
+
+### 4.1 `AiFeatureEnum` 已定义的能力
+
+AI 侧 Feature 当前有 4 个：
+
+| Feature                         | 当前含义                 |
+| ------------------------------- | ------------------------ |
+| `FEATURE_COPILOT`               | AI Copilot 主能力        |
+| `FEATURE_COPILOT_KNOWLEDGEBASE` | Copilot 下知识库能力     |
+| `FEATURE_COPILOT_CHAT`          | Copilot 对话能力         |
+| `FEATURE_XPERT`                 | Xpert / Agent 工作区能力 |
+
+### 4.2 当前接入情况
+
+从前端菜单和设置页来看，当前真正被频繁使用的 AI Feature 主要是：
+
+- `FEATURE_COPILOT`
+- `FEATURE_XPERT`
+
+而以下 Feature 在当前代码里更多表现为“已定义但接入较弱”：
+
+- `FEATURE_COPILOT_KNOWLEDGEBASE`
+- `FEATURE_COPILOT_CHAT`
+
+它们出现在：
+
+- 合同枚举
+- i18n 文案
+- 少量被注释掉的菜单或设置项
+
+但没有看到像平台 Feature 那样清晰的默认注册入口。
+
+### 4.3 一个重要现状结论
+
+从当前仓库可见代码来看，**没有找到 AI Feature 被写入 `packages/server/src/feature/default-features.ts` 的默认注册逻辑**。
+
+这意味着 AI Feature 当前更像是：
+
+- 已在前端使用的功能开关键
+- 但其服务端默认 feature catalog 定义路径并不清晰，或者不与平台 Feature 共用同一份默认配置
+
+## 5. Analytics Feature 现状
+
+### 5.1 `AnalyticsFeatures` 已定义的能力
+
+Analytics 侧当前定义了 17 个 Feature：
+
+| 分组            | Feature                                                                                                                     |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| 业务域与指标    | `FEATURE_BUSINESS_AREA` `FEATURE_INDICATOR` `FEATURE_INDICATOR_MARKET` `FEATURE_INDICATOR_REGISTER` `FEATURE_INDICATOR_APP` |
+| Story / Project | `FEATURE_STORY` `FEATURE_STORY_CREATION` `FEATURE_STORY_VIEWER` `FEATURE_STORY_MARKET` `FEATURE_PROJECT`                    |
+| 模型            | `FEATURE_MODEL` `FEATURE_MODEL_CREATION` `FEATURE_MODEL_VIEWER`                                                             |
+| 运营与订阅      | `FEATURE_SUBSCRIPTION`                                                                                                      |
+| 首页扩展        | `FEATURE_HOME_TREND` `FEATURE_HOME_CATALOG`                                                                                 |
+| 数据生产        | `FEATURE_DATA_FACTORY`                                                                                                      |
+
+### 5.2 当前接入较明确的 Analytics Feature
+
+当前在菜单、设置页或页面组件中使用较明确的有：
+
+- `FEATURE_MODEL`
+- `FEATURE_PROJECT`
+- `FEATURE_STORY`
+- `FEATURE_INDICATOR`
+- `FEATURE_INDICATOR_MARKET`
+- `FEATURE_INDICATOR_APP`
+- `FEATURE_BUSINESS_AREA`
+- `FEATURE_DATA_FACTORY`
+- `FEATURE_HOME_TREND`
+- `FEATURE_HOME_CATALOG`
+
+### 5.3 当前接入较弱或仅定义的 Analytics Feature
+
+以下 Feature 目前更像“已定义但未完整接入”：
+
+- `FEATURE_INDICATOR_REGISTER`
+- `FEATURE_STORY_CREATION`
+- `FEATURE_STORY_VIEWER`
+- `FEATURE_STORY_MARKET`
+- `FEATURE_MODEL_CREATION`
+- `FEATURE_MODEL_VIEWER`
+- `FEATURE_SUBSCRIPTION`
+
+它们主要出现在：
+
+- 合同枚举
+- i18n 文案
+- 少量局部引用
+
+但没有看到与平台 Feature 相同级别的默认注册和菜单接入。
+
+### 5.4 第二个重要现状结论
+
+和 AI Feature 类似，**当前也没有在 `packages/server/src/feature/default-features.ts` 中看到 Analytics Feature 的默认注册逻辑**。
+
+因此可以认为：
+
+- Analytics Feature 在前端 gating 中已经广泛使用
+- 但与平台 Feature 相比，服务端默认 catalog 的配置仍不统一
+
+## 6. Feature 的实际生效方式
+
+从当前前后端代码来看，Feature 的生效链路主要是：
+
+1. 登录后前端加载 `tenant.featureOrganizations` 和当前组织的 `featureOrganizations`
+2. `Store.hasFeatureEnabled()` 负责判断某个 Feature 是否已启用
+3. 菜单、设置页和部分页面入口通过 `featureKey` 做显隐控制
+4. 组织切换后，当前组织的 feature 集合会重新影响界面可见性
+
+当前接入最明显的位置包括：
+
+- 主菜单 `apps/cloud/src/app/features/menus.ts`
+- 设置页菜单 `apps/cloud/src/app/features/setting/settings.component.ts`
+- 首页部分模块
+- `FeaturesComponent` 对菜单的统一过滤
+
+## 7. Feature 与 Permission 的边界
+
+当前系统里，这两者分工比较明确：
+
+| 维度       | Feature            | Permission     |
+| ---------- | ------------------ | -------------- |
+| 解决的问题 | 功能是否开放       | 用户能否使用   |
+| 作用范围   | 租户/组织          | 角色/用户      |
+| 前端用途   | 菜单和入口显隐     | 路由和操作权限 |
+| 后端用途   | 功能目录与开关管理 | 接口授权       |
+
+一个页面通常要同时满足两层条件：
+
+1. 对应 Feature 已启用
+2. 对应 Permission 已授权
+
+## 8. 当前 Feature 体系的主要现状判断
+
+基于当前代码，可以得到 5 个高价值结论：
+
+1. 平台 Feature 的默认目录定义相对完整，集中在 `packages/server/src/feature/default-features.ts`。
+2. AI Feature 和 Analytics Feature 在前端 gating 中已经被大量使用，但其服务端默认目录定义没有和平台 Feature 完全统一。
+3. 部分 Feature 已在枚举中定义，但仍停留在“文案/预留/注释入口”阶段。
+4. 当前 Feature 体系已经支持 tenant / organization 两层范围，但不同产品线的落地成熟度不一致。
+5. Feature 目前更像“产品可用性开关”，而不是完整的权限替代机制。
+
+## 9. 对后续文档和改造的启发
+
+如果后续要继续做角色权限和功能治理，Feature 侧最值得优先收口的是：
+
+1. 统一平台、AI、Analytics 三类 Feature 的默认注册入口
+2. 清理枚举里“只定义未接入”的 Feature
+3. 统一使用枚举常量，减少 `FEATURE_EMAIL` 这类游离字符串
+4. 明确每个 Feature 是租户级、组织级，还是两者都支持
+
+这会直接降低后续角色设计、套餐设计和设置页治理的复杂度。

@@ -4,7 +4,7 @@ import { Component, computed, inject, model, signal, viewChild } from '@angular/
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr } from '@cloud/app/@core'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import { injectPluginAPI, IPluginConfiguration } from '@metad/cloud/state'
+import { injectPluginAPI, IPluginConfiguration, PLUGIN_CONFIGURATION_STATUS } from '@metad/cloud/state'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { TInstalledPlugin } from '../types'
@@ -29,6 +29,10 @@ export class PluginConfigureComponent {
   readonly form = viewChild(JSONSchemaFormComponent)
   readonly plugin = signal(this.data.plugin)
   readonly schema = computed(() => this.plugin()?.configSchema)
+  readonly needsConfiguration = computed(
+    () => this.plugin()?.configurationStatus === PLUGIN_CONFIGURATION_STATUS.INVALID
+  )
+  readonly configurationError = computed(() => this.plugin()?.configurationError)
   readonly config = model<Record<string, any>>({})
   readonly loading = signal(true)
   readonly saving = signal(false)
@@ -83,6 +87,15 @@ export class PluginConfigureComponent {
     this.pluginAPI.getConfiguration(pluginName).subscribe({
       next: (result: IPluginConfiguration) => {
         this.config.set(result.config ?? {})
+        this.plugin.update((plugin) =>
+          plugin
+            ? {
+                ...plugin,
+                configurationStatus: result.configurationStatus,
+                configurationError: result.configurationError
+              }
+            : plugin
+        )
         this.loading.set(false)
       },
       error: (error) => {

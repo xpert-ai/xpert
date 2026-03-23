@@ -692,6 +692,15 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
   abstract readonly id: string
 
   /**
+   * Internal hook for file/search operations. Concrete backends can override
+   * this to distinguish "background helper commands" from user-facing shell
+   * execute calls.
+   */
+  protected executeOperation(command: string, options?: SandboxExecutionOptions): MaybePromise<ExecuteResponse> {
+    return this.execute(command, options)
+  }
+
+  /**
    * Execute a command in the sandbox.
    * This is the only method concrete implementations must provide.
    */
@@ -729,7 +738,7 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
    */
   async lsInfo(path: string): Promise<FileInfo[]> {
     const command = buildLsCommand(path)
-    const result = await this.execute(command, FILE_OPERATION_EXECUTION_OPTIONS)
+    const result = await this.executeOperation(command, FILE_OPERATION_EXECUTION_OPTIONS)
 
     if (result.exitCode !== 0) {
       return []
@@ -778,7 +787,7 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
     }
 
     const command = buildListDirCommand(dirPath, offset, limit, depth)
-    const result = await this.execute(command, FILE_OPERATION_EXECUTION_OPTIONS)
+    const result = await this.executeOperation(command, FILE_OPERATION_EXECUTION_OPTIONS)
 
     if (result.exitCode !== 0) {
       return result.output || `Error: Failed to list directory '${dirPath}'`
@@ -808,7 +817,7 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
       mode === 'indentation'
         ? buildIndentationReadCommand(filePath, offset, limit, indentation ?? {})
         : buildSliceReadCommand(filePath, offset, limit)
-    const result = await this.execute(command, FILE_OPERATION_EXECUTION_OPTIONS)
+    const result = await this.executeOperation(command, FILE_OPERATION_EXECUTION_OPTIONS)
 
     if (result.exitCode !== 0) {
       return result.output || `Error: File '${filePath}' not found`
@@ -822,7 +831,7 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
    */
   async grepRaw(pattern: string, path: string = '/', include: string | null = null): Promise<GrepMatch[] | string> {
     const command = buildGrepCommand(pattern, path, include)
-    const result = await this.execute(command, FILE_SEARCH_EXECUTION_OPTIONS)
+    const result = await this.executeOperation(command, FILE_SEARCH_EXECUTION_OPTIONS)
 
     if (result.exitCode === 1) {
       // Check if it's a regex error
@@ -872,7 +881,7 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
    */
   async globInfo(pattern: string, path: string = '/'): Promise<FileInfo[]> {
     const command = buildGlobCommand(path, pattern)
-    const result = await this.execute(command, FILE_SEARCH_EXECUTION_OPTIONS)
+    const result = await this.executeOperation(command, FILE_SEARCH_EXECUTION_OPTIONS)
 
     const infos: FileInfo[] = []
     const lines = result.output.trim().split('\n').filter(Boolean)
@@ -912,7 +921,7 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
    */
   async write(filePath: string, content: string): Promise<WriteResult> {
     const command = buildWriteCommand(filePath, content)
-    const result = await this.execute(command, FILE_OPERATION_EXECUTION_OPTIONS)
+    const result = await this.executeOperation(command, FILE_OPERATION_EXECUTION_OPTIONS)
 
     if (result.exitCode !== 0) {
       const output = (result.output || '').trim()
@@ -934,7 +943,7 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
   }
 
   private async writeViaUpload(filePath: string, content: string): Promise<WriteResult> {
-    const existsCheck = await this.execute(buildExistsCommand(filePath), FILE_OPERATION_EXECUTION_OPTIONS)
+    const existsCheck = await this.executeOperation(buildExistsCommand(filePath), FILE_OPERATION_EXECUTION_OPTIONS)
     if (existsCheck.exitCode === 0) {
       return {
         error: `Cannot write to ${filePath} because it already exists. Read and then make an edit, or write to a new path.`
@@ -959,7 +968,7 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
    */
   async append(filePath: string, content: string): Promise<WriteResult> {
     const command = buildAppendCommand(filePath, content)
-    const result = await this.execute(command, FILE_OPERATION_EXECUTION_OPTIONS)
+    const result = await this.executeOperation(command, FILE_OPERATION_EXECUTION_OPTIONS)
 
     if (result.exitCode !== 0) {
       const output = (result.output || '').trim()
@@ -976,7 +985,7 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
    */
   async edit(filePath: string, oldString: string, newString: string, replaceAll: boolean = false): Promise<EditResult> {
     const command = buildEditCommand(filePath, oldString, newString, replaceAll)
-    const result = await this.execute(command, FILE_OPERATION_EXECUTION_OPTIONS)
+    const result = await this.executeOperation(command, FILE_OPERATION_EXECUTION_OPTIONS)
 
     switch (result.exitCode) {
       case 0: {

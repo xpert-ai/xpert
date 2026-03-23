@@ -33,6 +33,9 @@ export class ChatConversationPublicDTO {
 	@Transform((params: TransformFnParams) => (params.value ? new UserPublicDTO(params.value) : null))
 	createdBy?: IUser
 
+	@Transform((params: TransformFnParams) => (params.value ? new UserPublicDTO(params.value) : null))
+	fromEndUser?: IUser
+
 	@Transform((params: TransformFnParams) => (params.value ? new XpertPublicDTO(params.value) : null))
 	xpert?: IXpert
 

@@ -30,7 +30,7 @@ export enum XpertTypeEnum {
   /**
    * Knowledge Workflow
    */
-  Knowledge = 'knowledge',
+  Knowledge = 'knowledge'
 }
 
 export type TXpertSandboxFeature = {
@@ -197,7 +197,7 @@ export type TXpert = {
    * Integrations for this xpert
    */
   integrations?: IIntegration[]
-  
+
   tags?: ITag[]
 }
 
@@ -206,7 +206,7 @@ export type TXpert = {
  */
 export interface IXpert extends IBasePerWorkspaceEntityModel, TXpert {
   environmentId?: string
-	environment?: IEnvironment
+  environment?: IEnvironment
   /**
    * When type is 'knowledge', it must binding a knowledgebase
    */
@@ -253,13 +253,13 @@ export type TXpertAgentConfig = {
   /**
    * Maximum number of times a call can recurse. If not provided, defaults to 25.
    */
-  recursionLimit?: number;
+  recursionLimit?: number
   /** Maximum number of parallel calls to make. */
-  maxConcurrency?: number;
+  maxConcurrency?: number
   /**
    * Timeout for this call in milliseconds.
    */
-  timeout?: number;
+  timeout?: number
 
   /**
    * Sensitive tools and agents
@@ -314,18 +314,21 @@ export type TXpertAgentConfig = {
     instruction?: string
   }
 
-  tools?: Record<string, {
-    /**
-     * Memory assigner for tool's results. (save result of tool call into state variable)
-     */
-    memories?: TVariableAssigner[]
-    timeout?: number
-    /**
-     * Custom description for the tool
-     */
-    description?: string
-    parameters?: Record<string, any>
-  }>
+  tools?: Record<
+    string,
+    {
+      /**
+       * Memory assigner for tool's results. (save result of tool call into state variable)
+       */
+      memories?: TVariableAssigner[]
+      timeout?: number
+      /**
+       * Custom description for the tool
+       */
+      description?: string
+      parameters?: Record<string, any>
+    }
+  >
 }
 
 export type TStateVariableType = XpertParameterTypeEnum | 'object' | 'array[string]' | 'array[number]' | 'array[object]'
@@ -360,7 +363,7 @@ export type TSummarize = {
 
 export enum LongTermMemoryTypeEnum {
   PROFILE = 'profile',
-  QA = 'qa',
+  QA = 'qa'
 }
 
 export type TLongTermMemoryConfig = {
@@ -412,7 +415,7 @@ export enum XpertParameterTypeEnum {
   ARRAY_DOCUMENT = 'array[document]',
 
   BOOLEAN = 'boolean',
-  SECRET = 'secret',
+  SECRET = 'secret'
 }
 
 export type TXpertParameter = {
@@ -487,15 +490,13 @@ export type TXpertTeamNodeSpec = {
 /** If you want TXpertTeamNodeType always match spec keys */
 export type TXpertTeamNodeType2 = keyof TXpertTeamNodeSpec
 
-export type TXpertTeamNode<T extends TXpertTeamNodeType = TXpertTeamNodeType> =
-  T extends TXpertTeamNodeType
-    ? TXpertTeamNodeBase & { type: T } & TXpertTeamNodeSpec[T]
-    : never
+export type TXpertTeamNode<T extends TXpertTeamNodeType = TXpertTeamNodeType> = T extends TXpertTeamNodeType
+  ? TXpertTeamNodeBase & { type: T } & TXpertTeamNodeSpec[T]
+  : never
 
 export type NodeOf<T extends keyof TXpertTeamNodeSpec> = TXpertTeamNode<T>
 
-export type NodeEntity<T extends keyof TXpertTeamNodeSpec> =
-  TXpertTeamNodeSpec[T]['entity']
+export type NodeEntity<T extends keyof TXpertTeamNodeSpec> = TXpertTeamNodeSpec[T]['entity']
 
 export type AnyNodeEntity = NodeEntity<keyof TXpertTeamNodeSpec>
 
@@ -530,7 +531,7 @@ export type TChatOptions = {
   xpertId?: string
   conversationId?: string
   messageId?: string
-  
+
   // Langgraph thread id
   thread_id?: string
   // checkpoint id to resume thread state
@@ -565,7 +566,7 @@ export type TChatOptions = {
    */
   environment?: IEnvironment
   /**
-   * PRO: Specify a sandbox environment container to run in
+   * Specify a sandbox environment container to run in
    */
   sandboxEnvironmentId?: string
   /**
@@ -579,7 +580,7 @@ export type TChatOptions = {
  */
 export type TKBRetrievalSettings = {
   metadata: {
-    filtering_mode: "disabled" | "automatic" | "manual"
+    filtering_mode: 'disabled' | 'automatic' | 'manual'
     /**
      * Conditions (filter) when mode is manual
      */
@@ -592,9 +593,6 @@ export type TKBRetrievalSettings = {
 }
 
 // Helper guards
-export function isXpertNodeType<T extends TXpertTeamNodeType>(
-  type: T
-): (node: TXpertTeamNode) => node is NodeOf<T> {
-  return (node: TXpertTeamNode): node is NodeOf<T> =>
-    node.type === type
+export function isXpertNodeType<T extends TXpertTeamNodeType>(type: T): (node: TXpertTeamNode) => node is NodeOf<T> {
+  return (node: TXpertTeamNode): node is NodeOf<T> => node.type === type
 }

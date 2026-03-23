@@ -44,6 +44,8 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			existing.source = input.source
 			existing.level = input.level ?? existing.level
 			existing.config = serializePluginConfig(decryptedConfig)
+			existing.configurationStatus = input.configurationStatus ?? null
+			existing.configurationError = input.configurationError ?? null
 			existing.tenantId = input.tenantId ?? existing.tenantId
 			const entity = await this.repo.save(existing)
 			this.syncLoadedPluginConfig(input.organizationId, input.pluginName, decryptedConfig)
@@ -58,7 +60,9 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			version: input.version,
 			source: input.source,
 			level: input.level,
-			config: serializePluginConfig(decryptedConfig)
+			config: serializePluginConfig(decryptedConfig),
+			configurationStatus: input.configurationStatus ?? null,
+			configurationError: input.configurationError ?? null
 		})
 		const created = await this.create(entity)
 		this.syncLoadedPluginConfig(input.organizationId, input.pluginName, decryptedConfig)
@@ -120,6 +124,7 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		})
 
 		if (!items.length) {
+			await this.removePlugins(organizationId, [packageName])
 			return
 		}
 

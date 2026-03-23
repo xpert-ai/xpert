@@ -5,18 +5,17 @@ import { ChatMessage } from '../../chat-message.entity'
 
 @CommandHandler(ChatMessageUpsertCommand)
 export class ChatMessageUpsertHandler implements ICommandHandler<ChatMessageUpsertCommand> {
-	constructor(
-		private readonly service: ChatMessageService,
-		private readonly commandBus: CommandBus
-	) {}
+    constructor(
+        private readonly service: ChatMessageService,
+        private readonly commandBus: CommandBus
+    ) {}
 
-	public async execute(command: ChatMessageUpsertCommand): Promise<ChatMessage> {
-		const entity = command.entity
+    public async execute(command: ChatMessageUpsertCommand): Promise<ChatMessage> {
+        const entity = command.entity
 
-		if (entity.id) {
-			await this.service.update(entity.id, entity as ChatMessage)
-			return await this.service.findOne(entity.id)
-		}
-		return await this.service.create(entity)
-	}
+        if (entity.id) {
+            return await this.service.save(entity as ChatMessage)
+        }
+        return await this.service.create(entity)
+    }
 }
