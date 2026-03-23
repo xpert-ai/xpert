@@ -31,49 +31,49 @@ import { XpertToolsetModule } from './xpert-toolset/index'
 import { XpertWorkspaceModule } from './xpert-workspace'
 import { CommandHandlers } from './shared'
 import { RagVStoreModule } from './rag-vstore'
-import { IntegrationGithubModule } from './integration-github'
 import { EnvironmentModule } from './environment'
 import { XpertTableModule } from './xpert-table'
 import { HandoffQueueModule } from './handoff/message-queue.module'
+import { FileUploadTargetsModule } from './shared'
 
 @Module({
-	imports: [
-		forwardRef(() => CqrsModule),
-		forwardRef(() => UserModule),
-		ChatModule,
-		ChatConversationModule,
-		ChatMessageModule,
-		ChatMessageFeedbackModule,
-		CopilotCheckpointModule,
-		AIModule,
-		CopilotModule,
-		CopilotModelModule,
-		CopilotKnowledgeModule,
-		CopilotUserModule,
-		CopilotOrganizationModule,
-		CopilotProviderModule,
-		CopilotStoreModule,
-		EnvironmentModule,
-		GraphragModule,
-		HandoffQueueModule,
-		XpertModule,
-		XpertAgentModule,
-		XpertAgentExecutionModule,
-		XpertToolModule,
-		XpertToolsetModule,
-		XpertWorkspaceModule,
-		XpertProjectModule,
-		XpertTemplateModule,
-		XpertTaskModule,
-		XpertTableModule,
-		KnowledgebaseModule,
-		KnowledgeDocumentModule,
-		IntegrationGithubModule,
-		RagVStoreModule,
-		RagWebModule,
-		SandboxModule,
-	],
-	controllers: [],
-	providers: [...EventHandlers, ...CommandHandlers]
+    imports: [
+        forwardRef(() => CqrsModule),
+        forwardRef(() => UserModule),
+        ChatModule,
+        ChatConversationModule,
+        ChatMessageModule,
+        ChatMessageFeedbackModule,
+        CopilotCheckpointModule,
+        AIModule,
+        CopilotModule,
+        CopilotModelModule,
+        CopilotKnowledgeModule,
+        CopilotUserModule,
+        CopilotOrganizationModule,
+        CopilotProviderModule,
+        CopilotStoreModule,
+        EnvironmentModule,
+        GraphragModule,
+        HandoffQueueModule,
+        FileUploadTargetsModule,
+        XpertModule,
+        XpertAgentModule,
+        XpertAgentExecutionModule,
+        XpertToolModule,
+        XpertToolsetModule,
+        XpertWorkspaceModule,
+        XpertProjectModule,
+        XpertTemplateModule,
+        XpertTaskModule,
+        XpertTableModule,
+        KnowledgebaseModule,
+        KnowledgeDocumentModule,
+        RagVStoreModule,
+        RagWebModule,
+        SandboxModule
+    ],
+    controllers: [],
+    providers: [...EventHandlers, ...CommandHandlers]
 })
 export class ServerAIModule {}

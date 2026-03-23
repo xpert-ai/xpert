@@ -9,7 +9,7 @@ import {
   inject,
   input,
   model,
-  output,
+  output
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -82,9 +82,11 @@ export class ChatConversationComponent {
   })
 
   readonly primaryAgent = computed(() => this.xpert()?.agent)
-  readonly parameters = computed(() => this.xpert()?.agentConfig?.parameters ?? (
-    this.primaryAgent()?.options?.hidden ? null : this.primaryAgent()?.parameters
-  ))
+  readonly parameters = computed(
+    () =>
+      this.xpert()?.agentConfig?.parameters ??
+      (this.primaryAgent()?.options?.hidden ? null : this.primaryAgent()?.parameters)
+  )
 
   readonly parametersValue = this.chatService.parametersValue
   readonly suggestion_enabled = this.chatService.suggestion_enabled
@@ -93,7 +95,7 @@ export class ChatConversationComponent {
 
   // Task
   readonly task = computed(() => this.conversation()?.task)
-  
+
   constructor() {
     effect(
       () => {
@@ -111,7 +113,7 @@ export class ChatConversationComponent {
   }
 
   onConfirm() {
-    this.chatService.chat({ confirm: true, command: this.command() })
+    this.chatService.resumeOperation({ decision: 'confirm', command: this.command() })
     this.chatService.updateConversation({
       status: 'busy',
       error: null
@@ -122,7 +124,7 @@ export class ChatConversationComponent {
    * @deprecated use onConfirm with command resume instead
    */
   onReject() {
-    this.chatService.chat({ reject: true, command: this.command() })
+    this.chatService.resumeOperation({ decision: 'reject', command: this.command() })
     this.chatService.updateConversation({
       status: 'busy',
       error: null
@@ -134,9 +136,7 @@ export class ChatConversationComponent {
       status: 'busy',
       error: null
     })
-    this.chatService.chat({
-      retry: true
-    })
+    this.chatService.retryMessage()
   }
 
   onSelectSuggestionQuestion(question: string) {

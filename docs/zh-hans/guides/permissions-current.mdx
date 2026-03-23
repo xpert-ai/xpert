@@ -1,0 +1,326 @@
+---
+title: Permissions 现状说明
+description: 基于当前代码实现，梳理 Xpert 系统 Permission 体系的枚举、默认授权和实际使用现状
+---
+
+# Permissions 现状说明
+
+本文档聚焦系统当前的 Permission 现状，不讨论未来改造方案。
+
+如果用一句话概括当前设计：
+
+`Permission 是角色上的能力点开关，真正落地时由 RolePermission 按租户保存 enabled 状态，并由前后端共同消费。`
+
+## 1. 当前 Permission 架构
+
+系统当前的权限模型由 4 个核心部分组成：
+
+| 组成                       | 作用                                        |
+| -------------------------- | ------------------------------------------- |
+| `PermissionsEnum`          | 平台与组织管理权限                          |
+| `AIPermissionsEnum`        | AI 产品权限                                 |
+| `AnalyticsPermissionsEnum` | Analytics/BI 权限                           |
+| `RolePermission`           | 把“角色 + 权限 + enabled”存成租户级授权结果 |
+
+从产品和实现上看，当前系统采用的是：
+
+- 权限定义在 contracts
+- 角色默认授权在 server / server-ai 中分别配置
+- 登录后把角色权限装入用户上下文
+- 前端用 `NgxPermissions` 做可见性控制
+- 后端用 `PermissionGuard` 做接口授权
+
+## 2. 当前权限枚举总览
+
+当前权限枚举共有 3 组：
+
+| 枚举                       | 数量 | 用途                                       |
+| -------------------------- | ---- | ------------------------------------------ |
+| `PermissionsEnum`          | 31   | 平台、组织、治理、配置类权限               |
+| `AIPermissionsEnum`        | 5    | 知识库、Copilot、Xpert、Chat               |
+| `AnalyticsPermissionsEnum` | 18   | 数据源、模型、Story、指标、Data Factory 等 |
+
+总计定义了 54 个权限点。
+
+## 3. 平台权限现状
+
+### 3.1 `PermissionsEnum` 当前范围
+
+平台权限主要覆盖以下几类：
+
+| 分组               | 权限                                                                                                      |
+| ------------------ | --------------------------------------------------------------------------------------------------------- |
+| 个人与工作台       | `PROFILE_EDIT` `ADMIN_DASHBOARD_VIEW`                                                                     |
+| 员工与成员         | `ORG_EMPLOYEES_VIEW` `ORG_EMPLOYEES_EDIT` `ORG_USERS_VIEW` `ORG_USERS_EDIT`                               |
+| 邀请与组织内容     | `ORG_INVITE_VIEW` `ORG_INVITE_EDIT` `ORG_TAGS_EDIT` `ORG_CONTACT_VIEW` `ORG_CONTACT_EDIT` `ORG_DEMO_EDIT` |
+| 组织范围治理       | `ALL_ORG_VIEW` `ALL_ORG_EDIT` `CHANGE_SELECTED_ORGANIZATION` `CHANGE_ROLES_PERMISSIONS`                   |
+| 超级能力与高危操作 | `SUPER_ADMIN_EDIT` `ACCESS_DELETE_ACCOUNT` `ACCESS_DELETE_ALL_DATA`                                       |
+| 页面与内容         | `PUBLIC_PAGE_EDIT` `ORG_HELP_CENTER_EDIT`                                                                 |
+| 邮件与模板         | `VIEW_ALL_EMAILS` `VIEW_ALL_EMAIL_TEMPLATES` `VIEW_ALL_ACCOUNTING_TEMPLATES`                              |
+| 集成与基础设施     | `INTEGRATION_VIEW` `INTEGRATION_EDIT` `FILE_STORAGE_VIEW` `SMS_GATEWAY_VIEW` `CUSTOM_SMTP_VIEW`           |
+| 审批相关           | `APPROVAL_POLICY_VIEW` `APPROVAL_POLICY_EDIT`                                                             |
+
+### 3.2 当前默认平台授权
+
+平台默认权限主要在 `packages/server/src/role-permission/default-role-permissions.ts` 中定义。
+
+现状大致是：
+
+- `SUPER_ADMIN` 拥有几乎全部平台权限
+- `ADMIN` 拥有大部分平台权限
+- `TRIAL` 只拿到一小部分平台权限
+- `EMPLOYEE` / `CANDIDATE` / `DATA_ENTRY` 的平台默认权限较少
+- `VIEWER` 当前平台默认权限为空
+
+### 3.3 当前平台权限里接入较强的部分
+
+接入较明确的包括：
+
+- 用户管理
+- 组织管理
+- 邀请管理
+- 角色权限管理
+- Feature/FeatureOrganization 管理
+- 集成设置
+- 邮件模板与 SMTP
+
+### 3.4 当前平台权限里接入较弱的部分
+
+以下权限在当前仓库里“已定义/已翻译/已进入默认权限”，但运行时接入痕迹较弱：
+
+- `APPROVAL_POLICY_VIEW`
+- `APPROVAL_POLICY_EDIT`
+- `PUBLIC_PAGE_EDIT`
+- `ORG_HELP_CENTER_EDIT`
+- `VIEW_ALL_ACCOUNTING_TEMPLATES`
+
+也就是说，这些权限不能简单理解为“没有”，而更准确的描述是：
+
+- 枚举已存在
+- 部分默认角色已经拿到
+- 但当前前后端显式使用场景相对有限
+
+## 4. AI 权限现状
+
+### 4.1 `AIPermissionsEnum` 当前定义
+
+AI 权限当前只有 5 个：
+
+| 权限                 | 当前含义          |
+| -------------------- | ----------------- |
+| `KNOWLEDGEBASE_EDIT` | 创建、编辑知识库  |
+| `COPILOT_VIEW`       | 查看 Copilot 能力 |
+| `COPILOT_EDIT`       | 配置 Copilot      |
+| `XPERT_EDIT`         | 创建、编辑 Xpert  |
+| `CHAT_VIEW`          | 使用聊天能力      |
+
+### 4.2 当前默认 AI 授权
+
+AI 默认权限主要在 `packages/server-ai/src/core/default-role-permissions.ts` 中定义。
+
+现状大致是：
+
+- `SUPER_ADMIN`、`ADMIN`、`TRIAL` 拥有完整 AI 默认权限
+- `DATA_ENTRY` 拥有 `KNOWLEDGEBASE_EDIT`、`XPERT_EDIT`、`CHAT_VIEW`
+- `VIEWER` 拥有 `COPILOT_VIEW`、`CHAT_VIEW`
+- `EMPLOYEE`、`CANDIDATE` 当前默认 AI 权限为空
+
+### 4.3 当前 AI 权限的主要使用场景
+
+接入较明确的包括：
+
+- Knowledgebase 后端接口用 `KNOWLEDGEBASE_EDIT`
+- Copilot 相关后端接口用 `COPILOT_EDIT`
+- 前端设置页 Copilot 用 `COPILOT_EDIT`
+- 前端知识库页用 `KNOWLEDGEBASE_EDIT`
+- 前端 Chat / Xpert / ChatBI 相关入口和菜单会结合 `CHAT_VIEW`、`XPERT_EDIT`
+
+### 4.4 当前 AI 权限的主要现状判断
+
+当前 AI 权限偏“编辑型”：
+
+- 有 `EDIT`
+- 有少量 `VIEW`
+- 缺少更细的“运行”“只读知识库”“只读 Xpert”“ChatBI 专属编辑”权限
+
+因此 AI 权限已经可用，但粒度还比较粗。
+
+## 5. Analytics 权限现状
+
+### 5.1 `AnalyticsPermissionsEnum` 当前定义
+
+Analytics 权限当前定义了 18 个：
+
+| 分组       | 权限                                                                                                    |
+| ---------- | ------------------------------------------------------------------------------------------------------- |
+| 数据源     | `DATA_SOURCE_VIEW` `DATA_SOURCE_EDIT`                                                                   |
+| 通知与订阅 | `NOTIFICATION_DESTINATION_VIEW` `NOTIFICATION_DESTINATION_EDIT` `SUBSCRIPTION_VIEW` `SUBSCRIPTION_EDIT` |
+| 模型       | `MODELS_VIEW` `MODELS_EDIT`                                                                             |
+| Story      | `STORIES_VIEW` `STORIES_EDIT`                                                                           |
+| 业务域     | `BUSINESS_AREA_VIEW` `BUSINESS_AREA_EDIT`                                                               |
+| 指标       | `INDICATOR_VIEW` `INDICATOR_MARTKET_VIEW` `INDICATOR_EDIT`                                              |
+| 数据工厂   | `DATA_FACTORY_VIEW` `DATA_FACTORY_EDIT`                                                                 |
+| 审批       | `PERMISSION_APPROVAL_VIEW` `PERMISSION_APPROVAL_EDIT`                                                   |
+| 认证       | `CERTIFICATION_EDIT`                                                                                    |
+
+### 5.2 当前接入较明确的 Analytics 权限
+
+前端菜单、路由和设置页中，接入较明显的主要是：
+
+- `DATA_SOURCE_EDIT`
+- `MODELS_EDIT`
+- `STORIES_VIEW`
+- `BUSINESS_AREA_EDIT`
+- `CERTIFICATION_EDIT`
+- `INDICATOR_VIEW`
+- `INDICATOR_MARTKET_VIEW`
+- `INDICATOR_EDIT`
+- `DATA_FACTORY_VIEW`
+
+这些权限已经明确参与：
+
+- 主菜单显隐
+- 设置页菜单显隐
+- 前端路由守卫
+
+### 5.3 当前接入较弱的 Analytics 权限
+
+以下权限当前更像“已定义，但接入痕迹有限”：
+
+- `NOTIFICATION_DESTINATION_VIEW`
+- `NOTIFICATION_DESTINATION_EDIT`
+- `SUBSCRIPTION_VIEW`
+- `SUBSCRIPTION_EDIT`
+- `PERMISSION_APPROVAL_VIEW`
+- `PERMISSION_APPROVAL_EDIT`
+
+它们目前主要能看到：
+
+- contracts 枚举
+- i18n 文案
+
+但没有看到与模型、Story、指标同等强度的页面和接口接入。
+
+### 5.4 一个关键现状结论
+
+从当前仓库可见代码来看，**没有找到 Analytics 默认权限被写入独立默认授权文件的实现**。
+
+当前能确认的是：
+
+- Analytics 权限已经进入 `PermissionGroups.GENERAL`
+- 前端已经广泛使用这些权限做菜单和路由控制
+
+但没有像平台权限和 AI 权限那样，看到明确的默认角色授权源文件对 Analytics 权限进行下发。
+
+这意味着当前 Analytics 权限体系的成熟度是：
+
+- 枚举层：完整
+- 前端消费层：较强
+- 默认授权落地层：相对不清晰
+
+## 6. `RolePermission` 如何承载最终授权
+
+当前真正生效的授权记录不是枚举本身，而是 `RolePermission`：
+
+| 字段         | 含义         |
+| ------------ | ------------ |
+| `roleId`     | 哪个角色     |
+| `permission` | 哪个权限点   |
+| `enabled`    | 是否启用     |
+| `tenantId`   | 属于哪个租户 |
+
+这意味着：
+
+- 权限是“按角色启用”的
+- 不是所有枚举值都会自动授权
+- 默认角色权限只是初始化模板
+- 真正运行时以数据库里的 `RolePermission` 为准
+
+## 7. 前端如何消费 Permissions
+
+前端当前主要通过两种方式消费权限：
+
+### 7.1 菜单与设置页显隐
+
+主要位置：
+
+- `apps/cloud/src/app/features/menus.ts`
+- `apps/cloud/src/app/features/setting/settings.component.ts`
+
+模式大致是：
+
+- 先看 `featureKey`
+- 再看 `permissionKeys`
+- 两者都满足才显示入口
+
+### 7.2 路由守卫
+
+主要通过 `NgxPermissionsGuard` 完成。
+
+典型页面包括：
+
+- Users
+- Roles
+- Copilot
+- Knowledgebase
+- Integration
+- Email Templates
+- Business Area
+- Certification
+- Indicators
+
+登录后，前端会把当前用户启用中的 `role.rolePermissions` 注入 `NgxPermissionsService`。
+
+## 8. 后端如何消费 Permissions
+
+后端主要通过下面几层执行授权：
+
+| 机制                        | 作用                         |
+| --------------------------- | ---------------------------- |
+| `@Permissions(...)`         | 在接口上声明所需权限         |
+| `PermissionGuard`           | 判断当前用户是否拥有这些权限 |
+| `TenantPermissionGuard`     | 校验租户边界                 |
+| `@Roles(...)` + `RoleGuard` | 用于少数直接按角色限制的接口 |
+
+标准链路通常是：
+
+1. JWT 登录后加载用户、角色和角色权限
+2. `RequestContext` 里可拿到当前用户和权限
+3. 调用接口时先过租户守卫
+4. 再过权限守卫或角色守卫
+
+## 9. `PermissionGroups` 的现状作用
+
+当前 `PermissionGroups` 主要服务于角色权限管理页，把权限分成两组：
+
+- `GENERAL`
+- `ADMINISTRATION`
+
+值得注意的现状有两点：
+
+1. `GENERAL` 里已经混合了平台权限、AI 权限和 Analytics 权限。
+2. 并不是所有定义过的权限都进入了这两个分组。
+
+因此，`PermissionGroups` 更像“角色管理 UI 展示分组”，而不是系统完整权限目录。
+
+## 10. 当前 Permission 体系的主要现状判断
+
+基于当前代码，可以得到 6 个高价值结论：
+
+1. 平台权限、AI 权限、Analytics 权限已经被纳入同一套角色权限骨架。
+2. 平台权限和 AI 权限的默认角色授权来源比较清晰。
+3. Analytics 权限已经广泛进入前端显隐和路由控制，但默认授权落地链路不够清晰。
+4. 部分权限已经定义，但仍停留在“枚举存在、文案存在、接入较弱”的阶段。
+5. 当前系统仍存在一部分按角色白名单控制的接口，没有完全收敛到纯 Permission 模型。
+6. 前端和后端都已经在实际消费 Permission，但消费强度在不同权限域之间并不一致。
+
+## 11. 对后续改造的启发
+
+如果后续继续推进角色与权限重构，Permission 侧最值得优先收口的是：
+
+1. 补齐 Analytics 权限的默认授权来源
+2. 把“定义了但接入较弱”的权限做一次清理或补接线
+3. 减少角色白名单接口，更多转成标准权限点
+4. 为 AI 和 Analytics 补齐更细粒度的 `VIEW` / `RUN` / `EDIT` 分层
+
+这样后续的默认角色体系、套餐治理和设置页体验会更稳定。

@@ -1,0 +1,28 @@
+// KaTeX styles for LaTeX math expression rendering
+@import 'katex/dist/katex.min.css';
+
+// Override KaTeX styles for dark mode support
+.ngm-theme-dark {
+  .katex {
+    color: inherit;
+  }
+}
+
+// Ensure proper rendering in markdown content
+.ngm-copilot-markdown {
+  .katex {
+    font-size: 1em;
+  }
+  
+  // Display mode equations (block-level)
+  .katex-display {
+    margin: 1em 0;
+    overflow-x: auto;
+    overflow-y: hidden;
+  }
+  
+  // Ensure inline math doesn't break layout
+  .katex-inline {
+    white-space: nowrap;
+  }
+}

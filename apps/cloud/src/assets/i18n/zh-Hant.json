@@ -521,7 +521,9 @@
       "Plugins": "插件",
       "AllCategories": "所有類別",
       "AllKeywords": "所有標簽",
-      "InstallPlugins": "安裝插件"
+      "InstallPlugins": "安裝插件",
+      "CurrentVersion": "當前版本",
+      "UpdatePlugin": "更新到最新版本"
     },
     "MENU": {
       "Plugins": "插件",

@@ -15,6 +15,8 @@ import { EmailTemplateModule } from './email-template/email-template.module'
 import { EmailModule } from './email/email.module'
 import { EmployeeModule } from './employee/employee.module'
 import { FeatureModule } from './feature/feature.module'
+import { FileStorageModule } from './file/file-storage/file-storage.module'
+import { FileUploadModule } from './file/file-upload/file-upload.module'
 import { resolveServeStaticPath } from './helper'
 import { HomeModule } from './home/home.module'
 import { InviteModule } from './invite/invite.module'
@@ -53,6 +55,7 @@ import { HealthModule } from './health'
 		HealthModule,
 		CqrsModule,
 		CoreModule,
+		FileStorageModule,
 		AuthModule,
 		ApiKeyModule,
 		UserModule,
@@ -64,6 +67,7 @@ import { HealthModule } from './health'
 		CountryModule,
 		CurrencyModule,
 		FeatureModule,
+		FileUploadModule,
 		RolePermissionModule,
 		RoleModule,
 		OrganizationModule,
@@ -75,7 +79,7 @@ import { HealthModule } from './health'
 		CustomSmtpModule,
 		LanguageModule,
 		StorageFileModule,
-		IntegrationModule,
+		IntegrationModule
 	],
 	controllers: [AppController],
 	providers: [AppService],

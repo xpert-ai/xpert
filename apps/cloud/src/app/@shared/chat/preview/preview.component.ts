@@ -38,6 +38,7 @@ import {
   createMessageAppendContextTracker,
   SynthesizeService,
   TChatRequest,
+  TXpertChatResumeDecision,
   TInterruptCommand,
   ToastrService,
   TtsStreamPlayerService,
@@ -62,6 +63,13 @@ import { ChatAttachmentsComponent } from '../attachments/attachments.component'
 import { ChatHumanMessageComponent } from './human-message/message.component'
 import { XpertAgentOperationComponent } from '../../agent'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { filterLatestMessages } from '../filter-latest-messages'
+import { buildResumeDecision, extractInterruptPatch } from '../interrupt-request'
+import { isThreadContextUsageEvent } from '../context/thread-context-usage'
+
+function findLastAiMessageId(messages: Array<{ id?: string; role?: string }> | null | undefined): string | null {
+  return [...(messages ?? [])].reverse().find((message) => message?.role === 'ai')?.id ?? null
+}
 
 @Component({
   standalone: true,
@@ -176,16 +184,20 @@ export class ChatConversationPreviewComponent {
     return null
   })
   readonly messages = computed(() => {
+    const baseMessages = this._messages() ?? []
     if (this.currentMessage()) {
-      const messages = this._messages()
+      const messages = baseMessages
       const lastMessage = messages[messages.length - 1]
       // Skip the last interrupted message when continuing the chat conversation
       if (lastMessage?.status === XpertAgentExecutionStatusEnum.INTERRUPTED) {
-        return [...messages.slice(0, messages.length - 1), this.currentMessage()] as IChatMessage[]
+        return filterLatestMessages([
+          ...messages.slice(0, messages.length - 1),
+          this.currentMessage()
+        ] as IChatMessage[]) as IChatMessage[]
       }
-      return [...this._messages(), this.currentMessage()] as IChatMessage[]
+      return filterLatestMessages([...messages, this.currentMessage()] as IChatMessage[]) as IChatMessage[]
     }
-    return this._messages() as IChatMessage[]
+    return (filterLatestMessages(baseMessages) ?? []) as IChatMessage[]
   })
 
   readonly copiedMessages = signal<Record<string, boolean>>({})
@@ -214,7 +226,7 @@ export class ChatConversationPreviewComponent {
     .subscribe((conv) => {
       this.conversation.set(conv)
       if (conv) {
-        this._messages.set(conv.messages)
+        this._messages.set(filterLatestMessages(conv.messages) as IChatMessage[])
         if (!this.xpert()) {
           this.xpert.set(conv.xpert)
         }
@@ -271,6 +283,25 @@ export class ChatConversationPreviewComponent {
     })
   }
 
+  sendMessage(input: string) {
+    this.chat({ input })
+  }
+
+  resumeOperation(decision: TXpertChatResumeDecision['type'], command?: TInterruptCommand) {
+    this.chat({
+      confirm: decision === 'confirm',
+      reject: decision === 'reject',
+      command
+    })
+  }
+
+  retryMessage(messageId?: string) {
+    this.chat({
+      retry: true,
+      messageId
+    })
+  }
+
   chat(options?: {
     input?: string
     confirm?: boolean
@@ -308,8 +339,7 @@ export class ChatConversationPreviewComponent {
         content: '',
         status: 'thinking'
       })
-    } else if (options?.input) {
-      // Reuse existing human message for retry without duplication
+    } else if (options?.retry) {
       this.currentMessage.set({
         id: uuid(),
         role: 'ai',
@@ -332,11 +362,37 @@ export class ChatConversationPreviewComponent {
     if (this.chatSubscription && !this.chatSubscription?.closed) {
       this.chatSubscription.unsubscribe()
     }
-    // Include checkpointId to resume thread state when retrying
-    const request = {
-      input: options.retry
-        ? undefined
-        : {
+    const currentCommand = options?.confirm ? this.command() : options?.command
+    const lastAiMessageId = options?.messageId ?? findLastAiMessageId(this.messages())
+    let request: TChatRequest
+    if (options?.retry) {
+      request = {
+        action: 'retry',
+        conversationId: this.conversation()?.id,
+        environmentId: this.environmentId(),
+        source: {
+          aiMessageId: lastAiMessageId
+        }
+      } as TChatRequest
+    } else if (options?.confirm || options?.reject || currentCommand) {
+      const patch = extractInterruptPatch(currentCommand)
+      request = {
+        action: 'resume',
+        conversationId: this.conversation()?.id,
+        target: {
+          aiMessageId: lastAiMessageId
+        },
+        decision: buildResumeDecision(options?.reject ? 'reject' : 'confirm', currentCommand),
+        ...(patch ? { patch } : {})
+      } as TChatRequest
+    } else {
+      request = {
+        action: 'send',
+        conversationId: this.conversation()?.id,
+        environmentId: this.environmentId(),
+        message: {
+          clientMessageId: options?.messageId,
+          input: {
             ...(this.parameterValue() ?? {}),
             input: options?.input,
             files: requestFiles?.map((file) => ({
@@ -349,15 +405,10 @@ export class ChatConversationPreviewComponent {
               size: file.size,
               extension: file.originalName.split('.').pop()
             }))
-          },
-      conversationId: this.conversation()?.id,
-      // Reuse the original human message id to avoid duplicate replies
-      id: options?.messageId,
-      environmentId: this.environmentId(),
-      command: options?.confirm ? this.command() : options.command,
-      confirm: options?.confirm,
-      retry: options?.retry
-    } as TChatRequest
+          }
+        }
+      } as TChatRequest
+    }
 
     this.chatSubscription = this.xpertService
       .chat(this.xpert().id, request, {
@@ -419,6 +470,9 @@ export class ChatConversationPreviewComponent {
                     break
                   }
                   case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
+                    if (isThreadContextUsageEvent(event.data)) {
+                      break
+                    }
                     this.currentMessage.update((state) => ({
                       ...state,
                       events: [...(state.events ?? []), event.data]
@@ -497,7 +551,7 @@ export class ChatConversationPreviewComponent {
   }
 
   onSelectSuggestionQuestion(question: string) {
-    this.chat({ input: question })
+    this.sendMessage(question)
   }
 
   appendMessage(message: Partial<IChatMessage>) {
@@ -527,7 +581,7 @@ export class ChatConversationPreviewComponent {
       }
       if (this.loading()) return
 
-      this.chat({ input: this.input() })
+      this.sendMessage(this.input())
       event.preventDefault()
     }
   }
@@ -615,10 +669,7 @@ export class ChatConversationPreviewComponent {
         error: null
       }
     })
-
-    this.chat({
-      retry: true
-    })
+    this.retryMessage()
   }
 
   onConfirm() {
@@ -629,9 +680,7 @@ export class ChatConversationPreviewComponent {
         error: null
       }
     })
-    this.chat({
-      confirm: true
-    })
+    this.resumeOperation('confirm', this.command())
   }
 
   /**
@@ -645,9 +694,7 @@ export class ChatConversationPreviewComponent {
         error: null
       }
     })
-    this.chat({
-      reject: true
-    })
+    this.resumeOperation('reject', this.command())
   }
 
   onClose() {
@@ -689,13 +736,7 @@ export class ChatConversationPreviewComponent {
 
     this._messages.set(messages.slice(0, targetIndex))
 
-    this.chat({
-      retry: true,
-      command: {
-        resume: {}
-      },
-      messageId: message.id
-    })
+    this.retryMessage(message.id)
   }
 
   readonly synthesizeLoading = this.#synthesizeService.synthesizeLoading

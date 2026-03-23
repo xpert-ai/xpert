@@ -3,11 +3,16 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { Injectable } from '@nestjs/common'
 import {
+  appendSandboxMessage,
   BaseSandbox,
+  buildSandboxTimeoutMessage,
+  DEFAULT_SANDBOX_SHELL_EXECUTION_OPTIONS,
   ExecuteResponse,
   FileDownloadResponse,
   FileUploadResponse,
   ISandboxProvider,
+  resolveSandboxExecutionOptions,
+  SandboxExecutionOptions,
   SandboxProviderCreateOptions,
   SandboxProviderStrategy
 } from '@xpert-ai/plugin-sdk'
@@ -106,25 +111,22 @@ const LOCAL_SHELL_SANDBOX_ICON = `<?xml version="1.0" encoding="utf-8"?>
  * - downloadFiles(): Read files from the sandbox
  */
 export class LocalShellSandbox extends BaseSandbox {
-  readonly id: string;
-  private readonly timeout: number;
+  readonly id: string
 
   /**
    * Create a new LocalShellSandbox.
    *
    * @param options - Configuration options
    * @param options.workingDirectory - Directory where commands will be executed
-   * @param options.timeout - Command timeout in milliseconds (default: 30000)
    */
-  constructor(options: { workingDirectory: string; timeout?: number }) {
-    super();
-    this.workingDirectory = path.resolve(options.workingDirectory);
-    this.timeout = options.timeout ?? 30000;
-    this.id = `local-shell-${this.workingDirectory.replace(/[^a-zA-Z0-9]/g, "-")}`;
+  constructor(options: { workingDirectory: string }) {
+    super()
+    this.workingDirectory = path.resolve(options.workingDirectory)
+    this.id = `local-shell-${this.workingDirectory.replace(/[^a-zA-Z0-9]/g, '-')}`
 
     // Ensure working directory exists
     if (!fs.existsSync(this.workingDirectory)) {
-      fs.mkdirSync(this.workingDirectory, { recursive: true });
+      fs.mkdirSync(this.workingDirectory, { recursive: true })
     }
   }
 
@@ -134,90 +136,148 @@ export class LocalShellSandbox extends BaseSandbox {
    * Uses /bin/bash to run commands with proper shell interpretation.
    * Captures both stdout and stderr, respects timeout.
    */
-  async execute(command: string): Promise<ExecuteResponse> {
-    return this.runCommand(command);
+  async execute(command: string, options?: SandboxExecutionOptions): Promise<ExecuteResponse> {
+    return this.runCommand(command, undefined, options)
   }
 
-  override async streamExecute(command: string, onLine: (line: string) => void): Promise<ExecuteResponse> {
-    return this.runCommand(command, onLine);
+  override async streamExecute(
+    command: string,
+    onLine: (line: string) => void,
+    options?: SandboxExecutionOptions
+  ): Promise<ExecuteResponse> {
+    return this.runCommand(command, onLine, options)
   }
 
-  private runCommand(command: string, onChunk?: (line: string) => void): Promise<ExecuteResponse> {
+  private runCommand(
+    command: string,
+    onChunk?: (line: string) => void,
+    executionOptions?: SandboxExecutionOptions
+  ): Promise<ExecuteResponse> {
     return new Promise((resolve) => {
-      const chunks: string[] = [];
-      let truncated = false;
-      const maxOutputBytes = 1024 * 1024; // 1MB output limit
-      let totalBytes = 0;
-      let lineBuffer = "";
-      let settled = false;
+      const resolvedOptions = resolveSandboxExecutionOptions(executionOptions, DEFAULT_SANDBOX_SHELL_EXECUTION_OPTIONS)
+      const chunks: string[] = []
+      let truncated = false
+      let totalBytes = 0
+      let lineBuffer = ''
+      let settled = false
+      let timedOut = false
+      let forceKillTimer: NodeJS.Timeout | null = null
 
-      const child = cp.spawn("/bin/bash", ["-c", command], {
+      const child = cp.spawn('/bin/bash', ['-c', command], {
         cwd: this.workingDirectory,
         env: { ...process.env, HOME: process.env['HOME'] },
-      });
+        detached: process.platform !== 'win32'
+      })
+
+      const timeoutMessage = buildSandboxTimeoutMessage('Command', resolvedOptions.timeoutMs)
+
+      const buildTimeoutResponse = (): ExecuteResponse => ({
+        output: appendSandboxMessage(chunks.join(''), timeoutMessage),
+        exitCode: null,
+        truncated,
+        timedOut: true
+      })
 
       const collectOutput = (data: Buffer) => {
-        const str = data.toString();
-        totalBytes += data.byteLength;
+        const str = data.toString()
+        totalBytes += data.byteLength
 
-        if (totalBytes <= maxOutputBytes) {
-          chunks.push(str);
+        if (totalBytes <= resolvedOptions.maxOutputBytes) {
+          chunks.push(str)
         } else {
-          truncated = true;
+          truncated = true
         }
 
         if (onChunk) {
-          lineBuffer += str.replace(/\r\n/g, "\n").replace(/\r/g, "\n");
-          const lines = lineBuffer.split("\n");
-          lineBuffer = lines.pop() ?? "";
+          lineBuffer += str.replace(/\r\n/g, '\n').replace(/\r/g, '\n')
+          const lines = lineBuffer.split('\n')
+          lineBuffer = lines.pop() ?? ''
           for (const line of lines) {
-            onChunk(line);
+            onChunk(line)
           }
         }
-      };
+      }
 
       const finalize = (response: ExecuteResponse) => {
         if (settled) {
-          return;
+          return
         }
-        settled = true;
-        clearTimeout(timer);
+        settled = true
+        clearTimeout(timer)
+        if (forceKillTimer) {
+          clearTimeout(forceKillTimer)
+        }
         if (onChunk && lineBuffer) {
-          onChunk(lineBuffer);
-          lineBuffer = "";
+          onChunk(lineBuffer)
+          lineBuffer = ''
         }
-        resolve(response);
-      };
+        resolve(response)
+      }
 
-      child.stdout.on("data", collectOutput);
-      child.stderr.on("data", collectOutput);
+      const killChild = (signal: NodeJS.Signals) => {
+        if (!child.pid) {
+          return
+        }
 
-      // Handle timeout
+        try {
+          if (process.platform !== 'win32') {
+            process.kill(-child.pid, signal)
+          } else {
+            child.kill(signal)
+          }
+        } catch (error) {
+          if ((error as NodeJS.ErrnoException).code !== 'ESRCH') {
+            finalize({
+              output: `Error terminating process: ${(error as Error).message}`,
+              exitCode: 1,
+              truncated: false
+            })
+          }
+        }
+      }
+
+      child.stdout.on('data', collectOutput)
+      child.stderr.on('data', collectOutput)
+
       const timer = setTimeout(() => {
-        child.kill("SIGTERM");
-        finalize({
-          output: chunks.join("") + "\n[Command timed out]",
-          exitCode: null,
-          truncated,
-        });
-      }, this.timeout);
+        timedOut = true
+        killChild('SIGTERM')
+        forceKillTimer = setTimeout(() => {
+          killChild('SIGKILL')
+        }, 5000)
+      }, resolvedOptions.timeoutMs)
 
-      child.on("close", (exitCode) => {
-        finalize({
-          output: chunks.join(""),
-          exitCode,
-          truncated,
-        });
-      });
+      child.on('close', (exitCode) => {
+        if (forceKillTimer) {
+          clearTimeout(forceKillTimer)
+        }
+        finalize(
+          timedOut
+            ? buildTimeoutResponse()
+            : {
+                output: chunks.join(''),
+                exitCode,
+                truncated,
+                timedOut: false
+              }
+        )
+      })
 
-      child.on("error", (err) => {
-        finalize({
-          output: `Error spawning process: ${err.message}`,
-          exitCode: 1,
-          truncated: false,
-        });
-      });
-    });
+      child.on('error', (err) => {
+        if (forceKillTimer) {
+          clearTimeout(forceKillTimer)
+        }
+        finalize(
+          timedOut
+            ? buildTimeoutResponse()
+            : {
+                output: `Error spawning process: ${err.message}`,
+                exitCode: 1,
+                truncated: false
+              }
+        )
+      })
+    })
   }
 
   /**
@@ -225,36 +285,34 @@ export class LocalShellSandbox extends BaseSandbox {
    *
    * Writes files to the working directory, creating parent directories as needed.
    */
-  async uploadFiles(
-    files: Array<[string, Uint8Array]>,
-  ): Promise<FileUploadResponse[]> {
-    const results: FileUploadResponse[] = [];
+  async uploadFiles(files: Array<[string, Uint8Array]>): Promise<FileUploadResponse[]> {
+    const results: FileUploadResponse[] = []
 
     for (const [filePath, content] of files) {
       try {
-        const fullPath = path.join(this.workingDirectory, filePath);
-        const parentDir = path.dirname(fullPath);
+        const fullPath = path.join(this.workingDirectory, filePath)
+        const parentDir = path.dirname(fullPath)
 
         // Ensure parent directory exists
         if (!fs.existsSync(parentDir)) {
-          fs.mkdirSync(parentDir, { recursive: true });
+          fs.mkdirSync(parentDir, { recursive: true })
         }
 
-        fs.writeFileSync(fullPath, content);
-        results.push({ path: filePath, error: null });
+        fs.writeFileSync(fullPath, content)
+        results.push({ path: filePath, error: null })
       } catch (err) {
-        const error = err as NodeJS.ErrnoException;
-        if (error.code === "EACCES") {
-          results.push({ path: filePath, error: "permission_denied" });
-        } else if (error.code === "EISDIR") {
-          results.push({ path: filePath, error: "is_directory" });
+        const error = err as NodeJS.ErrnoException
+        if (error.code === 'EACCES') {
+          results.push({ path: filePath, error: 'permission_denied' })
+        } else if (error.code === 'EISDIR') {
+          results.push({ path: filePath, error: 'is_directory' })
         } else {
-          results.push({ path: filePath, error: "invalid_path" });
+          results.push({ path: filePath, error: 'invalid_path' })
         }
       }
     }
 
-    return results;
+    return results
   }
 
   /**
@@ -263,56 +321,56 @@ export class LocalShellSandbox extends BaseSandbox {
    * Reads files from the working directory.
    */
   async downloadFiles(paths: string[]): Promise<FileDownloadResponse[]> {
-    const results: FileDownloadResponse[] = [];
+    const results: FileDownloadResponse[] = []
 
     for (const filePath of paths) {
       try {
-        const fullPath = path.join(this.workingDirectory, filePath);
+        const fullPath = path.join(this.workingDirectory, filePath)
 
         if (!fs.existsSync(fullPath)) {
           results.push({
             path: filePath,
             content: null,
-            error: "file_not_found",
-          });
-          continue;
+            error: 'file_not_found'
+          })
+          continue
         }
 
-        const stat = fs.statSync(fullPath);
+        const stat = fs.statSync(fullPath)
         if (stat.isDirectory()) {
           results.push({
             path: filePath,
             content: null,
-            error: "is_directory",
-          });
-          continue;
+            error: 'is_directory'
+          })
+          continue
         }
 
-        const content = fs.readFileSync(fullPath);
+        const content = fs.readFileSync(fullPath)
         results.push({
           path: filePath,
           content: new Uint8Array(content),
-          error: null,
-        });
+          error: null
+        })
       } catch (err) {
-        const error = err as NodeJS.ErrnoException;
-        if (error.code === "EACCES") {
+        const error = err as NodeJS.ErrnoException
+        if (error.code === 'EACCES') {
           results.push({
             path: filePath,
             content: null,
-            error: "permission_denied",
-          });
+            error: 'permission_denied'
+          })
         } else {
           results.push({
             path: filePath,
             content: null,
-            error: "file_not_found",
-          });
+            error: 'file_not_found'
+          })
         }
       }
     }
 
-    return results;
+    return results
   }
 }
 

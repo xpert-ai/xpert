@@ -1,10 +1,13 @@
 <div class="shrink-0 flex justify-between items-center p-4">
   <div class="font-semibold">
-    {{xpertAgent().title || xpertAgent().name || xpertAgent().key}}
+    {{ xpertAgent().title || xpertAgent().name || xpertAgent().key }}
   </div>
 
-  <button type="button" class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
-    (click)="close.emit()">
+  <button
+    type="button"
+    class="btn-close btn btn-secondary flex items-center justify-center w-6 h-6 cursor-pointer z-20"
+    (click)="close.emit()"
+  >
     <i class="ri-close-line"></i>
   </button>
 </div>
@@ -25,21 +28,21 @@
       type="text"
       [(ngModel)]="input"
       (keyup.enter)="onKeyEnter($event)"
-    >
+    />
   </div>
 
   <div class="mt-4 flex justify-between space-x-2">
-    <button type="button" class="btn disabled:btn-disabled btn-primary w-0 h-10 grow space-x-2"
+    <button
+      type="button"
+      class="btn disabled:btn-disabled btn-primary w-0 h-10 grow space-x-2"
       [disabled]="loading() || status() === eExecutionStatusEnum.INTERRUPTED || !input()?.trim()"
       (click)="startRunAgent()"
     >
-      <div class="w-full flex justify-center">{{ 'PAC.Xpert.StartRun' | translate: {Default: 'Start run'} }}</div>
+      <div class="w-full flex justify-center">{{ 'PAC.Xpert.StartRun' | translate: { Default: 'Start run' } }}</div>
     </button>
 
     @if (loading()) {
-      <button type="button" class="btn disabled:btn-disabled h-10 btn-danger pressable"
-        (click)="stopAgent()"
-      >
+      <button type="button" class="btn disabled:btn-disabled h-10 btn-danger pressable" (click)="stopAgent()">
         <div class="w-full text-center">
           <i class="ri-stop-line"></i>
           {{ 'PAC.Xpert.Stop' | translate: { Default: 'Stop' } }}
@@ -58,7 +61,8 @@
   </div>
 
   @if (status() === eExecutionStatusEnum.INTERRUPTED && operation()) {
-    <xp-xpert-agent-operation class="w-full mb-8"
+    <xp-xpert-agent-operation
+      class="w-full mb-8"
       [operation]="operation()"
       [(command)]="command"
       (confirm)="onConfirm()"
@@ -81,7 +85,7 @@
         <!-- <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="w-6 h-6 text-text-tertiary">
           <path d="M12 15.0006L7.75732 10.758L9.17154 9.34375L12 12.1722L14.8284 9.34375L16.2426 10.758L12 15.0006Z"></path>
         </svg> -->
-        <div class="mr-3">{{ 'PAC.Xpert.Log' | translate: {Default: 'Log'} }}</div>
+        <div class="mr-3">{{ 'PAC.Xpert.Log' | translate: { Default: 'Log' } }}</div>
       </div>
       <div class="grow w-0 h-px bg-divider-regular"></div>
     </div>
@@ -95,7 +99,7 @@
             } @else {
               <i class="ri-arrow-drop-right-line"></i>
             }
-            <div class="mr-3">{{item.agent?.title || item.agent?.name || item.agent?.key}}</div>
+            <div class="mr-3">{{ item.agent?.title || item.agent?.name || item.agent?.key }}</div>
           </div>
           <div class="grow w-0 h-px bg-divider-regular"></div>
         </div>
@@ -104,7 +108,9 @@
           @for (execution of item.executions; track execution.id) {
             <div class="flex items-center w-full my-2">
               <div class="grow h-[1px] bg-divider-regular"></div>
-              <div class="mx-2 max-w-[50%] truncate text-xs text-text-secondary" [title]="execution.title">{{execution.title || execution.id}}</div>
+              <div class="mx-2 max-w-[50%] truncate text-xs text-text-secondary" [title]="execution.title">
+                {{ execution.title || execution.id }}
+              </div>
               <div class="grow h-[1px] bg-divider-regular"></div>
             </div>
             @for (message of execution.messages; track $index) {

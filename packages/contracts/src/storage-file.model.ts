@@ -1,11 +1,10 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model'
-import { FileStorageProviderEnum } from './file-provider'
-import { _TFile } from './types';
+import { _TFile } from './types'
 
 export type TFile = _TFile & {
-  fileType?: string;
-  contents?: string;
-  description?: string;
+  fileType?: string
+  contents?: string
+  description?: string
   size?: number
   createdAt?: Date
 
@@ -23,7 +22,7 @@ export interface IStorageFile extends IBasePerTenantAndOrganizationEntityModel {
   size?: number
   mimetype?: string
   recordedAt?: Date
-  storageProvider?: FileStorageProviderEnum
+  storageProvider?: string
 }
 
 export interface ICreateStorageFileInput extends IBasePerTenantAndOrganizationEntityModel {

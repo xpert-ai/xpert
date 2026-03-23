@@ -12,36 +12,33 @@ import { PluginsComponent } from '../plugins.component'
 
 @Component({
   standalone: true,
-  imports: [
-    CommonModule,
-    TranslateModule,
-    FormsModule,
-    PluginComponent
-  ],
+  imports: [CommonModule, TranslateModule, FormsModule, PluginComponent],
   selector: 'xp-settings-plugin',
   templateUrl: './plugin.component.html',
   styleUrls: ['./plugin.component.scss'],
   animations: [routeAnimations, ...OverlayAnimations]
 })
 export class SettingsPluginComponent {
-
   readonly pluginsComponent = inject(PluginsComponent)
   readonly #dialog = inject(Dialog)
   readonly installHelpUrl = injectHelpWebsite('/docs/plugin/install')
-  
+
   readonly plugin = input<TPluginWithDownloads>()
 
   install() {
-    this.#dialog.open(PluginInstallComponent, {
-      data: {
-        plugin: this.plugin(),
-        reload: this.pluginsComponent.reload.bind(this.pluginsComponent),
-      },
-      disableClose: true,
-    }).closed.subscribe({
-      next: (result) => {
-        console.log('The dialog was closed', result)
-      }
-    })
+    this.#dialog
+      .open(PluginInstallComponent, {
+        data: {
+          plugin: this.plugin(),
+          reload: this.pluginsComponent.reload.bind(this.pluginsComponent),
+          refreshStrategies: this.pluginsComponent.refreshStrategyCaches.bind(this.pluginsComponent)
+        },
+        disableClose: true
+      })
+      .closed.subscribe({
+        next: (result) => {
+          console.log('The dialog was closed', result)
+        }
+      })
   }
 }

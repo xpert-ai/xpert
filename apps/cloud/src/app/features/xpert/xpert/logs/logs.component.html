@@ -5,7 +5,13 @@
 </div>
 
 <div class="flex items-center mb-2 gap-2">
-  <ngm-select [placeholder]="'PAC.Xpert.SelectTimeRange' | translate: {Default: 'Select time range'}" icon="ri-calendar-line" [selectOptions]="TimeRanges" [(ngModel)]="timeRangeValue" class="min-w-[150px] rounded-lg shadow-sm" />
+  <ngm-select
+    [placeholder]="'PAC.Xpert.SelectTimeRange' | translate: { Default: 'Select time range' }"
+    icon="ri-calendar-line"
+    [selectOptions]="TimeRanges"
+    [(ngModel)]="timeRangeValue"
+    class="min-w-[150px] rounded-lg shadow-sm"
+  />
 </div>
 
 <div class="w-full relative overflow-auto flex-1"
@@ -47,19 +53,19 @@
           (click)="togglePreview(conv.id)"
         >
           <td class="px-4 py-2 whitespace-nowrap truncate">
-            {{conv.title}}
+            {{ conv.title }}
           </td>
           <td class="px-4 py-2">
-            {{conv.createdBy | user }}
+            {{ conv.createdBy | user }}
           </td>
           <td class="px-4 py-2">
-            {{conv.from }}
+            {{ conv.from }}
           </td>
           <td class="px-4 py-2">
-            {{conv.fromEndUserId}}
+            {{ conv.fromEndUser ? (conv.fromEndUser | user) : conv.fromEndUserId }}
           </td>
           <td class="px-4 py-2">
-            {{conv.messageCount | number:'0.0-0'}}
+            {{ conv.messageCount | number: '0.0-0' }}
           </td>
           <td class="px-4 py-2">
             @switch (conv.status) {
@@ -67,35 +73,37 @@
                 <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
                   <i class="ri-loader-2-line flex justify-center items-center w-3.5 h-3.5 animate-spin"></i>
                   <span class="">
-                    {{ 'PAC.Xpert.Busy' | translate: {Default: 'Busy'} }}
+                    {{ 'PAC.Xpert.Busy' | translate: { Default: 'Busy' } }}
                   </span>
                 </div>
               }
               @case ('error') {
                 <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
-                  <div class="w-2 h-2 border border-solid rounded-[3px] bg-red-400 border-red-600 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
-                  <span class="text-red-600">
-                    {{ 'PAC.Xpert.Failure' | translate: {Default: 'Failure'} }}
+                  <div
+                    class="w-2 h-2 border border-solid rounded-[3px] bg-text-destructive border-text-destructive shadow-sm"
+                  ></div>
+                  <span class="text-text-destructive">
+                    {{ 'PAC.Xpert.Failure' | translate: { Default: 'Failure' } }}
                   </span>
                 </div>
               }
               @case ('interrupted') {
                 <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
-                  <div class="w-2 h-2 border border-solid rounded-[3px] bg-background-default-subtle border-neutral-800 shadow-[0_0_5px_-3px_rgba(249,112,102,0.1),0.5px_0.5px_3px_rgba(249, 112, 102, 0.2), inset_1.5px_1.5px_0_rgba(255, 255, 255, 0.4)]"></div>
+                  <div class="w-2 h-2 border border-solid rounded-[3px] bg-background-default-subtle border-divider-deep shadow-sm"></div>
                   <span class="">
-                    {{ 'PAC.Xpert.Interrupted' | translate: {Default: 'Interrupted'} }}
+                    {{ 'PAC.Xpert.Interrupted' | translate: { Default: 'Interrupted' } }}
                   </span>
                 </div>
               }
               @case ('idle') {
                 <div class="inline-flex items-center gap-1 system-xs-semibold-uppercase">
                   <span class="">
-                    {{ 'PAC.Xpert.Idle' | translate: {Default: 'Idle'} }}
+                    {{ 'PAC.Xpert.Idle' | translate: { Default: 'Idle' } }}
                   </span>
                 </div>
               }
               @default {
-                {{conv.status}}
+                {{ conv.status }}
               }
             }
           </td>
@@ -106,7 +114,7 @@
               [disabled]="conv.status !== 'busy'"
               (click)="cancelConversation($event, conv)"
             >
-              {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
+              {{ 'PAC.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
             </button>
           </td>
         </tr>
@@ -128,14 +136,13 @@
       <i class="ri-arrow-down-wide-line"></i>
     </button>
   }
-
 </div>
 
 @if (preview()) {
   <div class="absolute right-0 top-0 bottom-0 p-4 flex gap-2">
     @if (executionId()) {
-      <chat-message-execution-panel class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto
-        w-[420px]"
+      <chat-message-execution-panel
+        class="h-full bg-components-panel-bg shadow-lg border-[0.5px] border-components-panel-border rounded-2xl overflow-y-auto w-[420px]"
         [id]="executionId()"
         [xpert]="prev.xpert()"
         (close)="closeExecution()"
@@ -150,3 +157,4 @@
     />
   </div>
 }
+

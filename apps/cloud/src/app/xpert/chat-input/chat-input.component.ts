@@ -35,6 +35,12 @@ import { ChatAttachmentsComponent } from '@cloud/app/@shared/chat'
 import { ChatService } from '../chat.service'
 import { XpertHomeService } from '../home.service'
 import { FileIconComponent } from '@cloud/app/@shared/files'
+import {
+  buildContextUsageTooltip,
+  getHistoricalContextTokens,
+  resolveContextUsage,
+  toPositiveNumber
+} from '../../@shared/chat/context/context-usage'
 
 @Component({
   standalone: true,
@@ -85,8 +91,50 @@ export class ChatInputComponent {
   readonly prompt = toSignal(this.promptControl.valueChanges)
   readonly answering = this.chatService.answering
   readonly xpert = this.chatService.xpert
+  readonly conversation = this.chatService.conversation
   readonly canvasOpened = computed(() => this.homeService.canvasOpened()?.opened)
   readonly hasConversation = computed(() => !!this.chatService.conversation()?.id)
+  readonly primaryAgent = computed(() => this.xpert()?.agent ?? this.conversation()?.xpert?.agent)
+  readonly contextUsage = computed(() => {
+    const agentKey = this.primaryAgent()?.key
+    return agentKey ? this.chatService.contextUsageByAgentKey()[agentKey] : null
+  })
+  readonly contextWindowSize = computed(() => {
+    const value =
+      this.conversation()?.xpert?.copilotModel?.options?.context_size ??
+      this.xpert()?.copilotModel?.options?.context_size
+    const size = toPositiveNumber(value)
+    return size > 0 ? size : null
+  })
+  readonly historicalContextTokens = computed(() => getHistoricalContextTokens(this.chatService.messages()))
+  readonly resolvedContextUsage = computed(() =>
+    resolveContextUsage({
+      answering: this.answering(),
+      realtimeUsage: this.contextUsage(),
+      historicalTokens: this.historicalContextTokens()
+    })
+  )
+  readonly contextTokensUsed = computed(() => this.resolvedContextUsage().usedTokens)
+  readonly showContextUsage = computed(() => !!this.contextWindowSize() && this.contextTokensUsed() > 0)
+  readonly contextUsageRatio = computed(() => {
+    const totalTokens = this.contextTokensUsed()
+    const contextWindowSize = this.contextWindowSize() ?? 0
+    if (!contextWindowSize) {
+      return 0
+    }
+    return Math.min(Math.max(totalTokens / contextWindowSize, 0), 1)
+  })
+  readonly contextUsagePercent = computed(() => Math.round(this.contextUsageRatio() * 100))
+  readonly contextUsageRingStyle = computed(() => ({
+    background: `conic-gradient(currentColor ${this.contextUsageRatio() * 360}deg, color-mix(in oklab, var(--ring) 24%, transparent) 0deg)`
+  }))
+  readonly contextUsageTooltip = computed(() =>
+    buildContextUsageTooltip({
+      usedTokens: this.contextTokensUsed(),
+      contextWindowSize: this.contextWindowSize(),
+      usage: this.resolvedContextUsage().source === 'realtime' ? this.contextUsage() : null
+    })
+  )
 
   readonly isComposing = signal(false)
 
@@ -164,7 +212,7 @@ export class ChatInputComponent {
     this.promptControl.setValue('')
 
     // Send message
-    this.chatService.chat({
+    this.chatService.sendMessage({
       id,
       content,
       files: this.files()?.map((file) => ({

@@ -1,43 +1,41 @@
 import {
-	IKnowledgebase,
-	IPagination,
-	IXpertProject,
-	IXpertProjectTask,
-	IXpertProjectVCS,
-	IXpertToolset,
-	OrderTypeEnum
+    IKnowledgebase,
+    IPagination,
+    IXpertProject,
+    IXpertProjectTask,
+    IXpertToolset,
+    OrderTypeEnum
 } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import {
-	CrudController,
-	PaginationParams,
-	ParseJsonPipe,
-	Public,
-	RequestContext,
-	TransformInterceptor,
-	UserPublicDTO
+    CrudController,
+    PaginationParams,
+    ParseJsonPipe,
+    RequestContext,
+    TransformInterceptor,
+    UploadFileCommand,
+    getFileAssetDestination,
+    UserPublicDTO
 } from '@metad/server-core'
 import {
-	BadRequestException,
-	Body,
-	Controller,
-	Delete,
-	Get,
-	HttpStatus,
-	Logger,
-	Param,
-	Post,
-	Put,
-	Query,
-	Res,
-	UploadedFile,
-	UseGuards,
-	UseInterceptors
+    BadRequestException,
+    Body,
+    Controller,
+    Delete,
+    Get,
+    HttpStatus,
+    Logger,
+    Param,
+    Post,
+    Put,
+    Query,
+    UploadedFile,
+    UseGuards,
+    UseInterceptors
 } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'
-import { Response } from 'express'
 import { FindOneOptions } from 'typeorm'
 import { ChatConversationPublicDTO } from '../chat-conversation/dto'
 import { FindChatConversationQuery } from '../chat-conversation/queries'
@@ -47,261 +45,264 @@ import { XpertProject } from './entities/project.entity'
 import { XpertProjectGuard, XpertProjectOwnerGuard } from './guards'
 import { XpertProjectService } from './project.service'
 import { VolumeClient } from '../shared'
-import { GithubService } from '../integration-github/github.service'
 
 @ApiTags('XpertProject')
 @ApiBearerAuth()
 @UseInterceptors(TransformInterceptor)
 @Controller()
 export class XpertProjectController extends CrudController<XpertProject> {
-	readonly #logger = new Logger(XpertProjectController.name)
-	constructor(
-		private readonly service: XpertProjectService,
-		private readonly githubService: GithubService,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
-	) {
-		super(service)
-	}
+    readonly #logger = new Logger(XpertProjectController.name)
+    constructor(
+        private readonly service: XpertProjectService,
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus
+    ) {
+        super(service)
+    }
 
-	@ApiOperation({ summary: 'find my all' })
-	@ApiResponse({
-		status: HttpStatus.OK,
-		description: 'Found my records'
-	})
-	@Get('my')
-	async findAllMyProjects(
-		@Query('data', ParseJsonPipe) params: PaginationParams<XpertProject>
-	): Promise<IPagination<XpertProjectIdentiDto>> {
-		return this.service.findAllMy(params)
-	}
+    @ApiOperation({ summary: 'find my all' })
+    @ApiResponse({
+        status: HttpStatus.OK,
+        description: 'Found my records'
+    })
+    @Get('my')
+    async findAllMyProjects(
+        @Query('data', ParseJsonPipe) params: PaginationParams<XpertProject>
+    ): Promise<IPagination<XpertProjectIdentiDto>> {
+        return this.service.findAllMy(params)
+    }
 
-	@Get(':id')
-	async getXpertProject(@Param('id') id: string, @Query('data', ParseJsonPipe) params: FindOneOptions<XpertProject>) {
-		const project = await this.service.findOne(id, params)
-		return new XpertProjectDto(project)
-	}
+    @Get(':id')
+    async getXpertProject(@Param('id') id: string, @Query('data', ParseJsonPipe) params: FindOneOptions<XpertProject>) {
+        const project = await this.service.findOne(id, params)
+        return new XpertProjectDto(project)
+    }
 
-	@Post(':id/duplicate')
-	async duplicateProject(@Param('id') id: string) {
-		const project = await this.service.duplicate(id)
-		return new XpertProjectDto(project)
-	}
+    @Post(':id/duplicate')
+    async duplicateProject(@Param('id') id: string) {
+        const project = await this.service.duplicate(id)
+        return new XpertProjectDto(project)
+    }
 
-	@UseGuards(XpertProjectGuard)
-	@Get(':id/export')
-	async exportDsl(@Param('id') id: string) {
-		return {
-			data: await this.service.exportProject(id)
-		}
-	}
+    @UseGuards(XpertProjectGuard)
+    @Get(':id/export')
+    async exportDsl(@Param('id') id: string) {
+        return {
+            data: await this.service.exportProject(id)
+        }
+    }
 
-	@Get(':id/xperts')
-	async getXperts(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<IXpertProject>) {
-		return this.service.getXperts(id, params)
-	}
+    @Get(':id/xperts')
+    async getXperts(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<IXpertProject>) {
+        return this.service.getXperts(id, params)
+    }
 
-	@Put(':id/xperts/:xpert')
-	async updateXperts(@Param('id') id: string, @Param('xpert') xpertId: string) {
-		return this.service.addXpert(id, xpertId)
-	}
+    @Put(':id/xperts/:xpert')
+    async updateXperts(@Param('id') id: string, @Param('xpert') xpertId: string) {
+        return this.service.addXpert(id, xpertId)
+    }
 
-	@Delete(':id/xperts/:xpert')
-	async removeXpert(@Param('id') id: string, @Param('xpert') xpertId: string) {
-		return this.service.removeXpert(id, xpertId)
-	}
+    @Delete(':id/xperts/:xpert')
+    async removeXpert(@Param('id') id: string, @Param('xpert') xpertId: string) {
+        return this.service.removeXpert(id, xpertId)
+    }
 
-	@Get(':id/conversations')
-	async getConversations(@Param('id') id: string) {
-		const { items, total } = await this.queryBus.execute(
-			new FindChatConversationQuery(
-				{ projectId: id },
-				{ relations: ['createdBy'], order: { updatedAt: OrderTypeEnum.DESC } }
-			)
-		)
-		return {
-			items: items.map((_) => new ChatConversationPublicDTO(_)),
-			total
-		}
-	}
+    @Get(':id/conversations')
+    async getConversations(@Param('id') id: string) {
+        const { items, total } = await this.queryBus.execute(
+            new FindChatConversationQuery(
+                { projectId: id },
+                { relations: ['createdBy'], order: { updatedAt: OrderTypeEnum.DESC } }
+            )
+        )
+        return {
+            items: items.map((_) => new ChatConversationPublicDTO(_)),
+            total
+        }
+    }
 
-	@Get(':id/toolsets')
-	async getToolsets(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<IXpertToolset>) {
-		return this.service.getToolsets(id, params)
-	}
+    @Get(':id/toolsets')
+    async getToolsets(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<IXpertToolset>) {
+        return this.service.getToolsets(id, params)
+    }
 
-	@Put(':id/toolsets/:toolset')
-	async updateToolsets(@Param('id') id: string, @Param('toolset') toolsetId: string) {
-		await this.service.addToolset(id, toolsetId)
-	}
+    @Put(':id/toolsets/:toolset')
+    async updateToolsets(@Param('id') id: string, @Param('toolset') toolsetId: string) {
+        await this.service.addToolset(id, toolsetId)
+    }
 
-	@Delete(':id/toolsets/:toolset')
-	async removeToolset(@Param('id') id: string, @Param('toolset') toolsetId: string) {
-		await this.service.removeToolset(id, toolsetId)
-	}
+    @Delete(':id/toolsets/:toolset')
+    async removeToolset(@Param('id') id: string, @Param('toolset') toolsetId: string) {
+        await this.service.removeToolset(id, toolsetId)
+    }
 
-	@Get(':id/knowledges')
-	async getKnowledges(
-		@Param('id') id: string,
-		@Query('data', ParseJsonPipe) params: PaginationParams<IKnowledgebase>
-	) {
-		return this.service.getKnowledges(id, params)
-	}
+    @Get(':id/knowledges')
+    async getKnowledges(
+        @Param('id') id: string,
+        @Query('data', ParseJsonPipe) params: PaginationParams<IKnowledgebase>
+    ) {
+        return this.service.getKnowledges(id, params)
+    }
 
-	@Put(':id/knowledges/:kb')
-	async updateKnowledges(@Param('id') id: string, @Param('kb') kbId: string) {
-		await this.service.addKnowledge(id, kbId)
-	}
+    @Put(':id/knowledges/:kb')
+    async updateKnowledges(@Param('id') id: string, @Param('kb') kbId: string) {
+        await this.service.addKnowledge(id, kbId)
+    }
 
-	@Delete(':id/knowledges/:kb')
-	async removeKnowledge(@Param('id') id: string, @Param('kb') kbId: string) {
-		await this.service.removeKnowledgebase(id, kbId)
-	}
+    @Delete(':id/knowledges/:kb')
+    async removeKnowledge(@Param('id') id: string, @Param('kb') kbId: string) {
+        await this.service.removeKnowledgebase(id, kbId)
+    }
 
-	@UseGuards(XpertProjectGuard)
-	@Get(':id/members')
-	async getMembers(@Param('id') id: string) {
-		const project = await this.service.findOne(id, { relations: ['members'] })
-		return project.members.map((_) => new UserPublicDTO(_))
-	}
+    @UseGuards(XpertProjectGuard)
+    @Get(':id/members')
+    async getMembers(@Param('id') id: string) {
+        const project = await this.service.findOne(id, { relations: ['members'] })
+        return project.members.map((_) => new UserPublicDTO(_))
+    }
 
-	@UseGuards(XpertProjectOwnerGuard)
-	@Put(':id/members')
-	async updateMembers(@Param('id') id: string, @Body() members: string[]) {
-		await this.service.updateMembers(id, members)
-	}
+    @UseGuards(XpertProjectOwnerGuard)
+    @Put(':id/members')
+    async updateMembers(@Param('id') id: string, @Body() members: string[]) {
+        await this.service.updateMembers(id, members)
+    }
 
-	@UseGuards(XpertProjectGuard)
-	@Get(':id/tasks')
-	async getTasks(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<IXpertProjectTask>) {
-		const { items } = await this.service.getTasks(id, params)
-		return items.map((_) => new XpertProjectTaskDto(_))
-	}
+    @UseGuards(XpertProjectGuard)
+    @Get(':id/tasks')
+    async getTasks(@Param('id') id: string, @Query('data', ParseJsonPipe) params: PaginationParams<IXpertProjectTask>) {
+        const { items } = await this.service.getTasks(id, params)
+        return items.map((_) => new XpertProjectTaskDto(_))
+    }
 
-	// Files
-	/**
-	 * List files in volume of project
-	 *
-	 * @param id Project
-	 * @param deepth Deepth of the directory structure to list
-	 * @param path Path to list files from
-	 * @returns
-	 */
-	@UseGuards(XpertProjectGuard)
-	@Get(':id/files')
-	async readFiles(@Param('id') id: string, @Query('deepth') deepth: number, @Query('path') path: string) {
-		const project = await this.service.findOne(id, { relations: ['createdBy'] })
-		const client = new VolumeClient({
-			tenantId: project.tenantId,
-			userId: project.ownerId,
-			catalog: 'projects',
-			projectId: project.id
-		})
+    // Files
+    /**
+     * List files in volume of project
+     *
+     * @param id Project
+     * @param deepth Deepth of the directory structure to list
+     * @param path Path to list files from
+     * @returns
+     */
+    @UseGuards(XpertProjectGuard)
+    @Get(':id/files')
+    async readFiles(@Param('id') id: string, @Query('deepth') deepth: number, @Query('path') path: string) {
+        const project = await this.service.findOne(id, { relations: ['createdBy'] })
+        const client = new VolumeClient({
+            tenantId: project.tenantId,
+            userId: project.ownerId,
+            catalog: 'projects',
+            projectId: project.id
+        })
 
-		return await client.list({ path, deepth })
-	}
+        return await client.list({ path, deepth })
+    }
 
-	/**
-	 * Upload a file to the project volume.
-	 *
-	 * @param id
-	 * @param file
-	 * @returns
-	 */
-	@Post(':id/file/upload')
-	@UseInterceptors(FileInterceptor('file'))
-	async uploadFile(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
-		const client = new VolumeClient({
-			tenantId: RequestContext.currentTenantId(),
-			userId: RequestContext.currentUserId(),
-			catalog: 'projects',
-			projectId: id
-		})
+    /**
+     * Upload a file to the project volume.
+     *
+     * @param id
+     * @param file
+     * @returns
+     */
+    @Post(':id/file/upload')
+    @UseInterceptors(FileInterceptor('file'))
+    async uploadFile(@Param('id') id: string, @UploadedFile() file: Express.Multer.File) {
+        const asset = await this.commandBus.execute(
+            new UploadFileCommand({
+                source: {
+                    kind: 'multipart',
+                    file
+                },
+                targets: [
+                    {
+                        kind: 'volume',
+                        catalog: 'projects',
+                        projectId: id
+                    }
+                ]
+            })
+        )
+        const destination = getFileAssetDestination(asset, 'volume')
+        if (!destination || destination.status !== 'success') {
+            throw new BadRequestException(destination?.error || 'Failed to upload project file')
+        }
+        return { url: destination.url }
+    }
 
-		const url = await client.putFile('/', {
-			...file,
-			originalname: Buffer.from(file.originalname, 'latin1').toString('utf8')
-		})
-		return { url }
-	}
+    /**
+     * Delete a file from the project volume.
+     *
+     * @param id
+     * @param filePath
+     */
+    @UseGuards(XpertProjectGuard)
+    @Delete(':id/file')
+    async deleteFile(@Param('id') id: string, @Query('path') filePath: string) {
+        const client = new VolumeClient({
+            tenantId: RequestContext.currentTenantId(),
+            userId: RequestContext.currentUserId(),
+            catalog: 'projects',
+            projectId: id
+        })
+        try {
+            await client.deleteFile(filePath)
+        } catch (error) {
+            this.#logger.error(`Error deleting file: ${error.message}`, error.stack)
+            throw new BadRequestException(getErrorMessage(error))
+        }
+    }
 
-	/**
-	 * Delete a file from the project volume.
-	 *
-	 * @param id
-	 * @param filePath
-	 */
-	@UseGuards(XpertProjectGuard)
-	@Delete(':id/file')
-	async deleteFile(@Param('id') id: string, @Query('path') filePath: string) {
-		const client = new VolumeClient({
-			tenantId: RequestContext.currentTenantId(),
-			userId: RequestContext.currentUserId(),
-			catalog: 'projects',
-			projectId: id
-		})
-		try {
-			await client.deleteFile(filePath)
-		} catch (error) {
-			this.#logger.error(`Error deleting file: ${error.message}`, error.stack)
-			throw new BadRequestException(getErrorMessage(error))
-		}
-	}
+    /**
+     * Add storage files as attachments to the project.
+     *
+     * @param id
+     * @param files
+     */
+    @UseGuards(XpertProjectGuard)
+    @Put(':id/attachments')
+    async addAttachments(@Param('id') id: string, @Body() files: string[]) {
+        await this.service.addAttachments(id, files)
+    }
 
-	/**
-	 * Add storage files as attachments to the project.
-	 *
-	 * @param id
-	 * @param files
-	 */
-	@UseGuards(XpertProjectGuard)
-	@Put(':id/attachments')
-	async addAttachments(@Param('id') id: string, @Body() files: string[]) {
-		await this.service.addAttachments(id, files)
-	}
+    @UseGuards(XpertProjectGuard)
+    @Delete(':id/attachments/:file')
+    async removeAttachments(@Param('id') id: string, @Param('file') file: string) {
+        await this.service.removeAttachments(id, [file])
+    }
 
-	@UseGuards(XpertProjectGuard)
-	@Delete(':id/attachments/:file')
-	async removeAttachments(@Param('id') id: string, @Param('file') file: string) {
-		await this.service.removeAttachments(id, [file])
-	}
+    // @UseGuards(XpertProjectGuard)
+    // @Get(':id/vcs')
+    // async getVCS(@Param('id') id: string): Promise<IXpertProjectVCS> {
+    // 	const integration = await this.service.findOne(id, { relations: ['vcs'] })
+    // 	return integration.vcs
+    // }
 
-	@UseGuards(XpertProjectGuard)
-	@Get(':id/vcs')
-	async getVCS(@Param('id') id: string): Promise<IXpertProjectVCS> {
-		const integration = await this.service.findOne(id, {relations: ['vcs']})
-		return integration.vcs
-	}
+    // @UseGuards(XpertProjectGuard)
+    // @Put(':id/vcs')
+    // async updateVCS(@Param('id') id: string, @Body() entity: Partial<IXpertProjectVCS>): Promise<IXpertProjectVCS> {
+    // 	return this.service.updateVCS(id, entity)
+    // }
 
-	@UseGuards(XpertProjectGuard)
-	@Put(':id/vcs')
-	async updateVCS(
-		@Param('id') id: string,
-		@Body() entity: Partial<IXpertProjectVCS>
-	): Promise<IXpertProjectVCS> {
-		return this.service.updateVCS(id, entity)
-	}
+    // @Public()
+    // @Get(':id/github-installation')
+    // async GithubInstallation(@Param('id') id: string, @Res() res: Response) {
+    // 	const project = await this.service.findOne(id, { relations: ['vcs'] })
+    // 	if (!project.vcs?.auth) {
+    // 		throw new BadRequestException('User is not authorized to access this resource')
+    // 	}
+    // 	const result = await this.githubService.installation(project.vcs.integrationId, project.vcs.auth)
+    // 	if (result.redirect) {
+    // 		return res.redirect(result.redirect)
+    // 	}
+    // }
 
-	@Public()
-	@Get(':id/github-installation')
-	async GithubInstallation(@Param('id') id: string, @Res() res: Response,) {
-		const project = await this.service.findOne(id, {relations: ['vcs']})
-		if (!project.vcs?.auth) {
-			throw new BadRequestException('User is not authorized to access this resource')
-		}
-		const result = await this.githubService.installation(project.vcs.integrationId, project.vcs.auth)
-		if (result.redirect) {
-			return res.redirect(result.redirect)
-		}
-	}
-
-	@UseGuards(XpertProjectGuard)
-	@Get(':id/github-installations')
-	async getGithubInstallations(@Param('id') id: string) {
-		const project = await this.service.findOne(id, {relations: ['vcs']})
-		if (!project.vcs?.auth) {
-			throw new BadRequestException('User is not authorized to access this resource')
-		}
-		return this.githubService.getInstallations(project.vcs.auth)
-	}
+    // @UseGuards(XpertProjectGuard)
+    // @Get(':id/github-installations')
+    // async getGithubInstallations(@Param('id') id: string) {
+    // 	const project = await this.service.findOne(id, { relations: ['vcs'] })
+    // 	if (!project.vcs?.auth) {
+    // 		throw new BadRequestException('User is not authorized to access this resource')
+    // 	}
+    // 	return this.githubService.getInstallations(project.vcs.auth)
+    // }
 }

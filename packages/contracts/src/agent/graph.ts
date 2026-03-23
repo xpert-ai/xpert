@@ -2,6 +2,7 @@ import { BaseMessage } from '@langchain/core/messages'
 import { RunnableConfig } from '@langchain/core/runnables'
 import type { TMessageContentComplex } from '@xpert-ai/chatkit-types'
 import { Subscriber } from 'rxjs'
+import { ICopilotModel } from '../ai/copilot-model.model'
 import { IWFNTrigger, TWorkflowVarGroup, WorkflowNodeTypeEnum } from '../ai/xpert-workflow.model'
 import { TStateVariable, TXpertGraph, TXpertParameter, TXpertTeamNode, XpertParameterTypeEnum } from '../ai/xpert.model'
 import { agentLabel, IXpertAgent } from '../ai/xpert-agent.model'
@@ -34,8 +35,30 @@ export type TMessageChannel = {
 }
 
 export type TSandboxConfigurable = {
+  /**
+   * Resolved sandbox provider type used for this backend acquisition.
+   */
   provider?: string
+  /**
+   * Effective working directory inside the sandbox backend.
+   */
   workingDirectory?: string
+  /**
+   * Canonical sandbox environment id that owns this backend/container.
+   */
+  environmentId?: string | null
+  /**
+   * Underlying runtime container id when the backend is container-backed.
+   */
+  containerId?: string | null
+  /**
+   * Container lifecycle run id created for this acquisition, if a new
+   * container run was recorded.
+   */
+  runId?: string | null
+  /**
+   * Concrete backend instance used by the agent/runtime.
+   */
   backend?: unknown
 }
 
@@ -63,6 +86,8 @@ export type TAgentRunnableConfigurable = {
   xpertName?: string
   toolName?: string
 
+  copilotModel?: ICopilotModel
+
   subscriber: Subscriber<any>
   /**
    * Execution id of agent workflow node
@@ -72,12 +97,7 @@ export type TAgentRunnableConfigurable = {
    * Sandbox backend context
    */
   sandbox?: TSandboxConfigurable
-//   /**
-//    * Knowledge xpert's knowledgebase
-//    */
-//   knowledgebaseId?: string
-//   knowledgeTaskId?: string
-  
+
   signal?: AbortSignal
 }
 
@@ -85,164 +105,183 @@ export type TAgentRunnableConfigurable = {
  * @deprecated use import { type ToolCall } from '@langchain/core/messages/tool';
  */
 export type TToolCall = {
-	id?: string
-	name: string
-	type?: 'tool_call'
-	args: Record<string, any>
+  id?: string
+  name: string
+  type?: 'tool_call'
+  args: Record<string, any>
 }
 
 // Helpers
 export function channelName(name: string) {
-	return name.toLowerCase() + '_channel'
+  return name.toLowerCase() + '_channel'
 }
 
 export function messageContentText(content: string | TMessageContentComplex) {
-	return typeof content === 'string' ? content : content.type === 'text' ? content.text : ''
+  return typeof content === 'string' ? content : content.type === 'text' ? content.text : ''
 }
 
 /**
  * Get workspace folder for sandbox from runnable configurable
- * 
- * @param configurable 
- * @returns 
+ *
+ * @param configurable
+ * @returns
  */
-export function getWorkspaceFromRunnable(configurable: TAgentRunnableConfigurable): {type?: 'project' | 'conversation'; id?: string} {
-	return configurable?.projectId  ? {type: 'project', id: ''} : 
-		configurable?.thread_id ? {
-			type: 'conversation',
-			id: configurable.thread_id
-		} : {}
+export function getWorkspaceFromRunnable(configurable: TAgentRunnableConfigurable): {
+  type?: 'project' | 'conversation'
+  id?: string
+} {
+  return configurable?.projectId
+    ? { type: 'project', id: '' }
+    : configurable?.thread_id
+      ? {
+          type: 'conversation',
+          id: configurable.thread_id
+        }
+      : {}
 }
 
 export function getToolCallFromConfig(config): TToolCall {
-	return config?.toolCall	|| config?.configurable?.toolCall
+  return config?.toolCall || config?.configurable?.toolCall
 }
 
 export function getToolCallIdFromConfig(config): string {
-	return config.metadata?.tool_call_id || config?.configurable?.tool_call_id || getToolCallFromConfig(config)?.id 
+  return config.metadata?.tool_call_id || config?.configurable?.tool_call_id || getToolCallFromConfig(config)?.id
 }
 
 /**
  * Compute long-term memory namespace:
  * 1. When a user talks to a digital expert individually, use `ExpertId` + `UserId` to store memory
  * 2. When talking to a digital expert in a project, all users and digital experts share `ProjectId` to store memory
- * 
- * @param config 
- * @returns 
+ *
+ * @param config
+ * @returns
  */
 export function getStoreNamespace(config: RunnableConfig): string[] {
-	const configurable = config.configurable as TAgentRunnableConfigurable
-	return configurableStoreNamespace(configurable)
+  const configurable = config.configurable as TAgentRunnableConfigurable
+  return configurableStoreNamespace(configurable)
 }
 
 export function configurableStoreNamespace(configurable: Partial<TAgentRunnableConfigurable>): string[] {
-	return configurable?.projectId ? [configurable?.projectId] : configurable?.userId ? [configurable.xpertId, configurable.userId] : []
+  return configurable?.projectId
+    ? [configurable?.projectId]
+    : configurable?.userId
+      ? [configurable.xpertId, configurable.userId]
+      : []
 }
 
 /**
  * Set value into variable of state.
- * 
- * @param state 
- * @param varName 
- * @param value 
- * @returns 
+ *
+ * @param state
+ * @param varName
+ * @param value
+ * @returns
  */
 export function setStateVariable(state: Record<string, any>, varName: string, value: any) {
-	const [agentChannelName, variableName] = varName.split('.')
-	if (variableName) {
-		state[agentChannelName] = {
-			...(state[agentChannelName] ?? {}),
-			[variableName]: value
-		}
-	} else {
-		state[agentChannelName] = value
-	}
+  const [agentChannelName, variableName] = varName.split('.')
+  if (variableName) {
+    state[agentChannelName] = {
+      ...(state[agentChannelName] ?? {}),
+      [variableName]: value
+    }
+  } else {
+    state[agentChannelName] = value
+  }
 
-	return state
+  return state
 }
 
 /**
  * Get agent variable group from graph.
- * 
- * @param key 
- * @param graph 
- * @returns 
+ *
+ * @param key
+ * @param graph
+ * @returns
  */
 export function getAgentVarGroup(key: string, graph: TXpertGraph): TWorkflowVarGroup {
-	const node = graph.nodes.find((_) => _.type === 'agent' && _.key === key) as TXpertTeamNode & {type: 'agent'}
+  const node = graph.nodes.find((_) => _.type === 'agent' && _.key === key) as TXpertTeamNode & { type: 'agent' }
 
-	const variables: TXpertParameter[] = []
-	const varGroup: TWorkflowVarGroup = {
-		group: {
-			name: channelName(node.key),
-			description: {
-				en_US: agentLabel(node.entity)
-			},
-		},
-		variables
-	}
+  const variables: TXpertParameter[] = []
+  const varGroup: TWorkflowVarGroup = {
+    group: {
+      name: channelName(node.key),
+      description: {
+        en_US: agentLabel(node.entity)
+      }
+    },
+    variables
+  }
 
-	variables.push({
-		name: `messages`,
-		type: XpertParameterTypeEnum.ARRAY,
-		description: {
-			zh_Hans: `消息列表`,
-			en_US: `Message List`
-		}
-	})
-	variables.push({
-		name: `output`,
-		type: XpertParameterTypeEnum.STRING,
-		description: {
-			zh_Hans: `输出`,
-			en_US: `Output`
-		}
-	})
-	variables.push({
-		name: `error`,
-		type: XpertParameterTypeEnum.STRING,
-		description: {
-			zh_Hans: `错误`,
-			en_US: `Error`
-		}
-	})
-	const agent = <IXpertAgent>node.entity
-	if (agent.options?.structuredOutputMethod && agent.outputVariables) {
-		agent.outputVariables.forEach((variable) => {
-			variables.push({
-				name: variable.name || '',
-				type: variable.type as TStateVariable['type'],
-				description: variable.description,
-				item: variable.item
-			})
-		})
-	}
+  variables.push({
+    name: `messages`,
+    type: XpertParameterTypeEnum.ARRAY,
+    description: {
+      zh_Hans: `消息列表`,
+      en_US: `Message List`
+    }
+  })
+  variables.push({
+    name: `output`,
+    type: XpertParameterTypeEnum.STRING,
+    description: {
+      zh_Hans: `输出`,
+      en_US: `Output`
+    }
+  })
+  variables.push({
+    name: `error`,
+    type: XpertParameterTypeEnum.STRING,
+    description: {
+      zh_Hans: `错误`,
+      en_US: `Error`
+    }
+  })
+  const agent = <IXpertAgent>node.entity
+  if (agent.options?.structuredOutputMethod && agent.outputVariables) {
+    agent.outputVariables.forEach((variable) => {
+      variables.push({
+        name: variable.name || '',
+        type: variable.type as TStateVariable['type'],
+        description: variable.description,
+        item: variable.item
+      })
+    })
+  }
 
-	return varGroup
+  return varGroup
 }
-
 
 // Swarm
 /**
  * Get swarm partners of agent in team
- * 
- * @param graph 
- * @param agentKey 
+ *
+ * @param graph
+ * @param agentKey
  */
 export function getSwarmPartners(graph: TXpertGraph, agentKey: string, partners: string[], leaderKey?: string) {
-  const connections = graph.connections.filter((conn) => conn.type === 'agent' && conn.to === agentKey && (leaderKey ? conn.from !== leaderKey : true)
-		&& graph.connections.some((_) => _.type === 'agent' && _.to === conn.from && _.from === agentKey))
+  const connections = graph.connections.filter(
+    (conn) =>
+      conn.type === 'agent' &&
+      conn.to === agentKey &&
+      (leaderKey ? conn.from !== leaderKey : true) &&
+      graph.connections.some((_) => _.type === 'agent' && _.to === conn.from && _.from === agentKey)
+  )
 
   connections.forEach((conn) => {
-	const key = conn.from
-	if (partners.indexOf(key) < 0) {
-		partners.push(key)
-		getSwarmPartners(graph, key, partners)
-	}
+    const key = conn.from
+    if (partners.indexOf(key) < 0) {
+      partners.push(key)
+      getSwarmPartners(graph, key, partners)
+    }
   })
   return partners
 }
 
 export function getWorkflowTriggers(graph: TXpertGraph, from: string) {
-	return graph.nodes.filter((node) => node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.TRIGGER && (<IWFNTrigger>node.entity).from === from)
+  return graph.nodes.filter(
+    (node) =>
+      node.type === 'workflow' &&
+      node.entity.type === WorkflowNodeTypeEnum.TRIGGER &&
+      (<IWFNTrigger>node.entity).from === from
+  )
 }

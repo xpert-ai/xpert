@@ -1,3 +1,5 @@
+import type { SandboxExecutionOptions } from './execution'
+
 /**
  * Protocol definition for pluggable memory backends.
  *
@@ -6,7 +8,7 @@
  * database, etc.) and provide a uniform interface for file operations.
  */
 
-export type MaybePromise<T> = T | Promise<T>;
+export type MaybePromise<T> = T | Promise<T>
 
 /**
  * Structured file listing info.
@@ -16,13 +18,13 @@ export type MaybePromise<T> = T | Promise<T>;
  */
 export interface FileInfo {
   /** File path */
-  path: string;
+  path: string
   /** Whether this is a directory */
-  is_dir?: boolean;
+  is_dir?: boolean
   /** File size in bytes (approximate) */
-  size?: number;
+  size?: number
   /** ISO 8601 timestamp of last modification */
-  modified_at?: string;
+  modified_at?: string
 }
 
 /**
@@ -30,32 +32,32 @@ export interface FileInfo {
  */
 export interface GrepMatch {
   /** File path where match was found */
-  path: string;
+  path: string
   /** Line number (1-indexed) */
-  line: number;
+  line: number
   /** The matching line text */
-  text: string;
+  text: string
 }
 
 /**
  * Read mode for file reading operations.
  */
-export type ReadMode = 'slice' | 'indentation';
+export type ReadMode = 'slice' | 'indentation'
 
 /**
  * Configuration for indentation-aware file reading.
  */
 export interface IndentationOptions {
   /** Anchor line number (1-indexed), defaults to offset */
-  anchor_line?: number;
+  anchor_line?: number
   /** Maximum indentation depth to collect; 0 means unlimited */
-  max_levels?: number;
+  max_levels?: number
   /** Whether to include sibling blocks at the same indentation level */
-  include_siblings?: boolean;
+  include_siblings?: boolean
   /** Whether to include header lines (comments) above the anchor block */
-  include_header?: boolean;
+  include_header?: boolean
   /** Hard cap on returned lines */
-  max_lines?: number;
+  max_lines?: number
 }
 
 /**
@@ -65,11 +67,11 @@ export interface IndentationOptions {
  */
 export interface FileData {
   /** Lines of text content */
-  content: string[];
+  content: string[]
   /** ISO format timestamp of creation */
-  created_at: string;
+  created_at: string
   /** ISO format timestamp of last modification */
-  modified_at: string;
+  modified_at: string
 }
 
 /**
@@ -80,17 +82,17 @@ export interface FileData {
  */
 export interface WriteResult {
   /** Error message on failure, undefined on success */
-  error?: string;
+  error?: string
   /** File path of written file, undefined on failure */
-  path?: string;
+  path?: string
   /**
    * State update dict for checkpoint backends, null for external storage.
    * Checkpoint backends populate this with {file_path: file_data} for LangGraph state.
    * External backends set null (already persisted to disk/S3/database/etc).
    */
-  filesUpdate?: Record<string, FileData> | null;
+  filesUpdate?: Record<string, FileData> | null
   /** Metadata for the write operation, attached to the ToolMessage */
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>
 }
 
 /**
@@ -101,19 +103,19 @@ export interface WriteResult {
  */
 export interface EditResult {
   /** Error message on failure, undefined on success */
-  error?: string;
+  error?: string
   /** File path of edited file, undefined on failure */
-  path?: string;
+  path?: string
   /**
    * State update dict for checkpoint backends, null for external storage.
    * Checkpoint backends populate this with {file_path: file_data} for LangGraph state.
    * External backends set null (already persisted to disk/S3/database/etc).
    */
-  filesUpdate?: Record<string, FileData> | null;
+  filesUpdate?: Record<string, FileData> | null
   /** Number of replacements made, undefined on failure */
-  occurrences?: number;
+  occurrences?: number
   /** Metadata for the edit operation, attached to the ToolMessage */
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>
 }
 
 /**
@@ -121,11 +123,11 @@ export interface EditResult {
  */
 export interface EditOperation {
   /** String to find and replace */
-  oldString: string;
+  oldString: string
   /** Replacement string */
-  newString: string;
+  newString: string
   /** If true, replace all occurrences (default: false) */
-  replaceAll?: boolean;
+  replaceAll?: boolean
 }
 
 /**
@@ -136,19 +138,19 @@ export interface EditOperation {
  */
 export interface MultiEditResult {
   /** Error message on failure, undefined on success */
-  error?: string;
+  error?: string
   /** File path of edited file, undefined on failure */
-  path?: string;
+  path?: string
   /**
    * State update dict for checkpoint backends, null for external storage.
    * Checkpoint backends populate this with {file_path: file_data} for LangGraph state.
    * External backends set null (already persisted to disk/S3/database/etc).
    */
-  filesUpdate?: Record<string, FileData> | null;
+  filesUpdate?: Record<string, FileData> | null
   /** Results from each individual edit operation */
-  results?: EditResult[];
+  results?: EditResult[]
   /** Metadata for the multi-edit operation, attached to the ToolMessage */
-  metadata?: Record<string, unknown>;
+  metadata?: Record<string, unknown>
 }
 
 /**
@@ -157,32 +159,30 @@ export interface MultiEditResult {
  */
 export interface ExecuteResponse {
   /** Combined stdout and stderr output of the executed command */
-  output: string;
+  output: string
   /** The process exit code. 0 indicates success, non-zero indicates failure */
-  exitCode: number | null;
+  exitCode: number | null
   /** Whether the output was truncated due to backend limitations */
-  truncated: boolean;
+  truncated: boolean
+  /** Whether the command exceeded its timeout and was terminated */
+  timedOut?: boolean
 }
 
 /**
  * Standardized error codes for file upload/download operations.
  */
-export type FileOperationError =
-  | "file_not_found"
-  | "permission_denied"
-  | "is_directory"
-  | "invalid_path";
+export type FileOperationError = 'file_not_found' | 'permission_denied' | 'is_directory' | 'invalid_path'
 
 /**
  * Result of a single file download operation.
  */
 export interface FileDownloadResponse {
   /** The file path that was requested */
-  path: string;
+  path: string
   /** File contents as Uint8Array on success, null on failure */
-  content: Uint8Array | null;
+  content: Uint8Array | null
   /** Standardized error code on failure, null on success */
-  error: FileOperationError | null;
+  error: FileOperationError | null
 }
 
 /**
@@ -190,9 +190,9 @@ export interface FileDownloadResponse {
  */
 export interface FileUploadResponse {
   /** The file path that was requested */
-  path: string;
+  path: string
   /** Standardized error code on failure, null on success */
-  error: FileOperationError | null;
+  error: FileOperationError | null
 }
 
 /**
@@ -216,7 +216,7 @@ export interface BackendProtocol {
    * @param path - Absolute path to directory
    * @returns List of FileInfo objects for files and directories directly in the directory
    */
-  lsInfo(path: string): MaybePromise<FileInfo[]>;
+  lsInfo(path: string): MaybePromise<FileInfo[]>
 
   /**
    * List directory contents recursively with depth control and pagination.
@@ -227,12 +227,7 @@ export interface BackendProtocol {
    * @param depth - Maximum depth to traverse (default: 2)
    * @returns Human-readable directory tree with indentation
    */
-  listDir(
-    dirPath: string,
-    offset?: number,
-    limit?: number,
-    depth?: number,
-  ): MaybePromise<string>;
+  listDir(dirPath: string, offset?: number, limit?: number, depth?: number): MaybePromise<string>
 
   /**
    * Read file content with line numbers or an error string.
@@ -250,7 +245,7 @@ export interface BackendProtocol {
     limit?: number,
     mode?: ReadMode,
     indentation?: IndentationOptions
-  ): MaybePromise<string>;
+  ): MaybePromise<string>
 
   /**
    * Structured search results or error string for invalid input.
@@ -262,11 +257,7 @@ export interface BackendProtocol {
    * @param include - Optional glob pattern to filter files (e.g., "*.py")
    * @returns List of GrepMatch objects or error string for invalid regex
    */
-  grepRaw(
-    pattern: string,
-    path?: string | null,
-    include?: string | null,
-  ): MaybePromise<GrepMatch[] | string>;
+  grepRaw(pattern: string, path?: string | null, include?: string | null): MaybePromise<GrepMatch[] | string>
 
   /**
    * Search file contents for a regex pattern, returning human-readable output.
@@ -276,11 +267,7 @@ export interface BackendProtocol {
    * @param include - Optional glob pattern to filter files (e.g., "*.js", "*.{ts,tsx}")
    * @returns Human-readable output with matches grouped by file
    */
-  grep(
-    pattern: string,
-    path?: string | null,
-    include?: string | null,
-  ): MaybePromise<string>;
+  grep(pattern: string, path?: string | null, include?: string | null): MaybePromise<string>
 
   /**
    * Structured glob matching returning FileInfo objects.
@@ -289,7 +276,7 @@ export interface BackendProtocol {
    * @param path - Base path to search from (default: "/")
    * @returns List of FileInfo objects matching the pattern
    */
-  globInfo(pattern: string, path?: string): MaybePromise<FileInfo[]>;
+  globInfo(pattern: string, path?: string): MaybePromise<FileInfo[]>
 
   /**
    * Find files matching a glob pattern, returning human-readable output.
@@ -298,7 +285,7 @@ export interface BackendProtocol {
    * @param path - Base path to search from (default: workspace root)
    * @returns Human-readable output with matching file paths
    */
-  glob(pattern: string, path?: string): MaybePromise<string>;
+  glob(pattern: string, path?: string): MaybePromise<string>
 
   /**
    * Create a new file.
@@ -307,7 +294,7 @@ export interface BackendProtocol {
    * @param content - File content as string
    * @returns WriteResult with error populated on failure
    */
-  write(filePath: string, content: string): MaybePromise<WriteResult>;
+  write(filePath: string, content: string): MaybePromise<WriteResult>
 
   /**
    * Append content to a file. Creates the file if it doesn't exist.
@@ -316,7 +303,7 @@ export interface BackendProtocol {
    * @param content - Content to append
    * @returns WriteResult with error populated on failure
    */
-  append(filePath: string, content: string): MaybePromise<WriteResult>;
+  append(filePath: string, content: string): MaybePromise<WriteResult>
 
   /**
    * Edit a file by replacing string occurrences.
@@ -327,12 +314,7 @@ export interface BackendProtocol {
    * @param replaceAll - If true, replace all occurrences (default: false)
    * @returns EditResult with error, path, filesUpdate, and occurrences
    */
-  edit(
-    filePath: string,
-    oldString: string,
-    newString: string,
-    replaceAll?: boolean,
-  ): MaybePromise<EditResult>;
+  edit(filePath: string, oldString: string, newString: string, replaceAll?: boolean): MaybePromise<EditResult>
 
   /**
    * Perform multiple sequential edits on a single file.
@@ -343,10 +325,7 @@ export interface BackendProtocol {
    * @param edits - Array of edit operations to perform sequentially
    * @returns MultiEditResult with error, path, filesUpdate, and individual results
    */
-  multiEdit(
-    filePath: string,
-    edits: EditOperation[],
-  ): MaybePromise<MultiEditResult>;
+  multiEdit(filePath: string, edits: EditOperation[]): MaybePromise<MultiEditResult>
 
   /**
    * Upload multiple files.
@@ -354,9 +333,7 @@ export interface BackendProtocol {
    * @param files - List of [path, content] tuples to upload
    * @returns List of FileUploadResponse objects, one per input file
    */
-  uploadFiles(
-    files: Array<[string, Uint8Array]>,
-  ): MaybePromise<FileUploadResponse[]>;
+  uploadFiles(files: Array<[string, Uint8Array]>): MaybePromise<FileUploadResponse[]>
 
   /**
    * Download multiple files.
@@ -364,7 +341,7 @@ export interface BackendProtocol {
    * @param paths - List of file paths to download
    * @returns List of FileDownloadResponse objects, one per input path
    */
-  downloadFiles(paths: string[]): MaybePromise<FileDownloadResponse[]>;
+  downloadFiles(paths: string[]): MaybePromise<FileDownloadResponse[]>
 }
 
 /**
@@ -379,7 +356,7 @@ export interface SandboxBackendProtocol extends BackendProtocol {
    * @param command - Full shell command string to execute
    * @returns ExecuteResponse with combined output, exit code, and truncation flag
    */
-  execute(command: string): MaybePromise<ExecuteResponse>;
+  execute(command: string, options?: SandboxExecutionOptions): MaybePromise<ExecuteResponse>
 
   /**
    * Execute a command with line-by-line streaming output.
@@ -399,10 +376,16 @@ export interface SandboxBackendProtocol extends BackendProtocol {
    * @param onLine  - Callback invoked once per complete output line
    * @returns ExecuteResponse with combined output, exit code, and truncation flag
    */
-  streamExecute?(command: string, onLine: (line: string) => void): MaybePromise<ExecuteResponse>;
+  streamExecute?(
+    command: string,
+    onLine: (line: string) => void,
+    options?: SandboxExecutionOptions
+  ): MaybePromise<ExecuteResponse>
 
   /** Unique identifier for the sandbox backend instance */
-  readonly id: string;
+  readonly id: string
+  /** Canonical sandbox environment identifier bound to this backend */
+  readonly environmentId?: string | null
 }
 
 /**
@@ -411,13 +394,11 @@ export interface SandboxBackendProtocol extends BackendProtocol {
  * @param backend - Backend instance to check
  * @returns True if the backend implements SandboxBackendProtocol
  */
-export function isSandboxBackend(
-  backend: BackendProtocol,
-): backend is SandboxBackendProtocol {
+export function isSandboxBackend(backend: BackendProtocol): backend is SandboxBackendProtocol {
   return (
-    typeof (backend as SandboxBackendProtocol).execute === "function" &&
-    typeof (backend as SandboxBackendProtocol).id === "string"
-  );
+    typeof (backend as SandboxBackendProtocol).execute === 'function' &&
+    typeof (backend as SandboxBackendProtocol).id === 'string'
+  )
 }
 
 /**
@@ -433,11 +414,11 @@ export function isSandboxBackend(
  */
 export interface StateAndStore {
   /** Current agent state with files, messages, etc. */
-  state: unknown;
+  state: unknown
   /** Optional BaseStore for persistent cross-conversation storage */
   // store?: BaseStore;
   /** Optional assistant ID for per-assistant isolation in store */
-  assistantId?: string;
+  assistantId?: string
 }
 
 /**
@@ -454,4 +435,4 @@ export interface StateAndStore {
  * });
  * ```
  */
-export type BackendFactory = (stateAndStore: StateAndStore) => BackendProtocol;
+export type BackendFactory = (stateAndStore: StateAndStore) => BackendProtocol

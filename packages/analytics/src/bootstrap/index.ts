@@ -8,7 +8,9 @@ import {
 	getSubscribersFromPlugins,
 	initI18next,
 	loadOrganizationPluginConfigs,
+	normalizePluginName,
 	PluginModule,
+	resolveNestLogLevels,
 	registerPluginsAsync,
 	ServerAppModule,
 	SharedModule
@@ -33,7 +35,6 @@ import { AnalyticsModule } from '../app.module'
 import { AnalyticsService } from '../app.service'
 import { BootstrapModule } from './bootstrap.module'
 
-
 export async function bootstrap(options: { title: string; version: string }) {
 	// Pre-bootstrap the application configuration
 	const config = await preBootstrapApplicationConfig({})
@@ -49,6 +50,7 @@ export async function bootstrap(options: { title: string; version: string }) {
 	})
 
 	app.useLogger(app.get(Logger))
+	NestLogger.overrideLogger(resolveNestLogLevels())
 
 	// Set query parser to extended (In Express v5, query parameters are no longer parsed using the qs library by default.)
 	app.set('query parser', 'extended')
@@ -163,8 +165,11 @@ export async function preBootstrapApplicationConfig(applicationConfig: Partial<I
 }
 
 export async function preBootstrapPlugins() {
+	type BootstrapPlugin = NonNullable<Parameters<typeof registerPluginsAsync>[0]['plugins']>[number]
+
 	const pluginsFromEnv = process.env.PLUGINS?.split(/[,;]/).filter(Boolean) || []
 	const defaultGlobalPlugins = [
+		'@xpert-ai/plugin-draft',
 		'@xpert-ai/plugin-agent-middlewares',
 		'@xpert-ai/plugin-integration-github',
 		// '@xpert-ai/plugin-integration-lark',
@@ -179,16 +184,46 @@ export async function preBootstrapPlugins() {
 	]
 
 	const organizationPluginConfigs = await loadOrganizationPluginConfigs()
+	const persistedGlobalGroup = organizationPluginConfigs.find(
+		(group) => group.organizationId === GLOBAL_ORGANIZATION_SCOPE
+	)
 
-	const globalPlugins = [
-		...defaultGlobalPlugins.map((name) => ({ name, source: 'code' })),
-		...pluginsFromEnv.map((name) => ({ name, source: 'local' }))
+	const globalPlugins: BootstrapPlugin[] = [
+		...defaultGlobalPlugins.map((name) => ({ name, source: 'code' as const })),
+		...pluginsFromEnv.map((name) => ({ name, source: 'env' as const }))
 	]
+	const mergedGlobalPluginMap = new Map<string, BootstrapPlugin>(
+		globalPlugins.map((plugin) => [normalizePluginName(plugin.name), plugin])
+	)
+	for (const plugin of persistedGlobalGroup?.plugins ?? []) {
+		const normalized = normalizePluginName(plugin.name)
+		const current = mergedGlobalPluginMap.get(normalized)
+		if (current?.source === 'code') {
+			continue
+		}
+		mergedGlobalPluginMap.set(normalized, {
+			...plugin,
+			source: plugin.source as BootstrapPlugin['source']
+		})
+	}
+	const persistedOrganizationGroups = organizationPluginConfigs
+		.filter((group) => group.organizationId !== GLOBAL_ORGANIZATION_SCOPE)
+		.map((group) => ({
+			...group,
+			plugins: group.plugins.map((plugin) => ({
+				...plugin,
+				source: plugin.source as BootstrapPlugin['source']
+			}))
+		}))
 
 	// If there is no persisted configuration, fallback to defaults + env for the global scope
-	const groups = [
-		...organizationPluginConfigs,
-		{ organizationId: GLOBAL_ORGANIZATION_SCOPE, plugins: globalPlugins, configs: {} }
+	const groups: Array<{ organizationId?: string; plugins: BootstrapPlugin[]; configs: Record<string, any> }> = [
+		...persistedOrganizationGroups,
+		{
+			organizationId: GLOBAL_ORGANIZATION_SCOPE,
+			plugins: Array.from(mergedGlobalPluginMap.values()),
+			configs: persistedGlobalGroup?.configs ?? {}
+		}
 	]
 
 	const modules: DynamicModule[] = []

@@ -22,7 +22,10 @@ import {
   IXpertAgentExecution,
   messageContentText,
   STATE_VARIABLE_HUMAN,
+  TThreadContextUsageEvent,
   TInterruptCommand,
+  TXpertAgentChatRequest,
+  TXpertChatResumeDecision,
   ToastrService,
   TToolCall,
   TXpertParameter,
@@ -41,6 +44,8 @@ import { distinctUntilChanged, switchMap } from 'rxjs/operators'
 import { XpertStudioApiService } from '../../domain'
 import { XpertExecutionService } from '../../services/execution.service'
 import { XpertStudioComponent } from '../../studio.component'
+import { isThreadContextUsageEvent } from '../../../../../@shared/chat/context/thread-context-usage'
+import { buildResumeDecision, extractInterruptPatch } from '../../../../../@shared/chat/interrupt-request'
 
 function extractPromptVariables(promptText: string): string[] {
   // Parse mustache-style variables like {{sys.language}} from prompt text.
@@ -48,9 +53,7 @@ function extractPromptVariables(promptText: string): string[] {
     return []
   }
   const matches = promptText.match(/{{\s*([^{}]+?)\s*}}/g) ?? []
-  return matches
-    .map((match) => match.replace(/{{|}}/g, '').trim())
-    .filter((value) => !!value)
+  return matches.map((match) => match.replace(/{{|}}/g, '').trim()).filter((value) => !!value)
 }
 
 @Component({
@@ -95,7 +98,7 @@ export class XpertStudioPanelAgentExecutionComponent {
 
   // States
   readonly agentKey = computed(() => this.xpertAgent()?.key)
-  
+
   /**
    * Combines defined parameters with variables extracted from prompt templates.
    * Variables from prompt are marked as optional for testing purposes.
@@ -104,36 +107,36 @@ export class XpertStudioPanelAgentExecutionComponent {
   readonly parameters = computed(() => {
     const agent = this.xpertAgent()
     if (!agent) return []
-    
+
     const definedParams = agent.parameters ?? []
-    
+
     // Extract variables from prompt templates
     const prompt = agent.prompt ?? ''
     const promptTemplates = agent.promptTemplates ?? []
-    const allPromptText = [prompt, ...promptTemplates.map(t => t.text ?? '')].join('\n')
+    const allPromptText = [prompt, ...promptTemplates.map((t) => t.text ?? '')].join('\n')
     const promptVarPaths = extractPromptVariables(allPromptText)
-    
+
     // Create Set of existing parameter names for deduplication
-    const existingNames = new Set(definedParams.map(p => p.name))
+    const existingNames = new Set(definedParams.map((p) => p.name))
     // Built-in variables that should be excluded (input has its own field, human is system variable)
     const builtInVars = new Set(['input', 'human'])
-    
+
     // Create optional parameters for variables referenced in prompt but not already defined
     const flatAdditionalParams: TXpertParameter[] = promptVarPaths
-      .filter(varPath => {
+      .filter((varPath) => {
         const rootVar = varPath.split('.')[0]
         return !existingNames.has(varPath) && !builtInVars.has(rootVar)
       })
-      .map(varPath => ({
+      .map((varPath) => ({
         type: XpertParameterTypeEnum.STRING,
         name: varPath,
         description: { en_US: `Variable from prompt`, zh_Hans: `提示词中的变量` },
         optional: true
       }))
-    
+
     // Organize hierarchical parameters into nested structure
     const hierarchicalParams = this.organizeHierarchicalParams(flatAdditionalParams)
-    
+
     return [...definedParams, ...hierarchicalParams]
   })
 
@@ -145,8 +148,8 @@ export class XpertStudioPanelAgentExecutionComponent {
     // Separate flat params (no dot) and hierarchical params (with dot)
     const flatParams: TXpertParameter[] = []
     const hierarchicalMap = new Map<string, TXpertParameter[]>()
-    
-    params.forEach(param => {
+
+    params.forEach((param) => {
       const parts = param.name.split('.')
       if (parts.length === 1) {
         // Flat parameter, no hierarchy
@@ -155,25 +158,28 @@ export class XpertStudioPanelAgentExecutionComponent {
         // Hierarchical parameter, group by root name
         const rootName = parts[0]
         const childName = parts.slice(1).join('.')
-        
+
         if (!hierarchicalMap.has(rootName)) {
           hierarchicalMap.set(rootName, [])
         }
-        
+
         // Create child parameter with the remaining path as name
         hierarchicalMap.get(rootName)!.push({
           ...param,
           name: childName,
-          description: param.description || { en_US: `Variable from prompt: ${param.name}`, zh_Hans: `提示词中的变量: ${param.name}` }
+          description: param.description || {
+            en_US: `Variable from prompt: ${param.name}`,
+            zh_Hans: `提示词中的变量: ${param.name}`
+          }
         })
       }
     })
-    
+
     // Convert hierarchical map to nested parameter structure
     const hierarchicalParams: TXpertParameter[] = Array.from(hierarchicalMap.entries()).map(([rootName, children]) => {
       // If there are multiple levels (e.g., sys.language.xxx), recursively organize
       const organizedChildren = this.organizeHierarchicalParams(children)
-      
+
       return {
         type: XpertParameterTypeEnum.OBJECT,
         name: rootName,
@@ -182,7 +188,7 @@ export class XpertStudioPanelAgentExecutionComponent {
         item: organizedChildren
       }
     })
-    
+
     return [...flatParams, ...hierarchicalParams]
   }
 
@@ -213,6 +219,10 @@ export class XpertStudioPanelAgentExecutionComponent {
   })
 
   readonly status = computed(() => this.execution()?.status)
+  readonly contextUsage = computed(() => {
+    const agentKey = this.agentKey()
+    return agentKey ? this.executionService.contextUsageByAgentKey()[agentKey] : null
+  })
   readonly operation = computed(() => this.execution()?.operation)
   readonly command = model<TInterruptCommand>()
   readonly #toolCalls = signal<TToolCall[]>(null)
@@ -266,7 +276,7 @@ export class XpertStudioPanelAgentExecutionComponent {
    */
   private unflattenParameters(params: Record<string, unknown>): Record<string, unknown> {
     const result: Record<string, unknown> = {}
-    
+
     Object.entries(params ?? {}).forEach(([key, value]) => {
       const parts = key.split('.')
       if (parts.length === 1) {
@@ -285,17 +295,11 @@ export class XpertStudioPanelAgentExecutionComponent {
         current[parts[parts.length - 1]] = value
       }
     })
-    
+
     return result
   }
 
-  startRunAgent(options?: {
-    /**
-     * @deprecated use onConfirm with command resume instead
-     */
-    reject: boolean;
-    confirm?: boolean
-  }) {
+  startRunAgent(options?: { decision?: TXpertChatResumeDecision['type'] }) {
     // English note: Validate user inputs against parameter definitions before sending to server.
     // This provides instant feedback and prevents avoidable backend errors.
     if (!this.validateParameterValues(this.parameters(), this.parameterValue() ?? {})) {
@@ -303,6 +307,10 @@ export class XpertStudioPanelAgentExecutionComponent {
     }
 
     const executionId = this.execution()?.id
+    if (options?.decision && !executionId) {
+      this.#toastr.error('Execution not found')
+      return
+    }
     this.loading.set(true)
     // Clear
     this.clearStatus()
@@ -314,47 +322,56 @@ export class XpertStudioPanelAgentExecutionComponent {
     // Call chat server
     // Structure: input.human.input must be a string to ensure backend creates user message
     // Other parameters are placed at the same level as input for template access
-    this.#agentSubscription = this.xpertAgentService
-      .chatAgent({
-        state: {
-          [STATE_VARIABLE_HUMAN]: {
-            input: userInput
+    const state = {
+      [STATE_VARIABLE_HUMAN]: {
+        input: userInput
+      },
+      ...nestedParams
+    }
+    const patch = extractInterruptPatch(this.command())
+    const request = options?.decision
+      ? ({
+          action: 'resume',
+          state,
+          agentKey: this.xpertAgent().key,
+          xpertId: this.xpert().id,
+          environmentId: this.environment()?.id,
+          target: {
+            executionId
           },
-          ...nestedParams
-        },
-        agentKey: this.xpertAgent().key,
-        xpertId: this.xpert().id,
-        executionId,
-        environmentId: this.environment()?.id,
-        command: this.command(),
-        // operation: (options?.reject || this.#toolCalls()) ? {
-        //   ...this.operation(),
-        //   toolCalls: this.#toolCalls()?.map((call) => ({call}))
-        // } : null,
-        reject: options?.reject
-      })
-      .subscribe({
-        next: (msg) => {
-          if (msg.event === 'error') {
-            this.onChatError(msg.data)
-          } else {
-            if (msg.data) {
-              const event = JSON.parse(msg.data)
-              if (event.type === ChatMessageTypeEnum.MESSAGE) {
-                this.output.update((state) => state + messageContentText(event.data))
-              } else if (event.type === ChatMessageTypeEnum.EVENT) {
-                processEvents(event, this.executionService)
-              }
+          decision: buildResumeDecision(options.decision, this.command()),
+          ...(patch ? { patch } : {})
+        } as TXpertAgentChatRequest)
+      : ({
+          action: 'run',
+          state,
+          agentKey: this.xpertAgent().key,
+          xpertId: this.xpert().id,
+          environmentId: this.environment()?.id
+        } as TXpertAgentChatRequest)
+
+    this.#agentSubscription = this.xpertAgentService.chatAgent(request).subscribe({
+      next: (msg) => {
+        if (msg.event === 'error') {
+          this.onChatError(msg.data)
+        } else {
+          if (msg.data) {
+            const event = JSON.parse(msg.data)
+            if (event.type === ChatMessageTypeEnum.MESSAGE) {
+              this.output.update((state) => state + messageContentText(event.data))
+            } else if (event.type === ChatMessageTypeEnum.EVENT) {
+              processEvents(event, this.executionService)
             }
           }
-        },
-        error: (error) => {
-          this.onChatError(getErrorMessage(error))
-        },
-        complete: () => {
-          this.loading.set(false)
         }
-      })
+      },
+      error: (error) => {
+        this.onChatError(getErrorMessage(error))
+      },
+      complete: () => {
+        this.loading.set(false)
+      }
+    })
   }
 
   /**
@@ -362,7 +379,10 @@ export class XpertStudioPanelAgentExecutionComponent {
    *
    * Returns false when invalid and shows a user-facing error message.
    */
-  private validateParameterValues(parameters: TXpertParameter[] | null | undefined, values: Record<string, unknown>): boolean {
+  private validateParameterValues(
+    parameters: TXpertParameter[] | null | undefined,
+    values: Record<string, unknown>
+  ): boolean {
     if (!parameters?.length) {
       return true
     }
@@ -412,10 +432,10 @@ export class XpertStudioPanelAgentExecutionComponent {
     this.#agentSubscription?.unsubscribe()
     this.loading.set(false)
     this.executionService.conversation.update((state) => ({
-        ...state,
-        status: XpertAgentExecutionStatusEnum.ERROR,
-        error: 'Aborted by user'
-      }))
+      ...state,
+      status: XpertAgentExecutionStatusEnum.ERROR,
+      error: 'Aborted by user'
+    }))
   }
 
   getAgent(key: string): IXpertAgent {
@@ -428,7 +448,7 @@ export class XpertStudioPanelAgentExecutionComponent {
 
   onConfirm() {
     this.input.set(null)
-    this.startRunAgent()
+    this.startRunAgent({ decision: 'confirm' })
   }
 
   /**
@@ -436,7 +456,7 @@ export class XpertStudioPanelAgentExecutionComponent {
    */
   onReject() {
     this.input.set(null)
-    this.startRunAgent({ reject: true })
+    this.startRunAgent({ decision: 'reject' })
   }
 
   toggleExpand(key: string) {
@@ -522,6 +542,13 @@ export function processEvents(
       break
     }
     case ChatMessageEventTypeEnum.ON_TOOL_MESSAGE: {
+      break
+    }
+    case ChatMessageEventTypeEnum.ON_CHAT_EVENT: {
+      if (isThreadContextUsageEvent(event.data)) {
+        executionService.setContextUsage(event.data as TThreadContextUsageEvent)
+        break
+      }
       break
     }
     default: {

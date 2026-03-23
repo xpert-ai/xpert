@@ -17,37 +17,35 @@ import { XpertAgent } from './xpert-agent.entity'
 import { XpertAgentService } from './xpert-agent.service'
 import { Strategies, Validators as PluginValidators } from './plugins'
 import { ExecutionCancelModule } from '../shared'
-import { SandboxModule } from '../sandbox/sandbox.module'
 
 @Module({
-	imports: [
-		RouterModule.register([{ path: '/xpert-agent', module: XpertAgentModule }]),
-		TypeOrmModule.forFeature([XpertAgent]),
-		TenantModule,
-		RedisModule,
-		CqrsModule,
-		DiscoveryModule,
+    imports: [
+        RouterModule.register([{ path: '/xpert-agent', module: XpertAgentModule }]),
+        TypeOrmModule.forFeature([XpertAgent]),
+        TenantModule,
+        RedisModule,
+        CqrsModule,
+        DiscoveryModule,
 
-		CopilotCheckpointModule,
-		XpertAgentExecutionModule,
-		forwardRef(() => XpertModule),
-		forwardRef(() => EnvironmentModule),
-		ExecutionCancelModule,
-		SandboxModule
-	],
-	controllers: [XpertAgentController],
-	providers: [
-		XpertAgentService,
-		WorkflowTriggerRegistry,
-		WorkflowNodeRegistry,
-		AgentMiddlewareRegistry,
-		...CommandHandlers,
-		...WorkflowCommandHandlers,
-		...QueryHandlers,
-		...Validators,
-		...PluginValidators,
-		...Strategies
-	],
-	exports: [XpertAgentService, AgentMiddlewareRegistry]
+        CopilotCheckpointModule,
+        XpertAgentExecutionModule,
+        forwardRef(() => XpertModule),
+        forwardRef(() => EnvironmentModule),
+        ExecutionCancelModule
+    ],
+    controllers: [XpertAgentController],
+    providers: [
+        XpertAgentService,
+        WorkflowTriggerRegistry,
+        WorkflowNodeRegistry,
+        AgentMiddlewareRegistry,
+        ...CommandHandlers,
+        ...WorkflowCommandHandlers,
+        ...QueryHandlers,
+        ...Validators,
+        ...PluginValidators,
+        ...Strategies
+    ],
+    exports: [XpertAgentService, AgentMiddlewareRegistry]
 })
 export class XpertAgentModule {}

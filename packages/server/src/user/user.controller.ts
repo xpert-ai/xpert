@@ -15,42 +15,31 @@ import {
 	ValidationPipe,
 	ForbiddenException,
 	ClassSerializerInterceptor,
-	BadRequestException,
-} from '@nestjs/common';
-import { FileInterceptor } from '@nestjs/platform-express';
-import { UploadedFile } from '@metad/contracts';
-import { FileStorage, UploadedFileStorage } from '../core/file-storage';
-import path from 'path';
-import iconv from 'iconv-lite';
-import * as XLSX from 'xlsx';
-import fsPromises from 'fs/promises';
-import {
-	ApiOperation,
-	ApiResponse,
-	ApiTags,
-	ApiBearerAuth
-} from '@nestjs/swagger';
-import { CommandBus } from '@nestjs/cqrs';
-import {
-	IPagination,
-	PermissionsEnum,
-	IUserCreateInput,
-	IUserUpdateInput,
-	UserType,
-	RolesEnum
-} from '@metad/contracts';
-import { CrudController, PaginationParams } from './../core/crud';
-import { RequestContext } from '../core/context';
-import { UUIDValidationPipe, ParseJsonPipe } from './../shared/pipes';
-import { PermissionGuard, RoleGuard, TenantPermissionGuard } from './../shared/guards';
-import { Permissions, Roles } from './../shared/decorators';
-import { User, UserPreferredLanguageDTO } from './user.entity';
-import { UserService } from './user.service';
-import { UserBulkCreateCommand, UserCreateCommand } from './commands';
-import { FactoryResetService } from './factory-reset/factory-reset.service';
-import { UserDeleteCommand } from './commands/user.delete.command';
-import { Like, Not } from 'typeorm';
-import { UserPasswordDTO } from './dto';
+	BadRequestException
+} from '@nestjs/common'
+import { FileInterceptor } from '@nestjs/platform-express'
+import { UploadedFile } from '@metad/contracts'
+import { FileStorage } from '../file/file-storage/file-storage'
+import { UploadedFileStorage } from '../file/file-storage/uploaded-file-storage'
+import path from 'path'
+import iconv from 'iconv-lite'
+import * as XLSX from 'xlsx'
+import fsPromises from 'fs/promises'
+import { ApiOperation, ApiResponse, ApiTags, ApiBearerAuth } from '@nestjs/swagger'
+import { CommandBus } from '@nestjs/cqrs'
+import { IPagination, PermissionsEnum, IUserCreateInput, IUserUpdateInput, UserType, RolesEnum } from '@metad/contracts'
+import { CrudController, PaginationParams } from './../core/crud'
+import { RequestContext } from '../core/context'
+import { UUIDValidationPipe, ParseJsonPipe } from './../shared/pipes'
+import { PermissionGuard, RoleGuard, TenantPermissionGuard } from './../shared/guards'
+import { Permissions, Roles } from './../shared/decorators'
+import { User, UserPreferredLanguageDTO } from './user.entity'
+import { UserService } from './user.service'
+import { UserBulkCreateCommand, UserCreateCommand } from './commands'
+import { FactoryResetService } from './factory-reset/factory-reset.service'
+import { UserDeleteCommand } from './commands/user.delete.command'
+import { Like, Not } from 'typeorm'
+import { UserPasswordDTO } from './dto'
 
 @ApiTags('User')
 @ApiBearerAuth()
@@ -63,14 +52,14 @@ export class UserController extends CrudController<User> {
 		private readonly factoryResetService: FactoryResetService,
 		private readonly commandBus: CommandBus
 	) {
-		super(userService);
+		super(userService)
 	}
 
 	/**
 	 * GET current login user
-	 * 
-	 * @param data 
-	 * @returns 
+	 *
+	 * @param data
+	 * @returns
 	 */
 	@ApiOperation({ summary: 'Find current user.' })
 	@ApiResponse({
@@ -83,21 +72,19 @@ export class UserController extends CrudController<User> {
 		description: 'Record not found'
 	})
 	@Get('/me')
-	async findMe(
-		@Query('data', ParseJsonPipe) data: {relations: string[]}
-	): Promise<User> {
-		const { relations = [] } = data ?? {};
-		const id = RequestContext.currentUserId();
+	async findMe(@Query('data', ParseJsonPipe) data: { relations: string[] }): Promise<User> {
+		const { relations = [] } = data ?? {}
+		const id = RequestContext.currentUserId()
 		return await this.userService.findOne(id, {
 			relations
-		});
+		})
 	}
 
 	/**
 	 * GET user by email
-	 * 
-	 * @param email 
-	 * @returns 
+	 *
+	 * @param email
+	 * @returns
 	 */
 	@ApiOperation({ summary: 'Find user by email address.' })
 	@ApiResponse({
@@ -111,78 +98,73 @@ export class UserController extends CrudController<User> {
 	})
 	@Get('/email/:email')
 	async findByEmail(@Param('email') email: string): Promise<User> {
-		return this.userService.getUserByEmail(email);
+		return this.userService.getUserByEmail(email)
 	}
 
 	/**
 	 * UPDATE user preferred language
-	 * 
-	 * @param id 
-	 * @param entity 
-	 * @param options 
-	 * @returns 
+	 *
+	 * @param id
+	 * @param entity
+	 * @param options
+	 * @returns
 	 */
 	@HttpCode(HttpStatus.ACCEPTED)
 	@UseGuards(TenantPermissionGuard)
 	@Put('/preferred-language/:id')
-	@UsePipes(new ValidationPipe({
-		transform: true,
-		whitelist: true
-	}))
+	@UsePipes(
+		new ValidationPipe({
+			transform: true,
+			whitelist: true
+		})
+	)
 	async updatePreferredLanguage(
 		@Param('id', UUIDValidationPipe) id: string,
 		@Body() entity: UserPreferredLanguageDTO
 	) {
-		const userId = RequestContext.currentUserId();
+		const userId = RequestContext.currentUserId()
 		if (userId !== id) {
-			throw new ForbiddenException();
+			throw new ForbiddenException()
 		}
 
-		const { preferredLanguage } = entity;
-		return this.userService.updatePreferredLanguage(
-			id,
-			preferredLanguage
-		);
+		const { preferredLanguage } = entity
+		return this.userService.updatePreferredLanguage(id, preferredLanguage)
 	}
 
 	/**
 	 * GET user count
-	 * 
-	 * @param data 
-	 * @returns 
+	 *
+	 * @param data
+	 * @returns
 	 */
 	@Get('count')
-	async getCount(
-		@Query('data', ParseJsonPipe) data: any
-	): Promise<any> {
-		const { relations, findInput } = data;
+	async getCount(@Query('data', ParseJsonPipe) data: any): Promise<any> {
+		const { relations, findInput } = data
 		return this.userService.count({
 			where: findInput,
 			relations
-		});
+		})
 	}
 
 	/**
 	 * GET user list by pagination
-	 * 
-	 * @param filter 
-	 * @returns 
+	 *
+	 * @param filter
+	 * @returns
 	 */
 	@UseGuards(PermissionGuard)
 	@Permissions(PermissionsEnum.ORG_USERS_VIEW)
 	@Get('pagination')
 	@UsePipes(new ValidationPipe({ transform: true }))
-	async pagination(
-		@Query() filter: PaginationParams<User>
-	): Promise<IPagination<User>> {
-		return this.userService.paginate(filter);
+	async pagination(@Query() filter: PaginationParams<User>): Promise<IPagination<User>> {
+		return this.userService.paginate(filter)
 	}
 
 	/**
 	 * GET all users
-	 * 
-	 * @param data 
-	 * @returns 
+	 *
+	 * @param data
+	 * @returns
 	 */
 	@ApiOperation({ summary: 'Find all users.' })
 	@ApiResponse({
@@ -198,8 +180,8 @@ export class UserController extends CrudController<User> {
 	@Permissions(PermissionsEnum.ORG_USERS_VIEW)
 	@Get()
 	async findAll(@Query('data', ParseJsonPipe) data: any): Promise<IPagination<User>> {
-		const { relations, search } = data;
-		let { findInput } = data;
+		const { relations, search } = data
+		let { findInput } = data
 		if (search) {
 			findInput = findInput ?? {}
 			findInput.email = Like(`%${search.split('%').join('')}%`)
@@ -211,7 +193,7 @@ export class UserController extends CrudController<User> {
 				type: Not(UserType.COMMUNICATION)
 			},
 			relations
-		});
+		})
 	}
 
 	@UseInterceptors(ClassSerializerInterceptor)
@@ -223,22 +205,20 @@ export class UserController extends CrudController<User> {
 
 	@HttpCode(HttpStatus.ACCEPTED)
 	@Put('me')
-	async updateMe(
-		@Body() entity: IUserUpdateInput
-	): Promise<any> {
+	async updateMe(@Body() entity: IUserUpdateInput): Promise<any> {
 		const me = RequestContext.currentUser()
 		return await this.userService.updateProfile(me.id, {
 			...entity,
-			id: me.id,
-		} as User);
+			id: me.id
+		} as User)
 	}
 
 	/**
 	 * GET user by id
-	 * 
-	 * @param id 
-	 * @param data 
-	 * @returns 
+	 *
+	 * @param id
+	 * @param data
+	 * @returns
 	 */
 	@ApiOperation({ summary: 'Find User by id.' })
 	@ApiResponse({
@@ -255,16 +235,16 @@ export class UserController extends CrudController<User> {
 		@Param('id', UUIDValidationPipe) id: string,
 		@Query('data', ParseJsonPipe) data?: any
 	): Promise<User> {
-		const { relations } = data;
-		return this.userService.findOne(id, { relations });
+		const { relations } = data
+		return this.userService.findOne(id, { relations })
 	}
 
 	/**
 	 * CREATE new user
-	 * 
-	 * @param entity 
-	 * @param options 
-	 * @returns 
+	 *
+	 * @param entity
+	 * @param options
+	 * @returns
 	 */
 	@ApiOperation({ summary: 'Create new record' })
 	@ApiResponse({
@@ -273,49 +253,41 @@ export class UserController extends CrudController<User> {
 	})
 	@ApiResponse({
 		status: HttpStatus.BAD_REQUEST,
-		description:
-			'Invalid input, The response body may contain clues as to what went wrong'
+		description: 'Invalid input, The response body may contain clues as to what went wrong'
 	})
 	@UseGuards(PermissionGuard)
 	@UseGuards(TenantPermissionGuard, PermissionGuard)
 	@Permissions(PermissionsEnum.ORG_USERS_EDIT)
 	@HttpCode(HttpStatus.CREATED)
 	@Post()
-	async create(
-		@Body() entity: IUserCreateInput
-	): Promise<User> {
-		return await this.commandBus.execute(
-			new UserCreateCommand(entity)
-		);
+	async create(@Body() entity: IUserCreateInput): Promise<User> {
+		return await this.commandBus.execute(new UserCreateCommand(entity))
 	}
 
 	/**
 	 * UPDATE user by id
-	 * 
-	 * @param id 
-	 * @param entity 
-	 * @param options 
-	 * @returns 
+	 *
+	 * @param id
+	 * @param entity
+	 * @param options
+	 * @returns
 	 */
 	@HttpCode(HttpStatus.ACCEPTED)
 	@UseGuards(TenantPermissionGuard, PermissionGuard)
 	@Permissions(PermissionsEnum.ORG_USERS_EDIT, PermissionsEnum.PROFILE_EDIT)
 	@Put(':id')
-	async update(
-		@Param('id', UUIDValidationPipe) id: string,
-		@Body() entity: IUserUpdateInput
-	): Promise<any> {
+	async update(@Param('id', UUIDValidationPipe) id: string, @Body() entity: IUserUpdateInput): Promise<any> {
 		return await this.userService.updateProfile(id, {
 			id,
 			...entity
-		} as User);
+		} as User)
 	}
 
 	/**
 	 * DELTE user account
-	 * 
-	 * @param userId 
-	 * @returns 
+	 *
+	 * @param userId
+	 * @returns
 	 */
 	@ApiOperation({
 		summary: 'Delete record'
@@ -331,30 +303,23 @@ export class UserController extends CrudController<User> {
 	@UseGuards(TenantPermissionGuard, PermissionGuard)
 	@Permissions(PermissionsEnum.ACCESS_DELETE_ACCOUNT)
 	@Delete(':id')
-	async delete(
-		@Param('id', UUIDValidationPipe) userId: string,
-	): Promise<any> {
-		return await this.commandBus.execute(
-			new UserDeleteCommand(userId)
-		)
+	async delete(@Param('id', UUIDValidationPipe) userId: string): Promise<any> {
+		return await this.commandBus.execute(new UserDeleteCommand(userId))
 	}
 
 	@HttpCode(HttpStatus.ACCEPTED)
 	@UseGuards(TenantPermissionGuard, PermissionGuard)
 	@Permissions(PermissionsEnum.ORG_USERS_EDIT, PermissionsEnum.PROFILE_EDIT)
 	@Post(':id/password')
-	async resetPassword(
-		@Param('id', UUIDValidationPipe) userId: string,
-		@Body() userPassword: UserPasswordDTO
-	) {
+	async resetPassword(@Param('id', UUIDValidationPipe) userId: string, @Body() userPassword: UserPasswordDTO) {
 		return await this.userService.resetPassword(userId, userPassword.hash, userPassword.password)
 	}
 
 	/**
 	 * DELETE all user data from all tables
-	 * 
-	 * @param id 
-	 * @returns 
+	 *
+	 * @param id
+	 * @returns
 	 */
 	@ApiOperation({ summary: 'Delete all user data.' })
 	@ApiResponse({
@@ -369,10 +334,8 @@ export class UserController extends CrudController<User> {
 	@UseGuards(TenantPermissionGuard, PermissionGuard)
 	@Permissions(PermissionsEnum.ACCESS_DELETE_ALL_DATA)
 	@Delete('/reset/:id')
-	async deleteAllData(
-		@Param('id', UUIDValidationPipe) id: string
-	){
-		return this.factoryResetService.reset(id);
+	async deleteAllData(@Param('id', UUIDValidationPipe) id: string) {
+		return this.factoryResetService.reset(id)
 	}
 
 	@UseGuards(RoleGuard)
@@ -433,7 +396,7 @@ export class UserController extends CrudController<User> {
 				if (decoded.includes('\uFFFD')) {
 					return false
 				}
-				
+
 				// For UTF-8, validate it's proper UTF-8
 				if (encoding === 'utf8' || encoding === 'utf-8') {
 					try {
@@ -444,21 +407,21 @@ export class UserController extends CrudController<User> {
 						return false
 					}
 				}
-				
+
 				return true
 			}
 
 			// Try UTF-8 first (most common, especially for files saved from modern editors)
 			// Then try Chinese encodings if UTF-8 doesn't produce valid Chinese
 			const encodingsToTry = ['utf8', 'gbk', 'gb18030', 'gb2312', 'big5']
-			
+
 			// First, check for BOM
 			let startOffset = 0
-			if (buffer[0] === 0xEF && buffer[1] === 0xBB && buffer[2] === 0xBF) {
+			if (buffer[0] === 0xef && buffer[1] === 0xbb && buffer[2] === 0xbf) {
 				// UTF-8 BOM detected, skip BOM bytes
 				startOffset = 3
 			}
-			
+
 			const bufferToDecode = startOffset > 0 ? buffer.slice(startOffset) : buffer
 
 			let content: string | null = null
@@ -468,7 +431,7 @@ export class UserController extends CrudController<User> {
 				try {
 					// Try to decode with this encoding
 					const decoded = iconv.decode(bufferToDecode, encoding)
-					
+
 					if (!isValidDecoding(decoded, encoding)) {
 						continue
 					}
@@ -483,7 +446,7 @@ export class UserController extends CrudController<User> {
 						content = decoded
 						break
 					}
-					
+
 					// For UTF-8, if no Chinese but looks valid, use it as fallback (might be English-only file)
 					// For other encodings, only use if we haven't found any valid content yet
 					if (encoding === 'utf8' && !content && decoded.length > 0) {
@@ -503,7 +466,9 @@ export class UserController extends CrudController<User> {
 				try {
 					content = iconv.decode(bufferToDecode, 'utf8')
 				} catch (err) {
-					throw new BadRequestException(`Failed to decode CSV file. Tried encodings: ${encodingsToTry.join(', ')}. Error: ${lastError?.message || err.message}`)
+					throw new BadRequestException(
+						`Failed to decode CSV file. Tried encodings: ${encodingsToTry.join(', ')}. Error: ${lastError?.message || err.message}`
+					)
 				}
 			}
 
@@ -512,13 +477,13 @@ export class UserController extends CrudController<User> {
 			}
 
 			// Parse CSV with XLSX
-			const workbook = XLSX.read(content, { 
+			const workbook = XLSX.read(content, {
 				type: 'string',
 				codepage: 65001 // UTF-8 codepage
 			})
 
 			const sheet = workbook.Sheets[workbook.SheetNames[0]]
-			
+
 			// Convert to JSON array
 			const jsonData = XLSX.utils.sheet_to_json(sheet) as any[]
 

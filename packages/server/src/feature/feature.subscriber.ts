@@ -3,7 +3,7 @@ import { toggleFeatures } from '@metad/server-config'
 import { isNil } from 'lodash'
 import { EntitySubscriberInterface, EventSubscriber } from 'typeorm'
 import { shuffle } from 'underscore'
-import { FileStorage } from './../core/file-storage'
+import { FileStorage } from './../file'
 import { Feature } from './feature.entity'
 
 @EventSubscriber()

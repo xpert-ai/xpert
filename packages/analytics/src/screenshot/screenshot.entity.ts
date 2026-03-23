@@ -1,67 +1,59 @@
-import {
-	Entity,
-	Column,
-} from 'typeorm';
-import { FileStorageProviderEnum, IScreenshot } from '@metad/contracts';
-import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
-import { IsString, IsOptional, IsNumber, IsDateString } from 'class-validator';
-import { Exclude } from 'class-transformer';
-import { TenantOrganizationBaseEntity } from '@metad/server-core';
-
+import { Entity, Column } from 'typeorm'
+import { IScreenshot } from '@metad/contracts'
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
+import { IsString, IsOptional, IsNumber, IsDateString } from 'class-validator'
+import { Exclude } from 'class-transformer'
+import { TenantOrganizationBaseEntity } from '@metad/server-core'
 
 @Entity('screenshot')
-export class Screenshot extends TenantOrganizationBaseEntity
-	implements IScreenshot {
-
+export class Screenshot extends TenantOrganizationBaseEntity implements IScreenshot {
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@Column()
-	file: string;
+	file: string
 
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsOptional()
 	@Column({ default: null, nullable: true })
-	url?: string;
+	url?: string
 
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsOptional()
 	@Column({ default: null, nullable: true })
-	thumb?: string;
+	thumb?: string
 
 	@ApiProperty({ type: () => 'timestamptz' })
 	@IsNumber()
 	@IsOptional()
 	@Column({ default: null, nullable: true })
-	recordedAt?: Date;
+	recordedAt?: Date
 
 	@ApiProperty({ type: () => 'timestamptz' })
 	@IsDateString()
 	@Column({ nullable: true, default: null })
-	deletedAt?: Date;
+	deletedAt?: Date
 
 	@ApiProperty({ type: () => Number })
 	@IsNumber()
 	@IsOptional()
 	@Column({ default: 0, nullable: true })
-	size?: number;
+	size?: number
 
-	@ApiPropertyOptional({ type: () => String, enum: FileStorageProviderEnum })
+	@ApiPropertyOptional({ type: () => String })
 	@Exclude({ toPlainOnly: true })
 	@Column({
-		type: 'simple-enum',
-		nullable: true,
-		enum: FileStorageProviderEnum
+		type: 'varchar',
+		nullable: true
 	})
-	storageProvider?: FileStorageProviderEnum;
+	storageProvider?: string
 
-	fileUrl?: string;
-	thumbUrl?: string;
+	fileUrl?: string
+	thumbUrl?: string
 	/*
     |--------------------------------------------------------------------------
     | @ManyToOne
     |--------------------------------------------------------------------------
     */
-
 }

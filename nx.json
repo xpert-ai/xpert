@@ -93,7 +93,7 @@
   },
   "release": {
     "projectsRelationship": "independent",
-    "projects": ["packages/contracts", "packages/server", "packages/plugin-sdk", "mysql"],
+    "projects": ["packages/contracts", "packages/server", "packages/plugin-sdk", "mysql", "draft"],
     "version": {
       "preVersionCommand": "pnpm nx run-many -t build"
     }

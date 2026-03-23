@@ -1,7 +1,7 @@
-import { inject, Injectable } from "@angular/core"
-import { API_PREFIX } from "./constants"
-import { IPlugin, PluginMeta } from "./types"
-import { OrganizationBaseCrudService } from "./organization-base-crud.service"
+import { inject, Injectable } from '@angular/core'
+import { API_PREFIX } from './constants'
+import { IPlugin, IPluginConfiguration, IPluginDescriptor } from './types'
+import { OrganizationBaseCrudService } from './organization-base-crud.service'
 
 const API_BASE = API_PREFIX + '/plugin'
 
@@ -12,11 +12,29 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
   }
 
   getPlugins() {
-    return this.httpClient.get<{name: string; meta: PluginMeta; isGlobal: boolean;}[]>(this.apiBaseUrl)
+    return this.httpClient.get<IPluginDescriptor[]>(this.apiBaseUrl)
   }
 
   getByNames(names: string[]) {
-    return this.httpClient.post<{name: string; meta: PluginMeta}[]>(`${this.apiBaseUrl}/by-names`, { names })
+    return this.httpClient.post<IPluginDescriptor[]>(`${this.apiBaseUrl}/by-names`, { names })
+  }
+
+  getConfiguration(pluginName: string) {
+    return this.httpClient.post<IPluginConfiguration>(`${this.apiBaseUrl}/configuration`, { pluginName })
+  }
+
+  saveConfiguration(pluginName: string, config: Record<string, any>) {
+    return this.httpClient.put<IPluginConfiguration>(`${this.apiBaseUrl}/configuration`, { pluginName, config })
+  }
+
+  update(pluginName: string) {
+    return this.httpClient.post<{
+      success: boolean
+      updated: boolean
+      previousVersion?: string
+      currentVersion?: string
+      latestVersion?: string
+    }>(`${this.apiBaseUrl}/update`, { pluginName })
   }
 
   uninstall(names: string[]) {
@@ -25,5 +43,5 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
 }
 
 export function injectPluginAPI() {
-    return inject(PluginAPIService)
+  return inject(PluginAPIService)
 }

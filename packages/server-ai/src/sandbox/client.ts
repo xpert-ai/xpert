@@ -16,7 +16,16 @@ import { ServerResponse } from 'http'
 import { t } from 'i18next'
 import { Observable } from 'rxjs'
 import { sandboxVolume, sandboxVolumeUrl } from '../shared'
-import { FilesSystem, TCreateFileReq, TCreateFileResp, TFileBaseReq, TListFilesReq, TListFilesResponse, TReadFileReq, TSandboxParams } from './types'
+import {
+	FilesSystem,
+	TCreateFileReq,
+	TCreateFileResp,
+	TFileBaseReq,
+	TListFilesReq,
+	TListFilesResponse,
+	TReadFileReq,
+	TSandboxParams
+} from './types'
 
 /**
  * Base parameters for sandbox operations.
@@ -34,9 +43,7 @@ export class SandboxFileSystem implements FilesSystem {
 		return this.params.sandboxUrl
 	}
 
-	constructor(
-		protected params: TSandboxParams
-	) {}
+	constructor(protected params: TSandboxParams) {}
 
 	async doRequest(path: string, requestData: any, options: { signal: AbortSignal }) {
 		if (environment.pro) {
@@ -118,12 +125,18 @@ export type TProjectCodeParams = TProjectBaseParams & {
 	content: string
 }
 
-const completionCondition = (data) => {
-			return data.includes('<done>')
-		}
-	const errorCondition = (data) => {
-			return data.includes('<error>')
-		}
+const completionCondition = (data = '') => {
+	return data.includes('<done>')
+}
+const errorCondition = (data = '') => {
+	return data.includes('<error>')
+}
+const appendShellEventOutput = (result: string, data?: string) => {
+	if (data == null || data === '') {
+		return result
+	}
+	return result ? `${result}\n${data}` : data
+}
 export class ProjectClient {
 	get sandboxUrl() {
 		return this.params.sandboxUrl
@@ -166,97 +179,97 @@ export class ProjectClient {
 	async build(body: TProjectDeployParams, options: { signal: AbortSignal }): Promise<string> {
 		const command = `npm install && npm run build`
 		return new Promise((resolve, reject) => {
-				const stepId = shortuuid()
-				const createdDate = new Date()
-				let result = ''
-				const es = new EventSource(this.sandboxUrl + '/project/build/', {
-					fetch: (input, init) =>
-						fetch(input, {
-							...init,
-							method: 'POST',
-							headers: {
-								...init.headers,
-								'Content-Type': 'application/json'
-							},
-							body: JSON.stringify(body),
-							signal: options.signal
-						})
-				})
-
-				es.addEventListener('message', (event) => {
-					if (errorCondition(event.data)) {
-						dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-							id: stepId,
-							category: 'Computer',
-							type: ChatMessageStepCategory.Program,
-							end_date: new Date(),
-							status: 'fail',
-							error: event.data,
-							data: {
-								code: command,
-								output: result
-							},
-						} as TChatMessageStep<TProgramToolMessage>).catch((err) => {
-							console.error(err)
-						})
-						reject(`Build failed:\n${result}`)
-					} else if (completionCondition(event.data)) {
-						dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-							id: stepId,
-							category: 'Computer',
-							type: ChatMessageStepCategory.Program,
-							end_date: new Date(),
-							status: 'success',
-							data: {
-								code: command,
-								output: result
-							},
-						} as TChatMessageStep<TProgramToolMessage>).catch((err) => {
-							console.error(err)
-						})
-						resolve(result) // Resolve with the complete message
-						es.close() // Close the connection
-						return
-					} else if (event.data != null) {
-						try {
-							if (result) {
-								result += '\n'
-							}
-							result += event.data ?? ''
-
-							// Update tool message
-							dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
-								id: stepId,
-								category: 'Computer',
-								type: ChatMessageStepCategory.Program,
-								toolset: 'code-project',
-								tool: 'build-deploy',
-								title: t('server-ai:Tools.CodeProject.Building'),
-								message: `npm run build`,
-								data: {
-									code: command,
-									output: result
-								},
-								created_date: createdDate,
-								status: 'running'
-							} as TChatMessageStep<TProgramToolMessage>).catch((err) => {
-								console.error(err)
-							})
-						} catch (err) {
-							throw new Error(`Convert build call result error`)
-						}
-					}
-				})
-
-				es.addEventListener('error', (err) => {
-					console.error(err)
-					if (err.code === 401 || err.code === 403) {
-						console.log('not authorized')
-					}
-					es.close()
-					reject(err)
-				})
+			const stepId = shortuuid()
+			const createdDate = new Date()
+			let result = ''
+			const es = new EventSource(this.sandboxUrl + '/project/build/', {
+				fetch: (input, init) =>
+					fetch(input, {
+						...init,
+						method: 'POST',
+						headers: {
+							...init.headers,
+							'Content-Type': 'application/json'
+						},
+						body: JSON.stringify(body),
+						signal: options.signal
+					})
 			})
+
+			es.addEventListener('message', (event) => {
+				if (errorCondition(event.data)) {
+					dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+						id: stepId,
+						category: 'Computer',
+						type: ChatMessageStepCategory.Program,
+						end_date: new Date(),
+						status: 'fail',
+						error: event.data,
+						data: {
+							code: command,
+							output: result
+						}
+					} as TChatMessageStep<TProgramToolMessage>).catch((err) => {
+						console.error(err)
+					})
+					reject(`Build failed:\n${result}`)
+				} else if (completionCondition(event.data)) {
+					dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+						id: stepId,
+						category: 'Computer',
+						type: ChatMessageStepCategory.Program,
+						end_date: new Date(),
+						status: 'success',
+						data: {
+							code: command,
+							output: result
+						}
+					} as TChatMessageStep<TProgramToolMessage>).catch((err) => {
+						console.error(err)
+					})
+					resolve(result) // Resolve with the complete message
+					es.close() // Close the connection
+					return
+				} else if (event.data != null) {
+					try {
+						if (result) {
+							result += '\n'
+						}
+						result += event.data ?? ''
+
+						// Update tool message
+						dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+							id: stepId,
+							category: 'Computer',
+							type: ChatMessageStepCategory.Program,
+							toolset: 'code-project',
+							tool: 'build-deploy',
+							title: t('server-ai:Tools.CodeProject.Building'),
+							message: `npm run build`,
+							data: {
+								code: command,
+								output: result
+							},
+							created_date: createdDate,
+							status: 'running'
+						} as TChatMessageStep<TProgramToolMessage>).catch((err) => {
+							console.error(err)
+						})
+					} catch (err) {
+						throw new Error(`Convert build call result error`)
+					}
+				}
+			})
+
+			es.addEventListener('error', (err) => {
+				console.error(err)
+				if (err.code === 401 || err.code === 403) {
+					console.log('not authorized')
+				}
+				es.close()
+				reject(err)
+			})
+		})
 	}
 
 	async deploy(body: TProjectDeployParams, options: { signal: AbortSignal }): Promise<string> {
@@ -269,15 +282,15 @@ export class PythonClient {
 	get sandboxUrl() {
 		return this.params.sandboxUrl
 	}
-	constructor(
-		protected params: TSandboxParams
-	) {}
+	constructor(protected params: TSandboxParams) {}
 
 	async exec(body: { code: string }, options: { signal: AbortSignal }): Promise<string> {
 		if (environment.pro) {
 			const sandboxUrl = this.sandboxUrl
 			try {
-				const { data: result } = await axios.post(`${sandboxUrl}/python/exec/`, body, { signal: options.signal })
+				const { data: result } = await axios.post(`${sandboxUrl}/python/exec/`, body, {
+					signal: options.signal
+				})
 				return JSON.stringify(result.observation, null, 2)
 			} catch (error) {
 				throw new Error(getPythonErrorMessage(error))
@@ -317,10 +330,10 @@ export class BaseToolClient {
 export type TShellExecReq = TSandboxBaseParams & {
 	dir?: string
 	command: string
+	timeout_sec?: number
 }
 
 export class ShellClient extends BaseToolClient {
-
 	stream(body: TShellExecReq, options?: { signal?: AbortSignal }) {
 		return new Observable((subscriber) => {
 			const abortController = new AbortController()
@@ -341,6 +354,8 @@ export class ShellClient extends BaseToolClient {
 
 			es.addEventListener('message', (event) => {
 				if (errorCondition(event.data)) {
+					result = appendShellEventOutput(result, event.data)
+					subscriber.next(event.data)
 					subscriber.error(result)
 					es.close()
 					return
@@ -401,6 +416,7 @@ export class ShellClient extends BaseToolClient {
 
 				es.addEventListener('message', (event) => {
 					if (errorCondition(event.data)) {
+						result = appendShellEventOutput(result, event.data)
 						this.dispatchStepEvent(body.command, result, stepId, event.data)
 						reject(result)
 						es.close()
@@ -440,24 +456,22 @@ export class ShellClient extends BaseToolClient {
 	}
 
 	async dispatchStepEvent(command: string, output: string, stepId: string, error?: string) {
-		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE,
-			{
-				id: stepId,
-				category: 'Computer',
-				type: ChatMessageStepCategory.Program,
-				toolset: 'Bash',
-				tool: 'execute',
-				title: t('server-ai:Tools.Bash.ExecuteBashCommand'),
-				message: command,
-				data: {
-					code: command,
-					output: output
-				},
-				error
-			} as TChatMessageStep<TProgramToolMessage>
-		).catch((err) => {
-					console.error(err)
-				})
+		dispatchCustomEvent(ChatMessageEventTypeEnum.ON_TOOL_MESSAGE, {
+			id: stepId,
+			category: 'Computer',
+			type: ChatMessageStepCategory.Program,
+			toolset: 'Bash',
+			tool: 'execute',
+			title: t('server-ai:Tools.Bash.ExecuteBashCommand'),
+			message: command,
+			data: {
+				code: command,
+				output: output
+			},
+			error
+		} as TChatMessageStep<TProgramToolMessage>).catch((err) => {
+			console.error(err)
+		})
 	}
 }
 
@@ -468,14 +482,14 @@ export class Sandbox {
 	python = new PythonClient(this.params)
 	shell = new ShellClient(this.params)
 	browser = new BrowserClient(this.params)
-	git  = new GitClient(this.params)
+	git = new GitClient(this.params)
 
 	static sandboxVolume(projectId: string, userId: string) {
 		return sandboxVolume(projectId, userId)
 	}
 
 	static sandboxFileUrl(volume: string, workspaceId: string, file: string) {
-    	return urlJoin(sandboxVolumeUrl(volume, workspaceId), file) + `?tenant=${RequestContext.currentTenantId()}`;
+		return urlJoin(sandboxVolumeUrl(volume, workspaceId), file) + `?tenant=${RequestContext.currentTenantId()}`
 	}
 
 	get sandboxUrl() {
@@ -503,7 +517,6 @@ export class Sandbox {
 		return requestData
 	}
 }
-
 
 export type TBrowserActionResult = {
 	success?: boolean
@@ -540,12 +553,16 @@ export class BrowserClient {
 
 	/**
 	 * Execute a browser automation action through the API
-	 * 
+	 *
 	 * @param endpoint The API endpoint to call
 	 * @param params Parameters to send. Defaults to null.
 	 * @param method HTTP method to use. Defaults to "POST".
 	 */
-	async executeAction(endpoint: string, params: Record<string, any> | string = null, options: { method?: 'POST'; signal: AbortSignal; responseType?: 'blob' | 'stream' }): Promise<TBrowserActionResult> {
+	async executeAction(
+		endpoint: string,
+		params: Record<string, any> | string = null,
+		options: { method?: 'POST'; signal: AbortSignal; responseType?: 'blob' | 'stream' }
+	): Promise<TBrowserActionResult> {
 		if (environment.pro) {
 			const sandboxUrl = this.sandboxUrl
 			try {
@@ -569,13 +586,11 @@ export class GitClient {
 	get sandboxUrl() {
 		return this.params.sandboxUrl
 	}
-	constructor(
-		protected params: TSandboxParams
-	) {}
+	constructor(protected params: TSandboxParams) {}
 
 	async clone(url: string, path?: string, branch?: string) {
-        return ''
-    }
+		return ''
+	}
 	async status(repoPath: string) {
 		return ''
 	}
@@ -597,7 +612,7 @@ export class GitClient {
 	async commit(repoPath: string, message: string) {
 		return ''
 	}
-	async push(repoPath: string, params?: {username?: string; password?: string; createBranch?: string}) {
+	async push(repoPath: string, params?: { username?: string; password?: string; createBranch?: string }) {
 		return ''
 	}
 	async pull(repoPath: string) {

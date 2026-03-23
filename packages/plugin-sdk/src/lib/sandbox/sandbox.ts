@@ -21,83 +21,87 @@ import type {
   MultiEditResult,
   ReadMode,
   SandboxBackendProtocol,
-  WriteResult,
-} from "./protocol";
+  WriteResult
+} from './protocol'
+import {
+  DEFAULT_SANDBOX_FILE_OPERATION_EXECUTION_OPTIONS as FILE_OPERATION_EXECUTION_OPTIONS,
+  DEFAULT_SANDBOX_FILE_SEARCH_EXECUTION_OPTIONS as FILE_SEARCH_EXECUTION_OPTIONS,
+  SandboxExecutionOptions
+} from './execution'
 
-const MAX_LINE_LENGTH = 500;
-const MAX_GREP_LINE_LENGTH = 2000;
-const GREP_RESULT_LIMIT = 100;
-const GLOB_RESULT_LIMIT = 100;
-const WRITE_EXISTS_OUTPUT = "Error: File already exists";
+const MAX_LINE_LENGTH = 500
+const MAX_GREP_LINE_LENGTH = 2000
+const GREP_RESULT_LIMIT = 100
+const GLOB_RESULT_LIMIT = 100
+const WRITE_EXISTS_OUTPUT = 'Error: File already exists'
 
 /**
  * UTF-8 safe Base64 encoding function.
  * Replaces btoa() which only supports Latin1 characters.
  */
 function utf8ToBase64(str: string): string {
-  return Buffer.from(str, 'utf-8').toString('base64');
+  return Buffer.from(str, 'utf-8').toString('base64')
 }
 
 /**
  * Format glob results into human-readable output.
  */
 function formatGlobOutput(files: FileInfo[], pattern: string): string {
-  const limit = GLOB_RESULT_LIMIT;
-  const truncated = files.length > limit;
-  const finalFiles = truncated ? files.slice(0, limit) : files;
+  const limit = GLOB_RESULT_LIMIT
+  const truncated = files.length > limit
+  const finalFiles = truncated ? files.slice(0, limit) : files
 
   if (finalFiles.length === 0) {
-    return "No files found";
+    return 'No files found'
   }
 
-  const lines: string[] = [];
+  const lines: string[] = []
   for (const file of finalFiles) {
-    lines.push(file.path);
+    lines.push(file.path)
   }
 
   if (truncated) {
-    lines.push("");
-    lines.push("(Results truncated. Consider using a more specific path or pattern.)");
+    lines.push('')
+    lines.push('(Results truncated. Consider using a more specific path or pattern.)')
   }
 
-  return lines.join("\n");
+  return lines.join('\n')
 }
 
 /**
  * Format grep matches into human-readable output grouped by file.
  */
 function formatGrepOutput(matches: GrepMatch[]): string {
-  const limit = GREP_RESULT_LIMIT;
-  const truncated = matches.length > limit;
-  const finalMatches = truncated ? matches.slice(0, limit) : matches;
+  const limit = GREP_RESULT_LIMIT
+  const truncated = matches.length > limit
+  const finalMatches = truncated ? matches.slice(0, limit) : matches
 
   if (finalMatches.length === 0) {
-    return "No matches found";
+    return 'No matches found'
   }
 
-  const lines: string[] = [`Found ${finalMatches.length} matches`];
-  let currentFile = "";
+  const lines: string[] = [`Found ${finalMatches.length} matches`]
+  let currentFile = ''
 
   for (const match of finalMatches) {
     if (currentFile !== match.path) {
-      if (currentFile !== "") {
-        lines.push("");
+      if (currentFile !== '') {
+        lines.push('')
       }
-      currentFile = match.path;
-      lines.push(`${match.path}:`);
+      currentFile = match.path
+      lines.push(`${match.path}:`)
     }
-    const text = match.text.length > MAX_GREP_LINE_LENGTH
-      ? match.text.substring(0, MAX_GREP_LINE_LENGTH) + "..."
-      : match.text;
-    lines.push(`  Line ${match.line}: ${text}`);
+    const text =
+      match.text.length > MAX_GREP_LINE_LENGTH ? match.text.substring(0, MAX_GREP_LINE_LENGTH) + '...' : match.text
+    lines.push(`  Line ${match.line}: ${text}`)
   }
 
   if (truncated) {
-    lines.push("");
-    lines.push("(Results truncated. Consider using a more specific path or pattern.)");
+    lines.push('')
+    lines.push('(Results truncated. Consider using a more specific path or pattern.)')
   }
 
-  return lines.join("\n");
+  return lines.join('\n')
 }
 
 /**
@@ -105,8 +109,8 @@ function formatGrepOutput(matches: GrepMatch[]): string {
  * Uses web-standard atob() for base64 decoding.
  */
 function buildGlobCommand(searchPath: string, pattern: string): string {
-  const pathB64 = utf8ToBase64(searchPath);
-  const patternB64 = utf8ToBase64(pattern);
+  const pathB64 = utf8ToBase64(searchPath)
+  const patternB64 = utf8ToBase64(pattern)
 
   return `node -e "
 const fs = require('fs');
@@ -153,14 +157,14 @@ try {
 } catch (e) {
   // Silent failure for non-existent paths
 }
-"`;
+"`
 }
 
 /**
  * Node.js command template for listing directory contents.
  */
 function buildLsCommand(dirPath: string): string {
-  const pathB64 = utf8ToBase64(dirPath);
+  const pathB64 = utf8ToBase64(dirPath)
 
   return `node -e "
 const fs = require('fs');
@@ -184,25 +188,20 @@ try {
   console.error('Error: ' + e.message);
   process.exit(1);
 }
-"`;
+"`
 }
 
-const INDENTATION_SPACES = 2;
-const MAX_ENTRY_LENGTH = 500;
+const INDENTATION_SPACES = 2
+const MAX_ENTRY_LENGTH = 500
 
 /**
  * Node.js command template for recursive directory listing with depth control.
  */
-function buildListDirCommand(
-  dirPath: string,
-  offset: number,
-  limit: number,
-  depth: number,
-): string {
-  const pathB64 = utf8ToBase64(dirPath);
-  const safeOffset = Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 1;
-  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 25;
-  const safeDepth = Number.isFinite(depth) && depth > 0 ? Math.floor(depth) : 2;
+function buildListDirCommand(dirPath: string, offset: number, limit: number, depth: number): string {
+  const pathB64 = utf8ToBase64(dirPath)
+  const safeOffset = Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 1
+  const safeLimit = Number.isFinite(limit) && limit > 0 ? Math.floor(limit) : 25
+  const safeDepth = Number.isFinite(depth) && depth > 0 ? Math.floor(depth) : 2
 
   return `node -e "
 const fs = require('fs');
@@ -299,27 +298,19 @@ for (const entry of selectedEntries) {
 if (endIndex < allEntries.length) {
   console.log('More than ' + limit + ' entries found');
 }
-"`;
+"`
 }
 
-const TAB_WIDTH = 4;
-const COMMENT_PREFIXES = ['#', '//', '--'];
+const TAB_WIDTH = 4
+const COMMENT_PREFIXES = ['#', '//', '--']
 
 /**
  * Node.js command template for slice mode reading.
  */
-function buildSliceReadCommand(
-  filePath: string,
-  offset: number,
-  limit: number,
-): string {
-  const pathB64 = utf8ToBase64(filePath);
-  const safeOffset =
-    Number.isFinite(offset) && offset > 0 ? Math.floor(offset) - 1 : 0;
-  const safeLimit =
-    Number.isFinite(limit) && limit > 0 && limit < Number.MAX_SAFE_INTEGER
-      ? Math.floor(limit)
-      : 2000;
+function buildSliceReadCommand(filePath: string, offset: number, limit: number): string {
+  const pathB64 = utf8ToBase64(filePath)
+  const safeOffset = Number.isFinite(offset) && offset > 0 ? Math.floor(offset) - 1 : 0
+  const safeLimit = Number.isFinite(limit) && limit > 0 && limit < Number.MAX_SAFE_INTEGER ? Math.floor(limit) : 2000
 
   return `node -e "
 const fs = require('fs');
@@ -358,7 +349,7 @@ for (let i = 0; i < selected.length; i++) {
   }
   console.log('L' + lineNum + ': ' + line);
 }
-"`;
+"`
 }
 
 /**
@@ -368,20 +359,16 @@ function buildIndentationReadCommand(
   filePath: string,
   offset: number,
   limit: number,
-  options: IndentationOptions,
+  options: IndentationOptions
 ): string {
-  const pathB64 = utf8ToBase64(filePath);
-  const safeOffset =
-    Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 1;
-  const safeLimit =
-    Number.isFinite(limit) && limit > 0 && limit < Number.MAX_SAFE_INTEGER
-      ? Math.floor(limit)
-      : 2000;
-  const anchorLine = options.anchor_line ?? safeOffset;
-  const maxLevels = options.max_levels ?? 0;
-  const includeSiblings = options.include_siblings ?? false;
-  const includeHeader = options.include_header ?? true;
-  const maxLines = options.max_lines ?? safeLimit;
+  const pathB64 = utf8ToBase64(filePath)
+  const safeOffset = Number.isFinite(offset) && offset > 0 ? Math.floor(offset) : 1
+  const safeLimit = Number.isFinite(limit) && limit > 0 && limit < Number.MAX_SAFE_INTEGER ? Math.floor(limit) : 2000
+  const anchorLine = options.anchor_line ?? safeOffset
+  const maxLevels = options.max_levels ?? 0
+  const includeSiblings = options.include_siblings ?? false
+  const includeHeader = options.include_header ?? true
+  const maxLines = options.max_lines ?? safeLimit
 
   return `node -e "
 const fs = require('fs');
@@ -515,15 +502,15 @@ while (out.length > 0 && isBlank(out[out.length - 1].raw)) out.pop();
 for (const r of out) {
   console.log('L' + r.number + ': ' + r.display);
 }
-"`;
+"`
 }
 
 /**
  * Node.js command template for writing files.
  */
 function buildWriteCommand(filePath: string, content: string): string {
-  const pathB64 = utf8ToBase64(filePath);
-  const contentB64 = utf8ToBase64(content);
+  const pathB64 = utf8ToBase64(filePath)
+  const contentB64 = utf8ToBase64(content)
 
   return `node -e "
 const fs = require('fs');
@@ -542,24 +529,24 @@ fs.mkdirSync(parentDir, { recursive: true });
 
 fs.writeFileSync(filePath, content, 'utf-8');
 console.log('OK');
-"`;
+"`
 }
 
 function buildExistsCommand(filePath: string): string {
-  const pathB64 = utf8ToBase64(filePath);
+  const pathB64 = utf8ToBase64(filePath)
   return `node -e "
 const fs = require('fs');
 const filePath = Buffer.from('${pathB64}', 'base64').toString('utf-8');
 process.exit(fs.existsSync(filePath) ? 0 : 1);
-"`;
+"`
 }
 
 /**
  * Node.js command template for appending to files.
  */
 function buildAppendCommand(filePath: string, content: string): string {
-  const pathB64 = utf8ToBase64(filePath);
-  const contentB64 = utf8ToBase64(content);
+  const pathB64 = utf8ToBase64(filePath)
+  const contentB64 = utf8ToBase64(content)
 
   return `node -e "
 const fs = require('fs');
@@ -573,21 +560,16 @@ fs.mkdirSync(parentDir, { recursive: true });
 
 fs.appendFileSync(filePath, content, 'utf-8');
 console.log('OK');
-"`;
+"`
 }
 
 /**
  * Node.js command template for editing files.
  */
-function buildEditCommand(
-  filePath: string,
-  oldStr: string,
-  newStr: string,
-  replaceAll: boolean,
-): string {
-  const pathB64 = utf8ToBase64(filePath);
-  const oldB64 = utf8ToBase64(oldStr);
-  const newB64 = utf8ToBase64(newStr);
+function buildEditCommand(filePath: string, oldStr: string, newStr: string, replaceAll: boolean): string {
+  const pathB64 = utf8ToBase64(filePath)
+  const oldB64 = utf8ToBase64(oldStr)
+  const newB64 = utf8ToBase64(newStr)
 
   return `node -e "
 const fs = require('fs');
@@ -616,20 +598,16 @@ if (count > 1 && !replaceAll) {
 const result = text.split(oldStr).join(newStr);
 fs.writeFileSync(filePath, result, 'utf-8');
 console.log(count);
-"`;
+"`
 }
 
 /**
  * Node.js command template for grep operations.
  */
-function buildGrepCommand(
-  pattern: string,
-  searchPath: string,
-  globPattern: string | null,
-): string {
-  const patternB64 = utf8ToBase64(pattern);
-  const pathB64 = utf8ToBase64(searchPath);
-  const globB64 = globPattern ? utf8ToBase64(globPattern) : "";
+function buildGrepCommand(pattern: string, searchPath: string, globPattern: string | null): string {
+  const patternB64 = utf8ToBase64(pattern)
+  const pathB64 = utf8ToBase64(searchPath)
+  const globB64 = globPattern ? utf8ToBase64(globPattern) : ''
 
   return `node -e "
 const fs = require('fs');
@@ -637,7 +615,7 @@ const path = require('path');
 
 const pattern = Buffer.from('${patternB64}', 'base64').toString('utf-8');
 const searchPath = Buffer.from('${pathB64}', 'base64').toString('utf-8');
-const globPattern = ${globPattern ? `Buffer.from('${globB64}', 'base64').toString('utf-8')` : "null"};
+const globPattern = ${globPattern ? `Buffer.from('${globB64}', 'base64').toString('utf-8')` : 'null'};
 
 let regex;
 try {
@@ -695,7 +673,7 @@ try {
 } catch (e) {
   // Silent failure
 }
-"`;
+"`
 }
 
 /**
@@ -711,35 +689,46 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
   public workingDirectory: string
 
   /** Unique identifier for the sandbox backend */
-  abstract readonly id: string;
+  abstract readonly id: string
+
+  /**
+   * Internal hook for file/search operations. Concrete backends can override
+   * this to distinguish "background helper commands" from user-facing shell
+   * execute calls.
+   */
+  protected executeOperation(command: string, options?: SandboxExecutionOptions): MaybePromise<ExecuteResponse> {
+    return this.execute(command, options)
+  }
 
   /**
    * Execute a command in the sandbox.
    * This is the only method concrete implementations must provide.
    */
-  abstract execute(command: string): MaybePromise<ExecuteResponse>;
+  abstract execute(command: string, options?: SandboxExecutionOptions): MaybePromise<ExecuteResponse>
 
-  async streamExecute(command: string, onLine: (line: string) => void): Promise<ExecuteResponse> {
-    const result = await this.execute(command);
+  async streamExecute(
+    command: string,
+    onLine: (line: string) => void,
+    options?: SandboxExecutionOptions
+  ): Promise<ExecuteResponse> {
+    const result = await this.execute(command, options)
     if (result.output) {
-      onLine(result.output);
+      onLine(result.output)
     }
-    return result;
+    return result
   }
 
   /**
    * Upload multiple files to the sandbox.
    * Implementations must support partial success.
    */
-  abstract uploadFiles(
-    files: Array<[string, Uint8Array]>,
-  ): MaybePromise<FileUploadResponse[]>;
+  abstract uploadFiles(files: Array<[string, Uint8Array]>): MaybePromise<FileUploadResponse[]>
 
   /**
    * Download multiple files from the sandbox.
    * Implementations must support partial success.
    */
-  abstract downloadFiles(paths: string[]): MaybePromise<FileDownloadResponse[]>;
+  abstract downloadFiles(paths: string[]): MaybePromise<FileDownloadResponse[]>
 
   /**
    * List files and directories in the specified directory (non-recursive).
@@ -748,33 +737,31 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
    * @returns List of FileInfo objects for files and directories directly in the directory.
    */
   async lsInfo(path: string): Promise<FileInfo[]> {
-    const command = buildLsCommand(path);
-    const result = await this.execute(command);
+    const command = buildLsCommand(path)
+    const result = await this.executeOperation(command, FILE_OPERATION_EXECUTION_OPTIONS)
 
     if (result.exitCode !== 0) {
-      return [];
+      return []
     }
 
-    const infos: FileInfo[] = [];
-    const lines = result.output.trim().split("\n").filter(Boolean);
+    const infos: FileInfo[] = []
+    const lines = result.output.trim().split('\n').filter(Boolean)
 
     for (const line of lines) {
       try {
-        const parsed = JSON.parse(line);
+        const parsed = JSON.parse(line)
         infos.push({
           path: parsed.path,
           is_dir: parsed.isDir,
           size: parsed.size,
-          modified_at: parsed.mtime
-            ? new Date(parsed.mtime).toISOString()
-            : undefined,
-        });
+          modified_at: parsed.mtime ? new Date(parsed.mtime).toISOString() : undefined
+        })
       } catch {
         // Skip invalid JSON lines
       }
     }
 
-    return infos;
+    return infos
   }
 
   /**
@@ -786,32 +773,27 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
    * @param depth - Maximum depth to traverse (default: 2)
    * @returns Human-readable directory tree with indentation
    */
-  async listDir(
-    dirPath: string,
-    offset: number = 1,
-    limit: number = 25,
-    depth: number = 2,
-  ): Promise<string> {
+  async listDir(dirPath: string, offset: number = 1, limit: number = 25, depth: number = 2): Promise<string> {
     if (offset < 1) {
-      return "Error: offset must be a 1-indexed entry number";
+      return 'Error: offset must be a 1-indexed entry number'
     }
 
     if (limit < 1) {
-      return "Error: limit must be greater than zero";
+      return 'Error: limit must be greater than zero'
     }
 
     if (depth < 1) {
-      return "Error: depth must be greater than zero";
+      return 'Error: depth must be greater than zero'
     }
 
-    const command = buildListDirCommand(dirPath, offset, limit, depth);
-    const result = await this.execute(command);
+    const command = buildListDirCommand(dirPath, offset, limit, depth)
+    const result = await this.executeOperation(command, FILE_OPERATION_EXECUTION_OPTIONS)
 
     if (result.exitCode !== 0) {
-      return result.output || `Error: Failed to list directory '${dirPath}'`;
+      return result.output || `Error: Failed to list directory '${dirPath}'`
     }
 
-    return result.output;
+    return result.output
   }
 
   /**
@@ -829,225 +811,197 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
     offset: number = 1,
     limit: number = 2000,
     mode: ReadMode = 'slice',
-    indentation?: IndentationOptions,
+    indentation?: IndentationOptions
   ): Promise<string> {
-    const command = mode === 'indentation'
-      ? buildIndentationReadCommand(filePath, offset, limit, indentation ?? {})
-      : buildSliceReadCommand(filePath, offset, limit);
-    const result = await this.execute(command);
+    const command =
+      mode === 'indentation'
+        ? buildIndentationReadCommand(filePath, offset, limit, indentation ?? {})
+        : buildSliceReadCommand(filePath, offset, limit)
+    const result = await this.executeOperation(command, FILE_OPERATION_EXECUTION_OPTIONS)
 
     if (result.exitCode !== 0) {
-      return result.output || `Error: File '${filePath}' not found`;
+      return result.output || `Error: File '${filePath}' not found`
     }
 
-    return result.output;
+    return result.output
   }
 
   /**
    * Structured search results or error string for invalid input.
    */
-  async grepRaw(
-    pattern: string,
-    path: string = "/",
-    include: string | null = null,
-  ): Promise<GrepMatch[] | string> {
-    const command = buildGrepCommand(pattern, path, include);
-    const result = await this.execute(command);
+  async grepRaw(pattern: string, path: string = '/', include: string | null = null): Promise<GrepMatch[] | string> {
+    const command = buildGrepCommand(pattern, path, include)
+    const result = await this.executeOperation(command, FILE_SEARCH_EXECUTION_OPTIONS)
 
     if (result.exitCode === 1) {
       // Check if it's a regex error
-      if (result.output.includes("Invalid regex:")) {
-        return result.output.trim();
+      if (result.output.includes('Invalid regex:')) {
+        return result.output.trim()
       }
     }
 
-    const matches: GrepMatch[] = [];
-    const lines = result.output.trim().split("\n").filter(Boolean);
+    const matches: GrepMatch[] = []
+    const lines = result.output.trim().split('\n').filter(Boolean)
 
     for (const line of lines) {
       try {
-        const parsed = JSON.parse(line);
+        const parsed = JSON.parse(line)
         matches.push({
           path: parsed.path,
           line: parsed.line,
-          text: parsed.text,
-        });
+          text: parsed.text
+        })
       } catch {
         // Skip invalid JSON lines
       }
     }
 
-    return matches;
+    return matches
   }
 
   /**
    * Search file contents for a regex pattern, returning human-readable output.
    */
-  async grep(
-    pattern: string,
-    path: string = "/",
-    include: string | null = null,
-  ): Promise<string> {
-    const result = await this.grepRaw(pattern, path, include);
+  async grep(pattern: string, path: string = '/', include: string | null = null): Promise<string> {
+    const result = await this.grepRaw(pattern, path, include)
 
-    if (typeof result === "string") {
-      return result;
+    if (typeof result === 'string') {
+      return result
     }
 
     if (result.length === 0) {
-      return "No matches found";
+      return 'No matches found'
     }
 
-    return formatGrepOutput(result);
+    return formatGrepOutput(result)
   }
 
   /**
    * Structured glob matching returning FileInfo objects.
    */
-  async globInfo(pattern: string, path: string = "/"): Promise<FileInfo[]> {
-    const command = buildGlobCommand(path, pattern);
-    const result = await this.execute(command);
+  async globInfo(pattern: string, path: string = '/'): Promise<FileInfo[]> {
+    const command = buildGlobCommand(path, pattern)
+    const result = await this.executeOperation(command, FILE_SEARCH_EXECUTION_OPTIONS)
 
-    const infos: FileInfo[] = [];
-    const lines = result.output.trim().split("\n").filter(Boolean);
+    const infos: FileInfo[] = []
+    const lines = result.output.trim().split('\n').filter(Boolean)
 
     for (const line of lines) {
       try {
-        const parsed = JSON.parse(line);
+        const parsed = JSON.parse(line)
         infos.push({
           path: parsed.path,
           is_dir: parsed.isDir,
           size: parsed.size,
-          modified_at: parsed.mtime
-            ? new Date(parsed.mtime).toISOString()
-            : undefined,
-        });
+          modified_at: parsed.mtime ? new Date(parsed.mtime).toISOString() : undefined
+        })
       } catch {
         // Skip invalid JSON lines
       }
     }
 
-    return infos;
+    return infos
   }
 
   /**
    * Find files matching a glob pattern, returning human-readable output.
    */
-  async glob(pattern: string, path: string = "/"): Promise<string> {
-    const files = await this.globInfo(pattern, path);
+  async glob(pattern: string, path: string = '/'): Promise<string> {
+    const files = await this.globInfo(pattern, path)
 
     if (files.length === 0) {
-      return "No files found";
+      return 'No files found'
     }
 
-    return formatGlobOutput(files, pattern);
+    return formatGlobOutput(files, pattern)
   }
 
   /**
    * Create a new file with content.
    */
   async write(filePath: string, content: string): Promise<WriteResult> {
-    const command = buildWriteCommand(filePath, content);
-    const result = await this.execute(command);
+    const command = buildWriteCommand(filePath, content)
+    const result = await this.executeOperation(command, FILE_OPERATION_EXECUTION_OPTIONS)
 
     if (result.exitCode !== 0) {
-      const output = (result.output || "").trim();
+      const output = (result.output || '').trim()
       if (output.includes(WRITE_EXISTS_OUTPUT)) {
         return {
-          error: `Cannot write to ${filePath} because it already exists. Read and then make an edit, or write to a new path.`,
-        };
+          error: `Cannot write to ${filePath} because it already exists. Read and then make an edit, or write to a new path.`
+        }
       }
-      const fallback = await this.writeViaUpload(filePath, content);
+      const fallback = await this.writeViaUpload(filePath, content)
       if (!fallback.error) {
-        return fallback;
+        return fallback
       }
       return {
-        error: output
-          ? `Failed to write file '${filePath}': ${output}`
-          : `Failed to write file '${filePath}'.`,
-      };
+        error: output ? `Failed to write file '${filePath}': ${output}` : `Failed to write file '${filePath}'.`
+      }
     }
 
-    return { path: filePath, filesUpdate: null };
+    return { path: filePath, filesUpdate: null }
   }
 
-  private async writeViaUpload(
-    filePath: string,
-    content: string,
-  ): Promise<WriteResult> {
-    const existsCheck = await this.execute(buildExistsCommand(filePath));
+  private async writeViaUpload(filePath: string, content: string): Promise<WriteResult> {
+    const existsCheck = await this.executeOperation(buildExistsCommand(filePath), FILE_OPERATION_EXECUTION_OPTIONS)
     if (existsCheck.exitCode === 0) {
       return {
-        error: `Cannot write to ${filePath} because it already exists. Read and then make an edit, or write to a new path.`,
-      };
+        error: `Cannot write to ${filePath} because it already exists. Read and then make an edit, or write to a new path.`
+      }
     }
 
-    const uploads = await this.uploadFiles([
-      [filePath, Buffer.from(content, "utf-8")],
-    ]);
-    const first = uploads[0];
+    const uploads = await this.uploadFiles([[filePath, Buffer.from(content, 'utf-8')]])
+    const first = uploads[0]
 
     if (!first) {
-      return { error: `Failed to write file '${filePath}': upload returned no result.` };
+      return { error: `Failed to write file '${filePath}': upload returned no result.` }
     }
     if (first.error) {
-      return { error: `Failed to write file '${filePath}': ${first.error}` };
+      return { error: `Failed to write file '${filePath}': ${first.error}` }
     }
 
-    return { path: filePath, filesUpdate: null };
+    return { path: filePath, filesUpdate: null }
   }
 
   /**
    * Append content to a file. Creates the file if it doesn't exist.
    */
   async append(filePath: string, content: string): Promise<WriteResult> {
-    const command = buildAppendCommand(filePath, content);
-    const result = await this.execute(command);
+    const command = buildAppendCommand(filePath, content)
+    const result = await this.executeOperation(command, FILE_OPERATION_EXECUTION_OPTIONS)
 
     if (result.exitCode !== 0) {
-      const output = (result.output || "").trim();
+      const output = (result.output || '').trim()
       return {
-        error: output
-          ? `Failed to append to file '${filePath}': ${output}`
-          : `Failed to append to file '${filePath}'.`,
-      };
+        error: output ? `Failed to append to file '${filePath}': ${output}` : `Failed to append to file '${filePath}'.`
+      }
     }
 
-    return { path: filePath, filesUpdate: null };
+    return { path: filePath, filesUpdate: null }
   }
 
   /**
    * Edit a file by replacing string occurrences.
    */
-  async edit(
-    filePath: string,
-    oldString: string,
-    newString: string,
-    replaceAll: boolean = false,
-  ): Promise<EditResult> {
-    const command = buildEditCommand(
-      filePath,
-      oldString,
-      newString,
-      replaceAll,
-    );
-    const result = await this.execute(command);
+  async edit(filePath: string, oldString: string, newString: string, replaceAll: boolean = false): Promise<EditResult> {
+    const command = buildEditCommand(filePath, oldString, newString, replaceAll)
+    const result = await this.executeOperation(command, FILE_OPERATION_EXECUTION_OPTIONS)
 
     switch (result.exitCode) {
       case 0: {
-        const occurrences = parseInt(result.output.trim(), 10) || 1;
-        return { path: filePath, filesUpdate: null, occurrences };
+        const occurrences = parseInt(result.output.trim(), 10) || 1
+        return { path: filePath, filesUpdate: null, occurrences }
       }
       case 1:
-        return { error: `String not found in file '${filePath}'` };
+        return { error: `String not found in file '${filePath}'` }
       case 2:
         return {
-          error: `Multiple occurrences found in '${filePath}'. Use replaceAll=true to replace all.`,
-        };
+          error: `Multiple occurrences found in '${filePath}'. Use replaceAll=true to replace all.`
+        }
       case 3:
-        return { error: `Error: File '${filePath}' not found` };
+        return { error: `Error: File '${filePath}' not found` }
       default:
-        return { error: `Unknown error editing file '${filePath}'` };
+        return { error: `Unknown error editing file '${filePath}'` }
     }
   }
 
@@ -1056,27 +1010,19 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
    * All edits are applied sequentially, with each edit operating on the result of the previous edit.
    * All edits must succeed for the operation to succeed (atomic).
    */
-  async multiEdit(
-    filePath: string,
-    edits: EditOperation[],
-  ): Promise<MultiEditResult> {
+  async multiEdit(filePath: string, edits: EditOperation[]): Promise<MultiEditResult> {
     if (!edits || edits.length === 0) {
       return {
-        error: "No edits provided",
-      };
+        error: 'No edits provided'
+      }
     }
 
-    const results: EditResult[] = [];
+    const results: EditResult[] = []
 
     for (const edit of edits) {
-      const result = await this.edit(
-        filePath,
-        edit.oldString,
-        edit.newString,
-        edit.replaceAll ?? false,
-      );
+      const result = await this.edit(filePath, edit.oldString, edit.newString, edit.replaceAll ?? false)
 
-      results.push(result);
+      results.push(result)
 
       // If any edit fails, return immediately with error
       if (result.error) {
@@ -1084,8 +1030,8 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
           error: `Multi-edit failed at edit ${results.length}: ${result.error}`,
           path: filePath,
           filesUpdate: null,
-          results,
-        };
+          results
+        }
       }
     }
 
@@ -1093,7 +1039,7 @@ export abstract class BaseSandbox implements SandboxBackendProtocol {
     return {
       path: filePath,
       filesUpdate: null,
-      results,
-    };
+      results
+    }
   }
 }
