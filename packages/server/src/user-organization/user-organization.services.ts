@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { IUser, IUserOrganization, RolesEnum } from '@metad/contracts';
 import { TenantAwareCrudService } from './../core/crud';
-import { Organization, User, UserOrganization } from './../core/entities/internal';
+import { Organization, UserOrganization } from './../core/entities/internal';
 
 @Injectable()
 export class UserOrganizationService extends TenantAwareCrudService<UserOrganization> {
@@ -61,15 +61,28 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		)
 
 		if (missingOrganizationIds.length) {
-			const createdMemberships = await this.repository.save(
-				missingOrganizationIds.map((organizationId) =>
-					this.repository.create({
+			await this.repository
+				.createQueryBuilder()
+				.insert()
+				.into(UserOrganization)
+				.values(
+					missingOrganizationIds.map((organizationId) => ({
 						tenantId,
 						userId,
 						organizationId
-					})
+					}))
 				)
-			)
+				.orIgnore()
+				.execute()
+
+			const createdMemberships = await this.repository.find({
+				where: missingOrganizationIds.map((organizationId) => ({
+					tenantId,
+					userId,
+					organizationId
+				}))
+			})
+
 			for (const membership of createdMemberships) {
 				membershipByOrganizationId.set(membership.organizationId, membership)
 			}
