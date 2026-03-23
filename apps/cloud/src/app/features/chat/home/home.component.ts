@@ -126,6 +126,7 @@ export class ChatHomeComponent {
     compute: () => this.#projects()?.projects,
     update: (projects) => {}
   })
+  readonly previewProjects = computed(() => this.projects()?.slice(0, 5))
   readonly projectLoading = linkedModel({
     initialValue: false,
     compute: () => this.#projects()?.loading,

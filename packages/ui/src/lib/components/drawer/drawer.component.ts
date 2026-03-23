@@ -19,10 +19,10 @@ export type ZardDrawerPosition = 'start' | 'end';
   styles: `
     z-drawer {
       --z-drawer-size: 20rem;
-      --z-drawer-bg: var(--ngm-color-surface-container, var(--ngm-color-surface, var(--color-components-panel-bg, white)));
-      --z-drawer-border-color: var(--ngm-color-border, var(--ngm-color-outline-variant, rgba(148, 163, 184, 0.24)));
+      --z-drawer-bg: var(--popover, var(--card, white));
+      --z-drawer-border-color: var(--border);
       --z-drawer-radius: 0;
-      --z-drawer-shadow: 0 24px 48px rgba(15, 23, 42, 0.18);
+      --z-drawer-shadow: 0 24px 48px color-mix(in oklab, var(--foreground) 18%, transparent);
 
       position: relative;
       z-index: 2;
@@ -176,7 +176,7 @@ export class ZardDrawerComponent {
   },
   styles: `
     z-drawer-content {
-      --z-drawer-content-bg: var(--ngm-color-surface, var(--color-components-card-bg, transparent));
+      --z-drawer-content-bg: var(--background, transparent);
       --z-drawer-radius: 0;
 
       position: relative;
@@ -242,7 +242,7 @@ export class ZardDrawerContentComponent {}
       position: absolute;
       inset: 0;
       z-index: 1;
-      background: rgba(15, 23, 42, 0.18);
+      background: color-mix(in oklab, var(--foreground) 18%, transparent);
       backdrop-filter: blur(2px);
     }
   `,

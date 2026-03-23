@@ -2,10 +2,10 @@
 
 @use 'sass:map';
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 @reference "tailwindcss";
 @mixin color($theme) {
-  $config: mat.m2-get-color-config($theme);
+  $config: themeCompat.m2-get-color-config($theme);
 
   $primary: map.get($config, 'primary');
   $accent: map.get($config, 'accent');
@@ -13,7 +13,7 @@
   $foreground: map.get($config, foreground);
 
   .pac-home__quick-guide {
-    border-top: 3px solid mat.m2-get-color-from-palette($accent);
+    border-top: 3px solid themeCompat.m2-get-color-from-palette($accent);
     border-radius: 3px;
     min-height: 100px;
   }
@@ -21,7 +21,7 @@
   .assets-list {
     > li {
       &:hover {
-        background-color: mat.m2-get-color-from-palette($background, hover);
+        background-color: themeCompat.m2-get-color-from-palette($background, hover);
       }
     }
   }
@@ -45,17 +45,17 @@
     }
 
     .ranking {
-      background-color: color.change(mat.m2-get-color-from-palette($accent, 100), $alpha: 0.1);
-      color: mat.m2-get-color-from-palette($accent, 500);
+      background-color: color.change(themeCompat.m2-get-color-from-palette($accent, 100), $alpha: 0.1);
+      color: themeCompat.m2-get-color-from-palette($accent, 500);
     }
   }
 
   .pac-story-widget-feed {
     .ngm-story-widget__content {
       &.ngm-story-widget__card, &.ngm-story-widget__table {
-        background: mat.m2-get-color-from-palette($background, card);
+        background: themeCompat.m2-get-color-from-palette($background, card);
         border-radius: 5px;
-        color: mat.m2-get-color-from-palette($foreground, text);
+        color: themeCompat.m2-get-color-from-palette($foreground, text);
         @apply shadow-sm;
       }
     }
@@ -70,9 +70,9 @@
 }
 
 @mixin theme($theme) {
-  $color: mat.m2-get-color-config($theme);
-  $density: mat.m2-get-density-config($theme);
-  $typography: mat.m2-get-typography-config($theme);
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

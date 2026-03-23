@@ -2,7 +2,8 @@
   --ngm-primary-container-rounded: 0; // @deprecated
 }
 
-:root .default, :root .light {
+:root[data-theme='light'],
+[data-theme='light'] {
   --radius: 0.625rem;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -28,6 +29,7 @@
   --color-components-panel-bg-blur: hsla(0, 0%, 100%, 0.9);
   --color-components-panel-border: #10182814;
   --color-components-card-bg: white;
+  --color-overlay-backdrop-strong: color-mix(in oklab, theme('colors.neutral.950') 45%, transparent);
   --color-components-button-primary-text: white;
   --color-components-button-primary-border: theme('colors.blue.600');
   --color-components-button-primary-bg: theme('colors.blue.600');
@@ -118,7 +120,8 @@
   --sidebar-ring: var(--ring);
 }
 
-:root .dark {
+:root[data-theme='dark'],
+[data-theme='dark'] {
   --radius: 0.625rem;
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
@@ -130,7 +133,7 @@
   --ngm-color-on-surface-variant: #444746;
   --ngm-color-surface: #16181c;
   --ngm-color-surface-container-low: #62626210;
-  --ngm-color-surface-container: black;
+  --ngm-color-surface-container: theme('colors.neutral.800');
   --ngm-color-surface-container-high: #24292f;
   --ngm-color-surface-container-highest: #2f353c;
   --ngm-color-outline-variant: theme('colors.neutral.800');
@@ -143,6 +146,7 @@
   --color-components-panel-bg: #222225;
   --color-components-panel-border: theme('colors.neutral.600');
   --color-components-card-bg: #16181c;
+  --color-overlay-backdrop-strong: color-mix(in oklab, theme('colors.neutral.950') 72%, transparent);
   --color-components-button-primary-text: white;
   --color-components-button-primary-border: theme('colors.blue.500');
   --color-components-button-primary-bg: theme('colors.blue.500');

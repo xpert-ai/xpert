@@ -1,7 +1,7 @@
 @forward './breadcrumb/breadcrumb.theme' as breadcrumb-*;
 
 @use 'sass:map';
-@use 'libs/material-theme/src/styles/theme-compat' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 @use './splitter/splitter-theme' as splitter;
 @use './tabs/tabs-theme' as tabs;
 @use './appearance/appearance-theme' as appearance;
@@ -9,7 +9,7 @@
 @use './tree-select/tree-select-theme' as tree-select;
 
 @mixin common-color($config-or-theme) {
-  $config: mat.m2-get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $accent: map.get($config, accent);
 
   @include splitter.color($config-or-theme);

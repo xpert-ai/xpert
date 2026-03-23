@@ -10,8 +10,8 @@ export const formFieldVariants = cva('grid w-full grid-cols-[minmax(0,1fr)_auto]
     },
     zDisplayDensity: {
       comfortable: '',
-      cosy: 'ngm-density__cosy',
-      compact: 'ngm-density__compact gap-1.5',
+      cosy: '',
+      compact: 'gap-1.5',
     },
   },
   defaultVariants: {

@@ -20,10 +20,9 @@ import { Injectable, inject } from '@angular/core';
 import { StoreConfig, Store as AkitaStore, Query } from '@datorama/akita';
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions';
 import { distinctUntilChanged, map } from 'rxjs/operators';
-import { combineLatest } from 'rxjs';
 import { uniqBy } from 'lodash-es';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ThemesEnum, linkedModel, prefersColorScheme } from '@metad/ocap-angular/core';
+import { ThemesEnum, linkedModel, normalizeTheme, resolveTheme } from '@metad/ocap-angular/core';
 
 
 export interface AppState {
@@ -101,6 +100,7 @@ export function createInitialPersistState(): PersistState {
 	const serverConnection =
 		parseInt(localStorage.getItem('serverConnection')) || null;
 	const preferredLanguage = localStorage.getItem('preferredLanguage') || null;
+	const preferredTheme = normalizeTheme(localStorage.getItem('preferredTheme'));
 	const componentLayout = localStorage.getItem('componentLayout') || [];
 	const cacheLevel = localStorage.getItem('cacheLevel') || null;
 	const xpert = localStorage.getItem('xpert') || null;
@@ -112,6 +112,7 @@ export function createInitialPersistState(): PersistState {
 		organizationId,
 		serverConnection,
 		preferredLanguage,
+		preferredTheme,
 		componentLayout,
 		cacheLevel,
 		xpert,
@@ -182,10 +183,7 @@ export class Store {
 	preferredTheme$ = this.persistQuery.select(
 		(state) => state.preferredTheme
 	);
-	readonly primaryTheme$ = combineLatest([this.preferredTheme$.pipe(map((theme) => theme?.split('-')[0])), prefersColorScheme()])
-		.pipe(
-			map(([primary, systemColorScheme]) => (primary === ThemesEnum.system || !primary) ? systemColorScheme : primary)
-		)
+	readonly primaryTheme$ = this.preferredTheme$.pipe(map((theme) => resolveTheme(theme)), distinctUntilChanged())
 
 	systemLanguages$ = this.appQuery.select((state) => state.systemLanguages);
 	tenantSettings$ = this.appQuery.select((state) => state.tenantSettings);
@@ -451,7 +449,7 @@ export class Store {
 
 	set preferredTheme(preferredTheme) {
 		this.persistStore.update({
-			preferredTheme: preferredTheme
+			preferredTheme: normalizeTheme(preferredTheme)
 		});
 	}
 

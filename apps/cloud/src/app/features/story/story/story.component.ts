@@ -241,7 +241,7 @@ export class StoryDesignerComponent extends TranslationBaseComponent implements 
     .subscribe(async (echartsTheme) => {
       const story = await firstValueFrom(this.storyService.story$)
       const key = story.key || story.id
-      ;['light', 'dark', 'thin'].forEach((theme) => {
+      ;['light', 'dark'].forEach((theme) => {
         if (echartsTheme?.[theme]) {
           registerTheme(`${theme}-${key}`, echartsTheme[theme])
         }

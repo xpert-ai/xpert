@@ -8,11 +8,18 @@
   ngmDynamicGrid colWidth="280"
   box="content-box">
 
-  <ngm-card-create [title]="'PAC.Xpert.CreateAPITool' | translate: {Default: 'Create API Toolset'}"
+  <ngm-card-create
+    class="workspace-create-card"
+    [title]="'PAC.Xpert.CreateToolset' | translate: {Default: 'Create Toolset'}"
     [helpTitle]="'PAC.Xpert.LearnCreateAPITool' | translate: {Default: 'Learn more about API toolset'}"
     helpUrl="/docs/ai/tool/custom/"
     (create)="createTool()"
-  />
+  >
+    <div class="mb-1 flex items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary hover:bg-hover-bg hover:text-primary-600">
+      <i class="ri-add-line mr-2 shrink-0 text-base"></i>
+      {{ 'PAC.Xpert.CreateAPITool' | translate: {Default: 'Create API Toolset'} }}
+    </div>
+  </ngm-card-create>
 
   @for (toolset of apiToolsets(); track toolset.id) {
     <xpert-toolset-card class="col-span-1 min-h-[160px] cursor-pointer bg-components-card-bg"

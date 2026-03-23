@@ -33,6 +33,7 @@ export type ZardFormFieldColor = 'primary' | 'accent' | 'warn' | string | null |
   encapsulation: ViewEncapsulation.None,
   host: {
     '[class]': 'classes()',
+    '[attr.data-density]': 'resolvedDisplayDensity()',
   },
   exportAs: 'zFormField',
 })
@@ -45,7 +46,7 @@ export class ZardFormFieldComponent {
   readonly hideRequiredMarker = input(false, { transform: booleanAttribute });
   readonly subscriptSizing = input<string | null>(null);
 
-  private readonly resolvedDisplayDensity = computed<ZardFormFieldDisplayDensityVariants>(() => {
+  protected readonly resolvedDisplayDensity = computed<ZardFormFieldDisplayDensityVariants>(() => {
     const value = this.displayDensity();
     return value === 'compact' || value === 'cosy' ? value : 'comfortable';
   });

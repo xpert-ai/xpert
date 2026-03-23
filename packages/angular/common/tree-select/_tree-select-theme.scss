@@ -1,9 +1,9 @@
 @use 'sass:map';
 @use 'sass:color';
-@use 'libs/material-theme/src/styles/theme-compat' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 @mixin color($config-or-theme) {
-  $config: mat.m2-get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $primary: map.get($config, 'primary');
   $background: map.get($config, background);
 
@@ -20,12 +20,12 @@
 
         &:hover,
         &:focus {
-          background-color: color.change(mat.m2-get-color-from-palette($background, hover), $alpha: 0.03);
-          // color: mat.m2-get-color-from-palette($primary);
+          background-color: color.change(themeCompat.m2-get-color-from-palette($background, hover), $alpha: 0.03);
+          // color: themeCompat.m2-get-color-from-palette($primary);
         }
 
         &.selected {
-          background-color: color.change(mat.m2-get-color-from-palette($background, hover), $alpha: 0.05);
+          background-color: color.change(themeCompat.m2-get-color-from-palette($background, hover), $alpha: 0.05);
         }
       }
     }
@@ -34,17 +34,17 @@
   .ngm-tree-select__panel {
     .ngm-tree-select__option {
       .z-icon-rtl-mirror {
-        color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.3);
+        color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.3);
       }
 
       &:hover,
       &:focus {
-        background-color: color.change(mat.m2-get-color-from-palette($background, hover), $alpha: 0.03);
+        background-color: color.change(themeCompat.m2-get-color-from-palette($background, hover), $alpha: 0.03);
       }
 
       &.selected {
-        background-color: color.change(mat.m2-get-color-from-palette($primary), $alpha: 0.08);
-        color: mat.m2-get-color-from-palette($primary);
+        background-color: color.change(themeCompat.m2-get-color-from-palette($primary), $alpha: 0.08);
+        color: themeCompat.m2-get-color-from-palette($primary);
       }
     }
   }

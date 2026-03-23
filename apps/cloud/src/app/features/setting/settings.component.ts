@@ -82,7 +82,7 @@ export class PACSettingComponent {
       {
         link: 'chatbi',
         label: 'Chat BI',
-        icon: 'mms',
+        icon: 'try',
         data: {
           permissionKeys: [AIPermissionsEnum.XPERT_EDIT],
           featureKey: [AiFeatureEnum.FEATURE_XPERT, AnalyticsFeatures.FEATURE_MODEL]

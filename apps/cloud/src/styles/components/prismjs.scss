@@ -2,10 +2,12 @@
 
 @use "sass:meta";
 @reference "tailwindcss";
-body.light {
+:root[data-theme='light'],
+[data-theme='light'] {
   @include meta.load-css("prismjs/themes/prism-tomorrow.min.css");
 }
-body.dark {
+:root[data-theme='dark'],
+[data-theme='dark'] {
   @include meta.load-css("prismjs/themes/prism-okaidia.min.css");
 }
 

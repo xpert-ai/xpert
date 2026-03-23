@@ -3,7 +3,8 @@ import { DOCUMENT } from '@angular/common'
 import { ChangeDetectionStrategy, Component, Inject, Renderer2, effect } from '@angular/core'
 import { Title } from '@angular/platform-browser'
 import { AppService } from './app.service'
-import { ThemesEnum } from '@metad/ocap-angular/core'
+
+const LEGACY_THEME_CLASSES = ['default', 'light', 'dark', 'thin', 'system', 'dark-green']
 
 @Component({
   standalone: false,
@@ -26,24 +27,24 @@ export class AppComponent {
   ) {
     effect(() => {
       const isMobile = this.isMobile$()
-      const { preferredTheme, primary } = this.appService.theme$()
-      const theme = `ngm-theme-${preferredTheme} ${primary} ${preferredTheme}`
+      const { primary } = this.appService.theme$()
+      const root = this.document.documentElement
 
-      // for body's class
+      root.dataset.theme = primary
+
+      const rootThemeClasses = Array.from(root.classList).filter((item: string) => LEGACY_THEME_CLASSES.includes(item))
+      if (rootThemeClasses.length) {
+        root.classList.remove(...rootThemeClasses)
+      }
+
       const body = this.document.getElementsByTagName('body')[0]
       const bodyThemeClasses = Array.from(body.classList).filter(
-        (item: string) => item.includes('-theme') || item in ThemesEnum
+        (item: string) => item.startsWith('ngm-theme-') || LEGACY_THEME_CLASSES.includes(item)
       )
 
       if (bodyThemeClasses.length) {
         body.classList.remove(...bodyThemeClasses)
       }
-      theme
-        .split(' ')
-        .filter(Boolean)
-        .forEach((value) => {
-          this.renderer.addClass(body, value)
-        })
 
       // for mobile
       if (isMobile && (this.platform.IOS || this.platform.ANDROID)) {

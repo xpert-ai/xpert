@@ -26,7 +26,8 @@ z-dialog.small {
 }
 
 .cdk-overlay-backdrop.backdrop-blur-lg-white {
-  @apply backdrop-blur-lg transition-all duration-100 ease-in bg-white/60;
+  @apply backdrop-blur-lg transition-all duration-100 ease-in;
+  background-color: var(--color-overlay-backdrop-strong);
 }
 
 .cdk-overlay-backdrop.xp-overlay-share-sheet {

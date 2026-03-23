@@ -14,7 +14,7 @@ body {
     }
 
     ::-webkit-scrollbar-thumb {
-      background-color: var(--sb-col, rgba(0, 0, 0, 0.12));
+      background-color: var(--ngm-scrollbar-color, var(--color-divider-deep));
       background-clip: padding-box;
       border-radius: 6px;
       border: 2px solid transparent;
@@ -27,12 +27,6 @@ body {
     ::-webkit-scrollbar-corner {
       background: transparent;
     }
-
-    .ngm-theme-dark {
-      ::-webkit-scrollbar-thumb {
-        background-color: rgba(255, 255, 255, 0.12);
-      }
-    }
   }
 }
 
@@ -43,5 +37,5 @@ body {
  */
 * {
   scrollbar-width: thin;
-  scrollbar-color: var(--ngm-scrollbar-color, rgba(0, 0, 0, 0.12)) transparent;
+  scrollbar-color: var(--ngm-scrollbar-color, var(--color-divider-deep)) transparent;
 }

@@ -17,7 +17,6 @@
 //     { value: ThemesEnum.default, label: 'Default' },
 //     { value: ThemesEnum.dark, label: 'Dark' },
 //     // { value: 'cosmic', label: 'Cosmic' },
-//     // { value: ThemesEnum.thin, label: 'Thin' }
 //   ]
 //   languages = LANGUAGES
 

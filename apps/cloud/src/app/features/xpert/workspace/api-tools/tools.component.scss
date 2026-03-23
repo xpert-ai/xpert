@@ -6,3 +6,47 @@
 .xpert-card-container {
   @apply relative content-start gap-4 px-12 pt-2 pb-4 grow shrink-0;
 }
+
+:host ::ng-deep ngm-card-create.workspace-create-card {
+  @apply col-span-1;
+}
+
+:host ::ng-deep ngm-card-create.workspace-create-card > div {
+  @apply relative flex min-h-[160px] flex-col justify-between rounded-xl border-[0.5px] border-components-panel-border bg-components-card-bg shadow-sm transition-all duration-200 ease-in-out hover:shadow-lg;
+}
+
+:host ::ng-deep ngm-card-create.workspace-create-card > div > .group {
+  @apply grow rounded-t-xl p-2 hover:bg-transparent;
+}
+
+:host ::ng-deep ngm-card-create.workspace-create-card > div > .group > div:first-child {
+  @apply px-6 pt-2 pb-1;
+}
+
+:host ::ng-deep ngm-card-create.workspace-create-card > div > .group > div:first-child > div:first-child {
+  @apply hidden;
+}
+
+:host ::ng-deep ngm-card-create.workspace-create-card > div > .group > div:first-child > div:last-child {
+  @apply ml-0 text-sm font-medium leading-[18px] text-text-tertiary group-hover:text-text-tertiary;
+}
+
+:host ::ng-deep ngm-card-create.workspace-create-card > div > div:last-child {
+  @apply rounded-b-xl border-t-[0.5px] border-components-panel-border p-2 text-inherit hover:bg-transparent;
+}
+
+:host ::ng-deep ngm-card-create.workspace-create-card > div > div:last-child a {
+  @apply flex items-center rounded-lg px-6 py-[7px] text-[13px] font-medium leading-[18px] text-text-secondary;
+}
+
+:host ::ng-deep ngm-card-create.workspace-create-card > div > div:last-child a:hover {
+  @apply bg-hover-bg text-primary-600;
+}
+
+:host ::ng-deep ngm-card-create.workspace-create-card > div > div:last-child a > div {
+  @apply text-[13px] font-medium leading-[18px];
+}
+
+:host ::ng-deep ngm-card-create.workspace-create-card > div > div:last-child a > svg:last-child {
+  @apply hidden;
+}

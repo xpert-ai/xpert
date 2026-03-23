@@ -32,7 +32,6 @@ export class ThemeBuilderComponent {
 
   c_light = ThemesEnum.light
   c_dark = ThemesEnum.dark
-  // c_thin = 'thin'
 
   activeLink = ThemesEnum.light
 

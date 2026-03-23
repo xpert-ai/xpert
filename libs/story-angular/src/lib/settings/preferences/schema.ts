@@ -283,7 +283,6 @@ export function StoryPreferencesFields(className: string, Story) {
           { value: null, label: Story?.Common?.Theme?.Default ?? 'Default' },
           { value: ThemesEnum.light, label: Story?.Common?.Theme?.Light ?? 'Light' },
           { value: ThemesEnum.dark, label: Story?.Common?.Theme?.Dark ?? 'Dark' }
-          // { value: 'thin', label: Story?.Common?.Theme?.Thin ?? 'Thin' } 需要改造 thin theme 暂时先禁用
         ]
       }
     },

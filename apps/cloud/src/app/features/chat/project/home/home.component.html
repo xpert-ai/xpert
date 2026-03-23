@@ -1,7 +1,7 @@
 <div
   class="max-w-[50rem] xl:max-w-[62rem] px-2 pt-16 mx-auto w-full flex-1 flex flex-col justify-between items-stretch gap-6"
 >
-  <div class="flex flex-col items-center sm:flex-row gap-6 sm:gap-1 w-full p-1 sticky top-0 bg-surface-container z-20">
+  <div class="flex flex-col items-center sm:flex-row gap-6 sm:gap-1 w-full p-1 px-2 -mx-2 sticky top-0 z-20">
     <div class="flex-1 flex items-center gap-1 sm:gap-2 justify-start group min-w-0 w-full">
       <emoji-avatar [editable]="editing()" class="rounded-xl overflow-hidden" [(ngModel)]="avatar" />
 
@@ -14,7 +14,7 @@
             [(ngModel)]="name"
           />
           <button
-            class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-full"
+            class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-text-secondary hover:text-text-primary hover:bg-hover-bg disabled:hover:text-text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-full"
             type="button"
             (click)="saveProject()"
           >
@@ -67,7 +67,7 @@
             (click)="fileDropRef.value = null"
           />
           <div
-            class="query-bar group max-w-[51rem] bg-components-card-bg ring-zinc-100 hover:ring-zinc-200 focus-within:ring-zinc-300 hover:focus-within:ring-zinc-300 duration-100 relative w-full overflow-hidden @container/input shadow shadow-black/5 ring-1 ring-inset focus-within:ring-1 pb-12 px-2 @[480px]/input:px-3 rounded-3xl"
+            class="query-bar group max-w-[51rem] bg-components-card-bg duration-100 relative w-full overflow-hidden @container/input shadow-sm sm:shadow-md border border-divider-regular hover:border-components-input-border-hover focus-within:border-components-input-border-active hover:focus-within:border-components-input-border-active pb-12 px-2 @[480px]/input:px-3 rounded-3xl"
           >
             @if (attachments()?.length) {
               <chat-attachments
@@ -100,7 +100,7 @@
               class="flex items-center gap-1.5 absolute inset-x-0 bottom-0 border-2 border-transparent p-2 @[480px]/input:p-2 max-w-full"
             >
               <button
-                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 h-9 rounded-full py-2 relative px-2 transition-all duration-150 bg-transparent border w-9 aspect-square border-toggle-border text-secondary hover:text-primary hover:bg-toggle-hover"
+                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-50 disabled:cursor-default [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 h-9 rounded-full py-2 relative px-2 transition-all duration-150 bg-transparent border w-9 aspect-square border-divider-deep text-text-secondary hover:text-text-primary hover:bg-button-ghost-hover"
                 type="button"
                 aria-label="Attach"
                 tabindex="0"
@@ -150,10 +150,10 @@
                   </button> -->
 
                   <div
-                    class="flex ring-1 rounded-full items-center max-h-[31px] box-border transition-colors duration-100 relative overflow-hidden ring-inset ring-zinc-200"
+                    class="flex rounded-full items-center max-h-[31px] box-border transition-colors duration-100 relative overflow-hidden border border-divider-deep"
                   >
                     <button
-                      class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default h-9 rounded-full px-3.5 py-2 group/ds-toggle transition-colors duration-100 focus-visible:ring-transparent box-border relative overflow-hidden rounded-r-none pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
+                      class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default h-9 rounded-full px-3.5 py-2 group/ds-toggle transition-colors duration-100 focus-visible:ring-transparent box-border relative overflow-hidden rounded-r-none pr-3 bg-transparent text-text-secondary hover:text-text-primary hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
                       type="button"
                       tabindex="0"
                     >
@@ -167,7 +167,7 @@
                     </button>
                     <div class="h-4 w-[1px] bg-divider-deep focus:outline-none" tabindex="-1"></div>
                     <button
-                      class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default text-primary h-9 rounded-full px-3.5 py-2 transition-colors duration-100 relative overflow-hidden focus-visible:ring-transparent rounded-l-none pl-2 pr-3 bg-transparent hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
+                      class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 disabled:opacity-60 disabled:cursor-default text-text-secondary h-9 rounded-full px-3.5 py-2 transition-colors duration-100 relative overflow-hidden focus-visible:ring-transparent rounded-l-none pl-2 pr-3 bg-transparent hover:text-text-primary hover:bg-button-ghost-hover focus-visible:bg-button-ghost-hover"
                       type="button"
                       [cdkMenuTriggerFor]="modeMenu"
                       [cdkMenuPosition]="[
@@ -256,7 +256,7 @@
     </div>
 
     <div dir="ltr" data-orientation="horizontal" class="flex-1 flex flex-col relative pt-1">
-      <div class="flex justify-between items-center sticky top-11 bg-surface-container z-20">
+      <div class="flex justify-between items-center sticky top-11 bg-components-panel-bg z-20">
         <div
           role="tablist"
           aria-orientation="horizontal"

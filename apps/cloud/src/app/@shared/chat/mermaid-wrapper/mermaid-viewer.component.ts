@@ -42,7 +42,7 @@ export class MermaidViewerComponent implements AfterViewInit, OnDestroy {
     if (!this.code || !container) return
 
     // Use cached SVG if available to avoid repeated rendering during streaming
-    const isDark = document.documentElement.classList.contains('dark')
+    const isDark = document.documentElement.dataset.theme === 'dark'
     const cacheKey = `${isDark ? 'dark' : 'light'}:${this.code}`
     const cached = svgCache.get(cacheKey)
     if (cached) {

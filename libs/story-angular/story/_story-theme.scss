@@ -1,5 +1,5 @@
 @use "sass:map";
-@use 'libs/material-theme/src/styles/theme-compat' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 
 @use 'story-point/story-point.component-theme';
 @use 'story-widget/story-widget.component-theme';
@@ -7,7 +7,7 @@
 $ease-in-out-curve-function: cubic-bezier(0.35, 0, 0.25, 1);
 
 @mixin color($config-or-theme) {
-  $config: mat.m2-get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $background: map.get($config, background);
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
@@ -19,7 +19,7 @@ $ease-in-out-curve-function: cubic-bezier(0.35, 0, 0.25, 1);
   @include story-widget.ngm-story-widget($config-or-theme);
 
   .ngm-story {
-    color: mat.m2-get-color-from-palette($foreground, text);
+    color: themeCompat.m2-get-color-from-palette($foreground, text);
   }
 
   .ngm-story__story-container {
@@ -62,7 +62,7 @@ $ease-in-out-curve-function: cubic-bezier(0.35, 0, 0.25, 1);
       .ngm-story__filter-bar-anchor,
       .ngm-story__filter-bar-header,
       .pac-widget-filter-bar {
-        background-color: mat.m2-get-color-from-palette($background, dialog);
+        background-color: themeCompat.m2-get-color-from-palette($background, dialog);
       }
 
       .ngm-smart-filter-bar--content {
@@ -116,10 +116,10 @@ $ease-in-out-curve-function: cubic-bezier(0.35, 0, 0.25, 1);
       transition: 0.3s opacity;
       transform: translate3d(0, 0, 0);
       .ngm-story__pagination-bullet {
-        background-color: mat.m2-get-color-from-palette($primary, 100);
+        background-color: themeCompat.m2-get-color-from-palette($primary, 100);
 
         &.ngm-story__pagination-bullet-active {
-          background-color: mat.m2-get-color-from-palette($accent);
+          background-color: themeCompat.m2-get-color-from-palette($accent);
         }
       }
     }
@@ -136,9 +136,9 @@ $ease-in-out-curve-function: cubic-bezier(0.35, 0, 0.25, 1);
 }
 
 @mixin theme($theme) {
-  $color: mat.m2-get-color-config($theme);
-  $density: mat.m2-get-density-config($theme);
-  $typography: mat.m2-get-typography-config($theme);
+  $color: themeCompat.m2-get-color-config($theme);
+  $density: themeCompat.m2-get-density-config($theme);
+  $typography: themeCompat.m2-get-typography-config($theme);
 
   @if $color != null {
     @include color($color);

@@ -1,5 +1,5 @@
 @use "sass:map";
-@use 'libs/material-theme/src/styles/theme-compat' as mat;
+@use 'libs/material-theme/src/styles/theme-compat' as themeCompat;
 @use 'libs/material-theme/src/styles/theme-compat' as theming;
 @use 'breadcrumb-variables';
 
@@ -34,15 +34,15 @@
 }
 
 @mixin color($config-or-theme) {
-  $config: mat.m2-get-color-config($config-or-theme);
+  $config: themeCompat.m2-get-color-config($config-or-theme);
   $foreground: map.get($config, foreground);
   $primary: map.get($config, primary);
 
   $step-background: map.get(map.get($config, background), background);
   $step-active-background: map.get($primary, 300);
   $step-hover-background: map.get($primary, 400);
-  $step-color: mat.m2-get-color-from-palette(map.get($config, background), darker); // map-get(map-get($config, foreground), text);
-  $step-active-color: mat.m2-get-color-from-palette($primary, '500-contrast'); // map-get(map-get($config, foreground), text);
+  $step-color: themeCompat.m2-get-color-from-palette(map.get($config, background), darker); // map-get(map-get($config, foreground), text);
+  $step-active-color: themeCompat.m2-get-color-from-palette($primary, '500-contrast'); // map-get(map-get($config, foreground), text);
   $step-divider-color: map.get(map.get($config, accent), 500);
 
   .ngm-breadcrumb-bar {
