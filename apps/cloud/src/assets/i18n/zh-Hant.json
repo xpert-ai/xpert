@@ -2245,6 +2245,11 @@
       "CreateAdminAndOrg": "創建您的超級管理員賬戶及默認組織。",
       "EnableFeatures": "啟用功能模塊",
       "EnableFeaturesDesc": "選擇您想要啟用的功能模塊，稍後也可以在系統設置中進行配置。",
+      "ConfigureAiModel": "配置 AI 模型",
+      "ConfigureAiModelDesc": "為 AI 智能助理配置主提供商並選擇默認模型。稍後您仍可以在系統設置中繼續完善。",
+      "ConfigureAiModelTitle": "讓您的 AI 智能助理準備就緒",
+      "ConfigureAiModelHint": "我們會先為您創建主提供商，然後您可以在這裡繼續填寫授權信息並選擇默認模型。",
+      "ConfigureAiModelAction": "開始配置",
       "SaveAndNext": "保存並下一步",
       "EnableFeaturesSuccess": "功能模塊設置成功！"
     },

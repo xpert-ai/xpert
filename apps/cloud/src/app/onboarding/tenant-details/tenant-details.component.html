@@ -198,6 +198,45 @@
   }
 
   <z-step [editable]="!loading()">
+    <ng-template zStepLabel>{{ 'PAC.Onboarding.ConfigureAiModel' | translate: {Default: 'Configure AI Model'} }}</ng-template>
+
+    <div class="w-full flex flex-col gap-4 relative">
+      <div class="description">
+        {{ 'PAC.Onboarding.ConfigureAiModelDesc' | translate: {Default: 'Set up your primary AI provider and choose a default model for the AI copilot. You can continue refining it later in settings.'} }}
+      </div>
+
+      @if (showAiModelForm()) {
+        <pac-copilot-form class="w-full" [copilot]="primaryCopilot()" onboarding (saved)="onAiModelSaved()" />
+      } @else {
+        <div class="rounded-xl border border-divider-regular bg-background-default-subtle p-5">
+          <div class="text-base font-medium text-text-primary">
+            {{ 'PAC.Onboarding.ConfigureAiModelTitle' | translate: {Default: 'Make your AI copilot ready to use'} }}
+          </div>
+          <div class="description mt-2">
+            {{ 'PAC.Onboarding.ConfigureAiModelHint' | translate: {Default: 'We will create your primary provider first, then you can add credentials and pick the default model in one place.'} }}
+          </div>
+
+          <div class="mt-4 flex items-center gap-4">
+            <button type="button" class="btn btn-primary btn-large" [disabled]="loading()" (click)="startAiModelSetup()">
+              {{ 'PAC.Onboarding.ConfigureAiModelAction' | translate: {Default: 'Start configuration'} }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <div class="flex items-center gap-4">
+        <button type="button" class="btn btn-secondary btn-large" [disabled]="loading()" (click)="skipAiModelSetup()">
+          {{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}
+        </button>
+      </div>
+
+      @if (loading()) {
+        <ngm-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
+      }
+    </div>
+  </z-step>
+
+  <z-step [editable]="!loading()">
     <ng-template zStepLabel>{{ 'PAC.Onboarding.Done' | translate: {Default: 'Done'} }}</ng-template>
     <div class="flex flex-col justify-start items-center gap-4">
       <div class="text-3xl text-bluegray-500 p-8">{{ 'PAC.Onboarding.AllSetup' | translate: {Default: 'You\'re all set up!'} }} </div>

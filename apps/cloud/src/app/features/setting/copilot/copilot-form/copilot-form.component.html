@@ -20,25 +20,33 @@
   <copilot-model-select class="w-full" formControlName="copilotModel" [copilot]="copilot()" [modelType]="defaultModelType()"
     [label]="'PAC.Copilot.DefaultModel' | translate: {Default: 'Default Model'}" />
 
-  <div class="w-full flex flex-col justify-start items-stretch">
-    <label>{{ 'PAC.Copilot.TokenLimitPerUser' | translate: {Default: 'Token Limit/User'} }}: {{tokenBalance | number}}</label>
-    <z-slider
-      min="0"
-      max="10000000"
-      step="10000"
-      [showValueLabel]="true"
-      [formatValue]="formatBalanceLabel"
-      formControlName="tokenBalance"
-    ></z-slider>
-  </div>
+  @if (!onboarding()) {
+    <div class="w-full flex flex-col justify-start items-stretch">
+      <label>{{ 'PAC.Copilot.TokenLimitPerUser' | translate: {Default: 'Token Limit/User'} }}: {{tokenBalance | number}}</label>
+      <z-slider
+        min="0"
+        max="10000000"
+        step="10000"
+        [showValueLabel]="true"
+        [formatValue]="formatBalanceLabel"
+        formControlName="tokenBalance"
+      ></z-slider>
+    </div>
+  }
 
   <div class="self-stretch flex justify-start items-center gap-2 mt-4">
-    <button z-button zType="secondary" type="button" class="rounded-full" [disabled]="formGroup.pristine" (click)="cancel()">
-      {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
-    </button>
-    <button z-button zType="default" color="primary" class="rounded-full" [disabled]="formGroup.invalid || formGroup.pristine || saving()">
+    @if (!onboarding()) {
+      <button z-button zType="secondary" type="button" class="rounded-full" [disabled]="formGroup.pristine" (click)="cancel()">
+        {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
+      </button>
+    }
+    <button z-button zType="default" color="primary" class="rounded-full" [disabled]="!canSubmit()">
       <div class="flex items-center">
-        <span>{{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</span>
+        @if (onboarding()) {
+          <span>{{ 'PAC.Onboarding.SaveAndNext' | translate: {Default: 'Save and Next'} }}</span>
+        } @else {
+          <span>{{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</span>
+        }
       </div>
     </button>
   </div>
