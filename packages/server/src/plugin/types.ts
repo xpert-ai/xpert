@@ -1,5 +1,5 @@
 import type { ClassProvider, ExistingProvider, FactoryProvider, Provider, ValueProvider } from '@nestjs/common'
-import { PluginLevel, PluginSource } from '@metad/contracts'
+import { PluginLevel } from '@metad/contracts'
 
 // Expose a list of loaded plugins through a global provider for lifecycle control.
 export const LOADED_PLUGINS = 'XPERT_LOADED_PLUGINS'
@@ -10,31 +10,8 @@ export interface LoadedPluginRecord {
 	instance: any
 	ctx: any
 	packageName?: string
-	source?: PluginSource
 	baseDir?: string
 	level?: PluginLevel
-}
-
-export interface PluginInstallInput {
-	pluginName: string
-	version?: string
-	source?: PluginSource
-	config?: Record<string, any>
-	workspacePath?: string
-}
-
-export interface PluginInstallResult {
-	success: boolean
-	name: string
-	packageName: string
-	organizationId: string
-	currentVersion?: string
-}
-
-export interface PluginUpdateResult extends PluginInstallResult {
-	latestVersion?: string
-	updated: boolean
-	previousVersion?: string
 }
 
 export function isCustomProvider(p: Provider): p is Exclude<Provider, () => void> {

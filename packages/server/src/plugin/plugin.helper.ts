@@ -28,7 +28,7 @@ import {
 } from './types'
 import { discoverPlugins } from './plugin-discovery'
 import { loadPlugin } from './plugin-loader'
-import { inspectConfig } from './config'
+import { buildConfig } from './config'
 import { createPluginContext } from './lifecycle'
 import { resolvePluginLevel } from './plugin-instance.entity'
 
@@ -203,7 +203,7 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
 	/** Override the plugin workspace root for the organization. Defaults to data/plugins/<orgId> when organizationId is set. */
 	baseDir?: string
 	/** Explicit list of plugin package names (takes precedence) */
-	plugins?: { name: string; version?: string; source?: LoadedPluginRecord['source']; level?: PluginLevel }[]
+	plugins?: { name: string; version?: string; source?: string; level?: PluginLevel }[]
 	/** Auto-discovery options (effective when plugins are not explicitly provided) */
 	discovery?: { prefix?: string; manifestPath?: string }
 	/** Configuration map injected by the main app (indexed by plugin name) */
@@ -213,7 +213,7 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
 /**
  * Install and register plugins asynchronously for a given organization scope.
  * 1. Install plugins into the organization workspace.
- * 2. Load each plugin and merge its configuration defaults.
+ * 2. Load each plugin and build its configuration.
  * 3. Create a plugin context and register the plugin module.
  * 4. Tag the module and its providers with organization and plugin metadata.
  *
@@ -230,17 +230,12 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 		discoveryOptions.manifestPath = getOrganizationManifestPath(organizationId, opts)
 	}
 
-	const pluginNames: Array<{
-		name: string
-		version?: string
-		source?: LoadedPluginRecord['source']
-		level?: PluginLevel
-	}> = opts.plugins?.length
+	const pluginNames: Array<{ name: string; version?: string; source?: string; level?: PluginLevel }> = opts.plugins
+		?.length
 		? opts.plugins
 		: opts.discovery || opts.organizationId
 			? discoverPlugins(baseDirRoot, discoveryOptions).map((plugin) => ({
 					...plugin,
-					source: plugin.source as LoadedPluginRecord['source'],
 					level: undefined
 				}))
 			: []
@@ -254,15 +249,15 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 
 	const modules: DynamicModule[] = []
 
-	for (const { name, level, source } of pluginNames) {
+	for (const { name, level } of pluginNames) {
 		try {
 			const pluginBaseDir = opts.organizationId
 				? getOrganizationPluginPath(organizationId, name, opts)
 				: baseDirRoot
-			// 2) Load each plugin and merge its configuration defaults.
+			// 2) Load each plugin and build its configuration.
 			const plugin = await loadPlugin(name, { basedir: pluginBaseDir })
 			const cfgRaw = opts.configs?.[plugin.meta.name] ?? {}
-			const { config: cfg } = inspectConfig(plugin.meta.name, cfgRaw, plugin.config)
+			const cfg = buildConfig(plugin.meta.name, cfgRaw, plugin.config)
 
 			// 3) Create a plugin context and register the plugin module.
 			// Construct a temporary ctx as a placeholder; the actual app instance will be completed after the app goes online
@@ -282,16 +277,13 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 				organizationId,
 				name: plugin.meta.name,
 				packageName: name,
-				source,
 				level: resolvePluginLevel(plugin.meta?.level ?? level),
 				instance: plugin,
 				ctx,
 				baseDir: pluginBaseDir
 			})
 		} catch (error) {
-			const message = error instanceof Error ? error.message : String(error)
-			const stack = error instanceof Error ? error.stack : undefined
-			Logger.error(`Failed to load/register plugin ${name} for organization ${organizationId}: ${message}`, stack)
+			Logger.error(`Failed to load/register plugin ${name} for organization ${organizationId}: ${error.message}`)
 		}
 	}
 
