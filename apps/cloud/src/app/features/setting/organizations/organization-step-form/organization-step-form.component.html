@@ -1,4 +1,7 @@
-<z-stepper #stepper="zStepper">
+<z-stepper
+  #stepper="zStepper"
+  class="w-full [--z-stepper-header-max-width:32rem] [--z-stepper-item-max-width:14rem]"
+>
   <z-step
     [stepControl]="basic"
     [label]="'PAC.ORGANIZATIONS_PAGE.Organization.BasicInfo' | translate: { Default: 'Basic Info' }"

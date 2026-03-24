@@ -9,7 +9,7 @@
   </div>
 </div>
 
-<div class="flex min-h-0 flex-1 flex-col overflow-auto">
+<div class="flex min-h-0 flex-1 flex-col overflow-hidden">
   <div class="shrink-0 py-2 px-8">
     <div class="py-2 text-sm leading-[20px] font-medium">
       {{ 'PAC.Xpert.ChooseXpertType' | translate: { Default: 'What type of Xpert do you want?' } }}
@@ -60,8 +60,8 @@
   </div>
 
   @if (isAgentType()) {
-    <div class="flex min-h-0 flex-1 flex-col">
-      <z-stepper #stepper="zStepper" orientation="horizontal" class="min-h-0 flex-1 overflow-auto px-4 pb-2">
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <z-stepper #stepper="zStepper" orientation="horizontal" class="min-h-0 flex-1 overflow-hidden px-4 pb-2">
         <z-step [label]="'PAC.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
           <div class="px-4">
             <xpert-basic-form
@@ -228,8 +228,8 @@
       </div>
     </div>
   } @else if (isKnowledgeType()) {
-    <div class="flex min-h-0 flex-1 flex-col">
-      <z-stepper #stepper="zStepper" orientation="horizontal" class="min-h-0 flex-1 overflow-auto px-4 pb-2">
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <z-stepper #stepper="zStepper" orientation="horizontal" class="min-h-0 flex-1 overflow-hidden px-4 pb-2">
         <z-step [label]="'PAC.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
           <div class="px-4">
             <xpert-basic-form
@@ -484,8 +484,8 @@
       </div>
     </div>
   } @else {
-    <div class="flex min-h-0 flex-1 flex-col">
-      <z-stepper #stepper="zStepper" orientation="horizontal" class="min-h-0 flex-1 overflow-auto px-4 pb-2">
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <z-stepper #stepper="zStepper" orientation="horizontal" class="min-h-0 flex-1 overflow-hidden px-4 pb-2">
         <z-step [label]="'PAC.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
           <div class="px-4">
             <xpert-basic-form

@@ -45,7 +45,7 @@ import { ZardStepperImports } from './stepper.imports';
 })
 class StepperHostComponent {
   linear = true;
-  orientation: 'horizontal' | 'vertical' = 'horizontal';
+  orientation: 'horizontal' | 'vertical' | undefined = undefined;
   selectedIndex = 0;
   detailsEditable = true;
   reviewCompleted: boolean | undefined = undefined;
@@ -79,6 +79,8 @@ describe('ZardStepperComponent', () => {
     const { fixture } = await createHost();
     const tablist = fixture.nativeElement.querySelector('[role="tablist"]') as HTMLElement;
     expect(tablist.getAttribute('aria-orientation')).toBe('horizontal');
+    expect(tablist.textContent).toContain('STEP 1');
+    expect(tablist.textContent).not.toContain('Pending');
 
     fixture.componentInstance.orientation = 'vertical';
     fixture.detectChanges();

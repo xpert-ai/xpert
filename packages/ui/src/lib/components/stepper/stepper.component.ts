@@ -28,9 +28,13 @@ import type { ClassValue } from 'clsx';
 import { mergeClasses } from '@/src/lib/utils/merge-classes';
 import { ZardIconComponent } from '../icon/icon.component';
 import {
+  stepperConnectorVariants,
+  stepperContentVariants,
   stepperHeaderVariants,
   stepperIndicatorVariants,
+  stepperItemVariants,
   stepperPanelVariants,
+  stepperRailVariants,
   stepperTriggerVariants,
   stepperVariants,
 } from './stepper.variants';
@@ -206,54 +210,65 @@ export class ZardStepperPreviousDirective {
       <ng-content />
     </div>
 
-    <div [class]="classes()">
       <div
         [class]="headerClasses()"
         role="tablist"
         [attr.aria-orientation]="orientation"
       >
-        @for (step of stepItems(); track step.stepId; let index = $index) {
-          <button
-            #stepHeader
-            type="button"
-            [class]="triggerClasses(step, index)"
-            role="tab"
-            [id]="step.headerId"
-            [attr.aria-controls]="step.panelId"
-            [attr.aria-selected]="selectedIndexState() === index"
-            [attr.tabindex]="headerTabIndex(index)"
-            [attr.data-state]="stepState(step, index)"
-            [attr.data-blocked]="isHeaderBlocked(step, index) ? 'true' : null"
-            [attr.data-editable]="step.editable ? 'true' : null"
-            (click)="onHeaderClick(index)"
-            (keydown)="onHeaderKeydown($event, index)"
-          >
-            <span [class]="indicatorClasses(step, index)">
-              @if (showCompletedIndicator(step, index)) {
-                <z-icon zType="check" class="size-4" aria-hidden="true" />
-              } @else {
-                {{ index + 1 }}
-              }
-            </span>
+        @for (step of stepItems(); track step.stepId; let index = $index; let last = $last) {
+          <div [class]="itemClasses()">
+            <button
+              #stepHeader
+              type="button"
+              [class]="triggerClasses(step, index)"
+              role="tab"
+              [id]="step.headerId"
+              [attr.aria-controls]="step.panelId"
+              [attr.aria-selected]="selectedIndexState() === index"
+              [attr.tabindex]="headerTabIndex(index)"
+              [attr.data-state]="stepState(step, index)"
+              [attr.data-blocked]="isHeaderBlocked(step, index) ? 'true' : null"
+              [attr.data-editable]="step.editable ? 'true' : null"
+              (click)="onHeaderClick(index)"
+              (keydown)="onHeaderKeydown($event, index)"
+            >
+              <span [class]="railClasses()">
+                <span [class]="indicatorClasses(step, index)">
+                  @if (showCompletedIndicator(step, index)) {
+                    <z-icon zType="check" class="size-4" aria-hidden="true" />
+                  } @else {
+                    {{ index + 1 }}
+                  }
+                </span>
 
-            <span class="flex min-w-0 flex-1 flex-col items-start gap-1">
-              @if (step.labelTemplate(); as labelTemplate) {
-                <span class="block min-w-0 text-sm font-semibold leading-5">
-                  <ng-container [ngTemplateOutlet]="labelTemplate.templateRef" />
-                </span>
-              } @else {
-                <span class="block min-w-0 text-sm font-semibold leading-5">
-                  {{ step.label || 'Step ' + (index + 1) }}
-                </span>
-              }
+                @if (!last) {
+                  <span [class]="connectorClasses(step, index)"></span>
+                }
+              </span>
 
-              @if (shouldShowError(step, index)) {
-                <span class="block text-xs text-destructive">
-                  {{ step.errorMessage }}
+              <span [class]="contentClasses()">
+                <span class="text-[0.6875rem] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                  STEP {{ index + 1 }}
                 </span>
-              }
-            </span>
-          </button>
+
+                @if (step.labelTemplate(); as labelTemplate) {
+                  <span class="block min-w-0 text-base font-semibold leading-6 text-foreground">
+                    <ng-container [ngTemplateOutlet]="labelTemplate.templateRef" />
+                  </span>
+                } @else {
+                  <span class="block min-w-0 text-base font-semibold leading-6 text-foreground">
+                    {{ step.label || 'Step ' + (index + 1) }}
+                  </span>
+                }
+
+                @if (shouldShowError(step, index)) {
+                  <span class="block text-xs text-destructive">
+                    {{ step.errorMessage }}
+                  </span>
+                }
+              </span>
+            </button>
+          </div>
         }
       </div>
 
@@ -267,11 +282,11 @@ export class ZardStepperPreviousDirective {
           <ng-container [ngTemplateOutlet]="step.contentTemplate" />
         </div>
       }
-    </div>
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
+    '[class]': 'classes()',
     'data-slot': 'stepper',
   },
   exportAs: 'zStepper',
@@ -294,7 +309,7 @@ export class ZardStepperComponent {
   private selectedStepRef: ZardStepComponent | null = null;
 
   @Input({ transform: booleanAttribute }) linear = false;
-  @Input() orientation: ZardStepperOrientation = 'horizontal';
+  @Input({ transform: normalizeStepperOrientation }) orientation: ZardStepperOrientation = 'horizontal';
 
   @Input({ transform: numberAttribute })
   set selectedIndex(value: number) {
@@ -391,6 +406,13 @@ export class ZardStepperComponent {
     });
   }
 
+  protected connectorClasses(step: ZardStepComponent, index: number): string {
+    return stepperConnectorVariants({
+      orientation: this.orientation,
+      state: this.stepState(step, index),
+    });
+  }
+
   protected headerTabIndex(index: number): number {
     return this.selectedIndexState() === index ? 0 : -1;
   }
@@ -401,6 +423,18 @@ export class ZardStepperComponent {
 
   protected headerClasses(): string {
     return stepperHeaderVariants({ orientation: this.orientation });
+  }
+
+  protected itemClasses(): string {
+    return stepperItemVariants({ orientation: this.orientation });
+  }
+
+  protected railClasses(): string {
+    return stepperRailVariants({ orientation: this.orientation });
+  }
+
+  protected contentClasses(): string {
+    return stepperContentVariants({ orientation: this.orientation });
   }
 
   protected panelClasses(): string {
@@ -619,6 +653,10 @@ function getNavigationDelta(key: string, orientation: ZardStepperOrientation): n
   }
 
   return null;
+}
+
+function normalizeStepperOrientation(value: unknown): ZardStepperOrientation {
+  return value === 'vertical' ? 'vertical' : 'horizontal';
 }
 
 function clampIndex(index: number, length: number): number {

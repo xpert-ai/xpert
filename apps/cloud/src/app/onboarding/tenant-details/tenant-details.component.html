@@ -4,7 +4,7 @@
 
 <div class="w-full border-b border-solid border-divider-regular"></div>
 
-<z-stepper class="w-[600px] max-w-full my-4 shadow-lg rounded-lg" [linear]="true" orientation="vertical" #stepper="zStepper">
+<z-stepper class="w-[680px] max-w-full my-4 shadow-lg rounded-lg" [linear]="true" orientation="horizontal" #stepper="zStepper">
   <z-step #step1="zStep" [stepControl]="userFormGroup" [editable]="!tenantCompleted() && !loading()">
     <form [formGroup]="userFormGroup" class="flex flex-col gap-4">
       <ng-template zStepLabel> {{ 'PAC.Onboarding.WhatCallYou' | translate: {Default: 'What should we call you'} }}?</ng-template>

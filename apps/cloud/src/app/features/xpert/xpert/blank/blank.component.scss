@@ -24,17 +24,10 @@
   }
 }
 
-:host .z-stepper__header {
-  flex-wrap: nowrap;
-  overflow-x: auto;
-}
-
-:host .z-stepper__trigger {
-  flex: 1 0 180px;
-  min-width: 180px;
-}
-
-:host .z-stepper__panel {
+:host ::ng-deep .z-stepper__panel {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow: auto;
   border: 0;
   background: transparent;
   box-shadow: none;
