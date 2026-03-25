@@ -5,7 +5,7 @@ settings:
   excludeLinksFromLockfile: false
 
 overrides:
-  '@a2ui/lit': 0.8.1
+  '@a2ui/lit': 0.8.3
   '@langchain/core': 0.3.72
   langchain: 0.3.31
   '@modelcontextprotocol/sdk': 1.12.1
@@ -16,6 +16,9 @@ importers:
 
   .:
     dependencies:
+      '@a2ui/lit':
+        specifier: 0.8.3
+        version: 0.8.3(signal-polyfill@0.2.2)
       '@angular/animations':
         specifier: 21.1.4
         version: 21.1.4(@angular/core@21.1.4(@angular/compiler@21.1.4)(rxjs@7.8.2)(zone.js@0.16.0))
@@ -1084,12 +1087,9 @@ importers:
 
   packages/contracts:
     dependencies:
-      '@a2ui/lit':
-        specifier: 0.8.1
-        version: 0.8.1(signal-polyfill@0.2.2)
       '@xpert-ai/chatkit-types':
         specifier: ^0.0.12
-        version: 0.0.12(@a2ui/lit@0.8.1(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+        version: 0.0.12(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
 
   packages/core:
     dependencies:
@@ -1188,7 +1188,7 @@ importers:
     dependencies:
       '@xpert-ai/chatkit-types':
         specifier: ^0.0.8
-        version: 0.0.8(@a2ui/lit@0.8.1(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@langchain/langgraph-sdk@0.0.112(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
+        version: 0.0.8(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@langchain/langgraph-sdk@0.0.112(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))
       '@xpert-ai/plugin-sdk':
         specifier: '*'
         version: 3.7.2(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@metad/contracts@3.7.0)(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(@nestjs/cqrs@11.0.3(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2))(ajv@8.18.0)(fs@0.0.1-security)(i18next-fs-backend@2.6.1)(i18next@23.14.0)(json-schema@0.4.0)(jsonwebtoken@9.0.3)(lodash-es@4.17.23)(passport-jwt@4.0.1)(path@0.12.7)(rxjs@7.8.2)(stream@0.0.3)(yaml@2.8.2)(zod@3.25.67)
@@ -1209,7 +1209,7 @@ importers:
         version: 11.1.13(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/microservices@11.1.13)(@nestjs/platform-express@11.1.13)(@nestjs/websockets@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2)
       '@xpert-ai/chatkit-types':
         specifier: ^0.0.12
-        version: 0.0.12(@a2ui/lit@0.8.1(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+        version: 0.0.12(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       '@xpert-ai/plugin-sdk':
         specifier: '*'
         version: 3.8.3(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@metad/contracts@3.7.0)(@metad/ocap-core@3.7.5(date-fns@3.6.0)(i18next@23.14.0)(idb-keyval@6.2.2)(money-clip@3.0.5)(rxjs@7.8.2)(uuid@10.0.0))(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(@nestjs/cqrs@11.0.3(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2))(ajv@8.18.0)(fs@0.0.1-security)(i18next-fs-backend@2.6.1)(i18next@23.14.0)(json-schema@0.4.0)(jsonwebtoken@9.0.3)(lodash-es@4.17.23)(passport-jwt@4.0.1)(path@0.12.7)(rxjs@7.8.2)(stream@0.0.3)(yaml@2.8.2)(zod@3.25.67)
@@ -1830,8 +1830,11 @@ importers:
 
 packages:
 
-  '@a2ui/lit@0.8.1':
-    resolution: {integrity: sha512-QeqobciZz4OGMSgc2WGLFVidyhy+K7Z2GDpiuHN9NN+QlYMXByZqlzMvYPJsXrqf1lpQcMFRHgmUn1mwPpq9ew==}
+  '@a2ui/lit@0.8.3':
+    resolution: {integrity: sha512-YXJksuier3nZLFtdrXfMNd7WdEOldQEfXGDMqoBTMVIM8xU22F/SvfNeDJoKQ4Wn7hXzRMi0vnwq0HI7Lzpyow==}
+
+  '@a2ui/web_core@0.8.0':
+    resolution: {integrity: sha512-UG8IDsiLYuZjnEmqH7129EbN1Ds3DfC8FXPSI/E+0kcZ4VGxo//Kij6ZF2jBXBKyrHYPehoDtffFFIIFvgBp6g==}
 
   '@adobe/css-tools@4.4.4':
     resolution: {integrity: sha512-Elp+iwUx5rN5+Y8xLt5/GRoG20WGoDCQ/1Fb+1LiGtvwbDavuSk0jhD/eZdckHAuzcDzccnkv+rEjyWfRx18gg==}
@@ -8470,13 +8473,13 @@ packages:
   '@xpert-ai/chatkit-types@0.0.12':
     resolution: {integrity: sha512-YLAG8asj/PpplKwH3+GfiswTDzk8m9pqcy3dsHA7Qow3WrzMk0G8pZya11MaFBMG3ynAsGV3oRHlikvaZJmtmQ==}
     peerDependencies:
-      '@a2ui/lit': 0.8.1
+      '@a2ui/lit': 0.8.3
       '@langchain/core': 0.3.72
 
   '@xpert-ai/chatkit-types@0.0.8':
     resolution: {integrity: sha512-Q7SIUWMp5pPST9B2WdycnRg4WkXTBLCXlGw8duVvDnRALIlIIPL0q4u+P1kIWaUF7P2/GHWNZxjSLUHgZOVaEw==}
     peerDependencies:
-      '@a2ui/lit': 0.8.1
+      '@a2ui/lit': 0.8.3
       '@langchain/core': 0.3.72
       '@langchain/langgraph-sdk': ^1.0.0
 
@@ -14115,10 +14118,6 @@ packages:
   map-stream@0.0.7:
     resolution: {integrity: sha512-C0X0KQmGm3N2ftbTGBhSyuydQ+vV1LC3f3zPvT3RXHXNZrvfPZcoXp/N5DOa8vedX/rTMm2CjTtivFg2STJMRQ==}
 
-  markdown-it@14.1.1:
-    resolution: {integrity: sha512-BuU2qnTti9YKgK5N+IeMubp14ZUKUUw7yeJbkjtosvHiP0AZ5c8IAgEMk79D0eC8F23r4Ac/q8cAIFdm2FtyoA==}
-    hasBin: true
-
   markdown-table@2.0.0:
     resolution: {integrity: sha512-Ezda85ToJUBhM6WGaG6veasyym+Tbs3cMAw/ZhOPqXiYsr0jgocBV3j3nx+4lk47plLlIqjwuTm/ywVI+zjJ/A==}
 
@@ -14167,9 +14166,6 @@ packages:
 
   mdn-data@2.0.30:
     resolution: {integrity: sha512-GaqWWShW4kv/G9IEucWScBx9G1/vsFZZJUO+tD26M8J8z3Kw5RDQjaoZe03YAClgeS/SWPOcb4nkFBTEi5DUEA==}
-
-  mdurl@2.0.0:
-    resolution: {integrity: sha512-Lf+9+2r+Tdp5wXDXC4PcIBjTDtq4UKjCPMQhKIuzpJNW0b96kVqSwW0bT7FhRSfmAiFYgP+SCRvdrDozfh0U5w==}
 
   media-typer@0.3.0:
     resolution: {integrity: sha512-dq+qelQ9akHpcOl/gUVRTxVIOkAJ1wR3QAvb4RsVjS8oVoFjDGTc679wJYmUmknUF5HwMLOgb5O+a3KxfWapPQ==}
@@ -19536,15 +19532,20 @@ packages:
 
 snapshots:
 
-  '@a2ui/lit@0.8.1(signal-polyfill@0.2.2)':
+  '@a2ui/lit@0.8.3(signal-polyfill@0.2.2)':
     dependencies:
+      '@a2ui/web_core': 0.8.0
       '@lit-labs/signals': 0.1.3
       '@lit/context': 1.1.6
       lit: 3.3.2
-      markdown-it: 14.1.1
       signal-utils: 0.21.1(signal-polyfill@0.2.2)
     transitivePeerDependencies:
       - signal-polyfill
+
+  '@a2ui/web_core@0.8.0':
+    dependencies:
+      zod: 3.25.67
+      zod-to-json-schema: 3.25.1(zod@3.25.67)
 
   '@adobe/css-tools@4.4.4':
     optional: true
@@ -28711,14 +28712,14 @@ snapshots:
 
   '@xmldom/xmldom@0.8.11': {}
 
-  '@xpert-ai/chatkit-types@0.0.12(@a2ui/lit@0.8.1(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
+  '@xpert-ai/chatkit-types@0.0.12(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))':
     dependencies:
-      '@a2ui/lit': 0.8.1(signal-polyfill@0.2.2)
+      '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
       '@langchain/core': 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
 
-  '@xpert-ai/chatkit-types@0.0.8(@a2ui/lit@0.8.1(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@langchain/langgraph-sdk@0.0.112(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
+  '@xpert-ai/chatkit-types@0.0.8(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@langchain/langgraph-sdk@0.0.112(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1))':
     dependencies:
-      '@a2ui/lit': 0.8.1(signal-polyfill@0.2.2)
+      '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
       '@langchain/core': 0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67))
       '@langchain/langgraph-sdk': 0.0.112(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(react-dom@18.3.1(react@18.3.1))(react@18.3.1)
 
@@ -35455,15 +35456,6 @@ snapshots:
 
   map-stream@0.0.7: {}
 
-  markdown-it@14.1.1:
-    dependencies:
-      argparse: 2.0.1
-      entities: 4.5.0
-      linkify-it: 5.0.0
-      mdurl: 2.0.0
-      punycode.js: 2.3.1
-      uc.micro: 2.1.0
-
   markdown-table@2.0.0:
     dependencies:
       repeat-string: 1.6.1
@@ -35511,8 +35503,6 @@ snapshots:
   mdn-data@2.0.28: {}
 
   mdn-data@2.0.30: {}
-
-  mdurl@2.0.0: {}
 
   media-typer@0.3.0: {}
 

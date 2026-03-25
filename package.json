@@ -72,6 +72,7 @@
     "tw:workspace:check-reference:monorepo": "node tools/scripts/check-tailwind-reference-workspace-monorepo.cjs"
   },
   "dependencies": {
+    "@a2ui/lit": "0.8.3",
     "@angular/animations": "21.1.4",
     "@angular/cdk": "21.1.4",
     "@angular/common": "21.1.4",
@@ -275,7 +276,7 @@
   },
   "pnpm": {
     "overrides": {
-      "@a2ui/lit": "0.8.1",
+      "@a2ui/lit": "0.8.3",
       "@langchain/core": "0.3.72",
       "langchain": "0.3.31",
       "@modelcontextprotocol/sdk": "1.12.1",
