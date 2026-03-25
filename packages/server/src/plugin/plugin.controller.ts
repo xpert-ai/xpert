@@ -6,16 +6,18 @@ import {
 	IPluginConfiguration,
 	IPluginDescriptor,
 	PLUGIN_CONFIGURATION_STATUS,
+	PLUGIN_LOAD_STATUS,
 	PLUGIN_LEVEL,
 	RolesEnum
 } from '@metad/contracts'
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
 import { buildConfig, inspectConfig } from './config'
+import { findPluginLoadFailure } from './plugin.helper'
 import { resolvePluginConfigSchema } from './plugin-config-schema'
 import { resolvePluginLevel } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
 import { PluginManagementService } from './plugin-management.service'
-import { canUpdatePlugin, hasNewerVersion, supportsNpmRegistryUpdates } from './plugin-update.utils'
+import { canUninstallPlugin, canUpdatePlugin, hasNewerVersion, supportsNpmRegistryUpdates } from './plugin-update.utils'
 import { ResolveLatestPluginVersionQuery } from './queries'
 import { UpdatePluginCommand } from './commands'
 import { LOADED_PLUGINS, LoadedPluginRecord, PluginInstallInput, normalizePluginName } from './types'
@@ -135,11 +137,11 @@ export class PluginController {
 	}
 
 	@Delete('uninstall')
-	async uninstall(@Body() body: { names: string[] }) {
+	async uninstall(@Body() body: { names: string[]; organizationId?: string }) {
 		if (!body?.names || body.names.length === 0) {
 			throw new BadRequestException(t('server:Error.PluginNamesRequired'))
 		}
-		await this.pluginManagementService.uninstallByNamesWithGuard(body.names)
+		await this.pluginManagementService.uninstallByNamesWithGuard(body.names, body.organizationId)
 
 		return { success: true }
 	}
@@ -159,8 +161,37 @@ export class PluginController {
 					plugin.organizationId === organizationId || plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE
 			)
 			.filter((plugin) => isSuperAdmin || plugin.level !== PLUGIN_LEVEL.SYSTEM)
-			.filter((plugin) => !normalizedNames || normalizedNames.has(normalizePluginName(plugin.name)))
-		return Promise.all(visiblePlugins.map((plugin) => this.toPluginDescriptor(plugin, organizationId)))
+			.filter(
+				(plugin) =>
+					!normalizedNames ||
+					this.matchesNames(normalizedNames, plugin.name, plugin.packageName, plugin.instance?.meta?.name)
+			)
+		const loadedDescriptors = await Promise.all(
+			visiblePlugins.map((plugin) => this.toPluginDescriptor(plugin, organizationId))
+		)
+		const loadedKeys = new Set(
+			visiblePlugins.flatMap((plugin) =>
+				this.createDescriptorLookupKeys(plugin.organizationId, plugin.name, plugin.packageName)
+			)
+		)
+		const pluginInstances = await this.pluginInstanceService.findVisibleInOrganization(organizationId)
+		const failedDescriptors = pluginInstances
+			.filter((plugin) => isSuperAdmin || plugin.level !== PLUGIN_LEVEL.SYSTEM)
+			.filter(
+				(plugin) =>
+					!normalizedNames || this.matchesNames(normalizedNames, plugin.pluginName, plugin.packageName)
+			)
+			.filter(
+				(plugin) =>
+					!this.createDescriptorLookupKeys(
+						plugin.organizationId ?? GLOBAL_ORGANIZATION_SCOPE,
+						plugin.pluginName,
+						plugin.packageName
+					).some((key) => loadedKeys.has(key))
+			)
+			.map((plugin) => this.toFailedPluginDescriptor(plugin, organizationId))
+
+		return [...loadedDescriptors, ...failedDescriptors]
 	}
 
 	private async toPluginDescriptor(plugin: LoadedPluginRecord, organizationId: string): Promise<IPluginDescriptor> {
@@ -189,12 +220,72 @@ export class PluginController {
 			isGlobal: plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE,
 			level: plugin.level ?? PLUGIN_LEVEL.ORGANIZATION,
 			canConfigure: plugin.organizationId === organizationId && !!resolvePluginConfigSchema(plugin.instance),
+			canUninstall: canUninstallPlugin(plugin, organizationId),
 			canUpdate,
 			hasUpdate: canUpdate && hasNewerVersion(plugin.instance.meta?.version, latestVersion),
 			configSchema: resolvePluginConfigSchema(plugin.instance),
 			configurationStatus,
-			configurationError
+			configurationError,
+			loadStatus: PLUGIN_LOAD_STATUS.LOADED,
+			loadError: null
 		}
+	}
+
+	private toFailedPluginDescriptor(
+		plugin: Awaited<ReturnType<PluginInstanceService['findVisibleInOrganization']>>[number],
+		organizationId: string
+	): IPluginDescriptor {
+		const scope = plugin.organizationId ?? GLOBAL_ORGANIZATION_SCOPE
+		const failure = findPluginLoadFailure(scope, plugin.pluginName, plugin.packageName)
+		const loadError =
+			failure?.error ??
+			'This plugin is registered in the database but could not be loaded by the current server process.'
+
+		return {
+			organizationId: scope,
+			name: plugin.pluginName,
+			meta: {
+				name: plugin.packageName ?? plugin.pluginName,
+				version: plugin.version ?? '',
+				level: plugin.level,
+				category: 'integration',
+				displayName: plugin.pluginName,
+				description: 'Plugin metadata is unavailable because the plugin failed to load.',
+				keywords: [],
+				author: '-'
+			},
+			packageName: plugin.packageName,
+			source: plugin.source,
+			currentVersion: plugin.version,
+			latestVersion: undefined,
+			isGlobal: !plugin.organizationId,
+			level: plugin.level ?? PLUGIN_LEVEL.ORGANIZATION,
+			canConfigure: false,
+			canUninstall: canUninstallPlugin({ organizationId: scope, level: plugin.level }, organizationId),
+			canUpdate: false,
+			hasUpdate: false,
+			configSchema: undefined,
+			configurationStatus: plugin.configurationStatus,
+			configurationError: plugin.configurationError,
+			loadStatus: PLUGIN_LOAD_STATUS.FAILED,
+			loadError
+		}
+	}
+
+	private createDescriptorLookupKeys(scope: string, ...names: Array<string | undefined>) {
+		return names
+			.filter((name): name is string => typeof name === 'string' && !!name)
+			.map((name) => this.buildPluginScopeKey(scope, name))
+	}
+
+	private buildPluginScopeKey(scope: string | undefined | null, name: string) {
+		return `${scope ?? GLOBAL_ORGANIZATION_SCOPE}:${normalizePluginName(name)}`
+	}
+
+	private matchesNames(names: Set<string>, ...candidates: Array<string | undefined>) {
+		return candidates.some(
+			(candidate) => typeof candidate === 'string' && !!candidate && names.has(normalizePluginName(candidate))
+		)
 	}
 
 	private async resolveLatestPluginVersion(packageName: string): Promise<string | undefined> {

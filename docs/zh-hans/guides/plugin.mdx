@@ -29,6 +29,38 @@
 - 宿主会把配置保存到 `PluginInstance.config`
 - 配置会在持久化前按整段对象加密存储
 
+## 插件管理能力字段
+
+插件列表接口会返回 `IPluginDescriptor`，其中下面几个字段用于控制前端是否展示“配置 / 卸载 / 更新”按钮，以及是否显示“可更新”状态：
+
+| 字段 | 含义 | 判定逻辑 |
+| --- | --- | --- |
+| `canConfigure` | 当前用户是否可以配置该插件 | 只有“当前组织作用域下安装的插件”且插件暴露了 `configSchema` 时才为 `true`。`global` 插件不会因为在当前组织中可见就自动可配置；加载失败的插件固定为 `false`。 |
+| `canUninstall` | 当前用户是否可以卸载该插件 | `system` 级插件始终为 `false`。组织级插件在“插件所属组织 = 当前组织”时为 `true`。`global` 插件只有 `SUPER_ADMIN` 可以卸载。 |
+| `canUpdate` | 当前用户是否可以更新该插件 | 需要同时满足：1. 插件源支持从 npm registry 更新；2. 插件源不是 `code`；3. 插件作用域允许当前用户更新。组织级插件要求“插件所属组织 = 当前组织”；`global` 插件要求当前作用域就是 `global`，且当前用户是 `SUPER_ADMIN`。加载失败的插件固定为 `false`。 |
+| `hasUpdate` | 当前插件是否存在可升级版本 | 只有在 `canUpdate = true` 时才会继续检查。宿主会解析 registry 最新版本，并在 `latestVersion > currentVersion` 时返回 `true`，否则为 `false`。 |
+
+### 作用域说明
+
+- `organization` 插件：安装在某个组织下，只能由该组织上下文进行配置、更新、卸载。
+- `global` 插件：对所有组织可见，但不是所有操作都开放。
+- `system` 插件：平台内建 / 系统治理级插件，不允许通过组织插件 API 进行卸载。
+
+### 当前行为约定
+
+- `canConfigure` 关注的是“当前组织是否拥有该插件实例并且插件提供配置 schema”，不是“当前用户是否能看见该插件”。
+- `canUninstall` 比 `canUpdate` 更宽一点：`SUPER_ADMIN` 即使当前人在普通组织上下文，也可以对 `global` 插件执行卸载。
+- `canUpdate` 对 `global` 插件更严格：只有在 `global` 作用域下的 `SUPER_ADMIN` 才允许更新。
+- `hasUpdate` 只是“有无新版本”的最终展示位，不代表前端应该绕过 `canUpdate` 单独显示更新按钮。
+
+### 前端使用建议
+
+- “配置”按钮只看 `canConfigure`
+- “卸载”按钮只看 `canUninstall`
+- “更新”按钮只看 `canUpdate`
+- “可升级”标记需要同时结合 `canUpdate` 和 `hasUpdate`
+- 对加载失败插件，不要推导这些能力字段，直接以后端返回值为准
+
 ## 相关文档
 
 - [统一文件上传架构](/zh-hans/guides/file-upload-architecture)

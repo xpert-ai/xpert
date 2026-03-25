@@ -76,6 +76,11 @@ export class PluginsComponent {
     loader: () => this.pluginAPI.getPlugins()
   })
 
+  readonly pluginsLoading = computed(() => this.#plugins.status() === 'loading')
+  readonly pluginsError = computed(() => {
+    const error = this.#plugins.error()
+    return error ? getErrorMessage(error) : null
+  })
 
   readonly plugins = linkedModel({
     initialValue: [] as Array<TInstalledPlugin>,
@@ -128,7 +133,7 @@ export class PluginsComponent {
   readonly #categories = computed(() => {
     const categories = new Set<string>()
     this.plugins().forEach((plugin) => {
-      if (plugin.meta.category) {
+      if (plugin.loadStatus !== 'failed' && plugin.meta.category) {
         categories.add(plugin.meta.category)
       }
     })
@@ -145,7 +150,7 @@ export class PluginsComponent {
   readonly #keywords = computed(() => {
     const keywords = new Set<string>()
     this.plugins().forEach((plugin) => {
-      if (plugin.meta.keywords) {
+      if (plugin.loadStatus !== 'failed' && plugin.meta.keywords) {
         plugin.meta.keywords.forEach((keyword) => keywords.add(keyword))
       }
     })
@@ -202,7 +207,7 @@ export class PluginsComponent {
     })
   }
 
-  uninstall(plugin: { name: string; meta: { displayName?: string } }) {
+  uninstall(plugin: Pick<TInstalledPlugin, 'name' | 'meta' | 'organizationId'>) {
     this.confirmDelete(
       {
         title: this.i18nService.instant('PAC.Plugin.Uninstall_Title', { Default: 'Uninstall Plugin' }),
@@ -212,7 +217,7 @@ export class PluginsComponent {
       },
       () => {
         this.removing.set(plugin.name)
-        return this.pluginAPI.uninstall([plugin.name])
+        return this.pluginAPI.uninstall([plugin.name], plugin.organizationId)
       }
     ).subscribe({
       next: () => {
@@ -278,26 +283,25 @@ export class PluginsComponent {
     this.npmInstallError.set(null)
     const version = this.npmPackageVersion()?.trim()
     this.pluginAPI
-      
       .create({
-          pluginName: packageName,
-          packageName,
-          version: version || undefined,
-          source: 'npm'
-        })
-      
+        pluginName: packageName,
+        packageName,
+        version: version || undefined,
+        source: 'npm'
+      })
+
       .subscribe({
-          next: () => {
-            this.npmInstalling.set(false)
-            dialogRef.close()
-            this.#plugins.reload()
+        next: () => {
+          this.npmInstalling.set(false)
+          dialogRef.close()
+          this.#plugins.reload()
           this.refreshStrategyCaches()
-          },
-          error: (err) => {
-            this.npmInstallError.set(getErrorMessage(err))
-            this.npmInstalling.set(false)
-          }
-        })
+        },
+        error: (err) => {
+          this.npmInstallError.set(getErrorMessage(err))
+          this.npmInstalling.set(false)
+        }
+      })
   }
 
   /**

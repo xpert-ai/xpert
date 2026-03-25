@@ -1,6 +1,6 @@
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { GLOBAL_ORGANIZATION_SCOPE, StrategyBus } from '@xpert-ai/plugin-sdk'
+import { GLOBAL_ORGANIZATION_SCOPE, RequestContext, StrategyBus } from '@xpert-ai/plugin-sdk'
 import { existsSync, readFileSync, readdirSync, rmSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { In, IsNull, Repository } from 'typeorm'
@@ -12,6 +12,7 @@ import {
 	getOrganizationPluginPath,
 	getOrganizationPluginRoot
 } from './organization-plugin.store'
+import { clearPluginLoadFailure } from './plugin.helper'
 import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from './types'
 
 @Injectable()
@@ -78,6 +79,25 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		})
 	}
 
+	async findVisibleInOrganization(organizationId: string) {
+		const tenantId = RequestContext.currentTenantId()
+		const where = []
+
+		if (organizationId && organizationId !== GLOBAL_ORGANIZATION_SCOPE) {
+			where.push({
+				...(tenantId ? { tenantId } : {}),
+				organizationId
+			})
+		}
+
+		where.push({
+			...(tenantId ? { tenantId } : {}),
+			organizationId: IsNull()
+		})
+
+		return this.repo.find({ where })
+	}
+
 	getConfig(instance?: PluginInstance | null) {
 		return deserializePluginConfig(instance?.config)
 	}
@@ -102,13 +122,14 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 	 * @param names Plugin names to uninstall
 	 */
 	async uninstall(tenantId: string, organizationId: string, names: string[]) {
-		await this.delete({
+		const normalizedNames = names.map((name) => normalizePluginName(name))
+		await this.repo.delete({
 			tenantId,
 			organizationId: !organizationId || organizationId === GLOBAL_ORGANIZATION_SCOPE ? IsNull() : organizationId,
-			pluginName: In(names)
+			pluginName: In(normalizedNames)
 		})
 
-		await this.removePlugins(organizationId, names)
+		await this.removePlugins(organizationId, normalizedNames)
 	}
 
 	async uninstallByPackageName(tenantId: string, organizationId: string, packageName: string) {
@@ -136,6 +157,7 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 		const manifestPath = getOrganizationManifestPath(organizationId)
 		const rootDir = getOrganizationPluginRoot(organizationId)
 		const normalizedTargets = new Set(names.map((item) => normalizePluginName(item)))
+		clearPluginLoadFailure(organizationId, ...Array.from(normalizedTargets))
 		for (const pluginName of normalizedTargets) {
 			this.strategyBus.remove(organizationId, pluginName)
 			const pluginIndex = this.loadedPlugins.findIndex(
