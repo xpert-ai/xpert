@@ -198,9 +198,14 @@ export class NgmTableComponent {
     )
   }
 
-  _context(data: Record<string, unknown>, column: TableColumn) {
+  _context(data: unknown, column: TableColumn) {
+    const context =
+      data && typeof data === 'object'
+        ? ({ ...(data as Record<string, unknown>) } satisfies Record<string, unknown>)
+        : {}
+
     return {
-      ...data,
+      ...context,
       $implicit: get(data, column.name)
     }
   }

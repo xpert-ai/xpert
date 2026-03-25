@@ -12,7 +12,7 @@
 }
 
 :host ::ng-deep ngm-card-create.workspace-create-card > div {
-  @apply relative flex min-h-[160px] flex-col justify-between rounded-xl border-[0.5px] border-components-panel-border bg-components-card-bg shadow-sm transition-all duration-200 ease-in-out hover:shadow-lg;
+  @apply relative flex min-h-[160px] flex-col justify-between rounded-xl border-[0.5px] border-components-panel-border bg-token-main-surface-low shadow-sm transition-all duration-200 ease-in-out hover:shadow-lg;
 }
 
 :host ::ng-deep ngm-card-create.workspace-create-card > div > .group {

@@ -1,6 +1,6 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { DecimalPipe } from '@angular/common'
-import { booleanAttribute, Component, computed, effect, inject, input, model, signal } from '@angular/core'
+import { booleanAttribute, Component, computed, effect, inject, input, model, output, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms'
 
@@ -55,6 +55,9 @@ export class CopilotFormComponent {
 
   // Inputs
   readonly copilot = input<ICopilot>()
+  readonly onboarding = input<boolean, boolean | string>(false, {
+    transform: booleanAttribute
+  })
 
   readonly enabled = model<boolean>(false)
   readonly embedding = input<boolean, string | boolean>(false, {
@@ -78,6 +81,7 @@ export class CopilotFormComponent {
   readonly role = computed(() => this.copilot()?.role)
 
   readonly saving = signal(false)
+  readonly saved = output<void>()
 
   readonly organizationId = toSignal(this.#store.selectOrganizationId())
   readonly copilotId = computed(() => this.copilot()?.id)
@@ -98,6 +102,24 @@ export class CopilotFormComponent {
         return null
     }
   })
+
+  readonly hasSelectedModel = computed(() => {
+    const model = this.formGroup.get('copilotModel').value
+    return !!model?.copilotId && !!model?.model
+  })
+
+  readonly canSubmit = computed(() => {
+    if (this.saving() || this.formGroup.invalid || this.formGroup.pristine) {
+      return false
+    }
+
+    if (this.onboarding()) {
+      return this.hasSelectedModel()
+    }
+
+    return true
+  })
+
   constructor() {
     effect(() => {
       // console.log(this.copilot())
@@ -124,6 +146,7 @@ export class CopilotFormComponent {
       this.formGroup.markAsPristine()
       this.#toastrService.success('PAC.ACTIONS.Save', { Default: 'Save' })
       this.copilotServer.refresh()
+      this.saved.emit()
     } catch (err) {
       this.#toastrService.error(getErrorMessage(err))
     } finally {
