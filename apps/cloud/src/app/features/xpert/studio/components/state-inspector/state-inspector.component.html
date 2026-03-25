@@ -1,0 +1,286 @@
+@if (selectedExecutionId()) {
+  <z-resizable zLayout="vertical" class="pointer-events-none h-full min-h-0">
+    <z-resizable-panel class="pointer-events-none min-h-0" [zDefaultSize]="50">
+      <div class="h-full w-full"></div>
+    </z-resizable-panel>
+
+    <z-resizable-handle
+      zWithHandle
+      [zHandleIndex]="0"
+      [zDisabled]="collapsed()"
+      class="state-inspector-resize-handle pointer-events-auto z-20 w-full touch-none bg-transparent text-transparent"
+    />
+
+    <z-resizable-panel [zDefaultSize]="50" class="pointer-events-none min-h-0">
+      <div
+        class="state-inspector-shell pointer-events-auto flex h-full flex-col rounded-2xl border-[0.5px] border-components-panel-border bg-components-card-bg shadow-2xl overflow-hidden"
+      >
+        <div class="flex items-center gap-3 border-b-[0.5px] border-divider-regular px-4 py-3">
+          <div class="min-w-0 flex-1">
+            <div class="mt-1 flex items-center gap-2">
+              <h2 class="truncate text-sm font-semibold text-text-primary">
+                {{ 'PAC.Xpert.StateInspector' | translate: { Default: 'State Inspector' } }}
+              </h2>
+              @if (execution(); as execution) {
+                <span
+                  class="rounded-full bg-background-default-subtle px-2 py-0.5 text-[11px] font-medium text-text-secondary"
+                >
+                  {{ execution.status }}
+                </span>
+              }
+            </div>
+          </div>
+
+          @if (canRerun()) {
+            <button
+              type="button"
+              class="inline-flex items-center gap-2 rounded-lg border-[0.5px] border-divider-regular bg-components-card-bg px-3 py-2 text-xs font-medium text-text-primary transition hover:bg-hover-bg"
+              (click)="rerunFromCheckpoint()"
+            >
+              <i class="ri-refresh-line"></i>
+              <span>{{ 'PAC.Xpert.RerunCheckpoint' | translate: { Default: 'Rerun from this checkpoint' } }}</span>
+            </button>
+          }
+
+          <button
+            type="button"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border-[0.5px] border-divider-regular text-text-secondary transition hover:bg-hover-bg hover:text-text-primary"
+            (click)="toggleCollapsed()"
+            [title]="
+              collapsed()
+                ? ('PAC.ACTIONS.Expand' | translate: { Default: 'Expand' })
+                : ('PAC.ACTIONS.Collapse' | translate: { Default: 'Collapse' })
+            "
+          >
+            <i [class]="collapsed() ? 'ri-arrow-up-s-line' : 'ri-arrow-down-s-line'"></i>
+          </button>
+
+          <button
+            type="button"
+            class="inline-flex h-8 w-8 items-center justify-center rounded-lg border-[0.5px] border-divider-regular text-text-secondary transition hover:bg-hover-bg hover:text-text-primary"
+            (click)="closeInspector()"
+            [title]="'PAC.ACTIONS.Close' | translate: { Default: 'Close' }"
+          >
+            <i class="ri-close-line"></i>
+          </button>
+        </div>
+
+        @if (!collapsed()) {
+          <div class="border-b-[0.5px] border-divider-regular px-4 py-3">
+            @if (loadingCheckpoints() || loadingExecution()) {
+              <div class="flex items-center gap-2 text-sm text-text-secondary">
+                <i class="ri-loader-4-line animate-spin"></i>
+                <span>{{ 'PAC.Xpert.LoadingCheckpoints' | translate: { Default: 'Loading checkpoints…' } }}</span>
+              </div>
+            } @else if (checkpoints().length) {
+              <z-stepper
+                orientation="horizontal"
+                zSize="sm"
+                class="state-inspector-checkpoints-stepper w-full"
+                [selectedIndex]="selectedCheckpointIndex()"
+                (selectedIndexChange)="selectCheckpointByIndex($event)"
+              >
+                @for (checkpoint of checkpoints(); track checkpoint.checkpointId; let index = $index) {
+                  <z-step
+                    [tooltip]="getCheckpointTooltip(checkpoint, index)"
+                    [completed]="index < selectedCheckpointIndex()"
+                  >
+                    <ng-template zStepLabel></ng-template>
+                  </z-step>
+                }
+              </z-stepper>
+            } @else {
+              <div
+                class="flex items-center justify-between gap-3 rounded-xl border-[0.5px] border-dashed border-divider-deep px-3 py-3 text-sm text-text-secondary"
+              >
+                <span>
+                  {{
+                    execution()?.status === eExecutionStatusEnum.RUNNING
+                      ? ('PAC.Xpert.StatePending'
+                        | translate: { Default: 'State snapshots will appear after the next persisted checkpoint.' })
+                      : ('PAC.Xpert.NoCheckpoints'
+                        | translate: { Default: 'No checkpoint lineage is available for this execution yet.' })
+                  }}
+                </span>
+              </div>
+            }
+          </div>
+
+          <div class="grid min-h-0 flex-1 grid-cols-[320px_minmax(0,1fr)]">
+            <div class="min-h-0 overflow-y-auto border-r-[0.5px] border-divider-regular px-3 py-3">
+              @if (loadingSchema() && !hasCategories()) {
+                <div
+                  class="flex items-center gap-2 rounded-xl border-[0.5px] border-dashed border-divider-deep px-3 py-4 text-sm text-text-secondary"
+                >
+                  <i class="ri-loader-4-line animate-spin"></i>
+                  <span>{{ 'PAC.Xpert.LoadingVariables' | translate: { Default: 'Loading variables…' } }}</span>
+                </div>
+              } @else if (hasCategories()) {
+                <div class="space-y-4">
+                  @for (category of categories(); track category.id) {
+                    @if (category.groups.length) {
+                      <section class="space-y-2">
+                        <div class="px-2 text-[11px] font-semibold uppercase tracking-[0.24em] text-text-quaternary">
+                          {{ 'PAC.Xpert.StateCategory.' + category.id | translate: { Default: category.label } }}
+                        </div>
+
+                        @for (group of category.groups; track group.id) {
+                          <div class="rounded-xl border-[0.5px] border-divider-regular bg-components-panel-bg/50">
+                            <div
+                              class="border-b-[0.5px] border-divider-regular px-3 py-2 text-xs font-semibold text-text-secondary"
+                            >
+                              {{ group.label }}
+                            </div>
+
+                            <div class="px-1 py-1">
+                              @for (variable of group.variables; track variable.path) {
+                                @if (shouldShowVariable(group, variable)) {
+                                  <button
+                                    type="button"
+                                    class="group/var flex w-full items-center gap-1 rounded-lg px-2 text-left transition hover:bg-hover-bg"
+                                    [class.bg-state-accent-hover]="selectedPath() === variable.path"
+                                    [class.text-text-accent]="selectedPath() === variable.path"
+                                    [class.font-semibold]="selectedPath() === variable.path"
+                                    (click)="selectVariable(group, variable)"
+                                  >
+                                    @for (level of getPaddingLevels(variable); track level) {
+                                      <span class="ml-2 h-7 border-l border-divider-deep"></span>
+                                    }
+
+                                    <span class="flex min-w-0 flex-1 items-center gap-1 py-1">
+                                      @if (isVariableExpandable(group, variable)) {
+                                        <span
+                                          class="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded-md text-text-quaternary transition group-hover/var:bg-components-card-bg"
+                                          [class.rotate-90]="isVariableExpanded(variable)"
+                                          (click)="toggleVariable($event, variable)"
+                                        >
+                                          <i class="ri-arrow-right-s-line"></i>
+                                        </span>
+                                      } @else {
+                                        <span class="inline-flex h-5 w-5 shrink-0"></span>
+                                      }
+
+                                      <span class="truncate font-mono text-sm">
+                                        {{ variable.displayName || variable.name }}
+                                      </span>
+                                    </span>
+
+                                    <span
+                                      class="shrink-0 rounded-md bg-background-default-subtle px-1.5 py-0.5 text-[10px] font-medium text-text-quaternary"
+                                    >
+                                      {{ variable.type }}
+                                    </span>
+                                  </button>
+                                }
+                              }
+                            </div>
+                          </div>
+                        }
+                      </section>
+                    }
+                  }
+                </div>
+              } @else {
+                <div
+                  class="rounded-xl border-[0.5px] border-dashed border-divider-deep px-3 py-4 text-sm text-text-secondary"
+                >
+                  {{
+                    'PAC.Xpert.NoStateVariables'
+                      | translate: { Default: 'No state variables are available for this checkpoint.' }
+                  }}
+                </div>
+              }
+            </div>
+
+            <div class="min-h-0 overflow-y-auto px-4 py-3">
+              @if (currentSnapshotEntry()?.status === 'loading') {
+                <div
+                  class="flex h-full min-h-[220px] items-center justify-center gap-2 rounded-2xl border-[0.5px] border-dashed border-divider-deep text-sm text-text-secondary"
+                >
+                  <i class="ri-loader-4-line animate-spin"></i>
+                  <span>{{ 'PAC.Xpert.LoadingSnapshot' | translate: { Default: 'Loading checkpoint state…' } }}</span>
+                </div>
+              } @else if (currentSnapshotEntry()?.status === 'error') {
+                <div
+                  class="rounded-2xl border-[0.5px] border-dashed border-divider-deep px-4 py-4 text-sm text-text-secondary"
+                >
+                  <div class="font-semibold text-text-primary">
+                    {{ 'PAC.Xpert.StateLoadFailed' | translate: { Default: 'Failed to load checkpoint state' } }}
+                  </div>
+                  <div class="mt-2 whitespace-pre-wrap">{{ currentSnapshotEntry()?.error }}</div>
+                </div>
+              } @else if (selectedVariable(); as selected) {
+                <div class="space-y-4">
+                  <div class="flex flex-wrap items-center justify-between gap-3">
+                    <div class="min-w-0">
+                      <div class="text-[11px] font-semibold uppercase tracking-[0.24em] text-text-quaternary">
+                        {{ 'PAC.Xpert.StateVariable' | translate: { Default: 'State variable' } }}
+                      </div>
+                      <div class="mt-1 truncate font-mono text-base font-semibold text-text-primary">
+                        {{ selected.variable.path }}
+                      </div>
+                    </div>
+
+                    @if (selectedValueCanPreviewMarkdown()) {
+                      <div
+                        class="inline-flex rounded-lg border-[0.5px] border-divider-regular bg-components-panel-bg p-1"
+                      >
+                        <button
+                          type="button"
+                          class="rounded-md px-3 py-1.5 text-xs font-medium transition"
+                          [class.bg-components-card-bg]="stringViewMode() === 'code'"
+                          [class.text-text-primary]="stringViewMode() === 'code'"
+                          [class.text-text-secondary]="stringViewMode() !== 'code'"
+                          (click)="stringViewMode.set('code')"
+                        >
+                          {{ 'PAC.Chat.Code' | translate: { Default: 'Code' } }}
+                        </button>
+                        <button
+                          type="button"
+                          class="rounded-md px-3 py-1.5 text-xs font-medium transition"
+                          [class.bg-components-card-bg]="stringViewMode() === 'preview'"
+                          [class.text-text-primary]="stringViewMode() === 'preview'"
+                          [class.text-text-secondary]="stringViewMode() !== 'preview'"
+                          (click)="stringViewMode.set('preview')"
+                        >
+                          {{ 'PAC.Chat.Preview' | translate: { Default: 'Preview' } }}
+                        </button>
+                      </div>
+                    }
+                  </div>
+
+                  <div class="rounded-2xl border-[0.5px] border-divider-regular bg-components-panel-bg p-4">
+                    @if (selectedValueIsString()) {
+                      @if (stringViewMode() === 'preview' && selectedValueCanPreviewMarkdown()) {
+                        <markdown class="ngm-copilot-markdown block" [data]="selectedValue()" />
+                      } @else {
+                        <pre class="whitespace-pre-wrap break-words font-mono text-sm text-text-primary">{{
+                          selectedValue()
+                        }}</pre>
+                      }
+                    } @else if (selectedValueIsObject() || selectedValueIsArray()) {
+                      <ngx-json-viewer class="text-sm" [json]="selectedValue()" [depth]="1" />
+                    } @else {
+                      <pre class="whitespace-pre-wrap break-words font-mono text-sm text-text-primary">{{
+                        selectedValue() | json
+                      }}</pre>
+                    }
+                  </div>
+                </div>
+              } @else {
+                <div
+                  class="flex h-full min-h-[220px] items-center justify-center rounded-2xl border-[0.5px] border-dashed border-divider-deep px-4 text-sm text-text-secondary"
+                >
+                  {{
+                    'PAC.Xpert.SelectStateVariable'
+                      | translate: { Default: 'Select a state variable to inspect its value.' }
+                  }}
+                </div>
+              }
+            </div>
+          </div>
+        }
+      </div>
+    </z-resizable-panel>
+  </z-resizable>
+}

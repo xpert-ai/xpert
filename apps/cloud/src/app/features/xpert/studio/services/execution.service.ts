@@ -15,12 +15,22 @@ import {
 import { combineLatest, of, switchMap } from 'rxjs'
 import { upsertThreadContextUsage } from '../../../../@shared/chat/context/thread-context-usage'
 
+type TPreviewRetryRequest = {
+  nonce: number
+  messageId?: string
+  checkpointId?: string
+}
+
 @Injectable()
 export class XpertExecutionService {
   readonly conversationService = inject(ChatConversationService)
   readonly feedbackService = inject(ChatMessageFeedbackService)
 
   readonly conversationId = signal<string>(null)
+  readonly panelExecutionId = signal<string>(null)
+  readonly inspectorExecutionId = signal<string>(null)
+  readonly previewRetryRequest = signal<TPreviewRetryRequest>(null)
+  readonly previewRetrySelectionPending = signal(false)
 
   readonly conversation = signal<IChatConversation>(null)
   readonly feedbacks = signal<Record<string, IChatMessageFeedback>>(null)
@@ -37,6 +47,7 @@ export class XpertExecutionService {
 
   readonly #agentExecutions = signal<Record<string, IXpertAgentExecution[]>>({})
   readonly contextUsageByAgentKey = signal<Record<string, TThreadContextUsageEvent>>({})
+  #previewRetryNonce = 0
 
   readonly executions = computed<Record<string, IXpertAgentExecution[]>>(() => {
     const agentExecutions = {}
@@ -155,9 +166,51 @@ export class XpertExecutionService {
 
   setConversation(value: IChatConversation) {
     this.clear()
+    this.selectExecution(null)
+    this.clearPreviewRetry()
     this.conversation.set(null)
     this.conversationId.set(value?.id)
     this.#messages.set([])
+  }
+
+  selectExecution(id: string | null) {
+    this.selectPanelExecution(id)
+    this.selectInspectorExecution(id)
+  }
+
+  selectPanelExecution(id: string | null) {
+    this.panelExecutionId.set(id)
+  }
+
+  selectInspectorExecution(id: string | null) {
+    this.inspectorExecutionId.set(id)
+  }
+
+  requestPreviewRetry(messageId?: string, checkpointId?: string) {
+    this.#previewRetryNonce += 1
+    this.previewRetrySelectionPending.set(true)
+    this.previewRetryRequest.set({
+      nonce: this.#previewRetryNonce,
+      messageId,
+      checkpointId
+    })
+  }
+
+  completePreviewRetrySelection(executionId?: string) {
+    if (executionId) {
+      this.selectExecution(executionId)
+    }
+    this.previewRetryRequest.set(null)
+    this.previewRetrySelectionPending.set(false)
+  }
+
+  consumePreviewRetry() {
+    this.previewRetryRequest.set(null)
+  }
+
+  clearPreviewRetry() {
+    this.consumePreviewRetry()
+    this.previewRetrySelectionPending.set(false)
   }
 
   setContextUsage(event: TThreadContextUsageEvent) {

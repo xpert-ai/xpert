@@ -49,6 +49,7 @@ export type TXpertChatRetryRequest = {
   conversationId: string
   source: TXpertChatSource
   environmentId?: string
+  checkpointId?: string
 }
 
 export type TChatRequest = TXpertChatSendRequest | TXpertChatResumeRequest | TXpertChatRetryRequest

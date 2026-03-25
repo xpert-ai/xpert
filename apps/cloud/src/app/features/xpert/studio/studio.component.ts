@@ -85,6 +85,7 @@ import { XpertStudioToolbarComponent } from './toolbar/toolbar.component'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertStudioFeaturesComponent } from './features/features.component'
 import { XpertService } from '../xpert/xpert.service'
+import { XpertStudioStateInspectorComponent } from './components/state-inspector/state-inspector.component'
 import { GROUP_NODE_TYPES, provideJsonSchemaWidgets, readClipboardNode } from './types'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
@@ -109,6 +110,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     EmojiAvatarComponent,
     XpertStudioFeaturesComponent,
     XpertStudioToolbarComponent,
+    XpertStudioStateInspectorComponent,
     XpertStudioContextMenuComponent,
     XpertStudioNodeAgentComponent,
     XpertStudioNodeKnowledgeComponent,

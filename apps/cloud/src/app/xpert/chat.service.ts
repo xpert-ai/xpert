@@ -341,7 +341,7 @@ export abstract class ChatService {
     })
   }
 
-  retryMessage(messageId?: string) {
+  retryMessage(messageId?: string, checkpointId?: string) {
     const conversationId = this.conversation()?.id
     const messages = this.messages()
     const aiMessageId = messageId ?? findLastAiMessageId(messages)
@@ -361,6 +361,7 @@ export abstract class ChatService {
     const request: TChatRequest = {
       action: 'retry',
       conversationId,
+      ...(checkpointId ? { checkpointId } : {}),
       source: {
         aiMessageId
       }
@@ -391,10 +392,11 @@ export abstract class ChatService {
       reject: boolean
       retry: boolean
       messageId?: string
+      checkpointId?: string
     }>
   ) {
     if (options.retry) {
-      this.retryMessage(options.messageId)
+      this.retryMessage(options.messageId, options.checkpointId)
       return
     }
 

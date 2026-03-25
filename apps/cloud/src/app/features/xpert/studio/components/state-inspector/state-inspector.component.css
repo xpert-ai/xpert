@@ -1,0 +1,61 @@
+:host {
+  display: block;
+  height: 100%;
+  pointer-events: none;
+}
+
+.state-inspector-shell {
+  backdrop-filter: blur(16px);
+}
+
+:host ::ng-deep .state-inspector-checkpoints-stepper {
+  gap: 0.5rem;
+}
+
+:host ::ng-deep .state-inspector-checkpoints-stepper .z-stepper__header {
+  justify-content: flex-start;
+  gap: 0.5rem;
+  overflow-x: auto;
+  padding-bottom: 0.25rem;
+  scrollbar-width: thin;
+}
+
+:host ::ng-deep .state-inspector-checkpoints-stepper .z-stepper__item {
+  min-width: var(--z-stepper-item-max-width);
+  max-width: var(--z-stepper-item-max-width);
+  flex: 0 0 var(--z-stepper-item-max-width);
+}
+
+:host ::ng-deep .state-inspector-checkpoints-stepper .z-stepper__trigger {
+  align-items: stretch;
+  gap: 0.625rem;
+  background: var(--color-components-card-bg);
+  padding: 0.625rem 0.75rem;
+  transition:
+    border-color 150ms ease,
+    background-color 150ms ease,
+    color 150ms ease;
+}
+
+:host ::ng-deep .state-inspector-checkpoints-stepper .z-stepper__trigger:hover {
+  background: var(--color-hover-bg);
+}
+
+:host ::ng-deep .state-inspector-checkpoints-stepper .z-stepper__trigger[data-state='active'] {
+  border-color: var(--color-text-accent);
+  background: var(--color-background-default-subtle);
+}
+
+:host ::ng-deep .state-inspector-checkpoints-stepper .z-stepper__trigger[data-state='completed'] {
+  border-color: var(--color-divider-deep);
+}
+
+:host ::ng-deep .state-inspector-checkpoints-stepper .z-stepper__content {
+  align-items: flex-start;
+  padding-inline: 0;
+  text-align: left;
+}
+
+:host ::ng-deep .state-inspector-checkpoints-stepper .z-stepper__panel {
+  display: none;
+}

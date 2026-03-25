@@ -4,6 +4,7 @@ import {
     appendMessageContent,
     appendMessagePlainText,
     ChatMessageEventTypeEnum,
+    TChatMessageStep,
     ChatMessageTypeEnum,
     CopilotChatMessage,
     createMessageAppendContextTracker,
@@ -33,14 +34,15 @@ import { CancelSummaryJobCommand } from '../../../chat-conversation/commands/can
 import { ScheduleSummaryJobCommand } from '../../../chat-conversation/commands/schedule-summary.command'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
-import { appendMessageSteps, ChatMessageUpsertCommand } from '../../../chat-message'
+import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { XpertAgentChatCommand } from '../../../xpert-agent/commands/chat.command'
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
-import { CreateMemoryStoreCommand, normalizeChatState } from '../../../shared'
+import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
+import { normalizeChatState } from '../../../shared/agent/utils'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
-import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint'
+import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
@@ -232,11 +234,13 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 if (!sourceExecution) {
                     throw new BadRequestException(`Retry source execution "${sourceExecutionId}" not found`)
                 }
-                checkpointId = await this.resolveRetryInputCheckpointId(
-                    sourceExecution.threadId ?? conversation.threadId,
-                    sourceExecution.checkpointNs,
-                    sourceExecution.checkpointId
-                )
+                checkpointId = request.checkpointId
+                    ? request.checkpointId
+                    : await this.resolveRetryInputCheckpointId(
+                          sourceExecution.threadId ?? conversation.threadId,
+                          sourceExecution.checkpointNs,
+                          sourceExecution.checkpointId
+                      )
                 userMessage = conversation.messages.find((message) => message.id === retryMessage.parentId)
                 if (!userMessage) {
                     throw new BadRequestException('Retry source human message not found')
@@ -602,6 +606,23 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             }
         })
     }
+}
+
+function appendMessageSteps(aiMessage: IChatMessage, steps: TChatMessageStep[]) {
+    aiMessage.events ??= []
+    steps.forEach((item) => {
+        if (item.id) {
+            const index = aiMessage.events.findIndex((_) => _.id === item.id)
+            if (index > -1) {
+                aiMessage.events[index] = {
+                    ...aiMessage.events[index],
+                    ...item
+                }
+                return
+            }
+        }
+        aiMessage.events.push(item)
+    })
 }
 
 async function getLongTermMemory(store: BaseStore, xpertId: string, input: string) {

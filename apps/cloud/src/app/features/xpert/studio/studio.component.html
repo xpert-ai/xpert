@@ -463,10 +463,13 @@
   [(showFeatures)]="showFeatures"
 />
 
-<xpert-studio-panel
-  class="absolute top-14 right-0 bottom-2 flex z-10 !w-0 shrink outline-none"
-  [(sidePanel)]="sidePanel"
-/>
+<div class="absolute inset-0 top-14 flex min-h-0 gap-1 pointer-events-none">
+  <xpert-studio-state-inspector class="p-1 flex-1 min-h-0 overflow-hidden z-10" />
+  <xpert-studio-panel
+    class="flex gap-2 z-10 h-full shrink outline-none pointer-events-auto"
+    [(sidePanel)]="sidePanel"
+  />
+</div>
 
 @if (showFeatures()) {
   <div class="relative z-40">

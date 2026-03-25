@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, HostListener, inject, model, signal } from '@angular/core'
 import { listFadeIn } from 'apps/cloud/src/app/@core'
 import { SelectionService } from '../domain'
+import { XpertExecutionService } from '../services/execution.service'
 import { XpertStudioComponent } from '../studio.component'
 import { XpertStudioPanelExecutionComponent } from './execution/execution.component'
 import { XpertStudioPanelKnowledgeComponent } from './knowledge/knowledge.component'
@@ -37,10 +38,11 @@ import { XpertStudioPanelEnvironmentComponent } from './environment/environment.
 export class XpertStudioPanelComponent {
   readonly studioComponent = inject(XpertStudioComponent)
   readonly selectionService = inject(SelectionService)
+  readonly executionService = inject(XpertExecutionService)
 
   // Inputs
   readonly sidePanel = model<'preview' | 'variables' | 'environments'>(null)
-  readonly executionId = model<string>()
+  readonly executionId = this.executionService.panelExecutionId
 
   // States
   readonly selectedNodes = computed(() => {
@@ -61,7 +63,7 @@ export class XpertStudioPanelComponent {
   }
 
   closeExecution() {
-    this.executionId.set(null)
+    this.executionService.selectPanelExecution(null)
   }
 
   onResized() {}

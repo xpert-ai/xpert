@@ -34,6 +34,16 @@ export type TXpertExecution = {
   parentId?: string
 }
 
+export type TXpertAgentExecutionCheckpoint = {
+  threadId: string
+  checkpointNs: string
+  checkpointId: string
+  parentCheckpointId?: string | null
+  createdAt?: string | null
+  metadata?: Record<string, unknown> | null
+  isCurrent?: boolean
+}
+
 /**
  * Corresponds to the run in the [Agent Protocol](https://github.com/langchain-ai/agent-protocol).
  */
