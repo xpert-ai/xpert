@@ -8,7 +8,7 @@
   ngmDynamicGrid colWidth="280"
   box="content-box">
   @for (toolset of builtinToolsets(); track toolset.id) {
-    <xpert-toolset-card class="col-span-1 min-h-[160px] cursor-pointer bg-components-card-bg"
+    <xpert-toolset-card class="col-span-1 min-h-[160px] cursor-pointer bg-token-main-surface-low"
       [toolset]="toolset"
       (click)="navigateTo(toolset)"
     />
@@ -30,7 +30,7 @@
   ngmDynamicGrid colWidth="280"
   box="content-box">
   @for (provider of builtinToolProviders(); track provider.name) {
-    <xpert-tool-provider-card [provider]="provider"
+    <xpert-tool-provider-card class="bg-token-main-surface-low" [provider]="provider"
       [builtinTags]="builtinTags()"
       (click)="configureToolBuiltin(provider)" />
   }

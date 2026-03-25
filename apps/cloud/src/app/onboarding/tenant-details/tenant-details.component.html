@@ -4,7 +4,7 @@
 
 <div class="w-full border-b border-solid border-divider-regular"></div>
 
-<z-stepper class="w-[600px] max-w-full my-4 shadow-lg rounded-lg" [linear]="true" orientation="vertical" #stepper="zStepper">
+<z-stepper class="w-[680px] max-w-full my-4 shadow-lg rounded-lg" [linear]="true" orientation="horizontal" #stepper="zStepper">
   <z-step #step1="zStep" [stepControl]="userFormGroup" [editable]="!tenantCompleted() && !loading()">
     <form [formGroup]="userFormGroup" class="flex flex-col gap-4">
       <ng-template zStepLabel> {{ 'PAC.Onboarding.WhatCallYou' | translate: {Default: 'What should we call you'} }}?</ng-template>
@@ -196,6 +196,45 @@
       </div>
     </z-step>
   }
+
+  <z-step [editable]="!loading()">
+    <ng-template zStepLabel>{{ 'PAC.Onboarding.ConfigureAiModel' | translate: {Default: 'Configure AI Model'} }}</ng-template>
+
+    <div class="w-full flex flex-col gap-4 relative">
+      <div class="description">
+        {{ 'PAC.Onboarding.ConfigureAiModelDesc' | translate: {Default: 'Set up your primary AI provider and choose a default model for the AI copilot. You can continue refining it later in settings.'} }}
+      </div>
+
+      @if (showAiModelForm()) {
+        <pac-copilot-form class="w-full" [copilot]="primaryCopilot()" onboarding (saved)="onAiModelSaved()" />
+      } @else {
+        <div class="rounded-xl border border-divider-regular bg-background-default-subtle p-5">
+          <div class="text-base font-medium text-text-primary">
+            {{ 'PAC.Onboarding.ConfigureAiModelTitle' | translate: {Default: 'Make your AI copilot ready to use'} }}
+          </div>
+          <div class="description mt-2">
+            {{ 'PAC.Onboarding.ConfigureAiModelHint' | translate: {Default: 'We will create your primary provider first, then you can add credentials and pick the default model in one place.'} }}
+          </div>
+
+          <div class="mt-4 flex items-center gap-4">
+            <button type="button" class="btn btn-primary btn-large" [disabled]="loading()" (click)="startAiModelSetup()">
+              {{ 'PAC.Onboarding.ConfigureAiModelAction' | translate: {Default: 'Start configuration'} }}
+            </button>
+          </div>
+        </div>
+      }
+
+      <div class="flex items-center gap-4">
+        <button type="button" class="btn btn-secondary btn-large" [disabled]="loading()" (click)="skipAiModelSetup()">
+          {{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}
+        </button>
+      </div>
+
+      @if (loading()) {
+        <ngm-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
+      }
+    </div>
+  </z-step>
 
   <z-step [editable]="!loading()">
     <ng-template zStepLabel>{{ 'PAC.Onboarding.Done' | translate: {Default: 'Done'} }}</ng-template>

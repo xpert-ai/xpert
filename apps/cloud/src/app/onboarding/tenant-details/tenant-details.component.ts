@@ -1,7 +1,7 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import { Component, ViewChild, computed, effect, inject, model, signal } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import {
   ZardFormImports,
@@ -17,10 +17,12 @@ import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { omit } from '@metad/ocap-core'
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { BehaviorSubject, combineLatest, firstValueFrom, map, startWith } from 'rxjs'
+import { BehaviorSubject, combineLatest, filter, firstValueFrom, map, startWith, switchMap } from 'rxjs'
 import {
+  AiProviderRole,
   AuthStrategy,
   BonusTypeEnum,
+  CopilotServerService,
   CurrenciesEnum,
   DEFAULT_TENANT,
   DefaultValueDateTypeEnum,
@@ -30,6 +32,7 @@ import {
   OrganizationDemoNetworkEnum,
   OrganizationsService,
   ServerAgent,
+  ICopilot,
   TenantService,
   ToastrService,
   convertConfigurationSchema,
@@ -38,17 +41,19 @@ import {
   injectLanguage
 } from '../../@core'
 import { FeatureCategoryComponent } from '@cloud/app/@shared/features'
+import { CopilotFormComponent } from '../../features/setting/copilot/copilot-form/copilot-form.component'
 
 @Component({
   standalone: true,
   selector: 'ngm-tenant-details',
   templateUrl: './tenant-details.component.html',
   styleUrls: ['./tenant-details.component.scss'],
-  imports: [FormsModule, ReactiveFormsModule, TranslateModule, CdkListboxModule, ...ZardStepperImports, ...ZardFormImports, ZardInputDirective, ZardProgressBarComponent, FormlyModule, FeatureCategoryComponent, NgmCommonModule],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, CdkListboxModule, ...ZardStepperImports, ...ZardFormImports, ZardInputDirective, ZardProgressBarComponent, FormlyModule, FeatureCategoryComponent, NgmCommonModule, CopilotFormComponent],
   providers: [FeatureService]
 })
 export class TenantDetailsComponent {
   OrganizationDemoNetworkEnum = OrganizationDemoNetworkEnum
+  AiProviderRole = AiProviderRole
 
   readonly #store = inject(Store)
   private readonly tenantService = inject(TenantService)
@@ -56,6 +61,7 @@ export class TenantDetailsComponent {
   private readonly dataSourceService = inject(DataSourceService)
   private readonly organizationsService = inject(OrganizationsService)
   readonly #featureAPI = inject(FeatureService)
+  readonly #copilotServer = inject(CopilotServerService)
   private readonly serverAgent? = inject(ServerAgent, { optional: true })
   private readonly authStrategy = inject(AuthStrategy)
   private readonly _formBuilder = inject(FormBuilder)
@@ -81,6 +87,16 @@ export class TenantDetailsComponent {
   // Features
   readonly features = model<{feature: IFeatureOrganizationUpdateInput; category: 'ai' | 'bi'}[]>([])
   readonly hasSemanticModel = computed(() => this.features().some(({category, feature}) => category === 'bi' && feature.isEnabled))
+  readonly orgCopilots = toSignal(
+    combineLatest([this.#copilotServer.refresh$, toObservable(this.selectedOrganization)]).pipe(
+      filter(([, organization]) => !!organization?.id),
+      switchMap(() => this.#copilotServer.getAllInOrg()),
+      map(({ items }) => items)
+    ),
+    { initialValue: [] as ICopilot[] }
+  )
+  readonly primaryCopilot = computed(() => this.orgCopilots()?.find((item) => item.role === AiProviderRole.Primary) ?? null)
+  readonly showAiModelForm = computed(() => !!this.primaryCopilot()?.enabled)
 
   demoFormGroup: FormGroup = this._formBuilder.group({
     source: [OrganizationDemoNetworkEnum.github, Validators.required]
@@ -101,6 +117,7 @@ export class TenantDetailsComponent {
   demoError = signal<string>(null)
   demoCompleted = signal(false)
   connectionCompleted = signal(false)
+  primaryCopilotCreatedInOnboarding = signal(false)
 
   searchControl = new FormControl()
   private readonly dataSourceTypes$ = new BehaviorSubject<IDataSourceType[]>([])
@@ -134,7 +151,9 @@ export class TenantDetailsComponent {
 
   constructor() {
     effect(() => {
-      console.log(this.selectedOrganization())
+      if (this.selectedOrganization()?.id) {
+        this.#copilotServer.refresh()
+      }
     })
   }
 
@@ -209,6 +228,7 @@ export class TenantDetailsComponent {
 
     this.#store.selectedOrganization = organization
     this.dataSourceTypes$.next(await firstValueFrom(this.typesService.getAll()))
+    this.#copilotServer.refresh()
   }
 
   enableFeatures() {
@@ -307,5 +327,59 @@ export class TenantDetailsComponent {
       this.loading.set(false)
       this.toastrService.error(message)
     }
+  }
+
+  async startAiModelSetup() {
+    const primaryCopilot = this.primaryCopilot()
+
+    if (primaryCopilot?.enabled) {
+      return
+    }
+
+    this.loading.set(true)
+    try {
+      if (!primaryCopilot) {
+        this.primaryCopilotCreatedInOnboarding.set(true)
+      }
+
+      await firstValueFrom(this.#copilotServer.enableCopilot(AiProviderRole.Primary))
+      this.#copilotServer.refresh()
+    } catch (error) {
+      this.primaryCopilotCreatedInOnboarding.set(false)
+      this.toastrService.error(getErrorMessage(error))
+    } finally {
+      this.loading.set(false)
+    }
+  }
+
+  async skipAiModelSetup() {
+    const primaryCopilot = this.primaryCopilot()
+    const shouldDeletePrimary =
+      this.primaryCopilotCreatedInOnboarding() &&
+      !!primaryCopilot &&
+      !primaryCopilot.modelProvider &&
+      !primaryCopilot.copilotModel
+
+    if (!shouldDeletePrimary) {
+      this.stepper.next()
+      return
+    }
+
+    this.loading.set(true)
+    try {
+      await firstValueFrom(this.#copilotServer.delete(primaryCopilot.id))
+      this.primaryCopilotCreatedInOnboarding.set(false)
+      this.#copilotServer.refresh()
+      this.stepper.next()
+    } catch (error) {
+      this.toastrService.error(getErrorMessage(error))
+    } finally {
+      this.loading.set(false)
+    }
+  }
+
+  onAiModelSaved() {
+    this.primaryCopilotCreatedInOnboarding.set(false)
+    this.stepper.next()
   }
 }
