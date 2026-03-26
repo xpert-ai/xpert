@@ -88,12 +88,14 @@ export class XpertWorkspaceXpertsComponent {
       const workspaceId = this.workspace().id
       return { workspaceId, where }
     },
-    loader: ({request}) => {
-      return request ? this.xpertService.getAllByWorkspace(request.workspaceId, {
+    loader: ({ request }) => {
+      return request
+        ? this.xpertService.getAllByWorkspace(request.workspaceId, {
           where: omitBy(request.where, isNil),
           order: { updatedAt: OrderTypeEnum.DESC },
-          relations: ['createdBy', 'tags'],
-        }).pipe(map(({ items }) => items.filter((item) => item.latest))) : null
+          relations: ['createdBy', 'tags', 'knowledgebase']
+        }).pipe(map(({ items }) => items.filter((item) => item.latest)))
+        : null
     }
   })
 
@@ -130,10 +132,8 @@ export class XpertWorkspaceXpertsComponent {
         }
       })
       .closed.subscribe((xpert) => {
-        if (xpert?.type === XpertTypeEnum.Agent || xpert?.type === XpertTypeEnum.Knowledge) {
-          this.router.navigate(['/xpert/x/', xpert.id, 'agents'])
-        } else if (xpert?.type === XpertTypeEnum.Copilot) {
-          this.router.navigate(['/xpert/x/', xpert.id, 'copilot'])
+        if (xpert?.id) {
+          this.openXpert(xpert)
         }
       })
   }
@@ -245,5 +245,19 @@ export class XpertWorkspaceXpertsComponent {
     if (event.pipelineId) {
       this.refresh()
     }
+  }
+
+  private openXpert(xpert: IXpert) {
+    if (xpert.type === XpertTypeEnum.Knowledge && xpert.knowledgebase?.id) {
+      this.router.navigate(['/xpert/knowledges', xpert.knowledgebase.id, 'xpert', xpert.id])
+      return
+    }
+
+    if (xpert.type === XpertTypeEnum.Copilot) {
+      this.router.navigate(['/xpert/x/', xpert.id, 'copilot'])
+      return
+    }
+
+    this.router.navigate(['/xpert/x/', xpert.id, 'agents'])
   }
 }

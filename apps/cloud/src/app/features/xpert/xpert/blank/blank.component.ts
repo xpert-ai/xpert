@@ -31,7 +31,7 @@ import { XpertBasicFormComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { XpertWorkflowIconComponent } from 'apps/cloud/src/app/@shared/workflow'
-import { catchError, from, map, of, switchMap } from 'rxjs'
+import { catchError, from, map, of, switchMap, throwError } from 'rxjs'
 import {
   BlankWorkflowStarterNodeKey,
   buildBlankKnowledgeDraft,
@@ -272,6 +272,7 @@ export class XpertNewBlankComponent {
           }
         }
       })
+      .pipe(switchMap((xpert) => this.provisionKnowledgebaseIfNeeded(xpert)))
       .pipe(switchMap((xpert) => this.initializeDraftIfNeeded(xpert)))
       .subscribe({
         next: (xpert) => {
@@ -394,6 +395,54 @@ export class XpertNewBlankComponent {
         console.error(error)
         return of(xpert)
       })
+    )
+  }
+
+  private provisionKnowledgebaseIfNeeded(xpert: IXpert) {
+    if (xpert.type !== XpertTypeEnum.Knowledge) {
+      return of(xpert)
+    }
+
+    if (xpert.knowledgebase?.id) {
+      return of(xpert)
+    }
+
+    return this.knowledgebaseService
+      .create({
+        name: xpert.title || xpert.name,
+        description: xpert.description,
+        avatar: xpert.avatar,
+        workspaceId: xpert.workspaceId ?? this.#dialogData?.workspace?.id,
+        copilotModel: xpert.copilotModel
+      })
+      .pipe(
+        catchError((error) => this.rollbackKnowledgeXpertCreation(xpert.id, error)),
+        switchMap((knowledgebase) =>
+          this.knowledgebaseService.update(knowledgebase.id, { pipelineId: xpert.id }).pipe(
+            map(() => ({
+              ...xpert,
+              knowledgebase: {
+                ...knowledgebase,
+                pipelineId: xpert.id
+              }
+            })),
+            catchError((error) => this.rollbackKnowledgePipelineCreation(xpert.id, knowledgebase.id, error))
+          )
+        )
+      )
+  }
+
+  private rollbackKnowledgeXpertCreation(xpertId: string, error: unknown) {
+    return this.xpertService.delete(xpertId).pipe(
+      catchError(() => of(null)),
+      switchMap(() => throwError(() => error))
+    )
+  }
+
+  private rollbackKnowledgePipelineCreation(xpertId: string, knowledgebaseId: string, error: unknown) {
+    return this.knowledgebaseService.delete(knowledgebaseId).pipe(
+      catchError(() => of(null)),
+      switchMap(() => this.rollbackKnowledgeXpertCreation(xpertId, error))
     )
   }
 

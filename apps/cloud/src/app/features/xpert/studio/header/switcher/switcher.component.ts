@@ -41,6 +41,7 @@ export class XpertStudioHeaderSwitcherComponent {
                 type: XpertTypeEnum.Agent,
                 latest: true
               },
+              relations: ['knowledgebase'],
               order: { updatedAt: OrderTypeEnum.DESC }
             })
             .pipe(map(({ items }) => items.filter((item) => item.latest)))
@@ -77,7 +78,7 @@ export class XpertStudioHeaderSwitcherComponent {
       return
     }
 
-    this.#router.navigate(['/xpert/x', xpert.id, 'agents'])
+    this.openXpert(xpert)
   }
 
   createXpert() {
@@ -96,8 +97,22 @@ export class XpertStudioHeaderSwitcherComponent {
       })
       .closed.subscribe((xpert) => {
         if (xpert?.id) {
-          this.switchXpert(xpert)
+          this.openXpert(xpert)
         }
       })
+  }
+
+  private openXpert(xpert: IXpert) {
+    if (xpert.type === XpertTypeEnum.Knowledge && xpert.knowledgebase?.id) {
+      this.#router.navigate(['/xpert/knowledges', xpert.knowledgebase.id, 'xpert', xpert.id])
+      return
+    }
+
+    if (xpert.type === XpertTypeEnum.Copilot) {
+      this.#router.navigate(['/xpert/x', xpert.id, 'copilot'])
+      return
+    }
+
+    this.#router.navigate(['/xpert/x', xpert.id, 'agents'])
   }
 }

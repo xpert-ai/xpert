@@ -31,6 +31,10 @@ export class XpertPublicDTO extends XpertIdentiDto {
 	)
 	declare knowledgebases?: Knowledgebase[]
 
+	@Expose()
+	@Transform((params: TransformFnParams) => (params.value ? new KnowledgebasePublicDTO(params.value) : null))
+	declare knowledgebase?: Knowledgebase
+
 	@Transform((params: TransformFnParams) =>
 		params.value ? params.value.map((item) => new ToolsetPublicDTO(item)) : null
 	)

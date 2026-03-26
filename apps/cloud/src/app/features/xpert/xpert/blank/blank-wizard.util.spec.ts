@@ -10,17 +10,25 @@ import {
 } from './blank-wizard.util'
 
 describe('blank wizard util', () => {
-  it('should keep knowledge mode locked when opened from the knowledge flow', () => {
-    expect(getBlankWizardAvailableModes(XpertTypeEnum.Knowledge)).toEqual([XpertTypeEnum.Knowledge])
+  it('should keep all modes available while defaulting to knowledge from the knowledge flow', () => {
+    expect(getBlankWizardAvailableModes(XpertTypeEnum.Knowledge)).toEqual([
+      XpertTypeEnum.Agent,
+      BLANK_XPERT_WORKFLOW_MODE,
+      XpertTypeEnum.Knowledge
+    ])
     expect(getBlankWizardDefaultMode(XpertTypeEnum.Knowledge)).toBe(XpertTypeEnum.Knowledge)
-    expect(isBlankWizardModeDisabled(XpertTypeEnum.Agent, XpertTypeEnum.Knowledge)).toBe(true)
-    expect(isBlankWizardModeDisabled(BLANK_XPERT_WORKFLOW_MODE, XpertTypeEnum.Knowledge)).toBe(true)
+    expect(isBlankWizardModeDisabled(XpertTypeEnum.Agent, XpertTypeEnum.Knowledge)).toBe(false)
+    expect(isBlankWizardModeDisabled(BLANK_XPERT_WORKFLOW_MODE, XpertTypeEnum.Knowledge)).toBe(false)
   })
 
-  it('should allow agent and workflow modes from the digital expert entry', () => {
-    expect(getBlankWizardAvailableModes(XpertTypeEnum.Agent)).toEqual([XpertTypeEnum.Agent, BLANK_XPERT_WORKFLOW_MODE])
+  it('should keep all modes available from the digital expert entry', () => {
+    expect(getBlankWizardAvailableModes(XpertTypeEnum.Agent)).toEqual([
+      XpertTypeEnum.Agent,
+      BLANK_XPERT_WORKFLOW_MODE,
+      XpertTypeEnum.Knowledge
+    ])
     expect(getBlankWizardDefaultMode(XpertTypeEnum.Agent)).toBe(XpertTypeEnum.Agent)
-    expect(isBlankWizardModeDisabled(XpertTypeEnum.Knowledge, XpertTypeEnum.Agent)).toBe(true)
+    expect(isBlankWizardModeDisabled(XpertTypeEnum.Knowledge, XpertTypeEnum.Agent)).toBe(false)
     expect(isBlankWizardModeDisabled(BLANK_XPERT_WORKFLOW_MODE, XpertTypeEnum.Agent)).toBe(false)
   })
 

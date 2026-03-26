@@ -85,7 +85,8 @@ const vars = {
   'surface-neutral': 'var(--color-surface-neutral)',
   'border-l2': 'var(--color-border-l2)',
   'input-border': 'var(--color-input-border)',
-  'surface-container-bg': 'var(--ngm-color-surface-container)'
+  'surface-container-bg': 'var(--ngm-color-surface-container)',
+  'background-body': 'var(--color-background-body)'
 }
 
 module.exports = vars
