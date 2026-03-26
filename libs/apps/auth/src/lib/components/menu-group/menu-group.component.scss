@@ -16,13 +16,11 @@
 }
 
 .pac-router-link {
-  @apply transition-all duration-200 ease-in-out;
-
-  
+  @apply transition-all duration-200 ease-in-out cursor-pointer;
 
   &.active {
     .menu-button {
-      @apply rounded-xl shadow-lg bg-white text-primary-600;
+      @apply rounded-lg shadow-lg bg-white text-primary-600;
     }
   }
 }

@@ -15,7 +15,7 @@
         @if (isCollapsed) {
           <button
             type="button"
-            class="menu-button m-1.5 shrink-0 flex items-center justify-center p-1.5 leading-4 opacity-80 transition-all duration-200 hover:rounded-lg hover:bg-hover-bg hover:opacity-100"
+            class="menu-button cursor-pointer m-1.5 shrink-0 flex items-center justify-center p-1.5 leading-4 opacity-80 transition-all duration-200 hover:rounded-lg hover:bg-hover-bg hover:opacity-100"
             [routerLink]="isCollapsed ? item.link : null"
             routerLinkActive
             #rla="routerLinkActive"
