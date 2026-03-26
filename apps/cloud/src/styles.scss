@@ -33,10 +33,9 @@ body {
   font-size: 14px;
 }
 
-$text-font: Lato, 'Noto Serif SC', monospace;
-
 body {
   @apply flex m-0 text-text-primary;
+  font-family: var(--font-xp-sans);
 
   &.mobile {
     .cdk-overlay-pane {

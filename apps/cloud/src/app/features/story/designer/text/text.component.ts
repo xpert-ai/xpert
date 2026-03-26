@@ -9,6 +9,9 @@ import { TranslateModule } from '@ngx-translate/core'
 import { ColorInputComponent } from '../color-input/color-input.component'
 import { SharedUiModule } from '../../../../@shared/ui.module'
 
+const UI_DEFAULT_FONT_FAMILY =
+  "var(--font-xp-sans, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', ui-sans-serif, system-ui, sans-serif)"
+
 @Component({
   standalone: true,
   imports: [
@@ -41,7 +44,7 @@ export class DesignerTextComponent implements ControlValueAccessor {
   private readonly formBuilder = inject(FormBuilder)
 
   fontFamilies = [
-    "Lato, 'Noto Serif SC', monospace",
+    UI_DEFAULT_FONT_FAMILY,
     "Arial, Helvetica, sans-serif",
     "'Times New Roman', Times, serif",
     "Verdana, Geneva, sans-serif",
@@ -58,7 +61,11 @@ export class DesignerTextComponent implements ControlValueAccessor {
       value: null,
       label: '--'
     },
-    ...this.fontFamilies.map((value) => ({value}))
+    {
+      value: UI_DEFAULT_FONT_FAMILY,
+      label: 'UI Default Sans'
+    },
+    ...this.fontFamilies.filter((value) => value !== UI_DEFAULT_FONT_FAMILY).map((value) => ({ value, label: value }))
   ]
   fontWeights = [
     'normal',

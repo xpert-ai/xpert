@@ -7,7 +7,7 @@ const palette = {
 }
 
 const theme = {
-  fontMain: `Lato, 'Noto Serif SC', Open Sans, sans-serif`,
+  fontMain: `'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', ui-sans-serif, system-ui, sans-serif`,
   fontSecondary: 'Raleway, sans-serif',
 
   bg: '#ffffff',

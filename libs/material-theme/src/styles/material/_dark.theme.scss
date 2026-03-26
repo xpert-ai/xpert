@@ -9,7 +9,7 @@
 @use 'packages/angular/theming' as ocap;
 
 
-$material-typeface: Lato, 'Noto Serif SC', monospace;
+$material-typeface: var(--font-xp-sans, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', ui-sans-serif, system-ui, sans-serif);
 
 // Define a theme.
 $primary: themeCompat.m2-define-palette(themeCompat.$m2-blue-palette, 500);

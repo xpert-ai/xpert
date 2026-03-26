@@ -17,7 +17,7 @@
 $primary: themeCompat.m2-define-palette(themeCompat.$m2-blue-grey-palette, 600);
 $accent:  themeCompat.m2-define-palette(themeCompat.$m2-amber-palette, A700, A400, A200);
 
-$material-typeface: Lato, 'Noto Serif SC', monospace;
+$material-typeface: var(--font-xp-sans, 'PingFang SC', 'Hiragino Sans GB', 'Microsoft YaHei UI', 'Microsoft YaHei', 'Noto Sans CJK SC', 'Source Han Sans SC', ui-sans-serif, system-ui, sans-serif);
 
 $mat-theme: themeCompat.m2-define-light-theme(
   (

@@ -4,6 +4,17 @@ const tailwindThemeVarDefine = require('./tailwind.theme.vars')
 const withOpacity = (variable) =>
   `color-mix(in oklab, var(${variable}) calc(<alpha-value> * 100%), transparent)`
 
+const uiSansFontStack = [
+  'var(--font-xp-sans)',
+  'ui-sans-serif',
+  'system-ui',
+  'sans-serif',
+  '"Apple Color Emoji"',
+  '"Segoe UI Emoji"',
+  '"Segoe UI Symbol"',
+  '"Noto Color Emoji"'
+]
+
 /** @type {import('tailwindcss').Config} */
 module.exports = {
   content: [
@@ -104,15 +115,8 @@ module.exports = {
         98: '0.98'
       },
       fontFamily: {
-        body: [
-          'ui-sans-serif',
-          'system-ui',
-          'sans-serif',
-          '"Apple Color Emoji"',
-          '"Segoe UI Emoji"',
-          '"Segoe UI Symbol"',
-          '"Noto Color Emoji"'
-        ],
+        sans: uiSansFontStack,
+        body: uiSansFontStack,
         mono: ['"Geist Mono"', 'monospace']
       },
       fontSize: {
