@@ -15,7 +15,7 @@
       {{ 'PAC.Xpert.ChooseXpertType' | translate: { Default: 'What type of Xpert do you want?' } }}
     </div>
     <ul class="xpert-type-list flex gap-4" cdkListbox [(ngModel)]="types">
-      <li [cdkOption]="eXpertTypeEnum.Agent" [cdkOptionDisabled]="!!type()">
+      <li [cdkOption]="eXpertTypeEnum.Agent" [cdkOptionDisabled]="isModeDisabled(eXpertTypeEnum.Agent)">
         <svg
           width="13"
           height="12"
@@ -49,7 +49,15 @@
         </div>
       </li>
 
-      <li [cdkOption]="eXpertTypeEnum.Knowledge" [cdkOptionDisabled]="!!type()">
+      <li [cdkOption]="workflowMode" [cdkOptionDisabled]="isModeDisabled(workflowMode)">
+        <i class="ri-flow-chart text-xl text-text-info"></i>
+
+        <div class="h-5 text-[13px] font-medium leading-[18px]">
+          {{ 'PAC.Xpert.Workflow' | translate: { Default: 'Workflow' } }}
+        </div>
+      </li>
+
+      <li [cdkOption]="eXpertTypeEnum.Knowledge" [cdkOptionDisabled]="isModeDisabled(eXpertTypeEnum.Knowledge)">
         <i class="ri-contacts-book-fill text-xl text-text-success"></i>
 
         <div class="h-5 text-[13px] font-medium leading-[18px]">
@@ -77,7 +85,14 @@
         <z-step [label]="'PAC.Workflow.Trigger' | translate: { Default: 'Trigger' }">
           <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
             <div class="text-sm leading-6 text-text-secondary">
-              {{ 'PAC.Xpert.SelectTriggerProviders' | translate: { Default: 'Choose the triggers you want to prepare now. You can skip this and configure details later in Studio.' } }}
+              {{
+                'PAC.Xpert.SelectTriggerProviders'
+                  | translate
+                    : {
+                        Default:
+                          'Choose the triggers you want to prepare now. You can skip this and configure details later in Studio.'
+                      }
+              }}
             </div>
 
             <div class="grid gap-2 md:grid-cols-2">
@@ -107,7 +122,9 @@
                   </div>
                 </label>
               } @empty {
-                <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
+                <div
+                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
+                >
                   {{ 'PAC.Workflow.NoTriggersAvailable' | translate: { Default: 'No trigger providers available' } }}
                 </div>
               }
@@ -118,7 +135,14 @@
         <z-step [label]="'PAC.KEY_WORDS.Middleware' | translate: { Default: 'Middleware' }">
           <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
             <div class="text-sm leading-6 text-text-secondary">
-              {{ 'PAC.Xpert.SelectMiddlewares' | translate: { Default: 'Choose the middlewares to preload for the primary agent. Detailed configuration stays in Studio.' } }}
+              {{
+                'PAC.Xpert.SelectMiddlewares'
+                  | translate
+                    : {
+                        Default:
+                          'Choose the middlewares to preload for the primary agent. Detailed configuration stays in Studio.'
+                      }
+              }}
             </div>
 
             <div class="grid gap-2 md:grid-cols-2">
@@ -142,8 +166,12 @@
                   </div>
                 </label>
               } @empty {
-                <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
-                  {{ 'PAC.Workflow.NoMiddlewaresAvailable' | translate: { Default: 'No middleware providers available' } }}
+                <div
+                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
+                >
+                  {{
+                    'PAC.Workflow.NoMiddlewaresAvailable' | translate: { Default: 'No middleware providers available' }
+                  }}
                 </div>
               }
             </div>
@@ -153,14 +181,23 @@
         <z-step [label]="'PAC.Workflow.Skill' | translate: { Default: 'Skill' }">
           <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
             <div class="text-sm leading-6 text-text-secondary">
-              {{ 'PAC.Xpert.AddSkillsPlaceholder' | translate: { Default: 'Add placeholder skills for this blank expert. The corresponding skill nodes will be created now, and you can refine them later in Studio.' } }}
+              {{
+                'PAC.Xpert.AddSkillsPlaceholder'
+                  | translate
+                    : {
+                        Default:
+                          'Add placeholder skills for this blank expert. The corresponding skill nodes will be created now, and you can refine them later in Studio.'
+                      }
+              }}
             </div>
 
             <div class="flex items-start gap-2">
               <textarea
                 z-input
                 class="min-h-24 grow"
-                [placeholder]="'PAC.Xpert.AddSkillNames' | translate: { Default: 'Enter a skill name, then press Enter or comma' }"
+                [placeholder]="
+                  'PAC.Xpert.AddSkillNames' | translate: { Default: 'Enter a skill name, then press Enter or comma' }
+                "
                 [(ngModel)]="skillInput"
                 (keydown)="onSkillInputKeydown($event)"
               ></textarea>
@@ -183,7 +220,9 @@
                 }
               </div>
             } @else {
-              <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
+              <div
+                class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
+              >
                 {{ 'PAC.Workflow.NoSkillsAdded' | translate: { Default: 'No skills added yet' } }}
               </div>
             }
@@ -198,12 +237,190 @@
           </button>
 
           @if (stepper.selectedIndex > 0) {
-            <button type="button" class="btn disabled:btn-disabled btn-large" [disabled]="loading()" (click)="stepper.previous()">
+            <button
+              type="button"
+              class="btn disabled:btn-disabled btn-large"
+              [disabled]="loading()"
+              (click)="stepper.previous()"
+            >
               {{ 'PAC.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
             </button>
           }
 
           @if (stepper.selectedIndex < 3) {
+            <button
+              type="button"
+              class="btn disabled:btn-disabled btn-primary btn-large"
+              [disabled]="loading() || (stepper.selectedIndex === 0 && basicInvalid())"
+              (click)="stepper.next()"
+            >
+              {{ 'PAC.ACTIONS.NEXT' | translate: { Default: 'Next' } }}
+            </button>
+          } @else {
+            <button
+              type="button"
+              class="btn disabled:btn-disabled btn-primary btn-large"
+              cdkFocusInitial
+              [disabled]="loading() || basicInvalid()"
+              (click)="create()"
+            >
+              <i class="ri-save-line mr-1"></i>
+              {{ 'Story.Common.Save' | translate: { Default: 'Save' } }}
+            </button>
+          }
+        </div>
+      </div>
+    </div>
+  } @else if (isWorkflowType()) {
+    <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+      <z-stepper #stepper="zStepper" orientation="horizontal" class="min-h-0 flex-1 overflow-hidden px-4 pb-2">
+        <z-step [label]="'PAC.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
+          <div class="px-4">
+            <xpert-basic-form
+              [(name)]="name"
+              [(avatar)]="avatar"
+              [(description)]="description"
+              [(title)]="title"
+              [(copilotModel)]="copilotModel"
+            />
+          </div>
+        </z-step>
+
+        <z-step [label]="'PAC.Xpert.WorkflowActionNodes' | translate: { Default: 'Action nodes' }">
+          <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
+            <div class="text-sm leading-6 text-text-secondary">
+              {{
+                'PAC.Xpert.WorkflowActionNodesHelp'
+                  | translate
+                    : {
+                        Default:
+                          'Choose the starter action nodes to place after the default Chat Trigger. We will connect them in a left-to-right workflow for you.'
+                      }
+              }}
+            </div>
+
+            <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3">
+              <div class="flex items-start gap-3">
+                <div
+                  class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-components-panel-border bg-background-default-subtle"
+                >
+                  <xpert-workflow-icon [type]="eWorkflowNodeTypeEnum.TRIGGER" class="h-6 w-6" />
+                </div>
+                <div class="min-w-0 grow">
+                  <div class="font-medium text-text-primary">
+                    {{ 'PAC.Workflow.Chat' | translate: { Default: 'Chat' } }}
+                  </div>
+                  <div class="text-sm text-text-secondary">
+                    {{
+                      'PAC.Xpert.WorkflowChatTriggerIncluded'
+                        | translate: { Default: 'Always included as the first node in this starter workflow.' }
+                    }}
+                  </div>
+                </div>
+                <div
+                  class="shrink-0 rounded-full border border-components-panel-border bg-background-default-subtle px-2 py-0.5 text-xs font-medium text-text-secondary"
+                >
+                  {{ 'PAC.KEY_WORDS.Default' | translate: { Default: 'Default' } }}
+                </div>
+              </div>
+            </div>
+
+            <div class="grid gap-2 md:grid-cols-2">
+              @for (node of workflowActionNodeOptions; track node.key) {
+                <label
+                  class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
+                >
+                  <input
+                    type="checkbox"
+                    class="mt-0.5 h-4 w-4 shrink-0"
+                    [ngModel]="selectedWorkflowNodes().includes(node.key)"
+                    (ngModelChange)="toggleWorkflowNode(node.key, $event)"
+                  />
+                  <div
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-components-panel-border bg-background-default-subtle"
+                  >
+                    <xpert-workflow-icon [type]="node.type" class="h-6 w-6" />
+                  </div>
+                  <div class="min-w-0">
+                    <div class="font-medium text-text-primary">
+                      {{ node.labelKey | translate: { Default: node.defaultLabel } }}
+                    </div>
+                    <div class="text-sm text-text-secondary">
+                      {{
+                        'PAC.Xpert.WorkflowNodeWillBeChained' | translate: { Default: 'Added into the starter flow' }
+                      }}
+                    </div>
+                  </div>
+                </label>
+              }
+            </div>
+          </div>
+        </z-step>
+
+        <z-step [label]="'PAC.Xpert.WorkflowTransformResponse' | translate: { Default: 'Transform & response' }">
+          <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
+            <div class="text-sm leading-6 text-text-secondary">
+              {{
+                'PAC.Xpert.WorkflowTransformNodesHelp'
+                  | translate
+                    : {
+                        Default:
+                          'Choose the transform and response nodes to append after the action stage. The selected nodes will keep the fixed starter order.'
+                      }
+              }}
+            </div>
+
+            <div class="grid gap-2 md:grid-cols-2">
+              @for (node of workflowTransformNodeOptions; track node.key) {
+                <label
+                  class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
+                >
+                  <input
+                    type="checkbox"
+                    class="mt-0.5 h-4 w-4 shrink-0"
+                    [ngModel]="selectedWorkflowNodes().includes(node.key)"
+                    (ngModelChange)="toggleWorkflowNode(node.key, $event)"
+                  />
+                  <div
+                    class="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl border border-components-panel-border bg-background-default-subtle"
+                  >
+                    <xpert-workflow-icon [type]="node.type" class="h-6 w-6" />
+                  </div>
+                  <div class="min-w-0">
+                    <div class="font-medium text-text-primary">
+                      {{ node.labelKey | translate: { Default: node.defaultLabel } }}
+                    </div>
+                    <div class="text-sm text-text-secondary">
+                      {{
+                        'PAC.Xpert.WorkflowNodeWillBeChained' | translate: { Default: 'Added into the starter flow' }
+                      }}
+                    </div>
+                  </div>
+                </label>
+              }
+            </div>
+          </div>
+        </z-step>
+      </z-stepper>
+
+      <div class="w-full shrink-0 flex justify-end p-4">
+        <div class="flex items-center gap-2">
+          <button type="button" class="btn disabled:btn-disabled btn-large" (click)="close()">
+            {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+          </button>
+
+          @if (stepper.selectedIndex > 0) {
+            <button
+              type="button"
+              class="btn disabled:btn-disabled btn-large"
+              [disabled]="loading()"
+              (click)="stepper.previous()"
+            >
+              {{ 'PAC.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
+            </button>
+          }
+
+          @if (stepper.selectedIndex < 2) {
             <button
               type="button"
               class="btn disabled:btn-disabled btn-primary btn-large"
@@ -248,7 +465,10 @@
               {{
                 'PAC.Xpert.SelectKnowledgeTriggers'
                   | translate
-                    : { Default: 'Choose the triggers to prepare for this knowledge pipeline. You can skip this step and add more later in Studio.' }
+                    : {
+                        Default:
+                          'Choose the triggers to prepare for this knowledge pipeline. You can skip this step and add more later in Studio.'
+                      }
               }}
             </div>
 
@@ -279,7 +499,9 @@
                   </div>
                 </label>
               } @empty {
-                <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
+                <div
+                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
+                >
                   {{ 'PAC.Workflow.NoTriggersAvailable' | translate: { Default: 'No trigger providers available' } }}
                 </div>
               }
@@ -293,7 +515,10 @@
               {{
                 'PAC.Xpert.SelectDataSources'
                   | translate
-                    : { Default: 'Choose the data source providers to seed this knowledge pipeline. You can adjust their configuration later in Studio.' }
+                    : {
+                        Default:
+                          'Choose the data source providers to seed this knowledge pipeline. You can adjust their configuration later in Studio.'
+                      }
               }}
             </div>
 
@@ -318,8 +543,12 @@
                   </div>
                 </label>
               } @empty {
-                <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
-                  {{ 'PAC.Xpert.NoDataSourcesAvailable' | translate: { Default: 'No data source providers available' } }}
+                <div
+                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
+                >
+                  {{
+                    'PAC.Xpert.NoDataSourcesAvailable' | translate: { Default: 'No data source providers available' }
+                  }}
                 </div>
               }
             </div>
@@ -332,7 +561,10 @@
               {{
                 'PAC.Xpert.SelectProcessors'
                   | translate
-                    : { Default: 'Choose the processors to run after the data source step. Detailed configuration stays in Studio.' }
+                    : {
+                        Default:
+                          'Choose the processors to run after the data source step. Detailed configuration stays in Studio.'
+                      }
               }}
             </div>
 
@@ -357,7 +589,9 @@
                   </div>
                 </label>
               } @empty {
-                <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
+                <div
+                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
+                >
                   {{ 'PAC.Xpert.NoProcessorsAvailable' | translate: { Default: 'No processor providers available' } }}
                 </div>
               }
@@ -371,7 +605,9 @@
               {{
                 'PAC.Xpert.SelectChunkers'
                   | translate
-                    : { Default: 'Choose the chunkers to split processed content before it reaches the knowledge base.' }
+                    : {
+                        Default: 'Choose the chunkers to split processed content before it reaches the knowledge base.'
+                      }
               }}
             </div>
 
@@ -396,7 +632,9 @@
                   </div>
                 </label>
               } @empty {
-                <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
+                <div
+                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
+                >
                   {{ 'PAC.Xpert.NoChunkersAvailable' | translate: { Default: 'No chunker providers available' } }}
                 </div>
               }
@@ -410,7 +648,10 @@
               {{
                 'PAC.Xpert.SelectImageUnderstandings'
                   | translate
-                    : { Default: 'Choose the image understanding providers needed for OCR or visual extraction. You can skip this step.' }
+                    : {
+                        Default:
+                          'Choose the image understanding providers needed for OCR or visual extraction. You can skip this step.'
+                      }
               }}
             </div>
 
@@ -435,7 +676,9 @@
                   </div>
                 </label>
               } @empty {
-                <div class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary">
+                <div
+                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
+                >
                   {{
                     'PAC.Xpert.NoImageUnderstandingsAvailable'
                       | translate: { Default: 'No image understanding providers available' }
@@ -454,7 +697,12 @@
           </button>
 
           @if (stepper.selectedIndex > 0) {
-            <button type="button" class="btn disabled:btn-disabled btn-large" [disabled]="loading()" (click)="stepper.previous()">
+            <button
+              type="button"
+              class="btn disabled:btn-disabled btn-large"
+              [disabled]="loading()"
+              (click)="stepper.previous()"
+            >
               {{ 'PAC.ACTIONS.PREVIOUS' | translate: { Default: 'Previous' } }}
             </button>
           }
