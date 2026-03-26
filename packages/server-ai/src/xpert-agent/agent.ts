@@ -52,6 +52,24 @@ export function createMapStreamEvents(
 	let prevEvent = ''
 	const toolsMap: Record<string, string> = {} // For lc_name and name of tool is different
 
+	const logReplacementCharacter = (
+		stage: string,
+		value: string | null | undefined,
+		extra?: Record<string, unknown>
+	) => {
+		if (!value || !value.includes('\uFFFD')) {
+			return
+		}
+
+		const preview = value.length > 240 ? `${value.slice(0, 240)}...(truncated)` : value
+		logger.warn(
+			`[encoding] replacement char detected at ${stage}: ${JSON.stringify({
+				preview,
+				...extra
+			})}`
+		)
+	}
+
 	const processFun = ({ event, tags, data, ...rest }: any) => {
 		const metadata = rest?.metadata ?? {}
 		if (metadata.internal === true) {
@@ -111,11 +129,16 @@ export function createMapStreamEvents(
 				if (prevEvent !== 'on_chat_model_stream') {
 					if (!isMute(tags, unmutes)) {
 						const msg = data.output as AIMessageChunk
-						return createTextChunk(msg?.content ?? '', {
+						const chunk = createTextChunk(msg?.content ?? '', {
 							streamId: msg?.id || rest?.run_id,
 							agentKey,
 							xpertName
 						})
+						logReplacementCharacter('agent.on_chat_model_end', chunk?.text, {
+							runId: rest?.run_id,
+							streamId: chunk?.id
+						})
+						return chunk
 					}
 				}
 				return null
@@ -127,15 +150,32 @@ export function createMapStreamEvents(
 					const msg = data.chunk as AIMessageChunk
 					if (!msg.tool_call_chunks?.length) {
 						if (msg.content) {
-							return createTextChunk(msg.content, {
+							const chunk = createTextChunk(msg.content, {
 								streamId: msg.id || rest?.run_id,
 								agentKey,
 								xpertName
 							})
+							logReplacementCharacter('agent.on_chat_model_stream', chunk?.text, {
+								runId: rest?.run_id,
+								streamId: chunk?.id
+							})
+							return chunk
 						}
 
 						// Reasoning content in additional_kwargs
-						if (msg.additional_kwargs?.reasoning_content) {
+						const reasoningContent =
+							typeof msg.additional_kwargs?.reasoning_content === 'string'
+								? msg.additional_kwargs.reasoning_content
+								: null
+						if (reasoningContent) {
+							logReplacementCharacter(
+								'agent.on_chat_model_stream.reasoning',
+								reasoningContent,
+								{
+									runId: rest?.run_id,
+									streamId: msg.id || rest?.run_id
+								}
+							)
 							const chunk = {
 								type: 'reasoning',
 								text: '',
@@ -149,7 +189,7 @@ export function createMapStreamEvents(
 								chunk.xpertName = xpertName
 							}
 
-							chunk.text += msg.additional_kwargs.reasoning_content
+							chunk.text += reasoningContent
 							return chunk
 						}
 					}
@@ -162,11 +202,16 @@ export function createMapStreamEvents(
 					const chunk = data?.chunk as unknown
 
 					if (typeof chunk === 'string') {
-						return createTextChunk(chunk, {
+						const textChunk = createTextChunk(chunk, {
 							streamId: rest?.run_id,
 							agentKey,
 							xpertName
 						})
+						logReplacementCharacter('agent.on_chain_stream.string', textChunk?.text, {
+							runId: rest?.run_id,
+							streamId: textChunk?.id
+						})
+						return textChunk
 					}
 
 					if (!chunk || typeof chunk !== 'object') {
@@ -184,11 +229,16 @@ export function createMapStreamEvents(
 					}
 
 					if (typeof message.content === 'string' || Array.isArray(message.content)) {
-						return createTextChunk(message.content, {
+						const textChunk = createTextChunk(message.content, {
 							streamId: message.id ?? rest?.run_id,
 							agentKey,
 							xpertName
 						})
+						logReplacementCharacter('agent.on_chain_stream.message', textChunk?.text, {
+							runId: rest?.run_id,
+							streamId: textChunk?.id
+						})
+						return textChunk
 					}
 				}
 				break
@@ -392,12 +442,11 @@ export function createMapStreamEvents(
 							data: {
 								type: ChatMessageTypeEnum.EVENT,
 								event: ChatMessageEventTypeEnum.ON_CHAT_EVENT,
-								data: {
+								data: normalizeOnChatEventPayload({
 									tags,
-									...rest,
-									...data,
-									created_date: new Date()
-								}
+									data,
+									rest
+								})
 							}
 						} as MessageEvent)
 					}
@@ -414,6 +463,105 @@ export function createMapStreamEvents(
 		const content = processFun(event)
 		return content
 	}
+}
+
+export function normalizeOnChatEventPayload(params: {
+	tags: string[]
+	data: Record<string, unknown>
+	rest?: Record<string, unknown>
+}): Record<string, unknown> {
+	const payload = {
+		tags: params.tags,
+		...(params.rest ?? {}),
+		...(params.data ?? {}),
+		created_date: new Date()
+	} as Record<string, unknown>
+	const eventType = toNonEmptyString(payload.type) ?? 'chat_event'
+	const metadata = toRecord(payload.metadata)
+	const stableSource =
+		toNonEmptyString(payload.id) ??
+		toNonEmptyString(payload.runId) ??
+		toNonEmptyString(payload.run_id) ??
+		toNonEmptyString(metadata?.__pregel_task_id) ??
+		toNonEmptyString(metadata?.langgraph_checkpoint_ns) ??
+		toNonEmptyString(metadata?.executionId) ??
+		toNonEmptyString(payload.threadId) ??
+		toNonEmptyString(metadata?.thread_id)
+
+	if (!payload.id && stableSource) {
+		payload.id = `chat:${eventType}:${stableSource}`
+	}
+
+	if (eventType === 'thread_context_usage') {
+		const usage = toRecord(payload.usage)
+		payload.title = toNonEmptyString(payload.title) ?? 'Thread context usage'
+		payload.status = toNonEmptyString(payload.status) ?? 'info'
+		payload.message = toNonEmptyString(payload.message) ?? formatThreadContextUsageSummary(usage)
+	}
+
+	return payload
+}
+
+function formatThreadContextUsageSummary(usage: Record<string, unknown> | null): string {
+	if (!usage) {
+		return 'Token usage updated.'
+	}
+
+	const totalTokens = toFiniteNumber(
+		usage.totalTokens,
+		toFiniteNumber(usage.inputTokens) + toFiniteNumber(usage.outputTokens)
+	)
+	const parts = [`Total ${totalTokens} tokens`]
+	const inputTokens = toFiniteNumber(usage.inputTokens)
+	const outputTokens = toFiniteNumber(usage.outputTokens)
+	const contextTokens = toFiniteNumber(usage.contextTokens)
+	const embedTokens = toFiniteNumber(usage.embedTokens)
+	const totalPrice = toFiniteNumber(usage.totalPrice)
+	const currency = toNonEmptyString(usage.currency)
+
+	parts.push(`input ${inputTokens}`)
+	parts.push(`output ${outputTokens}`)
+	if (contextTokens > 0) {
+		parts.push(`context ${contextTokens}`)
+	}
+	if (embedTokens > 0) {
+		parts.push(`embed ${embedTokens}`)
+	}
+	if (totalPrice > 0) {
+		parts.push(`cost ${totalPrice}${currency ? ` ${currency}` : ''}`)
+	}
+
+	return parts.join(', ')
+}
+
+function toRecord(value: unknown): Record<string, unknown> | null {
+	if (!value || typeof value !== 'object' || Array.isArray(value)) {
+		return null
+	}
+
+	return value as Record<string, unknown>
+}
+
+function toNonEmptyString(value: unknown): string | null {
+	if (typeof value === 'string' && value.trim()) {
+		return value.trim()
+	}
+
+	return null
+}
+
+function toFiniteNumber(value: unknown, fallback = 0): number {
+	if (typeof value === 'number' && Number.isFinite(value)) {
+		return value
+	}
+	if (typeof value === 'string') {
+		const parsed = Number.parseFloat(value)
+		if (Number.isFinite(parsed)) {
+			return parsed
+		}
+	}
+
+	return fallback
 }
 
 /**
