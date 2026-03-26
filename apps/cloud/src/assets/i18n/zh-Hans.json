@@ -3077,6 +3077,8 @@
       "AlreadyExistsOrg": "已存在此组织内",
       "InputXpertDescription": "输入专家描述",
       "CreateXpert": "创建专家",
+      "CreateDigitalExpert": "创建数字专家",
+      "CreateDigitalExpertDesc": "快速创建新的数字专家并进入 Studio",
       "Schema": "架构",
       "ImportFromURL": "从链接导入",
       "Ok": "确认",

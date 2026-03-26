@@ -1,14 +1,14 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
-import { toObservable, toSignal } from '@angular/core/rxjs-interop'
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { rxResource } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
 import { OverlayAnimations } from '@metad/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpert, IXpertWorkspace, OrderTypeEnum, XpertAPIService, XpertTypeEnum } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
-import { distinctUntilChanged, map, of, switchMap } from 'rxjs'
+import { map, of } from 'rxjs'
 import { XpertNewBlankComponent } from '../../../xpert'
 import { XpertStudioComponent } from '../../studio.component'
 
@@ -25,32 +25,33 @@ export class XpertStudioHeaderSwitcherComponent {
   readonly #router = inject(Router)
   readonly #xpertAPI = inject(XpertAPIService)
   readonly #studioComponent = inject(XpertStudioComponent)
+  readonly #xpertsRequested = signal(false)
 
   readonly xpert = this.#studioComponent.xpert
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   readonly currentXpertName = computed(() => this.xpert()?.title || this.xpert()?.name)
-  readonly workspaceXperts = toSignal(
-    toObservable(this.workspaceId).pipe(
-      distinctUntilChanged(),
-      switchMap((workspaceId) =>
-        workspaceId
-          ? this.#xpertAPI
-              .getAllByWorkspace(workspaceId, {
-                where: {
-                  type: XpertTypeEnum.Agent,
-                  latest: true
-                },
-                order: { updatedAt: OrderTypeEnum.DESC }
-              })
-              .pipe(map(({ items }) => items.filter((item) => item.latest)))
-          : of([] as IXpert[])
-      )
-    ),
-    { initialValue: [] as IXpert[] }
-  )
+  readonly #workspaceXperts = rxResource<IXpert[], string | undefined>({
+    params: () => (this.#xpertsRequested() ? this.workspaceId() : undefined),
+    defaultValue: [] as IXpert[],
+    stream: ({ params }) =>
+      params
+        ? this.#xpertAPI
+            .getAllByWorkspace(params, {
+              where: {
+                type: XpertTypeEnum.Agent,
+                latest: true
+              },
+              order: { updatedAt: OrderTypeEnum.DESC }
+            })
+            .pipe(map(({ items }) => items.filter((item) => item.latest)))
+        : of([] as IXpert[])
+  })
+  readonly workspaceXperts = computed(() => this.#workspaceXperts.value())
+  readonly xpertsLoading = this.#workspaceXperts.isLoading
+
   readonly switchableXperts = computed(() => {
     const currentXpert = this.xpert() as IXpert | null
-    const items = this.workspaceXperts() ?? []
+    const items = this.workspaceXperts()
     const merged =
       currentXpert?.id && !items.some((item) => item.id === currentXpert.id) ? [currentXpert, ...items] : items
 
@@ -61,6 +62,10 @@ export class XpertStudioHeaderSwitcherComponent {
         ]
       : merged
   })
+
+  loadXperts() {
+    this.#xpertsRequested.set(true)
+  }
 
   backToWorkspace() {
     const workspaceId = this.workspaceId()

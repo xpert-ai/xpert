@@ -21,6 +21,7 @@
     type="button"
     class="flex h-8 min-w-0 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold text-primary-600 transition hover:bg-hover-bg"
     [cdkMenuTriggerFor]="xpertSwitcherMenu"
+    (cdkMenuOpened)="loadXperts()"
   >
     <span class="max-w-[11rem] truncate lg:max-w-[13rem]">
       {{ currentXpertName() || ('PAC.Xpert.DigitalExpert' | translate: { Default: 'Digital Expert' }) }}
@@ -32,40 +33,47 @@
 <ng-template #xpertSwitcherMenu>
   <div class="cdk-menu__large w-84 overflow-hidden rounded-lg p-0!" cdkMenu @overlayAnimation1>
     <div class="max-h-72 overflow-y-auto p-1">
-      @for (item of switchableXperts(); track item.id) {
-        <button
-          cdkMenuItem
-          type="button"
-          class="group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left transition hover:bg-hover-bg"
-          [ngClass]="item.id === xpert()?.id ? 'bg-primary-50 text-primary-600' : 'text-text-primary'"
-          (click)="switchXpert(item)"
-        >
-          <emoji-avatar [avatar]="item.avatar" small class="shrink-0 overflow-hidden rounded-md" />
+      @if (xpertsLoading()) {
+        <div class="flex items-center gap-2.5 rounded-md px-2.5 py-3 text-sm text-text-tertiary">
+          <i class="ri-loader-2-line text-base animate-spin"></i>
+          <span>{{ 'PAC.Common.Loading' | translate: { Default: 'Loading...' } }}</span>
+        </div>
+      } @else {
+        @for (item of switchableXperts(); track item.id) {
+          <button
+            cdkMenuItem
+            type="button"
+            class="group flex w-full items-center gap-2.5 rounded-md px-2.5 py-1.5 text-left transition hover:bg-hover-bg"
+            [ngClass]="item.id === xpert()?.id ? 'bg-primary-50 text-primary-600' : 'text-text-primary'"
+            (click)="switchXpert(item)"
+          >
+            <emoji-avatar [avatar]="item.avatar" small class="shrink-0 overflow-hidden rounded-md" />
 
-          <div class="min-w-0 flex-1">
-            <div class="truncate text-sm font-medium">
-              {{ item.title || item.name }}
+            <div class="min-w-0 flex-1">
+              <div class="truncate text-sm font-medium">
+                {{ item.title || item.name }}
+              </div>
+              <div class="truncate text-xs text-text-tertiary">
+                @if (item.id === xpert()?.id) {
+                  {{ 'PAC.Xpert.CurrentDigitalExpert' | translate: { Default: 'Current Digital Expert' } }}
+                } @else {
+                  {{
+                    item.description ||
+                      ('PAC.Xpert.SwitchDigitalExpert' | translate: { Default: 'Switch to this digital expert' })
+                  }}
+                }
+              </div>
             </div>
-            <div class="truncate text-xs text-text-tertiary">
-              @if (item.id === xpert()?.id) {
-                {{ 'PAC.Xpert.CurrentDigitalExpert' | translate: { Default: 'Current Digital Expert' } }}
-              } @else {
-                {{
-                  item.description ||
-                    ('PAC.Xpert.SwitchDigitalExpert' | translate: { Default: 'Switch to this digital expert' })
-                }}
-              }
-            </div>
-          </div>
 
-          @if (item.id === xpert()?.id) {
-            <i class="ri-check-line text-base text-primary-600"></i>
-          } @else {
-            <i
-              class="ri-arrow-right-s-line text-base text-text-quaternary opacity-0 transition group-hover:opacity-100"
-            ></i>
-          }
-        </button>
+            @if (item.id === xpert()?.id) {
+              <i class="ri-check-line text-base text-primary-600"></i>
+            } @else {
+              <i
+                class="ri-arrow-right-s-line text-base text-text-quaternary opacity-0 transition group-hover:opacity-100"
+              ></i>
+            }
+          </button>
+        }
       }
     </div>
 
