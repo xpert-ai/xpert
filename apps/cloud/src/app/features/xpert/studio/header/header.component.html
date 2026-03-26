@@ -1,4 +1,6 @@
-<div class="flex items-center gap-2 h-[2rem] text-sm truncate opacity-50">
+<xpert-studio-header-switcher class="mr-3 shrink-0" />
+
+<div class="min-w-0 flex items-center gap-2 h-[2rem] text-sm truncate opacity-50">
   @if (unsaved()) {
     <span
       class="w-2 h-2 shrink-0 rounded-full cursor-pointer bg-green-500 shadow-md shadow-green-400"
@@ -385,7 +387,9 @@
       <ngm-spin class="absolute top-0 left-0 w-full h-full z-20" />
     }
 
-    <div class="sticky top-0 bg-components-card-bg flex items-center justify-between p-2 text-base font-semibold text-text-primary">
+    <div
+      class="sticky top-0 bg-components-card-bg flex items-center justify-between p-2 text-base font-semibold text-text-primary"
+    >
       <div class="grow">{{ 'PAC.Xpert.ChatHistory' | translate: { Default: 'Chat History' } }}</div>
     </div>
 
@@ -516,7 +520,9 @@
       @if (diagram.image) {
         <img [src]="diagram.image" alt="Diagram Image" />
       } @else {
-        <div class="w-8 h-8 flex justify-center items-center mb-2 rounded-xl bg-background-default-subtle shadow-sm text-text-warning">
+        <div
+          class="w-8 h-8 flex justify-center items-center mb-2 rounded-xl bg-background-default-subtle shadow-sm text-text-warning"
+        >
           <i class="ri-error-warning-line"></i>
         </div>
         <div class="text-sm text-text-warning">{{ diagram.error }}</div>
