@@ -1,0 +1,123 @@
+@if (sections().length || actions().length) {
+  <div class="flex flex-col gap-3">
+    @for (section of sections(); track section.key) {
+      <div class="rounded-md border px-3 py-2 text-sm" [ngClass]="toneClasses(section.tone)">
+        <p class="font-medium">{{ section.title }}</p>
+
+        @if (section.messages?.length) {
+          <div class="mt-1 flex flex-col gap-1">
+            @for (message of section.messages; track message) {
+              <p>{{ message }}</p>
+            }
+          </div>
+        }
+
+        @if (section.items?.length) {
+          <div class="mt-2 flex flex-col gap-1">
+            @for (item of section.items; track item.key) {
+              @if (item.type === 'paragraph') {
+                <p [class.font-medium]="item.emphasis">{{ renderItemValue(item) }}</p>
+              } @else if (item.type === 'badge') {
+                <div class="flex items-center gap-2">
+                  <span class="font-medium">{{ labelForItem(item) }}:</span>
+                  <span class="rounded-full border border-current/20 bg-white/60 px-2 py-0.5 text-xs font-medium">
+                    {{ renderItemValue(item) }}
+                  </span>
+                </div>
+              } @else {
+                <p>
+                  <span class="font-medium">{{ labelForItem(item) }}:</span>
+                  {{ renderItemValue(item) }}
+                </p>
+              }
+            }
+          </div>
+        }
+
+        @if (visibleSectionActions(section).length) {
+          <div class="mt-2 flex flex-wrap gap-2">
+            @for (action of visibleSectionActions(section); track action.key) {
+              @switch (action.variant) {
+                @case ('stroked') {
+                  <button
+                    mat-stroked-button
+                    type="button"
+                    [color]="resolveColor(action)"
+                    [disabled]="isActionDisabled(action)"
+                    (click)="triggerAction(action)"
+                  >
+                    {{ action.label }}
+                  </button>
+                }
+                @case ('raised') {
+                  <button
+                    mat-raised-button
+                    type="button"
+                    [color]="resolveColor(action)"
+                    [disabled]="isActionDisabled(action)"
+                    (click)="triggerAction(action)"
+                  >
+                    {{ action.label }}
+                  </button>
+                }
+                @default {
+                  <button
+                    mat-flat-button
+                    type="button"
+                    [color]="resolveColor(action)"
+                    [disabled]="isActionDisabled(action)"
+                    (click)="triggerAction(action)"
+                  >
+                    {{ action.label }}
+                  </button>
+                }
+              }
+            }
+          </div>
+        }
+      </div>
+    }
+
+    @if (actions().length) {
+      <div class="flex flex-wrap gap-2">
+        @for (action of actions(); track action.key) {
+          @switch (action.variant) {
+            @case ('stroked') {
+              <button
+                mat-stroked-button
+                type="button"
+                [color]="resolveColor(action)"
+                [disabled]="isActionDisabled(action)"
+                (click)="triggerAction(action)"
+              >
+                {{ action.label }}
+              </button>
+            }
+            @case ('raised') {
+              <button
+                mat-raised-button
+                type="button"
+                [color]="resolveColor(action)"
+                [disabled]="isActionDisabled(action)"
+                (click)="triggerAction(action)"
+              >
+                {{ action.label }}
+              </button>
+            }
+            @default {
+              <button
+                mat-flat-button
+                type="button"
+                [color]="resolveColor(action)"
+                [disabled]="isActionDisabled(action)"
+                (click)="triggerAction(action)"
+              >
+                {{ action.label }}
+              </button>
+            }
+          }
+        }
+      </div>
+    }
+  </div>
+}

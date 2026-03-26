@@ -8,29 +8,31 @@ import { MatInputModule } from '@angular/material/input'
 import { MatTooltipModule } from '@angular/material/tooltip'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
+import { RuntimePanelComponent } from '@cloud/app/@shared/integration'
 import { environment } from '@cloud/environments/environment'
 import { IsDirty } from '@metad/core'
 import { NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { TranslateModule } from '@ngx-translate/core'
 import { EmojiAvatarComponent, IconComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { CardProComponent } from 'apps/cloud/src/app/@shared/card'
 import { ParameterFormComponent } from 'apps/cloud/src/app/@shared/forms'
+import cloneDeep from 'lodash-es/cloneDeep'
+import isEqual from 'lodash-es/isEqual'
 import omit from 'lodash-es/omit'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
-import { BehaviorSubject, distinctUntilChanged, EMPTY, pipe, startWith, switchMap } from 'rxjs'
+import { distinctUntilChanged, EMPTY, firstValueFrom, map, pipe, startWith, switchMap } from 'rxjs'
 import {
   getErrorMessage,
-  injectApiBaseUrl,
-  injectTranslate,
+  IntegrationAction,
+  IntegrationRuntimeView,
+  IntegrationTestView,
   IntegrationService,
   routeAnimations,
-  Store,
   ToastrService
 } from '../../../../@core'
 
@@ -59,35 +61,24 @@ import {
     ParameterFormComponent,
     CardProComponent,
     NgmI18nPipe,
-    IconComponent
+    IconComponent,
+    RuntimePanelComponent
   ],
   animations: [routeAnimations]
 })
 export class IntegrationComponent implements IsDirty {
-  DisplayBehaviour = DisplayBehaviour
   pro = environment.pro
 
   readonly integrationAPI = inject(IntegrationService)
   readonly #toastr = inject(ToastrService)
-  readonly #store = inject(Store)
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
-  readonly #translate = inject(TranslateService)
-  readonly apiBaseUrl = injectApiBaseUrl()
-  readonly i18n = new NgmI18nPipe()
-  readonly integrationI18n = injectTranslate('PAC.Integration')
   readonly _providerQuery = injectQueryParams('provider')
 
   readonly paramId = injectParams('id')
   readonly #providers = toSignal(this.integrationAPI.getProviders(), { initialValue: [] })
 
-  // Childs
   readonly optionsForm = viewChild('optionsForm', { read: ParameterFormComponent })
-
-  // States
-  readonly organizationId$ = this.#store.selectOrganizationId()
-
-  readonly refresh$ = new BehaviorSubject<boolean>(true)
 
   readonly providers = computed(() => {
     return this.#providers()?.map((provider) => ({
@@ -129,7 +120,6 @@ export class IntegrationComponent implements IsDirty {
   )
 
   readonly integrationProvider = computed(() => this.#providers().find((p) => p.name === this.provider()))
-
   readonly schema = computed(() => this.integrationProvider()?.schema)
 
   readonly integration = derivedFrom(
@@ -144,13 +134,23 @@ export class IntegrationComponent implements IsDirty {
   )
 
   readonly loading = signal(true)
-
   readonly webhookUrl = signal('')
+  readonly testView = signal<IntegrationTestView | null>(null)
+  readonly runtimeView = signal<IntegrationRuntimeView | null>(null)
+  readonly optionsValue = toSignal(
+    this.optionsControl.valueChanges.pipe(
+      startWith(this.optionsControl.value),
+      map((value) => cloneDeep(value)),
+      distinctUntilChanged(isEqual)
+    ),
+    {
+      initialValue: cloneDeep(this.optionsControl.value)
+    }
+  )
 
   constructor() {
     effect(
       () => {
-        // Set provider from query when create new integration
         if (this._providerQuery() && !this.paramId()) {
           this.formGroup.get('provider').setValue(this._providerQuery())
         }
@@ -162,8 +162,6 @@ export class IntegrationComponent implements IsDirty {
       () => {
         if (this.integration()) {
           this.formGroup.patchValue(this.integration())
-        } else {
-          // this.formGroup.reset()
         }
         this.formGroup.markAsPristine()
         this.loading.set(false)
@@ -179,27 +177,38 @@ export class IntegrationComponent implements IsDirty {
       },
       { allowSignalWrites: true }
     )
+
+    effect(
+      () => {
+        const integration = this.integration()
+        if (!integration?.id) {
+          this.runtimeView.set(null)
+          return
+        }
+
+        this.#refreshRuntimeView(integration.id)
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   isDirty(): boolean {
     return this.formGroup.dirty
   }
 
-  refresh() {
-    this.refresh$.next(true)
-  }
-
   test() {
     this.loading.set(true)
     this.integrationAPI.test(this.formGroup.value).subscribe({
       next: (result) => {
-        if (result?.webhookUrl) {
-          this.webhookUrl.set(result.webhookUrl)
-        } else if (result) {
-          this.formGroup.patchValue(result)
-        }
-        this.formGroup.markAsDirty()
+        this.testView.set(result ?? null)
+        this.webhookUrl.set(result?.webhookUrl ?? '')
         this.loading.set(false)
+
+        if (this.#hasTone(result, 'danger')) {
+          this.#toastr.warning(this.#firstSectionMessage(result, 'danger') || 'Test completed with warnings.')
+          return
+        }
+
         this.#toastr.success('PAC.Messages.TestSuccessfully', { Default: 'Test successfully!' })
       },
       error: (error) => {
@@ -210,21 +219,106 @@ export class IntegrationComponent implements IsDirty {
   }
 
   upsert() {
-    ;(this.formGroup.value.id
+    this.loading.set(true)
+
+    const isUpdate = !!this.formGroup.value.id
+    const payload = isUpdate
       ? this.integrationAPI.update(this.formGroup.value.id, {
           ...this.formGroup.value
         })
       : this.integrationAPI.create(omit(this.formGroup.value, 'id'))
-    ).subscribe({
-      next: () => {
+
+    payload.subscribe({
+      next: (integration: any) => {
+        const integrationId = integration?.id || this.formGroup.value.id
+
+        if (integration?.id && integration?.id !== this.formGroup.value.id) {
+          this.formGroup.patchValue({ id: integration.id }, { emitEvent: false })
+        }
+
         this.formGroup.markAsPristine()
+        this.loading.set(false)
+
+        if (isUpdate) {
+          this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated Successfully!' })
+          if (integrationId) {
+            this.#refreshRuntimeView(integrationId)
+          }
+          return
+        }
+
         this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created Successfully!' })
-        this.#router.navigate(['..'], { relativeTo: this.#route })
+        if (integrationId) {
+          this.#router.navigate(['../', integrationId], { relativeTo: this.#route })
+        } else {
+          this.#router.navigate(['..'], { relativeTo: this.#route })
+        }
       },
       error: (error) => {
+        this.loading.set(false)
         this.#toastr.error(getErrorMessage(error))
       }
     })
+  }
+
+  async handleRuntimeAction(action: IntegrationAction) {
+    const integrationId = this.formGroup.value.id
+    if (!integrationId) {
+      return
+    }
+
+    if (action.confirmText) {
+      const confirmed = await firstValueFrom(
+        this.#toastr.confirm(
+          {
+            code: action.confirmText,
+            params: { Default: action.confirmText }
+          },
+          {
+            verticalPosition: 'top'
+          }
+        )
+      )
+
+      if (!confirmed) {
+        return
+      }
+    }
+
+    this.loading.set(true)
+    this.integrationAPI.runRuntimeAction(integrationId, action.key).subscribe({
+      next: (view) => {
+        this.#applyRuntimeView(view)
+        this.loading.set(false)
+
+        if (this.#hasTone(view, 'danger')) {
+          this.#toastr.warning(this.#firstSectionMessage(view, 'danger') || 'Runtime action completed with warnings.')
+          return
+        }
+
+        this.#toastr.success('PAC.Messages.UpdatedSuccessfully', { Default: 'Updated Successfully!' })
+      },
+      error: (error) => {
+        this.loading.set(false)
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
+  }
+
+  onOptionsChange(options: unknown) {
+    const currentValue = this.optionsValue()
+    const nextValue = cloneDeep(options)
+    this.optionsControl.setValue(nextValue)
+
+    if (isEqual(currentValue, nextValue)) {
+      return
+    }
+
+    this.optionsControl.markAsDirty()
+    this.formGroup.markAsDirty()
+    this.webhookUrl.set('')
+    this.testView.set(null)
+    this.runtimeView.set(null)
   }
 
   cancel() {
@@ -233,5 +327,29 @@ export class IntegrationComponent implements IsDirty {
 
   close(refresh = false) {
     this.#router.navigate(['../'], { relativeTo: this.#route })
+  }
+
+  #refreshRuntimeView(integrationId: string) {
+    this.integrationAPI.getRuntimeView(integrationId).subscribe({
+      next: (view) => this.#applyRuntimeView(view),
+      error: () => this.runtimeView.set(null)
+    })
+  }
+
+  #applyRuntimeView(view: IntegrationRuntimeView | null | undefined) {
+    this.runtimeView.set(view?.supported ? view : null)
+  }
+
+  #hasTone(view: Pick<IntegrationTestView, 'sections'> | Pick<IntegrationRuntimeView, 'sections'> | null | undefined, tone: string) {
+    return !!view?.sections?.some((section) => section.tone === tone)
+  }
+
+  #firstSectionMessage(
+    view: Pick<IntegrationTestView, 'sections'> | Pick<IntegrationRuntimeView, 'sections'> | null | undefined,
+    tone?: string
+  ) {
+    return (
+      view?.sections?.find((section) => (!tone || section.tone === tone) && section.messages?.length)?.messages?.[0] || ''
+    )
   }
 }

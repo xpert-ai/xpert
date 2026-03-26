@@ -127,8 +127,7 @@ export class IntegrationFormComponent {
   test() {
     this.loading.set(true)
     this.integrationService.test({ ...this.formGroup.value }).subscribe({
-      next: (result) => {
-        this.formGroup.patchValue(result)
+      next: () => {
         this.formGroup.markAsDirty()
         this.loading.set(false)
         this.#toastr.success('PAC.Messages.Successfully', { Default: 'Successfully!' })
