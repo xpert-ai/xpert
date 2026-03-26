@@ -77,6 +77,30 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 		let subscription: { unsubscribe: () => void } | undefined
 		let chain: Promise<void> = Promise.resolve()
 
+		const logReplacementCharacter = (stage: string, value: unknown) => {
+			const serialized =
+				typeof value === 'string'
+					? value
+					: (() => {
+							try {
+								return JSON.stringify(value)
+							} catch {
+								return String(value)
+							}
+						})()
+			if (!serialized.includes('\uFFFD')) {
+				return
+			}
+
+			const preview = serialized.length > 360 ? `${serialized.slice(0, 360)}...(truncated)` : serialized
+			this.logger.warn(
+				`[encoding] replacement char detected at handoff.${stage}: ${JSON.stringify({
+					sourceMessageId: sourceMessage.id,
+					preview
+				})}`
+			)
+		}
+
 		const enqueueCallback = (
 			payload: Pick<
 				AgentChatCallbackEnvelopePayload,
@@ -123,7 +147,7 @@ export class AgentChatDispatchHandoffProcessor implements IHandoffProcessor<Agen
 
 			subscription = observable.subscribe({
 				next: (event) => {
-					// this.logger.debug(`Received stream event for source message "${sourceMessage.id}"`, event)
+					logReplacementCharacter('stream_event', event?.data)
 					enqueueCallback({
 						kind: 'stream',
 						sourceMessageId: sourceMessage.id,

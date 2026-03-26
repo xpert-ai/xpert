@@ -1,4 +1,4 @@
-import { IChatConversation, IProject, IUser, IXpert, IXpertAgentExecution } from '@metad/contracts'
+import { IChatConversation, IProject, IUser, IXpert, IXpertAgentExecution, TChatConversationStatus, TChatFrom } from '@metad/contracts'
 import { UserPublicDTO } from '@metad/server-core'
 import { Expose, Transform, TransformFnParams } from 'class-transformer'
 import { XpertAgentExecutionDTO } from '../../xpert-agent-execution/dto'
@@ -7,27 +7,45 @@ import { XpertPublicDTO } from '../../xpert/dto'
 
 @Expose()
 export class ChatConversationPublicDTO {
-    @Expose()
-    @Transform((params: TransformFnParams) => (params.value ? params.value : params.obj.parameters?.input))
-    title?: string
+	@Expose()
+	@Transform((params: TransformFnParams) => (params.value ? params.value : params.obj.parameters?.input))
+	title?: string
 
-    @Transform((params: TransformFnParams) => (params.value ? new UserPublicDTO(params.value) : null))
-    createdBy?: IUser
+	@Expose()
+	status?: TChatConversationStatus
 
-    @Transform((params: TransformFnParams) => (params.value ? new UserPublicDTO(params.value) : null))
-    fromEndUser?: IUser
+	@Expose()
+	from?: TChatFrom
 
-    @Transform((params: TransformFnParams) => (params.value ? new XpertPublicDTO(params.value) : null))
-    xpert?: IXpert
+	@Expose()
+	fromEndUserId?: string
 
-    @Transform((params: TransformFnParams) => (params.value ? new XpertProjectIdentiDto(params.value) : null))
-    project?: IProject
+	@Expose()
+	messageCount?: number
 
-    @Expose()
-    @Transform((params: TransformFnParams) => params.value?.map((_) => new XpertAgentExecutionDTO(_)))
-    executions?: IXpertAgentExecution[]
+	@Expose()
+	createdAt?: Date
 
-    constructor(partial: Partial<ChatConversationPublicDTO> | Partial<IChatConversation>) {
-        Object.assign(this, partial)
-    }
+	@Expose()
+	updatedAt?: Date
+
+	@Transform((params: TransformFnParams) => (params.value ? new UserPublicDTO(params.value) : null))
+	createdBy?: IUser
+
+	@Transform((params: TransformFnParams) => (params.value ? new UserPublicDTO(params.value) : null))
+	fromEndUser?: IUser
+
+	@Transform((params: TransformFnParams) => (params.value ? new XpertPublicDTO(params.value) : null))
+	xpert?: IXpert
+
+	@Transform((params: TransformFnParams) => (params.value ? new XpertProjectIdentiDto(params.value) : null))
+	project?: IProject
+
+	@Expose()
+	@Transform((params: TransformFnParams) => params.value?.map((_) => new XpertAgentExecutionDTO(_)))
+	executions?: IXpertAgentExecution[]
+
+	constructor(partial: Partial<ChatConversationPublicDTO> | Partial<IChatConversation>) {
+		Object.assign(this, partial)
+	}
 }

@@ -9,6 +9,7 @@ import {
   UserProvisionByThirdPartyIdentityInput
 } from '@xpert-ai/plugin-sdk'
 import { RoleService } from '../../role'
+import { UserOrganizationService } from '../../user-organization/user-organization.services'
 import { UserService } from '../../user'
 import {
   createOperationGuardedPermissionService,
@@ -86,6 +87,11 @@ export class PluginUserPermissionService implements UserPermissionService {
       thirdPartyId: input.thirdPartyId
     })
     if (existing) {
+      try {
+        await this.ensureOrganizationMembership(existing as any, input)
+      } catch {
+        // Non-fatal: org binding issues shouldn't block provisioning for existing users.
+      }
       return existing
     }
 
@@ -145,15 +151,69 @@ export class PluginUserPermissionService implements UserPermissionService {
       }
     })
 
+    let created = false
     try {
       await userService.create(payload as any)
+      created = true
     } catch {
       // Ignore create race/conflict and try read path below.
     }
 
-    return this.read<TUser>({
+    const user = await this.read<TUser>({
       tenantId: input.tenantId,
       thirdPartyId: input.thirdPartyId
     })
+    if (!user) {
+      return null
+    }
+
+    try {
+      await this.ensureOrganizationMembership(user as any, input)
+    } catch {
+      if (created) {
+        // User was created, but org binding should not make provisioning look like a hard failure.
+      }
+    }
+
+    return user
+  }
+
+  private async ensureOrganizationMembership(
+    user: { id?: string; tenantId?: string; role?: { name?: string } | null } | null,
+    input: UserProvisionByThirdPartyIdentityInput
+  ): Promise<void> {
+    if (!user?.id || !input.organizationId) {
+      return
+    }
+
+    let userOrganizationService: UserOrganizationService
+    try {
+      userOrganizationService = this.moduleRef.get<UserOrganizationService>(UserOrganizationService, {
+        strict: false
+      })
+    } catch {
+      return
+    }
+    if (!userOrganizationService) {
+      return
+    }
+
+    if (user.role?.name === RolesEnum.SUPER_ADMIN) {
+      await userOrganizationService.addUserToOrganization(user as any, input.organizationId)
+      return
+    }
+
+    try {
+      await userOrganizationService.findOneByWhereOptions({
+        tenantId: input.tenantId,
+        userId: user.id,
+        organizationId: input.organizationId
+      } as any)
+      return
+    } catch {
+      // Missing relation is expected on first provision.
+    }
+
+    await userOrganizationService.addUserToOrganization(user as any, input.organizationId)
   }
 }
