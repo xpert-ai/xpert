@@ -149,6 +149,23 @@ describe('formly: Select Type', () => {
     expect(nativeText()).toContain('Not found value: missing')
   })
 
+  it('should render searchable select when current value is missing from options', () => {
+    const { detectChanges, nativeText } = renderComponent(
+      {
+        key: 'name',
+        type: 'select',
+        props: {
+          searchable: true,
+          options: [{ value: 'a', label: 'Option A' }]
+        }
+      },
+      { name: 'missing' }
+    )
+
+    expect(detectChanges).not.toThrow()
+    expect(nativeText()).toContain('Not found value: missing')
+  })
+
   it('should register ngm-select alias', () => {
     const { query } = renderComponent({
       key: 'name',

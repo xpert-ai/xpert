@@ -147,7 +147,7 @@ export class NgmInputComponent implements ControlValueAccessor {
     this.onChange(value)
   }
 
-  filterOption(option: ZardComboboxOption, searchTerm: string) {
+  readonly filterOption = (option: ZardComboboxOption, searchTerm: string) => {
     const normalized = searchTerm?.trim().toLowerCase()
     if (!normalized) {
       return true

@@ -202,7 +202,7 @@ export class NgmAdvancedSelectComponent implements OnChanges, ControlValueAccess
     return (item as ZardComboboxOption)?.id ?? (item as ISelectOption)?.key ?? i
   }
 
-  displayWith(option: ZardComboboxOption | null, value: unknown) {
+  readonly displayWith = (option: ZardComboboxOption | null, value: unknown) => {
     if (Array.isArray(value)) {
       return value
         .map((item) => this.resolveOptionLabel(item as string))

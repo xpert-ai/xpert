@@ -155,7 +155,7 @@ export class PACFormlySelectComponent extends FieldType implements OnInit {
     return item?.id ?? item?.value ?? index
   }
 
-  displayWith(option: ZardComboboxOption | null, value: unknown) {
+  readonly displayWith = (option: ZardComboboxOption | null, value: unknown) => {
     if (option?.data) {
       return this.optionLabel(option.data as ISelectOption) || (value == null ? '' : `${value}`)
     }
