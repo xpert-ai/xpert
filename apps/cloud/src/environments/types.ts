@@ -18,6 +18,10 @@ export type IEnvironment = {
     version?: string
 
     API_BASE_URL: string
+    CHATKIT_FRAME_URL?: string
+    CHATKIT_API_URL?: string
+    CHATKIT_API_KEY?: string
+    CHATKIT_XPERT_ID?: string
 
     GOOGLE_AUTH_LINK?: string
     FACEBOOK_AUTH_LINK?: string
