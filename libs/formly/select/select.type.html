@@ -1,21 +1,18 @@
 <z-form-field class="w-full" [displayDensity]="props?.displayDensity">
-  @if (props?.label) {
-    <z-form-label [zRequired]="props?.required" [title]="props.label">
-      {{ props.label }}
-    </z-form-label>
-  }
-
-  @if (props?.help) {
-    <a
-      [href]="props.help"
-      target="_blank"
-      rel="noopener noreferrer"
-      class="group text-xs font-light text-primary-400 hover:text-primary-600 hover:underline hover:font-normal"
-    >
-      {{ 'FORMLY.COMMON.Help' | translate: { Default: 'Help' } }}
-      <i class="ri-external-link-line inline-block transition-transform group-hover:translate-x-1"></i>
-    </a>
-  }
+  <z-form-label [zRequired]="props?.required" [title]="props.label">
+    {{ props.label || '' }}
+    @if (props?.help) {
+      <a
+        [href]="props.help"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="group text-xs font-light text-primary-400 hover:text-primary-600 hover:underline hover:font-normal"
+      >
+        {{ 'FORMLY.COMMON.Help' | translate: { Default: 'Help' } }}
+        <i class="ri-external-link-line inline-block transition-transform group-hover:translate-x-1"></i>
+      </a>
+    }
+  </z-form-label>
 
   @if (props?.searchable) {
     <z-combobox
@@ -35,7 +32,7 @@
       <ng-template zComboboxPanel let-activeIndex="activeIndex" let-select="select">
         @if (props?.virtualScroll) {
           <cdk-virtual-scroll-viewport
-            class="pac-formly-select__viewport"
+            class="pac-formly-select__viewport p-1!"
             minBufferPx="200"
             maxBufferPx="400"
             [style.height.px]="240"
@@ -44,7 +41,7 @@
             <button
               type="button"
               role="option"
-              class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm"
+              class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm hover:bg-hover-bg"
               *cdkVirtualFor="let option of filteredComboboxOptions(); trackBy: trackByValue; let i = index"
               [class.bg-accent]="i === activeIndex"
               [class.text-accent-foreground]="i === activeIndex"
@@ -64,10 +61,10 @@
               <button
                 type="button"
                 role="option"
-                class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm"
+                class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm bg-hover-bg"
                 [class.bg-accent]="i === activeIndex"
                 [class.text-accent-foreground]="i === activeIndex"
-                (click)="select(option)"
+                (click)="selectOption(select, option)"
               >
                 <ngm-display-behaviour
                   class="flex-1 overflow-hidden"

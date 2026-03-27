@@ -1,10 +1,8 @@
 <z-form-field class="w-full p-0">
-  @if (label()) {
-    <z-form-label class="ngm-input-label shrink-0" [title]="label()" [zRequired]="required()">
-      {{ label() }}
-    </z-form-label>
-  }
-  <ng-content select="[ngmLabel]"></ng-content>
+  <z-form-label class="ngm-input-label shrink-0" [title]="label()" [zRequired]="required()">
+    {{ label() || '' }}
+    <ng-content select="[ngmLabel]"></ng-content>
+  </z-form-label>
 
   <z-form-control>
     @if (hasOptions()) {

@@ -8,7 +8,6 @@
   @for (item of field.fieldGroup; track item.key) {
     <z-accordion-item
       #expansionPanel="zAccordionItem"
-      [class.shadow-md]="props.elevationZ"
       [expanded]="!item.props.disabled && item.props.expanded"
       [disabled]="(item.hideExpression || item.props.toggleable) && !isShow(item)"
     >
