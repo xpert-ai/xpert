@@ -10,7 +10,7 @@
         [disabled]="!statement"
         (click)="run()"
       >
-        <z-icon zType="arrow_right"></z-icon>
+        <z-icon zType="chevron-right"></z-icon>
         @if (textSelection()?.text) {
           <span>
             {{ 'PAC.MENU.RUN_BY_SELECTION' | translate: { Default: 'Run By Selection' } }}

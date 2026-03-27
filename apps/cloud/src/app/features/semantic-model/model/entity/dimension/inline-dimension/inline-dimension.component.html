@@ -73,7 +73,7 @@
     <button z-button zType="ghost" zSize="icon" zShape="circle" zTreeNodeToggle displayDensity="cosy">
       <z-icon
         class="z-icon-rtl-mirror"
-        [zType]="treeControl.isExpanded(node) ? 'arrow_drop_down' : 'arrow_right'"
+        [zType]="treeControl.isExpanded(node) ? 'chevron-down' : 'chevron-right'"
       ></z-icon>
     </button>
     @if (node.raw.visible === false || node.raw.semantics?.hidden) {

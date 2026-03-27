@@ -180,7 +180,7 @@
     @if (dilldown$ | async; as slicer) {
       <div class="border-b border-solid border-divider-regular my-1"></div>
       <button cdkMenuItem (click)="drillDown(slicer)">
-        <z-icon zSize="default" zType="arrow_drop_down"></z-icon>
+        <z-icon zSize="default" zType="chevron-down"></z-icon>
         {{ 'Ngm.AnalyticalCard.DrillDown' | translate: { Default: 'Drill Down' } }}
       </button>
     }

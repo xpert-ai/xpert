@@ -54,7 +54,7 @@
               >
               <z-icon class="mr-1" [zType]="menu.icon"></z-icon>
               <span class="flex-1 text-left">{{menu.name}}</span>
-              <z-icon zType="arrow_right"></z-icon>
+              <z-icon zType="chevron-right"></z-icon>
             </button>
           }
           @case (WIDGET_MENU_TYPE.Divider) {
@@ -158,12 +158,12 @@
         <button cdkMenuItem [cdkMenuTriggerFor]="copyMenu">
           <z-icon class="mr-1" zType="content_copy"></z-icon>
           <span class="flex-1 text-left">{{ 'Story.Story.Copy' | translate: {Default: "Copy"} }}</span>
-          <z-icon zType="arrow_right"></z-icon>
+          <z-icon zType="chevron-right"></z-icon>
         </button>
         <button cdkMenuItem [cdkMenuTriggerFor]="moveToMenu">
           <z-icon class="mr-1" zType="drive_file_move"></z-icon>
           <span class="flex-1 text-left">{{ 'Story.Widget.MoveTo' | translate: {Default: "Move to"} }}</span>
-          <z-icon zType="arrow_right"></z-icon>
+          <z-icon zType="chevron-right"></z-icon>
         </button>
         <button cdkMenuItem (click)="download()">
           <z-icon class="mr-1" zType="file_download"></z-icon>
@@ -186,7 +186,7 @@
         <span class="flex-1 text-left">
           {{ 'Story.Story.CopyTo' | translate: {Default: "Copy To"} }}
         </span>
-        <z-icon zType="arrow_right"></z-icon>
+        <z-icon zType="chevron-right"></z-icon>
       </button>
       <button cdkMenuItem (click)="duplicate()">
         {{ 'Story.Story.Duplicate' | translate: {Default: "Duplicate"} }}

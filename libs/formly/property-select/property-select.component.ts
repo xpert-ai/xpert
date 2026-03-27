@@ -54,6 +54,7 @@ export class PACFormlyPropertySelectComponent extends FieldType implements OnIni
   readonly coreService: unknown = null
   readonly destroyRef = inject(DestroyRef)
   readonly formlyArray? = inject(NgmFormlyArrayComponent, { optional: true })
+  readonly standaloneNgModelOptions = { standalone: true }
 
   DIMENSION_ROLES = [
     { label: 'None', value: null },

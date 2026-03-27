@@ -103,7 +103,7 @@
 <z-drawer-container class="flex-1">
   <z-drawer
     #drawer
-    class="ngm-story__designer-drawer ngm-sidenav-container-bg-transparent shadow-xl"
+    class="ngm-story__designer-drawer ngm-sidenav-container-bg-transparent"
     [(opened)]="sideMenuOpened"
     [mode]="isMobile() ? 'over' : 'side'"
     ngmResizer
@@ -427,19 +427,19 @@
   <div cdkMenu class="p-2">
     <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="generalMenu" class="relative">
       <span>{{ 'PAC.KEY_WORDS.GENERAL' | translate: { Default: 'General' } }}</span>
-      <z-icon zType="arrow_right"></z-icon>
+      <z-icon zType="chevron-right"></z-icon>
     </button>
     <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="editMenu">
       <span>{{ 'PAC.KEY_WORDS.EDIT' | translate: { Default: 'Edit' } }}</span>
-      <z-icon zType="arrow_right"></z-icon>
+      <z-icon zType="chevron-right"></z-icon>
     </button>
     <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="dataMenu">
       <span>{{ 'PAC.KEY_WORDS.DATA' | translate: { Default: 'Data' } }}</span>
-      <z-icon zType="arrow_right"></z-icon>
+      <z-icon zType="chevron-right"></z-icon>
     </button>
     <button cdkMenuItem class="px-2 py-1 rounded-lg" [cdkMenuTriggerFor]="manageMenu">
       <span>{{ 'PAC.KEY_WORDS.Management' | translate: { Default: 'Management' } }}</span>
-      <z-icon zType="arrow_right"></z-icon>
+      <z-icon zType="chevron-right"></z-icon>
     </button>
   </div>
 </ng-template>
@@ -461,7 +461,7 @@
       <span>
         {{ 'PAC.MENU.STORY_LIST' | translate: { Default: 'Story List' } }}
       </span>
-      <z-icon zType="arrow_right"></z-icon>
+      <z-icon zType="chevron-right"></z-icon>
     </button>
   </div>
 </ng-template>

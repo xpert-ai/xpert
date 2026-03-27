@@ -83,9 +83,8 @@ import { DisplayDensity, mergeSelectedValues, NgmDSCoreService, NgmOcapCoreServi
 import { ControlOptions, NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CommonModule } from '@angular/common'
-import { ZardBadgeComponent, ZardButtonComponent, ZardCheckboxComponent, ZardComboboxComponent, ZardComboboxGroup, ZardComboboxOption, ZardDialogService, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardBadgeComponent, ZardButtonComponent, ZardCheckboxComponent, ZardComboboxComponent, ZardComboboxGroup, ZardComboboxOption, ZardDialogService, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
-
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
 import { Dialog } from '@angular/cdk/dialog'
@@ -120,7 +119,6 @@ import { ZardMenuImports, ZardLoaderComponent } from '@xpert-ai/headless-ui'
     ZardIconComponent,
     ZardButtonComponent,
     ...ZardMenuImports,
-    ZardDividerComponent,
     CdkListboxModule,
     ZardCheckboxComponent,
     ZardLoaderComponent,
@@ -132,12 +130,14 @@ import { ZardMenuImports, ZardLoaderComponent } from '@xpert-ai/headless-ui'
 export class NgmPropertySelectComponent implements ControlValueAccessor, AfterViewInit {
   private readonly createCalculationAction = '__create_calculation__'
   private readonly createMeasureControlAction = '__create_measure_control__'
+  readonly standaloneNgModelOptions = { standalone: true }
   AggregationRole = AggregationRole
   DISPLAY_BEHAVIOUR = DisplayBehaviour
   DisplayDensity = DisplayDensity
   CalculationType = CalculationType
   isVisible = isVisible
   LevelType = RuntimeLevelType
+  eOrderDirection = OrderDirection
 
   @HostBinding('class.ngm-property-select') isPropertySelect = true
 
@@ -154,15 +154,15 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
       label: 'Auto'
     },
     {
-      value: 'descriptionAndId',
+      value: DisplayBehaviour.descriptionAndId,
       label: 'Description and ID'
     },
     {
-      value: 'descriptionOnly',
+      value: DisplayBehaviour.descriptionOnly,
       label: 'Description Only'
     },
     {
-      value: 'idOnly',
+      value: DisplayBehaviour.idOnly,
       label: 'ID Only'
     }
   ]

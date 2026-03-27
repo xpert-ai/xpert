@@ -84,15 +84,15 @@
   </div>
 </ng-template>
 
-<z-radio-group [(ngModel)]="role">
+<z-radio-group [(ngModel)]="role" [ngModelOptions]="standaloneNgModelOptions">
   <ng-template #roleMenu>
     <div z-menu-content class="ngm-formly ngm-density__compact">
-      @for (role of DIMENSION_ROLES; track role) {
-        <button type="button" z-menu-item (click)="$event.stopPropagation()">
-          <z-radio [value]="role.value">
-            {{ 'FORMLY.PROPERTY_SELECT.' + role.label | translate: { Default: role.label } }}
+      @for (option of DIMENSION_ROLES; track option) {
+        <div z-menu-item (menuItemTriggered)="role = option.value">
+          <z-radio [value]="option.value">
+            {{ 'FORMLY.PROPERTY_SELECT.' + option.label | translate: { Default: option.label } }}
           </z-radio>
-        </button>
+        </div>
       }
     </div>
   </ng-template>
@@ -137,7 +137,7 @@
 
     @if (showMeasureGridBar) {
       <button type="button" z-menu-item (click)="$event.stopPropagation()">
-        <z-checkbox [(ngModel)]="bar">
+        <z-checkbox [(ngModel)]="bar" [ngModelOptions]="standaloneNgModelOptions">
           <div class="flex-1 flex items-center">
             <z-icon class="shrink-0" zType="sort"></z-icon>
             <span>{{ 'FORMLY.PROPERTY_SELECT.BarChart' | translate: { Default: 'Bar Chart' } }}</span>
@@ -148,15 +148,15 @@
   </div>
 </ng-template>
 
-<z-radio-group [(ngModel)]="role">
+<z-radio-group [(ngModel)]="role" [ngModelOptions]="standaloneNgModelOptions">
   <ng-template #measureRoleMenu>
     <div z-menu-content class="ngm-formly ngm-density__compact">
-      @for (role of MEASURE_ROLES; track role) {
-        <button type="button" z-menu-item (click)="$event.stopPropagation()">
-          <z-radio [value]="role.value">
-            {{ 'FORMLY.PROPERTY_SELECT.' + role.label | translate: { Default: role.label } }}
+      @for (option of MEASURE_ROLES; track option) {
+        <div z-menu-item (menuItemTriggered)="role = option.value">
+          <z-radio [value]="option.value">
+            {{ 'FORMLY.PROPERTY_SELECT.' + option.label | translate: { Default: option.label } }}
           </z-radio>
-        </button>
+        </div>
       }
     </div>
   </ng-template>
@@ -187,6 +187,7 @@
         [label]="'FORMLY.PROPERTY_SELECT.Colors' | translate: { Default: 'Colors' }"
         [options]="props.colors"
         [(ngModel)]="colors"
+        [ngModelOptions]="standaloneNgModelOptions"
         (ngModelChange)="onColorsChange($event)"
         (click)="$event.stopPropagation()"
         >
@@ -202,64 +203,64 @@
   </div>
 </ng-template>
 
-<z-radio-group [(ngModel)]="palette" displayDensity="cosy">
+<z-radio-group [(ngModel)]="palette" [ngModelOptions]="standaloneNgModelOptions" displayDensity="cosy">
   <ng-template #paletteMenu>
     <div z-menu-content class="ngm-formly ngm-density__compact">
-        <button type="button" z-menu-item (click)="$event.stopPropagation()">
+        <div z-menu-item (menuItemTriggered)="palette = null">
           <z-radio class="ngm-radio-button__property" [value]="null">
             {{ 'FORMLY.PROPERTY_SELECT.None' | translate: { Default: 'None' } }}
           </z-radio>
-        </button>
+        </div>
 
         @for (group of interpolateGroups; track group) {
           <div class="px-2 py-1 text-sm text-muted-foreground">
             {{ group.groupName }}
           </div>
           @for (interpolate of group.values; track interpolate) {
-            <button type="button" z-menu-item (click)="$event.stopPropagation()">
+            <div z-menu-item (menuItemTriggered)="palette = interpolate.name">
               <z-radio [value]="interpolate.name" class="ngm-radio-button__property flex-1 w-full">
                 <ngm-chromatic-preview class="flex-1 w-full" [interpolate]="interpolate"></ngm-chromatic-preview>
               </z-radio>
-            </button>
+            </div>
           }
         }
     </div>
   </ng-template>
 </z-radio-group>
 
-<z-radio-group [(ngModel)]="shapeType">
+<z-radio-group [(ngModel)]="shapeType" [ngModelOptions]="standaloneNgModelOptions">
   <ng-template #shapeMenu>
     <div z-menu-content class="ngm-formly ngm-density__compact">
-      <button type="button" z-menu-item (click)="$event.stopPropagation()">
+      <div z-menu-item (menuItemTriggered)="shapeType = null">
         <z-radio [value]="null">
           {{ 'FORMLY.PROPERTY_SELECT.None' | translate: { Default: 'None' } }}
         </z-radio>
-      </button>
+      </div>
       @for (shape of SHAPE_TYPES; track shape) {
-        <button type="button" z-menu-item (click)="$event.stopPropagation()">
+        <div z-menu-item (menuItemTriggered)="shapeType = shape.value">
           <z-radio [value]="shape.value">
             {{ 'FORMLY.PROPERTY_SELECT.' + shape.label | translate: { Default: shape.label } }}
           </z-radio>
-        </button>
+        </div>
       }
     </div>
   </ng-template>
 </z-radio-group>
 
-<z-radio-group [(ngModel)]="pattern">
+<z-radio-group [(ngModel)]="pattern" [ngModelOptions]="standaloneNgModelOptions">
   <ng-template #patternMenu>
     <div z-menu-content class="ngm-formly ngm-density__compact">
-      <button type="button" z-menu-item (click)="$event.stopPropagation()">
+      <div z-menu-item (menuItemTriggered)="pattern = null">
         <z-radio [value]="null">
           {{ 'FORMLY.PROPERTY_SELECT.None' | translate: { Default: 'None' } }}
         </z-radio>
-      </button>
+      </div>
       @for (item of PATTERNS; track item) {
-        <button type="button" z-menu-item (click)="$event.stopPropagation()">
+        <div z-menu-item (menuItemTriggered)="pattern = item.value">
           <z-radio [value]="item.value">
             {{ item.label }}
           </z-radio>
-        </button>
+        </div>
       }
     </div>
   </ng-template>

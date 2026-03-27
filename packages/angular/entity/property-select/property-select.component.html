@@ -118,7 +118,7 @@
 <ng-template #dimensionMenu>
   <div z-menu-content class="ngm-formly ngm-density__compact">
     @if (showDisplayAs()) {
-      <button type="button" z-menu-item z-menu [zMenuTriggerFor]="displayMenu">
+      <button type="button" z-menu-item z-menu [zMenuTriggerFor]="displayMenu" zPlacement="rightBottom">
         <z-icon class="shrink-0" zType="dvr"></z-icon>
         <span class="flex-1">{{ 'Ngm.Property.DisplayAs' | translate: { Default: 'Display As' } }}...</span>
         <z-icon class="ml-auto opacity-60" zType="chevron_right"></z-icon>
@@ -137,13 +137,18 @@
       class="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none"
       (click)="$event.stopPropagation(); $event.preventDefault()"
       >
-      <ngm-input
-        class="w-full flex-row"
-        style="flex-direction: row; align-items: center"
-        label="{{ 'Ngm.Property.Caption' | translate: { Default: 'Caption' } }}"
-        [(ngModel)]="caption"
-        (keydown.space)="$event.stopPropagation(); $event.preventDefault()"
-      ></ngm-input>
+      <z-form-field class="w-full" appearance="fill" displayDensity="compact">
+        <z-form-label>
+          {{ 'Ngm.Property.Caption' | translate: { Default: 'Caption' } }}
+        </z-form-label>
+        <input
+          z-input
+          class="w-full"
+          [(ngModel)]="caption"
+          [ngModelOptions]="standaloneNgModelOptions"
+          (keydown.space)="$event.stopPropagation(); $event.preventDefault()"
+        />
+      </z-form-field>
     </div>
 
     @if (isMeasure$ | async) {
@@ -176,7 +181,7 @@
         class="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none"
         (click)="$event.stopPropagation()"
         >
-        <z-checkbox [(ngModel)]="unbookedData">
+        <z-checkbox [(ngModel)]="unbookedData" [ngModelOptions]="standaloneNgModelOptions">
           {{ 'Ngm.Property.UnbookedData' | translate: { Default: 'Unbooked Data' } }}
         </z-checkbox>
       </div>
@@ -186,14 +191,14 @@
         class="relative flex w-full cursor-default select-none items-center rounded-sm px-2 py-1.5 text-sm outline-none"
         (click)="$event.stopPropagation()"
         >
-        <z-checkbox [(ngModel)]="zeroSuppression">
+        <z-checkbox [(ngModel)]="zeroSuppression" [ngModelOptions]="standaloneNgModelOptions">
           {{ 'Ngm.Property.ZeroSuppression' | translate: { Default: 'Zero Suppression' } }}
         </z-checkbox>
       </div>
     }
 
     @if (showOrder()) {
-      <button type="button" z-menu-item z-menu [zMenuTriggerFor]="orderMenu">
+      <button type="button" z-menu-item z-menu [zMenuTriggerFor]="orderMenu" zPlacement="rightBottom">
         <z-icon class="shrink-0" zType="sort_by_alpha"></z-icon>
         <span class="flex-1">{{ 'Ngm.Property.Order' | translate: { Default: 'Order' } }}</span>
         <z-icon class="ml-auto opacity-60" zType="chevron_right"></z-icon>
@@ -202,46 +207,41 @@
   </div>
 </ng-template>
 
-<z-radio-group [(ngModel)]="displayBehaviour">
+<z-radio-group [(ngModel)]="displayBehaviour" [ngModelOptions]="standaloneNgModelOptions">
   <ng-template #displayMenu>
     <div z-menu-content class="ngm-formly ngm-density__compact">
       @for (behaviour of DISPLAY_BEHAVIOUR_LIST; track behaviour) {
-        <button
-          type="button"
-          z-menu-item
-          class="w-full"
-          (click)="$event.stopPropagation()"
-          >
+        <div z-menu-item class="w-full" (menuItemTriggered)="displayBehaviour = behaviour.value">
           <z-radio [value]="behaviour.value">
             {{ 'Ngm.Property.' + behaviour.label | translate: { Default: behaviour.label } }}
           </z-radio>
-        </button>
+        </div>
       }
     </div>
   </ng-template>
 </z-radio-group>
 
-<z-radio-group [(ngModel)]="memberCaption">
+<z-radio-group [(ngModel)]="memberCaption" [ngModelOptions]="standaloneNgModelOptions">
   <ng-template #labelMenu>
     <div z-menu-content class="ngm-formly ngm-density__compact">
-      <button type="button" z-menu-item class="w-full" (click)="$event.stopPropagation()">
+      <div z-menu-item class="w-full" (menuItemTriggered)="memberCaption = null">
         <z-radio class="ngm-radio-button__property" [value]="null">
           {{ 'Ngm.Property.Auto' | translate: { Default: 'Auto' } }}
         </z-radio>
-      </button>
+      </div>
 
       @for (item of labels$ | async; track item.name) {
-        <button type="button" z-menu-item class="w-full" (click)="$event.stopPropagation()">
+        <div z-menu-item class="w-full" (menuItemTriggered)="memberCaption = item.name">
           <z-radio class="ngm-radio-button__property" [value]="item.name" [title]="item.caption">
             {{ item.caption }}
           </z-radio>
-        </button>
+        </div>
       }
     </div>
   </ng-template>
 </z-radio-group>
 
-<z-radio-group [(ngModel)]="level">
+<z-radio-group [(ngModel)]="level" [ngModelOptions]="standaloneNgModelOptions">
   <ng-template #hierarchyMenu>
     <div cdkMenu class="cdk-menu__large">
       <button cdkMenuItem [cdkMenuTriggerFor]="hierarchiesMenu">
@@ -296,7 +296,7 @@
         </button>
 
         <button cdkMenuItem class="flex justify-start items-center" (click)="$event.stopPropagation()">
-          <z-checkbox [(ngModel)]="displayHierarchy" [ngModelOptions]="{ standalone: true }" style="width: 100%">
+          <z-checkbox [(ngModel)]="displayHierarchy" [ngModelOptions]="standaloneNgModelOptions" style="width: 100%">
             {{ 'Ngm.Property.DisplayHierarchy' | translate: { Default: 'Display as Hierarchy' } }}
           </z-checkbox>
         </button>
@@ -337,6 +337,7 @@
         <z-checkbox
           class="ngm-checkbox__property"
           [ngModel]="$any(property).selected"
+          [ngModelOptions]="standaloneNgModelOptions"
           (checkChange)="toggleMember(property.name, $event)"
           >
           <ngm-entity-property
@@ -413,25 +414,25 @@
   </div>
 </ng-template>
 
-<z-radio-group [(ngModel)]="order">
+<z-radio-group [(ngModel)]="order" [ngModelOptions]="standaloneNgModelOptions">
   <ng-template #orderMenu>
     <div z-menu-content class="ngm-density__compact">
-      <button type="button" z-menu-item class="w-full" (click)="$event.stopPropagation()">
+      <div z-menu-item class="w-full" (menuItemTriggered)="order = null">
         <z-radio class="ngm-radio-button__property" [value]="null">
           {{ 'Ngm.Property.None' | translate: { Default: 'None' } }}
         </z-radio>
-      </button>
+      </div>
 
-      <button type="button" z-menu-item class="w-full" (click)="$event.stopPropagation()">
+      <div z-menu-item class="w-full" (menuItemTriggered)="order = eOrderDirection.ASC">
         <z-radio class="ngm-radio-button__property" value="ASC">
           {{ 'Ngm.Property.Order_ASC' | translate: { Default: 'ASC' } }}
         </z-radio>
-      </button>
-      <button type="button" z-menu-item class="w-full" (click)="$event.stopPropagation()">
+      </div>
+      <div z-menu-item class="w-full" (menuItemTriggered)="order = eOrderDirection.DESC">
         <z-radio class="ngm-radio-button__property" value="DESC">
           {{ 'Ngm.Property.Order_DESC' | translate: { Default: 'DESC' } }}
         </z-radio>
-      </button>
+      </div>
     </div>
   </ng-template>
 </z-radio-group>

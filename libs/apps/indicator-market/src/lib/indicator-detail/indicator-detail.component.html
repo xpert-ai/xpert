@@ -29,7 +29,7 @@
               <z-icon zSize="sm" zType="arrow_drop_up"></z-icon>
             }
             @if (mom$() === TREND.Down) {
-              <z-icon zSize="sm" zType="arrow_drop_down"></z-icon>
+              <z-icon zSize="sm" zType="chevron-down"></z-icon>
             }
             {{ (indicator.data?.MOM | percent: '0.2-2' | replaceNullWithText: '-')! }}
           </div>
@@ -53,7 +53,7 @@
               <z-icon zSize="sm" zType="arrow_drop_up"></z-icon>
             }
             @if (yoy$() === TREND.Down) {
-              <z-icon zSize="sm" zType="arrow_drop_down"></z-icon>
+              <z-icon zSize="sm" zType="chevron-down"></z-icon>
             }
             {{ (indicator.data?.YOY | percent: '0.2-2' | replaceNullWithText: '-')! }}
           </div>

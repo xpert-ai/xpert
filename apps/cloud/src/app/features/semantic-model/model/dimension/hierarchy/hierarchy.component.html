@@ -25,16 +25,16 @@
         </div>
         <div
           id="pac-model-dimension__hierarchy-levels"
-          class="pac-cdk-drop__list flex-1"
+          class="pac-cdk-drop__list flex-1 flex flex-col"
           cdkDropList
           [cdkDropListData]="levels()"
           (cdkDropListDropped)="dropLevel($event)"
           [cdkDropListEnterPredicate]="levelPredicate"
         >
-          <ul class="ngm-nav-list max-h-full overflow-hidden hover:overflow-y-auto">
+          <ul class="ngm-nav-list flex-1 max-h-full overflow-hidden hover:overflow-y-auto">
             @for (level of levels(); track level.__id__; let i = $index) {
               <li
-                class="group relative"
+                class="group relative p-1 hover:bg-hover-bg"
                 [class.active]="(level.__id__ ?? i) === designerComponentId()"
                 cdkDrag
                 [cdkDragData]="level"
