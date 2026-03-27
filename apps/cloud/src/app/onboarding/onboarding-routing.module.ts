@@ -12,12 +12,12 @@ const routes: Routes = [
       {
         path: '',
         component: WelcomeComponent,
-        // canActivate: [onboardGuard]
+        canActivate: [onboardGuard]
       },
       {
         path: 'tenant',
         loadComponent: () => import('./tenant-details/tenant-details.component').then((m) => m.TenantDetailsComponent),
-        // canActivate: [onboardGuard]
+        canActivate: [onboardGuard]
       },
       {
         path: 'unknown',
