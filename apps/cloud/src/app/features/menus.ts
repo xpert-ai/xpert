@@ -37,7 +37,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
     },
     {
       title: 'Xpert',
-      icon: 'engineering',
+      icon: 'orbit',
       link: '/xpert',
       pathMatch: 'prefix',
       data: {
@@ -48,46 +48,46 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
     },
 
     // BI Features
-    {
-      title: 'Dashboard',
-      icon: 'leaderboard',
-      link: '/dashboard',
-      pathMatch: 'prefix',
-      // home: true,
-      data: {
-        translationKey: 'Dashboard',
-        featureKey: FeatureEnum.FEATURE_HOME
-      },
-      children: [
-        {
-          title: 'Today',
-          icon: 'today',
-          link: '/dashboard',
-          data: {
-            translationKey: 'Today',
-            featureKey: FeatureEnum.FEATURE_DASHBOARD
-          }
-        },
-        {
-          title: 'Catalog',
-          icon: 'subscriptions',
-          link: '/dashboard/catalog',
-          data: {
-            translationKey: 'Catalog',
-            featureKey: FeatureEnum.FEATURE_DASHBOARD
-          }
-        },
-        {
-          title: 'Trending',
-          icon: 'timeline',
-          link: '/dashboard/trending',
-          data: {
-            translationKey: 'Trending',
-            featureKey: FeatureEnum.FEATURE_DASHBOARD
-          }
-        }
-      ]
-    },
+    // {
+    //   title: 'Dashboard',
+    //   icon: 'leaderboard',
+    //   link: '/dashboard',
+    //   pathMatch: 'prefix',
+    //   // home: true,
+    //   data: {
+    //     translationKey: 'Dashboard',
+    //     featureKey: FeatureEnum.FEATURE_HOME
+    //   },
+    //   children: [
+    //     {
+    //       title: 'Today',
+    //       icon: 'today',
+    //       link: '/dashboard',
+    //       data: {
+    //         translationKey: 'Today',
+    //         featureKey: FeatureEnum.FEATURE_DASHBOARD
+    //       }
+    //     },
+    //     {
+    //       title: 'Catalog',
+    //       icon: 'subscriptions',
+    //       link: '/dashboard/catalog',
+    //       data: {
+    //         translationKey: 'Catalog',
+    //         featureKey: FeatureEnum.FEATURE_DASHBOARD
+    //       }
+    //     },
+    //     {
+    //       title: 'Trending',
+    //       icon: 'timeline',
+    //       link: '/dashboard/trending',
+    //       data: {
+    //         translationKey: 'Trending',
+    //         featureKey: FeatureEnum.FEATURE_DASHBOARD
+    //       }
+    //     }
+    //   ]
+    // },
     // {
     //   title: 'Data Factory',
     //   icon: 'data_table',
