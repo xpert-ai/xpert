@@ -140,14 +140,6 @@ const routes: Routes = [
         }
       },
       {
-        path: 'chatbi',
-        loadChildren: () => import('./chatbi/routes').then(m => m.routes),
-        canActivate: [authGuard],
-        data: {
-          title: 'Chat-BI',
-        }
-      },
-      {
         path: 'data',
         loadChildren: () => import('./data-factory/routes').then(m => m.routes),
         canActivate: [authGuard],

@@ -146,7 +146,7 @@ export class ChatHomeComponent {
       key: 'deep-research',
       defaultLabel: 'DeepResearch',
       featureKey: AiFeatureEnum.FEATURE_XPERT_DEEP_RESEARCH,
-      iconClass: 'ri-file-search-line',
+      iconClass: 'ri-binoculars-line',
       link: 'https://research.xpertai.cn/',
       external: true
     }
