@@ -622,7 +622,7 @@ export class LarkChannelStrategy implements IChatChannel<TIntegrationLarkOptions
 	}
 
 	private resolveAutoProvisionRoleName(userProvision?: TLarkUserProvisionOptions): string {
-		return userProvision?.roleName || RolesEnum.EMPLOYEE
+		return userProvision?.roleName || RolesEnum.VIEWER
 	}
 
 	// ==================== Legacy Message Helpers ====================

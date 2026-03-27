@@ -2,7 +2,7 @@ import { BreakpointObserver, Breakpoints, BreakpointState } from '@angular/cdk/l
 import { DOCUMENT } from '@angular/common'
 import { computed, inject, Injectable, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { normalizeTheme, resolveTheme } from '@metad/ocap-angular/core'
+import { normalizeTheme, prefersColorScheme, resolveTheme } from '@metad/ocap-angular/core'
 import { nonNullable } from '@metad/ocap-core'
 import { ComponentStore } from '@metad/store'
 import { TranslateService } from '@ngx-translate/core'
@@ -81,10 +81,12 @@ export class AppService extends ComponentStore<PACAppState> {
   )
 
   readonly preferredTheme$ = toSignal(this.store.preferredTheme$)
+  readonly systemTheme$ = toSignal(prefersColorScheme(), { requireSync: true })
 
   readonly theme$ = computed(() => {
     const preferredTheme = normalizeTheme(this.preferredTheme$())
-    const primary = resolveTheme(preferredTheme)
+    const systemTheme = this.systemTheme$()
+    const primary = resolveTheme(preferredTheme, systemTheme)
 
     return {
       preferredTheme,

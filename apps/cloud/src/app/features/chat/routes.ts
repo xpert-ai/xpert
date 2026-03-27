@@ -1,4 +1,6 @@
-import { Routes } from '@angular/router'
+import { inject } from '@angular/core'
+import { Router, Routes } from '@angular/router'
+import { AiFeatureEnum, Store } from '../../@core'
 import { ChatTasksComponent } from './tasks/tasks.component'
 import { ChatXpertComponent } from './xpert/xpert.component'
 import { ChatHomeComponent } from './home/home.component'
@@ -31,6 +33,25 @@ export const routes: Routes = [
         component: ChatXpertComponent,
         data: {
           title: 'Chat Xpert Conversation',
+        }
+      },
+      {
+        path: 'chatbi',
+        component: ChatXpertComponent,
+        canActivate: [
+          () => {
+            const store = inject(Store)
+            if (
+              store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) &&
+              store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_CHATBI)
+            ) {
+              return true
+            }
+            return inject(Router).createUrlTree(['/chat'])
+          }
+        ],
+        data: {
+          title: 'Chat BI',
         }
       },
 

@@ -40,7 +40,7 @@ export const tabNavVariants = cva(
 );
 
 export const tabButtonVariants = cva(
-  'z-tab-group__trigger relative flex shrink-0 items-center gap-1 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 hover:bg-muted/60 hover:text-foreground',
+  'z-tab-group__trigger relative flex shrink-0 items-center gap-1 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 hover:bg-muted/60 hover:text-foreground',
   {
     variants: {
       zActivePosition: {

@@ -1,28 +1,7 @@
-@if (modelProvider()) {
-  <copilot-provider [providerId]="modelProvider().id" class="shadow-sm mb-2 rounded-xl border-[0.5px] border-black/5"
-    (deleted)="removedModelProvider()"
-    (addedModel)="onAddedModel($event)"
-    />
-} @else {
-  <div class="w-full flex items-center px-3 py-2 mb-2 rounded-lg text-base text-text-secondary bg-components-list-option-active-bg cursor-pointer hover:bg-components-card-bg hover:text-text-primary"
-    (click)="openAiProviders()"
-  >
-    <div class="grow mr-2 leading-5">
-      {{'PAC.Copilot.SelectAiModelProvider' | translate: {Default: 'Select an AI model provider'} }}
-    </div>
-    <i class="ri-folder-open-line"></i>
-  </div>
-}
-
-<form [formGroup]="formGroup" class="relative w-full flex flex-col items-start gap-4 p-4 overflow-hidden bg-background-default-subtle rounded-xl shadow-sm border-light"
-  (ngSubmit)="onSubmit()">
-
-  <copilot-model-select class="w-full" formControlName="copilotModel" [copilot]="copilot()" [modelType]="defaultModelType()"
-    [label]="'PAC.Copilot.DefaultModel' | translate: {Default: 'Default Model'}" />
-
-  @if (!onboarding()) {
+<pac-copilot-config-form #copilotForm [copilot]="copilot()" (saved)="saved.emit()">
+  <div [formGroup]="copilotForm.formGroup" class="w-full flex flex-col justify-start items-stretch">
     <div class="w-full flex flex-col justify-start items-stretch">
-      <label>{{ 'PAC.Copilot.TokenLimitPerUser' | translate: {Default: 'Token Limit/User'} }}: {{tokenBalance | number}}</label>
+      <label>{{ 'PAC.Copilot.TokenLimitPerUser' | translate: {Default: 'Token Limit/User'} }}: {{copilotForm.tokenBalance | number}}</label>
       <z-slider
         min="0"
         max="10000000"
@@ -32,26 +11,14 @@
         formControlName="tokenBalance"
       ></z-slider>
     </div>
-  }
 
-  <div class="self-stretch flex justify-start items-center gap-2 mt-4">
-    @if (!onboarding()) {
-      <button z-button zType="secondary" type="button" class="rounded-full" [disabled]="formGroup.pristine" (click)="cancel()">
+    <div class="mt-4 flex self-stretch items-center gap-2">
+      <button z-button zType="secondary" type="button" class="rounded-full" [disabled]="copilotForm.formGroup.pristine" (click)="copilotForm.reset()">
         {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
       </button>
-    }
-    <button z-button zType="default" color="primary" class="rounded-full" [disabled]="!canSubmit()">
-      <div class="flex items-center">
-        @if (onboarding()) {
-          <span>{{ 'PAC.Onboarding.SaveAndNext' | translate: {Default: 'Save and Next'} }}</span>
-        } @else {
-          <span>{{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</span>
-        }
-      </div>
-    </button>
+      <button z-button zType="default" color="primary" type="button" class="rounded-full" [disabled]="!copilotForm.canSubmit()" (click)="copilotForm.submit()">
+        <span>{{ 'PAC.ACTIONS.Save' | translate: {Default: 'Save'} }}</span>
+      </button>
+    </div>
   </div>
-
-  @if (saving()) {
-    <ngm-spin class="absolute top-0 left-0 w-full h-full" ></ngm-spin>
-  }
-</form>
+</pac-copilot-config-form>

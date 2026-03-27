@@ -2381,6 +2381,18 @@
         "FEATURE_XPERT": {
           "Name": "數字專家",
           "Description": "數字專家模塊"
+        },
+        "FEATURE_XPERT_CHATBI": {
+          "Name": "ChatBI",
+          "Description": "在聊天左側邊欄中顯示 ChatBI 入口。"
+        },
+        "FEATURE_XPERT_CODEXPERT": {
+          "Name": "CodeXpert",
+          "Description": "在聊天左側邊欄中顯示 CodeXpert 入口。"
+        },
+        "FEATURE_XPERT_DEEP_RESEARCH": {
+          "Name": "DeepResearch",
+          "Description": "在聊天左側邊欄中顯示 DeepResearch 入口。"
         }
       }
     },
@@ -3028,6 +3040,12 @@
       "ImportError": "DSL文件導入失敗",
       "ChangeXpertName": "更改專家名稱",
       "ImportDSL": "導入 DSL 文件",
+      "ImportOverwriteConfirm": "導入此 DSL 將覆蓋當前數字專家的草稿配置，已發布版本不受影響。\n\n如果文件包含記憶，當前記憶將被清空並替換。",
+      "ImportOverwriteSuccess": "DSL 已導入到當前草稿，正式生效仍需發布",
+      "ImportMemoryIncomplete": "DSL 草稿已導入，但記憶替換未完成",
+      "ImportTypeMismatch": "DSL 類型與當前數字專家不一致",
+      "ImportPrimaryAgentMissing": "DSL 文件中缺少主 agent",
+      "ImportCurrentPrimaryAgentMissing": "當前數字專家缺少主 agent",
       "ExportDSLVersion": "導出",
       "ExportDSLDraft": "導出(草稿)",
       "CommandExamples": "命令示例",

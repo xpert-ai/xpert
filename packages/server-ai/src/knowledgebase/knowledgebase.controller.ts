@@ -4,8 +4,7 @@ import {
 	IKnowledgebaseTask,
 	IPagination,
 	KnowledgebasePermission,
-	KnowledgeDocumentMetadata,
-	RolesEnum
+	KnowledgeDocumentMetadata
 } from '@metad/contracts'
 import {
 	CrudController,
@@ -14,8 +13,6 @@ import {
 	PermissionGuard,
 	Permissions,
 	RequestContext,
-	RoleGuard,
-	Roles,
 	TransformInterceptor,
 	UploadFileCommand,
 	getFileAssetDestination,
@@ -321,8 +318,8 @@ export class KnowledgebaseController extends CrudController<Knowledgebase> {
 
 	// Statistics
 
-	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.KNOWLEDGEBASE_EDIT)
 	@Get('statistics/knowledgebases')
 	async getStatisticsKnowledgebases(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsKnowledgebasesQuery(start, end))

@@ -8,7 +8,7 @@ import { injectHelpWebsite } from '../../@core'
   standalone: true,
   selector: 'ngm-onboarding-welcome',
   templateUrl: './welcome.component.html',
-  styleUrls: ['./welcome.component.scss'],
+  styleUrls: ['./welcome.component.css'],
   imports: [TranslateModule, CdkMenuModule]
 })
 export class WelcomeComponent {

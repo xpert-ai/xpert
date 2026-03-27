@@ -65,7 +65,7 @@ const routes: Routes = [
         data: {
           title: 'Dashboard',
           permissions: {
-            only: [AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT],
+            only: [AnalyticsPermissionsEnum.STORIES_VIEW],
             redirectTo
           }
         },
@@ -137,14 +137,6 @@ const routes: Routes = [
         loadChildren: () => import('./organization/organization.module').then((m) => m.OrganizationModule),
         data: {
           title: 'Organization',
-        }
-      },
-      {
-        path: 'chatbi',
-        loadChildren: () => import('./chatbi/routes').then(m => m.routes),
-        canActivate: [authGuard],
-        data: {
-          title: 'Chat-BI',
         }
       },
       {

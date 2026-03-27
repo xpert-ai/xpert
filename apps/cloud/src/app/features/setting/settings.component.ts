@@ -84,7 +84,7 @@ export class PACSettingComponent {
         label: 'Chat BI',
         icon: 'try',
         data: {
-          permissionKeys: [AIPermissionsEnum.XPERT_EDIT],
+          permissionKeys: [AnalyticsPermissionsEnum.MODELS_EDIT],
           featureKey: [AiFeatureEnum.FEATURE_XPERT, AnalyticsFeatures.FEATURE_MODEL]
         }
       },
@@ -158,7 +158,7 @@ export class PACSettingComponent {
         label: 'Feature',
         icon: 'widgets',
         data: {
-          permissionKeys: [RolesEnum.SUPER_ADMIN]
+          permissionKeys: [PermissionsEnum.CHANGE_ROLES_PERMISSIONS]
         }
       },
       {

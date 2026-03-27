@@ -30,16 +30,36 @@ export class MermaidViewerComponent implements AfterViewInit, OnDestroy {
   @Input() code!: string
 
   private destroyed = false
+  private renderVersion = 0
+  private container?: HTMLElement
+  private themeObserver?: MutationObserver
 
   constructor(private el: ElementRef) {}
 
   ngOnDestroy() {
     this.destroyed = true
+    this.themeObserver?.disconnect()
   }
 
   async ngAfterViewInit() {
-    const container = this.el.nativeElement.querySelector('.mermaid-container')
+    this.container = this.el.nativeElement.querySelector('.mermaid-container') ?? undefined
+    if (!this.code || !this.container) return
+
+    this.themeObserver = new MutationObserver((mutations) => {
+      if (mutations.some((mutation) => mutation.attributeName === 'data-theme')) {
+        void this.render()
+      }
+    })
+    this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] })
+
+    await this.render()
+  }
+
+  private async render() {
+    const container = this.container
     if (!this.code || !container) return
+
+    const renderVersion = ++this.renderVersion
 
     // Use cached SVG if available to avoid repeated rendering during streaming
     const isDark = document.documentElement.dataset.theme === 'dark'
@@ -69,11 +89,11 @@ export class MermaidViewerComponent implements AfterViewInit, OnDestroy {
       if (svgCache.size > 100) {
         svgCache.delete(svgCache.keys().next().value)
       }
-      if (!this.destroyed) {
+      if (!this.destroyed && renderVersion === this.renderVersion) {
         container.innerHTML = svg
       }
     } catch (err) {
-      if (!this.destroyed) {
+      if (!this.destroyed && renderVersion === this.renderVersion) {
         container.textContent = this.code
       }
     }

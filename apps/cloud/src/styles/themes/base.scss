@@ -108,7 +108,6 @@
   --accent-foreground: var(--color-text-primary);
   --destructive: theme('colors.red.500');
   --destructive-foreground: theme('colors.white');
-  --border: var(--color-divider-regular);
   --input: var(--border);
   --ring: theme('colors.blue.500');
 }
@@ -209,7 +208,6 @@
   --accent-foreground: var(--color-text-primary);
   --destructive: theme('colors.red.400');
   --destructive-foreground: theme('colors.white');
-  --border: var(--color-divider-regular);
   --input: var(--border-medium);
   --ring: theme('colors.blue.400');
 }

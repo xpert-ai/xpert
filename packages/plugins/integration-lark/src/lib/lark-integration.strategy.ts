@@ -122,7 +122,7 @@ export class LarkIntegrationStrategy implements IntegrationStrategy<TIntegration
                 zh_Hans: '默认角色'
               },
               enum: Object.values(RolesEnum),
-              default: RolesEnum.EMPLOYEE
+              default: RolesEnum.VIEWER
             }
           }
         }

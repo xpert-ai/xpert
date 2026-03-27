@@ -423,6 +423,12 @@
       "WorkspaceCreateAssistantHint": "Describe the expert you want, and the assistant will create a draft and open Studio.",
       "StudioAssistantHint": "Ask about the current draft, primary agent, or editing state.",
       "AssistantLoading": "Preparing assistant..."
+      "ImportOverwriteConfirm": "Importing this DSL will overwrite the current draft of this xpert. The published version will remain unchanged.\n\nIf the file contains memories, current memories will be cleared and replaced.",
+      "ImportOverwriteSuccess": "DSL imported into the current draft. Publish is still required for it to take effect.",
+      "ImportMemoryIncomplete": "The draft was imported, but memory replacement did not finish.",
+      "ImportTypeMismatch": "DSL type does not match the current xpert",
+      "ImportPrimaryAgentMissing": "Primary agent not found in the DSL file",
+      "ImportCurrentPrimaryAgentMissing": "Current xpert primary agent not found"
     }
   },
   "STORY_DESIGNER": {
@@ -583,6 +589,18 @@
       "FEATURE_XPERT": {
         "Name": "Digital Expert",
         "Description": "A virtual assistant that leverages artificial intelligence to provide personalized, real-time, and precise consulting, analysis, and decision support."
+      },
+      "FEATURE_XPERT_CHATBI": {
+        "Name": "ChatBI",
+        "Description": "Show the ChatBI entry in the chat sidebar."
+      },
+      "FEATURE_XPERT_CODEXPERT": {
+        "Name": "CodeXpert",
+        "Description": "Show the CodeXpert entry in the chat sidebar."
+      },
+      "FEATURE_XPERT_DEEP_RESEARCH": {
+        "Name": "DeepResearch",
+        "Description": "Show the DeepResearch entry in the chat sidebar."
       }
     },
     "Workspace": {

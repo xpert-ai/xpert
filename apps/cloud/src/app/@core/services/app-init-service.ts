@@ -98,7 +98,8 @@ export class AppInitService {
 
       if (
         user.role.name === RolesEnum.ADMIN ||
-        user.role.name === RolesEnum.DATA_ENTRY ||
+        user.role.name === RolesEnum.AI_BUILDER ||
+        user.role.name === RolesEnum.ANALYTICS_BUILDER ||
         user.role.name === RolesEnum.TRIAL
       ) {
         can(AbilityActions.Manage, 'Story')

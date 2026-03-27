@@ -9,7 +9,7 @@
     [(opened)]="drawerOpened"
     (openedChange)="$event ? helper.realignInkBar() : ''"
   >
-    <z-tab-group #helper="zTabGroup" class="ngm-calculated-measure__helpers" [stretchTabs]="false">
+    <z-tab-group #helper="zTabGroup" class="ngm-calculated-measure__helpers w-full" [stretchTabs]="false">
       <z-tab
         [label]="'Ngm.Calculation.DIMENSION_MEMBERS' | translate: { Default: 'Dimension Members' }"
         id="ngm-calculated-measure__entity-schema"

@@ -14,15 +14,17 @@ import {
 	OrganizationPermissionsEnum,
 	AnalyticsFeatures,
 	ITenantSetting,
-	IXpertWorkspace
+	IXpertWorkspace,
+	AiFeatureEnum
 } from '@metad/contracts';
 import { Injectable, inject } from '@angular/core';
 import { StoreConfig, Store as AkitaStore, Query } from '@datorama/akita';
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions';
+import { combineLatest } from 'rxjs';
 import { distinctUntilChanged, map } from 'rxjs/operators';
 import { uniqBy } from 'lodash-es';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ThemesEnum, linkedModel, normalizeTheme, resolveTheme } from '@metad/ocap-angular/core';
+import { ThemesEnum, linkedModel, normalizeTheme, prefersColorScheme, resolveTheme } from '@metad/ocap-angular/core';
 
 
 export interface AppState {
@@ -183,7 +185,10 @@ export class Store {
 	preferredTheme$ = this.persistQuery.select(
 		(state) => state.preferredTheme
 	);
-	readonly primaryTheme$ = this.preferredTheme$.pipe(map((theme) => resolveTheme(theme)), distinctUntilChanged())
+	readonly primaryTheme$ = combineLatest([this.preferredTheme$, prefersColorScheme()]).pipe(
+		map(([theme, systemTheme]) => resolveTheme(theme, systemTheme)),
+		distinctUntilChanged()
+	)
 
 	systemLanguages$ = this.appQuery.select((state) => state.systemLanguages);
 	tenantSettings$ = this.appQuery.select((state) => state.tenantSettings);
@@ -357,7 +362,7 @@ export class Store {
 	/*
 	 * Check features are enabled/disabled for tenant organization
 	 */
-	hasFeatureEnabled(feature: FeatureEnum | AnalyticsFeatures) {
+	hasFeatureEnabled(feature: FeatureEnum | AiFeatureEnum | AnalyticsFeatures) {
 		const {
 			featureTenant = [],
 			featureOrganizations = [],

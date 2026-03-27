@@ -1,6 +1,6 @@
 import { Component, inject } from '@angular/core'
 import { ToastrService, UsersService } from '@metad/cloud/state'
-import { IUser, RolesEnum } from '@metad/contracts'
+import { DEFAULT_SYSTEM_ROLES, IUser, RolesEnum } from '@metad/contracts'
 import { NgmConfirmDeleteService, NgmSearchComponent } from '@metad/ocap-angular/common'
 import { OcapCoreModule } from '@metad/ocap-angular/core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
@@ -41,7 +41,15 @@ export class ManageUserComponent extends TranslationBaseComponent {
   private readonly _confirmDelete = inject(NgmConfirmDeleteService)
   private toastrService = inject(ToastrService)
 
-  ROLES = Object.keys(RolesEnum)
+  ROLES = DEFAULT_SYSTEM_ROLES
+  readonly defaultRoleBadgeClass = 'text-text-primary'
+  readonly roleBadgeClassMap: Record<string, string> = {
+    [RolesEnum.VIEWER]: 'text-text-secondary',
+    [RolesEnum.ADMIN]: 'text-text-warning',
+    [RolesEnum.SUPER_ADMIN]: 'text-text-destructive',
+    [RolesEnum.AI_BUILDER]: 'text-text-accent',
+    [RolesEnum.ANALYTICS_BUILDER]: 'text-text-success'
+  }
   roles$ = new BehaviorSubject<string[]>([])
   get roles() {
     return this.roles$.value

@@ -43,5 +43,34 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
 		isEnabled: features.FEATURE_XPERT,
 		icon: 'assistant',
 		status: 'accent',
+		children: [
+			{
+				name: 'ChatBI',
+				code: AiFeatureEnum.FEATURE_XPERT_CHATBI,
+				description: 'Show the ChatBI entry in chat sidebar',
+				link: 'chat/chatbi',
+				isEnabled: true,
+				icon: 'chat',
+				status: 'info'
+			},
+			{
+				name: 'CodeXpert',
+				code: AiFeatureEnum.FEATURE_XPERT_CODEXPERT,
+				description: 'Show the CodeXpert entry in chat sidebar',
+				link: 'https://code.xpertai.cn/',
+				isEnabled: true,
+				icon: 'code',
+				status: 'info'
+			},
+			{
+				name: 'DeepResearch',
+				code: AiFeatureEnum.FEATURE_XPERT_DEEP_RESEARCH,
+				description: 'Show the DeepResearch entry in chat sidebar',
+				link: 'https://research.xpertai.cn/',
+				isEnabled: true,
+				icon: 'search',
+				status: 'info'
+			}
+		]
 	}
 ]

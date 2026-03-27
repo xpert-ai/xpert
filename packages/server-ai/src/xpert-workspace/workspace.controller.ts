@@ -1,12 +1,12 @@
-import { RolesEnum } from '@metad/contracts'
+import { AIPermissionsEnum } from '@metad/contracts'
 import { DeepPartial } from '@metad/server-common'
 import {
 	CrudController,
 	PaginationParams,
 	ParseJsonPipe,
+	PermissionGuard,
+	Permissions,
 	RequestContext,
-	RoleGuard,
-	Roles,
 	TransformInterceptor
 } from '@metad/server-core'
 import {
@@ -45,8 +45,8 @@ export class XpertWorkspaceController extends CrudController<XpertWorkspace> {
 		super(service)
 	}
 
-	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.XPERT_EDIT)
 	@Get()
 	async findAllWorkspaces(@Query('data', ParseJsonPipe) options: PaginationParams<XpertWorkspace>) {
 		return this.service.findAll(options)

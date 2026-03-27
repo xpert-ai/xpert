@@ -482,7 +482,13 @@
       "NoDataSourcesAvailable": "No data source providers available",
       "NoProcessorsAvailable": "No processor providers available",
       "NoChunkersAvailable": "No chunker providers available",
-      "NoImageUnderstandingsAvailable": "No image understanding providers available"
+      "NoImageUnderstandingsAvailable": "No image understanding providers available",
+      "ImportOverwriteConfirm": "Importing this DSL will overwrite the current draft of this xpert. The published version will remain unchanged.\n\nIf the file contains memories, current memories will be cleared and replaced.",
+      "ImportOverwriteSuccess": "DSL imported into the current draft. Publish is still required for it to take effect.",
+      "ImportMemoryIncomplete": "The draft was imported, but memory replacement did not finish.",
+      "ImportTypeMismatch": "DSL type does not match the current xpert",
+      "ImportPrimaryAgentMissing": "Primary agent not found in the DSL file",
+      "ImportCurrentPrimaryAgentMissing": "Current xpert primary agent not found"
     }
   },
   "COMPONENTS": {

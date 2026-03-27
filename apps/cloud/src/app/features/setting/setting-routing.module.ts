@@ -1,7 +1,7 @@
 import { NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { AnalyticsPermissionsEnum, PermissionsEnum, RolesEnum } from '../../@core'
+import { AIPermissionsEnum, AnalyticsPermissionsEnum, PermissionsEnum, RolesEnum } from '../../@core'
 import { redirectTo } from '../features-routing.module'
 import { PACAccountComponent } from './account/account.component'
 import { PACAccountPasswordComponent } from './account/password.component'
@@ -132,7 +132,7 @@ const routes: Routes = [
         data: {
           title: 'settings/features',
           permissions: {
-            only: [RolesEnum.SUPER_ADMIN],
+            only: [PermissionsEnum.CHANGE_ROLES_PERMISSIONS],
             redirectTo
           }
         },
@@ -187,7 +187,7 @@ const routes: Routes = [
         data: {
           title: 'settings/knowledgebase',
           permissions: {
-            only: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN],
+            only: [AIPermissionsEnum.KNOWLEDGEBASE_EDIT],
             redirectTo
           }
         }

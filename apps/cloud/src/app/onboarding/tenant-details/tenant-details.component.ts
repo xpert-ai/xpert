@@ -1,9 +1,9 @@
 import { CdkListboxModule } from '@angular/cdk/listbox'
-
 import { Component, ViewChild, computed, effect, inject, model, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import {
+  ZardButtonComponent,
   ZardFormImports,
   ZardInputDirective,
   ZardProgressBarComponent,
@@ -40,15 +40,15 @@ import {
   injectHelpWebsite,
   injectLanguage
 } from '../../@core'
+import { CopilotConfigFormComponent } from '@cloud/app/@shared/copilot'
 import { FeatureCategoryComponent } from '@cloud/app/@shared/features'
-import { CopilotFormComponent } from '../../features/setting/copilot/copilot-form/copilot-form.component'
 
 @Component({
   standalone: true,
   selector: 'ngm-tenant-details',
   templateUrl: './tenant-details.component.html',
   styleUrls: ['./tenant-details.component.scss'],
-  imports: [FormsModule, ReactiveFormsModule, TranslateModule, CdkListboxModule, ...ZardStepperImports, ...ZardFormImports, ZardInputDirective, ZardProgressBarComponent, FormlyModule, FeatureCategoryComponent, NgmCommonModule, CopilotFormComponent],
+  imports: [FormsModule, ReactiveFormsModule, TranslateModule, CdkListboxModule, ...ZardStepperImports, ...ZardFormImports, ZardInputDirective, ZardProgressBarComponent, FormlyModule, FeatureCategoryComponent, NgmCommonModule, CopilotConfigFormComponent, ZardButtonComponent],
   providers: [FeatureService]
 })
 export class TenantDetailsComponent {
@@ -86,6 +86,7 @@ export class TenantDetailsComponent {
 
   // Features
   readonly features = model<{feature: IFeatureOrganizationUpdateInput; category: 'ai' | 'bi'}[]>([])
+  readonly hasAiFeature = computed(() => this.features().some(({category, feature}) => category === 'ai' && feature.isEnabled))
   readonly hasSemanticModel = computed(() => this.features().some(({category, feature}) => category === 'bi' && feature.isEnabled))
   readonly orgCopilots = toSignal(
     combineLatest([this.#copilotServer.refresh$, toObservable(this.selectedOrganization)]).pipe(
@@ -110,17 +111,19 @@ export class TenantDetailsComponent {
     return this.dataSourceTypeFormGroup.get('type').value?.[0]
   }
 
-  // defaultOrganization = signal<IOrganization>(null)
-
   loading = signal(false)
   tenantCompleted = signal(false)
   demoError = signal<string>(null)
   demoCompleted = signal(false)
   connectionCompleted = signal(false)
   primaryCopilotCreatedInOnboarding = signal(false)
+  dataSourceTypesLoading = signal(false)
+  dataSourceTypesError = signal<string>(null)
 
   searchControl = new FormControl()
   private readonly dataSourceTypes$ = new BehaviorSubject<IDataSourceType[]>([])
+  private dataSourceTypesLoadedForOrgId: string | null = null
+  private dataSourceTypesLoadingForOrgId: string | null = null
   public readonly filteredDataSourceTypes = toSignal(
     combineLatest([this.dataSourceTypes$, this.searchControl.valueChanges.pipe(startWith(''))]).pipe(
       map(([types, search]) => {
@@ -151,8 +154,10 @@ export class TenantDetailsComponent {
 
   constructor() {
     effect(() => {
-      if (this.selectedOrganization()?.id) {
+      const organizationId = this.selectedOrganization()?.id
+      if (organizationId) {
         this.#copilotServer.refresh()
+        void this.loadDataSourceTypes(organizationId)
       }
     })
   }
@@ -227,8 +232,38 @@ export class TenantDetailsComponent {
     )
 
     this.#store.selectedOrganization = organization
-    this.dataSourceTypes$.next(await firstValueFrom(this.typesService.getAll()))
+    await this.loadDataSourceTypes(organization.id)
     this.#copilotServer.refresh()
+  }
+
+  private async loadDataSourceTypes(organizationId = this.selectedOrganization()?.id) {
+    if (
+      !organizationId ||
+      this.dataSourceTypesLoadedForOrgId === organizationId ||
+      this.dataSourceTypesLoadingForOrgId === organizationId
+    ) {
+      return
+    }
+
+    this.dataSourceTypesLoadingForOrgId = organizationId
+    this.dataSourceTypesLoading.set(true)
+    this.dataSourceTypesError.set(null)
+
+    try {
+      this.dataSourceTypes$.next(await firstValueFrom(this.typesService.getAll()))
+      this.dataSourceTypesLoadedForOrgId = organizationId
+    } catch (error) {
+      this.dataSourceTypes$.next([])
+      this.dataSourceTypesLoadedForOrgId = null
+      const errorText = getErrorMessage(error)
+      this.dataSourceTypesError.set(errorText)
+      this.toastrService.error(errorText)
+    } finally {
+      if (this.dataSourceTypesLoadingForOrgId === organizationId) {
+        this.dataSourceTypesLoadingForOrgId = null
+      }
+      this.dataSourceTypesLoading.set(false)
+    }
   }
 
   enableFeatures() {
