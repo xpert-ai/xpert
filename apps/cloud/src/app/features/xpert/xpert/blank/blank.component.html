@@ -69,7 +69,7 @@
 
   @if (isAgentType()) {
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <z-stepper #stepper="zStepper" orientation="horizontal" class="min-h-0 flex-1 overflow-hidden px-4 pb-2">
+      <z-stepper #stepper="zStepper" orientation="horizontal" zSize="sm" class="min-h-0 flex-1 overflow-hidden px-4 pb-2">
         <z-step [label]="'PAC.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
           <div class="px-4">
             <xpert-basic-form
@@ -273,7 +273,7 @@
     </div>
   } @else if (isWorkflowType()) {
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <z-stepper #stepper="zStepper" orientation="horizontal" class="min-h-0 flex-1 overflow-hidden px-4 pb-2">
+      <z-stepper #stepper="zStepper" orientation="horizontal" zSize="sm" class="min-h-0 flex-1 overflow-hidden px-4 pb-2">
         <z-step [label]="'PAC.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
           <div class="px-4">
             <xpert-basic-form
@@ -446,7 +446,7 @@
     </div>
   } @else if (isKnowledgeType()) {
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <z-stepper #stepper="zStepper" orientation="horizontal" class="min-h-0 flex-1 overflow-hidden px-4 pb-2">
+      <z-stepper #stepper="zStepper" orientation="horizontal" zSize="sm" class="min-h-0 flex-1 overflow-hidden px-4 pb-2">
         <z-step [label]="'PAC.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
           <div class="px-4">
             <xpert-basic-form
@@ -733,7 +733,7 @@
     </div>
   } @else {
     <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
-      <z-stepper #stepper="zStepper" orientation="horizontal" class="min-h-0 flex-1 overflow-hidden px-4 pb-2">
+      <z-stepper #stepper="zStepper" orientation="horizontal" zSize="sm" class="min-h-0 flex-1 overflow-hidden px-4 pb-2">
         <z-step [label]="'PAC.Xpert.BasicInformation' | translate: { Default: 'Basic information' }">
           <div class="px-4">
             <xpert-basic-form

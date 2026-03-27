@@ -1,6 +1,7 @@
 @reference "../../../../styles/tailwind-reference.css";
+
 :host {
-  @apply w-full relative flex flex-col border-l border-divider-deep overflow-auto;
+  @apply w-full relative flex flex-col border-l border-divider-deep overflow-auto bg-background-body;
 }
 
 .category-option.active {
