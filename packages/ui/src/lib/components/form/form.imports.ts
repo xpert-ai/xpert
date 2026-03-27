@@ -6,7 +6,7 @@ import {
   ZardFormPrefixDirective,
   ZardFormSuffixDirective,
 } from './form.component';
-import { ZardRadioComponent, ZardRadioGroupComponent } from '../radio';
+import { ZardRadioComponent, ZardRadioGroupComponent } from '../radio/radio.component';
 import { ZardToggleGroupComponent, ZardToggleGroupItemComponent } from '../toggle-group';
 import { ZardSwitchComponent } from '../switch'
 

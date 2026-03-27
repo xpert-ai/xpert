@@ -2,20 +2,33 @@
 :host {
   @apply relative flex flex-col items-stretch min-w-[100px] w-full;
 }
-[z-input] {
-  @apply block w-full max-w-full box-border px-2 py-1 text-xs rounded-md bg-gray-100 text-gray-700;
+
+.pac-formly-select__control {
+  @apply w-full;
+}
+
+.pac-formly-select__control--error {
+  [role='combobox'] {
+    border-color: var(--destructive);
+  }
+}
+
+.pac-formly-select__viewport {
+  .cdk-virtual-scroll-content-wrapper {
+    max-width: 100%;
+  }
 }
 
 ::ng-deep {
   formly-field {
-    .pac-formly-select [ngmsuffix] {
+    .pac-formly-select .pac-formly-select__suffix {
       z-loader {
         @apply hidden;
       }
     }
 
     &.formly-loader {
-      .pac-formly-select [ngmsuffix] {
+      .pac-formly-select .pac-formly-select__suffix {
         z-loader {
           @apply block;
         }
