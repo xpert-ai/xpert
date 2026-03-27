@@ -1,6 +1,8 @@
 import {
   createAgentConnections,
   createXpertNodes,
+  genJSONParseKey,
+  genJSONStringifyKey,
   genPipelineChunkerKey,
   genPipelineKnowledgeBaseKey,
   genPipelineProcessorKey,
@@ -10,18 +12,29 @@ import {
   genXpertSkillKey,
   genXpertTriggerKey,
   IWFNChunker,
+  IWFNCode,
   IWFNKnowledgeBase,
+  IWFNKnowledgeRetrieval,
   IWFNMiddleware,
   IWFNProcessor,
+  IWFNAnswer,
+  IWFNAssigner,
+  IWFNHttp,
+  IWFNJSONParse,
+  IWFNJSONStringify,
   IWFNSkill,
   IWFNSource,
+  IWFNTemplate,
   IWFNTrigger,
   IWFNUnderstanding,
   IXpert,
   TXpertTeamConnection,
   TXpertTeamDraft,
   TXpertTeamNode,
-  WorkflowNodeTypeEnum
+  letterStartSUID,
+  VariableOperationEnum,
+  WorkflowNodeTypeEnum,
+  XpertParameterTypeEnum
 } from '@metad/contracts'
 import { layoutGraphWithMixedDirection } from '../../studio/domain/layout/layout'
 
@@ -30,6 +43,45 @@ const MIDDLEWARE_VERTICAL_OFFSET = 220
 const NODE_VERTICAL_GAP = 120
 const KNOWLEDGE_STAGE_X_GAP = 320
 const KNOWLEDGE_STAGE_BASE_Y = 220
+const WORKFLOW_STAGE_X_GAP = 320
+const WORKFLOW_STAGE_BASE_Y = 0
+
+function genWorkflowDraftKnowledgeKey() {
+  return letterStartSUID('Knowledge_')
+}
+
+function genWorkflowDraftHttpKey() {
+  return letterStartSUID('Http_')
+}
+
+function genWorkflowDraftCodeKey() {
+  return letterStartSUID('Code_')
+}
+
+function genWorkflowDraftTemplateKey() {
+  return letterStartSUID('Template_')
+}
+
+function genWorkflowDraftAssignerKey() {
+  return letterStartSUID('Assigner_')
+}
+
+function genWorkflowDraftAnswerKey() {
+  return letterStartSUID('Answer_')
+}
+
+export const BLANK_WORKFLOW_NODE_ORDER = [
+  'knowledge',
+  'http',
+  'code',
+  'template',
+  'assigner',
+  'json-parse',
+  'json-stringify',
+  'answer'
+] as const
+
+export type BlankWorkflowStarterNodeKey = (typeof BLANK_WORKFLOW_NODE_ORDER)[number]
 
 export type XpertBlankWizardSelections = {
   triggerProviders?: string[]
@@ -43,6 +95,10 @@ export type KnowledgeBlankWizardSelections = {
   processorProviders?: string[]
   chunkerProviders?: string[]
   understandingProviders?: string[]
+}
+
+export type WorkflowBlankWizardSelections = {
+  nodes?: BlankWorkflowStarterNodeKey[]
 }
 
 export function normalizeBlankWizardSelections(
@@ -69,6 +125,16 @@ export function normalizeKnowledgeBlankWizardSelections(
     processorProviders: uniqueStrings(selections?.processorProviders),
     chunkerProviders: uniqueStrings(selections?.chunkerProviders),
     understandingProviders: uniqueStrings(selections?.understandingProviders)
+  }
+}
+
+export function normalizeWorkflowBlankWizardSelections(
+  selections?: WorkflowBlankWizardSelections
+): Required<WorkflowBlankWizardSelections> {
+  const selectedNodes = new Set(uniqueStrings(selections?.nodes) as BlankWorkflowStarterNodeKey[])
+
+  return {
+    nodes: BLANK_WORKFLOW_NODE_ORDER.filter((node) => selectedNodes.has(node))
   }
 }
 
@@ -156,6 +222,33 @@ export async function buildBlankKnowledgeDraft(
   return draft
 }
 
+export async function buildBlankWorkflowDraft(
+  xpert: IXpert,
+  selections?: WorkflowBlankWizardSelections
+): Promise<TXpertTeamDraft> {
+  const normalized = normalizeWorkflowBlankWizardSelections(selections)
+  const { agents, ...team } = xpert
+  const nodes = [createWorkflowStarterTriggerNode(), ...normalized.nodes.map((node) => createWorkflowStarterNode(node))]
+  const connections = createLinearEdgeConnections(nodes)
+
+  positionWorkflowStarterNodes(nodes)
+
+  return {
+    team: {
+      ...team,
+      agent: {
+        ...xpert.agent,
+        options: {
+          ...(xpert.agent?.options ?? {}),
+          hidden: true
+        }
+      }
+    },
+    nodes,
+    connections
+  }
+}
+
 function createBaseConnections(xpert: IXpert): TXpertTeamConnection[] {
   const connections: TXpertTeamConnection[] = []
 
@@ -170,7 +263,10 @@ function createBaseConnections(xpert: IXpert): TXpertTeamConnection[] {
   return connections
 }
 
-function createTriggerNodes(agentNode: TXpertTeamNode<'agent'>, triggerProviders: string[]): TXpertTeamNode<'workflow'>[] {
+function createTriggerNodes(
+  agentNode: TXpertTeamNode<'agent'>,
+  triggerProviders: string[]
+): TXpertTeamNode<'workflow'>[] {
   return triggerProviders.map((provider, index, providers) => {
     const key = genXpertTriggerKey()
     return {
@@ -320,6 +416,16 @@ function createKnowledgePipelineConnections(stageGroups: TXpertTeamNode<'workflo
   return connections
 }
 
+function createLinearEdgeConnections(nodes: TXpertTeamNode<'workflow'>[]): TXpertTeamConnection[] {
+  const connections: TXpertTeamConnection[] = []
+
+  for (let index = 0; index < nodes.length - 1; index++) {
+    connections.push(createConnection('edge', nodes[index].key, nodes[index + 1].key))
+  }
+
+  return connections
+}
+
 function positionKnowledgePipelineStageGroups(stageGroups: TXpertTeamNode<'workflow'>[][]) {
   stageGroups.forEach((group, stageIndex) => {
     group.forEach((node, nodeIndex) => {
@@ -329,6 +435,210 @@ function positionKnowledgePipelineStageGroups(stageGroups: TXpertTeamNode<'workf
       }
     })
   })
+}
+
+function positionWorkflowStarterNodes(nodes: TXpertTeamNode<'workflow'>[]) {
+  nodes.forEach((node, index) => {
+    node.position = {
+      x: index * WORKFLOW_STAGE_X_GAP,
+      y: WORKFLOW_STAGE_BASE_Y
+    }
+  })
+}
+
+function createWorkflowStarterTriggerNode(): TXpertTeamNode<'workflow'> {
+  const key = genXpertTriggerKey()
+  return {
+    type: 'workflow',
+    key,
+    position: { x: 0, y: 0 },
+    entity: {
+      type: WorkflowNodeTypeEnum.TRIGGER,
+      key,
+      from: 'chat',
+      title: 'Chat'
+    } as IWFNTrigger
+  }
+}
+
+function createWorkflowStarterNode(node: BlankWorkflowStarterNodeKey): TXpertTeamNode<'workflow'> {
+  switch (node) {
+    case 'knowledge':
+      return createWorkflowKnowledgeNode()
+    case 'http':
+      return createWorkflowHttpNode()
+    case 'code':
+      return createWorkflowCodeNode()
+    case 'template':
+      return createWorkflowTemplateNode()
+    case 'assigner':
+      return createWorkflowAssignerNode()
+    case 'json-parse':
+      return createWorkflowJSONParseNode()
+    case 'json-stringify':
+      return createWorkflowJSONStringifyNode()
+    case 'answer':
+      return createWorkflowAnswerNode()
+  }
+}
+
+function createWorkflowKnowledgeNode(): TXpertTeamNode<'workflow'> {
+  const key = genWorkflowDraftKnowledgeKey()
+  return {
+    type: 'workflow',
+    key,
+    position: { x: 0, y: 0 },
+    entity: {
+      type: WorkflowNodeTypeEnum.KNOWLEDGE,
+      key,
+      title: 'Knowledge Retrieval',
+      queryVariable: 'input',
+      knowledgebases: []
+    } as IWFNKnowledgeRetrieval
+  }
+}
+
+function createWorkflowHttpNode(): TXpertTeamNode<'workflow'> {
+  const key = genWorkflowDraftHttpKey()
+  return {
+    type: 'workflow',
+    key,
+    position: { x: 0, y: 0 },
+    entity: {
+      type: WorkflowNodeTypeEnum.HTTP,
+      key,
+      title: 'HTTP Request',
+      method: 'get',
+      url: '',
+      headers: [],
+      params: [],
+      body: {
+        type: 'none',
+        body: '',
+        encodedForm: []
+      }
+    } as IWFNHttp
+  }
+}
+
+function createWorkflowCodeNode(): TXpertTeamNode<'workflow'> {
+  const key = genWorkflowDraftCodeKey()
+  return {
+    type: 'workflow',
+    key,
+    position: { x: 0, y: 0 },
+    entity: {
+      type: WorkflowNodeTypeEnum.CODE,
+      key,
+      title: 'Code Execution',
+      language: 'javascript',
+      code: `return {"result": arg1 + arg2};`,
+      inputs: [
+        {
+          name: 'arg1'
+        },
+        {
+          name: 'arg2'
+        }
+      ],
+      outputs: [
+        {
+          type: XpertParameterTypeEnum.STRING,
+          name: 'result'
+        }
+      ]
+    } as IWFNCode
+  }
+}
+
+function createWorkflowTemplateNode(): TXpertTeamNode<'workflow'> {
+  const key = genWorkflowDraftTemplateKey()
+  return {
+    type: 'workflow',
+    key,
+    position: { x: 0, y: 0 },
+    entity: {
+      type: WorkflowNodeTypeEnum.TEMPLATE,
+      key,
+      title: 'Template Transform',
+      code: `{{arg1}}`,
+      inputParams: [
+        {
+          name: 'arg1',
+          variable: ''
+        }
+      ]
+    } as IWFNTemplate
+  }
+}
+
+function createWorkflowAssignerNode(): TXpertTeamNode<'workflow'> {
+  const key = genWorkflowDraftAssignerKey()
+  return {
+    type: 'workflow',
+    key,
+    position: { x: 0, y: 0 },
+    entity: {
+      type: WorkflowNodeTypeEnum.ASSIGNER,
+      key,
+      title: 'Variable Assigner',
+      assigners: [
+        {
+          id: `${key}_1`,
+          value: '',
+          variableSelector: '',
+          inputType: 'variable',
+          operation: VariableOperationEnum.OVERWRITE
+        }
+      ]
+    } as IWFNAssigner
+  }
+}
+
+function createWorkflowJSONParseNode(): TXpertTeamNode<'workflow'> {
+  const key = genJSONParseKey()
+  return {
+    type: 'workflow',
+    key,
+    position: { x: 0, y: 0 },
+    entity: {
+      type: WorkflowNodeTypeEnum.JSON_PARSE,
+      key,
+      title: 'JSON Parse',
+      inputVariable: ''
+    } as IWFNJSONParse
+  }
+}
+
+function createWorkflowJSONStringifyNode(): TXpertTeamNode<'workflow'> {
+  const key = genJSONStringifyKey()
+  return {
+    type: 'workflow',
+    key,
+    position: { x: 0, y: 0 },
+    entity: {
+      type: WorkflowNodeTypeEnum.JSON_STRINGIFY,
+      key,
+      title: 'JSON Stringify',
+      inputVariable: ''
+    } as IWFNJSONStringify
+  }
+}
+
+function createWorkflowAnswerNode(): TXpertTeamNode<'workflow'> {
+  const key = genWorkflowDraftAnswerKey()
+  return {
+    type: 'workflow',
+    key,
+    position: { x: 0, y: 0 },
+    entity: {
+      type: WorkflowNodeTypeEnum.ANSWER,
+      key,
+      title: 'Answer',
+      promptTemplate: '',
+      mute: false
+    } as IWFNAnswer
+  }
 }
 
 function createSkillNodes(agentNode: TXpertTeamNode<'agent'>, skills: string[]): TXpertTeamNode<'workflow'>[] {
@@ -374,11 +684,7 @@ function createMiddlewareNodes(
   })
 }
 
-function createConnection(
-  type: TXpertTeamConnection['type'],
-  from: string,
-  to: string
-): TXpertTeamConnection {
+function createConnection(type: TXpertTeamConnection['type'], from: string, to: string): TXpertTeamConnection {
   return {
     type,
     key: `${from}/${to}`,
@@ -392,11 +698,5 @@ function getCenteredY(anchorY: number, total: number, index: number) {
 }
 
 function uniqueStrings(values?: string[]) {
-  return Array.from(
-    new Set(
-      (values ?? [])
-        .map((value) => value?.trim())
-        .filter((value): value is string => !!value)
-    )
-  )
+  return Array.from(new Set((values ?? []).map((value) => value?.trim()).filter((value): value is string => !!value)))
 }

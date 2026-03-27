@@ -37,8 +37,10 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
     }>(`${this.apiBaseUrl}/update`, { pluginName })
   }
 
-  uninstall(names: string[]) {
-    return this.httpClient.delete<void>(`${this.apiBaseUrl}/uninstall`, { body: { names } })
+  uninstall(names: string[], organizationId?: string) {
+    return this.httpClient.delete<void>(`${this.apiBaseUrl}/uninstall`, {
+      body: { names, ...(organizationId ? { organizationId } : {}) }
+    })
   }
 }
 

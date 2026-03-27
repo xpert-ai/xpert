@@ -1,9 +1,22 @@
-import { PluginSource, RolesEnum } from '@metad/contracts'
+import { PLUGIN_LEVEL, PluginLevel, PluginSource, RolesEnum } from '@metad/contracts'
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
 import { LoadedPluginRecord } from './types'
 
+type PluginScopeRecord = Pick<LoadedPluginRecord, 'organizationId'> & {
+	level?: PluginLevel
+	instance?: {
+		meta?: {
+			level?: PluginLevel
+		}
+	}
+}
+
+export function canManageGlobalPlugins() {
+	return RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
+}
+
 export function canManageSystemPlugins(organizationId: string) {
-	return organizationId === GLOBAL_ORGANIZATION_SCOPE && RequestContext.hasRole(RolesEnum.SUPER_ADMIN)
+	return organizationId === GLOBAL_ORGANIZATION_SCOPE && canManageGlobalPlugins()
 }
 
 export function canUpdatePlugin(plugin: LoadedPluginRecord, organizationId: string) {
@@ -13,6 +26,19 @@ export function canUpdatePlugin(plugin: LoadedPluginRecord, organizationId: stri
 
 	if (plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE) {
 		return organizationId === GLOBAL_ORGANIZATION_SCOPE && canManageSystemPlugins(organizationId)
+	}
+
+	return plugin.organizationId === organizationId
+}
+
+export function canUninstallPlugin(plugin: PluginScopeRecord, organizationId: string) {
+	const level = plugin.level ?? plugin.instance?.meta?.level ?? PLUGIN_LEVEL.ORGANIZATION
+	if (level === PLUGIN_LEVEL.SYSTEM) {
+		return false
+	}
+
+	if (plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE) {
+		return canManageGlobalPlugins()
 	}
 
 	return plugin.organizationId === organizationId

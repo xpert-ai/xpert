@@ -1,9 +1,9 @@
-
-import { Component, computed, effect, inject, model, output, signal } from '@angular/core'
+import { Component, computed, effect, inject, model, output, signal, viewChild } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ChatConversationService,
+  ChatMessageEventTypeEnum,
   ChatMessageFeedbackRatingEnum,
   ChatMessageFeedbackService,
   IChatMessage,
@@ -51,6 +51,8 @@ export class XpertStudioPreviewComponent {
   readonly conversations = signal<string[]>([null])
   readonly messages = model<IChatMessage[]>()
   readonly currentMessage = model<IChatMessage>()
+  readonly previewComponent = viewChild(ChatConversationPreviewComponent)
+  #handledPreviewRetryNonce = 0
 
   // Outputs
   readonly execution = output<string>()
@@ -94,17 +96,49 @@ export class XpertStudioPreviewComponent {
         }
       }
     )
+
+    effect(() => {
+      const preview = this.previewComponent()
+      const request = this.executionService.previewRetryRequest()
+      if (!preview || !request || request.nonce === this.#handledPreviewRetryNonce) {
+        return
+      }
+
+      this.#handledPreviewRetryNonce = request.nonce
+      preview.retryMessage(request.messageId, request.checkpointId)
+      this.executionService.consumePreviewRetry()
+    })
   }
 
   onChatEvent(event) {
     processEvents(event, this.executionService)
+
+    if (
+      this.executionService.previewRetrySelectionPending() &&
+      event?.event === ChatMessageEventTypeEnum.ON_AGENT_END &&
+      !event.data?.parentId &&
+      (event.data?.checkpointNs ?? '') === ''
+    ) {
+      this.executionService.completePreviewRetrySelection(event.data?.id)
+      return
+    }
+
+    if (
+      this.executionService.previewRetrySelectionPending() &&
+      event?.event === ChatMessageEventTypeEnum.ON_CONVERSATION_END &&
+      this.currentMessage()?.executionId
+    ) {
+      this.executionService.completePreviewRetrySelection(this.currentMessage().executionId)
+    }
   }
 
   onChatError(message: string) {
+    this.executionService.clearPreviewRetry()
     this.executionService.markError(message)
   }
 
   onChatStop(event) {
+    this.executionService.clearPreviewRetry()
     this.executionService.clear()
   }
 
@@ -121,6 +155,7 @@ export class XpertStudioPreviewComponent {
   }
 
   openExecution(executionId: string) {
+    this.executionService.selectExecution(executionId)
     this.execution.emit(executionId)
   }
 }

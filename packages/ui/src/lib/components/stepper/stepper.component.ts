@@ -1,4 +1,4 @@
-import { NgTemplateOutlet } from '@angular/common';
+import { NgTemplateOutlet } from '@angular/common'
 import {
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -19,39 +19,44 @@ import {
   TemplateRef,
   ViewEncapsulation,
   viewChild,
-  viewChildren,
-} from '@angular/core';
-import { AbstractControl } from '@angular/forms';
+  viewChildren
+} from '@angular/core'
+import { AbstractControl } from '@angular/forms'
 
-import type { ClassValue } from 'clsx';
+import type { ClassValue } from 'clsx'
 
-import { mergeClasses } from '@/src/lib/utils/merge-classes';
-import { ZardIconComponent } from '../icon/icon.component';
+import { mergeClasses } from '@/src/lib/utils/merge-classes'
+import { ZardIconComponent } from '../icon/icon.component'
+import { ZardTooltipImports, type ZardTooltipPositionVariants, type ZardTooltipType } from '../tooltip'
 import {
   stepperConnectorVariants,
   stepperContentVariants,
+  stepperErrorVariants,
   stepperHeaderVariants,
   stepperIndicatorVariants,
   stepperItemVariants,
+  stepperLabelVariants,
+  stepperMetaVariants,
   stepperPanelVariants,
   stepperRailVariants,
   stepperTriggerVariants,
   stepperVariants,
-} from './stepper.variants';
+  type ZardStepperSizeVariants
+} from './stepper.variants'
 
-export type ZardStepperOrientation = 'horizontal' | 'vertical';
+export type ZardStepperOrientation = 'horizontal' | 'vertical'
 
 export interface ZardStepperSelectionEvent {
-  selectedIndex: number;
-  previouslySelectedIndex: number;
-  selectedStep: ZardStepComponent;
-  previouslySelectedStep: ZardStepComponent | null;
+  selectedIndex: number
+  previouslySelectedIndex: number
+  selectedStep: ZardStepComponent
+  previouslySelectedStep: ZardStepComponent | null
 }
 
-let zardStepId = 0;
+let zardStepId = 0
 
 @Directive({
-  selector: 'ng-template[zStepLabel]',
+  selector: 'ng-template[zStepLabel]'
 })
 export class ZardStepLabelDirective {
   constructor(readonly templateRef: TemplateRef<unknown>) {}
@@ -67,382 +72,393 @@ export class ZardStepLabelDirective {
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
-    'data-slot': 'step',
+    'data-slot': 'step'
   },
-  exportAs: 'zStep',
+  exportAs: 'zStep'
 })
 export class ZardStepComponent {
-  readonly labelTemplate = contentChild(ZardStepLabelDirective);
+  readonly labelTemplate = contentChild(ZardStepLabelDirective)
 
-  private readonly contentTemplateRef = viewChild.required(TemplateRef<unknown>);
-  private readonly explicitCompletedState = signal<boolean | null>(null);
-  private readonly hasExplicitCompletedState = signal(false);
-  private readonly visitedState = signal(false);
-  private readonly forwardCompletedState = signal(false);
-  private readonly errorVisibleState = signal(false);
+  private readonly contentTemplateRef = viewChild.required(TemplateRef<unknown>)
+  private readonly explicitCompletedState = signal<boolean | null>(null)
+  private readonly hasExplicitCompletedState = signal(false)
+  private readonly visitedState = signal(false)
+  private readonly forwardCompletedState = signal(false)
+  private readonly errorVisibleState = signal(false)
 
-  readonly stepId = `z-step-${++zardStepId}`;
-  readonly headerId = `${this.stepId}-header`;
-  readonly panelId = `${this.stepId}-panel`;
+  readonly stepId = `z-step-${++zardStepId}`
+  readonly headerId = `${this.stepId}-header`
+  readonly panelId = `${this.stepId}-panel`
 
-  @Input() label?: string;
-  @Input() stepControl: AbstractControl | null = null;
-  @Input({ transform: booleanAttribute }) editable = true;
-  @Input() errorMessage: string | null = null;
+  @Input() label?: string
+  @Input() tooltip: ZardTooltipType = null
+  @Input() tooltipPosition: ZardTooltipPositionVariants = 'top'
+  @Input() stepControl: AbstractControl | null = null
+  @Input({ transform: booleanAttribute }) editable = true
+  @Input() errorMessage: string | null = null
 
   @Input('completed')
   set completedInput(value: boolean | null | undefined) {
     if (value === undefined || value === null) {
-      this.hasExplicitCompletedState.set(false);
-      this.explicitCompletedState.set(null);
-      return;
+      this.hasExplicitCompletedState.set(false)
+      this.explicitCompletedState.set(null)
+      return
     }
 
-    this.hasExplicitCompletedState.set(true);
-    this.explicitCompletedState.set(Boolean(value));
+    this.hasExplicitCompletedState.set(true)
+    this.explicitCompletedState.set(Boolean(value))
   }
 
-  index = -1;
-  stepper: ZardStepperComponent | null = null;
+  index = -1
+  stepper: ZardStepperComponent | null = null
 
   get contentTemplate(): TemplateRef<unknown> {
-    return this.contentTemplateRef();
+    return this.contentTemplateRef()
   }
 
   get hasExplicitCompleted(): boolean {
-    return this.hasExplicitCompletedState();
+    return this.hasExplicitCompletedState()
   }
 
   get completed(): boolean {
     if (this.hasExplicitCompletedState()) {
-      return this.explicitCompletedState() ?? false;
+      return this.explicitCompletedState() ?? false
     }
 
-    return this.stepper?.isStepCompleted(this) ?? false;
+    return this.stepper?.isStepCompleted(this) ?? false
   }
 
   get showError(): boolean {
-    return this.errorVisibleState();
+    return this.errorVisibleState()
   }
 
   get hasVisited(): boolean {
-    return this.visitedState();
+    return this.visitedState()
   }
 
   get hasForwardCompleted(): boolean {
-    return this.forwardCompletedState();
+    return this.forwardCompletedState()
   }
 
   markVisited(): void {
-    this.visitedState.set(true);
+    this.visitedState.set(true)
   }
 
   markForwardCompleted(): void {
-    this.forwardCompletedState.set(true);
+    this.forwardCompletedState.set(true)
   }
 
   revealError(): void {
-    this.errorVisibleState.set(true);
+    this.errorVisibleState.set(true)
   }
 
   clearError(): void {
-    this.errorVisibleState.set(false);
+    this.errorVisibleState.set(false)
   }
 
   resetState(): void {
-    this.visitedState.set(false);
-    this.forwardCompletedState.set(false);
-    this.errorVisibleState.set(false);
+    this.visitedState.set(false)
+    this.forwardCompletedState.set(false)
+    this.errorVisibleState.set(false)
   }
 }
 
 @Directive({
   selector: 'button[zStepperNext], a[zStepperNext], [zStepperNext]',
   host: {
-    '(click)': 'handleClick($event)',
-  },
+    '(click)': 'handleClick($event)'
+  }
 })
 export class ZardStepperNextDirective {
-  private readonly stepper = inject(ZardStepperComponent, { optional: true });
-  private readonly step = inject(ZardStepComponent, { optional: true });
+  private readonly stepper = inject(ZardStepperComponent, { optional: true })
+  private readonly step = inject(ZardStepComponent, { optional: true })
 
   handleClick(event: Event): void {
     if (!(event.currentTarget instanceof HTMLElement) || isDisabled(event.currentTarget)) {
-      return;
+      return
     }
 
-    this.resolveStepper()?.next();
+    this.resolveStepper()?.next()
   }
 
   private resolveStepper(): ZardStepperComponent | null {
-    return this.stepper ?? this.step?.stepper ?? null;
+    return this.stepper ?? this.step?.stepper ?? null
   }
 }
 
 @Directive({
   selector: 'button[zStepperPrevious], a[zStepperPrevious], [zStepperPrevious]',
   host: {
-    '(click)': 'handleClick($event)',
-  },
+    '(click)': 'handleClick($event)'
+  }
 })
 export class ZardStepperPreviousDirective {
-  private readonly stepper = inject(ZardStepperComponent, { optional: true });
-  private readonly step = inject(ZardStepComponent, { optional: true });
+  private readonly stepper = inject(ZardStepperComponent, { optional: true })
+  private readonly step = inject(ZardStepComponent, { optional: true })
 
   handleClick(event: Event): void {
     if (!(event.currentTarget instanceof HTMLElement) || isDisabled(event.currentTarget)) {
-      return;
+      return
     }
 
-    this.resolveStepper()?.previous();
+    this.resolveStepper()?.previous()
   }
 
   private resolveStepper(): ZardStepperComponent | null {
-    return this.stepper ?? this.step?.stepper ?? null;
+    return this.stepper ?? this.step?.stepper ?? null
   }
 }
 
 @Component({
   selector: 'z-stepper',
-  imports: [NgTemplateOutlet, ZardIconComponent],
+  imports: [NgTemplateOutlet, ZardIconComponent, ...ZardTooltipImports],
   template: `
     <div class="hidden" aria-hidden="true">
       <ng-content />
     </div>
 
-      <div
-        [class]="headerClasses()"
-        role="tablist"
-        [attr.aria-orientation]="orientation"
-      >
-        @for (step of stepItems(); track step.stepId; let index = $index; let last = $last) {
-          <div [class]="itemClasses()">
-            <button
-              #stepHeader
-              type="button"
-              [class]="triggerClasses(step, index)"
-              role="tab"
-              [id]="step.headerId"
-              [attr.aria-controls]="step.panelId"
-              [attr.aria-selected]="selectedIndexState() === index"
-              [attr.tabindex]="headerTabIndex(index)"
-              [attr.data-state]="stepState(step, index)"
-              [attr.data-blocked]="isHeaderBlocked(step, index) ? 'true' : null"
-              [attr.data-editable]="step.editable ? 'true' : null"
-              (click)="onHeaderClick(index)"
-              (keydown)="onHeaderKeydown($event, index)"
-            >
-              <span [class]="railClasses()">
-                <span [class]="indicatorClasses(step, index)">
-                  @if (showCompletedIndicator(step, index)) {
-                    <z-icon zType="check" class="size-4" aria-hidden="true" />
-                  } @else {
-                    {{ index + 1 }}
-                  }
-                </span>
-
-                @if (!last) {
-                  <span [class]="connectorClasses(step, index)"></span>
-                }
-              </span>
-
-              <span [class]="contentClasses()">
-                <span class="text-[0.6875rem] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                  STEP {{ index + 1 }}
-                </span>
-
-                @if (step.labelTemplate(); as labelTemplate) {
-                  <span class="block min-w-0 text-base font-semibold leading-6 text-foreground">
-                    <ng-container [ngTemplateOutlet]="labelTemplate.templateRef" />
-                  </span>
+    <div [class]="headerClasses()" role="tablist" [attr.aria-orientation]="orientation">
+      @for (step of stepItems(); track step.stepId; let index = $index; let last = $last) {
+        <div [class]="itemClasses()">
+          <button
+            #stepHeader
+            type="button"
+            [class]="triggerClasses(step, index)"
+            [attr.data-size]="zSize()"
+            role="tab"
+            [id]="step.headerId"
+            [attr.aria-controls]="step.panelId"
+            [attr.aria-selected]="selectedIndexState() === index"
+            [attr.tabindex]="headerTabIndex(index)"
+            [attr.data-state]="stepState(step, index)"
+            [attr.data-blocked]="isHeaderBlocked(step, index) ? 'true' : null"
+            [attr.data-editable]="step.editable ? 'true' : null"
+            [zTooltip]="step.tooltip"
+            [zPosition]="step.tooltipPosition"
+            (click)="onHeaderClick(index)"
+            (keydown)="onHeaderKeydown($event, index)"
+          >
+            <span [class]="railClasses()">
+              <span [class]="indicatorClasses(step, index)" [attr.data-size]="zSize()">
+                @if (showCompletedIndicator(step, index)) {
+                  <z-icon zType="check" class="size-4" aria-hidden="true" />
                 } @else {
-                  <span class="block min-w-0 text-base font-semibold leading-6 text-foreground">
-                    {{ step.label || 'Step ' + (index + 1) }}
-                  </span>
-                }
-
-                @if (shouldShowError(step, index)) {
-                  <span class="block text-xs text-destructive">
-                    {{ step.errorMessage }}
-                  </span>
+                  {{ index + 1 }}
                 }
               </span>
-            </button>
-          </div>
-        }
-      </div>
 
-      @if (selectedStepInternal(); as step) {
-        <div
-          [class]="panelClasses()"
-          role="tabpanel"
-          [id]="step.panelId"
-          [attr.aria-labelledby]="step.headerId"
-        >
-          <ng-container [ngTemplateOutlet]="step.contentTemplate" />
+              @if (!last) {
+                <span [class]="connectorClasses(step, index)"></span>
+              }
+            </span>
+
+            <span [class]="contentClasses()">
+              <!-- <span [class]="metaClasses()"> STEP {{ index + 1 }} </span> -->
+
+              @if (step.labelTemplate(); as labelTemplate) {
+                <span [class]="labelClasses()">
+                  <ng-container [ngTemplateOutlet]="labelTemplate.templateRef" />
+                </span>
+              } @else {
+                <span [class]="labelClasses()">
+                  {{ step.label || 'Step ' + (index + 1) }}
+                </span>
+              }
+
+              @if (shouldShowError(step, index)) {
+                <span [class]="errorClasses()">
+                  {{ step.errorMessage }}
+                </span>
+              }
+            </span>
+          </button>
         </div>
       }
+    </div>
+
+    @if (selectedStepInternal(); as step) {
+      <div [class]="panelClasses()" role="tabpanel" [id]="step.panelId" [attr.aria-labelledby]="step.headerId">
+        <ng-container [ngTemplateOutlet]="step.contentTemplate" />
+      </div>
+    }
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   host: {
     '[class]': 'classes()',
-    'data-slot': 'stepper',
+    '[attr.data-size]': 'zSize()',
+    'data-slot': 'stepper'
   },
-  exportAs: 'zStepper',
+  exportAs: 'zStepper'
 })
 export class ZardStepperComponent {
-  readonly class = input<ClassValue>('');
+  readonly class = input<ClassValue>('')
+  readonly zSize = input<ZardStepperSizeVariants>('default')
 
-  protected readonly stepItems = contentChildren(ZardStepComponent);
-  private readonly headerElements = viewChildren<ElementRef<HTMLElement>>('stepHeader');
-  protected readonly selectedIndexState = signal(0);
+  protected readonly stepItems = contentChildren(ZardStepComponent)
+  private readonly headerElements = viewChildren<ElementRef<HTMLElement>>('stepHeader')
+  protected readonly selectedIndexState = signal(0)
   protected readonly selectedStepInternal = computed<ZardStepComponent | null>(() => {
-    const steps = this.stepItems();
+    const steps = this.stepItems()
     if (!steps.length) {
-      return null;
+      return null
     }
 
-    return steps[this.selectedIndexState()] ?? null;
-  });
+    return steps[this.selectedIndexState()] ?? null
+  })
 
-  private selectedStepRef: ZardStepComponent | null = null;
+  private selectedStepRef: ZardStepComponent | null = null
 
-  @Input({ transform: booleanAttribute }) linear = false;
-  @Input({ transform: normalizeStepperOrientation }) orientation: ZardStepperOrientation = 'horizontal';
+  @Input({ transform: booleanAttribute }) linear = false
+  @Input({ transform: normalizeStepperOrientation }) orientation: ZardStepperOrientation = 'horizontal'
 
   @Input({ transform: numberAttribute })
   set selectedIndex(value: number) {
-    const nextIndex = Number.isFinite(value) ? Math.max(0, value) : 0;
-    this.applyInputSelectedIndex(nextIndex);
+    const nextIndex = Number.isFinite(value) ? Math.max(0, value) : 0
+    this.applyInputSelectedIndex(nextIndex)
   }
 
   get selectedIndex(): number {
-    return this.selectedIndexState();
+    return this.selectedIndexState()
   }
 
   get selectedStep(): ZardStepComponent | null {
-    return this.selectedStepInternal();
+    return this.selectedStepInternal()
   }
 
   get steps(): readonly ZardStepComponent[] {
-    return this.stepItems();
+    return this.stepItems()
   }
 
-  @Output() readonly selectedIndexChange = new EventEmitter<number>();
-  @Output() readonly selectionChange = new EventEmitter<ZardStepperSelectionEvent>();
+  @Output() readonly selectedIndexChange = new EventEmitter<number>()
+  @Output() readonly selectionChange = new EventEmitter<ZardStepperSelectionEvent>()
 
   constructor() {
     effect(() => {
-      const steps = this.stepItems();
+      const steps = this.stepItems()
       if (!steps.length) {
-        this.selectedStepRef = null;
-        this.selectedIndexState.set(0);
-        return;
+        this.selectedStepRef = null
+        this.selectedIndexState.set(0)
+        return
       }
 
       steps.forEach((step, index) => {
-        step.index = index;
-        step.stepper = this;
-      });
+        step.index = index
+        step.stepper = this
+      })
 
-      const currentIndex = this.selectedIndexState();
-      const selectedStepRef = this.selectedStepRef;
+      const currentIndex = this.selectedIndexState()
+      const selectedStepRef = this.selectedStepRef
 
       if (selectedStepRef && steps.includes(selectedStepRef)) {
-        const nextIndex = steps.indexOf(selectedStepRef);
+        const nextIndex = steps.indexOf(selectedStepRef)
         if (nextIndex !== currentIndex) {
-          this.selectedIndexState.set(nextIndex);
+          this.selectedIndexState.set(nextIndex)
         }
       } else {
-        const nextIndex = clampIndex(currentIndex, steps.length);
+        const nextIndex = clampIndex(currentIndex, steps.length)
         if (nextIndex !== currentIndex) {
-          this.selectedIndexState.set(nextIndex);
+          this.selectedIndexState.set(nextIndex)
         }
-        this.selectedStepRef = steps[nextIndex] ?? null;
+        this.selectedStepRef = steps[nextIndex] ?? null
       }
-    });
+    })
   }
 
   next(): void {
-    this.goTo(this.selectedIndexState() + 1);
+    this.goTo(this.selectedIndexState() + 1)
   }
 
   previous(): void {
-    this.goTo(this.selectedIndexState() - 1);
+    this.goTo(this.selectedIndexState() - 1)
   }
 
   goTo(index: number): void {
-    this.setSelectedIndex(index, { emit: true, focus: false });
+    this.setSelectedIndex(index, { emit: true, focus: false })
   }
 
   reset(): void {
     for (const step of this.stepItems()) {
-      step.resetState();
+      step.resetState()
     }
 
-    this.setSelectedIndex(0, { emit: true, focus: false, force: true });
+    this.setSelectedIndex(0, { emit: true, focus: false, force: true })
   }
 
   isStepCompleted(step: ZardStepComponent): boolean {
     if (step.stepControl) {
-      return step.hasVisited && step.stepControl.valid;
+      return step.hasVisited && step.stepControl.valid
     }
 
-    return step.hasForwardCompleted;
+    return step.hasForwardCompleted
   }
 
   protected triggerClasses(step: ZardStepComponent, index: number): string {
     return stepperTriggerVariants({
       orientation: this.orientation,
+      zSize: this.zSize(),
       state: this.stepState(step, index),
-      blocked: this.isHeaderBlocked(step, index),
-    });
+      blocked: this.isHeaderBlocked(step, index)
+    })
   }
 
   protected indicatorClasses(step: ZardStepComponent, index: number): string {
     return stepperIndicatorVariants({
-      state: this.stepState(step, index),
-    });
+      zSize: this.zSize(),
+      state: this.stepState(step, index)
+    })
   }
 
   protected connectorClasses(step: ZardStepComponent, index: number): string {
     return stepperConnectorVariants({
       orientation: this.orientation,
-      state: this.stepState(step, index),
-    });
+      zSize: this.zSize(),
+      state: this.stepState(step, index)
+    })
   }
 
   protected headerTabIndex(index: number): number {
-    return this.selectedIndexState() === index ? 0 : -1;
+    return this.selectedIndexState() === index ? 0 : -1
   }
 
   protected classes(): string {
-    return mergeClasses(stepperVariants({ orientation: this.orientation }), this.class());
+    return mergeClasses(stepperVariants({ orientation: this.orientation, zSize: this.zSize() }), this.class())
   }
 
   protected headerClasses(): string {
-    return stepperHeaderVariants({ orientation: this.orientation });
+    return stepperHeaderVariants({ orientation: this.orientation, zSize: this.zSize() })
   }
 
   protected itemClasses(): string {
-    return stepperItemVariants({ orientation: this.orientation });
+    return stepperItemVariants({ orientation: this.orientation })
   }
 
   protected railClasses(): string {
-    return stepperRailVariants({ orientation: this.orientation });
+    return stepperRailVariants({ orientation: this.orientation, zSize: this.zSize() })
   }
 
   protected contentClasses(): string {
-    return stepperContentVariants({ orientation: this.orientation });
+    return stepperContentVariants({ orientation: this.orientation, zSize: this.zSize() })
   }
 
   protected panelClasses(): string {
-    return stepperPanelVariants();
+    return stepperPanelVariants({ zSize: this.zSize() })
+  }
+
+  protected metaClasses(): string {
+    return stepperMetaVariants({ zSize: this.zSize() })
+  }
+
+  protected labelClasses(): string {
+    return stepperLabelVariants({ zSize: this.zSize() })
+  }
+
+  protected errorClasses(): string {
+    return stepperErrorVariants({ zSize: this.zSize() })
   }
 
   protected showCompletedIndicator(step: ZardStepComponent, index: number): boolean {
-    return this.isStepCompleted(step) && index !== this.selectedIndexState();
+    return this.isStepCompleted(step) && index !== this.selectedIndexState()
   }
 
   protected shouldShowError(step: ZardStepComponent, index: number): boolean {
@@ -451,220 +467,217 @@ export class ZardStepperComponent {
       step.showError &&
       Boolean(step.errorMessage) &&
       Boolean(step.stepControl?.invalid)
-    );
+    )
   }
 
   protected stepState(step: ZardStepComponent, index: number): 'upcoming' | 'active' | 'completed' {
     if (index === this.selectedIndexState()) {
-      return 'active';
+      return 'active'
     }
 
     if (this.isStepCompleted(step)) {
-      return 'completed';
+      return 'completed'
     }
 
-    return 'upcoming';
+    return 'upcoming'
   }
 
   protected onHeaderClick(index: number): void {
-    this.setSelectedIndex(index, { emit: true, focus: false });
+    this.setSelectedIndex(index, { emit: true, focus: false })
   }
 
   protected onHeaderKeydown(event: KeyboardEvent, index: number): void {
     if (event.key === 'Enter' || event.key === ' ') {
-      event.preventDefault();
-      this.setSelectedIndex(index, { emit: true, focus: true });
-      return;
+      event.preventDefault()
+      this.setSelectedIndex(index, { emit: true, focus: true })
+      return
     }
 
     if (event.key === 'Home') {
-      event.preventDefault();
-      this.focusHeader(0);
-      return;
+      event.preventDefault()
+      this.focusHeader(0)
+      return
     }
 
     if (event.key === 'End') {
-      event.preventDefault();
-      this.focusHeader(this.stepItems().length - 1);
-      return;
+      event.preventDefault()
+      this.focusHeader(this.stepItems().length - 1)
+      return
     }
 
-    const delta = getNavigationDelta(event.key, this.orientation);
+    const delta = getNavigationDelta(event.key, this.orientation)
     if (delta === null) {
-      return;
+      return
     }
 
-    event.preventDefault();
-    this.focusRelativeHeader(index, delta);
+    event.preventDefault()
+    this.focusRelativeHeader(index, delta)
   }
 
   protected isHeaderBlocked(step: ZardStepComponent, index: number): boolean {
     if (index < this.selectedIndexState() && !step.editable && step.completed) {
-      return true;
+      return true
     }
 
     if (!this.linear || index <= this.selectedIndexState()) {
-      return false;
+      return false
     }
 
-    return this.getFirstIncompleteIndex(index) !== null;
+    return this.getFirstIncompleteIndex(index) !== null
   }
 
-  private setSelectedIndex(
-    index: number,
-    options: { emit: boolean; focus: boolean; force?: boolean },
-  ): void {
-    const steps = this.stepItems();
+  private setSelectedIndex(index: number, options: { emit: boolean; focus: boolean; force?: boolean }): void {
+    const steps = this.stepItems()
     if (!steps.length) {
-      this.selectedIndexState.set(0);
-      this.selectedStepRef = null;
-      return;
+      this.selectedIndexState.set(0)
+      this.selectedStepRef = null
+      return
     }
 
-    const targetIndex = clampIndex(index, steps.length);
-    const currentIndex = this.selectedIndexState();
+    const targetIndex = clampIndex(index, steps.length)
+    const currentIndex = this.selectedIndexState()
 
     if (!options.force && targetIndex === currentIndex) {
       if (options.focus) {
-        this.focusHeader(targetIndex);
+        this.focusHeader(targetIndex)
       }
-      return;
+      return
     }
 
-    const targetStep = steps[targetIndex];
-    const currentStep = steps[currentIndex] ?? null;
+    const targetStep = steps[targetIndex]
+    const currentStep = steps[currentIndex] ?? null
 
     if (targetIndex < currentIndex && !targetStep.editable && targetStep.completed) {
-      return;
+      return
     }
 
     if (this.linear && targetIndex > currentIndex) {
-      const firstIncompleteIndex = this.getFirstIncompleteIndex(targetIndex);
+      const firstIncompleteIndex = this.getFirstIncompleteIndex(targetIndex)
       if (firstIncompleteIndex !== null) {
         if (firstIncompleteIndex === currentIndex && currentStep?.stepControl?.invalid) {
-          currentStep.revealError();
+          currentStep.revealError()
         }
-        return;
+        return
       }
     }
 
     for (const step of steps) {
-      step.clearError();
+      step.clearError()
     }
 
     if (currentStep) {
-      currentStep.markVisited();
+      currentStep.markVisited()
       if (targetIndex > currentIndex) {
-        currentStep.markForwardCompleted();
+        currentStep.markForwardCompleted()
       }
     }
 
-    this.selectedIndexState.set(targetIndex);
-    this.selectedStepRef = targetStep;
+    this.selectedIndexState.set(targetIndex)
+    this.selectedStepRef = targetStep
 
     if (options.emit) {
-      this.selectedIndexChange.emit(targetIndex);
+      this.selectedIndexChange.emit(targetIndex)
       this.selectionChange.emit({
         selectedIndex: targetIndex,
         previouslySelectedIndex: currentIndex,
         selectedStep: targetStep,
-        previouslySelectedStep: currentStep,
-      });
+        previouslySelectedStep: currentStep
+      })
     }
 
     if (options.focus) {
-      this.focusHeader(targetIndex);
+      this.focusHeader(targetIndex)
     }
   }
 
   private getFirstIncompleteIndex(targetIndex: number): number | null {
-    const steps = this.stepItems();
-    const currentIndex = this.selectedIndexState();
+    const steps = this.stepItems()
+    const currentIndex = this.selectedIndexState()
     for (let index = 0; index < targetIndex; index++) {
-      const step = steps[index];
+      const step = steps[index]
       if (!step || !this.canAdvancePastStep(step, index === currentIndex)) {
-        return index;
+        return index
       }
     }
 
-    return null;
+    return null
   }
 
   private canAdvancePastStep(step: ZardStepComponent, isCurrentStep: boolean): boolean {
     if (step.completed) {
-      return true;
+      return true
     }
 
     if (step.hasExplicitCompleted) {
-      return false;
+      return false
     }
 
     if (isCurrentStep) {
       if (step.stepControl) {
-        return step.stepControl.valid;
+        return step.stepControl.valid
       }
 
-      return true;
+      return true
     }
 
-    return false;
+    return false
   }
 
   private applyInputSelectedIndex(index: number): void {
-    const steps = this.stepItems();
-    const nextIndex = steps.length ? clampIndex(index, steps.length) : index;
-    this.selectedIndexState.set(nextIndex);
+    const steps = this.stepItems()
+    const nextIndex = steps.length ? clampIndex(index, steps.length) : index
+    this.selectedIndexState.set(nextIndex)
     if (steps.length) {
-      this.selectedStepRef = steps[nextIndex] ?? null;
+      this.selectedStepRef = steps[nextIndex] ?? null
     }
   }
 
   private focusHeader(index: number): void {
-    this.headerElements()[index]?.nativeElement.focus();
+    this.headerElements()[index]?.nativeElement.focus()
   }
 
   private focusRelativeHeader(index: number, delta: number): void {
-    const total = this.headerElements().length;
+    const total = this.headerElements().length
     if (!total) {
-      return;
+      return
     }
 
-    const nextIndex = (index + delta + total) % total;
-    this.focusHeader(nextIndex);
+    const nextIndex = (index + delta + total) % total
+    this.focusHeader(nextIndex)
   }
 }
 
 function getNavigationDelta(key: string, orientation: ZardStepperOrientation): number | null {
   if (orientation === 'vertical') {
     if (key === 'ArrowDown') {
-      return 1;
+      return 1
     }
     if (key === 'ArrowUp') {
-      return -1;
+      return -1
     }
-    return null;
+    return null
   }
 
   if (key === 'ArrowRight') {
-    return 1;
+    return 1
   }
   if (key === 'ArrowLeft') {
-    return -1;
+    return -1
   }
 
-  return null;
+  return null
 }
 
 function normalizeStepperOrientation(value: unknown): ZardStepperOrientation {
-  return value === 'vertical' ? 'vertical' : 'horizontal';
+  return value === 'vertical' ? 'vertical' : 'horizontal'
 }
 
 function clampIndex(index: number, length: number): number {
   if (!length) {
-    return 0;
+    return 0
   }
 
-  return Math.min(Math.max(index, 0), length - 1);
+  return Math.min(Math.max(index, 0), length - 1)
 }
 
 function isDisabled(element: HTMLElement): boolean {
@@ -672,5 +685,5 @@ function isDisabled(element: HTMLElement): boolean {
     element.hasAttribute('disabled') ||
     element.getAttribute('aria-disabled') === 'true' ||
     element.getAttribute('data-disabled') === 'true'
-  );
+  )
 }

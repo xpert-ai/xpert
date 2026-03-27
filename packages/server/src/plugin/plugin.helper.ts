@@ -152,6 +152,71 @@ export function getDynamicPluginsModules(): DynamicModule[] {
 }
 
 export const loaded: LoadedPluginRecord[] = []
+export interface PluginLoadFailureRecord {
+	organizationId: string
+	pluginName: string
+	packageName?: string
+	error: string
+}
+
+export const loadFailures: PluginLoadFailureRecord[] = []
+
+function hasPluginName(name: string | undefined | null): name is string {
+	return typeof name === 'string' && !!name
+}
+
+export function upsertPluginLoadFailure(failure: PluginLoadFailureRecord) {
+	const pluginName = normalizePluginName(failure.pluginName)
+	const packageName = failure.packageName ? normalizePluginName(failure.packageName) : pluginName
+	const index = loadFailures.findIndex(
+		(item) =>
+			item.organizationId === failure.organizationId &&
+			(item.pluginName === pluginName || item.packageName === packageName)
+	)
+
+	const next = {
+		...failure,
+		pluginName,
+		packageName
+	}
+
+	if (index >= 0) {
+		loadFailures.splice(index, 1, next)
+	} else {
+		loadFailures.push(next)
+	}
+}
+
+export function clearPluginLoadFailure(organizationId: string, ...names: Array<string | undefined | null>) {
+	const normalized = new Set(names.filter(hasPluginName).map((name) => normalizePluginName(name)))
+	if (!normalized.size) {
+		return
+	}
+
+	for (let i = loadFailures.length - 1; i >= 0; i--) {
+		const item = loadFailures[i]
+		if (
+			item.organizationId === organizationId &&
+			(normalized.has(item.pluginName) || (item.packageName && normalized.has(item.packageName)))
+		) {
+			loadFailures.splice(i, 1)
+		}
+	}
+}
+
+export function findPluginLoadFailure(organizationId: string, ...names: Array<string | undefined | null>) {
+	const normalized = new Set(names.filter(hasPluginName).map((name) => normalizePluginName(name)))
+	if (!normalized.size) {
+		return undefined
+	}
+
+	return loadFailures.find(
+		(item) =>
+			item.organizationId === organizationId &&
+			(normalized.has(item.pluginName) || (item.packageName && normalized.has(item.packageName)))
+	)
+}
+
 /**
  * Collect providers from modules tagged with PLUGIN_METADATA_KEY/ORGANIZATION_METADATA_KEY.
  */
@@ -253,6 +318,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 	)
 
 	const modules: DynamicModule[] = []
+	const errors: PluginLoadFailureRecord[] = []
 
 	for (const { name, level, source } of pluginNames) {
 		try {
@@ -278,6 +344,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 			if (existing >= 0) {
 				loaded.splice(existing, 1)
 			}
+			clearPluginLoadFailure(organizationId, plugin.meta.name, name)
 			loaded.push({
 				organizationId,
 				name: plugin.meta.name,
@@ -291,13 +358,22 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 		} catch (error) {
 			const message = error instanceof Error ? error.message : String(error)
 			const stack = error instanceof Error ? error.stack : undefined
+			const failure = {
+				organizationId,
+				pluginName: normalizePluginName(name),
+				packageName: normalizePluginName(name),
+				error: message
+			}
+			upsertPluginLoadFailure(failure)
+			errors.push(failure)
 			Logger.error(`Failed to load/register plugin ${name} for organization ${organizationId}: ${message}`, stack)
 		}
 	}
 
 	return {
 		organizationId,
-		modules
+		modules,
+		errors
 	}
 }
 

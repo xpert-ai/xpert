@@ -295,10 +295,11 @@ export class ChatConversationPreviewComponent {
     })
   }
 
-  retryMessage(messageId?: string) {
+  retryMessage(messageId?: string, checkpointId?: string) {
     this.chat({
       retry: true,
-      messageId
+      messageId,
+      checkpointId
     })
   }
 
@@ -313,6 +314,7 @@ export class ChatConversationPreviewComponent {
      */
     reject?: boolean
     retry?: boolean
+    checkpointId?: string
   }) {
     if (this.loading()) return
 
@@ -370,6 +372,7 @@ export class ChatConversationPreviewComponent {
         action: 'retry',
         conversationId: this.conversation()?.id,
         environmentId: this.environmentId(),
+        ...(options.checkpointId ? { checkpointId: options.checkpointId } : {}),
         source: {
           aiMessageId: lastAiMessageId
         }

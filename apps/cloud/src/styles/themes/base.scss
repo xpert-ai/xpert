@@ -90,6 +90,7 @@
   --color-surface-neutral: var(--color-components-list-option-bg);
   --color-border-l2: var(--color-divider-deep);
   --color-input-border: var(--border-medium);
+  --color-background-body: #f2f4f7;
 
   --background: var(--ngm-app-background-color);
   --foreground: var(--color-text-primary);
@@ -110,14 +111,6 @@
   --border: var(--color-divider-regular);
   --input: var(--border);
   --ring: theme('colors.blue.500');
-  --sidebar: var(--card);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--accent);
-  --sidebar-accent-foreground: var(--accent-foreground);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
 }
 
 :root[data-theme='dark'],
@@ -191,13 +184,14 @@
   --color-button-ghost-active: var(--color-components-list-option-active-bg);
   --color-danger-bg: #991b1b52;
   --color-danger-content: #ffd4d4;
-  --color-background-default-subtle: var(--color-components-list-option-bg);
+  --color-background-default-subtle: #222225;
   --color-hero-gradient-solid: #16181c;
   --color-hero-gradient-transparent: rgb(22 24 28 / 0);
   --color-surface-l1: var(--color-components-card-bg);
   --color-surface-neutral: var(--color-components-list-option-bg);
   --color-border-l2: var(--border-medium);
   --color-input-border: var(--border-medium);
+  --color-background-body: #1d1d20;
 
   --background: var(--ngm-app-background-color);
   --foreground: var(--color-text-primary);
@@ -218,12 +212,4 @@
   --border: var(--color-divider-regular);
   --input: var(--border-medium);
   --ring: theme('colors.blue.400');
-  --sidebar: var(--card);
-  --sidebar-foreground: var(--foreground);
-  --sidebar-primary: var(--primary);
-  --sidebar-primary-foreground: var(--primary-foreground);
-  --sidebar-accent: var(--accent);
-  --sidebar-accent-foreground: var(--accent-foreground);
-  --sidebar-border: var(--border);
-  --sidebar-ring: var(--ring);
 }

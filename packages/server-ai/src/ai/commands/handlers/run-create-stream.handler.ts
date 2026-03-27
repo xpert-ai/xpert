@@ -1,5 +1,5 @@
 import { IChatConversation, TChatRequest as TChatRequestV2, XpertAgentExecutionStatusEnum } from '@metad/contracts'
-import { TChatRequest as LegacyTChatRequest } from '@xpert-ai/chatkit-types'
+import type { TChatRequest as LegacyTChatRequest } from '@xpert-ai/chatkit-types'
 import { BadRequestException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'

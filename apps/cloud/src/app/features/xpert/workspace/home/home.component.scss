@@ -1,6 +1,6 @@
 @reference "../../../../../styles/tailwind-reference.css";
 :host {
-  @apply relative w-full flex flex-col overflow-auto;
+  @apply relative w-full flex flex-col overflow-auto bg-background-body;
 }
 
 .xpert-list-option {

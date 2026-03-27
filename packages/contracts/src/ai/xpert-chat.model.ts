@@ -1,4 +1,5 @@
-import { STATE_VARIABLE_HUMAN, TChatRequestHuman, TInterruptCommand } from '@xpert-ai/chatkit-types'
+import type { TChatRequestHuman, TInterruptCommand } from '@xpert-ai/chatkit-types'
+import { STATE_VARIABLE_HUMAN } from '@xpert-ai/chatkit-types'
 
 export type TXpertChatState = {
   [STATE_VARIABLE_HUMAN]?: TChatRequestHuman
@@ -48,6 +49,7 @@ export type TXpertChatRetryRequest = {
   conversationId: string
   source: TXpertChatSource
   environmentId?: string
+  checkpointId?: string
 }
 
 export type TChatRequest = TXpertChatSendRequest | TXpertChatResumeRequest | TXpertChatRetryRequest

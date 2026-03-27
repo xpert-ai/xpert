@@ -33,7 +33,7 @@ $card-padding: .5em;
 .ngm-indicator__kpi-maxnum {
   font-stretch: condensed;
   font-size: 4rem;
-  font-family: 'Oswald', Lato, 'Noto Serif SC', monospace;
+  font-family: 'Oswald', var(--font-xp-sans, ui-sans-serif), sans-serif;
 }
 
 .ngm-indicator__kpi-text {

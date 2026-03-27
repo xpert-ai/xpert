@@ -1,9 +1,26 @@
+jest.mock('../../xpert.service', () => ({
+    XpertService: class {}
+}))
+jest.mock('@metad/contracts', () => {
+    const actual = jest.requireActual('@metad/contracts')
+    return {
+        ...actual,
+        createMessageAppendContextTracker: () => ({
+            resolve: () => ({
+                messageContext: undefined
+            }),
+            reset: () => undefined
+        }),
+        stringifyMessageContent: (value: unknown) => (typeof value === 'string' ? value : String(value ?? ''))
+    }
+})
+
 import { of, lastValueFrom, toArray } from 'rxjs'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
-import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint'
-import { CreateMemoryStoreCommand } from '../../../shared'
+import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
+import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
 import { XpertAgentChatCommand } from '../../../xpert-agent/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
@@ -410,6 +427,119 @@ describe('XpertChatHandler', () => {
         ) as XpertAgentChatCommand
         expect(agentCommand.options.resume).toBeUndefined()
         expect(agentCommand.options.checkpointId).toBe('checkpoint-input-1')
+    })
+
+    it('uses the explicit retry checkpoint without walking checkpoint ancestry', async () => {
+        const commands: any[] = []
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    messages: [
+                        {
+                            id: 'human-1',
+                            role: 'human',
+                            content: 'Original prompt'
+                        },
+                        {
+                            id: 'ai-1',
+                            role: 'ai',
+                            parentId: 'human-1',
+                            content: 'Original answer',
+                            executionId: 'execution-old',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    ],
+                    status: 'busy',
+                    options: {
+                        parameters: {
+                            input: 'Original prompt'
+                        }
+                    }
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                if (command.execution.status === XpertAgentExecutionStatusEnum.RUNNING) {
+                    return {
+                        id: 'execution-new',
+                        threadId: 'thread-1'
+                    }
+                }
+                return command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                if (command.entity.role === 'ai' && command.entity.status === 'thinking') {
+                    return {
+                        id: 'ai-2',
+                        ...command.entity
+                    }
+                }
+                return command.entity
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-new',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+        queryBus.execute.mockImplementation(async (query) => {
+            if (query instanceof XpertAgentExecutionOneQuery) {
+                return {
+                    id: 'execution-old',
+                    threadId: 'thread-1',
+                    checkpointNs: '',
+                    checkpointId: 'checkpoint-loop-2',
+                    inputs: {
+                        input: 'Original prompt'
+                    }
+                }
+            }
+            if (query instanceof CopilotCheckpointGetTupleQuery) {
+                throw new Error('Retry ancestry lookup should be skipped when checkpointId is provided')
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'retry',
+                    conversationId: 'conversation-1',
+                    source: {
+                        aiMessageId: 'ai-1'
+                    },
+                    checkpointId: 'checkpoint-history-1'
+                },
+                {
+                    xpertId: 'xpert-1',
+                    messageId: 'ai-1'
+                } as any
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const agentCommand = commands.find(
+            (command) => command instanceof XpertAgentChatCommand
+        ) as XpertAgentChatCommand
+        expect(agentCommand.options.checkpointId).toBe('checkpoint-history-1')
+        expect(queryBus.execute.mock.calls.some(([query]) => query instanceof CopilotCheckpointGetTupleQuery)).toBe(
+            false
+        )
     })
 
     it('uses the requested ai message instead of the latest ai message when retrying', async () => {

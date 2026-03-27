@@ -1,0 +1,44 @@
+# Studio LangGraph State Inspector + Time Travel
+
+## Summary
+- 当前运行链路已经具备“execution 反查 checkpoint/state”的基础：graph 在 [subgraph.handler.ts](/Users/xpertai03/GitHub/xpert/packages/server-ai/src/xpert-agent/commands/handlers/subgraph.handler.ts) 中用 `CopilotCheckpointSaver` 编译，执行结束后在 [invoke.handler.ts](/Users/xpertai03/GitHub/xpert/packages/server-ai/src/xpert-agent/commands/handlers/invoke.handler.ts) 把最新 `threadId/checkpointNs/checkpointId` 回写到 execution，现有 [agent-execution.controller.ts](/Users/xpertai03/GitHub/xpert/packages/server-ai/src/xpert-agent-execution/agent-execution.controller.ts) 也已经能按 execution 取 state。
+- 官方语义对齐：LangGraph 会把每个 super-step 持久化为 checkpoint；time-travel 本质是“选中历史 checkpoint，再从该 checkpoint 继续执行”。参考 [Persistence](https://docs.langchain.com/oss/javascript/langgraph/persistence) 和 [Use time-travel](https://docs.langchain.com/oss/javascript/langgraph/use-time-travel)。
+- v1 范围：在 Studio 预览调试里，为“选中的根执行”增加底部 state inspector；同时支持历史快照浏览和从选中 checkpoint 分叉重跑。
+
+## Public APIs / Types
+- 保持现有 `GET /xpert-agent-execution/:id/state` 响应 shape 不变，但增加可选 `checkpointId` 查询参数，用于读取任意历史 checkpoint 的 `channel_values`。
+- 新增 `GET /xpert-agent-execution/:id/checkpoints`，返回该 execution 的 checkpoint 谱系，按 `oldest -> newest` 排序；每项包含 `threadId`, `checkpointNs`, `checkpointId`, `parentCheckpointId`, `createdAt`, `metadata`, `isCurrent`。
+- 扩展 `TXpertChatRetryRequest` 增加可选 `checkpointId`；未传时保持现有“回退到最近 input checkpoint”语义，传入时直接从指定 checkpoint replay。
+- 前端服务同步补齐 `getCheckpoints(id)`, `getOneState(id, checkpointId?)`, `retryMessage(messageId?, checkpointId?)` 的类型和调用。
+
+## Implementation Changes
+- Backend:
+  - 新增 `XpertAgentExecutionCheckpointsQuery` / handler，不重新编译 graph，而是从 execution 当前 checkpoint 开始沿 `copilot_checkpoint.parent_id` 回溯，组装 lineage；这是当前仓库最便宜也最稳定的历史来源。
+  - 扩展 execution state query/controller，让 inspector 能按任意 checkpoint 取值，并继续对 `messages` 做 `StoredMessage` 序列化，避免现有 execution accordion 回归。
+  - 修改 conversation retry handler：如果请求带 `checkpointId`，直接用该 checkpoint 作为 replay 起点，同时仍沿用原 AI message / original human message 作为 UI threading 基准；不再强制解析到 input checkpoint。
+- Frontend:
+  - 把当前选中的 preview execution 提升为 Studio 级共享状态，放入 `XpertExecutionService`，让右侧 execution 面板和底部 inspector 共用同一个 execution selection。
+  - 新增底部 `LangGraph State Inspector` standalone 组件，挂在 Studio 根模板；默认折叠，只有 preview 中选中 execution 时展开。
+  - inspector 顶部显示 checkpoint 时间线；初次只加载 checkpoint summary，点击某个 checkpoint 再懒加载该 snapshot 的 state，并按 `checkpointId` 本地缓存。
+  - 左侧变量树复用现有 variable-panel 的分组/展开逻辑，变量 schema 来自 `getVariables(..., 'output')`；再把 snapshot 里真实存在但 schema 未声明的 key 合并进去，确保 `usage`、`reasoning_content`、自定义 state/middleware state 不会丢。
+  - 右侧值面板统一三种查看模式：字符串默认文本，markdown 字符串可切换 `代码/预览`，对象/数组走只读 JSON 视图；所有文案走 `translate`，样式只用 Tailwind/theme token，新组件用 `.css` 不新建 `.scss`。
+  - `Rerun from this checkpoint` 按钮只对 root execution（`checkpointNs === ''`）显示；点击后复用 Studio preview 的 chat/retry 流程，并携带 `checkpointId`，让 LangGraph 以 `graphInput = null + checkpoint_id` 从历史状态继续跑。
+- UX:
+  - 左侧分组固定为 `Global / Human / System / Node Channels / Dynamic`，节点组名优先用 Studio node title，其次用 channel key。
+  - 选中 checkpoint 后，如果当前 snapshot 正在运行或没有 lineage，显示明确的 loading / empty / disabled 状态。
+
+## Test Plan
+- Backend Jest:
+  - `GET /xpert-agent-execution/:id/checkpoints` 能按 parent 链正确返回 `oldest -> newest` 谱系，并标记 current checkpoint。
+  - `GET /xpert-agent-execution/:id/state?checkpointId=...` 能返回指定历史 snapshot，且 `messages` 仍按现有 shape 序列化。
+  - conversation retry 在未传 `checkpointId` 时保持旧语义；传入 `checkpointId` 时跳过 input-checkpoint 回溯，直接从指定 checkpoint replay。
+- Frontend:
+  - 选中 preview execution 后 inspector 自动出现，并默认定位到当前 checkpoint。
+  - 切换 checkpoint 时，左侧变量树与右侧值预览同步刷新；未知动态 key 也能显示。
+  - 从历史 checkpoint 触发 rerun 后，preview 会出现新的 AI 轮次，execution 列表和 inspector 都刷新到新的 current checkpoint。
+  - 现有右侧 execution panel / execution accordion 继续可用，不受新增 inspector 影响。
+
+## Assumptions
+- 已确认 v1 同时需要“历史快照浏览 + 从历史 checkpoint 分叉重跑”。
+- v1 的可执行 time-travel 只覆盖 Studio preview 里的根执行；子执行或非根 `checkpoint_ns` 先支持只读查看，不做分叉执行按钮。
+- 不依赖当前未实现的 `/threads/:thread_id/history`，直接使用已落库的 execution + checkpoint 数据链路。

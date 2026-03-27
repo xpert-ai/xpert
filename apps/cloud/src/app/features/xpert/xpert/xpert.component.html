@@ -172,7 +172,7 @@
     </a>
   </nav>
 
-  <div class="shrink-0 py-3 px-4">
+  <div class="shrink-0 py-3 px-4 flex justify-end">
     <div class="flex h-8 w-8 cursor-pointer items-center justify-center rounded-lg text-text-tertiary hover:bg-hover-bg" (click)="toggleSideMenu()">
       @if (sideMenuOpened()) {
         <i class="ri-sidebar-fold-line text-2xl"></i>
@@ -183,7 +183,7 @@
   </div>
 </div>
 
-<div class="flex-1 relative flex overflow-hidden" [@routeAnimations]="o.isActivated && o.activatedRouteData?.title">
+<div class="flex-1 relative flex overflow-hidden" >
   <router-outlet #o="outlet"></router-outlet>
 </div>
 

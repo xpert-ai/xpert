@@ -23,6 +23,11 @@ export const PLUGIN_CONFIGURATION_STATUS = {
   INVALID: 'invalid'
 } as const
 
+export const PLUGIN_LOAD_STATUS = {
+  LOADED: 'loaded',
+  FAILED: 'failed'
+} as const
+
 /**
  * Classifies plugin scope and governance.
  * - `system`: built-in/platform-managed plugin that users cannot install/uninstall from org APIs.
@@ -31,6 +36,7 @@ export const PLUGIN_CONFIGURATION_STATUS = {
 export type PluginLevel = (typeof PLUGIN_LEVEL)[keyof typeof PLUGIN_LEVEL]
 export type PluginSource = (typeof PLUGIN_SOURCE)[keyof typeof PLUGIN_SOURCE]
 export type PluginConfigurationStatus = (typeof PLUGIN_CONFIGURATION_STATUS)[keyof typeof PLUGIN_CONFIGURATION_STATUS]
+export type PluginLoadStatus = (typeof PLUGIN_LOAD_STATUS)[keyof typeof PLUGIN_LOAD_STATUS]
 
 export interface PluginMeta {
   name: PluginName
@@ -81,11 +87,14 @@ export interface IPluginDescriptor {
   isGlobal: boolean
   level: PluginLevel
   canConfigure?: boolean
+  canUninstall?: boolean
   canUpdate?: boolean
   hasUpdate?: boolean
   configSchema?: JsonSchemaObjectType
   configurationStatus?: PluginConfigurationStatus | null
   configurationError?: string | null
+  loadStatus?: PluginLoadStatus | null
+  loadError?: string | null
 }
 
 export interface IPluginConfiguration<TConfig extends Record<string, any> = Record<string, any>> {

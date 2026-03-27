@@ -1,10 +1,13 @@
 import { IXpert, WorkflowNodeTypeEnum, XpertTypeEnum } from '@metad/contracts'
 import {
+  BLANK_WORKFLOW_NODE_ORDER,
   buildBlankKnowledgeDraft,
+  buildBlankWorkflowDraft,
   buildBlankXpertDraft,
   hasBlankWizardSelections,
   normalizeKnowledgeBlankWizardSelections,
-  normalizeBlankWizardSelections
+  normalizeBlankWizardSelections,
+  normalizeWorkflowBlankWizardSelections
 } from './blank-draft.util'
 
 describe('blank draft util', () => {
@@ -80,6 +83,14 @@ describe('blank draft util', () => {
       processorProviders: [],
       chunkerProviders: [],
       understandingProviders: ['vision']
+    })
+
+    expect(
+      normalizeWorkflowBlankWizardSelections({
+        nodes: ['answer', 'http', 'answer', 'knowledge', 'invalid' as any]
+      })
+    ).toEqual({
+      nodes: BLANK_WORKFLOW_NODE_ORDER.filter((node) => ['answer', 'http', 'knowledge'].includes(node))
     })
   })
 
@@ -206,8 +217,43 @@ describe('blank draft util', () => {
     expect(
       draft.connections.filter((connection) => triggerNodes.some((node) => node.key === connection.from))
     ).toHaveLength(4)
-    expect(
-      draft.connections.filter((connection) => connection.to === kbNode!.key)
-    ).toHaveLength(2)
+    expect(draft.connections.filter((connection) => connection.to === kbNode!.key)).toHaveLength(2)
+  })
+
+  it('should create a pure workflow starter with a default chat trigger', async () => {
+    const draft = await buildBlankWorkflowDraft(createXpert())
+    const triggerNode = draft.nodes[0]
+
+    expect(draft.team.agent.options.hidden).toBe(true)
+    expect(draft.nodes).toHaveLength(1)
+    expect(draft.nodes.every((node) => node.type === 'workflow')).toBe(true)
+    if (triggerNode.type !== 'workflow') {
+      throw new Error('Expected a workflow trigger node')
+    }
+    expect(triggerNode.entity.type).toBe(WorkflowNodeTypeEnum.TRIGGER)
+    expect((triggerNode.entity as any).from).toBe('chat')
+    expect(draft.connections).toHaveLength(0)
+  })
+
+  it('should create the selected workflow starter nodes in the fixed linear order', async () => {
+    const draft = await buildBlankWorkflowDraft(createXpert(), {
+      nodes: ['answer', 'http', 'knowledge', 'code', 'answer']
+    })
+
+    const workflowNodes = draft.nodes.filter((node) => node.type === 'workflow')
+    expect(workflowNodes.map((node) => node.entity.type)).toEqual([
+      WorkflowNodeTypeEnum.TRIGGER,
+      WorkflowNodeTypeEnum.KNOWLEDGE,
+      WorkflowNodeTypeEnum.HTTP,
+      WorkflowNodeTypeEnum.CODE,
+      WorkflowNodeTypeEnum.ANSWER
+    ])
+
+    expect(draft.connections).toHaveLength(4)
+    expect(draft.connections.every((connection) => connection.type === 'edge')).toBe(true)
+    expect(draft.connections.map((connection) => `${connection.from}->${connection.to}`)).toEqual(
+      workflowNodes.slice(0, -1).map((node, index) => `${node.key}->${workflowNodes[index + 1].key}`)
+    )
+    expect(workflowNodes.map((node) => node.position.x)).toEqual([0, 320, 640, 960, 1280])
   })
 })

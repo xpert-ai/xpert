@@ -33,6 +33,20 @@
 :root,
 :root[data-theme='light'] {
   --radius: 0.625rem;
+  --font-xp-sans:
+    'PingFang SC',
+    'Hiragino Sans GB',
+    'Microsoft YaHei UI',
+    'Microsoft YaHei',
+    'Noto Sans CJK SC',
+    'Source Han Sans SC',
+    ui-sans-serif,
+    system-ui,
+    sans-serif,
+    'Apple Color Emoji',
+    'Segoe UI Emoji',
+    'Segoe UI Symbol',
+    'Noto Color Emoji';
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
   --card: oklch(1 0 0);
@@ -102,6 +116,8 @@
 
 
 @theme inline {
+  --font-sans: var(--font-xp-sans);
+  --font-body: var(--font-xp-sans);
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -188,6 +204,7 @@
   }
   body {
     @apply bg-background text-foreground;
+    font-family: var(--font-xp-sans);
   }
 
   input[type="number"]::-webkit-inner-spin-button,

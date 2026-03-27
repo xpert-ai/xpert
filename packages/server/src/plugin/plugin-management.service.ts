@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common'
 import { LazyModuleLoader, ModuleRef } from '@nestjs/core'
 import { t } from 'i18next'
 import { PLUGIN_CONFIGURATION_STATUS, PLUGIN_LEVEL } from '@metad/contracts'
@@ -10,12 +10,18 @@ import {
 	StrategyBus
 } from '@xpert-ai/plugin-sdk'
 import { inspectConfig } from './config'
-import { collectProvidersWithMetadata, hasLifecycleMethod, registerPluginsAsync } from './plugin.helper'
+import {
+	clearPluginLoadFailure,
+	collectProvidersWithMetadata,
+	hasLifecycleMethod,
+	registerPluginsAsync,
+	upsertPluginLoadFailure
+} from './plugin.helper'
 import { resolvePluginLevel } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
 import { loadPlugin } from './plugin-loader'
 import { getOrganizationPluginPath, getOrganizationPluginRoot, stageWorkspacePlugin } from './organization-plugin.store'
-import { canManageSystemPlugins } from './plugin-update.utils'
+import { canManageGlobalPlugins, canManageSystemPlugins } from './plugin-update.utils'
 import {
 	LOADED_PLUGINS,
 	LoadedPluginRecord,
@@ -86,13 +92,17 @@ export class PluginManagementService {
 				})
 			}
 
-			const { modules } = await registerPluginsAsync({
+			const { modules, errors } = await registerPluginsAsync({
 				module: this.moduleRef,
 				organizationId,
 				plugins: [{ name: packageNameWithVersion, source, level }],
 				configs: { [packageName]: body.config },
 				baseDir: organizationBaseDir
 			})
+
+			if (errors.length) {
+				throw new BadRequestException(errors[0].error)
+			}
 
 			const pluginBaseDir = getOrganizationPluginPath(organizationId, packageNameWithVersion)
 			const plugin = await loadPlugin(packageName, { basedir: pluginBaseDir })
@@ -167,6 +177,7 @@ export class PluginManagementService {
 					: PLUGIN_CONFIGURATION_STATUS.VALID,
 				configurationError: configInspection.error ?? null
 			})
+			clearPluginLoadFailure(organizationId, pluginName, packageName)
 
 			return {
 				success: true,
@@ -189,17 +200,67 @@ export class PluginManagementService {
 				)
 			}
 
+			const failedPluginName = normalizePluginName(packageName)
+			try {
+				await this.pluginInstanceService.upsert({
+					tenantId,
+					organizationId,
+					pluginName: failedPluginName,
+					packageName: failedPluginName,
+					version: body.version,
+					source,
+					level,
+					config: body.config ?? {},
+					configurationStatus: null,
+					configurationError: null
+				})
+			} catch (persistError) {
+				this.logger.error(
+					`Failed to persist plugin installation failure state for ${body.pluginName}`,
+					persistError
+				)
+			}
+			upsertPluginLoadFailure({
+				organizationId,
+				pluginName: failedPluginName,
+				packageName: failedPluginName,
+				error: errorMessage
+			})
+
 			throw new BadRequestException(
 				t('server:Error.PluginInstallFailed', { pluginName: body.pluginName, errorMessage })
 			)
 		}
 	}
 
-	async uninstallByNamesWithGuard(names: string[]) {
-		const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
+	async uninstallByNamesWithGuard(names: string[], targetOrganizationId?: string) {
+		const currentOrganizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
 		const tenantId = RequestContext.currentTenantId()
-		this.assertNoSystemPlugins(names, canManageSystemPlugins(organizationId))
+		const organizationId = this.resolveUninstallOrganizationId(currentOrganizationId, targetOrganizationId)
+		const allowSystemPlugins =
+			currentOrganizationId === GLOBAL_ORGANIZATION_SCOPE &&
+			organizationId === GLOBAL_ORGANIZATION_SCOPE &&
+			canManageSystemPlugins(currentOrganizationId)
+		this.assertNoSystemPlugins(names, allowSystemPlugins)
 		await this.pluginInstanceService.uninstall(tenantId, organizationId, names)
+	}
+
+	private resolveUninstallOrganizationId(currentOrganizationId: string, targetOrganizationId?: string) {
+		if (!targetOrganizationId || targetOrganizationId === currentOrganizationId) {
+			if (currentOrganizationId === GLOBAL_ORGANIZATION_SCOPE && !canManageGlobalPlugins()) {
+				throw new ForbiddenException('Only super admins can uninstall global plugins')
+			}
+			return currentOrganizationId
+		}
+
+		if (targetOrganizationId === GLOBAL_ORGANIZATION_SCOPE) {
+			if (!canManageGlobalPlugins()) {
+				throw new ForbiddenException('Only super admins can uninstall global plugins')
+			}
+			return GLOBAL_ORGANIZATION_SCOPE
+		}
+
+		throw new ForbiddenException('Plugins can only be uninstalled from the current or global organization scope')
 	}
 
 	private assertNoSystemPlugins(pluginNamesOrPackages: string[], allowSystemPlugins = false) {

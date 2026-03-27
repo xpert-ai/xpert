@@ -29,8 +29,10 @@ jest.mock('i18next', () => ({
 
 jest.mock('./plugin.helper', () => ({
 	collectProvidersWithMetadata: jest.fn(() => []),
+	clearPluginLoadFailure: jest.fn(),
 	hasLifecycleMethod: jest.fn(() => false),
-	registerPluginsAsync: jest.fn(async () => ({ modules: [] }))
+	registerPluginsAsync: jest.fn(async () => ({ modules: [], errors: [] })),
+	upsertPluginLoadFailure: jest.fn()
 }))
 
 jest.mock('./plugin-loader', () => ({
@@ -48,6 +50,7 @@ jest.mock('./plugin-instance.service', () => ({
 }))
 
 jest.mock('./plugin-update.utils', () => ({
+	canManageGlobalPlugins: jest.fn(() => false),
 	canManageSystemPlugins: jest.fn(() => true)
 }))
 
@@ -56,12 +59,15 @@ jest.mock('./plugin-instance.entity', () => ({
 }))
 
 const { RequestContext } = require('@xpert-ai/plugin-sdk')
+const { canManageGlobalPlugins, canManageSystemPlugins } = require('./plugin-update.utils')
 const { loadPlugin } = require('./plugin-loader')
 const { registerPluginsAsync } = require('./plugin.helper')
+const { upsertPluginLoadFailure } = require('./plugin.helper')
 const { PluginManagementService } = require('./plugin-management.service')
 
 describe('PluginManagementService', () => {
 	const pluginInstanceService = {
+		uninstall: jest.fn(),
 		uninstallByPackageName: jest.fn(),
 		removePlugins: jest.fn(),
 		upsert: jest.fn()
@@ -83,7 +89,9 @@ describe('PluginManagementService', () => {
 
 	beforeEach(() => {
 		jest.resetAllMocks()
-		;(registerPluginsAsync as jest.Mock).mockResolvedValue({ modules: [] })
+		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(false)
+		;(canManageSystemPlugins as jest.Mock).mockReturnValue(true)
+		;(registerPluginsAsync as jest.Mock).mockResolvedValue({ modules: [], errors: [] })
 		service = new PluginManagementService(
 			loadedPlugins,
 			pluginInstanceService,
@@ -127,5 +135,60 @@ describe('PluginManagementService', () => {
 				configurationError: expect.stringContaining('apiKey')
 			})
 		)
+	})
+
+	it('persists a placeholder plugin record when installation fails', async () => {
+		;(registerPluginsAsync as jest.Mock).mockResolvedValue({
+			modules: [],
+			errors: [
+				{
+					error: 'Cannot find module ./dist/index.js'
+				}
+			]
+		})
+
+		await expect(
+			service.installPlugin({
+				pluginName: '@xpert-ai/plugin-broken-demo',
+				source: 'npm'
+			})
+		).rejects.toBeInstanceOf(Error)
+
+		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pluginName: '@xpert-ai/plugin-broken-demo',
+				packageName: '@xpert-ai/plugin-broken-demo',
+				source: 'npm'
+			})
+		)
+		expect(upsertPluginLoadFailure).toHaveBeenCalledWith(
+			expect.objectContaining({
+				pluginName: '@xpert-ai/plugin-broken-demo'
+			})
+		)
+	})
+
+	it('allows super admins to uninstall global plugins from an organization context', async () => {
+		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(true)
+
+		await expect(
+			service.uninstallByNamesWithGuard(['@xpert-ai/plugin-global-demo'], '__global__')
+		).resolves.toBeUndefined()
+
+		expect((pluginInstanceService as any).uninstall).toHaveBeenCalledWith(
+			'tenant-1',
+			'__global__',
+			['@xpert-ai/plugin-global-demo']
+		)
+	})
+
+	it('rejects global plugin uninstalls for non-super-admin users', async () => {
+		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(false)
+
+		await expect(
+			service.uninstallByNamesWithGuard(['@xpert-ai/plugin-global-demo'], '__global__')
+		).rejects.toThrow('Only super admins can uninstall global plugins')
+
+		expect((pluginInstanceService as any).uninstall).not.toHaveBeenCalled()
 	})
 })

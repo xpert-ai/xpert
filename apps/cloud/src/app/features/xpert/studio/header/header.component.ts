@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, HostListener, inject, model, signal, ViewContainerRef } from '@angular/core'
+import { Component, computed, HostListener, inject, model, signal, ViewContainerRef } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
@@ -15,7 +15,6 @@ import {
   getErrorMessage,
   IChatConversation,
   OrderTypeEnum,
-  ToastrService,
   XpertAPIService
 } from 'apps/cloud/src/app/@core'
 import { XpertExportDslComponent, XpertPublishComponent } from 'apps/cloud/src/app/@shared/xpert'
@@ -37,6 +36,7 @@ import { getDateLocale } from '../../../../@core'
 import { SelectionService, XpertStudioApiService } from '../domain'
 import { XpertExecutionService } from '../services/execution.service'
 import { XpertStudioComponent } from '../studio.component'
+import { XpertStudioHeaderSwitcherComponent } from './switcher/switcher.component'
 import { XpertPublishVersionComponent } from './publish/publish.component'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
 import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -53,7 +53,8 @@ import type { ZardSliderValue } from '@xpert-ai/headless-ui'
     ZardSliderComponent,
     TranslateModule,
     NgmSpinComponent,
-    ChecklistComponent
+    ChecklistComponent,
+    XpertStudioHeaderSwitcherComponent
   ],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',
@@ -67,7 +68,6 @@ export class XpertStudioHeaderComponent {
   readonly executionService = inject(XpertExecutionService)
   readonly chatConversationService = inject(ChatConversationService)
   readonly #dialog = inject(Dialog)
-  readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly router = inject(Router)
   readonly route = inject(ActivatedRoute)

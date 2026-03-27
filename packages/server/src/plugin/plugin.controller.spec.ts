@@ -9,6 +9,10 @@ jest.mock('@metad/contracts', () => ({
 		VALID: 'valid',
 		INVALID: 'invalid'
 	},
+	PLUGIN_LOAD_STATUS: {
+		LOADED: 'loaded',
+		FAILED: 'failed'
+	},
 	PLUGIN_LEVEL: {
 		SYSTEM: 'system',
 		ORGANIZATION: 'organization'
@@ -38,6 +42,10 @@ jest.mock('./plugin-config-schema', () => ({
 	resolvePluginConfigSchema: jest.fn(() => undefined)
 }))
 
+jest.mock('./plugin.helper', () => ({
+	findPluginLoadFailure: jest.fn()
+}))
+
 jest.mock('./plugin-instance.entity', () => ({
 	resolvePluginLevel: jest.fn(() => 'organization')
 }))
@@ -53,11 +61,13 @@ jest.mock('./plugin-management.service', () => ({
 const { PLUGIN_LEVEL } = require('@metad/contracts')
 const { GLOBAL_ORGANIZATION_SCOPE, RequestContext } = require('@xpert-ai/plugin-sdk')
 const { buildConfig, inspectConfig } = require('./config')
+const { findPluginLoadFailure } = require('./plugin.helper')
 const { PluginController } = require('./plugin.controller')
 
 describe('PluginController', () => {
 	const pluginInstanceService = {
 		findOneByPluginName: jest.fn(),
+		findVisibleInOrganization: jest.fn(),
 		getConfig: jest.fn(),
 		upsert: jest.fn()
 	} as unknown as PluginInstanceService
@@ -87,6 +97,8 @@ describe('PluginController', () => {
 		;(inspectConfig as jest.Mock).mockImplementation((_: string, config: Record<string, any>) => ({
 			config: config ?? {}
 		}))
+		;(findPluginLoadFailure as jest.Mock).mockReturnValue(undefined)
+		;(pluginInstanceService as any).findVisibleInOrganization.mockResolvedValue([])
 		controller = new PluginController(
 			loadedPlugins,
 			pluginInstanceService,
@@ -266,7 +278,9 @@ describe('PluginController', () => {
 			expect.objectContaining({
 				name: '@xpert-ai/plugin-config-demo',
 				configurationStatus: 'invalid',
-				configurationError: 'apiKey is required'
+				configurationError: 'apiKey is required',
+				loadStatus: 'loaded',
+				loadError: null
 			})
 		])
 	})
@@ -293,6 +307,20 @@ describe('PluginController', () => {
 		expect((commandBus as any).execute).not.toHaveBeenCalled()
 	})
 
+	it('passes plugin scope through uninstall requests', async () => {
+		await expect(
+			controller.uninstall({
+				names: ['@xpert-ai/plugin-global-demo'],
+				organizationId: GLOBAL_ORGANIZATION_SCOPE
+			})
+		).resolves.toEqual({ success: true })
+
+		expect((pluginManagementService as any).uninstallByNamesWithGuard).toHaveBeenCalledWith(
+			['@xpert-ai/plugin-global-demo'],
+			GLOBAL_ORGANIZATION_SCOPE
+		)
+	})
+
 	it('includes update status only when the user can update and a newer version exists', async () => {
 		loadedPlugins.push({
 			organizationId: 'org-1',
@@ -314,6 +342,7 @@ describe('PluginController', () => {
 		await expect(controller.getPlugins()).resolves.toEqual([
 			expect.objectContaining({
 				name: '@xpert-ai/plugin-env-demo',
+				canUninstall: true,
 				canUpdate: true,
 				hasUpdate: true,
 				currentVersion: '0.0.1',
@@ -374,6 +403,7 @@ describe('PluginController', () => {
 			expect.objectContaining({
 				name: '@xpert-ai/plugin-global-demo',
 				isGlobal: true,
+				canUninstall: false,
 				canUpdate: false,
 				hasUpdate: false,
 				latestVersion: undefined
@@ -406,6 +436,7 @@ describe('PluginController', () => {
 			expect.objectContaining({
 				name: '@xpert-ai/plugin-global-demo',
 				isGlobal: true,
+				canUninstall: true,
 				canUpdate: true,
 				hasUpdate: true,
 				latestVersion: '0.0.2'
@@ -434,5 +465,36 @@ describe('PluginController', () => {
 		})
 
 		await expect(controller.getPlugins()).resolves.toEqual([])
+	})
+
+	it('includes persisted plugin instances that failed to load', async () => {
+		;(pluginInstanceService as any).findVisibleInOrganization.mockResolvedValue([
+			{
+				pluginName: '@xpert-ai/plugin-broken-demo',
+				packageName: '@xpert-ai/plugin-broken-demo',
+				version: '1.2.3',
+				source: 'npm',
+				level: PLUGIN_LEVEL.ORGANIZATION,
+				organizationId: 'org-1',
+				configurationStatus: null,
+				configurationError: null
+			}
+		])
+		;(findPluginLoadFailure as jest.Mock).mockReturnValue({
+			error: 'Cannot find module ./dist/index.js'
+		})
+
+		await expect(controller.getPlugins()).resolves.toEqual([
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-broken-demo',
+				loadStatus: 'failed',
+				loadError: 'Cannot find module ./dist/index.js',
+				canConfigure: false,
+				canUninstall: true,
+				canUpdate: false,
+				isGlobal: false
+			})
+		])
+		expect((pluginInstanceService as any).findVisibleInOrganization).toHaveBeenCalledWith('org-1')
 	})
 })

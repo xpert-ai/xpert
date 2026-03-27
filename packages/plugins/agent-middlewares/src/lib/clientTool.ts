@@ -16,7 +16,7 @@ import {
   JsonSchemaValidator,
   PromiseOrValue
 } from '@xpert-ai/plugin-sdk'
-import { ClientToolMessageInput, ClientToolRequest, ClientToolResponse } from '@xpert-ai/chatkit-types'
+import type { ClientToolMessageInput, ClientToolRequest, ClientToolResponse } from '@xpert-ai/chatkit-types'
 
 const contextSchema = z.object({
   /**
