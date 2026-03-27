@@ -13,6 +13,7 @@ import {
   ViewChild,
   ViewContainerRef
 } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule, RouterOutlet } from '@angular/router'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
@@ -34,11 +35,13 @@ import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { map, startWith } from 'rxjs/operators'
 import {
+  AiFeatureEnum,
   ChatConversationService,
   getErrorMessage,
   injectProjectService,
   injectToastr,
-  OrderTypeEnum
+  OrderTypeEnum,
+  Store
 } from '../../../@core'
 import { AppService } from '../../../app.service'
 import { ChatConversationsComponent, XpertHomeService } from '../../../xpert'
@@ -47,6 +50,14 @@ import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 type TMenuOverlayType = 'history' | 'project' | 'task'
+type TAgentLink = {
+  key: string
+  defaultLabel: string
+  featureKey: AiFeatureEnum
+  iconClass: string
+  link: string
+  external?: boolean
+}
 
 @Component({
   standalone: true,
@@ -90,6 +101,7 @@ export class ChatHomeComponent {
   readonly #vcr = inject(ViewContainerRef)
   readonly #toastr = injectToastr()
   readonly #preferences = injectUserPreferences()
+  readonly #store = inject(Store)
 
   // Signals
   readonly currentPage = signal<{ type?: 'project' | 'conversation'; id?: string }>({})
@@ -102,6 +114,8 @@ export class ChatHomeComponent {
   readonly xpert = this.homeService.xpert
 
   readonly chatSidebar = attrModel(this.#preferences, 'chatSidebar')
+  readonly featureOrganizations = toSignal(this.#store.featureOrganizations$.pipe(startWith([])))
+  readonly featureTenant = toSignal(this.#store.featureTenant$.pipe(startWith([])))
   readonly sidebarState = linkedModel<PersistState['preferences']['chatSidebar']>({
     initialValue: 'expanded',
     compute: () => this.chatSidebar() || 'expanded',
@@ -112,6 +126,41 @@ export class ChatHomeComponent {
 
   readonly menuOverlay = signal<TMenuOverlayType>(null)
   private leaveTimer = null
+  readonly allAgentLinks: TAgentLink[] = [
+    {
+      key: 'chatbi',
+      defaultLabel: 'ChatBI',
+      featureKey: AiFeatureEnum.FEATURE_XPERT_CHATBI,
+      iconClass: 'ri-line-chart-line',
+      link: '/chat/chatbi'
+    },
+    {
+      key: 'codexpert',
+      defaultLabel: 'CodeXpert',
+      featureKey: AiFeatureEnum.FEATURE_XPERT_CODEXPERT,
+      iconClass: 'ri-code-box-line',
+      link: 'https://code.xpertai.cn/',
+      external: true
+    },
+    {
+      key: 'deep-research',
+      defaultLabel: 'DeepResearch',
+      featureKey: AiFeatureEnum.FEATURE_XPERT_DEEP_RESEARCH,
+      iconClass: 'ri-file-search-line',
+      link: 'https://research.xpertai.cn/',
+      external: true
+    }
+  ]
+  readonly agentLinks = computed(() => {
+    this.featureOrganizations()
+    this.featureTenant()
+
+    if (!this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT)) {
+      return []
+    }
+
+    return this.allAgentLinks.filter(({ featureKey }) => this.#store.hasFeatureEnabled(featureKey))
+  })
 
   // Projects
   readonly projectSercice = injectProjectService()

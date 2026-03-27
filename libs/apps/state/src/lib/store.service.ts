@@ -14,7 +14,8 @@ import {
 	OrganizationPermissionsEnum,
 	AnalyticsFeatures,
 	ITenantSetting,
-	IXpertWorkspace
+	IXpertWorkspace,
+	AiFeatureEnum
 } from '@metad/contracts';
 import { Injectable, inject } from '@angular/core';
 import { StoreConfig, Store as AkitaStore, Query } from '@datorama/akita';
@@ -357,7 +358,7 @@ export class Store {
 	/*
 	 * Check features are enabled/disabled for tenant organization
 	 */
-	hasFeatureEnabled(feature: FeatureEnum | AnalyticsFeatures) {
+	hasFeatureEnabled(feature: FeatureEnum | AiFeatureEnum | AnalyticsFeatures) {
 		const {
 			featureTenant = [],
 			featureOrganizations = [],

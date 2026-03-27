@@ -2381,6 +2381,18 @@
         "FEATURE_XPERT": {
           "Name": "數字專家",
           "Description": "數字專家模塊"
+        },
+        "FEATURE_XPERT_CHATBI": {
+          "Name": "ChatBI",
+          "Description": "在聊天左側邊欄中顯示 ChatBI 入口。"
+        },
+        "FEATURE_XPERT_CODEXPERT": {
+          "Name": "CodeXpert",
+          "Description": "在聊天左側邊欄中顯示 CodeXpert 入口。"
+        },
+        "FEATURE_XPERT_DEEP_RESEARCH": {
+          "Name": "DeepResearch",
+          "Description": "在聊天左側邊欄中顯示 DeepResearch 入口。"
         }
       }
     },

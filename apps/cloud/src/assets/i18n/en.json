@@ -585,6 +585,18 @@
       "FEATURE_XPERT": {
         "Name": "Digital Expert",
         "Description": "A virtual assistant that leverages artificial intelligence to provide personalized, real-time, and precise consulting, analysis, and decision support."
+      },
+      "FEATURE_XPERT_CHATBI": {
+        "Name": "ChatBI",
+        "Description": "Show the ChatBI entry in the chat sidebar."
+      },
+      "FEATURE_XPERT_CODEXPERT": {
+        "Name": "CodeXpert",
+        "Description": "Show the CodeXpert entry in the chat sidebar."
+      },
+      "FEATURE_XPERT_DEEP_RESEARCH": {
+        "Name": "DeepResearch",
+        "Description": "Show the DeepResearch entry in the chat sidebar."
       }
     },
     "Workspace": {
