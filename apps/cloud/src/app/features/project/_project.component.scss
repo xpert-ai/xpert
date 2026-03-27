@@ -3,7 +3,7 @@
   @apply flex flex-col justify-center items-center rounded-xl border cursor-pointer ring-2 ring-transparent ring-offset-2 ring-offset-transparent
     border-divider-regular hover:border-divider-deep dark:border-neutral-800 dark:hover:border-neutral-500;
   background-color: var(--ngm-card-bg-color);
-  color: var(--ngm-text-primary-color);
+  color: var(--color-text-primary);
   --tw-ring-offset-color: var(--ngm-color-surface);
 
   &:focus {
@@ -19,7 +19,7 @@
   @apply border rounded-lg;
   background-color: var(--ngm-color-surface-container-high);
   border-color: var(--ngm-card-border-color);
-  color: var(--ngm-text-primary-color);
+  color: var(--color-text-primary);
 
   &.pac-confirm-card__delete {
     .pac-confirm-card__delete-actions {

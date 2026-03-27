@@ -1,5 +1,5 @@
 <div class="relative flex-1 overflow-x-auto">
-  <table class="w-full text-sm text-left rtl:text-right text-text-tertiary dark:text-text-quaternary">
+  <table class="w-full text-sm text-left rtl:text-right text-text-secondary">
     <thead class="text-sm text-text-secondary uppercase bg-background-default-subtle dark:text-text-quaternary">
       <tr class="sticky top-0 left-0 bg-background-default-subtle z-10">
         <th scope="col" class="p-4">
@@ -156,14 +156,14 @@
             <div class="pac__table-actions flex gap-1">
               <button
                 type="button"
-                class="w-8 h-8 rounded-full text-text-tertiary hover:bg-hover-bg opacity-50 group-hover:opacity-100"
+                class="w-8 h-8 rounded-full text-text-secondary hover:bg-hover-bg opacity-50 group-hover:opacity-100"
                 (click)="editIndicator(row.id)"
               >
                 <i class="ri-pencil-line"></i>
               </button>
               <button
                 type="button"
-                class="w-8 h-8 rounded-full text-text-tertiary enabled:hover:bg-hover-bg opacity-50 enabled:group-hover:opacity-100"
+                class="w-8 h-8 rounded-full text-text-secondary enabled:hover:bg-hover-bg opacity-50 enabled:group-hover:opacity-100"
                 [disabled]="!row.draft"
                 [zTooltip]="
                   row.draft
@@ -180,7 +180,7 @@
 
               <button
                 type="button"
-                class="w-8 h-8 rounded-full text-text-tertiary enabled:hover:bg-hover-bg opacity-50 enabled:group-hover:opacity-100"
+                class="w-8 h-8 rounded-full text-text-secondary enabled:hover:bg-hover-bg opacity-50 enabled:group-hover:opacity-100"
                 [disabled]="row.status !== eIndicatorStatusEnum.RELEASED"
                 [zTooltip]="
                   row.status === eIndicatorStatusEnum.RELEASED
@@ -199,7 +199,7 @@
 
               <button
                 type="button"
-                class="w-8 h-8 rounded-full text-text-tertiary hover:bg-hover-bg hover:text-text-destructive opacity-50 group-hover:opacity-100"
+                class="w-8 h-8 rounded-full text-text-secondary hover:bg-hover-bg hover:text-text-destructive opacity-50 group-hover:opacity-100"
                 (click)="onDelete({ id: row.id, name: row.name })"
               >
                 <i class="ri-delete-bin-line"></i>
