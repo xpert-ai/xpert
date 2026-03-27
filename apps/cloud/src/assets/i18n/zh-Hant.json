@@ -3312,7 +3312,11 @@
       "SortBy": "排序",
       "EnableSortBy": "啟用排序",
       "SortByTip": "對列表中的項目進行排序。例如，您可以按名稱或日期排序。",
-      "SortDescending": "降序排序"
+      "SortDescending": "降序排序",
+      "Assistant": "助手",
+      "WorkspaceCreateAssistantHint": "描述你想建立的數字專家，助手會建立草稿並開啟 Studio。",
+      "StudioAssistantHint": "可以詢問目前草稿、主智能體或編輯狀態。",
+      "AssistantLoading": "正在準備助手..."
     },
     "MCP": {
       "Logs": "日誌",

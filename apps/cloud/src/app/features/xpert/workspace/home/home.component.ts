@@ -47,6 +47,7 @@ import {
   XpertWorkspaceService
 } from '../../../../@core'
 import { AppService } from '../../../../app.service'
+import { XpertWorkspaceAssistantComponent } from '../assistant/assistant.component'
 import { XpertWorkspaceSettingsComponent } from '../settings/settings.component'
 import { XpertWorkspaceWelcomeComponent } from '../welcome/welcome.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -69,7 +70,8 @@ export type XpertFilterEnum = XpertToolsetCategoryEnum | XpertTypeEnum
 
     NgmCommonModule,
     TagFilterComponent,
-    XpertWorkspaceWelcomeComponent
+    XpertWorkspaceWelcomeComponent,
+    XpertWorkspaceAssistantComponent
   ],
   selector: 'pac-xpert-home',
   templateUrl: './home.component.html',

@@ -418,7 +418,11 @@
       "NoDataSourcesAvailable": "No data source providers available",
       "NoProcessorsAvailable": "No processor providers available",
       "NoChunkersAvailable": "No chunker providers available",
-      "NoImageUnderstandingsAvailable": "No image understanding providers available"
+      "NoImageUnderstandingsAvailable": "No image understanding providers available",
+      "Assistant": "Assistant",
+      "WorkspaceCreateAssistantHint": "Describe the expert you want, and the assistant will create a draft and open Studio.",
+      "StudioAssistantHint": "Ask about the current draft, primary agent, or editing state.",
+      "AssistantLoading": "Preparing assistant..."
     }
   },
   "STORY_DESIGNER": {
