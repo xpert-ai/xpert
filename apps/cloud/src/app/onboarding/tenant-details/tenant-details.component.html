@@ -4,7 +4,7 @@
 
 <div class="w-full border-b border-solid border-divider-regular"></div>
 
-<z-stepper class="w-[680px] max-w-full my-4 shadow-lg rounded-lg" [linear]="true" orientation="horizontal" #stepper="zStepper">
+<z-stepper class="w-[680px] max-w-full my-4" [linear]="true" orientation="horizontal" #stepper="zStepper">
   <z-step #step1="zStep" [stepControl]="userFormGroup" [editable]="!tenantCompleted() && !loading()">
     <form [formGroup]="userFormGroup" class="flex flex-col gap-4">
       <ng-template zStepLabel> {{ 'PAC.Onboarding.WhatCallYou' | translate: {Default: 'What should we call you'} }}?</ng-template>
@@ -86,7 +86,6 @@
   </z-step>
 
   @if (hasSemanticModel()) {
-
     <z-step [stepControl]="demoFormGroup" [editable]="!demoCompleted() && !loading()" >
       <ng-template zStepLabel>{{ 'PAC.Onboarding.WantGenerateDemo' | translate: {Default: 'Do you want to generate samples'} }}?</ng-template>
 
@@ -94,9 +93,9 @@
 
       <form [formGroup]="demoFormGroup" class="flex flex-col">
         <label>{{ 'PAC.Onboarding.SelectNetwork' | translate: {Default: 'Select Network'} }}</label>
-        <z-radio-group formControlName="source" [disabled]="loading()">
-          <z-radio [value]="OrganizationDemoNetworkEnum.github">GitHub</z-radio>
-          <z-radio [value]="OrganizationDemoNetworkEnum.aliyun">Aliyun OSS</z-radio>
+        <z-radio-group formControlName="source" [disabled]="loading()" displayDensity="cosy">
+          <z-radio [value]="OrganizationDemoNetworkEnum.github" displayDensity="cosy">GitHub</z-radio>
+          <z-radio [value]="OrganizationDemoNetworkEnum.aliyun" displayDensity="cosy">Aliyun OSS</z-radio>
         </z-radio-group>
       </form>
 
@@ -128,118 +127,174 @@
     <z-step [editable]="!loading() && !connectionCompleted()">
       <ng-template zStepLabel>{{ 'PAC.Onboarding.AddYourData' | translate: {Default: 'Add your data'} }}</ng-template>
 
-      <div class="w-full flex flex-col gap-4">
-        <div class="description">
+      <div class="w-full flex flex-col gap-3">
+        <div class="description space-y-1">
           <p>{{ 'PAC.Onboarding.ReadyExploringYourData' | translate: {Default: 'Are you ready to start exploring your data? Add it below.'} }}</p>
           <p>{{ 'PAC.Onboarding.NotReadySample' | translate: {Default: 'Not ready? Skip and play around with our Samples.'} }}</p>
         </div>
 
-        <div class="w-full relative">
-          <i class="ri-search-2-line absolute left-1.5 top-1"></i>
-          <input class="w-full appearance-none border border-transparent bg-components-input-bg-normal py-1.5 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs px-3 rounded-lg system-sm-regular pl-[26px]"
-            [placeholder]="'PAC.KEY_WORDS.SearchTerm' | translate: {Default: 'Search term'}" tabindex="0"
-            [formControl]="searchControl"
-            >
-        </div>
-        <form [formGroup]="dataSourceTypeFormGroup" class="w-full flex flex-col gap-4">
-          <div class="max-h-80 w-full overflow-auto">
-            <ul class="ngm-cdk-listbox" cdkListbox formControlName="type" [cdkListboxMultiple]="false" [cdkListboxCompareWith]="compareTypeFn">
-              @for (item of filteredDataSourceTypes(); track item.id) {
-                <li [cdkOption]="item" class="ngm-cdk-option rounded-lg mb-1 flex items-center gap-3">
-                  <span class="flex items-center gap-3">
-                    <img src="assets/images/db-logos/{{item.type}}.png" width="32" height="32" class="m-0 inline-block">
-                    {{item.name}}
-                  </span>
-                </li>
+        <form [formGroup]="dataSourceTypeFormGroup" class="grid w-full gap-4 lg:grid-cols-[280px_minmax(0,1fr)]">
+          <div class="flex min-h-[24rem] flex-col gap-3 rounded-2xl border border-divider-regular bg-background-default-subtle p-3">
+            <div class="w-full relative">
+              <i class="ri-search-2-line absolute left-2 top-2 text-text-tertiary"></i>
+              <input class="w-full appearance-none rounded-lg border border-transparent bg-components-input-bg-normal py-1.5 pr-3 pl-8 text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs system-sm-regular"
+                [placeholder]="'PAC.KEY_WORDS.SearchTerm' | translate: {Default: 'Search term'}" tabindex="0"
+                [formControl]="searchControl"
+                >
+            </div>
+
+            <div class="min-h-0 flex-1 overflow-auto pr-1">
+              @if (dataSourceTypesLoading()) {
+                <div class="flex min-h-40 items-center justify-center">
+                  <ngm-spin />
+                </div>
+              } @else if (filteredDataSourceTypes()?.length) {
+                <ul class="flex flex-col gap-1" cdkListbox formControlName="type" [cdkListboxMultiple]="false" [cdkListboxCompareWith]="compareTypeFn">
+                  @for (item of filteredDataSourceTypes(); track item.id) {
+                    <li [cdkOption]="item" class="flex items-center gap-2.5 rounded-lg px-3 py-2 text-sm hover:bg-hover-bg">
+                      <span class="flex min-w-0 items-center gap-2.5">
+                        <img src="assets/images/db-logos/{{item.type}}.png" width="28" height="28" class="m-0 inline-block shrink-0">
+                        <span class="truncate">{{item.name}}</span>
+                      </span>
+                    </li>
+                  }
+                </ul>
+              } @else {
+                <div class="rounded-xl border border-divider-regular bg-background-default p-4">
+                  <div class="text-sm text-text-secondary">
+                    {{ 'PAC.Onboarding.NoDataSourceTypes' | translate: {Default: 'No data source types are available yet.'} }}
+                  </div>
+                  @if (dataSourceTypesError()) {
+                    <z-form-message zType="error" class="mt-3">
+                      {{dataSourceTypesError()}}
+                    </z-form-message>
+                  }
+                </div>
               }
-            </ul>
+            </div>
           </div>
 
-          @if (type) {
-            <div class="flex justify-center items-center">
-              <img src="assets/images/db-logos/{{type.type}}.png" width="64" height="64" class="m-0 inline-block">
-              <div class="text-lg">{{type.name}}</div>
-            </div>
-            <z-form-field appearance="fill">
-              <z-form-label>
-                {{ 'PAC.Onboarding.DisplayName' | translate: {Default: 'Display Name'} }}
-              </z-form-label>
-              <input z-input formControlName="name">
-              @if (dataSourceNameError()) {
-                <z-form-message zType="error">
-                  {{ 'PAC.Onboarding.NameRequired' | translate: {Default: 'Name Required'} }}
-                </z-form-message>
-              }
-            </z-form-field>
+          <div class="min-h-[24rem] rounded-2xl border border-divider-regular bg-background-default-subtle">
+            @if (type; as selectedType) {
+              <div class="flex h-full flex-col">
+                <div class="flex items-center gap-3 border-b border-divider-regular px-4 py-3">
+                  <img src="assets/images/db-logos/{{selectedType.type}}.png" width="40" height="40" class="m-0 inline-block shrink-0">
+                  <div class="min-w-0">
+                    <div class="truncate text-sm font-medium text-text-primary">{{selectedType.name}}</div>
+                    <div class="text-xs text-text-tertiary">
+                      {{ 'PAC.MENU.DATA_SOURCES.CONFIGURATION' | translate: {Default: 'Configuration'} }}
+                    </div>
+                  </div>
+                </div>
 
-            <formly-form
-              [form]="dataSourceTypeFormGroup"
-              [fields]="formlyFields()"
-              [model]="model"
-              (modelChange)="onModelChange($event)"
-              />
-          }
+                <div class="min-h-0 flex-1 overflow-auto px-4 py-3">
+                  <div class="flex flex-col gap-3">
+                    <z-form-field appearance="fill">
+                      <z-form-label>
+                        {{ 'PAC.Onboarding.DisplayName' | translate: {Default: 'Display Name'} }}
+                      </z-form-label>
+                      <input z-input formControlName="name">
+                      @if (dataSourceNameError()) {
+                        <z-form-message zType="error">
+                          {{ 'PAC.Onboarding.NameRequired' | translate: {Default: 'Name Required'} }}
+                        </z-form-message>
+                      }
+                    </z-form-field>
+
+                    <formly-form
+                      class="block [&_.formly-field]:mb-3 [&_.formly-field:last-child]:mb-0"
+                      [form]="dataSourceTypeFormGroup"
+                      [fields]="formlyFields()"
+                      [model]="model"
+                      (modelChange)="onModelChange($event)"
+                      />
+                  </div>
+                </div>
+              </div>
+            } @else {
+              <div class="flex h-full min-h-[24rem] flex-col items-center justify-center gap-3 p-6 text-center">
+                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-background-default">
+                  <i class="ri-database-2-line text-xl text-text-secondary"></i>
+                </div>
+                <div class="text-sm font-medium text-text-primary">
+                  {{ 'PAC.MENU.DATA_SOURCES.SelectTypeToCreate' | translate: {Default: 'Select a data source type to create'} }}
+                </div>
+              </div>
+            }
+          </div>
         </form>
 
-        @if (type) {
-          <div class="flex justify-end items-center gap-4">
-            <button z-button zType="secondary" zStepperNext>{{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}</button>
-            <button z-button zType="default" color="primary" [disabled]="dataSourceTypeFormGroup.invalid || loading()" (click)="connectDatabase()">{{ 'PAC.Onboarding.ConnectDatabase' | translate: {Default: 'Connect database'} }}</button>
-          </div>
-        }
-
-        <div>
-          <button type="button" class="btn btn-secondary btn-large" zStepperNext>
+        <div class="flex flex-wrap items-center justify-between gap-3">
+          <button z-button zType="secondary" zStepperNext>
             {{ 'PAC.Onboarding.AddDataLater' | translate: {Default: 'I\'ll add my data later'} }}
           </button>
+          @if (type) {
+            <button z-button zType="default" color="primary" [disabled]="dataSourceTypeFormGroup.invalid || loading()" (click)="connectDatabase()">{{ 'PAC.Onboarding.ConnectDatabase' | translate: {Default: 'Connect database'} }}</button>
+          }
         </div>
       </div>
     </z-step>
   }
 
-  <z-step [editable]="!loading()">
-    <ng-template zStepLabel>{{ 'PAC.Onboarding.ConfigureAiModel' | translate: {Default: 'Configure AI Model'} }}</ng-template>
+  @if (hasAiFeature()) {
+    <z-step [editable]="!loading()">
+      <ng-template zStepLabel>{{ 'PAC.Onboarding.ConfigureAiModel' | translate: {Default: 'Configure AI Model'} }}</ng-template>
 
-    <div class="w-full flex flex-col gap-4 relative">
-      <div class="description">
-        {{ 'PAC.Onboarding.ConfigureAiModelDesc' | translate: {Default: 'Set up your primary AI provider and choose a default model for the AI copilot. You can continue refining it later in settings.'} }}
-      </div>
+      <div class="w-full flex flex-col gap-4 relative">
+        <div class="description">
+          {{ 'PAC.Onboarding.ConfigureAiModelDesc' | translate: {Default: 'Set up your primary AI provider and choose a default model for the AI copilot. You can continue refining it later in settings.'} }}
+        </div>
 
-      @if (showAiModelForm()) {
-        <pac-copilot-form class="w-full" [copilot]="primaryCopilot()" onboarding (saved)="onAiModelSaved()" />
-      } @else {
-        <div class="rounded-xl border border-divider-regular bg-background-default-subtle p-5">
-          <div class="text-base font-medium text-text-primary">
-            {{ 'PAC.Onboarding.ConfigureAiModelTitle' | translate: {Default: 'Make your AI copilot ready to use'} }}
-          </div>
-          <div class="description mt-2">
-            {{ 'PAC.Onboarding.ConfigureAiModelHint' | translate: {Default: 'We will create your primary provider first, then you can add credentials and pick the default model in one place.'} }}
-          </div>
-
-          <div class="mt-4 flex items-center gap-4">
-            <button type="button" class="btn btn-primary btn-large" [disabled]="loading()" (click)="startAiModelSetup()">
-              {{ 'PAC.Onboarding.ConfigureAiModelAction' | translate: {Default: 'Start configuration'} }}
+        @if (showAiModelForm()) {
+          <pac-copilot-config-form #onboardingCopilotForm class="w-full" [copilot]="primaryCopilot()" (saved)="onAiModelSaved()" />
+          <div class="flex items-center gap-4">
+            <button type="button" class="btn btn-secondary btn-large" [disabled]="loading()" (click)="skipAiModelSetup()">
+              {{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}
+            </button>
+            <button
+              z-button
+              zType="default"
+              color="primary"
+              type="button"
+              [disabled]="loading() || !onboardingCopilotForm.canSubmit() || !onboardingCopilotForm.hasSelectedModel()"
+              (click)="onboardingCopilotForm.submit()"
+            >
+              {{ 'PAC.Onboarding.SaveAndNext' | translate: {Default: 'Save and Next'} }}
             </button>
           </div>
-        </div>
-      }
+        } @else {
+          <div class="rounded-xl border border-divider-regular bg-background-default-subtle p-5">
+            <div class="text-base font-medium text-text-primary">
+              {{ 'PAC.Onboarding.ConfigureAiModelTitle' | translate: {Default: 'Make your AI copilot ready to use'} }}
+            </div>
+            <div class="description mt-2">
+              {{ 'PAC.Onboarding.ConfigureAiModelHint' | translate: {Default: 'We will create your primary provider first, then you can add credentials and pick the default model in one place.'} }}
+            </div>
 
-      <div class="flex items-center gap-4">
-        <button type="button" class="btn btn-secondary btn-large" [disabled]="loading()" (click)="skipAiModelSetup()">
-          {{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}
-        </button>
+            <div class="mt-4 flex items-center gap-4">
+              <button type="button" class="btn btn-primary btn-large" [disabled]="loading()" (click)="startAiModelSetup()">
+                {{ 'PAC.Onboarding.ConfigureAiModelAction' | translate: {Default: 'Start configuration'} }}
+              </button>
+            </div>
+          </div>
+          <div class="flex items-center justify-end gap-4">
+            <button type="button" class="btn btn-secondary btn-large" [disabled]="loading()" (click)="skipAiModelSetup()">
+              {{ 'PAC.Onboarding.Skip' | translate: {Default: 'Skip'} }}
+            </button>
+          </div>
+        }
+
+        @if (loading()) {
+          <ngm-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
+        }
       </div>
-
-      @if (loading()) {
-        <ngm-spin class="absolute w-full h-full inset-0 flex justify-center items-center" />
-      }
-    </div>
-  </z-step>
+    </z-step>
+  }
 
   <z-step [editable]="!loading()">
     <ng-template zStepLabel>{{ 'PAC.Onboarding.Done' | translate: {Default: 'Done'} }}</ng-template>
     <div class="flex flex-col justify-start items-center gap-4">
-      <div class="text-3xl text-bluegray-500 p-8">{{ 'PAC.Onboarding.AllSetup' | translate: {Default: 'You\'re all set up!'} }} </div>
+      <div class="text-3xl text-primary-500 p-8">{{ 'PAC.Onboarding.AllSetup' | translate: {Default: 'You\'re all set up!'} }} </div>
 
       <div class="w-full border-b border-solid border-divider-regular"></div>
 
@@ -255,7 +310,7 @@
 
 <div class="p-4 my-8">
   {{ 'PAC.Onboarding.FeelStuck' | translate: {Default: 'If you feel stuck'} }}
-  , <a [href]="helpWebsite() + '/docs/getting-started/onboarding/'" class="text-bluegray-500 italic">
+  , <a [href]="helpWebsite() + '/ai/getting-started/onboarding'" class="text-primary-500 italic">
   {{ 'PAC.Onboarding.OurGuide' | translate: {Default: 'our getting started guide'} }}
 </a> {{ 'PAC.Onboarding.ClickAway' | translate: {Default: 'is just a click away'} }}.
 </div>

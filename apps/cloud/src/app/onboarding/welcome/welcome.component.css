@@ -4,5 +4,5 @@
 }
 
 a {
-    @apply text-slate-500 dark:text-slate-400;
+    @apply text-primary-400;
 }
