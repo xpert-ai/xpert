@@ -419,6 +419,10 @@
       "NoProcessorsAvailable": "No processor providers available",
       "NoChunkersAvailable": "No chunker providers available",
       "NoImageUnderstandingsAvailable": "No image understanding providers available",
+      "Assistant": "Assistant",
+      "WorkspaceCreateAssistantHint": "Describe the expert you want, and the assistant will create a draft and open Studio.",
+      "StudioAssistantHint": "Ask about the current draft, primary agent, or editing state.",
+      "AssistantLoading": "Preparing assistant..."
       "ImportOverwriteConfirm": "Importing this DSL will overwrite the current draft of this xpert. The published version will remain unchanged.\n\nIf the file contains memories, current memories will be cleared and replaced.",
       "ImportOverwriteSuccess": "DSL imported into the current draft. Publish is still required for it to take effect.",
       "ImportMemoryIncomplete": "The draft was imported, but memory replacement did not finish.",

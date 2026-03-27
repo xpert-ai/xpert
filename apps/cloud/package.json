@@ -19,6 +19,7 @@
 		"@foblex/utils": "^1.1.1",
 		"@langchain/anthropic": "^0.3.26",
 		"@octokit/types": "14.1.0",
+		"@xpert-ai/chatkit-angular": "^0.0.1",
 		"crypto-js": "^4.2.0",
 		"json-2-csv": "^5.5.9",
 		"i18next": "~23.14.0",

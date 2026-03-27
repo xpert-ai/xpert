@@ -13,14 +13,16 @@
 }
 
 .xpert-type-list {
+  @apply inline-flex rounded-xl border border-components-panel-border bg-background-default-subtle p-1;
+
   .cdk-option {
-    @apply w-40 h-20 shrink-0 flex-none text-sm flex flex-col justify-center items-center border border-solid border-transparent rounded-xl;
+    @apply h-9 min-w-0 shrink-0 flex-none flex flex-row items-center justify-center gap-1.5 rounded-lg border border-solid border-transparent px-3 text-center text-sm text-text-secondary;
   }
   .cdk-option[aria-disabled='false'] {
-    @apply cursor-pointer hover:bg-primary-100/10 hover:border-primary-300 hover:shadow-sm;
+    @apply cursor-pointer hover:bg-components-card-bg hover:text-text-primary;
   }
   .cdk-option[aria-selected='true'] {
-    @apply shadow-md border-primary-500 text-primary-500 bg-primary-100/10;
+    @apply border-primary-500 bg-components-card-bg text-primary-500 shadow-sm;
   }
 }
 
