@@ -38,7 +38,16 @@ English | [中文](./README_zh.md)
 
 ## 💡 What's New
 
-**🚀 3.8 Sandbox Environment!**
+**🚀 3.9 Enhanced Multi-Agent Collaboration!**
+
+XpertAI 3.9 introduces enhanced multi-agent collaboration capabilities, allowing agents to work together more effectively on complex tasks. Key features include:
+
+- **Agent Team Composition**: Create specialized agent teams with predefined roles and responsibilities
+- **Task Decomposition**: Automatic task breakdown and distribution among team members
+- **Collaborative Decision Making**: Agents can share insights and coordinate decisions
+- **Progress Sync**: Real-time progress synchronization between collaborating agents
+
+**🚀 3.8 Sandbox Environment!****
 
 XpertAI 3.8 releases the Agent Sandbox feature, providing an isolated execution and file operation environment for agents. One of the core capabilities of the sandbox plugin is the provider plugin mechanism. Through custom providers, you can integrate different runtime infrastructures, such as:
 
