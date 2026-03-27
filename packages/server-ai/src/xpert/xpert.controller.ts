@@ -1,10 +1,10 @@
 import {
+    AIPermissionsEnum,
     IChatConversation,
     IIntegration,
     IXpert,
     LanguagesEnum,
     LongTermMemoryTypeEnum,
-    RolesEnum,
     TChatApi,
     TChatApp,
     TChatOptions,
@@ -20,9 +20,9 @@ import {
     OptionParams,
     PaginationParams,
     ParseJsonPipe,
+    PermissionGuard,
+    Permissions,
     RequestContext,
-    RoleGuard,
-    Roles,
     TransformInterceptor,
     UserPublicDTO,
     UseValidationPipe,
@@ -134,8 +134,8 @@ export class XpertController extends CrudController<Xpert> {
         super(service)
     }
 
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get()
     async getAll(
         @Query('data', ParseJsonPipe) params: Partial<PaginationParams<Xpert>>,
@@ -187,8 +187,8 @@ export class XpertController extends CrudController<Xpert> {
         }
     }
 
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('select-options')
     async getSelectOptions() {
         const { items } = await this.getAll({ where: { latest: true } }, true)
@@ -928,36 +928,36 @@ export class XpertController extends CrudController<Xpert> {
 
     // Statistics
 
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xperts')
     async getStatisticsXperts(@Query('start') start: string, @Query('end') end: string) {
         return await this.queryBus.execute(new StatisticsXpertsQuery(start, end))
     }
 
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xpert-conversations')
     async getStatisticsXpertConversations(@Query('start') start: string, @Query('end') end: string) {
         return await this.queryBus.execute(new StatisticsXpertConversationsQuery(start, end))
     }
 
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xpert-messages')
     async getStatisticsXpertMessages(@Query('start') start: string, @Query('end') end: string) {
         return await this.queryBus.execute(new StatisticsXpertMessagesQuery(start, end))
     }
 
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xpert-tokens')
     async getStatisticsXpertTokens(@Query('start') start: string, @Query('end') end: string) {
         return await this.queryBus.execute(new StatisticsXpertTokensQuery(start, end))
     }
 
-    @UseGuards(RoleGuard)
-    @Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+    @UseGuards(PermissionGuard)
+    @Permissions(AIPermissionsEnum.XPERT_EDIT)
     @Get('statistics/xpert-integrations')
     async getStatisticsXpertIntegrations(@Query('start') start: string, @Query('end') end: string) {
         return await this.queryBus.execute(new StatisticsXpertIntegrationsQuery(start, end))

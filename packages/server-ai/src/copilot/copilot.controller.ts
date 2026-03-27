@@ -4,8 +4,7 @@ import {
 	AiProviderRole,
 	IAiProviderEntity,
 	ICopilot,
-	ICopilotModel,
-	RolesEnum
+	ICopilotModel
 } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { ConfigService } from '@metad/server-config'
@@ -15,8 +14,6 @@ import {
 	ParseJsonPipe,
 	PermissionGuard,
 	Permissions,
-	RoleGuard,
-	Roles,
 	TransformInterceptor
 } from '@metad/server-core'
 import {
@@ -223,50 +220,50 @@ export class CopilotController extends CrudController<Copilot> {
 
 	// Statistics
 
-	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 	@Get('statistics/daily-conversations')
 	async getStatisticsDailyConversations(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsDailyConvQuery(start, end))
 	}
 
-	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 	@Get('statistics/daily-end-users')
 	async getStatisticsDailyEndUsers(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsDailyEndUsersQuery(start, end))
 	}
 
-	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 	@Get('statistics/average-session-interactions')
 	async getStatisticsAverageSessionInteractions(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsAverageSessionInteractionsQuery(start, end))
 	}
 
-	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 	@Get('statistics/daily-messages')
 	async getStatisticsDailyMessages(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsDailyMessagesQuery(start, end))
 	}
 
-	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 	@Get('statistics/tokens-per-second')
 	async getStatisticsTokensPerSecond(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsTokensPerSecondQuery(start, end))
 	}
 
-	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 	@Get('statistics/user-satisfaction-rate')
 	async getStatisticsUserSatisfactionRate(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsUserSatisfactionRateQuery(start, end))
 	}
 
-	@UseGuards(RoleGuard)
-	@Roles(RolesEnum.ADMIN, RolesEnum.SUPER_ADMIN, RolesEnum.TRIAL)
+	@UseGuards(PermissionGuard)
+	@Permissions(AIPermissionsEnum.COPILOT_EDIT)
 	@Get('statistics/token-costs')
 	async getStatisticsTokenCost(@Query('start') start: string, @Query('end') end: string) {
 		return await this.queryBus.execute(new StatisticsTokenCostQuery(start, end))

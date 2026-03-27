@@ -23,13 +23,9 @@
       <div class="p-2 flex justify-start items-center">
         @if (user.role; as role) {
           <span class="mr-2 text-text-secondary">{{'PAC.KEY_WORDS.Role' | translate: {Default: 'Role'} }}:</span>
-          <span class="text-xs inline-flex items-center font-bold leading-sm uppercase px-2 py-1 rounded-lg"
-            [ngClass]="{
-              'bg-blue-100 text-blue-500': role.name === 'VIEWER',
-              'bg-yellow-100 text-yellow-500': role.name === 'ADMIN',
-              'bg-red-100 text-red-500': role.name=== 'SUPER_ADMIN',
-              'bg-green-100 text-green-500': !['VIEWER', 'ADMIN', 'SUPER_ADMIN'].includes(role.name)
-            }"
+          <span
+            class="inline-flex items-center rounded-lg bg-components-input-bg-normal px-2 py-1 text-xs font-bold uppercase leading-sm"
+            [ngClass]="roleBadgeClassMap[role.name] ?? defaultRoleBadgeClass"
           >
             {{role.name}}
           </span>

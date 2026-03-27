@@ -12,7 +12,7 @@ import {
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms';
 import { filter, map, Observable, of as observableOf } from 'rxjs';
 import { tap } from 'rxjs/operators';
-import { IRole, IUser, RolesEnum } from '@metad/contracts';
+import { DEFAULT_SYSTEM_ROLES, IRole, IUser, RolesEnum } from '@metad/contracts';
 import { RoleService, Store } from './../../../../../@core/services';
 
 import { TranslateModule } from '@ngx-translate/core';
@@ -154,7 +154,9 @@ export class RoleFormFieldComponent implements OnInit, OnDestroy, ControlValueAc
 		this.roles$ = this.rolesService.getAll().pipe(
 			map(({items}) => items),
 			map((roles: IRole[]) => roles.filter(
-				(role: IRole) => !this.excludes.includes(role.name as RolesEnum)
+				(role: IRole) =>
+					(!this.excludes.includes(role.name as RolesEnum) &&
+						(DEFAULT_SYSTEM_ROLES.includes(role.name as RolesEnum) || role.id === this.roleId))
 			)),
 			tap((roles: IRole[]) => this.roles = roles),
 			takeUntilDestroyed(this.destroyRef)

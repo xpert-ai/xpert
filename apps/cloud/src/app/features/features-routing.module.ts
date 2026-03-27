@@ -65,7 +65,7 @@ const routes: Routes = [
         data: {
           title: 'Dashboard',
           permissions: {
-            only: [AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT],
+            only: [AnalyticsPermissionsEnum.STORIES_VIEW],
             redirectTo
           }
         },

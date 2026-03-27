@@ -1,6 +1,6 @@
 import { Routes } from '@angular/router'
 import { NgxPermissionsGuard } from 'ngx-permissions'
-import { AIPermissionsEnum, DirtyCheckGuard } from '../../../@core'
+import { AnalyticsPermissionsEnum, DirtyCheckGuard } from '../../../@core'
 import { ChatBIComponent } from './chatbi.component'
 
 export default [
@@ -11,7 +11,7 @@ export default [
     data: {
       title: 'Settings / ChatBI',
       permissions: {
-        only: [AIPermissionsEnum.XPERT_EDIT],
+        only: [AnalyticsPermissionsEnum.MODELS_EDIT],
         redirectTo: '/settings'
       }
     },

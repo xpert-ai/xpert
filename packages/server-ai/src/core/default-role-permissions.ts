@@ -1,57 +1,63 @@
 import { AIPermissionsEnum, RolesEnum } from '@metad/contracts'
 
+const FULL_AI_PERMISSIONS = [
+	AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
+	AIPermissionsEnum.COPILOT_VIEW,
+	AIPermissionsEnum.COPILOT_EDIT,
+	AIPermissionsEnum.XPERT_EDIT,
+	AIPermissionsEnum.CHAT_VIEW
+]
+
+const VIEWER_AI_PERMISSIONS = [
+	AIPermissionsEnum.COPILOT_VIEW,
+	AIPermissionsEnum.CHAT_VIEW
+]
+
+const ANALYTICS_BUILDER_AI_PERMISSIONS = [
+	AIPermissionsEnum.COPILOT_VIEW,
+	AIPermissionsEnum.XPERT_EDIT,
+	AIPermissionsEnum.CHAT_VIEW
+]
+
 export const DEFAULT_ROLE_PERMISSIONS = [
 	{
 		role: RolesEnum.SUPER_ADMIN,
-		defaultEnabledPermissions: [
-			AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
-			AIPermissionsEnum.COPILOT_VIEW,
-			AIPermissionsEnum.COPILOT_EDIT,
-			AIPermissionsEnum.XPERT_EDIT,
-			AIPermissionsEnum.CHAT_VIEW,
-		]
+		defaultEnabledPermissions: [...FULL_AI_PERMISSIONS]
 	},
 	{
 		role: RolesEnum.ADMIN,
-		defaultEnabledPermissions: [
-			AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
-			AIPermissionsEnum.COPILOT_VIEW,
-			AIPermissionsEnum.COPILOT_EDIT,
-			AIPermissionsEnum.XPERT_EDIT,
-			AIPermissionsEnum.CHAT_VIEW,
-		]
-	},
-	{
-		role: RolesEnum.DATA_ENTRY,
-		defaultEnabledPermissions: [
-			AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
-			AIPermissionsEnum.XPERT_EDIT,
-			AIPermissionsEnum.CHAT_VIEW,
-		]
-	},
-	{
-		role: RolesEnum.VIEWER,
-		defaultEnabledPermissions: [
-			AIPermissionsEnum.COPILOT_VIEW,
-			AIPermissionsEnum.CHAT_VIEW,
-		]
-	},
-	{
-		role: RolesEnum.EMPLOYEE,
-		defaultEnabledPermissions: []
-	},
-	{
-		role: RolesEnum.CANDIDATE,
-		defaultEnabledPermissions: []
+		defaultEnabledPermissions: [...FULL_AI_PERMISSIONS]
 	},
 	{
 		role: RolesEnum.TRIAL,
-		defaultEnabledPermissions: [
-			AIPermissionsEnum.KNOWLEDGEBASE_EDIT,
-			AIPermissionsEnum.COPILOT_VIEW,
-			AIPermissionsEnum.COPILOT_EDIT,
-			AIPermissionsEnum.XPERT_EDIT,
-			AIPermissionsEnum.CHAT_VIEW,
-		]
+		defaultEnabledPermissions: [...FULL_AI_PERMISSIONS]
+	},
+	{
+		role: RolesEnum.AI_BUILDER,
+		defaultEnabledPermissions: [...FULL_AI_PERMISSIONS]
+	},
+	{
+		role: RolesEnum.ANALYTICS_BUILDER,
+		defaultEnabledPermissions: [...ANALYTICS_BUILDER_AI_PERMISSIONS]
+	},
+	{
+		role: RolesEnum.VIEWER,
+		defaultEnabledPermissions: [...VIEWER_AI_PERMISSIONS]
+	},
+	{
+		role: RolesEnum.DATA_ENTRY,
+		defaultEnabledPermissions: [...FULL_AI_PERMISSIONS]
+	},
+	{
+		role: RolesEnum.EMPLOYEE,
+		defaultEnabledPermissions: [...VIEWER_AI_PERMISSIONS]
+	},
+	{
+		role: RolesEnum.CANDIDATE,
+		defaultEnabledPermissions: [...VIEWER_AI_PERMISSIONS]
+	},
+	{
+		role: RolesEnum.MANAGER,
+		defaultEnabledPermissions: [...ANALYTICS_BUILDER_AI_PERMISSIONS]
 	}
 ]

@@ -102,7 +102,7 @@ export class PluginUserPermissionService implements UserPermissionService {
     }
 
     let roleId = input.defaults?.roleId
-    const roleName = input.defaults?.roleName || RolesEnum.EMPLOYEE
+    const roleName = input.defaults?.roleName || RolesEnum.VIEWER
     if (!roleId && roleName) {
       try {
         const roleService = this.moduleRef.get<RoleService>(RoleService, {

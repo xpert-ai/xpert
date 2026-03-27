@@ -11,6 +11,7 @@ import {
   IUser,
   InvitationExpirationEnum,
   InvitationTypeEnum,
+  LEGACY_DEFAULT_ROLES,
   RolesEnum
 } from '../../../../@core/types'
 import { TranslateService } from '@ngx-translate/core'
@@ -121,7 +122,7 @@ export class EmailInviteFormComponent extends TranslationBaseComponent implement
    */
   async excludeRoles() {
     const hasSuperAdminRole = await firstValueFrom(this.authService.hasRole([RolesEnum.SUPER_ADMIN]))
-    this.excludes = [RolesEnum.EMPLOYEE]
+    this.excludes = [...LEGACY_DEFAULT_ROLES]
     if (!hasSuperAdminRole) {
       this.excludes.push(RolesEnum.SUPER_ADMIN)
     }

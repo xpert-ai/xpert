@@ -8,6 +8,7 @@ import {
   IRole,
   IRolePermission,
   IUser,
+  LEGACY_DEFAULT_ROLES,
   PermissionGroups,
   PermissionsEnum,
   RolePermissionsService,
@@ -34,7 +35,7 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
   private readonly refresh$ = new BehaviorSubject<void>(null)
 
   public readonly roles$ = this.refresh$.pipe(switchMap(() => this.rolesService.getAll()),
-    map(({ items }) => items),
+    map(({ items }) => items.filter((role) => !LEGACY_DEFAULT_ROLES.includes(role.name as RolesEnum))),
     shareReplay(1)
   )
   public readonly totals$ = this.roles$.pipe(map((roles) => roles?.length || 0))

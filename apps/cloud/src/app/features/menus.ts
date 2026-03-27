@@ -219,7 +219,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
           link: '/settings/chatbi',
           data: {
             translationKey: 'Chat BI',
-            permissionKeys: [AIPermissionsEnum.XPERT_EDIT],
+            permissionKeys: [AnalyticsPermissionsEnum.MODELS_EDIT],
             featureKey: [AiFeatureEnum.FEATURE_XPERT, AnalyticsFeatures.FEATURE_MODEL]
           }
         },
@@ -304,7 +304,7 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
           link: '/settings/features',
           data: {
             translationKey: 'Feature',
-            permissionKeys: [RolesEnum.SUPER_ADMIN]
+            permissionKeys: [PermissionsEnum.CHANGE_ROLES_PERMISSIONS]
           }
         },
         {

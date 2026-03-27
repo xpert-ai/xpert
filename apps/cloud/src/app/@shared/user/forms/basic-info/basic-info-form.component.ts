@@ -2,7 +2,7 @@ import { DestroyRef, Component, ElementRef, EventEmitter, forwardRef, inject, In
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormGroup, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { AuthService } from '@metad/cloud/state'
-import { ITag, IUser } from '@metad/contracts'
+import { DEFAULT_SYSTEM_ROLES, ITag, IUser, RolesEnum } from '@metad/contracts'
 import { FORMLY_W_FULL } from '@metad/formly'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
@@ -52,10 +52,12 @@ export class BasicInfoFormComponent implements ControlValueAccessor {
 
   readonly roles$ = this.#roleService.getAll().pipe(
     map(({ items }) =>
-      items.map(({ id, name }) => ({
-        key: id,
-        caption: name
-      }))
+      items
+        .filter(({ id, name }) => DEFAULT_SYSTEM_ROLES.includes(name as RolesEnum) || id === this.model?.roleId)
+        .map(({ id, name }) => ({
+          key: id,
+          caption: name
+        }))
     )
   )
 
