@@ -28,13 +28,26 @@ export function normalizeTheme(theme?: string | null): ThemesEnum {
   }
 }
 
-export function resolveTheme(theme?: string | null): ThemeHost {
-  return normalizeTheme(theme) === ThemesEnum.dark ? ThemesEnum.dark : ThemesEnum.light
+export function resolveTheme(theme?: string | null, systemTheme?: string | null): ThemeHost {
+  const normalizedTheme = normalizeTheme(theme)
+  if (normalizedTheme === ThemesEnum.dark) {
+    return ThemesEnum.dark
+  }
+  if (normalizedTheme === ThemesEnum.light) {
+    return ThemesEnum.light
+  }
+
+  return normalizeTheme(systemTheme) === ThemesEnum.dark ? ThemesEnum.dark : ThemesEnum.light
 }
 
 // Window pregers color scheme
 export function prefersColorScheme() {
   return new Observable<ThemesEnum>((subscriber) => {
+    if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
+      subscriber.next(ThemesEnum.light)
+      return
+    }
+
     const mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)')
     function onChange({ matches }) {
       if (matches) {
