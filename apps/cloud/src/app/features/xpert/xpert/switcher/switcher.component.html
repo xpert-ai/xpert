@@ -1,7 +1,8 @@
-<div class="flex items-center rounded-lg border-[0.5px] border-divider-deep bg-components-card-bg p-0.5 shadow-xs">
+<div class="flex items-center rounded-lg border-[0.5px] border-divider-deep bg-components-card-bg p-0.5">
   <button
     type="button"
     class="group/workspace flex h-8 items-center gap-1.5 rounded-lg px-2.5 text-sm font-semibold text-primary-600 transition hover:bg-hover-bg dark:text-text-primary"
+    [class.mx-auto]="collapsed()"
     (click)="backToWorkspace()"
   >
     <span class="relative flex h-4 w-4 items-center justify-center overflow-hidden">
@@ -12,22 +13,25 @@
         class="ri-arrow-left-line absolute text-base opacity-0 transition-all duration-150 group-hover/workspace:opacity-100"
       ></i>
     </span>
-    <span>{{ 'PAC.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}</span>
+    @if (!collapsed()) {
+      <span>{{ 'PAC.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}</span>
+    }
   </button>
 
-  <span class="px-0.5 text-sm text-text-quaternary">/</span>
-
-  <button
-    type="button"
-    class="flex h-8 min-w-0 items-center gap-1 rounded-lg px-2.5 text-sm font-semibold text-primary-600 transition hover:bg-hover-bg dark:text-text-primary"
-    [cdkMenuTriggerFor]="xpertSwitcherMenu"
-    (cdkMenuOpened)="loadXperts()"
-  >
-    <span class="max-w-[11rem] truncate lg:max-w-[13rem]">
-      {{ currentXpertName() || ('PAC.Xpert.DigitalExpert' | translate: { Default: 'Digital Expert' }) }}
-    </span>
-    <i class="ri-arrow-down-s-line text-base text-text-secondary"></i>
-  </button>
+  @if (!collapsed()) {
+    <span class="px-0.5 text-sm text-text-quaternary">/</span>
+    <button
+      type="button"
+      class="flex-1 flex h-8 items-center gap-1 rounded-lg px-2.5 overflow-hidden text-sm font-semibold text-primary-600 transition hover:bg-hover-bg dark:text-text-primary"
+      [cdkMenuTriggerFor]="xpertSwitcherMenu"
+      (cdkMenuOpened)="loadXperts()"
+    >
+      <span class="flex-1 truncate text-left">
+        {{ currentXpertName() || ('PAC.Xpert.DigitalExpert' | translate: { Default: 'Digital Expert' }) }}
+      </span>
+      <i class="ri-arrow-down-s-line text-base text-text-secondary"></i>
+    </button>
+  }
 </div>
 
 <ng-template #xpertSwitcherMenu>

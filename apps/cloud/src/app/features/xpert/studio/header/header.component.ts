@@ -36,7 +36,6 @@ import { getDateLocale } from '../../../../@core'
 import { SelectionService, XpertStudioApiService } from '../domain'
 import { XpertExecutionService } from '../services/execution.service'
 import { XpertStudioComponent } from '../studio.component'
-import { XpertStudioHeaderSwitcherComponent } from './switcher/switcher.component'
 import { XpertPublishVersionComponent } from './publish/publish.component'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
 import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -54,7 +53,6 @@ import type { ZardSliderValue } from '@xpert-ai/headless-ui'
     TranslateModule,
     NgmSpinComponent,
     ChecklistComponent,
-    XpertStudioHeaderSwitcherComponent
   ],
   templateUrl: './header.component.html',
   styleUrl: './header.component.scss',

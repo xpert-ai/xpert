@@ -11,6 +11,7 @@ import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { AppService } from '../../../app.service'
 import { XpertBasicManageComponent } from './manage/manage.component'
 import { XpertService } from './xpert.service'
+import { XpertHeaderSwitcherComponent } from './switcher/switcher.component'
 
 @Component({
   standalone: true,
@@ -22,7 +23,8 @@ import { XpertService } from './xpert.service'
     CdkMenuModule,
     NgmCommonModule,
     EmojiAvatarComponent,
-    XpertBasicManageComponent
+    XpertBasicManageComponent,
+    XpertHeaderSwitcherComponent
 ],
   selector: 'xp-xpert',
   templateUrl: './xpert.component.html',

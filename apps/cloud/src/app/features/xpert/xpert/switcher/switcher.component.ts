@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
 import { rxResource } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
 import { OverlayAnimations } from '@metad/core'
@@ -9,25 +9,27 @@ import { TranslateModule } from '@ngx-translate/core'
 import { IXpert, IXpertWorkspace, OrderTypeEnum, XpertAPIService, XpertTypeEnum } from 'apps/cloud/src/app/@core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { map, of } from 'rxjs'
-import { XpertNewBlankComponent } from '../../../xpert'
-import { XpertStudioComponent } from '../../studio.component'
+import { XpertService } from '../xpert.service'
+import { XpertNewBlankComponent } from '../blank/blank.component'
 
 @Component({
-  selector: 'xpert-studio-header-switcher',
+  selector: 'xp-header-switcher',
   standalone: true,
   imports: [CommonModule, CdkMenuModule, TranslateModule, EmojiAvatarComponent],
   templateUrl: './switcher.component.html',
   animations: [...OverlayAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class XpertStudioHeaderSwitcherComponent {
+export class XpertHeaderSwitcherComponent {
   readonly #dialog = inject(Dialog)
   readonly #router = inject(Router)
   readonly #xpertAPI = inject(XpertAPIService)
-  readonly #studioComponent = inject(XpertStudioComponent)
   readonly #xpertsRequested = signal(false)
 
-  readonly xpert = this.#studioComponent.xpert
+  // Inputs
+  readonly collapsed = input(false)
+
+  readonly xpert = inject(XpertService).xpert
   readonly workspaceId = computed(() => this.xpert()?.workspaceId)
   readonly currentXpertName = computed(() => this.xpert()?.title || this.xpert()?.name)
   readonly #workspaceXperts = rxResource<IXpert[], string | undefined>({
