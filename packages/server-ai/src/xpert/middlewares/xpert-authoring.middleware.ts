@@ -1,4 +1,6 @@
+import { ToolMessage } from '@langchain/core/messages'
 import { tool } from '@langchain/core/tools'
+import { Command, getCurrentTaskInput } from '@langchain/langgraph'
 import {
   ChatMessageEventTypeEnum,
   ChatMessageTypeEnum,
@@ -20,6 +22,7 @@ import {
   AssistantDraftMutationResult,
   AuthoringAssistantEffect,
   AuthoringAssistantRequestContext,
+  AuthoringAssistantState,
   EditXpertPayload,
   Icon,
   NewXpertPayload
@@ -33,9 +36,14 @@ const requestContextSchema = z
     env: z.record(z.any()).optional(),
     targetXpertId: z.string().optional(),
     unsaved: z.boolean().optional(),
-    clientDraftHash: z.string().optional()
+    baseDraftHash: z.string().optional()
   })
   .passthrough()
+
+const stateSchema = z.object({
+  xpertId: z.string().nullable().optional(),
+  baseDraftHash: z.string().nullable().optional()
+})
 
 @Injectable()
 @AgentMiddlewareStrategy(XPERT_AUTHORING_MIDDLEWARE_NAME)
@@ -73,19 +81,99 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
 
     return {
       name: XPERT_AUTHORING_MIDDLEWARE_NAME,
+      stateSchema,
       contextSchema: requestContextSchema,
       tools: this.createTools()
     }
   }
 
   private createTools() {
-    return [this.createNewXpertTool(), this.createEditXpertTool()]
+    return [
+      this.createGetCurrentXpertTool(),
+      this.createGetAvailableAgentMiddlewaresTool(),
+      this.createGetAvailableToolsetsTool(),
+      this.createGetAvailableKnowledgebasesTool(),
+      this.createGetAvailableSkillsTool(),
+      this.createNewXpertTool(),
+      this.createEditXpertTool()
+    ]
+  }
+
+  private createGetCurrentXpertTool() {
+    return tool(
+      async (_input, config) => {
+        const context = this.resolveContext(this.readContext(config), this.readState())
+        return this.authoringService.getCurrentXpertFromContext(context)
+      },
+      {
+        name: 'getCurrentXpert',
+        description: 'Get the current Xpert Studio draft as a YAML DSL string for inspection or editing.',
+        schema: z.object({})
+      }
+    )
+  }
+
+  private createGetAvailableAgentMiddlewaresTool() {
+    return tool(
+      async (_input, config) => {
+        const context = this.resolveContext(this.readContext(config), this.readState())
+        return this.authoringService.getAvailableAgentMiddlewaresFromContext(context)
+      },
+      {
+        name: 'getAvailableAgentMiddlewares',
+        description: 'List the currently available agent middlewares for assistant context planning.',
+        schema: z.object({})
+      }
+    )
+  }
+
+  private createGetAvailableToolsetsTool() {
+    return tool(
+      async (_input, config) => {
+        const context = this.resolveContext(this.readContext(config), this.readState())
+        return this.authoringService.getAvailableToolsetsFromContext(context)
+      },
+      {
+        name: 'getAvailableToolsets',
+        description: 'List the available toolsets in the current workspace for assistant context planning.',
+        schema: z.object({})
+      }
+    )
+  }
+
+  private createGetAvailableKnowledgebasesTool() {
+    return tool(
+      async (_input, config) => {
+        const context = this.resolveContext(this.readContext(config), this.readState())
+        return this.authoringService.getAvailableKnowledgebasesFromContext(context)
+      },
+      {
+        name: 'getAvailableKnowledgebases',
+        description: 'List the available knowledgebases in the current workspace for assistant context planning.',
+        schema: z.object({})
+      }
+    )
+  }
+
+  private createGetAvailableSkillsTool() {
+    return tool(
+      async (_input, config) => {
+        const context = this.resolveContext(this.readContext(config), this.readState())
+        return this.authoringService.getAvailableSkillsFromContext(context)
+      },
+      {
+        name: 'getAvailableSkills',
+        description: 'List the available skills in the current workspace for assistant context planning.',
+        schema: z.object({})
+      }
+    )
   }
 
   private createNewXpertTool() {
     return tool(
       async (input, config) => {
-        const context = this.resolveContext(this.readContext(config))
+        const runtimeState = this.readState()
+        const context = this.resolveContext(this.readContext(config), runtimeState)
         const result = await this.authoringService.newXpertFromContext(context, input as NewXpertPayload)
 
         this.emitEffect(config?.configurable, result, {
@@ -95,7 +183,7 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
           }
         })
 
-        return result
+        return this.withAuthoringStateUpdate(result, runtimeState, config)
       },
       {
         name: 'newXpert',
@@ -112,7 +200,7 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
   private createEditXpertTool() {
     return tool(
       async (input, config) => {
-        const context = this.resolveContext(this.readContext(config))
+        const context = this.resolveContext(this.readContext(config), this.readState())
         const result = await this.authoringService.editXpertFromContext(context, input as EditXpertPayload)
 
         this.emitEffect(config?.configurable, result, {
@@ -122,27 +210,44 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
           }
         })
 
-        return result
+        return this.withAuthoringStateUpdate(result, this.readState(), config)
       },
       {
         name: 'editXpert',
-        description: 'Edit the current Xpert Studio draft in a single tool call.',
+        description: 'Replace the current Xpert Studio draft with a full YAML DSL definition.',
         schema: z.object({
-          name: z.string().optional(),
-          description: z.string().optional(),
-          avatar: z.record(z.any()).optional(),
-          prompt: z.string().optional(),
-          model: z.record(z.any()).optional(),
-          starters: z.array(z.string()).optional()
+          dslYaml: z.string()
         })
       }
     )
   }
 
-  private resolveContext(runtimeContext: unknown): AuthoringAssistantRequestContext {
-    const parsed = requestContextSchema.parse(this.normalizeContext(runtimeContext))
+  private resolveContext(
+    runtimeContext: unknown,
+    runtimeState: AuthoringAssistantState | null = null
+  ): AuthoringAssistantRequestContext {
+    const parsed = requestContextSchema.parse(this.normalizeContext(runtimeContext, runtimeState))
 
     return parsed
+  }
+
+  private readState(): AuthoringAssistantState | null {
+    try {
+      const state = getCurrentTaskInput<Record<string, unknown>>()
+      if (!state || typeof state !== 'object') {
+        return {}
+      }
+
+      const xpertId = state['xpertId']
+      const baseDraftHash = state['baseDraftHash']
+      return {
+        xpertId: typeof xpertId === 'string' ? xpertId : xpertId === null ? null : undefined,
+        baseDraftHash:
+          typeof baseDraftHash === 'string' ? baseDraftHash : baseDraftHash === null ? null : undefined
+      }
+    } catch {
+      return null
+    }
   }
 
   private readContext(config: unknown) {
@@ -169,13 +274,13 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
     return baseContext
   }
 
-  private normalizeContext(runtimeContext: unknown) {
+  private normalizeContext(runtimeContext: unknown, runtimeState: AuthoringAssistantState | null = null) {
     if (!runtimeContext || typeof runtimeContext !== 'object') {
-      return runtimeContext ?? {}
+      return this.applyResolvedAuthoringState(runtimeContext ?? {}, runtimeState)
     }
 
     const context = { ...(runtimeContext as Record<string, unknown>) }
-    for (const key of ['workspaceId', 'targetXpertId', 'clientDraftHash'] as const) {
+    for (const key of ['workspaceId', 'targetXpertId', 'baseDraftHash'] as const) {
       if (context[key] === null) {
         delete context[key]
       }
@@ -189,7 +294,107 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
       delete context['env']
     }
 
+    return this.applyResolvedAuthoringState(context, runtimeState)
+  }
+
+  private applyResolvedAuthoringState(
+    runtimeContext: unknown,
+    runtimeState: AuthoringAssistantState | null
+  ) {
+    if (!runtimeContext || typeof runtimeContext !== 'object') {
+      return runtimeContext ?? {}
+    }
+
+    const context = { ...(runtimeContext as Record<string, unknown>) }
+    const env =
+      context['env'] && typeof context['env'] === 'object' && !Array.isArray(context['env'])
+        ? (context['env'] as Record<string, unknown>)
+        : null
+
+    const stateXpertId =
+      typeof runtimeState?.xpertId === 'string' && runtimeState.xpertId.trim()
+        ? runtimeState.xpertId.trim()
+        : null
+    const explicitTargetXpertId =
+      typeof context['targetXpertId'] === 'string' && context['targetXpertId'].trim()
+        ? (context['targetXpertId'] as string).trim()
+        : null
+    const topLevelXpertId =
+      typeof context['xpertId'] === 'string' && context['xpertId'].trim()
+        ? (context['xpertId'] as string).trim()
+        : null
+    const envXpertId =
+      typeof env?.['xpertId'] === 'string' && env['xpertId'].trim() ? (env['xpertId'] as string).trim() : null
+
+    const resolvedXpertId = explicitTargetXpertId ?? topLevelXpertId ?? stateXpertId ?? envXpertId
+    if (resolvedXpertId) {
+      context['targetXpertId'] = resolvedXpertId
+    } else {
+      delete context['targetXpertId']
+    }
+
+    const stateBaseDraftHash =
+      typeof runtimeState?.baseDraftHash === 'string' && runtimeState.baseDraftHash.trim()
+        ? runtimeState.baseDraftHash.trim()
+        : null
+    const explicitBaseDraftHash =
+      typeof context['baseDraftHash'] === 'string' && context['baseDraftHash'].trim()
+        ? (context['baseDraftHash'] as string).trim()
+        : null
+    const resolvedBaseDraftHash = explicitBaseDraftHash ?? stateBaseDraftHash
+    if (resolvedBaseDraftHash) {
+      context['baseDraftHash'] = resolvedBaseDraftHash
+    } else {
+      delete context['baseDraftHash']
+    }
+
     return context
+  }
+
+  private withAuthoringStateUpdate(
+    result: AssistantDraftMutationResult,
+    runtimeState: AuthoringAssistantState | null,
+    config: unknown
+  ) {
+    const xpertId = (result.updatedDraftFragment?.['team'] as { id?: string } | undefined)?.id
+    const baseDraftHash =
+      typeof result.committedDraftHash === 'string' && result.committedDraftHash.trim()
+        ? result.committedDraftHash
+        : null
+    if (
+      runtimeState === null ||
+      result.status !== 'applied' ||
+      (result.toolName !== 'newXpert' && result.toolName !== 'editXpert') ||
+      (!xpertId && !baseDraftHash)
+    ) {
+      return result
+    }
+
+    return new Command({
+      update: {
+        ...(xpertId ? { xpertId } : {}),
+        ...(baseDraftHash ? { baseDraftHash } : {}),
+        messages: [
+          new ToolMessage({
+            name: result.toolName,
+            content: JSON.stringify(result),
+            tool_call_id: this.readToolCallId(config) ?? ''
+          })
+        ]
+      }
+    })
+  }
+
+  private readToolCallId(config: unknown) {
+    const runtimeConfig = config as
+      | {
+          metadata?: {
+            tool_call_id?: string
+          }
+        }
+      | undefined
+
+    return runtimeConfig?.metadata?.tool_call_id
   }
 
   private emitEffect(

@@ -21,6 +21,7 @@ import { HandoffQueueModule } from '../handoff/message-queue.module'
 import { XpertTriggerBootstrapRecoveryService } from './jobs/trigger-bootstrap-recovery.service'
 import { XpertAuthoringMiddleware } from './middlewares/xpert-authoring.middleware'
 import { XpertAuthoringService } from './middlewares/xpert-authoring.service'
+import { XpertToolsetModule } from '../xpert-toolset'
 
 @Module({
     imports: [
@@ -32,6 +33,7 @@ import { XpertAuthoringService } from './middlewares/xpert-authoring.service'
         RedisModule,
         forwardRef(() => KnowledgebaseModule),
         forwardRef(() => XpertAgentModule),
+        forwardRef(() => XpertToolsetModule),
         forwardRef(() => UserModule),
         forwardRef(() => XpertWorkspaceModule),
         forwardRef(() => EnvironmentModule),

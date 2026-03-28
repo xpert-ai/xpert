@@ -9,6 +9,7 @@ import {
   ChangeDetectorRef,
   Component,
   computed,
+  DestroyRef,
   effect,
   HostListener,
   inject,
@@ -89,6 +90,7 @@ import { XpertStudioStateInspectorComponent } from './components/state-inspector
 import { XpertAssistantFacade } from '../assistant-shell/assistant.facade'
 import { GROUP_NODE_TYPES, provideJsonSchemaWidgets, readClipboardNode } from './types'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { calculateHash } from '../../../@shared/utils'
 
 @Component({
   standalone: true,
@@ -159,6 +161,7 @@ export class XpertStudioComponent {
   readonly helpUrl = injectHelpWebsite()
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #clipboard = inject(Clipboard)
+  readonly #destroyRef = inject(DestroyRef)
   readonly #assistantFacade = inject(XpertAssistantFacade, { optional: true })
   readonly paramId = injectParams('id')
   readonly xpertService = inject(XpertService)
@@ -292,6 +295,11 @@ export class XpertStudioComponent {
   )
 
   constructor() {
+    this.#destroyRef.onDestroy(() => {
+      this.subscriptions$.unsubscribe()
+      this.#assistantFacade?.clearStudioContext()
+    })
+
     effect(
       () => {
         if (this.paramId()) {
@@ -299,6 +307,25 @@ export class XpertStudioComponent {
         }
       }
     )
+
+    effect(() => {
+      if (!this.#assistantFacade) {
+        return
+      }
+
+      const currentXpertId = this.id()
+      if (!currentXpertId) {
+        this.#assistantFacade.clearStudioContext()
+        return
+      }
+
+      const pristineDraft = this.apiService.pristineDraft()
+      this.#assistantFacade.setStudioContext({
+        targetXpertId: currentXpertId,
+        baseDraftHash: pristineDraft ? calculateHash(JSON.stringify(pristineDraft)) : null,
+        unsaved: this.apiService.unsaved()
+      })
+    })
 
     effect(() => {
       const refreshEvent = this.#assistantFacade?.studioRefresh()

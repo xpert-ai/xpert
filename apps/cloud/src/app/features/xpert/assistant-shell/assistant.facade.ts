@@ -20,6 +20,12 @@ export type AssistantContext = {
   xpertId: string | null
 }
 
+export type AssistantStudioRuntimeContext = {
+  targetXpertId: string
+  baseDraftHash: string | null
+  unsaved: boolean
+}
+
 type ChatKitVisualOptions = {
   locale: SupportedLocale
   theme: ChatKitTheme
@@ -62,6 +68,7 @@ export class XpertAssistantFacade {
     { initialValue: this.readRouteState() }
   )
   readonly #xpertWorkspaceCache = signal<Record<string, string | null>>({})
+  readonly #studioRuntimeContext = signal<AssistantStudioRuntimeContext | null>(null)
   readonly #studioRefresh = signal<StudioRefreshEvent | null>(null)
   readonly xpertId = computed(() => this.#routeState().xpertRouteId)
   readonly workspaceId = computed(() => {
@@ -82,45 +89,57 @@ export class XpertAssistantFacade {
   readonly studioRefresh = this.#studioRefresh.asReadonly()
 
   constructor() {
-    effect(
-      () => {
-        const assistantId = this.assistantId()
-        const workspaceId = this.workspaceId()
+    effect(() => {
+      const assistantId = this.assistantId()
+      const workspaceId = this.workspaceId()
+      const xpertId = this.xpertId()
+      const studioRuntimeContext = this.#studioRuntimeContext()
 
-        if (!assistantId) {
-          this.control.set(null)
-          return
-        }
+      if (!assistantId) {
+        this.control.set(null)
+        return
+      }
 
-        const context = untracked<AssistantContext>(() => ({
-          workspaceId,
-          xpertId: this.xpertId()
-        }))
-        this.control.set(
-          createChatKit(untracked(() => this.buildChatKitOptions(assistantId, context)))
-        )
-      },
-      { allowSignalWrites: true }
-    )
+      const context = untracked<AssistantContext>(() => ({
+        workspaceId,
+        xpertId
+      }))
+      this.control.set(
+        createChatKit(untracked(() => this.buildChatKitOptions(assistantId, context, undefined, studioRuntimeContext)))
+      )
+    })
 
     effect(() => {
       const control = this.control()
       const assistantId = this.assistantId()
       const locale = this.locale()
       const theme = this.theme()
+      const workspaceId = this.workspaceId()
+      const xpertId = this.xpertId()
+      const studioRuntimeContext = this.#studioRuntimeContext()
 
       if (!control || !assistantId) {
         return
       }
 
       const context = untracked<AssistantContext>(() => ({
-        workspaceId: this.workspaceId(),
-        xpertId: this.xpertId()
+        workspaceId,
+        xpertId
       }))
 
       control.setOptions(
-        untracked(() => this.buildChatKitOptions(assistantId, context, { locale, theme }))
+        untracked(() => this.buildChatKitOptions(assistantId, context, { locale, theme }, studioRuntimeContext))
       )
+    })
+
+    effect(() => {
+      if (this.xpertId()) {
+        return
+      }
+
+      if (this.#studioRuntimeContext()) {
+        this.#studioRuntimeContext.set(null)
+      }
     })
 
     this.watchXpertWorkspace()
@@ -135,6 +154,32 @@ export class XpertAssistantFacade {
       xpertId,
       nonce: Date.now()
     })
+  }
+
+  setStudioContext(context: AssistantStudioRuntimeContext | null) {
+    if (!context?.targetXpertId) {
+      this.clearStudioContext()
+      return
+    }
+
+    const current = this.#studioRuntimeContext()
+    if (
+      current?.targetXpertId === context.targetXpertId &&
+      current?.baseDraftHash === context.baseDraftHash &&
+      current?.unsaved === context.unsaved
+    ) {
+      return
+    }
+
+    this.#studioRuntimeContext.set(context)
+  }
+
+  clearStudioContext() {
+    if (!this.#studioRuntimeContext()) {
+      return
+    }
+
+    this.#studioRuntimeContext.set(null)
   }
 
   handleEffect(event: ChatKitEffectEvent) {
@@ -172,7 +217,7 @@ export class XpertAssistantFacade {
           }
 
           return this.#xpertService.getTeam(xpertId).pipe(
-            map((team) => ({
+            map((team: { workspaceId?: string | null }) => ({
               xpertId,
               workspaceId: team.workspaceId ?? null
             }))
@@ -193,7 +238,7 @@ export class XpertAssistantFacade {
   private readRouteState(): AssistantRouteState {
     const url = this.#router.url.split('?')[0]
     const workspaceMatch = url.match(/^\/xpert\/w\/([^/]+)/)
-    const xpertMatch = url.match(/^\/xpert\/x\/([^/]+)/)
+    const xpertMatch = url.match(/^\/xpert\/x\/([^/]+)\/agents(?:\/|$)/)
 
     return {
       workspaceRouteId: workspaceMatch?.[1] ?? null,
@@ -222,8 +267,11 @@ export class XpertAssistantFacade {
   private buildChatKitOptions(
     assistantId: string,
     context: AssistantContext,
-    visualOptions?: ChatKitVisualOptions
+    visualOptions?: ChatKitVisualOptions,
+    studioRuntimeContext?: AssistantStudioRuntimeContext | null
   ): Parameters<typeof createChatKit>[0] {
+    const requestContext = this.buildRequestContext(context, studioRuntimeContext)
+
     return {
       frameUrl: this.frameUrl(),
       api: {
@@ -239,12 +287,7 @@ export class XpertAssistantFacade {
         }
       },
       request: {
-        context: {
-          env: {
-            workspaceId: context.workspaceId,
-            xpertId: context.xpertId
-          }
-        }
+        context: requestContext
       },
       onEffect: (event) => {
         this.handleEffect(event)
@@ -254,5 +297,35 @@ export class XpertAssistantFacade {
         this.#toastr.error(message)
       }
     }
+  }
+
+  private buildRequestContext(
+    context: AssistantContext,
+    studioRuntimeContext?: AssistantStudioRuntimeContext | null
+  ): Record<string, unknown> {
+    const requestContext: Record<string, unknown> = {}
+    const env: Record<string, string> = {}
+
+    if (context.workspaceId) {
+      env['workspaceId'] = context.workspaceId
+    }
+    if (context.xpertId) {
+      env['xpertId'] = context.xpertId
+    }
+
+    if (Object.keys(env).length) {
+      requestContext['env'] = env
+    }
+
+    if (context.xpertId && studioRuntimeContext?.targetXpertId) {
+      requestContext['targetXpertId'] = studioRuntimeContext.targetXpertId
+      requestContext['unsaved'] = studioRuntimeContext.unsaved
+
+      if (studioRuntimeContext.baseDraftHash) {
+        requestContext['baseDraftHash'] = studioRuntimeContext.baseDraftHash
+      }
+    }
+
+    return requestContext
   }
 }

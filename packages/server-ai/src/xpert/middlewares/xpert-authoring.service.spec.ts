@@ -2,69 +2,159 @@ jest.mock('../xpert.service', () => ({
   XpertService: class XpertService {}
 }))
 
+jest.mock('@metad/server-core', () => ({
+  RequestContext: {
+    currentUser: jest.fn()
+  }
+}))
+
+jest.mock('../../knowledgebase/knowledgebase.service', () => ({
+  KnowledgebaseService: class KnowledgebaseService {}
+}))
+
+jest.mock('../../xpert-agent/xpert-agent.service', () => ({
+  XpertAgentService: class XpertAgentService {}
+}))
+
+jest.mock('../../xpert-toolset/xpert-toolset.service', () => ({
+  XpertToolsetService: class XpertToolsetService {}
+}))
+
 import { createHash } from 'crypto'
-import { AiModelTypeEnum } from '@metad/contracts'
+import { RequestContext } from '@metad/server-core'
+import { XpertExportCommand, XpertImportCommand } from '../commands'
+import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
 import { XpertAuthoringService } from './xpert-authoring.service'
 
 describe('XpertAuthoringService', () => {
-  it('reloads the persisted xpert before building the workspace draft', async () => {
-    const createdXpert = {
-      id: 'xpert-1',
-      name: 'Support Expert',
-      title: 'Support Expert',
-      workspaceId: null,
-      graph: {
-        nodes: [
-          {
-            type: 'agent',
-            key: 'Agent_partial',
-            position: { x: 0, y: 0 },
-            entity: {
-              key: 'Agent_partial'
-            }
-          }
-        ],
-        connections: []
-      }
-    }
-    const persistedXpert = {
-      id: 'xpert-1',
-      name: 'Support Expert',
-      title: 'Support Expert',
-      type: 'agent',
-      workspaceId: 'workspace-1',
-      graph: {
-        nodes: [
-          {
-            type: 'agent',
+  const buildPersistedXpert = (overrides: Record<string, any> = {}) => ({
+    id: 'xpert-1',
+    name: 'Support Expert',
+    title: 'Support Expert',
+    slug: 'support-expert',
+    type: 'agent',
+    workspaceId: 'workspace-1',
+    graph: {
+      nodes: [
+        {
+          type: 'agent',
+          key: 'Agent_full',
+          position: { x: 0, y: 0 },
+          entity: {
             key: 'Agent_full',
-            position: { x: 0, y: 0 },
-            entity: {
-              key: 'Agent_full',
-              name: 'Support Expert',
-              title: 'Support Expert'
-            }
+            name: 'Support Expert',
+            title: 'Support Expert',
+            prompt: 'Help users'
           }
-        ],
-        connections: []
-      },
-      agent: {
-        key: 'Agent_full',
-        name: 'Support Expert',
-        title: 'Support Expert'
-      }
-    }
+        }
+      ],
+      connections: []
+    },
+    agent: {
+      id: 'agent-1',
+      key: 'Agent_full',
+      name: 'Support Expert',
+      title: 'Support Expert',
+      prompt: 'Help users'
+    },
+    ...overrides
+  })
 
+  const createService = (overrides: {
+    xpertService?: Record<string, any>
+    commandBus?: Record<string, any>
+    queryBus?: Record<string, any>
+    xpertAgentService?: Record<string, any>
+    xpertToolsetService?: Record<string, any>
+    knowledgebaseService?: Record<string, any>
+  } = {}) => {
+    const persistedXpert = buildPersistedXpert()
     const xpertService = {
-      create: jest.fn().mockResolvedValue(createdXpert),
+      create: jest.fn().mockResolvedValue({ id: persistedXpert.id }),
       validateName: jest.fn().mockResolvedValue(true),
       saveDraft: jest.fn().mockImplementation(async (_id, draft) => draft),
       repository: {
         findOne: jest.fn().mockResolvedValue(persistedXpert)
-      }
+      },
+      ...overrides.xpertService
+    }
+    const commandBus = {
+      execute: jest.fn().mockImplementation((command) => {
+        if (command instanceof XpertExportCommand) {
+          return Promise.resolve({
+            team: {
+              id: persistedXpert.id,
+              name: persistedXpert.name,
+              title: persistedXpert.title,
+              agent: {
+                key: persistedXpert.agent.key
+              }
+            },
+            nodes: persistedXpert.graph.nodes,
+            connections: persistedXpert.graph.connections
+          })
+        }
+
+        return Promise.resolve(persistedXpert)
+      }),
+      ...overrides.commandBus
+    }
+    const queryBus = {
+      execute: jest.fn().mockResolvedValue([]),
+      ...overrides.queryBus
+    }
+    const xpertAgentService = {
+      getMiddlewareStrategies: jest.fn().mockReturnValue([]),
+      ...overrides.xpertAgentService
+    }
+    const xpertToolsetService = {
+      getAllByWorkspace: jest.fn().mockResolvedValue({ items: [] }),
+      afterLoad: jest.fn().mockImplementation(async (items) => items),
+      ...overrides.xpertToolsetService
+    }
+    const knowledgebaseService = {
+      getAllByWorkspace: jest.fn().mockResolvedValue({ items: [] }),
+      ...overrides.knowledgebaseService
     }
 
-    const service = new XpertAuthoringService(xpertService as any)
+    return {
+      xpertService,
+      commandBus,
+      queryBus,
+      xpertAgentService,
+      xpertToolsetService,
+      knowledgebaseService,
+      service: new XpertAuthoringService(
+        xpertService as any,
+        commandBus as any,
+        queryBus as any,
+        xpertAgentService as any,
+        xpertToolsetService as any,
+        knowledgebaseService as any
+      )
+    }
+  }
+
+  beforeEach(() => {
+    ;(RequestContext.currentUser as jest.Mock).mockReturnValue({ id: 'user-1' })
+  })
+
+  it('reloads the persisted xpert before building the workspace draft and returns yaml', async () => {
+    const createdXpert = {
+      id: 'xpert-1',
+      name: 'Support Expert',
+      title: 'Support Expert',
+      workspaceId: null
+    }
+    const persistedXpert = buildPersistedXpert()
+    const { service, xpertService } = createService({
+      xpertService: {
+        create: jest.fn().mockResolvedValue(createdXpert),
+        repository: {
+          findOne: jest.fn().mockResolvedValue(persistedXpert)
+        }
+      }
+    })
 
     const result = await service.newXpertFromContext(
       {
@@ -104,6 +194,7 @@ describe('XpertAuthoringService', () => {
       expect.objectContaining({
         status: 'applied',
         toolName: 'newXpert',
+        dslYaml: expect.stringContaining('Support Expert'),
         updatedDraftFragment: expect.objectContaining({
           team: expect.objectContaining({
             id: 'xpert-1',
@@ -115,40 +206,7 @@ describe('XpertAuthoringService', () => {
   })
 
   it('uses context.env.workspaceId when creating a new draft', async () => {
-    const createdXpert = {
-      id: 'xpert-2',
-      name: 'Support Expert',
-      title: 'Support Expert',
-      workspaceId: 'workspace-from-env'
-    }
-
-    const persistedXpert = {
-      id: 'xpert-2',
-      name: 'Support Expert',
-      title: 'Support Expert',
-      type: 'agent',
-      workspaceId: 'workspace-from-env',
-      graph: {
-        nodes: [],
-        connections: []
-      },
-      agent: {
-        key: 'Agent_full',
-        name: 'Support Expert',
-        title: 'Support Expert'
-      }
-    }
-
-    const xpertService = {
-      create: jest.fn().mockResolvedValue(createdXpert),
-      validateName: jest.fn().mockResolvedValue(true),
-      saveDraft: jest.fn().mockImplementation(async (_id, draft) => draft),
-      repository: {
-        findOne: jest.fn().mockResolvedValue(persistedXpert)
-      }
-    }
-
-    const service = new XpertAuthoringService(xpertService as any)
+    const { service, xpertService } = createService()
 
     await service.newXpertFromContext(
       {
@@ -170,22 +228,11 @@ describe('XpertAuthoringService', () => {
     )
   })
 
-  it('rejects workspace draft creation when env.workspaceId is missing', async () => {
-    const xpertService = {
-      create: jest.fn(),
-      validateName: jest.fn(),
-      saveDraft: jest.fn(),
-      repository: {
-        findOne: jest.fn()
-      }
-    }
-
-    const service = new XpertAuthoringService(xpertService as any)
+  it('rejects workspace draft creation when workspaceId is missing from both env and top-level context', async () => {
+    const { service, xpertService } = createService()
 
     const result = await service.newXpertFromContext(
-      {
-        workspaceId: 'assistant-workspace'
-      },
+      {},
       {
         userIntent: 'Create a support expert'
       }
@@ -201,124 +248,245 @@ describe('XpertAuthoringService', () => {
     expect(xpertService.create).not.toHaveBeenCalled()
   })
 
-  it('updates team, primary agent and starters in a single edit', async () => {
-    const currentDraft = {
-      team: {
-        id: 'xpert-3',
-        name: 'Support Expert',
-        title: 'Support Expert',
-        description: 'Old description',
-        starters: ['Hello'],
-        agent: {
-          key: 'Agent_1',
-          name: 'Support Expert',
-          title: 'Support Expert',
-          description: 'Old agent description',
-          prompt: 'Old prompt',
-          copilotModel: {
-            modelType: AiModelTypeEnum.LLM,
-            model: 'gpt-4o'
-          }
-        }
-      },
-      nodes: [
-        {
-          type: 'agent',
-          key: 'Agent_1',
-          position: { x: 0, y: 0 },
-          hash: 'old-node-hash',
-          entity: {
-            key: 'Agent_1',
-            name: 'Support Expert',
-            title: 'Support Expert',
-            description: 'Old agent description',
-            prompt: 'Old prompt',
-            copilotModel: {
-              modelType: AiModelTypeEnum.LLM,
-              model: 'gpt-4o'
-            }
-          }
-        }
-      ],
-      connections: []
-    }
-    const xpert = {
-      id: 'xpert-3',
-      draft: currentDraft
-    }
+  it('falls back to top-level workspaceId when env.workspaceId is absent', async () => {
+    const { service, xpertService } = createService()
 
-    const xpertService = {
-      saveDraft: jest.fn().mockImplementation(async (_id, draft) => draft),
-      repository: {
-        findOne: jest.fn().mockResolvedValue(xpert)
-      }
-    }
-
-    const service = new XpertAuthoringService(xpertService as any)
-    const currentDraftHash = (service as any).calculateDraftHash(currentDraft)
-
-    const result = await service.editXpertFromContext(
+    await service.newXpertFromContext(
       {
-        targetXpertId: 'xpert-3',
-        clientDraftHash: currentDraftHash
+        workspaceId: 'workspace-top-level'
       },
       {
-        name: 'Support Copilot',
-        description: 'New shared description',
-        prompt: 'New prompt',
-        model: {
-          modelType: AiModelTypeEnum.LLM,
-          model: 'gpt-5'
-        },
-        starters: ['How can I help?', 'Show me the latest status']
+        userIntent: 'Create a support expert'
       }
     )
 
-    expect(xpertService.saveDraft).toHaveBeenCalledTimes(1)
-
-    const savedDraft = xpertService.saveDraft.mock.calls[0][1]
-    expect(savedDraft.team).toEqual(
+    expect(xpertService.create).toHaveBeenCalledWith(
       expect.objectContaining({
-        name: 'Support Copilot',
-        title: 'Support Copilot',
-        description: 'New shared description',
-        starters: ['How can I help?', 'Show me the latest status']
-      })
-    )
-    expect(savedDraft.team.agent).toEqual(
-      expect.objectContaining({
-        key: 'Agent_1',
-        name: 'Support Copilot',
-        title: 'Support Copilot',
-        description: 'New shared description',
-        prompt: 'New prompt',
-        copilotModel: expect.objectContaining({
-          model: 'gpt-5'
-        })
-      })
-    )
-    expect(savedDraft.nodes[0].entity).toEqual(
-      expect.objectContaining({
-        name: 'Support Copilot',
-        title: 'Support Copilot',
-        description: 'New shared description',
-        prompt: 'New prompt'
-      })
-    )
-    expect(savedDraft.nodes[0].hash).not.toBe('old-node-hash')
-    expect(result).toEqual(
-      expect.objectContaining({
-        status: 'applied',
-        toolName: 'editXpert',
-        requiresRefresh: true
+        workspaceId: 'workspace-top-level'
       })
     )
   })
 
-  it('rejects editXpert when no supported fields are provided', async () => {
+  it('returns the current xpert as yaml dsl', async () => {
+    const { service, commandBus } = createService()
+
+    const result = await service.getCurrentXpertFromContext({
+      targetXpertId: 'xpert-1'
+    })
+
+    expect(commandBus.execute).toHaveBeenCalledWith(expect.any(XpertExportCommand))
+    expect(result).toEqual(
+      expect.objectContaining({
+        xpertId: 'xpert-1',
+        dslYaml: expect.stringContaining('Support Expert')
+      })
+    )
+  })
+
+  it('returns a rejected current xpert result when targetXpertId is missing', async () => {
+    const { service } = createService()
+
+    const result = await service.getCurrentXpertFromContext({})
+
+    expect(result).toEqual({
+      xpertId: null,
+      dslYaml: null,
+      summary: 'Missing xpertId for current Xpert DSL export.'
+    })
+  })
+
+  it('returns available agent middlewares as a compact catalog', async () => {
+    const { service, xpertAgentService } = createService({
+      xpertAgentService: {
+        getMiddlewareStrategies: jest.fn().mockReturnValue([
+          {
+            meta: {
+              name: 'XpertAuthoringMiddleware',
+              label: {
+                en_US: 'Xpert Authoring Middleware'
+              },
+              description: {
+                en_US: 'Provides authoring tools.'
+              },
+              icon: {
+                type: 'svg',
+                value: '<svg />'
+              },
+              configSchema: {
+                type: 'object',
+                properties: {}
+              }
+            }
+          }
+        ])
+      }
+    })
+
+    const result = await service.getAvailableAgentMiddlewaresFromContext({
+      env: {
+        workspaceId: 'workspace-1'
+      }
+    })
+
+    expect(xpertAgentService.getMiddlewareStrategies).toHaveBeenCalled()
+    expect(result).toEqual({
+      status: 'available',
+      summary: 'Found 1 agent middlewares available to the assistant.',
+      total: 1,
+      workspaceId: 'workspace-1',
+      items: [
+        expect.objectContaining({
+          name: 'XpertAuthoringMiddleware'
+        })
+      ]
+    })
+  })
+
+  it('rejects toolset catalog lookup when workspaceId is missing', async () => {
+    const { service, xpertToolsetService } = createService()
+
+    const result = await service.getAvailableToolsetsFromContext({})
+
+    expect(result).toEqual({
+      status: 'rejected',
+      summary: 'Missing workspaceId in request context.',
+      total: 0,
+      workspaceId: null,
+      items: []
+    })
+    expect(xpertToolsetService.getAllByWorkspace).not.toHaveBeenCalled()
+  })
+
+  it('returns toolsets as a compact workspace catalog', async () => {
+    const { service, xpertToolsetService } = createService({
+      xpertToolsetService: {
+        getAllByWorkspace: jest.fn().mockResolvedValue({
+          items: [
+            {
+              id: 'toolset-1',
+              name: 'Support Tools',
+              category: 'builtin',
+              type: 'search',
+              description: 'Search tools',
+              avatar: { type: 'icon', value: 'wrench' },
+              tags: [{ name: 'search' }, { name: 'support' }]
+            }
+          ]
+        }),
+        afterLoad: jest.fn().mockImplementation(async (items) => items)
+      }
+    })
+
+    const result = await service.getAvailableToolsetsFromContext({
+      env: {
+        workspaceId: 'workspace-1'
+      }
+    })
+
+    expect(xpertToolsetService.getAllByWorkspace).toHaveBeenCalledWith(
+      'workspace-1',
+      {},
+      false,
+      expect.objectContaining({ id: 'user-1' })
+    )
+    expect(xpertToolsetService.afterLoad).toHaveBeenCalled()
+    expect(result).toEqual({
+      status: 'available',
+      summary: "Found 1 toolsets available in workspace 'workspace-1'.",
+      total: 1,
+      workspaceId: 'workspace-1',
+      items: [
+        {
+          id: 'toolset-1',
+          name: 'Support Tools',
+          category: 'builtin',
+          type: 'search',
+          description: 'Search tools',
+          tags: ['search', 'support'],
+          avatar: { type: 'icon', value: 'wrench' }
+        }
+      ]
+    })
+  })
+
+  it('returns knowledgebases as a compact workspace catalog', async () => {
+    const { service, knowledgebaseService } = createService({
+      knowledgebaseService: {
+        getAllByWorkspace: jest.fn().mockResolvedValue({
+          items: [
+            {
+              id: 'kb-1',
+              name: 'Support KB',
+              description: 'FAQ and runbooks',
+              status: 'indexed',
+              permission: 'Organization',
+              language: 'English',
+              avatar: { type: 'icon', value: 'book' }
+            }
+          ]
+        })
+      }
+    })
+
+    const result = await service.getAvailableKnowledgebasesFromContext({
+      env: {
+        workspaceId: 'workspace-1'
+      }
+    })
+
+    expect(knowledgebaseService.getAllByWorkspace).toHaveBeenCalledWith(
+      'workspace-1',
+      {},
+      false,
+      expect.objectContaining({ id: 'user-1' })
+    )
+    expect(result).toEqual({
+      status: 'available',
+      summary: "Found 1 knowledgebases available in workspace 'workspace-1'.",
+      total: 1,
+      workspaceId: 'workspace-1',
+      items: [
+        {
+          id: 'kb-1',
+          name: 'Support KB',
+          description: 'FAQ and runbooks',
+          status: 'indexed',
+          permission: 'Organization',
+          language: 'English',
+          avatar: { type: 'icon', value: 'book' }
+        }
+      ]
+    })
+  })
+
+  it('returns the current placeholder skill catalog as an empty available result', async () => {
+    const { service, queryBus } = createService({
+      queryBus: {
+        execute: jest.fn().mockResolvedValue([])
+      }
+    })
+
+    const result = await service.getAvailableSkillsFromContext({
+      env: {
+        workspaceId: 'workspace-1'
+      }
+    })
+
+    expect(queryBus.execute).toHaveBeenCalledWith(expect.any(ListWorkspaceSkillsQuery))
+    expect(result).toEqual({
+      status: 'available',
+      summary: "No skills are currently available in workspace 'workspace-1'.",
+      total: 0,
+      workspaceId: 'workspace-1',
+      items: []
+    })
+  })
+
+  it('rejects editXpert when the yaml is invalid', async () => {
     const currentDraft = {
       team: {
-        id: 'xpert-4',
+        id: 'xpert-3',
+        name: 'Support Expert',
         agent: {
           key: 'Agent_1'
         }
@@ -326,56 +494,50 @@ describe('XpertAuthoringService', () => {
       nodes: [],
       connections: []
     }
-    const xpert = {
-      id: 'xpert-4',
-      draft: currentDraft
-    }
-
-    const xpertService = {
-      saveDraft: jest.fn(),
-      repository: {
-        findOne: jest.fn().mockResolvedValue(xpert)
+    const { service, commandBus } = createService({
+      xpertService: {
+        repository: {
+          findOne: jest.fn().mockResolvedValue(
+            buildPersistedXpert({
+              id: 'xpert-3',
+              draft: currentDraft
+            })
+          )
+        }
       }
-    }
-
-    const service = new XpertAuthoringService(xpertService as any)
+    })
 
     const result = await service.editXpertFromContext(
       {
-        targetXpertId: 'xpert-4',
-        clientDraftHash: (service as any).calculateDraftHash(currentDraft)
+        targetXpertId: 'xpert-3',
+        baseDraftHash: (service as any).calculateDraftHash(currentDraft)
       },
-      {}
+      {
+        dslYaml: 'team: ['
+      }
     )
 
     expect(result).toEqual(
       expect.objectContaining({
         status: 'rejected',
         toolName: 'editXpert',
-        summary: 'No supported fields were provided for editXpert.'
+        summary: 'Invalid YAML DSL provided for editXpert.'
       })
     )
-    expect(xpertService.saveDraft).not.toHaveBeenCalled()
+    expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(XpertImportCommand))
   })
 
   it('returns unsaved-local conflict before loading the draft', async () => {
-    const xpertService = {
-      saveDraft: jest.fn(),
-      repository: {
-        findOne: jest.fn()
-      }
-    }
-
-    const service = new XpertAuthoringService(xpertService as any)
+    const { service, xpertService } = createService()
 
     const result = await service.editXpertFromContext(
       {
         targetXpertId: 'xpert-5',
-        clientDraftHash: 'hash-1',
+        baseDraftHash: 'hash-1',
         unsaved: true
       },
       {
-        prompt: 'New prompt'
+        dslYaml: 'team:\n  name: Support Expert'
       }
     )
 
@@ -400,28 +562,27 @@ describe('XpertAuthoringService', () => {
       nodes: [],
       connections: []
     }
-    const xpert = {
-      id: 'xpert-6',
-      draft: currentDraft
-    }
-
-    const xpertService = {
-      saveDraft: jest.fn(),
-      repository: {
-        findOne: jest.fn().mockResolvedValue(xpert)
+    const { service, commandBus } = createService({
+      xpertService: {
+        repository: {
+          findOne: jest.fn().mockResolvedValue(
+            buildPersistedXpert({
+              id: 'xpert-6',
+              draft: currentDraft
+            })
+          )
+        }
       }
-    }
-
-    const service = new XpertAuthoringService(xpertService as any)
+    })
     const expectedHash = createHash('sha256').update(JSON.stringify(currentDraft)).digest('hex')
 
     const result = await service.editXpertFromContext(
       {
         targetXpertId: 'xpert-6',
-        clientDraftHash: 'stale-hash'
+        baseDraftHash: 'stale-hash'
       },
       {
-        prompt: 'New prompt'
+        dslYaml: 'team:\n  name: Support Expert'
       }
     )
 
@@ -433,6 +594,133 @@ describe('XpertAuthoringService', () => {
         committedDraftHash: expectedHash
       })
     )
-    expect(xpertService.saveDraft).not.toHaveBeenCalled()
+    expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(XpertImportCommand))
+  })
+
+  it('imports yaml dsl into the current xpert and returns normalized yaml', async () => {
+    const currentDraft = {
+      team: {
+        id: 'xpert-7',
+        name: 'Support Expert',
+        title: 'Support Expert',
+        agent: {
+          key: 'Agent_full'
+        }
+      },
+      nodes: [
+        {
+          type: 'agent',
+          key: 'Agent_full',
+          position: { x: 0, y: 0 },
+          entity: {
+            key: 'Agent_full',
+            name: 'Support Expert'
+          }
+        }
+      ],
+      connections: []
+    }
+    const persistedXpert = buildPersistedXpert({
+      id: 'xpert-7',
+      draft: currentDraft
+    })
+    const commandBus = {
+      execute: jest.fn().mockImplementation((command) => {
+        if (command instanceof XpertImportCommand) {
+          return Promise.resolve(persistedXpert)
+        }
+
+        if (command instanceof XpertExportCommand) {
+          return Promise.resolve({
+            team: {
+              id: 'xpert-7',
+              name: 'Updated Expert',
+              title: 'Updated Expert',
+              agent: {
+                key: 'Agent_full'
+              }
+            },
+            nodes: [
+              {
+                type: 'agent',
+                key: 'Agent_full',
+                entity: {
+                  key: 'Agent_full',
+                  name: 'Updated Expert',
+                  prompt: 'Updated prompt'
+                }
+              }
+            ],
+            connections: []
+          })
+        }
+
+        return Promise.resolve(persistedXpert)
+      })
+    }
+    const { service } = createService({
+      xpertService: {
+        repository: {
+          findOne: jest
+            .fn()
+            .mockResolvedValueOnce(persistedXpert)
+            .mockResolvedValueOnce({
+              ...persistedXpert,
+              draft: {
+                ...currentDraft,
+                team: {
+                  ...currentDraft.team,
+                  name: 'Updated Expert',
+                  title: 'Updated Expert',
+                  description: 'Updated description',
+                  agent: {
+                    key: 'Agent_full',
+                    name: 'Updated Expert',
+                    prompt: 'Updated prompt'
+                  }
+                }
+              }
+            })
+        }
+      },
+      commandBus
+    })
+
+    const result = await service.editXpertFromContext(
+      {
+        targetXpertId: 'xpert-7',
+        baseDraftHash: (service as any).calculateDraftHash(currentDraft)
+      },
+      {
+        dslYaml: `team:
+  name: Updated Expert
+  type: agent
+  agent:
+    key: Agent_imported
+nodes:
+  - type: agent
+    key: Agent_imported
+    entity:
+      key: Agent_imported
+      name: Updated Expert
+      prompt: Updated prompt
+connections: []`
+      }
+    )
+
+    expect(commandBus.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: {
+          targetXpertId: 'xpert-7'
+        }
+      })
+    )
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'applied',
+        toolName: 'editXpert',
+        dslYaml: expect.stringContaining('Updated Expert')
+      })
+    )
   })
 })
