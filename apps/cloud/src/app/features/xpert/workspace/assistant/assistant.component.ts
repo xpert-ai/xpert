@@ -1,6 +1,5 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, input, signal } from '@angular/core'
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
@@ -8,12 +7,8 @@ import { ChatKit, ChatKitControl, createChatKit } from '@xpert-ai/chatkit-angula
 import { distinctUntilChanged, firstValueFrom, of, switchMap, tap } from 'rxjs'
 import { environment } from '../../../../../environments/environment'
 import {
-  AuthoringAssistantEffect,
-  AuthoringAssistantRequestContext,
   SupportedLocale,
   ToastrService,
-  XpertAuthoringAssistantService,
-  getErrorMessage
 } from '../../../../@core'
 import { AppService } from '../../../../app.service'
 
@@ -24,7 +19,7 @@ import { AppService } from '../../../../app.service'
   template: `
     @if (workspaceId()) {
       <div
-        class="pointer-events-none fixed inset-x-0 bottom-0 z-[70] flex justify-end p-3 sm:inset-x-auto sm:inset-y-0 sm:right-4 sm:items-start sm:pb-4 sm:pt-24"
+        class="pointer-events-none fixed inset-x-0 bottom-0 z-[70] flex flex-col justify-end p-3 sm:inset-x-auto sm:inset-y-0 sm:right-4 sm:items-start sm:pb-4 sm:pt-24"
       >
         @if (open()) {
           <section
@@ -96,8 +91,6 @@ import { AppService } from '../../../../app.service'
 export class XpertWorkspaceAssistantComponent {
   readonly workspaceId = input<string | null>(null)
 
-  readonly #assistantService = inject(XpertAuthoringAssistantService)
-  readonly #router = inject(Router)
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly #appService = inject(AppService)
@@ -118,31 +111,31 @@ export class XpertWorkspaceAssistantComponent {
   }))
 
   constructor() {
-    toObservable(this.workspaceId)
-      .pipe(
-        distinctUntilChanged(),
-        tap(() => this.loading.set(!!this.workspaceId())),
-        switchMap((workspaceId) => {
-          if (!workspaceId) {
-            return of(null)
-          }
-          if (this.configuredAssistantId) {
-            return of({ assistantId: this.configuredAssistantId })
-          }
-          return this.#assistantService.getProfile('workspace-create')
-        }),
-        takeUntilDestroyed()
-      )
-      .subscribe({
-        next: (profile) => {
-          this.profile.set(profile)
-          this.loading.set(false)
-        },
-        error: (error) => {
-          this.loading.set(false)
-          this.#toastr.error(getErrorMessage(error))
-        }
-      })
+    // toObservable(this.workspaceId)
+    //   .pipe(
+    //     distinctUntilChanged(),
+    //     tap(() => this.loading.set(!!this.workspaceId())),
+    //     switchMap((workspaceId) => {
+    //       if (!workspaceId) {
+    //         return of(null)
+    //       }
+    //       if (this.configuredAssistantId) {
+    //         return of({ assistantId: this.configuredAssistantId })
+    //       }
+    //       return this.#assistantService.getProfile('workspace-create')
+    //     }),
+    //     takeUntilDestroyed()
+    //   )
+    //   .subscribe({
+    //     next: (profile) => {
+    //       this.profile.set(profile)
+    //       this.loading.set(false)
+    //     },
+    //     error: (error) => {
+    //       this.loading.set(false)
+    //       this.#toastr.error(getErrorMessage(error))
+    //     }
+    //   })
 
     effect(
       () => {
@@ -180,18 +173,18 @@ export class XpertWorkspaceAssistantComponent {
     })
   }
 
-  private handleEffect(event: AuthoringAssistantEffect | { name: string; data?: Record<string, unknown> }) {
-    if (event.name !== 'navigate_to_studio') {
-      return
-    }
+  // private handleEffect(event: AuthoringAssistantEffect | { name: string; data?: Record<string, unknown> }) {
+  //   if (event.name !== 'navigate_to_studio') {
+  //     return
+  //   }
 
-    const xpertId = typeof event.data?.['xpertId'] === 'string' ? event.data['xpertId'] : null
-    if (!xpertId) {
-      return
-    }
+  //   const xpertId = typeof event.data?.['xpertId'] === 'string' ? event.data['xpertId'] : null
+  //   if (!xpertId) {
+  //     return
+  //   }
 
-    void this.#router.navigate(['/xpert/x', xpertId, 'agents'])
-  }
+  //   void this.#router.navigate(['/xpert/x', xpertId, 'agents'])
+  // }
 
   private normalizeChatKitLocale(locale?: string | null): SupportedLocale {
     switch (locale) {
@@ -218,20 +211,21 @@ export class XpertWorkspaceAssistantComponent {
         apiUrl: this.directApiUrl(),
         xpertId: assistantId,
         getClientSecret: async () => {
-          if (this.directApiKey()) {
-            const response = await fetch(this.directApiUrl() + '/v1/chatkit/sessions', {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${this.directApiKey()}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({})
-            })
-            const session = await response.json()
-            return session.client_secret
-          }
-          const session = await firstValueFrom(this.#assistantService.createChatkitSession())
-          return session.client_secret
+          // if (this.directApiKey()) {
+          //   const response = await fetch(this.directApiUrl() + '/v1/chatkit/sessions', {
+          //     method: 'POST',
+          //     headers: {
+          //       Authorization: `Bearer ${this.directApiKey()}`,
+          //       'Content-Type': 'application/json'
+          //     },
+          //     body: JSON.stringify({})
+          //   })
+          //   const session = await response.json()
+          //   return session.client_secret
+          // }
+          // const session = await firstValueFrom(this.#assistantService.createChatkitSession())
+          // return session.client_secret
+          return environment.CHATKIT_API_KEY
         }
       },
       locale: this.locale(),
@@ -243,15 +237,14 @@ export class XpertWorkspaceAssistantComponent {
       },
       request: {
         context: {
-          mode: 'workspace-create',
-          workspaceId: this.workspaceId(),
-          targetXpertId: null,
-          unsaved: false,
-          clientDraftHash: null
-        } satisfies AuthoringAssistantRequestContext
+          env: {
+            workspaceId: this.workspaceId(),
+          }
+        }
       },
       onEffect: (event) => {
-        this.handleEffect(event)
+        // this.handleEffect(event)
+        console.log(event)
       },
       onError: (event) => {
         const message = event?.error?.message || this.#translate.instant('PAC.KEY_WORDS.Error', { Default: 'Error' })

@@ -3,6 +3,56 @@ jest.mock('isolated-vm', () => ({
     Isolate: class Isolate {}
 }))
 
+jest.mock('@metad/server-core', () => ({
+    RequestContext: {
+        currentTenantId: jest.fn(),
+        getOrganizationId: jest.fn(),
+        currentUserId: jest.fn(),
+        currentUser: jest.fn()
+    }
+}))
+
+jest.mock('@metad/copilot', () => ({
+    AgentRecursionLimit: 25,
+    isNil: (value: unknown) => value == null
+}))
+
+jest.mock('../../../copilot-checkpoint', () => ({
+    CopilotCheckpointSaver: class CopilotCheckpointSaver {},
+    GetCopilotCheckpointsByParentQuery: class GetCopilotCheckpointsByParentQuery {
+        constructor(...args: unknown[]) {
+            Object.assign(this, { args })
+        }
+    }
+}))
+
+jest.mock('../../agent', () => ({
+    createMapStreamEvents: () => (event: unknown) => event
+}))
+
+jest.mock('../../../environment', () => {
+    const actual = jest.requireActual('../../../environment/utils')
+
+    return {
+        EnvironmentService: class EnvironmentService {},
+        mergeRuntimeContextWithEnv: actual.mergeRuntimeContextWithEnv
+    }
+})
+
+jest.mock('../../../shared', () => ({
+    getWorkspace: jest.fn(),
+    VolumeClient: class VolumeClient {
+        static getWorkspacePath = jest.fn()
+        static getWorkspaceUrl = jest.fn()
+    },
+    ExecutionCancelService: class ExecutionCancelService {}
+}))
+
+jest.mock('../../../knowledgebase', () => ({
+    KnowledgebaseTaskService: class KnowledgebaseTaskService {},
+    KnowledgeTaskServiceQuery: class KnowledgeTaskServiceQuery {}
+}))
+
 import { RequestContext } from '@metad/server-core'
 import { I18nService } from 'nestjs-i18n'
 import { Observable } from 'rxjs'
@@ -53,10 +103,10 @@ describe('XpertAgentInvokeHandler', () => {
             executionCancelService as unknown as ExecutionCancelService
         )
 
-        jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')
-        jest.spyOn(RequestContext, 'getOrganizationId').mockReturnValue('org-1')
-        jest.spyOn(RequestContext, 'currentUserId').mockReturnValue('user-1')
-        jest.spyOn(RequestContext, 'currentUser').mockReturnValue({
+        ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
+        ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
+        ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
+        ;(RequestContext.currentUser as jest.Mock).mockReturnValue({
             id: 'user-1',
             email: 'user@example.com',
             timeZone: 'Asia/Shanghai',
@@ -68,6 +118,7 @@ describe('XpertAgentInvokeHandler', () => {
 
     afterEach(() => {
         jest.restoreAllMocks()
+        jest.clearAllMocks()
     })
 
     it('replays from checkpoint without sending a fresh graph input', async () => {
@@ -131,6 +182,21 @@ describe('XpertAgentInvokeHandler', () => {
                     isDraft: true,
                     thread_id: 'thread-1',
                     checkpointId: 'checkpoint-parent',
+                    context: {
+                        source: 'run-create',
+                        env: {
+                            existing: 'value'
+                        }
+                    },
+                    environment: {
+                        variables: [
+                            {
+                                name: 'workspaceId',
+                                value: 'workspace-1',
+                                type: 'secret'
+                            }
+                        ]
+                    },
                     execution: {
                         id: 'execution-1',
                         threadId: 'thread-1'
@@ -156,7 +222,14 @@ describe('XpertAgentInvokeHandler', () => {
         expect(graph.streamEvents.mock.calls[0][1]).toMatchObject({
             configurable: {
                 thread_id: 'thread-1',
-                checkpoint_id: 'checkpoint-parent'
+                checkpoint_id: 'checkpoint-parent',
+                context: {
+                    source: 'run-create',
+                    env: {
+                        existing: 'value',
+                        workspaceId: 'workspace-1'
+                    }
+                }
             }
         })
     })

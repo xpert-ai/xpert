@@ -1,19 +1,12 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
-import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit, ChatKitControl, createChatKit } from '@xpert-ai/chatkit-angular'
-import { distinctUntilChanged, firstValueFrom, of, switchMap, tap } from 'rxjs'
 import { calculateHash } from '../../../../@shared/utils'
 import {
-  AuthoringAssistantEffect,
-  AuthoringAssistantProfile,
-  AuthoringAssistantRequestContext,
   SupportedLocale,
   ToastrService,
-  XpertAuthoringAssistantService,
-  getErrorMessage
 } from '../../../../@core'
 import { AppService } from '../../../../app.service'
 import { XpertStudioApiService } from '../domain'
@@ -78,7 +71,6 @@ import { environment } from '../../../../../environments/environment'
   `
 })
 export class XpertStudioAssistantComponent {
-  readonly #assistantService = inject(XpertAuthoringAssistantService)
   readonly #studioService = inject(XpertStudioApiService)
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
@@ -86,14 +78,13 @@ export class XpertStudioAssistantComponent {
 
   readonly open = signal(false)
   readonly loading = signal(false)
-  readonly profile = signal<AuthoringAssistantProfile | null>(null)
   readonly control = signal<ChatKitControl | null>(null)
   readonly xpertId = computed(() => this.#studioService.team()?.id ?? null)
   readonly workspaceId = computed(() => this.#studioService.workspaceId())
   readonly draft = computed(() => this.#studioService.viewModel())
   readonly primaryAgent = computed(() => this.#studioService.primaryAgent())
   readonly configuredAssistantId = environment.CHATKIT_XPERT_ID || null
-  readonly assistantId = computed(() => this.configuredAssistantId || this.profile()?.assistantId || null)
+  readonly assistantId = computed(() => this.configuredAssistantId || null)
   readonly frameUrl = computed(() => environment.CHATKIT_FRAME_URL || 'https://app.xpertai.cn/chatkit')
   readonly directApiUrl = computed(() => environment.CHATKIT_API_URL || environment.API_BASE_URL + '/api/ai')
   readonly directApiKey = computed(() => environment.CHATKIT_API_KEY || null)
@@ -103,36 +94,6 @@ export class XpertStudioAssistantComponent {
   }))
 
   constructor() {
-    toObservable(this.xpertId)
-      .pipe(
-        distinctUntilChanged(),
-        tap((xpertId) => this.loading.set(!!xpertId)),
-        switchMap((xpertId) => {
-          if (!xpertId) {
-            return of(null)
-          }
-          if (this.configuredAssistantId) {
-            return of({
-              profileId: 'studio-agent-edit',
-              assistantId: this.configuredAssistantId,
-              capabilityFlags: []
-            } satisfies AuthoringAssistantProfile)
-          }
-          return this.#assistantService.getProfile('studio-agent-edit')
-        }),
-        takeUntilDestroyed()
-      )
-      .subscribe({
-        next: (profile) => {
-          this.profile.set(profile)
-          this.loading.set(false)
-        },
-        error: (error) => {
-          this.loading.set(false)
-          this.#toastr.error(getErrorMessage(error))
-        }
-      })
-
     effect(
       () => {
         const open = this.open()
@@ -169,18 +130,18 @@ export class XpertStudioAssistantComponent {
     })
   }
 
-  private handleEffect(event: AuthoringAssistantEffect | { name: string; data?: Record<string, unknown> }) {
-    if (event.name !== 'refresh_studio') {
-      return
-    }
+  // private handleEffect(event: AuthoringAssistantEffect | { name: string; data?: Record<string, unknown> }) {
+  //   if (event.name !== 'refresh_studio') {
+  //     return
+  //   }
 
-    const xpertId = typeof event.data?.['xpertId'] === 'string' ? event.data['xpertId'] : null
-    if (xpertId && xpertId !== this.xpertId()) {
-      return
-    }
+  //   const xpertId = typeof event.data?.['xpertId'] === 'string' ? event.data['xpertId'] : null
+  //   if (xpertId && xpertId !== this.xpertId()) {
+  //     return
+  //   }
 
-    this.#studioService.refresh()
-  }
+  //   this.#studioService.refresh()
+  // }
 
   private currentDraftHash() {
     const draft = this.draft()
@@ -212,20 +173,20 @@ export class XpertStudioAssistantComponent {
         apiUrl: this.directApiUrl(),
         xpertId: assistantId,
         getClientSecret: async () => {
-          if (this.directApiKey()) {
-            const response = await fetch(this.directApiUrl() + '/v1/chatkit/sessions', {
-              method: 'POST',
-              headers: {
-                Authorization: `Bearer ${this.directApiKey()}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({})
-            })
-            const session = await response.json()
-            return session.client_secret
-          }
-          const session = await firstValueFrom(this.#assistantService.createChatkitSession())
-          return session.client_secret
+          // if (this.directApiKey()) {
+          //   const response = await fetch(this.directApiUrl() + '/v1/chatkit/sessions', {
+          //     method: 'POST',
+          //     headers: {
+          //       Authorization: `Bearer ${this.directApiKey()}`,
+          //       'Content-Type': 'application/json'
+          //     },
+          //     body: JSON.stringify({})
+          //   })
+          //   const session = await response.json()
+          //   return session.client_secret
+          // }
+          // const session = await firstValueFrom(this.#assistantService.createChatkitSession())
+          return ''
         }
       },
       locale: this.locale(),
@@ -237,15 +198,14 @@ export class XpertStudioAssistantComponent {
       },
       request: {
         context: {
-          mode: 'studio-agent-edit',
-          workspaceId: this.workspaceId(),
-          targetXpertId: this.xpertId(),
-          unsaved: this.#studioService.unsaved(),
-          clientDraftHash: this.currentDraftHash()
-        } satisfies AuthoringAssistantRequestContext
+          env: {
+            workspaceId: this.workspaceId(),
+          }
+        }
       },
       onEffect: (event) => {
-        this.handleEffect(event)
+        // this.handleEffect(event)
+        console.log(event)
       },
       onError: (event) => {
         const message = event?.error?.message || this.#translate.instant('PAC.KEY_WORDS.Error', { Default: 'Error' })

@@ -64,7 +64,7 @@
                 class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm bg-hover-bg"
                 [class.bg-accent]="i === activeIndex"
                 [class.text-accent-foreground]="i === activeIndex"
-                (click)="selectOption(select, option)"
+                (click)="select(option)"
               >
                 <ngm-display-behaviour
                   class="flex-1 overflow-hidden"

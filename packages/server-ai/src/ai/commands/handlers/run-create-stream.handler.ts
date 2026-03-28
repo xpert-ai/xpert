@@ -1,5 +1,5 @@
-import { IChatConversation, TChatRequest as TChatRequestV2, XpertAgentExecutionStatusEnum } from '@metad/contracts'
-import type { TChatRequest as LegacyTChatRequest } from '@xpert-ai/chatkit-types'
+import { IChatConversation, IEnvironment, TChatRequest as TChatRequestV2, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { TChatRequest as LegacyTChatRequest } from '@xpert-ai/chatkit-types'
 import { BadRequestException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
@@ -7,10 +7,12 @@ import { finalize, map, tap } from 'rxjs/operators'
 import z from 'zod'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
+import { EnvironmentService, getContextEnvState, mergeEnvironmentWithEnvState } from '../../../environment'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { FindXpertQuery } from '../../../xpert/queries/get-one.query'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { RunCreateStreamCommand } from '../run-create-stream.command'
+import type { components } from '../../schemas/agent-protocol-schema'
 import { RedisSseStreamService } from '../../stream/redis-sse.service'
 
 const humanInputSchema = z.object({}).passthrough()
@@ -204,6 +206,22 @@ function normalizeRunCreateInput(input: unknown): unknown {
     return input
 }
 
+function getChatRequestEnvironmentId(chatRequest: TChatRequestV2): string | undefined {
+    if (chatRequest.action === 'send' || chatRequest.action === 'retry') {
+        return chatRequest.environmentId
+    }
+
+    return undefined
+}
+
+function getRunCreateContext(context: unknown): Record<string, unknown> | undefined {
+    if (!isRecord(context)) {
+        return undefined
+    }
+
+    return context
+}
+
 export function validateRunCreateInput(
     input: LegacyTChatRequest | TChatRequestV2 | unknown,
     conversation: IChatConversation
@@ -228,8 +246,24 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
     constructor(
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
+        private readonly environmentService: EnvironmentService,
         private readonly redisSseStreamService: RedisSseStreamService
     ) {}
+
+    private async resolveRequestEnvironment(
+        xpert: { environmentId?: string | null },
+        chatRequest: TChatRequestV2,
+        runtimeContext: Record<string, unknown> | undefined
+    ): Promise<IEnvironment | undefined> {
+        const environmentId = getChatRequestEnvironmentId(chatRequest) ?? xpert.environmentId ?? undefined
+
+        let environment: IEnvironment | undefined
+        if (environmentId) {
+            environment = await this.environmentService.findOne(environmentId)
+        }
+
+        return mergeEnvironmentWithEnvState(environment, getContextEnvState(runtimeContext))
+    }
 
     public async execute(command: RunCreateStreamCommand) {
         const threadId = command.threadId
@@ -243,6 +277,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
         const xpert = await this.queryBus.execute(new FindXpertQuery({ id: runCreate.assistant_id }, {}))
         const chatRequest = validateRunCreateInput(runCreate.input, conversation)
+        const runtimeContext = getRunCreateContext(runCreate.context)
+        const environment = await this.resolveRequestEnvironment(xpert, chatRequest, runtimeContext)
 
         this.#logger.warn(chatRequest, `validateRunCreateInput ${threadId}`)
 
@@ -286,6 +322,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
                 xpertId: xpert.id,
                 from: 'api',
                 execution: chatRequest.action === 'resume' ? undefined : execution,
+                ...(runtimeContext ? { context: runtimeContext } : {}),
+                environment,
                 sandboxEnvironmentId: conversation.options?.sandboxEnvironmentId
             })
         )

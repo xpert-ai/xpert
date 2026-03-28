@@ -1460,6 +1460,11 @@
 						"title": "Config",
 						"description": "The configuration for the assistant."
 					},
+					"context": {
+						"type": "object",
+						"title": "Context",
+						"description": "Static context to add to the assistant for this run."
+					},
 					"webhook": {
 						"type": "string",
 						"maxLength": 65536,

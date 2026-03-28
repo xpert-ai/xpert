@@ -573,6 +573,10 @@ export type TChatOptions = {
    * Specify additional tools
    */
   tools?: (StructuredToolInterface | RunnableToolLike)[]
+  /**
+   * Per-request runtime context forwarded to agent middleware/tools.
+   */
+  context?: Record<string, unknown>
 }
 
 /**

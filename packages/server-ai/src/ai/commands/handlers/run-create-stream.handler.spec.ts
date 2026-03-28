@@ -1,18 +1,42 @@
-import { validateRunCreateInput } from './run-create-stream.handler'
+jest.mock('../../../environment', () => {
+    const actual = jest.requireActual('../../../environment/utils')
+
+    return {
+        EnvironmentService: class EnvironmentService {},
+        getContextEnvState: actual.getContextEnvState,
+        mergeEnvironmentWithEnvState: actual.mergeEnvironmentWithEnvState
+    }
+})
+
+jest.mock('../../stream/redis-sse.service', () => ({
+    RedisSseStreamService: class RedisSseStreamService {}
+}))
+
+import { of } from 'rxjs'
+import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
+import { XpertChatCommand } from '../../../xpert/commands/chat.command'
+import { RunCreateStreamHandler, validateRunCreateInput } from './run-create-stream.handler'
+
+const conversation = {
+    id: 'conversation-1'
+} as any
 
 describe('validateRunCreateInput', () => {
     it('accepts send payloads', () => {
-        const result = validateRunCreateInput({
-            action: 'send',
-            message: {
-                input: { input: 'Hi' }
-            },
-            state: {
-                human: {
-                    input: 'Hi'
+        const result = validateRunCreateInput(
+            {
+                action: 'send',
+                message: {
+                    input: { input: 'Hi' }
+                },
+                state: {
+                    human: {
+                        input: 'Hi'
+                    }
                 }
-            }
-        })
+            },
+            conversation
+        )
 
         expect(result).toMatchObject({
             action: 'send',
@@ -28,17 +52,20 @@ describe('validateRunCreateInput', () => {
     })
 
     it('accepts resume payloads', () => {
-        const result = validateRunCreateInput({
-            action: 'resume',
-            conversationId: 'conversation-1',
-            target: {
-                aiMessageId: 'message-1',
-                executionId: 'execution-1'
+        const result = validateRunCreateInput(
+            {
+                action: 'resume',
+                conversationId: 'conversation-1',
+                target: {
+                    aiMessageId: 'message-1',
+                    executionId: 'execution-1'
+                },
+                decision: {
+                    type: 'confirm'
+                }
             },
-            decision: {
-                type: 'confirm'
-            }
-        })
+            conversation
+        )
 
         expect(result).toEqual({
             action: 'resume',
@@ -54,19 +81,22 @@ describe('validateRunCreateInput', () => {
     })
 
     it('accepts legacy send payloads and normalizes them to v2', () => {
-        const result = validateRunCreateInput({
-            id: 'client-message-1',
-            conversationId: 'conversation-1',
-            projectId: 'project-1',
-            environmentId: 'environment-1',
-            sandboxEnvironmentId: 'sandbox-1',
-            input: { input: 'Tell me a joke.' },
-            state: {
-                human: {
-                    input: 'Tell me a joke.'
+        const result = validateRunCreateInput(
+            {
+                id: 'client-message-1',
+                conversationId: 'conversation-1',
+                projectId: 'project-1',
+                environmentId: 'environment-1',
+                sandboxEnvironmentId: 'sandbox-1',
+                input: { input: 'Tell me a joke.' },
+                state: {
+                    human: {
+                        input: 'Tell me a joke.'
+                    }
                 }
-            }
-        })
+            },
+            conversation
+        )
 
         expect(result).toEqual({
             action: 'send',
@@ -87,27 +117,30 @@ describe('validateRunCreateInput', () => {
     })
 
     it('accepts legacy resume payloads and normalizes them to v2', () => {
-        const result = validateRunCreateInput({
-            conversationId: 'conversation-1',
-            id: 'message-1',
-            executionId: 'execution-1',
-            confirm: true,
-            command: {
-                resume: {
-                    approved: true
+        const result = validateRunCreateInput(
+            {
+                conversationId: 'conversation-1',
+                id: 'message-1',
+                executionId: 'execution-1',
+                confirm: true,
+                command: {
+                    resume: {
+                        approved: true
+                    },
+                    toolCalls: [{ id: 'call-1', args: { name: 'updated' } }],
+                    update: {
+                        status: 'patched'
+                    },
+                    agentKey: 'agent-1'
                 },
-                toolCalls: [{ id: 'call-1', args: { name: 'updated' } }],
-                update: {
-                    status: 'patched'
-                },
-                agentKey: 'agent-1'
-            },
-            state: {
-                human: {
-                    input: 'Continue'
+                state: {
+                    human: {
+                        input: 'Continue'
+                    }
                 }
-            }
-        })
+            },
+            conversation
+        )
 
         expect(result).toEqual({
             action: 'resume',
@@ -138,15 +171,18 @@ describe('validateRunCreateInput', () => {
     })
 
     it('accepts legacy retry payloads and normalizes them to v2', () => {
-        const result = validateRunCreateInput({
-            conversationId: 'conversation-1',
-            id: 'message-1',
-            executionId: 'execution-1',
-            retry: true,
-            environmentId: 'environment-1',
-            sandboxEnvironmentId: 'sandbox-1',
-            input: { input: 'Retry this' }
-        })
+        const result = validateRunCreateInput(
+            {
+                conversationId: 'conversation-1',
+                id: 'message-1',
+                executionId: 'execution-1',
+                retry: true,
+                environmentId: 'environment-1',
+                sandboxEnvironmentId: 'sandbox-1',
+                input: { input: 'Retry this' }
+            },
+            conversation
+        )
 
         expect(result).toEqual({
             action: 'retry',
@@ -161,6 +197,168 @@ describe('validateRunCreateInput', () => {
     })
 
     it('rejects missing input', () => {
-        expect(() => validateRunCreateInput({})).toThrow()
+        expect(() => validateRunCreateInput({}, conversation)).toThrow()
+    })
+})
+
+describe('RunCreateStreamHandler environment resolution', () => {
+    it('merges run context env into the resolved environment', async () => {
+        const environmentService = {
+            findOne: jest.fn().mockResolvedValue({
+                id: 'environment-1',
+                name: 'Default Environment',
+                workspaceId: 'workspace-from-environment',
+                variables: [
+                    {
+                        name: 'region',
+                        value: 'us',
+                        type: 'default'
+                    }
+                ]
+            })
+        }
+        const handler = new RunCreateStreamHandler(
+            {} as any,
+            {} as any,
+            environmentService as any,
+            {} as any
+        )
+
+        const result = await handler['resolveRequestEnvironment'](
+            { environmentId: 'environment-1' },
+            {
+                action: 'send',
+                conversationId: 'conversation-1',
+                environmentId: 'environment-1',
+                message: {
+                    input: {
+                        input: 'Create an assistant'
+                    }
+                }
+            } as any,
+            {
+                env: {
+                    workspaceId: 'workspace-from-request'
+                }
+            } as any
+        )
+
+        expect(environmentService.findOne).toHaveBeenCalledWith('environment-1')
+        expect(result).toEqual(
+            expect.objectContaining({
+                workspaceId: 'workspace-from-environment',
+                variables: expect.arrayContaining([
+                    expect.objectContaining({
+                        name: 'workspaceId',
+                        value: 'workspace-from-request'
+                    })
+                ])
+            })
+        )
+    })
+})
+
+describe('RunCreateStreamHandler execute', () => {
+    it('forwards the full runCreate.context and merged environment to Xpert chat', async () => {
+        const commandBus = {
+            execute: jest.fn(async (command) => {
+                if (command instanceof XpertAgentExecutionUpsertCommand) {
+                    return {
+                        id: 'execution-1'
+                    }
+                }
+
+                if (command instanceof XpertChatCommand) {
+                    return of({
+                        data: {
+                            data: null
+                        }
+                    } as any)
+                }
+
+                return null
+            })
+        }
+        const queryBus = {
+            execute: jest.fn(async (query) => {
+                if (query.constructor.name === 'GetChatConversationQuery') {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        xpertId: 'xpert-1',
+                        options: {}
+                    }
+                }
+
+                return {
+                    id: 'xpert-1'
+                }
+            })
+        }
+        const handler = new RunCreateStreamHandler(
+            commandBus as any,
+            queryBus as any,
+            {
+                findOne: jest.fn().mockResolvedValue(undefined)
+            } as any,
+            {
+                appendEvent: jest.fn().mockResolvedValue(undefined),
+                appendCompleteEvent: jest.fn().mockResolvedValue(undefined)
+            } as any
+        )
+
+        await handler.execute({
+            threadId: 'thread-1',
+            runCreate: {
+                assistant_id: 'xpert-1',
+                input: {
+                    action: 'send',
+                    message: {
+                        input: {
+                            input: 'Create assistant'
+                        }
+                    }
+                },
+                context: {
+                    scope: 'workspace',
+                    target: {
+                        type: 'assistant'
+                    },
+                    env: {
+                        workspaceId: 'workspace-1',
+                        region: 'cn'
+                    }
+                }
+            }
+        } as any)
+
+        const xpertChatCommand = commandBus.execute.mock.calls.find(([command]) => command instanceof XpertChatCommand)?.[0]
+
+        expect(xpertChatCommand).toBeInstanceOf(XpertChatCommand)
+        expect(xpertChatCommand.options).toMatchObject({
+            context: {
+                scope: 'workspace',
+                target: {
+                    type: 'assistant'
+                },
+                env: {
+                    workspaceId: 'workspace-1',
+                    region: 'cn'
+                }
+            },
+            environment: {
+                name: 'Request Environment',
+                variables: expect.arrayContaining([
+                    expect.objectContaining({
+                        name: 'workspaceId',
+                        value: 'workspace-1'
+                    }),
+                    expect.objectContaining({
+                        name: 'region',
+                        value: 'cn'
+                    })
+                ])
+            }
+        })
     })
 })

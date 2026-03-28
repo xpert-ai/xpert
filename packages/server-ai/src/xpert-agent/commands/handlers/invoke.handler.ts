@@ -36,7 +36,7 @@ import { createMapStreamEvents } from '../../agent'
 import { CompleteToolCallsQuery } from '../../queries'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
-import { EnvironmentService } from '../../../environment'
+import { EnvironmentService, mergeRuntimeContextWithEnv } from '../../../environment'
 import { getWorkspace, VolumeClient, ExecutionCancelService } from '../../../shared'
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
@@ -197,6 +197,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         }
 
         const languageCode = options.language || user.preferredLanguage || 'en-US'
+        const runtimeContext = mergeRuntimeContextWithEnv(options.context, options.environment)
         let graphInput = null
         const interruptCommand = toInterruptCommand(options.resume)
         if (options.resume) {
@@ -275,6 +276,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
                     sandbox: sandboxContext,
                     copilotModel,
+                    ...(runtimeContext ? { context: runtimeContext } : {}),
                     /**
                      * @deprecated use customEvents instead
                      */

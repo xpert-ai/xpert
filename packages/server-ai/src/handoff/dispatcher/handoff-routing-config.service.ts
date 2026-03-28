@@ -208,14 +208,17 @@ export class HandoffRoutingConfigService implements OnModuleInit {
 
 	private loadConfig(): HandoffRoutingConfigSnapshot {
 		const configFilePath = this.resolveConfigFilePath()
-		const raw = loadYamlFile<unknown>(configFilePath, this.#logger, false)
-		const parsed = HandoffRoutingFileSchema.parse(raw as HandoffRoutingFile)
+		let parsed: HandoffRoutingFile = {}
+		try {
+		  const raw = loadYamlFile<unknown>(configFilePath, this.#logger, false)
+		  parsed = HandoffRoutingFileSchema.parse(raw)
+		} catch	(error) {
+			this.#logger.warn(`Failed to load handoff routing config from "${configFilePath}". Using defaults. Error: ${error.message}`)
+		}
 		const normalized = this.normalizeConfig(parsed)
-
 		this.#logger.log(
 			`Loaded handoff routing config from "${configFilePath}" (version=${normalized.version}, routes=${normalized.routes.length})`
 		)
-
 		return normalized
 	}
 

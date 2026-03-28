@@ -1,8 +1,5 @@
 import { tool } from '@langchain/core/tools'
 import {
-  AssistantDraftMutationResult,
-  AuthoringAssistantEffect,
-  AuthoringAssistantRequestContext,
   ChatMessageEventTypeEnum,
   ChatMessageTypeEnum,
   TAgentMiddlewareMeta,
@@ -18,7 +15,15 @@ import {
 } from '@xpert-ai/plugin-sdk'
 import { Subscriber } from 'rxjs'
 import { z } from 'zod/v3'
-import { XpertAuthoringDomainService } from './xpert-authoring-domain.service'
+import { XpertAuthoringService } from './xpert-authoring.service'
+import {
+  AssistantDraftMutationResult,
+  AuthoringAssistantEffect,
+  AuthoringAssistantRequestContext,
+  EditXpertPayload,
+  Icon,
+  NewXpertPayload
+} from './xpert-authoring.types'
 
 const XPERT_AUTHORING_MIDDLEWARE_NAME = 'XpertAuthoringMiddleware'
 
@@ -29,10 +34,11 @@ const middlewareOptionsSchema = z.object({
 const requestContextSchema = z
   .object({
     mode: z.enum(['workspace-create', 'studio-agent-edit']).optional(),
-    workspaceId: z.string().nullable().optional(),
-    targetXpertId: z.string().nullable().optional(),
+    workspaceId: z.string().optional(),
+    env: z.record(z.any()).optional(),
+    targetXpertId: z.string().optional(),
     unsaved: z.boolean().optional(),
-    clientDraftHash: z.string().nullable().optional()
+    clientDraftHash: z.string().optional()
   })
   .passthrough()
 
@@ -53,7 +59,7 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
     },
     icon: {
       type: 'svg',
-      value: '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor"><path d="M13.3 2.1a7 7 0 0 0 6.6 9.3l-8.6 8.6a2 2 0 1 1-2.8-2.8l8.6-8.6a7 7 0 0 0-8-9l3.3 3.3-2.1 2.1-4.9-4.9 2.1-2.1 3.1 3.1A7 7 0 0 0 13.3 2.1Z"/></svg>',
+      value: Icon,
       color: 'blue'
     },
     configSchema: {
@@ -68,7 +74,7 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
     }
   }
 
-  constructor(private readonly authoringDomainService: XpertAuthoringDomainService) {}
+  constructor(private readonly authoringService: XpertAuthoringService) {}
 
   createMiddleware(
     options: unknown,
@@ -86,55 +92,24 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
 
   private createTools(mode: AuthoringMiddlewareMode) {
     if (mode === 'workspace-create') {
-      return [
-        this.createReadPageContextTool(mode),
-        this.createWorkspaceDraftTool(mode)
-      ]
+      return [this.createNewXpertTool(mode)]
     }
 
     if (mode === 'studio-agent-edit') {
-      return [
-        this.createReadPageContextTool(mode),
-        this.createReadStudioSummaryTool(mode),
-        this.createReadPrimaryAgentTool(mode),
-        this.createUpdateTeamMetadataTool(mode),
-        this.createUpdatePrimaryAgentTool(mode),
-        this.createUpdateStartersTool(mode)
-      ]
+      return [this.createEditXpertTool(mode)]
     }
 
     return [
-      this.createReadPageContextTool(mode),
-      this.createWorkspaceDraftTool(mode),
-      this.createReadStudioSummaryTool(mode),
-      this.createReadPrimaryAgentTool(mode),
-      this.createUpdateTeamMetadataTool(mode),
-      this.createUpdatePrimaryAgentTool(mode),
-      this.createUpdateStartersTool(mode)
+      this.createNewXpertTool(mode),
+      this.createEditXpertTool(mode)
     ]
   }
 
-  private createReadPageContextTool(mode: AuthoringMiddlewareMode) {
-    return tool(
-      async (_, config) => this.authoringDomainService.buildPageContext(this.resolveContext(mode, this.readContext(config))),
-      {
-        name: 'read_page_context',
-        description:
-          mode === 'workspace-create'
-            ? 'Read the current workspace page context before creating a new expert.'
-            : mode === 'studio-agent-edit'
-              ? 'Read the current Studio authoring page context.'
-              : 'Read the current platform authoring page context.',
-        schema: z.object({})
-      }
-    )
-  }
-
-  private createWorkspaceDraftTool(mode: AuthoringMiddlewareMode) {
+  private createNewXpertTool(mode: AuthoringMiddlewareMode) {
     return tool(
       async (input, config) => {
         const context = this.resolveContext(mode, this.readContext(config))
-        const result = await this.authoringDomainService.createWorkspaceDraftFromContext(context, input)
+        const result = await this.authoringService.newXpertFromContext(context, input as NewXpertPayload)
 
         this.emitEffect(config?.configurable, result, {
           name: 'navigate_to_studio',
@@ -146,79 +121,22 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
         return result
       },
       {
-        name: 'create_xpert_draft_from_request',
+        name: 'newXpert',
         description: 'Create a new Xpert draft in the current workspace from the user request.',
         schema: z.object({
-          workspaceId: z.string().nullable().optional(),
           userIntent: z.string(),
-          templateId: z.string().nullable().optional(),
-          xpertName: z.string().nullable().optional()
+          templateId: z.string().optional(),
+          xpertName: z.string().optional()
         })
       }
     )
   }
 
-  private createReadStudioSummaryTool(mode: AuthoringMiddlewareMode) {
-    return tool(
-      async (_, config) => this.authoringDomainService.readStudioSummary(this.resolveContext(mode, this.readContext(config))),
-      {
-        name: 'read_studio_summary',
-        description: 'Read a compact summary of the current Studio draft.',
-        schema: z.object({})
-      }
-    )
-  }
-
-  private createReadPrimaryAgentTool(mode: AuthoringMiddlewareMode) {
-    return tool(
-      async (_, config) => this.authoringDomainService.readPrimaryAgent(this.resolveContext(mode, this.readContext(config))),
-      {
-        name: 'read_primary_agent',
-        description: 'Read the current primary agent summary from Studio.',
-        schema: z.object({})
-      }
-    )
-  }
-
-  private createUpdateTeamMetadataTool(mode: AuthoringMiddlewareMode) {
-    return tool(
-      async (input, config) => {
-        const result = await this.authoringDomainService.applyStudioMutationFromContext(
-          this.resolveContext(mode, this.readContext(config)),
-          'update_xpert_team_metadata',
-          input
-        )
-
-        this.emitEffect(config?.configurable, result, {
-          name: 'refresh_studio',
-          data: {
-            xpertId: this.resolveContext(mode, this.readContext(config)).targetXpertId ?? ''
-          }
-        })
-
-        return result
-      },
-      {
-        name: 'update_xpert_team_metadata',
-        description: 'Update the current Xpert team metadata in the Studio draft.',
-        schema: z.object({
-          name: z.string().optional(),
-          description: z.string().optional(),
-          avatar: z.record(z.any()).nullable().optional()
-        })
-      }
-    )
-  }
-
-  private createUpdatePrimaryAgentTool(mode: AuthoringMiddlewareMode) {
+  private createEditXpertTool(mode: AuthoringMiddlewareMode) {
     return tool(
       async (input, config) => {
         const context = this.resolveContext(mode, this.readContext(config))
-        const result = await this.authoringDomainService.applyStudioMutationFromContext(
-          context,
-          'update_primary_agent',
-          input
-        )
+        const result = await this.authoringService.editXpertFromContext(context, input as EditXpertPayload)
 
         this.emitEffect(config?.configurable, result, {
           name: 'refresh_studio',
@@ -230,42 +148,15 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
         return result
       },
       {
-        name: 'update_primary_agent',
-        description: 'Update the current primary agent in the Studio draft.',
+        name: 'editXpert',
+        description: 'Edit the current Xpert Studio draft in a single tool call.',
         schema: z.object({
           name: z.string().optional(),
           description: z.string().optional(),
+          avatar: z.record(z.any()).optional(),
           prompt: z.string().optional(),
-          model: z.record(z.any()).nullable().optional()
-        })
-      }
-    )
-  }
-
-  private createUpdateStartersTool(mode: AuthoringMiddlewareMode) {
-    return tool(
-      async (input, config) => {
-        const context = this.resolveContext(mode, this.readContext(config))
-        const result = await this.authoringDomainService.applyStudioMutationFromContext(
-          context,
-          'update_xpert_starters',
-          input
-        )
-
-        this.emitEffect(config?.configurable, result, {
-          name: 'refresh_studio',
-          data: {
-            xpertId: context.targetXpertId ?? ''
-          }
-        })
-
-        return result
-      },
-      {
-        name: 'update_xpert_starters',
-        description: 'Replace the current conversation starters in the Studio draft.',
-        schema: z.object({
-          starters: z.array(z.string())
+          model: z.record(z.any()).optional(),
+          starters: z.array(z.string()).optional()
         })
       }
     )
@@ -275,7 +166,7 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
     mode: AuthoringMiddlewareMode,
     runtimeContext: unknown
   ): AuthoringAssistantRequestContext {
-    const parsed = requestContextSchema.parse(runtimeContext ?? {})
+    const parsed = requestContextSchema.parse(this.normalizeContext(runtimeContext))
     const effectiveMode =
       mode === 'platform-chatkit'
         ? parsed.mode ?? 'workspace-create'
@@ -290,14 +181,48 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
   private readContext(config: unknown) {
     const runtimeConfig = config as
       | {
-          context?: unknown
+          context?: Record<string, unknown> & {
+            env?: Record<string, unknown>
+          }
           configurable?: {
-            context?: unknown
+            context?: Record<string, unknown> & {
+              env?: Record<string, unknown>
+            }
           }
         }
       | undefined
 
-    return runtimeConfig?.context ?? runtimeConfig?.configurable?.context
+    const baseContext =
+      runtimeConfig?.context && typeof runtimeConfig.context === 'object'
+        ? { ...(runtimeConfig.context as Record<string, unknown>) }
+        : runtimeConfig?.configurable?.context && typeof runtimeConfig.configurable.context === 'object'
+          ? { ...(runtimeConfig.configurable.context as Record<string, unknown>) }
+          : {}
+
+    return baseContext
+  }
+
+  private normalizeContext(runtimeContext: unknown) {
+    if (!runtimeContext || typeof runtimeContext !== 'object') {
+      return runtimeContext ?? {}
+    }
+
+    const context = { ...(runtimeContext as Record<string, unknown>) }
+    for (const key of ['workspaceId', 'targetXpertId', 'clientDraftHash'] as const) {
+      if (context[key] === null) {
+        delete context[key]
+      }
+    }
+
+    if (context['env'] == null) {
+      delete context['env']
+    } else if (typeof context['env'] === 'object' && !Array.isArray(context['env'])) {
+      context['env'] = { ...(context['env'] as Record<string, unknown>) }
+    } else {
+      delete context['env']
+    }
+
+    return context
   }
 
   private emitEffect(

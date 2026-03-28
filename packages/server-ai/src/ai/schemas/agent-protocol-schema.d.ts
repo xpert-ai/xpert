@@ -424,6 +424,11 @@ export interface components {
                 configurable?: Record<string, never>;
             };
             /**
+             * Context
+             * @description Static context to add to the assistant for this run.
+             */
+            context?: Record<string, never>;
+            /**
              * Webhook
              * Format: uri
              * @description Webhook to call after LangGraph API call is done.

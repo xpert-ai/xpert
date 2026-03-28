@@ -85,6 +85,12 @@ export type TAgentRunnableConfigurable = {
   agentKey: string
   xpertName?: string
   toolName?: string
+  /**
+   * Additional runtime context for middleware/tool execution.
+   */
+  context?: Record<string, unknown> & {
+    env?: Record<string, unknown>
+  }
 
   copilotModel?: ICopilotModel
 
