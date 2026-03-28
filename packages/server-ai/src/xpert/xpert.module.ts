@@ -19,8 +19,8 @@ import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { SandboxModule } from '../sandbox/sandbox.module'
 import { HandoffQueueModule } from '../handoff/message-queue.module'
 import { XpertTriggerBootstrapRecoveryService } from './jobs/trigger-bootstrap-recovery.service'
-import { XpertAuthoringMiddleware } from './authoring-assistant/xpert-authoring.middleware'
-import { XpertAuthoringService } from './authoring-assistant/xpert-authoring.service'
+import { XpertAuthoringMiddleware } from './middlewares/xpert-authoring.middleware'
+import { XpertAuthoringService } from './middlewares/xpert-authoring.service'
 
 @Module({
     imports: [

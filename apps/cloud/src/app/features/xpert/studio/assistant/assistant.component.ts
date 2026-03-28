@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ChatKit, ChatKitControl, createChatKit } from '@xpert-ai/chatkit-angular'
+import { ChatKit, ChatKitControl, createChatKit, CreateChatKitOptions } from '@xpert-ai/chatkit-angular'
 import { calculateHash } from '../../../../@shared/utils'
 import {
   SupportedLocale,
@@ -11,6 +11,7 @@ import {
 import { AppService } from '../../../../app.service'
 import { XpertStudioApiService } from '../domain'
 import { environment } from '../../../../../environments/environment'
+import { ChatKitEffectEvent, getChatKitEffectXpertId } from '../../utils'
 
 @Component({
   standalone: true,
@@ -130,18 +131,18 @@ export class XpertStudioAssistantComponent {
     })
   }
 
-  // private handleEffect(event: AuthoringAssistantEffect | { name: string; data?: Record<string, unknown> }) {
-  //   if (event.name !== 'refresh_studio') {
-  //     return
-  //   }
+  private handleEffect(event: ChatKitEffectEvent) {
+    if (event.name !== 'refresh_studio') {
+      return
+    }
 
-  //   const xpertId = typeof event.data?.['xpertId'] === 'string' ? event.data['xpertId'] : null
-  //   if (xpertId && xpertId !== this.xpertId()) {
-  //     return
-  //   }
+    const xpertId = getChatKitEffectXpertId(event)
+    if (xpertId && xpertId !== this.xpertId()) {
+      return
+    }
 
-  //   this.#studioService.refresh()
-  // }
+    this.#studioService.refresh()
+  }
 
   private currentDraftHash() {
     const draft = this.draft()
@@ -204,13 +205,12 @@ export class XpertStudioAssistantComponent {
         }
       },
       onEffect: (event) => {
-        // this.handleEffect(event)
-        console.log(event)
+        this.handleEffect(event)
       },
       onError: (event) => {
         const message = event?.error?.message || this.#translate.instant('PAC.KEY_WORDS.Error', { Default: 'Error' })
         this.#toastr.error(message)
       }
-    }
+    } as CreateChatKitOptions
   }
 }

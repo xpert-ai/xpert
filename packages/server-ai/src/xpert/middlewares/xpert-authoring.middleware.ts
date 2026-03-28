@@ -27,13 +27,8 @@ import {
 
 const XPERT_AUTHORING_MIDDLEWARE_NAME = 'XpertAuthoringMiddleware'
 
-const middlewareOptionsSchema = z.object({
-  mode: z.enum(['workspace-create', 'studio-agent-edit', 'platform-chatkit'])
-})
-
 const requestContextSchema = z
   .object({
-    mode: z.enum(['workspace-create', 'studio-agent-edit']).optional(),
     workspaceId: z.string().optional(),
     env: z.record(z.any()).optional(),
     targetXpertId: z.string().optional(),
@@ -41,8 +36,6 @@ const requestContextSchema = z
     clientDraftHash: z.string().optional()
   })
   .passthrough()
-
-type AuthoringMiddlewareMode = z.infer<typeof middlewareOptionsSchema>['mode']
 
 @Injectable()
 @AgentMiddlewareStrategy(XPERT_AUTHORING_MIDDLEWARE_NAME)
@@ -64,13 +57,8 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
     },
     configSchema: {
       type: 'object',
-      properties: {
-        mode: {
-          type: 'string',
-          enum: ['workspace-create', 'studio-agent-edit', 'platform-chatkit']
-        }
-      },
-      required: ['mode']
+      properties: {},
+      required: []
     }
   }
 
@@ -80,35 +68,24 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
     options: unknown,
     _context: IAgentMiddlewareContext
   ): PromiseOrValue<AgentMiddleware> {
+    void options
     void _context
-    const parsed = middlewareOptionsSchema.parse(options ?? {})
 
     return {
       name: XPERT_AUTHORING_MIDDLEWARE_NAME,
       contextSchema: requestContextSchema,
-      tools: this.createTools(parsed.mode)
+      tools: this.createTools()
     }
   }
 
-  private createTools(mode: AuthoringMiddlewareMode) {
-    if (mode === 'workspace-create') {
-      return [this.createNewXpertTool(mode)]
-    }
-
-    if (mode === 'studio-agent-edit') {
-      return [this.createEditXpertTool(mode)]
-    }
-
-    return [
-      this.createNewXpertTool(mode),
-      this.createEditXpertTool(mode)
-    ]
+  private createTools() {
+    return [this.createNewXpertTool(), this.createEditXpertTool()]
   }
 
-  private createNewXpertTool(mode: AuthoringMiddlewareMode) {
+  private createNewXpertTool() {
     return tool(
       async (input, config) => {
-        const context = this.resolveContext(mode, this.readContext(config))
+        const context = this.resolveContext(this.readContext(config))
         const result = await this.authoringService.newXpertFromContext(context, input as NewXpertPayload)
 
         this.emitEffect(config?.configurable, result, {
@@ -132,10 +109,10 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
     )
   }
 
-  private createEditXpertTool(mode: AuthoringMiddlewareMode) {
+  private createEditXpertTool() {
     return tool(
       async (input, config) => {
-        const context = this.resolveContext(mode, this.readContext(config))
+        const context = this.resolveContext(this.readContext(config))
         const result = await this.authoringService.editXpertFromContext(context, input as EditXpertPayload)
 
         this.emitEffect(config?.configurable, result, {
@@ -162,20 +139,10 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
     )
   }
 
-  private resolveContext(
-    mode: AuthoringMiddlewareMode,
-    runtimeContext: unknown
-  ): AuthoringAssistantRequestContext {
+  private resolveContext(runtimeContext: unknown): AuthoringAssistantRequestContext {
     const parsed = requestContextSchema.parse(this.normalizeContext(runtimeContext))
-    const effectiveMode =
-      mode === 'platform-chatkit'
-        ? parsed.mode ?? 'workspace-create'
-        : mode
 
-    return {
-      mode: effectiveMode,
-      ...parsed
-    }
+    return parsed
   }
 
   private readContext(config: unknown) {

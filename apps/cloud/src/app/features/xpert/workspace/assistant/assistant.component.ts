@@ -4,13 +4,13 @@ import { Router } from '@angular/router'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { ChatKit, ChatKitControl, createChatKit } from '@xpert-ai/chatkit-angular'
-import { distinctUntilChanged, firstValueFrom, of, switchMap, tap } from 'rxjs'
 import { environment } from '../../../../../environments/environment'
 import {
   SupportedLocale,
   ToastrService,
 } from '../../../../@core'
 import { AppService } from '../../../../app.service'
+import { ChatKitEffectEvent, getChatKitEffectXpertId } from '../../utils'
 
 @Component({
   standalone: true,
@@ -91,6 +91,7 @@ import { AppService } from '../../../../app.service'
 export class XpertWorkspaceAssistantComponent {
   readonly workspaceId = input<string | null>(null)
 
+  readonly #router = inject(Router)
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly #appService = inject(AppService)
@@ -173,18 +174,19 @@ export class XpertWorkspaceAssistantComponent {
     })
   }
 
-  // private handleEffect(event: AuthoringAssistantEffect | { name: string; data?: Record<string, unknown> }) {
-  //   if (event.name !== 'navigate_to_studio') {
-  //     return
-  //   }
+  private handleEffect(event: ChatKitEffectEvent) {
+    if (event.name !== 'navigate_to_studio') {
+      return
+    }
 
-  //   const xpertId = typeof event.data?.['xpertId'] === 'string' ? event.data['xpertId'] : null
-  //   if (!xpertId) {
-  //     return
-  //   }
+    const xpertId = getChatKitEffectXpertId(event)
+    if (!xpertId) {
+      return
+    }
 
-  //   void this.#router.navigate(['/xpert/x', xpertId, 'agents'])
-  // }
+    this.open.set(false)
+    void this.#router.navigate(['/xpert/x', xpertId, 'agents'])
+  }
 
   private normalizeChatKitLocale(locale?: string | null): SupportedLocale {
     switch (locale) {
@@ -243,8 +245,7 @@ export class XpertWorkspaceAssistantComponent {
         }
       },
       onEffect: (event) => {
-        // this.handleEffect(event)
-        console.log(event)
+        this.handleEffect(event)
       },
       onError: (event) => {
         const message = event?.error?.message || this.#translate.instant('PAC.KEY_WORDS.Error', { Default: 'Error' })

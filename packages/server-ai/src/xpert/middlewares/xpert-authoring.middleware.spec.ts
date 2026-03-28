@@ -10,45 +10,19 @@ describe('XpertAuthoringMiddleware', () => {
     newXpertFromContext: jest.Mock
     editXpertFromContext: jest.Mock
   }
+  let middleware: Awaited<ReturnType<XpertAuthoringMiddleware['createMiddleware']>>
 
-  beforeEach(() => {
+  beforeEach(async () => {
     service = {
       newXpertFromContext: jest.fn(),
       editXpertFromContext: jest.fn()
     }
+    middleware = await Promise.resolve(
+      new XpertAuthoringMiddleware(service as any).createMiddleware({}, {} as any)
+    )
   })
 
-  it('exposes only newXpert in workspace-create mode', async () => {
-    const middleware = await Promise.resolve(
-      new XpertAuthoringMiddleware(service as any).createMiddleware(
-        { mode: 'workspace-create' },
-        {} as any
-      )
-    )
-
-    expect(middleware.tools.map((tool) => tool.name)).toEqual(['newXpert'])
-    expect((middleware.tools[0].schema as any).shape.workspaceId).toBeUndefined()
-  })
-
-  it('exposes only editXpert in studio-agent-edit mode', async () => {
-    const middleware = await Promise.resolve(
-      new XpertAuthoringMiddleware(service as any).createMiddleware(
-        { mode: 'studio-agent-edit' },
-        {} as any
-      )
-    )
-
-    expect(middleware.tools.map((tool) => tool.name)).toEqual(['editXpert'])
-  })
-
-  it('exposes newXpert and editXpert in platform-chatkit mode', async () => {
-    const middleware = await Promise.resolve(
-      new XpertAuthoringMiddleware(service as any).createMiddleware(
-        { mode: 'platform-chatkit' },
-        {} as any
-      )
-    )
-
+  it('exposes both authoring tools without mode config', () => {
     expect(middleware.tools.map((tool) => tool.name)).toEqual(['newXpert', 'editXpert'])
   })
 
@@ -64,12 +38,6 @@ describe('XpertAuthoringMiddleware', () => {
     const subscriber = {
       next: jest.fn()
     }
-    const middleware = await Promise.resolve(
-      new XpertAuthoringMiddleware(service as any).createMiddleware(
-        { mode: 'workspace-create' },
-        {} as any
-      )
-    )
 
     await middleware.tools[0].invoke(
       {
@@ -94,7 +62,6 @@ describe('XpertAuthoringMiddleware', () => {
 
     expect(service.newXpertFromContext).toHaveBeenCalledWith(
       expect.objectContaining({
-        mode: 'workspace-create',
         workspaceId: 'assistant-workspace',
         env: {
           workspaceId: 'workspace-1',
@@ -125,14 +92,8 @@ describe('XpertAuthoringMiddleware', () => {
     const subscriber = {
       next: jest.fn()
     }
-    const middleware = await Promise.resolve(
-      new XpertAuthoringMiddleware(service as any).createMiddleware(
-        { mode: 'studio-agent-edit' },
-        {} as any
-      )
-    )
 
-    await middleware.tools[0].invoke(
+    await middleware.tools[1].invoke(
       {
         prompt: 'Improve the assistant prompt'
       },
@@ -152,7 +113,6 @@ describe('XpertAuthoringMiddleware', () => {
 
     expect(service.editXpertFromContext).toHaveBeenCalledWith(
       expect.objectContaining({
-        mode: 'studio-agent-edit',
         targetXpertId: 'xpert-2',
         clientDraftHash: 'hash-1'
       }),

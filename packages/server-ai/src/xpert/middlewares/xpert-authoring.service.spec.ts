@@ -68,7 +68,6 @@ describe('XpertAuthoringService', () => {
 
     const result = await service.newXpertFromContext(
       {
-        mode: 'workspace-create',
         workspaceId: 'assistant-workspace',
         env: {
           workspaceId: 'workspace-1',
@@ -153,7 +152,6 @@ describe('XpertAuthoringService', () => {
 
     await service.newXpertFromContext(
       {
-        mode: 'workspace-create',
         workspaceId: 'assistant-workspace',
         env: {
           workspaceId: 'workspace-from-env',
@@ -186,7 +184,6 @@ describe('XpertAuthoringService', () => {
 
     const result = await service.newXpertFromContext(
       {
-        mode: 'workspace-create',
         workspaceId: 'assistant-workspace'
       },
       {
@@ -262,7 +259,6 @@ describe('XpertAuthoringService', () => {
 
     const result = await service.editXpertFromContext(
       {
-        mode: 'studio-agent-edit',
         targetXpertId: 'xpert-3',
         clientDraftHash: currentDraftHash
       },
@@ -346,7 +342,6 @@ describe('XpertAuthoringService', () => {
 
     const result = await service.editXpertFromContext(
       {
-        mode: 'studio-agent-edit',
         targetXpertId: 'xpert-4',
         clientDraftHash: (service as any).calculateDraftHash(currentDraft)
       },
@@ -375,7 +370,6 @@ describe('XpertAuthoringService', () => {
 
     const result = await service.editXpertFromContext(
       {
-        mode: 'studio-agent-edit',
         targetXpertId: 'xpert-5',
         clientDraftHash: 'hash-1',
         unsaved: true
@@ -423,7 +417,6 @@ describe('XpertAuthoringService', () => {
 
     const result = await service.editXpertFromContext(
       {
-        mode: 'studio-agent-edit',
         targetXpertId: 'xpert-6',
         clientDraftHash: 'stale-hash'
       },
