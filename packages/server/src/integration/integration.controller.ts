@@ -1,11 +1,26 @@
 import { IIntegration, INTEGRATION_PROVIDERS, IntegrationEnum, IntegrationFeatureEnum } from '@metad/contracts'
-import { Body, Controller, Get, InternalServerErrorException, Post, Query, UseInterceptors } from '@nestjs/common'
+import {
+	Body,
+	Controller,
+	Delete,
+	Get,
+	HttpCode,
+	HttpStatus,
+	InternalServerErrorException,
+	Param,
+	Post,
+	Put,
+	Query,
+	UseInterceptors
+} from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiTags } from '@nestjs/swagger'
 import { FindOptionsWhere } from 'typeorm'
+import { QueryDeepPartialEntity } from 'typeorm/query-builder/QueryPartialEntity'
 import { TransformInterceptor } from '../core/interceptors'
-import { ParseJsonPipe } from '../shared/pipes'
+import { ParseJsonPipe, UUIDValidationPipe } from '../shared/pipes'
 import { CrudController, PaginationParams, transformWhere } from './../core/crud'
+import { IntegrationDelCommand, IntegrationUpsertCommand } from './commands'
 import { IntegrationPublicDTO } from './dto'
 import { Integration } from './integration.entity'
 import { IntegrationService } from './integration.service'
@@ -59,5 +74,31 @@ export class IntegrationController extends CrudController<Integration> {
 	@Get('providers')
 	async getProviders() {
 		return this.service.getProviders()
+	}
+
+	@Post()
+	@HttpCode(HttpStatus.CREATED)
+	async create(@Body() entity: Partial<Integration>) {
+		return this.commandBus.execute(new IntegrationUpsertCommand(entity))
+	}
+
+	@Put(':id')
+	@HttpCode(HttpStatus.ACCEPTED)
+	async update(
+		@Param('id', UUIDValidationPipe) id: string,
+		@Body() entity: QueryDeepPartialEntity<Integration>
+	) {
+		return this.commandBus.execute(
+			new IntegrationUpsertCommand({
+				...(entity as Record<string, unknown>),
+				id
+			})
+		)
+	}
+
+	@Delete(':id')
+	@HttpCode(HttpStatus.ACCEPTED)
+	async delete(@Param('id', UUIDValidationPipe) id: string) {
+		return this.commandBus.execute(new IntegrationDelCommand(id))
 	}
 }

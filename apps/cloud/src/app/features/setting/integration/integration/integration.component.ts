@@ -23,14 +23,18 @@ import omit from 'lodash-es/omit'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
-import { BehaviorSubject, distinctUntilChanged, EMPTY, pipe, startWith, switchMap } from 'rxjs'
+import { BehaviorSubject, distinctUntilChanged, EMPTY, map, pipe, startWith, switchMap } from 'rxjs'
 import {
   getErrorMessage,
   injectApiBaseUrl,
   injectTranslate,
   IntegrationService,
+  normalizeIntegrationTestResult,
+  pickIntegrationTestFormPatch,
   routeAnimations,
   Store,
+  type IntegrationTestProbe,
+  type IntegrationTestResult,
   ToastrService
 } from '../../../../@core'
 
@@ -144,8 +148,20 @@ export class IntegrationComponent implements IsDirty {
   )
 
   readonly loading = signal(true)
-
-  readonly webhookUrl = signal('')
+  readonly testResult = signal<IntegrationTestResult | null>(null)
+  readonly webhookUrl = computed(() => this.testResult()?.webhookUrl ?? '')
+  readonly longConnectionProbe = computed<IntegrationTestProbe | null>(() => this.testResult()?.probe ?? null)
+  readonly testWarnings = computed(() => this.testResult()?.warnings ?? [])
+  readonly connectionMode = toSignal(
+    this.optionsControl.valueChanges.pipe(
+      startWith(this.optionsControl.value),
+      map((value) => value?.connectionMode ?? null),
+      distinctUntilChanged()
+    ),
+    {
+      initialValue: this.optionsControl.value?.connectionMode ?? null
+    }
+  )
 
   constructor() {
     effect(
@@ -179,6 +195,15 @@ export class IntegrationComponent implements IsDirty {
       },
       { allowSignalWrites: true }
     )
+
+    effect(
+      () => {
+        this.provider()
+        this.connectionMode()
+        this.testResult.set(null)
+      },
+      { allowSignalWrites: true }
+    )
   }
 
   isDirty(): boolean {
@@ -191,13 +216,18 @@ export class IntegrationComponent implements IsDirty {
 
   test() {
     this.loading.set(true)
+    this.testResult.set(null)
     this.integrationAPI.test(this.formGroup.value).subscribe({
       next: (result) => {
-        if (result?.webhookUrl) {
-          this.webhookUrl.set(result.webhookUrl)
-        } else if (result) {
-          this.formGroup.patchValue(result)
+        const testResult = normalizeIntegrationTestResult(result)
+        const formPatch = pickIntegrationTestFormPatch(result)
+
+        this.testResult.set(testResult)
+
+        if (Object.keys(formPatch).length) {
+          this.formGroup.patchValue(formPatch)
         }
+
         this.formGroup.markAsDirty()
         this.loading.set(false)
         this.#toastr.success('PAC.Messages.TestSuccessfully', { Default: 'Test successfully!' })
@@ -205,6 +235,7 @@ export class IntegrationComponent implements IsDirty {
       error: (error) => {
         this.#toastr.danger(getErrorMessage(error))
         this.loading.set(false)
+        this.testResult.set(null)
       }
     })
   }
@@ -233,5 +264,13 @@ export class IntegrationComponent implements IsDirty {
 
   close(refresh = false) {
     this.#router.navigate(['../'], { relativeTo: this.#route })
+  }
+
+  formatCheckedAt(checkedAt?: number | null) {
+    if (!checkedAt) {
+      return ''
+    }
+
+    return new Date(checkedAt).toLocaleString()
   }
 }
