@@ -1,0 +1,161 @@
+import { ForbiddenException } from '@nestjs/common'
+
+jest.mock('@metad/contracts', () => ({
+  AssistantCode: {
+    XPERT_SHARED: 'xpert_shared',
+    CHATBI: 'chatbi'
+  },
+  AssistantConfigScope: {
+    TENANT: 'tenant',
+    ORGANIZATION: 'organization'
+  },
+  AssistantConfigSourceScope: {
+    NONE: 'none',
+    TENANT: 'tenant',
+    ORGANIZATION: 'organization'
+  },
+  RolesEnum: {
+    SUPER_ADMIN: 'SUPER_ADMIN',
+    ADMIN: 'ADMIN'
+  }
+}))
+
+jest.mock('@metad/server-core', () => ({
+  RequestContext: {
+    currentTenantId: jest.fn(),
+    getOrganizationId: jest.fn(),
+    currentUserId: jest.fn(),
+    hasRole: jest.fn(),
+    hasRoles: jest.fn()
+  },
+  TenantOrganizationBaseEntity: class {},
+  TenantOrganizationAwareCrudService: class {
+    protected repository
+
+    constructor(repository: unknown) {
+      this.repository = repository
+    }
+  }
+}))
+
+import { RequestContext } from '@metad/server-core'
+import {
+  AssistantCode,
+  AssistantConfigScope,
+  AssistantConfigSourceScope,
+  RolesEnum
+} from '@metad/contracts'
+import { AssistantConfigService } from './assistant-config.service'
+
+describe('AssistantConfigService', () => {
+  let repository: {
+    find: jest.Mock
+    findOne: jest.Mock
+    create: jest.Mock
+    save: jest.Mock
+    delete: jest.Mock
+  }
+  let service: AssistantConfigService
+
+  beforeEach(() => {
+    repository = {
+      find: jest.fn(),
+      findOne: jest.fn(),
+      create: jest.fn((input) => input),
+      save: jest.fn(async (input) => input),
+      delete: jest.fn()
+    }
+
+    service = new AssistantConfigService(repository as any)
+
+    ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
+    ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
+    ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
+    ;(RequestContext.hasRole as jest.Mock).mockImplementation((role) => role === RolesEnum.SUPER_ADMIN)
+    ;(RequestContext.hasRoles as jest.Mock).mockReturnValue(true)
+  })
+
+  afterEach(() => {
+    jest.clearAllMocks()
+  })
+
+  it('prefers organization overrides over tenant defaults', async () => {
+    repository.findOne.mockResolvedValueOnce({
+      code: AssistantCode.CHATBI,
+      enabled: true,
+      options: {
+        assistantId: 'org-assistant',
+        frameUrl: 'https://frame.example.com'
+      },
+      tenantId: 'tenant-1',
+      organizationId: 'org-1'
+    })
+
+    const result = await service.getEffectiveConfig(AssistantCode.CHATBI)
+
+    expect(result.sourceScope).toBe(AssistantConfigSourceScope.ORGANIZATION)
+    expect(result.options?.assistantId).toBe('org-assistant')
+    expect(repository.findOne).toHaveBeenCalledTimes(1)
+  })
+
+  it('falls back to the tenant default when no organization override exists', async () => {
+    repository.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        code: AssistantCode.XPERT_SHARED,
+        enabled: true,
+        options: {
+          assistantId: 'tenant-assistant',
+          frameUrl: 'https://frame.example.com'
+        },
+        tenantId: 'tenant-1',
+        organizationId: null
+      })
+
+    const result = await service.getEffectiveConfig(AssistantCode.XPERT_SHARED)
+
+    expect(result.sourceScope).toBe(AssistantConfigSourceScope.TENANT)
+    expect(result.options?.assistantId).toBe('tenant-assistant')
+    expect(repository.findOne).toHaveBeenCalledTimes(2)
+  })
+
+  it('returns a disabled none-source config when nothing is saved', async () => {
+    repository.findOne.mockResolvedValue(null)
+
+    const result = await service.getEffectiveConfig(AssistantCode.CHATBI)
+
+    expect(result).toEqual({
+      code: AssistantCode.CHATBI,
+      enabled: false,
+      options: null,
+      tenantId: 'tenant-1',
+      organizationId: 'org-1',
+      sourceScope: AssistantConfigSourceScope.NONE
+    })
+  })
+
+  it('returns an empty list for organization scope when no organization is selected', async () => {
+    ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue(null)
+
+    const result = await service.getScopedConfigs(AssistantConfigScope.ORGANIZATION)
+
+    expect(result).toEqual([])
+    expect(repository.find).not.toHaveBeenCalled()
+  })
+
+  it('rejects tenant-level writes for non-super-admin users', async () => {
+    ;(RequestContext.hasRole as jest.Mock).mockReturnValue(false)
+
+    await expect(
+      service.upsertConfig({
+        code: AssistantCode.CHATBI,
+        scope: AssistantConfigScope.TENANT,
+        enabled: true,
+        options: {
+          assistantId: 'tenant-assistant',
+          frameUrl: 'https://frame.example.com'
+        }
+      })
+    ).rejects.toBeInstanceOf(ForbiddenException)
+  })
+})

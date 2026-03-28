@@ -1,53 +1,63 @@
-import { TestBed } from '@angular/core/testing'
 import { signal } from '@angular/core'
-import { Subject, of } from 'rxjs'
+import { TestBed } from '@angular/core/testing'
 import { Router } from '@angular/router'
-import { TranslateService } from '@ngx-translate/core'
+import { AppService } from 'apps/cloud/src/app/app.service'
+import { of, Subject } from 'rxjs'
+import { XpertAssistantFacade } from './assistant.facade'
 
-const createChatKitMock = jest.fn((_options: unknown) => ({
-  setOptions: jest.fn()
-}))
-
-jest.mock('apps/cloud/src/app/@core', () => ({
-  ToastrService: class ToastrService {},
-  XpertAPIService: class XpertAPIService {}
-}))
-
-jest.mock('apps/cloud/src/app/app.service', () => ({
-  AppService: class AppService {}
-}))
+jest.mock('apps/cloud/src/app/@core', () => {
+  return {
+    AssistantCode: {
+      XPERT_SHARED: 'xpert_shared',
+      CHATBI: 'chatbi'
+    },
+    AssistantConfigSourceScope: {
+      NONE: 'none',
+      TENANT: 'tenant',
+      ORGANIZATION: 'organization'
+    },
+    XpertAPIService: class XpertAPIService {}
+  }
+})
 
 jest.mock('@metad/cloud/state', () => ({
   injectWorkspace: () => (() => ({ id: 'selected-workspace' }))
 }))
 
-jest.mock('@xpert-ai/chatkit-angular', () => ({
-  createChatKit: (options: unknown) => createChatKitMock(options)
-}))
+jest.mock('../../assistant/assistant-chatkit.runtime', () => {
+  const { signal } = jest.requireActual('@angular/core')
 
-jest.mock('apps/cloud/src/environments/environment', () => ({
-  environment: {
-    CHATKIT_XPERT_ID: 'assistant-1',
-    CHATKIT_FRAME_URL: 'https://frame.example.com',
-    CHATKIT_API_URL: 'https://api.example.com',
-    CHATKIT_API_KEY: 'secret',
-    API_BASE_URL: 'https://fallback.example.com'
+  const runtimeState = {
+    control: signal(null),
+    config: signal(null),
+    loading: signal(false),
+    status: signal('missing'),
+    isConfigured: signal(false)
   }
-}))
 
-import { ToastrService, XpertAPIService } from 'apps/cloud/src/app/@core'
-import { AppService } from 'apps/cloud/src/app/app.service'
-import { XpertAssistantFacade } from './assistant.facade'
+  return {
+    injectAssistantChatkitRuntime: () => runtimeState,
+    __runtimeState: runtimeState
+  }
+})
+
+const runtimeState = jest.requireMock('../../assistant/assistant-chatkit.runtime').__runtimeState as any
+const { AssistantCode, AssistantConfigSourceScope, XpertAPIService } = jest.requireMock(
+  'apps/cloud/src/app/@core'
+) as {
+  AssistantCode: {
+    XPERT_SHARED: string
+    CHATBI: string
+  }
+  AssistantConfigSourceScope: {
+    NONE: string
+    TENANT: string
+    ORGANIZATION: string
+  }
+  XpertAPIService: new (...args: any[]) => unknown
+}
 
 describe('XpertAssistantFacade', () => {
-  beforeEach(() => {
-    jest.spyOn(console, 'warn').mockImplementation(() => {})
-  })
-
-  afterEach(() => {
-    jest.restoreAllMocks()
-  })
-
   const createFacade = (url: string) => {
     const routerEvents$ = new Subject<unknown>()
     const router = {
@@ -63,19 +73,6 @@ describe('XpertAssistantFacade', () => {
         {
           provide: Router,
           useValue: router
-        },
-        {
-          provide: TranslateService,
-          useValue: {
-            currentLang: 'en',
-            instant: jest.fn((_key: string, params?: { Default?: string }) => params?.Default ?? 'translated')
-          }
-        },
-        {
-          provide: ToastrService,
-          useValue: {
-            error: jest.fn()
-          }
         },
         {
           provide: AppService,
@@ -100,50 +97,42 @@ describe('XpertAssistantFacade', () => {
     }
   }
 
+  beforeEach(() => {
+    runtimeState.control.set(null)
+    runtimeState.config.set(null)
+    runtimeState.loading.set(false)
+    runtimeState.status.set('missing')
+    runtimeState.isConfigured.set(false)
+  })
+
+  afterEach(() => {
+    TestBed.resetTestingModule()
+    jest.clearAllMocks()
+  })
+
   it('omits env.xpertId on workspace routes', () => {
     const { facade } = createFacade('/xpert/w/workspace-1')
 
-    const options = (facade as any).buildChatKitOptions('assistant-1', {
+    const requestContext = (facade as any).buildRequestContext({
       workspaceId: 'workspace-1',
       xpertId: null
     })
 
-    expect(options.request.context).toEqual({
+    expect(requestContext).toEqual({
       env: {
         workspaceId: 'workspace-1'
       }
     })
   })
 
-  it('includes env.xpertId on studio routes', () => {
+  it('includes env.xpertId and studio runtime fields on studio routes', () => {
     const { facade } = createFacade('/xpert/x/xpert-1/agents')
 
-    const options = (facade as any).buildChatKitOptions('assistant-1', {
-      workspaceId: 'workspace-1',
-      xpertId: 'xpert-1'
-    })
-
-    expect(options.request.context).toEqual({
-      env: {
-        workspaceId: 'workspace-1',
-        xpertId: 'xpert-1'
-      }
-    })
-  })
-
-  it('only includes studio runtime fields when the current page is studio', () => {
-    const { facade } = createFacade('/xpert/x/xpert-1/agents')
-    const workspaceOptions = (facade as any).buildChatKitOptions('assistant-1', {
-      workspaceId: 'workspace-1',
-      xpertId: null
-    })
-    const studioOptions = (facade as any).buildChatKitOptions(
-      'assistant-1',
+    const requestContext = (facade as any).buildRequestContext(
       {
         workspaceId: 'workspace-1',
         xpertId: 'xpert-1'
       },
-      undefined,
       {
         targetXpertId: 'xpert-1',
         baseDraftHash: 'hash-from-pristine',
@@ -151,12 +140,7 @@ describe('XpertAssistantFacade', () => {
       }
     )
 
-    expect(workspaceOptions.request.context).toEqual({
-      env: {
-        workspaceId: 'workspace-1'
-      }
-    })
-    expect(studioOptions.request.context).toEqual({
+    expect(requestContext).toEqual({
       env: {
         workspaceId: 'workspace-1',
         xpertId: 'xpert-1'
@@ -165,5 +149,31 @@ describe('XpertAssistantFacade', () => {
       baseDraftHash: 'hash-from-pristine',
       unsaved: true
     })
+  })
+
+  it('reads assistant id from the unified runtime config when configured', () => {
+    const { facade } = createFacade('/xpert/x/xpert-1/agents')
+
+    runtimeState.config.set({
+      code: AssistantCode.XPERT_SHARED,
+      enabled: true,
+      options: {
+        assistantId: 'assistant-1',
+        frameUrl: 'https://frame.example.com'
+      },
+      tenantId: 'tenant-1',
+      organizationId: null,
+      sourceScope: AssistantConfigSourceScope.TENANT
+    })
+    runtimeState.isConfigured.set(true)
+    runtimeState.status.set('ready')
+
+    expect(facade.assistantId()).toBe('assistant-1')
+  })
+
+  it('returns null assistant id when the runtime is not configured', () => {
+    const { facade } = createFacade('/xpert/x/xpert-1/agents')
+
+    expect(facade.assistantId()).toBeNull()
   })
 })

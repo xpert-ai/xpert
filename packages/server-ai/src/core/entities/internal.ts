@@ -1,4 +1,5 @@
 export * from '../../chat-conversation/conversation.entity'
+export * from '../../assistant-config/assistant-config.entity'
 export * from '../../chat-message/chat-message.entity'
 export * from '../../chat-message-feedback/feedback.entity'
 export * from '../../copilot-checkpoint/copilot-checkpoint.entity'

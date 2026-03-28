@@ -39,6 +39,7 @@ export enum ChatMessageStepCategory {
 
 export type * from '@xpert-ai/chatkit-types'
 export type { TChatRequest } from './xpert-chat.model'
+export * from './assistant-config.model'
 export * from './ai-model.model'
 export * from './ai.model'
 export * from './chat.model'

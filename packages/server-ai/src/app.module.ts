@@ -2,6 +2,7 @@ import { UserModule } from '@metad/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { AIModule } from './ai'
+import { AssistantConfigModule } from './assistant-config'
 import { ChatModule } from './chat'
 import { ChatConversationModule } from './chat-conversation'
 import { ChatMessageModule } from './chat-message'
@@ -40,6 +41,7 @@ import { FileUploadTargetsModule } from './shared'
     imports: [
         forwardRef(() => CqrsModule),
         forwardRef(() => UserModule),
+        AssistantConfigModule,
         ChatModule,
         ChatConversationModule,
         ChatMessageModule,

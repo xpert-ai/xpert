@@ -181,6 +181,18 @@ const routes: Routes = [
         }
       },
       {
+        path: 'assistants',
+        loadChildren: () => import('./assistants/routing').then((m) => m.default),
+        canActivate: [NgxPermissionsGuard],
+        data: {
+          title: 'settings/assistants',
+          permissions: {
+            only: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN],
+            redirectTo
+          }
+        }
+      },
+      {
         path: 'knowledgebase',
         loadChildren: () => import('./knowledgebase/routing').then((m) => m.default),
         canActivate: [NgxPermissionsGuard],

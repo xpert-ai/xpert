@@ -8,6 +8,7 @@ import { ChatProjectsComponent } from './projects/projects.component'
 import { ChatProjectHomeComponent } from './project/home/home.component'
 import { ChatProjectConversationComponent } from './project/conversation/conversation.component'
 import { ChatProjectComponent } from './project/project.component'
+import { ChatBiComponent } from './chatbi/chatbi.component'
 
 export const routes: Routes = [
   {
@@ -37,7 +38,7 @@ export const routes: Routes = [
       },
       {
         path: 'chatbi',
-        component: ChatXpertComponent,
+        component: ChatBiComponent,
         canActivate: [
           () => {
             const store = inject(Store)

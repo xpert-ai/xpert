@@ -80,6 +80,15 @@ export class PACSettingComponent {
         }
       },
       {
+        link: 'assistants',
+        label: 'Assistants',
+        icon: 'robot_2',
+        data: {
+          featureKey: AiFeatureEnum.FEATURE_XPERT,
+          permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
+        }
+      },
+      {
         link: 'chatbi',
         label: 'Chat BI',
         icon: 'try',
