@@ -238,10 +238,6 @@
   <xpert-workspace-welcome />
 }
 
-@if (workspace()) {
-  <xpert-workspace-assistant [workspaceId]="workspace()?.id" />
-}
-
 <router-outlet></router-outlet>
 
 <ng-template #workspaceMenu>

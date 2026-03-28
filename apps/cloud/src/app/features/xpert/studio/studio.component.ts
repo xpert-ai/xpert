@@ -86,9 +86,9 @@ import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { XpertStudioFeaturesComponent } from './features/features.component'
 import { XpertService } from '../xpert/xpert.service'
 import { XpertStudioStateInspectorComponent } from './components/state-inspector/state-inspector.component'
+import { XpertAssistantFacade } from '../assistant-shell/assistant.facade'
 import { GROUP_NODE_TYPES, provideJsonSchemaWidgets, readClipboardNode } from './types'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { XpertStudioAssistantComponent } from './assistant/assistant.component'
 
 @Component({
   standalone: true,
@@ -112,7 +112,6 @@ import { XpertStudioAssistantComponent } from './assistant/assistant.component'
     XpertStudioFeaturesComponent,
     XpertStudioToolbarComponent,
     XpertStudioStateInspectorComponent,
-    XpertStudioAssistantComponent,
     XpertStudioContextMenuComponent,
     XpertStudioNodeAgentComponent,
     XpertStudioNodeKnowledgeComponent,
@@ -160,6 +159,7 @@ export class XpertStudioComponent {
   readonly helpUrl = injectHelpWebsite()
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #clipboard = inject(Clipboard)
+  readonly #assistantFacade = inject(XpertAssistantFacade, { optional: true })
   readonly paramId = injectParams('id')
   readonly xpertService = inject(XpertService)
 
@@ -299,6 +299,21 @@ export class XpertStudioComponent {
         }
       }
     )
+
+    effect(() => {
+      const refreshEvent = this.#assistantFacade?.studioRefresh()
+      const currentXpertId = this.id()
+
+      if (!refreshEvent || !currentXpertId) {
+        return
+      }
+
+      if (refreshEvent.xpertId && refreshEvent.xpertId !== currentXpertId) {
+        return
+      }
+
+      this.apiService.refresh()
+    })
 
     afterNextRender(() => {
       this.subscriptions$.add(this.subscribeOnReloadData())

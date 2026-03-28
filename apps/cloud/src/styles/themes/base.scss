@@ -29,7 +29,7 @@
   --color-components-panel-bg-blur: hsla(0, 0%, 100%, 0.9);
   --color-components-panel-border: #10182814;
   --color-components-card-bg: white;
-  --color-overlay-backdrop-strong: color-mix(in oklab, theme('colors.neutral.950') 45%, transparent);
+  --color-overlay-backdrop-strong: color-mix(in oklab, theme('colors.neutral.50') 45%, transparent);
   --color-components-button-primary-text: white;
   --color-components-button-primary-border: theme('colors.blue.600');
   --color-components-button-primary-bg: theme('colors.blue.600');
@@ -138,7 +138,7 @@
   --color-components-panel-bg: #222225;
   --color-components-panel-border: theme('colors.neutral.600');
   --color-components-card-bg: #16181c;
-  --color-overlay-backdrop-strong: color-mix(in oklab, theme('colors.neutral.950') 72%, transparent);
+  --color-overlay-backdrop-strong: color-mix(in oklab, theme('colors.neutral.800') 72%, transparent);
   --color-components-button-primary-text: white;
   --color-components-button-primary-border: theme('colors.blue.500');
   --color-components-button-primary-bg: theme('colors.blue.500');
