@@ -89,6 +89,43 @@
       </div>
     }
 
+    @if (longConnectionProbe(); as probe) {
+      <div class="flex flex-col gap-2">
+        <p>{{ 'PAC.Integration.LongConnectionStatus' | translate: { Default: 'Long connection status' } }}:</p>
+        <div class="px-3 py-2 rounded-md text-sm bg-gray-50 dark:bg-white/10 flex flex-col gap-1">
+          <div>
+            <span class="font-medium">{{ 'PAC.KEY_WORDS.Connected' | translate: { Default: 'Connected' } }}:</span>
+            {{ probe.connected === true ? 'Yes' : probe.connected === false ? 'No' : '-' }}
+          </div>
+          <div>
+            <span class="font-medium">{{ 'PAC.KEY_WORDS.State' | translate: { Default: 'State' } }}:</span>
+            {{ probe.state || '-' }}
+          </div>
+          <div>
+            <span class="font-medium">{{ 'PAC.KEY_WORDS.Error' | translate: { Default: 'Last error' } }}:</span>
+            <span class="whitespace-break-spaces">{{ probe.lastError || '-' }}</span>
+          </div>
+          <div>
+            <span class="font-medium">{{ 'PAC.KEY_WORDS.CheckedAt' | translate: { Default: 'Checked at' } }}:</span>
+            {{ formatCheckedAt(probe.checkedAt) || '-' }}
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (testWarnings().length) {
+      <div class="flex flex-col gap-2">
+        <p>{{ 'PAC.KEY_WORDS.Warnings' | translate: { Default: 'Warnings' } }}:</p>
+        <div class="px-3 py-2 rounded-md text-sm bg-amber-50 dark:bg-amber-500/10">
+          <ul class="list-disc pl-5 flex flex-col gap-1">
+            @for (warning of testWarnings(); track warning) {
+              <li class="whitespace-break-spaces">{{ warning }}</li>
+            }
+          </ul>
+        </div>
+      </div>
+    }
+
     <div class="w-full filter-bar p-2 flex justify-between items-center gap-4">
       <button mat-flat-button type="button" [disabled]="!integrationProvider() || optionsInvalid" (click)="test()">
         {{ 'PAC.KEY_WORDS.Test' | translate: {Default: 'Test'} }}
