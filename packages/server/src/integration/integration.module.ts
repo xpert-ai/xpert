@@ -4,6 +4,7 @@ import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { IntegrationStrategyRegistry } from '@xpert-ai/plugin-sdk'
 import { TenantModule } from '../tenant/tenant.module'
+import { UserModule } from '../user'
 import { CommandHandlers } from './commands/handlers'
 import { IntegrationController } from './integration.controller'
 import { Integration } from './integration.entity'
@@ -15,6 +16,7 @@ import { QueryHandlers } from './queries/handlers'
 		RouterModule.register([{ path: '/integration', module: IntegrationModule }]),
 		TypeOrmModule.forFeature([Integration]),
 		forwardRef(() => TenantModule),
+		UserModule,
 		DiscoveryModule,
 		CqrsModule
 	],

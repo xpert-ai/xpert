@@ -1,14 +1,17 @@
 import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In } from 'typeorm'
+import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions } from 'typeorm'
 import bcrypt from 'bcryptjs'
 import { environment as env } from '@metad/server-config'
+import { nanoid } from 'nanoid'
 import { User } from './user.entity'
 import { TenantAwareCrudService } from './../core/crud'
-import { ID, IUser, LanguagesEnum, PermissionsEnum, RolesEnum } from '@metad/contracts'
+import { ID, IUser, LanguagesEnum, PermissionsEnum, RolesEnum, UserType } from '@metad/contracts'
 import { RequestContext } from '../core/context'
 import { EmailVerification } from './email-verification/email-verification.entity'
 import { UserPublicDTO } from './dto'
+
+const REQUEST_CONTEXT_USER_RELATIONS = ['role', 'role.rolePermissions', 'employee'] as const
 
 @Injectable()
 export class UserService extends TenantAwareCrudService<User> {
@@ -92,6 +95,80 @@ export class UserService extends TenantAwareCrudService<User> {
 			.leftJoinAndSelect('role.rolePermissions', 'rolePermissions')
 			.leftJoinAndSelect('user.employee', 'employee')
 			.getOne()
+	}
+
+	async findOneByIdWithinTenant(id: string, tenantId: string, options?: Omit<FindOneOptions<User>, 'where'>) {
+		const entity = await this.repository.findOne({
+			...(options ?? {}),
+			where: {
+				id,
+				tenantId
+			}
+		})
+
+		if (!entity) {
+			throw new NotFoundException(`The user '${id}' was not found in current tenant`)
+		}
+
+		return entity
+	}
+
+	async findOneByThirdPartyIdWithinTenant(
+		thirdPartyId: string,
+		tenantId: string,
+		options?: Omit<FindOneOptions<User>, 'where'>
+	) {
+		const entity = await this.repository.findOne({
+			...(options ?? {}),
+			where: {
+				thirdPartyId,
+				tenantId
+			}
+		})
+
+		if (!entity) {
+			throw new NotFoundException(`The user '${thirdPartyId}' was not found in current tenant`)
+		}
+
+		return entity
+	}
+
+	async ensureCommunicationUser(input: {
+		tenantId: string
+		thirdPartyId: string
+		username?: string | null
+		imageUrl?: string | null
+		preferredLanguage?: LanguagesEnum
+	}) {
+		const existing = await this.repository.findOne({
+			where: {
+				tenantId: input.tenantId,
+				thirdPartyId: input.thirdPartyId
+			},
+			relations: [...REQUEST_CONTEXT_USER_RELATIONS]
+		})
+
+		if (existing) {
+			return existing
+		}
+
+		const created = await this.repository.save(
+			this.repository.create({
+				tenant: { id: input.tenantId } as any,
+				tenantId: input.tenantId,
+				thirdPartyId: input.thirdPartyId,
+				username: buildTechnicalUsername(input.username ?? input.thirdPartyId),
+				imageUrl: input.imageUrl ?? undefined,
+				type: UserType.COMMUNICATION,
+				preferredLanguage: input.preferredLanguage ?? LanguagesEnum.English,
+				emailVerified: true,
+				hash: await this.getPasswordHash(nanoid(32))
+			})
+		)
+
+		return this.findOneByIdWithinTenant(created.id, input.tenantId, {
+			relations: [...REQUEST_CONTEXT_USER_RELATIONS]
+		})
 	}
 
 	async getIfExistsThirdParty(thirdPartyId: string): Promise<User> {
@@ -310,4 +387,17 @@ export class UserService extends TenantAwareCrudService<User> {
 	private async getPasswordHash(password: string): Promise<string> {
 		return bcrypt.hash(password, env.USER_PASSWORD_BCRYPT_SALT_ROUNDS)
 	}
+}
+
+function buildTechnicalUsername(value: string) {
+	const normalized = value
+		.toLowerCase()
+		.replace(/[^a-z0-9_]+/g, '_')
+		.replace(/^_+|_+$/g, '')
+
+	if (normalized.length >= 3) {
+		return normalized.slice(0, 20)
+	}
+
+	return `svc_${nanoid(8)}`.slice(0, 20)
 }

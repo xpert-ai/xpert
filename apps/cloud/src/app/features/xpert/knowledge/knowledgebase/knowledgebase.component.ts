@@ -15,6 +15,7 @@ import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { injectParams } from 'ngxtension/inject-params'
 import { catchError, EMPTY } from 'rxjs'
 import {
+  ApiKeyBindingType,
   getErrorMessage,
   injectApiBaseUrl,
   injectHelpWebsite,
@@ -206,7 +207,7 @@ export class KnowledgebaseComponent {
       .open(XpertDevelopApiKeyComponent, {
         data: {
           id: this.knowledgebase().id,
-          type: 'knowledgebase'
+          type: ApiKeyBindingType.KNOWLEDGEBASE
         }
       })
       .closed.subscribe({

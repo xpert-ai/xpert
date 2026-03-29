@@ -12,7 +12,6 @@ import {
     TMemoryUserProfile,
     TChatRequest,
     TXpertTeamDraft,
-    UserType,
     xpertLabel
 } from '@metad/contracts'
 import {
@@ -27,9 +26,9 @@ import {
     UserPublicDTO,
     UseValidationPipe,
     UUIDValidationPipe,
-    UserCreateCommand,
     Public,
-    TimeZone
+    TimeZone,
+    UserService
 } from '@metad/server-core'
 import {
     Body,
@@ -127,6 +126,7 @@ export class XpertController extends CrudController<Xpert> {
         private readonly service: XpertService,
         private readonly storeService: CopilotStoreService,
         private readonly environmentService: EnvironmentService,
+        private readonly userService: UserService,
         private readonly i18n: I18nService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
@@ -693,15 +693,7 @@ export class XpertController extends CrudController<Xpert> {
         const xpert = await this.service.findOne(id)
         await this.service.update(id, { api: { ...(xpert.api ?? {}), ...api } })
         if (!api.disabled && !xpert.userId) {
-            const user = await this.commandBus.execute(
-                new UserCreateCommand({
-                    username: xpert.slug,
-                    type: UserType.COMMUNICATION,
-                    preferredLanguage: LanguagesEnum.English,
-                    hash: uuidv4()
-                })
-            )
-            await this.service.update(id, { user })
+            await this.ensureXpertPrincipalUser(xpert)
         }
     }
 
@@ -710,16 +702,30 @@ export class XpertController extends CrudController<Xpert> {
         const xpert = await this.service.findOne(id)
         await this.service.update(id, { app: { ...(xpert.app ?? {}), ...app } })
         if (app.enabled && !xpert.userId) {
-            const user = await this.commandBus.execute(
-                new UserCreateCommand({
-                    username: xpert.slug,
-                    type: UserType.COMMUNICATION,
-                    preferredLanguage: LanguagesEnum.English,
-                    hash: uuidv4()
-                })
-            )
-            await this.service.update(id, { user })
+            await this.ensureXpertPrincipalUser(xpert)
         }
+    }
+
+    private async ensureXpertPrincipalUser(xpert: Pick<Xpert, 'id' | 'tenantId' | 'userId' | 'slug'>) {
+        if (xpert.userId) {
+            try {
+                return await this.userService.findOneByIdWithinTenant(xpert.userId, xpert.tenantId, {
+                    relations: ['role', 'role.rolePermissions', 'employee']
+                })
+            } catch {
+                //
+            }
+        }
+
+        const user = await this.userService.ensureCommunicationUser({
+            tenantId: xpert.tenantId,
+            thirdPartyId: `xpert:${xpert.id}`,
+            username: xpert.slug || xpert.id
+        })
+
+        await this.service.update(xpert.id, { user })
+
+        return user
     }
 
     @Post(':id/duplicate')

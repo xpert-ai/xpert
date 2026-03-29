@@ -164,6 +164,10 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
     | @ManyToOne
     |--------------------------------------------------------------------------
     */
+	/**
+	 * Stable external service account for this xpert.
+	 * It represents the xpert itself when exposed via API/App, not the end user.
+	 */
 	@Column({ nullable: true })
 	userId?: string
 

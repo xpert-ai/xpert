@@ -5,6 +5,7 @@ import {
 } from '@nestjs/common';
 import {
 	IApiKey,
+	IApiPrincipal,
 	IRequestScopeContext,
 	IUser,
 	LanguagesEnum,
@@ -42,8 +43,12 @@ export class RequestContext {
 	}
 
 	static currentApiKey(): IApiKey | null {
-		const user = RequestContext.currentUser() as IUser & { apiKey?: IApiKey };
-		return user?.apiKey ?? null;
+		return RequestContext.currentApiPrincipal()?.apiKey ?? null;
+	}
+
+	static currentApiPrincipal(): IApiPrincipal | null {
+		const user = RequestContext.currentUser() as IApiPrincipal | null;
+		return user?.apiKey ? user : null;
 	}
 
 	static currentRequest(): Request {

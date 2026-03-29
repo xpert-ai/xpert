@@ -20,9 +20,15 @@ export class ApiKey extends TenantOrganizationBaseEntity implements IApiKey {
 	name?: string;
 
 	@ApiProperty({ type: () => String })
+	/**
+	 * Stable binding kind for resolving the technical principal behind this key.
+	 */
 	@Column({ nullable: true })
 	type?: string
 
+	/**
+	 * Stable binding target used together with `type` to resolve the technical principal.
+	 */
 	@ApiProperty({ type: () => String })
 	@Column({ nullable: true })
 	entityId?: string
@@ -51,6 +57,10 @@ export class ApiKey extends TenantOrganizationBaseEntity implements IApiKey {
 	})
 	lastUsedAt?: Date
 
+	/**
+	 * Explicit technical principal bound to this key.
+	 * If set, auth uses this user directly instead of resolving via `type/entityId`.
+	 */
 	@Column({ nullable: true })
 	userId?: string
 

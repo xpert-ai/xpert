@@ -1,6 +1,16 @@
-import { IChatConversation, IEnvironment, TChatRequest as TChatRequestV2, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import {
+    IApiKey,
+    IApiPrincipal,
+    IChatConversation,
+    IEnvironment,
+    IUser,
+    RequestScopeLevel,
+    TChatRequest as TChatRequestV2,
+    XpertAgentExecutionStatusEnum
+} from '@metad/contracts'
+import { RequestContext } from '@metad/server-core'
 import { TChatRequest as LegacyTChatRequest } from '@xpert-ai/chatkit-types'
-import { BadRequestException, Logger } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { isNil, omitBy } from 'lodash'
 import { finalize, map, tap } from 'rxjs/operators'
@@ -8,6 +18,7 @@ import z from 'zod'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
 import { EnvironmentService, getContextEnvState, mergeEnvironmentWithEnvState } from '../../../environment'
+import { XpertService } from '../../../xpert'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { FindXpertQuery } from '../../../xpert/queries/get-one.query'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
@@ -247,8 +258,73 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus,
         private readonly environmentService: EnvironmentService,
-        private readonly redisSseStreamService: RedisSseStreamService
+        private readonly redisSseStreamService: RedisSseStreamService,
+        private readonly xpertService: XpertService
     ) {}
+
+    private applyAssistantScopeToCurrentRequest(organizationId?: string | null) {
+        const request = RequestContext.currentRequest() as any
+
+        if (!request?.headers) {
+            return
+        }
+
+        if (organizationId) {
+            request.headers['organization-id'] = organizationId
+            request.headers['x-scope-level'] = RequestScopeLevel.ORGANIZATION
+            return
+        }
+
+        delete request.headers['organization-id']
+        request.headers['x-scope-level'] = RequestScopeLevel.TENANT
+    }
+
+    private applyAssistantPrincipalToCurrentRequest(
+        apiKey: IApiKey,
+        principalUser: IUser | null | undefined
+    ) {
+        const request = RequestContext.currentRequest() as any
+        const currentUser = RequestContext.currentUser() as IApiPrincipal | null
+
+        if (!request || !principalUser) {
+            return
+        }
+
+        // An explicit x-principal-user-id represents the business user for this
+        // request and must not be overwritten by the xpert technical principal.
+        if (currentUser?.requestedUserId) {
+            return
+        }
+
+        request.user = {
+            ...principalUser,
+            apiKey,
+            ownerUserId: currentUser?.ownerUserId ?? apiKey.createdById ?? principalUser.id ?? null,
+            principalType: currentUser?.principalType ?? 'api_key'
+        }
+    }
+
+    private async resolveAssistantForRun(assistantId: string) {
+        const apiKey = RequestContext.currentApiKey()
+
+        if (!apiKey) {
+            return this.queryBus.execute(new FindXpertQuery({ id: assistantId }, {}))
+        }
+
+        // For assistant-bound keys, entityId is the allowed xpert id.
+        if (apiKey.type === 'assistant' && apiKey.entityId && apiKey.entityId !== assistantId) {
+            throw new ForbiddenException('API key is not allowed to access this assistant.')
+        }
+
+        const xpert = await this.xpertService.findOneByIdWithinTenant(assistantId, {
+            relations: ['user', 'createdBy']
+        })
+
+        this.applyAssistantScopeToCurrentRequest(xpert.organizationId ?? null)
+        this.applyAssistantPrincipalToCurrentRequest(apiKey, (xpert.user as IUser | null | undefined) ?? null)
+
+        return xpert
+    }
 
     private async resolveRequestEnvironment(
         xpert: { environmentId?: string | null },
@@ -275,7 +351,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
 
         // Find thread (conversation) and assistant (xpert)
         const conversation = await this.queryBus.execute(new GetChatConversationQuery({ threadId }))
-        const xpert = await this.queryBus.execute(new FindXpertQuery({ id: runCreate.assistant_id }, {}))
+        const xpert = await this.resolveAssistantForRun(runCreate.assistant_id)
         const chatRequest = validateRunCreateInput(runCreate.input, conversation)
         const runtimeContext = getRunCreateContext(runCreate.context)
         const environment = await this.resolveRequestEnvironment(xpert, chatRequest, runtimeContext)

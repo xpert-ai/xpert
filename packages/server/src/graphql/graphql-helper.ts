@@ -1,3 +1,4 @@
+import { API_PRINCIPAL_USER_ID_HEADER } from '@metad/contracts';
 import { isNotEmpty } from '@metad/server-common';
 import { GqlModuleOptions, GraphQLTypesLoader } from '@nestjs/graphql';
 import { buildSchema, extendSchema, printSchema } from 'graphql';
@@ -19,7 +20,7 @@ export async function createGraphqlModuleOptions(
 			credentials: true,
 			origin: '*',
 			allowedHeaders:
-				'Authorization, Language, Tenant-Id, Organization-Id, X-Scope-Level, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Language, Accept, Accept-Language, Observe'
+				`Authorization, Language, Tenant-Id, Organization-Id, X-Scope-Level, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Language, Accept, Accept-Language, Observe, X-Api-Key, X-Client-Secret, ${API_PRINCIPAL_USER_ID_HEADER}`
 		},
 		include: [options.resolverModule]
 	} as GqlModuleOptions;
