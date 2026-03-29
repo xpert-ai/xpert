@@ -4,7 +4,7 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { environment } from '@cloud/environments/environment'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, map, startWith } from 'rxjs'
 import {
   ZardComboboxComponent,
@@ -357,6 +357,7 @@ export class AssistantsSettingsComponent {
   readonly #store = inject(Store)
   readonly #formBuilder = inject(FormBuilder)
   readonly #toastr = inject(ToastrService)
+  readonly #translate = inject(TranslateService)
   readonly #xpertService = inject(XpertAPIService)
   readonly #skipNextAssistantSearchSync = new Set<string>()
 
@@ -470,28 +471,32 @@ export class AssistantsSettingsComponent {
   sourceLabel(sourceScope?: string | null) {
     switch (sourceScope) {
       case AssistantConfigSourceScope.ORGANIZATION:
-        return 'Organization Override'
+        return this.t('PAC.Assistant.OrganizationOverride', 'Organization Override')
       case AssistantConfigSourceScope.TENANT:
-        return 'Tenant Default'
+        return this.t('PAC.Assistant.TenantDefault', 'Tenant Default')
       default:
-        return 'Not Configured'
+        return this.t('PAC.Assistant.NotConfigured', 'Not Configured')
     }
   }
 
   effectiveStatusLabel(config?: IResolvedAssistantConfig | null) {
     if (!config || config.sourceScope === AssistantConfigSourceScope.NONE) {
-      return 'Not Configured'
+      return this.t('PAC.Assistant.NotConfigured', 'Not Configured')
     }
 
-    return config.enabled ? 'Enabled' : 'Disabled'
+    return config.enabled
+      ? this.t('PAC.Assistant.Enabled', 'Enabled')
+      : this.t('PAC.KEY_WORDS.Disabled', 'Disabled')
   }
 
   sourceStateLabel(config?: IAssistantConfig | null) {
     if (config) {
-      return config.organizationId ? 'Saved in organization scope' : 'Saved in tenant scope'
+      return config.organizationId
+        ? this.t('PAC.Assistant.SavedInOrganizationScope', 'Saved in organization scope')
+        : this.t('PAC.Assistant.SavedInTenantScope', 'Saved in tenant scope')
     }
 
-    return 'No saved config in this scope'
+    return this.t('PAC.Assistant.NoSavedConfigInScope', 'No saved config in this scope')
   }
 
   assistantSearchTerm(scope: AssistantConfigScope, code: AssistantCode) {
@@ -579,7 +584,7 @@ export class AssistantsSettingsComponent {
       this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
       await this.loadConfigs()
     } catch (error) {
-      this.#toastr.error(getErrorMessage(error) || 'Failed to save assistant configuration.')
+      this.#toastr.error(getErrorMessage(error) || this.t('PAC.Assistant.SaveFailed', 'Failed to save assistant configuration.'))
     } finally {
       this.savingKey.set(null)
     }
@@ -598,7 +603,10 @@ export class AssistantsSettingsComponent {
       this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
       await this.loadConfigs()
     } catch (error) {
-      this.#toastr.error(getErrorMessage(error) || 'Failed to reset organization assistant configuration.')
+      this.#toastr.error(
+        getErrorMessage(error) ||
+          this.t('PAC.Assistant.ResetOrganizationFailed', 'Failed to reset organization assistant configuration.')
+      )
     } finally {
       this.savingKey.set(null)
     }
@@ -650,7 +658,7 @@ export class AssistantsSettingsComponent {
         Object.values(this.organizationForms).forEach((form) => form.disable({ emitEvent: false }))
       }
     } catch (error) {
-      this.#toastr.error(getErrorMessage(error) || 'Failed to load assistant configurations.')
+      this.#toastr.error(getErrorMessage(error) || this.t('PAC.Assistant.LoadFailed', 'Failed to load assistant configurations.'))
     } finally {
       this.loading.set(false)
     }
@@ -713,6 +721,10 @@ export class AssistantsSettingsComponent {
   private clearAssistantSearch(scope: AssistantConfigScope, code: AssistantCode) {
     this.#skipNextAssistantSearchSync.delete(this.assistantSearchKey(scope, code))
     this.setAssistantSearchTerm(this.assistantSearchKey(scope, code), '')
+  }
+
+  private t(key: string, Default: string) {
+    return this.#translate.instant(key, { Default })
   }
 }
 

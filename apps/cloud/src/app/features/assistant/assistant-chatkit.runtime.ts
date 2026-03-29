@@ -60,7 +60,10 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
             error: null
           }),
           catchError((error) => {
-            toastr.error(getErrorMessage(error) || 'Failed to load assistant configuration.')
+            toastr.error(
+              getErrorMessage(error) ||
+                translate.instant('PAC.Assistant.LoadFailed', { Default: 'Failed to load assistant configuration.' })
+            )
             return of({
               loading: false,
               config: null,
