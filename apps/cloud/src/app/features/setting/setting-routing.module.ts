@@ -24,7 +24,8 @@ const routes: Routes = [
         path: 'account',
         component: PACAccountComponent,
         data: {
-          title: 'settings/account'
+          title: 'settings/account',
+          scopeContext: 'dual-scope'
         },
         children: [
           {
@@ -36,14 +37,16 @@ const routes: Routes = [
             path: 'profile',
             component: PACAccountProfileComponent,
             data: {
-              title: 'settings/account/profile'
+              title: 'settings/account/profile',
+              scopeContext: 'dual-scope'
             }
           },
           {
             path: 'password',
             component: PACAccountPasswordComponent,
             data: {
-              title: 'settings/account/password'
+              title: 'settings/account/password',
+              scopeContext: 'dual-scope'
             }
           }
         ]
@@ -54,6 +57,7 @@ const routes: Routes = [
         canActivate: [ NgxPermissionsGuard ],
         data: {
           title: 'settings/data-sources',
+          scopeContext: 'dual-scope',
           permissions: {
             only: [AnalyticsPermissionsEnum.DATA_SOURCE_EDIT],
             redirectTo
@@ -66,6 +70,7 @@ const routes: Routes = [
         canActivate: [NgxPermissionsGuard],
         data: {
           title: 'settings/users',
+          scopeContext: 'tenant-only',
           permissions: {
             only: [PermissionsEnum.ORG_USERS_VIEW],
             redirectTo
@@ -78,6 +83,7 @@ const routes: Routes = [
         canActivate: [NgxPermissionsGuard],
         data: {
           title: 'settings/business-area',
+          scopeContext: 'organization-only',
           permissions: {
             only: [AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT],
             redirectTo
@@ -90,6 +96,7 @@ const routes: Routes = [
         canActivate: [NgxPermissionsGuard],
         data: {
           title: 'settings/certification',
+          scopeContext: 'organization-only',
           permissions: {
             only: [AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT],
             // only: [AnalyticsPermissionsEnum.CERTIFICATION_EDIT],
@@ -120,6 +127,7 @@ const routes: Routes = [
         canActivate: [NgxPermissionsGuard],
         data: {
           title: 'settings/roles',
+          scopeContext: 'tenant-only',
           permissions: {
             only: [PermissionsEnum.CHANGE_ROLES_PERMISSIONS],
             redirectTo
@@ -131,6 +139,7 @@ const routes: Routes = [
         loadChildren: () => import('./features/routing').then((m) => m.default),
         data: {
           title: 'settings/features',
+          scopeContext: 'dual-scope',
           permissions: {
             only: [PermissionsEnum.CHANGE_ROLES_PERMISSIONS],
             redirectTo
@@ -142,42 +151,48 @@ const routes: Routes = [
         path: 'tenant',
         loadChildren: () => import('./tenant/tenant.module').then((m) => m.TenantModule),
         data: {
-          title: 'settings/tenant'
+          title: 'settings/tenant',
+          scopeContext: 'tenant-only'
         }
       },
       {
         path: 'organizations',
         loadChildren: () => import('./organizations/organizations.module').then((m) => m.OrganizationsModule),
         data: {
-          title: 'settings/organizations'
+          title: 'settings/organizations',
+          scopeContext: 'tenant-only'
         }
       },
       {
         path: 'email-templates',
         loadChildren: () => import('./email-templates/routing').then((m) => m.default),
         data: {
-          title: 'settings/email-templates'
+          title: 'settings/email-templates',
+          scopeContext: 'dual-scope'
         }
       },
       {
         path: 'custom-smtp',
         loadChildren: () => import('./custom-smtp/custom-smtp.module').then((m) => m.CustomSmtpModule),
         data: {
-          title: 'settings/custom-smtp'
+          title: 'settings/custom-smtp',
+          scopeContext: 'dual-scope'
         }
       },
       {
         path: 'copilot',
         loadChildren: () => import('./copilot/routing').then((m) => m.default),
         data: {
-          title: 'settings/copilot'
+          title: 'settings/copilot',
+          scopeContext: 'dual-scope'
         }
       },
       {
         path: 'chatbi',
         loadChildren: () => import('./chatbi/routing').then((m) => m.default),
         data: {
-          title: 'settings/chatbi'
+          title: 'settings/chatbi',
+          scopeContext: 'dual-scope'
         }
       },
       {
@@ -186,6 +201,7 @@ const routes: Routes = [
         canActivate: [NgxPermissionsGuard],
         data: {
           title: 'settings/assistants',
+          scopeContext: 'dual-scope',
           permissions: {
             only: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN],
             redirectTo
@@ -198,6 +214,7 @@ const routes: Routes = [
         canActivate: [NgxPermissionsGuard],
         data: {
           title: 'settings/knowledgebase',
+          scopeContext: 'organization-only',
           permissions: {
             only: [AIPermissionsEnum.KNOWLEDGEBASE_EDIT],
             redirectTo
@@ -210,6 +227,7 @@ const routes: Routes = [
         canActivate: [NgxPermissionsGuard],
         data: {
           title: 'settings/integration',
+          scopeContext: 'dual-scope',
           permissions: {
             only: [PermissionsEnum.INTEGRATION_EDIT],
             redirectTo
@@ -222,6 +240,7 @@ const routes: Routes = [
         canActivate: [NgxPermissionsGuard],
         data: {
           title: 'settings/plugins',
+          scopeContext: 'dual-scope',
           permissions: {
             only: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL],
             redirectTo

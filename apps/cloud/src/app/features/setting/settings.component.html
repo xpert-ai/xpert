@@ -1,5 +1,5 @@
 <div
-  class="flex flex-col w-16 max-w-[240px] shrink-0 transition-all overflow-y-auto bg-background-default-subtle"
+  class="flex flex-col w-14 max-w-[240px] shrink-0 transition-all overflow-y-auto bg-background-default-subtle"
   [class.w-[240px]]="sideMenuOpened()"
 >
   <ul class="pac-nav__tab-bar flex-1 p-2 rounded-lg space-y-1">
@@ -16,12 +16,19 @@
         [zDisabled]="sideMenuOpened()"
       >
         @if (e.icon) {
-          <z-icon zSize="default" [zType]="e.icon"></z-icon>
+          <z-icon zSize="lg" [zType]="e.icon"></z-icon>
         }
 
         @if (sideMenuOpened()) {
-          <span class="ml-2 truncate">
-            {{ 'PAC.MENU.' + e.label | translate: { Default: e.label } }}
+          <span class="ml-2 min-w-0 flex flex-col">
+            <span class="truncate">
+              {{ 'PAC.MENU.' + e.label | translate: { Default: e.label } }}
+            </span>
+            @if (e.subtitleKey) {
+              <span class="truncate text-xs text-text-tertiary">
+                {{ e.subtitleKey | translate: { Default: e.subtitleDefault } }}
+              </span>
+            }
           </span>
         }
       </li>

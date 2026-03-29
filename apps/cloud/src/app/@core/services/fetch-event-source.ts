@@ -1,4 +1,5 @@
 import { inject } from '@angular/core'
+import { RequestScopeLevel } from '@metad/contracts'
 import { EventSourceMessage, EventStreamContentType, fetchEventSource } from '@microsoft/fetch-event-source'
 import { firstValueFrom, Observable } from 'rxjs'
 import { AuthStrategy } from '../auth'
@@ -15,7 +16,7 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
     const method = typeof params === 'object' && params.method ? params.method : 'POST'
     return new Observable<EventSourceMessage>((subscriber) => {
       const ctrl = new AbortController()
-      const organization = store.selectedOrganization ?? { id: null }
+      const activeScope = store.activeScope
 
       const _headers = typeof params === 'object' && params.headers ? params.headers : {}
 
@@ -30,10 +31,11 @@ export function injectFetchEventSource<T extends BodyInit | null>() {
           Authorization: `Bearer ${token}`,
           Language: lang(),
           'Time-Zone': Intl.DateTimeFormat().resolvedOptions().timeZone,
+          'X-Scope-Level': activeScope.level,
           ..._headers
         }
-        if (organization?.id) {
-          headers['Organization-Id'] = organization.id
+        if (activeScope.level === RequestScopeLevel.ORGANIZATION) {
+          headers['Organization-Id'] = activeScope.organizationId
         }
         // Handle query params if provided
         let finalUrl = url

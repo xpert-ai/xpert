@@ -56,8 +56,8 @@ export abstract class BaseCrudService<T> {
 export class BaseOrgCrudService<T> extends BaseCrudService<T> {
   protected store = inject(Store)
 
-  private readonly organizationId$ = this.store.selectedOrganization$.pipe(
-    map((org) => org?.id),
+  private readonly organizationId$ = this.store.selectOrganizationId().pipe(
+    map((organizationId) => organizationId ?? null),
     distinctUntilChanged()
   )
 

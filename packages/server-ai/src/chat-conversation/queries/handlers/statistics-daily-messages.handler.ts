@@ -30,7 +30,11 @@ export class StatisticsDailyMessagesHandler implements IQueryHandler<StatisticsD
 			.andWhere('chat_message.role = :role', { role: 'ai' })
 
 		if (!xpertId) {
-			query.andWhere('conversation.organizationId = :organizationId', {organizationId})
+			if (organizationId) {
+				query.andWhere('conversation.organizationId = :organizationId', { organizationId })
+			} else {
+				query.andWhere('conversation.organizationId IS NULL')
+			}
 		}
 		if (xpertId) {
 			query.andWhere('conversation.xpertId = :xpertId', { xpertId })

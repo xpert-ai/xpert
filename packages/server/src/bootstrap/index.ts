@@ -42,7 +42,7 @@ export async function bootstrap(pluginConfig?: Partial<any>): Promise<INestAppli
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
 		credentials: true,
 		allowedHeaders:
-			'Authorization, Language, Tenant-Id, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Language, Accept, Accept-Language, Observe'
+			'Authorization, Language, Tenant-Id, Organization-Id, X-Scope-Level, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Language, Accept, Accept-Language, Observe'
 	})
 
 	// TODO: enable csurf

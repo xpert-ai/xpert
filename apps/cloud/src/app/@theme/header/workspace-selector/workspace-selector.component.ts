@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 
-import { Component, DestroyRef, inject, model, signal } from '@angular/core'
+import { Component, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { Router } from '@angular/router'
@@ -23,7 +23,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 })
 export class WorkspaceSelectorComponent {
   private readonly store = inject(Store)
-  private readonly destroyRef = inject(DestroyRef)
   readonly workspaceService = inject(XpertWorkspaceService)
   readonly router = inject(Router)
 

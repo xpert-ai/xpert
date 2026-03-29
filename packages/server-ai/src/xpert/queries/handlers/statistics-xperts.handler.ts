@@ -22,10 +22,15 @@ export class StatisticsXpertsHandler implements IQueryHandler<StatisticsXpertsQu
 			.createQueryBuilder('xpert')
 			.select('COUNT(DISTINCT xpert.id) AS count')
 			.where('xpert.tenantId = :tenantId', {tenantId})
-			.andWhere('xpert.organizationId = :organizationId', {organizationId})
 			.andWhere('xpert.latest = true')
 			.andWhere('xpert.active = true')
 			.andWhere('xpert.version IS NOT NULL')
+
+		if (organizationId) {
+			query.andWhere('xpert.organizationId = :organizationId', { organizationId })
+		} else {
+			query.andWhere('xpert.organizationId IS NULL')
+		}
 
 		if (start) {
 			query.andWhere('xpert.createdAt >= :start', { start })

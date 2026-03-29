@@ -19,7 +19,7 @@ export async function createGraphqlModuleOptions(
 			credentials: true,
 			origin: '*',
 			allowedHeaders:
-				'Authorization, Language, Tenant-Id, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Language, Accept, Accept-Language, Observe'
+				'Authorization, Language, Tenant-Id, Organization-Id, X-Scope-Level, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Language, Accept, Accept-Language, Observe'
 		},
 		include: [options.resolverModule]
 	} as GqlModuleOptions;

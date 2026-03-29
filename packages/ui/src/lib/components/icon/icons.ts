@@ -92,7 +92,8 @@ import {
   X,
   Zap,
   Orbit,
-  Telescope
+  Telescope,
+  ComputerIcon
 } from 'lucide-angular';
 
 const DarkMode: LucideIconData = [
@@ -197,7 +198,8 @@ export const ZARD_ICONS = {
   'credit-card': CreditCard,
   activity: Activity,
   orbit: Orbit,
-  telescope: Telescope
+  telescope: Telescope,
+  computer: ComputerIcon
 } as const satisfies Record<string, LucideIconData>;
 
 export type ZardIcon = keyof typeof ZARD_ICONS | string | LucideIconData;

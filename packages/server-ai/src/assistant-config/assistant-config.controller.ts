@@ -44,6 +44,13 @@ export class AssistantConfigController {
     return this.service.getEffectiveConfig(code)
   }
 
+  @Get('xperts')
+  async getAvailableXperts(
+    @Query('scope') scope: AssistantConfigScope = AssistantConfigScope.ORGANIZATION
+  ) {
+    return this.service.getAvailableXperts(scope)
+  }
+
   @Post()
   async upsertConfig(@Body() input: IAssistantConfigUpsertInput) {
     return this.service.upsertConfig(input)

@@ -16,14 +16,16 @@ export const routes: Routes = [
         path: 'w',
         loadChildren: () => import('./workspace/routes').then((x) => x.default),
         data: {
-          title: 'Expert Workspace'
+          title: 'Expert Workspace',
+          scopeContext: 'dual-scope'
         }
       },
       {
         path: 'knowledges',
         loadChildren: () => import('./knowledge/routing').then((x) => x.default),
         data: {
-          title: 'Knowledgebase'
+          title: 'Knowledgebase',
+          scopeContext: 'dual-scope'
         }
       },
       {

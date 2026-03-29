@@ -79,7 +79,7 @@ export async function bootstrap(options: { title: string; version: string }) {
 		credentials: true,
 		methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
 		allowedHeaders:
-			'Authorization, Language, Time-Zone, Tenant-Id, Organization-Id, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Length, Content-Language, Accept, Accept-Language, Observe, last-event-id, X-Api-Key, ' +
+			'Authorization, Language, Time-Zone, Tenant-Id, Organization-Id, X-Scope-Level, X-Requested-With, X-Auth-Token, X-HTTP-Method-Override, Content-Type, Content-Length, Content-Language, Accept, Accept-Language, Observe, last-event-id, X-Api-Key, ' +
 			headersForOpenAI
 	})
 

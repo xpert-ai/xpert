@@ -27,6 +27,7 @@ const routes: Routes = [
         canActivate: [authGuard],
         data: {
           title: 'Chat',
+          scopeContext: 'dual-scope'
         }
       },
       {
@@ -35,6 +36,7 @@ const routes: Routes = [
         canActivate: [authGuard],
         data: {
           title: 'Explore Xperts',
+          scopeContext: 'dual-scope'
         }
       },
       {
@@ -55,6 +57,7 @@ const routes: Routes = [
         ],
         data: {
           title: 'Xpert Agent',
+          scopeContext: 'dual-scope'
         }
       },
 
@@ -64,6 +67,7 @@ const routes: Routes = [
         canActivate: [authGuard],
         data: {
           title: 'Dashboard',
+          scopeContext: 'dual-scope',
           permissions: {
             only: [AnalyticsPermissionsEnum.STORIES_VIEW],
             redirectTo
@@ -77,6 +81,7 @@ const routes: Routes = [
         canActivate: [authGuard, NgxPermissionsGuard],
         data: {
           title: 'Models',
+          scopeContext: 'dual-scope',
           permissions: {
             only: [AnalyticsPermissionsEnum.MODELS_EDIT],
             redirectTo
@@ -89,6 +94,7 @@ const routes: Routes = [
         canActivate: [authGuard, NgxPermissionsGuard],
         data: {
           title: 'Project',
+          scopeContext: 'dual-scope',
           permissions: {
             only: [AnalyticsPermissionsEnum.STORIES_VIEW],
             redirectTo
@@ -101,6 +107,7 @@ const routes: Routes = [
         canActivate: [authGuard, NgxPermissionsGuard],
         data: {
           title: 'Story',
+          scopeContext: 'dual-scope',
           permissions: {
             only: [AnalyticsPermissionsEnum.STORIES_VIEW],
             redirectTo
@@ -113,6 +120,7 @@ const routes: Routes = [
         canActivate: [authGuard],
         data: {
           title: 'Indicator',
+          scopeContext: 'dual-scope',
         }
       },
       // {
@@ -126,6 +134,7 @@ const routes: Routes = [
         canActivate: [authGuard],
         data: {
           title: 'Indicator-app',
+          scopeContext: 'dual-scope',
           permissions: {
             only: [AnalyticsPermissionsEnum.INDICATOR_MARTKET_VIEW],
             redirectTo
@@ -137,6 +146,7 @@ const routes: Routes = [
         loadChildren: () => import('./organization/organization.module').then((m) => m.OrganizationModule),
         data: {
           title: 'Organization',
+          scopeContext: 'organization-only',
         }
       },
       {
@@ -145,6 +155,7 @@ const routes: Routes = [
         canActivate: [authGuard],
         data: {
           title: 'Data-Factory',
+          scopeContext: 'dual-scope',
         }
       },
       // Settings Routers
@@ -154,6 +165,7 @@ const routes: Routes = [
         canActivate: [authGuard],
         data: {
           title: 'Settings',
+          scopeContext: 'dual-scope',
         }
       },
       {

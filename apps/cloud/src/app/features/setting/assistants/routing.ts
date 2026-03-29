@@ -6,7 +6,8 @@ export default [
     path: '',
     component: AssistantsSettingsComponent,
     data: {
-      title: 'Settings / Assistants'
+      title: 'Settings / Assistants',
+      scopeContext: 'dual-scope'
     }
   }
 ] as Routes

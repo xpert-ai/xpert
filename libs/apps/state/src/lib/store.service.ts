@@ -15,7 +15,8 @@ import {
 	AnalyticsFeatures,
 	ITenantSetting,
 	IXpertWorkspace,
-	AiFeatureEnum
+	AiFeatureEnum,
+	RequestScopeLevel
 } from '@metad/contracts';
 import { Injectable, inject } from '@angular/core';
 import { StoreConfig, Store as AkitaStore, Query } from '@datorama/akita';
@@ -26,6 +27,9 @@ import { uniqBy } from 'lodash-es';
 import { toSignal } from '@angular/core/rxjs-interop';
 import { ThemesEnum, linkedModel, normalizeTheme, prefersColorScheme, resolveTheme } from '@metad/ocap-angular/core';
 
+export type ActiveScope =
+	| { level: RequestScopeLevel.TENANT }
+	| { level: RequestScopeLevel.ORGANIZATION; organizationId: string }
 
 export interface AppState {
 	user: IUser;
@@ -44,6 +48,10 @@ export interface AppState {
 
 export interface PersistState {
 	organizationId?: string;
+	activeScopeLevel?: RequestScopeLevel;
+	lastOrganizationId?: string;
+	lastTenantCompatibleRoute?: string;
+	lastOrganizationCompatibleRoute?: string;
 	workspaceId?: string;
 	/**
 	 * @deprecated unused
@@ -99,6 +107,15 @@ export function createInitialPersistState(): PersistState {
 	const token = localStorage.getItem('token') || null;
 	const userId = localStorage.getItem('_userId') || null;
 	const organizationId = localStorage.getItem('_organizationId') || null;
+	const activeScopeLevel =
+		(localStorage.getItem('_activeScopeLevel') as RequestScopeLevel) ||
+		RequestScopeLevel.ORGANIZATION;
+	const lastOrganizationId =
+		localStorage.getItem('_lastOrganizationId') || organizationId || null;
+	const lastTenantCompatibleRoute =
+		localStorage.getItem('_lastTenantCompatibleRoute') || null;
+	const lastOrganizationCompatibleRoute =
+		localStorage.getItem('_lastOrganizationCompatibleRoute') || null;
 	const serverConnection =
 		parseInt(localStorage.getItem('serverConnection')) || null;
 	const preferredLanguage = localStorage.getItem('preferredLanguage') || null;
@@ -112,6 +129,10 @@ export function createInitialPersistState(): PersistState {
 		token,
 		userId,
 		organizationId,
+		activeScopeLevel,
+		lastOrganizationId,
+		lastTenantCompatibleRoute,
+		lastOrganizationCompatibleRoute,
 		serverConnection,
 		preferredLanguage,
 		preferredTheme,
@@ -169,6 +190,16 @@ export class Store {
 	selectedEmployee$ = this.appQuery.select((state) => state.selectedEmployee);
 	selectedWorkspace$ = this.appQuery.select((state) => state.selectedWorkspace);
 	workspaceId$ = this.persistQuery.select((state) => state.workspaceId);
+	activeScope$ = this.persistQuery
+		.select((state) => state)
+		.pipe(
+			map((state) => resolveActiveScopeFromPersistState(state)),
+			distinctUntilChanged(isActiveScopeEqual)
+		);
+	scopeLevel$ = this.activeScope$.pipe(
+		map((scope) => scope.level),
+		distinctUntilChanged()
+	);
 	
 	selectedDate$ = this.appQuery.select((state) => state.selectedDate);
 	userRolePermissions$ = this.appQuery.select(
@@ -285,14 +316,40 @@ export class Store {
 	 * @deprecated use injectOrganizationId
 	 */
 	get organizationId(): IOrganization['id'] | null {
-		const { organizationId } = this.persistQuery.getValue();
-		return organizationId;
+		return this.activeScope.level === RequestScopeLevel.ORGANIZATION
+			? this.activeScope.organizationId
+			: null;
 	}
 
 	set organizationId(id: IOrganization['id'] | null) {
 		this.persistStore.update({
-			organizationId: id
+			organizationId: id,
+			activeScopeLevel: id
+				? RequestScopeLevel.ORGANIZATION
+				: RequestScopeLevel.TENANT,
+			lastOrganizationId: id || this.lastOrganizationId
 		});
+	}
+
+	get activeScope(): ActiveScope {
+		return resolveActiveScopeFromPersistState(this.persistQuery.getValue());
+	}
+
+	get scopeLevel(): RequestScopeLevel {
+		return this.activeScope.level;
+	}
+
+	get isTenantScope(): boolean {
+		return this.scopeLevel === RequestScopeLevel.TENANT;
+	}
+
+	get isOrganizationScope(): boolean {
+		return this.scopeLevel === RequestScopeLevel.ORGANIZATION;
+	}
+
+	get lastOrganizationId(): IOrganization['id'] | null {
+		const { lastOrganizationId } = this.persistQuery.getValue();
+		return lastOrganizationId || null;
 	}
 
 	get user(): IUser {
@@ -513,7 +570,7 @@ export class Store {
 		// 	.filter((permission) => this.hasPermission(permission));
 		permissions = permissions.concat(userPermissions);
 
-		if (selectedOrganization) {
+		if (this.isOrganizationScope && selectedOrganization) {
 			const organizationPermissions = Object.keys(
 				OrganizationPermissionsEnum
 			)
@@ -528,7 +585,90 @@ export class Store {
 	}
 
 	selectOrganizationId() {
-		return this.selectedOrganization$.pipe(map((org) => org?.id), distinctUntilChanged())
+		return this.activeScope$.pipe(
+			map((scope) =>
+				scope.level === RequestScopeLevel.ORGANIZATION
+					? scope.organizationId
+					: null
+			),
+			distinctUntilChanged()
+		)
+	}
+
+	selectActiveScope() {
+		return this.activeScope$
+	}
+
+	setTenantScope() {
+		const currentOrganizationId = this.selectedOrganization?.id || this.lastOrganizationId;
+		this.persistStore.update((state) => ({
+			...state,
+			activeScopeLevel: RequestScopeLevel.TENANT,
+			organizationId: null,
+			lastOrganizationId: currentOrganizationId || state.lastOrganizationId || null
+		}));
+		this.appStore.update({
+			selectedOrganization: null
+		});
+		this.loadPermissions();
+	}
+
+	setOrganizationScope(organization: IOrganization) {
+		if (!organization?.id) {
+			return;
+		}
+
+		this.persistStore.update((state) => ({
+			...state,
+			activeScopeLevel: RequestScopeLevel.ORGANIZATION,
+			organizationId: organization.id,
+			lastOrganizationId: organization.id
+		}));
+		this.appStore.update({
+			selectedOrganization: organization
+		});
+		this.loadPermissions();
+	}
+
+	setLastCompatibleRoute(level: RequestScopeLevel, route: string | null) {
+		this.persistStore.update((state) => ({
+			...state,
+			lastTenantCompatibleRoute:
+				level === RequestScopeLevel.TENANT
+					? route
+					: state.lastTenantCompatibleRoute,
+			lastOrganizationCompatibleRoute:
+				level === RequestScopeLevel.ORGANIZATION
+					? route
+					: state.lastOrganizationCompatibleRoute
+		}));
+	}
+
+	getLastCompatibleRoute(level: RequestScopeLevel) {
+		const state = this.persistQuery.getValue();
+		return level === RequestScopeLevel.TENANT
+			? state.lastTenantCompatibleRoute
+			: state.lastOrganizationCompatibleRoute;
+	}
+
+	clearWorkspace() {
+		this.persistStore.update((state) => ({
+			...state,
+			workspaceId: null
+		}));
+		this.appStore.update((state) => ({
+			...state,
+			selectedWorkspace: null
+		}));
+	}
+
+	clearScopedSelections() {
+		this.clearWorkspace();
+		this.appStore.update((state) => ({
+			...state,
+			selectedEmployee: null,
+			selectedProject: null
+		}));
 	}
 
 	/**
@@ -577,6 +717,20 @@ export function injectOrganizationId() {
 	return toSignal(store.selectOrganizationId())
 }
 
+export function injectActiveScope() {
+	const store = inject(Store)
+	return toSignal(store.selectActiveScope(), {
+		initialValue: store.activeScope
+	})
+}
+
+export function injectScopeLevel() {
+	const store = inject(Store)
+	return toSignal(store.scopeLevel$, {
+		initialValue: store.scopeLevel
+	})
+}
+
 export function injectOrganization() {
 	const store = inject(Store)
 	return toSignal(store.selectedOrganization$)
@@ -606,4 +760,34 @@ export function injectWorkspace() {
 export function injectWorkspaceId() {
 	const store = inject(Store)
 	return toSignal(store.workspaceId$)
+}
+
+function resolveActiveScopeFromPersistState(
+	state: PersistState
+): ActiveScope {
+	const level =
+		state.activeScopeLevel ?? RequestScopeLevel.ORGANIZATION;
+	const organizationId = state.organizationId || state.lastOrganizationId || null;
+
+	if (level === RequestScopeLevel.ORGANIZATION && organizationId) {
+		return {
+			level: RequestScopeLevel.ORGANIZATION,
+			organizationId
+		};
+	}
+
+	return {
+		level: RequestScopeLevel.TENANT
+	};
+}
+
+function isActiveScopeEqual(a: ActiveScope, b: ActiveScope) {
+	return (
+		a?.level === b?.level &&
+		(a?.level !== RequestScopeLevel.ORGANIZATION ||
+			a.organizationId ===
+				(b.level === RequestScopeLevel.ORGANIZATION
+					? b.organizationId
+					: null))
+	);
 }

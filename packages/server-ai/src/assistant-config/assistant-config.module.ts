@@ -5,11 +5,12 @@ import { TypeOrmModule } from '@nestjs/typeorm'
 import { AssistantConfigController } from './assistant-config.controller'
 import { AssistantConfig } from './assistant-config.entity'
 import { AssistantConfigService } from './assistant-config.service'
+import { Xpert } from '../xpert/xpert.entity'
 
 @Module({
   imports: [
     RouterModule.register([{ path: '/assistant-config', module: AssistantConfigModule }]),
-    TypeOrmModule.forFeature([AssistantConfig]),
+    TypeOrmModule.forFeature([AssistantConfig, Xpert]),
     forwardRef(() => TenantModule),
     SharedModule
   ],
