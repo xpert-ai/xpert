@@ -1927,10 +1927,13 @@
     },
     "Scope": {
       "Switch": "切换范围",
+      "TenantEyebrow": "租户控制台",
       "TenantSection": "租户控制台",
       "TenantLabel": "租户默认值与治理",
       "TenantHint": "管理租户级默认值、组织以及继承的配置。",
-      "OrganizationSection": "组织"
+      "OrganizationEyebrow": "组织范围",
+      "OrganizationSection": "组织",
+      "SelectOrganization": "请选择一个组织"
     },
     "Story": {
       "StoryToolbar": "故事工具栏",
