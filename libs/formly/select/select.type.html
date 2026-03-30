@@ -45,6 +45,7 @@
               *cdkVirtualFor="let option of filteredComboboxOptions(); trackBy: trackByValue; let i = index"
               [class.bg-accent]="i === activeIndex"
               [class.text-accent-foreground]="i === activeIndex"
+              (mousedown)="$event.preventDefault()"
               (click)="select(option)"
             >
               <ngm-display-behaviour
@@ -64,6 +65,7 @@
                 class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm bg-hover-bg"
                 [class.bg-accent]="i === activeIndex"
                 [class.text-accent-foreground]="i === activeIndex"
+                (mousedown)="$event.preventDefault()"
                 (click)="select(option)"
               >
                 <ngm-display-behaviour
