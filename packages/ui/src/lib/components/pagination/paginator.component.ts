@@ -309,7 +309,7 @@ export class ZardPaginatorComponent implements OnInit, OnDestroy, ZardPaginatorL
 
   protected readonly containerClasses = computed(() =>
     mergeClasses(
-      'flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between',
+      'flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-end',
       this.displayDensityState() === 'compact' ? 'gap-1.5' : '',
     ),
   );
@@ -323,7 +323,7 @@ export class ZardPaginatorComponent implements OnInit, OnDestroy, ZardPaginatorL
 
   protected readonly actionsClasses = computed(() =>
     mergeClasses(
-      'flex items-center gap-2 sm:ml-auto',
+      'flex items-center gap-2',
       this.displayDensityState() === 'compact' ? 'gap-1.5' : '',
     ),
   );

@@ -65,6 +65,7 @@
               *cdkVirtualFor="let option of filteredComboboxOptions(); trackBy: trackByValue; let i = index"
               [class.bg-accent]="i === activeIndex"
               [class.text-accent-foreground]="i === activeIndex"
+              (mousedown)="$event.preventDefault()"
               (click)="select(option)"
             >
               <ng-container
@@ -73,20 +74,23 @@
             </button>
           </cdk-virtual-scroll-viewport>
         } @else {
-          @for (option of filteredComboboxOptions(); track option.id ?? option.value; let i = $index) {
-            <button
-              type="button"
-              role="option"
-              class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm"
-              [class.bg-accent]="i === activeIndex"
-              [class.text-accent-foreground]="i === activeIndex"
-              (click)="select(option)"
-            >
-              <ng-container
-                *ngTemplateOutlet="optionTemplate; context: { $implicit: option.data, highlight: highlight() }"
-              ></ng-container>
-            </button>
-          }
+          <div class="max-h-60 overflow-auto p-1">
+            @for (option of filteredComboboxOptions(); track option.id ?? option.value; let i = $index) {
+              <button
+                type="button"
+                role="option"
+                class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm"
+                [class.bg-accent]="i === activeIndex"
+                [class.text-accent-foreground]="i === activeIndex"
+                (mousedown)="$event.preventDefault()"
+                (click)="select(option)"
+              >
+                <ng-container
+                  *ngTemplateOutlet="optionTemplate; context: { $implicit: option.data, highlight: highlight() }"
+                ></ng-container>
+              </button>
+            }
+          </div>
         }
       </ng-template>
     </z-combobox>

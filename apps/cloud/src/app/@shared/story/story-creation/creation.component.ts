@@ -3,13 +3,12 @@ import { Component, Inject, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { BusinessAreasService, SemanticModelServerService, StoriesService } from '@metad/cloud/state'
-import { NgmTreeSelectComponent } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { DisplayBehaviour, SemanticModel, TreeNodeInterface } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { debounceTime, distinctUntilChanged, map, startWith } from 'rxjs/operators'
 import { ICollection, ISemanticModel } from '../../../@core'
-import { InlineSearchComponent } from '../../form-fields'
+import { InlineSearchComponent, XpTreeSelectComponent } from '../../form-fields'
 import { SharedUiModule } from '../../ui.module'
 
 import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
@@ -21,7 +20,7 @@ import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
     ReactiveFormsModule,
     SharedUiModule,
     ButtonGroupDirective,
-    NgmTreeSelectComponent,
+    XpTreeSelectComponent,
     DensityDirective,
     InlineSearchComponent
 ],
@@ -32,8 +31,17 @@ import { Z_MODAL_DATA, ZardDialogRef } from '@xpert-ai/headless-ui'
       :host {
         display: flex;
         flex-direction: row;
-        flex: 1;
+        width: 100%;
+        max-width: 100%;
+        max-height: calc(100vh - 2rem);
         overflow: hidden;
+        box-sizing: border-box;
+      }
+
+      @media (max-width: 767px) {
+        :host {
+          flex-direction: column;
+        }
       }
     `
   ]

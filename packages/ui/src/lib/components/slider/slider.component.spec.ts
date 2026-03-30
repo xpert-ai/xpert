@@ -63,6 +63,14 @@ class RangeHostComponent {
   }
 }
 
+@Component({
+  imports: [ZardSliderComponent],
+  template: `
+    <z-slider [min]="0" [max]="1" [step]="0.1" [showValueLabel]="true" [value]="0.30000000000000004" />
+  `,
+})
+class FloatHostComponent {}
+
 function mockTrackRect(track: HTMLElement, width = 100, height = 10) {
   jest.spyOn(track, 'getBoundingClientRect').mockReturnValue({
     width,
@@ -78,6 +86,13 @@ function mockTrackRect(track: HTMLElement, width = 100, height = 10) {
 }
 
 function dispatchPointerEvent(target: EventTarget, type: string, clientX: number, clientY: number) {
+  const event = new MouseEvent(type, { bubbles: true, clientX, clientY });
+  Object.defineProperty(event, 'clientX', { value: clientX });
+  Object.defineProperty(event, 'clientY', { value: clientY });
+  target.dispatchEvent(event);
+}
+
+function dispatchMouseEvent(target: EventTarget, type: string, clientX: number, clientY: number) {
   const event = new MouseEvent(type, { bubbles: true, clientX, clientY });
   Object.defineProperty(event, 'clientX', { value: clientX });
   Object.defineProperty(event, 'clientY', { value: clientY });
@@ -112,6 +127,45 @@ describe('ZardSliderComponent', () => {
     expect(fixture.nativeElement.querySelectorAll('[data-slot="slider-tick"]').length).toBe(51);
   });
 
+  it('supports mouse dragging as a fallback interaction path', async () => {
+    const fixture = await TestBed.configureTestingModule({
+      imports: [ReactiveHostComponent],
+    }).createComponent(ReactiveHostComponent);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const host = fixture.nativeElement.querySelector('z-slider') as HTMLElement;
+    const track = fixture.nativeElement.querySelector('[data-slot="slider-track"]') as HTMLElement;
+    mockTrackRect(track);
+
+    dispatchMouseEvent(host, 'mousedown', 10, 5);
+    dispatchMouseEvent(document, 'mousemove', 40, 5);
+    dispatchMouseEvent(document, 'mousemove', 70, 5);
+    dispatchMouseEvent(document, 'mouseup', 70, 5);
+
+    fixture.detectChanges();
+
+    expect(fixture.componentInstance.valueChanges.at(-1)).toBe(70);
+    expect(fixture.componentInstance.changeEnds.at(-1)).toBe(70);
+    expect(fixture.componentInstance.control.value).toBe(70);
+  });
+
+  it('renders the track as a block element so width and height utilities apply', async () => {
+    const fixture = await TestBed.configureTestingModule({
+      imports: [ReactiveHostComponent],
+    }).createComponent(ReactiveHostComponent);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const track = fixture.nativeElement.querySelector('[data-slot="slider-track"]') as HTMLElement;
+    expect(track.className).toContain('block');
+    expect(track.className).toContain('bg-border');
+  });
+
   it('shows formatted value labels on focus', async () => {
     const fixture = await TestBed.configureTestingModule({
       imports: [ReactiveHostComponent],
@@ -128,6 +182,52 @@ describe('ZardSliderComponent', () => {
     const label = fixture.nativeElement.querySelector('[data-slot="slider-thumb"] span') as HTMLElement;
     expect(label.textContent?.trim()).toBe('v:50');
     expect(thumb.getAttribute('aria-valuetext')).toBe('v:50');
+  });
+
+  it('formats floating point values without binary precision artifacts', async () => {
+    const fixture = await TestBed.configureTestingModule({
+      imports: [FloatHostComponent],
+    }).createComponent(FloatHostComponent);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const thumb = fixture.nativeElement.querySelector('[data-slot="slider-thumb"]') as HTMLElement;
+    thumb.dispatchEvent(new FocusEvent('focusin', { bubbles: true }));
+    fixture.detectChanges();
+
+    expect(thumb.getAttribute('aria-valuetext')).toBe('0.3');
+    expect(fixture.nativeElement.textContent).not.toContain('0.30000000000000004');
+  });
+
+  it('renders a non-zero active range for single sliders', async () => {
+    const fixture = await TestBed.configureTestingModule({
+      imports: [ReactiveHostComponent],
+    }).createComponent(ReactiveHostComponent);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const range = fixture.nativeElement.querySelector('[data-slot="slider-range"]') as HTMLElement;
+
+    expect(range.style.left).toBe('0%');
+    expect(range.style.right).toBe('50%');
+  });
+
+  it('renders the thumb visual on the positioned host without an extra absolute offset', async () => {
+    const fixture = await TestBed.configureTestingModule({
+      imports: [ReactiveHostComponent],
+    }).createComponent(ReactiveHostComponent);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    const thumb = fixture.nativeElement.querySelector('[data-slot="slider-thumb"]') as HTMLElement;
+
+    expect(thumb.className).not.toContain('absolute');
   });
 
   it('supports range mode and prevents thumbs from crossing on keyboard updates', async () => {

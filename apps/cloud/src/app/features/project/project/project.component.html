@@ -462,26 +462,26 @@
             />
         </z-form-field>
 
-        <ngm-tree-select
+        <xp-tree-select
           appearance="fill"
           floatLabel="always"
           formControlName="parentId"
           label="{{ 'PAC.Project.ParentCollection' | translate: { Default: 'Parent Collection' } }}"
           displayBehaviour="descriptionOnly"
           [treeNodes]="collections()"
-        ></ngm-tree-select>
+        ></xp-tree-select>
 
-        <button [disabled]="form.invalid"></button>
+        <button type="submit" class="hidden" [disabled]="form.invalid" aria-hidden="true"></button>
       </form>
     </div>
 
     <xp-dialog-actions align="end">
       <div ngmButtonGroup>
-        <button z-button zType="ghost" xpDialogClose>
+        <button type="button" z-button zType="ghost" xpDialogClose>
           {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
 
-        <button z-button zType="default" color="accent" [disabled]="form.invalid" (click)="createCollection()">
+        <button type="button" z-button zType="default" color="accent" [disabled]="form.invalid" (click)="createCollection()">
           {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
         </button>
       </div>
@@ -498,7 +498,7 @@
     </header>
 
     <div xpDialogContent class="xpDialogContent w-96">
-      <ngm-tree-select
+      <xp-tree-select
         appearance="fill"
         floatLabel="always"
         [treeNodes]="collections()"
@@ -510,16 +510,16 @@
         [displayBehaviour]="DisplayBehaviour.descriptionOnly"
         [(ngModel)]="moveToCollectionId"
         >
-      </ngm-tree-select>
+      </xp-tree-select>
     </div>
 
     <xp-dialog-actions align="end">
       <div ngmButtonGroup>
-        <button z-button zType="ghost" xpDialogClose>
+        <button type="button" z-button zType="ghost" xpDialogClose>
           {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
 
-        <button z-button zType="default" color="accent" [xpDialogClose]="moveToCollectionId">
+        <button type="button" z-button zType="default" color="accent" [xpDialogClose]="moveToCollectionId">
           {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
         </button>
       </div>

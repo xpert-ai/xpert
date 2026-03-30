@@ -62,6 +62,8 @@ export class ProjectHomeComponent {
     const story = await firstValueFrom(
       this._dialog
         .open(StoryCreationComponent, {
+          width: '52rem',
+          maxWidth: 'calc(100vw - 2rem)',
           data: {
             story: {},
             collections,
@@ -106,6 +108,8 @@ export class ProjectHomeComponent {
     const _story: Story = await firstValueFrom(
       this._dialog
         .open(StoryCreationComponent, {
+          width: '52rem',
+          maxWidth: 'calc(100vw - 2rem)',
           data: {
             story,
             models,
