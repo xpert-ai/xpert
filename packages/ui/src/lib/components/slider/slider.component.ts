@@ -23,7 +23,7 @@ import {
 import { type ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms';
 
 import type { ClassValue } from 'clsx';
-import { filter, fromEvent, merge, Subject, switchMap, takeUntil, tap } from 'rxjs';
+import { type Observable, filter, fromEvent, map, merge, Subject, switchMap, takeUntil, tap } from 'rxjs';
 
 import { mergeClasses } from '@/shared/utils/merge-classes';
 import { clamp, convertValueToPercentage, roundToStep } from '@/shared/utils/number';
@@ -46,8 +46,14 @@ type SliderTick = {
   key: string;
   percent: number;
 };
+type SliderInputSource = 'pointer' | 'mouse';
+type SliderInputEvent = {
+  event: PointerEvent | MouseEvent;
+  source: SliderInputSource;
+};
 type OnTouchedType = () => void;
 type OnChangeType = (value: ZardSliderValue) => void;
+const defaultSliderValueFormatter = (value: number) => `${value}`;
 
 @Component({
   selector: 'z-slider-track',
@@ -82,19 +88,18 @@ export class ZSliderTrackComponent {
 @Component({
   selector: 'z-slider-range',
   standalone: true,
-  template: `
-    <span
-      data-slot="slider-range"
-      [attr.data-orientation]="orientation()"
-      [class]="classes()"
-      [style.left]="orientation() === 'horizontal' ? startPercent() + '%' : null"
-      [style.right]="orientation() === 'horizontal' ? 100 - endPercent() + '%' : null"
-      [style.bottom]="orientation() === 'vertical' ? startPercent() + '%' : null"
-      [style.top]="orientation() === 'vertical' ? 100 - endPercent() + '%' : null"
-    ></span>
-  `,
+  template: '',
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
+  host: {
+    'data-slot': 'slider-range',
+    '[attr.data-orientation]': 'orientation()',
+    '[class]': 'classes()',
+    '[style.left]': 'orientation() === "horizontal" ? startPercent() + "%" : null',
+    '[style.right]': 'orientation() === "horizontal" ? 100 - endPercent() + "%" : null',
+    '[style.bottom]': 'orientation() === "vertical" ? startPercent() + "%" : null',
+    '[style.top]': 'orientation() === "vertical" ? 100 - endPercent() + "%" : null',
+  },
 })
 export class ZSliderRangeComponent {
   readonly startPercent = input(0);
@@ -214,7 +219,7 @@ export class ZSliderThumbComponent {
           [disabled]="disabled()"
           [active]="activeThumbIndex() === thumb.index"
           [showLabel]="showValueLabel() && (dragging() || focusedThumbIndex() === thumb.index)"
-          [label]="formatValue()(thumb.value)"
+          [label]="formatDisplayValue(thumb.value)"
           (keydown)="handleKeydown(thumb.index, $event)"
           (focusin)="handleThumbFocus(thumb.index)"
           (focusout)="handleThumbBlur(thumb.index, $event)"
@@ -250,7 +255,7 @@ export class ZardSliderComponent implements ControlValueAccessor, AfterViewInit,
   readonly orientation = input<'horizontal' | 'vertical'>('horizontal');
   readonly showTickMarks = input(false, { transform: booleanAttribute });
   readonly showValueLabel = input(false, { transform: booleanAttribute });
-  readonly formatValue = input<(value: number) => string>((value: number) => `${value}`);
+  readonly formatValue = input<(value: number) => string>(defaultSliderValueFormatter);
   readonly class = input<ClassValue>('');
 
   readonly valueChange = output<ZardSliderValue>();
@@ -286,6 +291,7 @@ export class ZardSliderComponent implements ControlValueAccessor, AfterViewInit,
   private readonly destroy$ = new Subject<void>();
 
   private pendingChangeEnd = false;
+  private activeInputSource: SliderInputSource | null = null;
 
   protected readonly thumbViewModels = computed(() => {
     const [start, end] = this.internalValue();
@@ -297,7 +303,9 @@ export class ZardSliderComponent implements ControlValueAccessor, AfterViewInit,
     }));
   });
 
-  protected readonly rangeStartPercent = computed(() => this.valueToPercent(this.internalValue()[0]));
+  protected readonly rangeStartPercent = computed(() =>
+    this.mode() === 'range' ? this.valueToPercent(this.internalValue()[0]) : 0,
+  );
   protected readonly rangeEndPercent = computed(() => {
     const [, end] = this.internalValue();
     return this.valueToPercent(this.mode() === 'range' ? end : this.internalValue()[0]);
@@ -333,27 +341,51 @@ export class ZardSliderComponent implements ControlValueAccessor, AfterViewInit,
   private onChange: OnChangeType = () => {};
 
   ngAfterViewInit(): void {
-    const pointerMove$ = fromEvent<PointerEvent>(this.document, 'pointermove');
-    const pointerUp$ = merge(
-      fromEvent<PointerEvent>(this.document, 'pointerup'),
-      fromEvent<PointerEvent>(this.document, 'pointercancel'),
+    const inputStart$: Observable<SliderInputEvent> = merge(
+      fromEvent<PointerEvent>(this.elementRef.nativeElement, 'pointerdown').pipe(
+        map(event => ({ event, source: 'pointer' as const })),
+      ),
+      fromEvent<MouseEvent>(this.elementRef.nativeElement, 'mousedown').pipe(
+        map(event => ({ event, source: 'mouse' as const })),
+      ),
+    );
+    const inputMove$: Observable<SliderInputEvent> = merge(
+      fromEvent<PointerEvent>(this.document, 'pointermove').pipe(map(event => ({ event, source: 'pointer' as const }))),
+      fromEvent<MouseEvent>(this.document, 'mousemove').pipe(map(event => ({ event, source: 'mouse' as const }))),
+    );
+    const inputEnd$: Observable<SliderInputEvent> = merge(
+      fromEvent<PointerEvent>(this.document, 'pointerup').pipe(map(event => ({ event, source: 'pointer' as const }))),
+      fromEvent<PointerEvent>(this.document, 'pointercancel').pipe(
+        map(event => ({ event, source: 'pointer' as const })),
+      ),
+      fromEvent<MouseEvent>(this.document, 'mouseup').pipe(map(event => ({ event, source: 'mouse' as const }))),
     );
 
-    fromEvent<PointerEvent>(this.elementRef.nativeElement, 'pointerdown')
+    inputStart$
       .pipe(
         filter(() => !this.disabled()),
-        tap(event => this.handlePointerDown(event)),
-        switchMap(() =>
-          pointerMove$.pipe(
-            takeUntil(pointerUp$),
-            tap(event => this.handlePointerMove(event)),
+        filter(({ source }) => !(source === 'mouse' && this.activeInputSource === 'pointer')),
+        tap(({ event, source }) => {
+          this.activeInputSource = source;
+          this.handlePointerDown(event);
+        }),
+        switchMap(({ source }) =>
+          inputMove$.pipe(
+            filter(move => move.source === source),
+            takeUntil(inputEnd$.pipe(filter(end => end.source === source))),
+            tap(({ event }) => this.handlePointerMove(event)),
           ),
         ),
         takeUntil(this.destroy$),
       )
       .subscribe();
 
-    pointerUp$.pipe(takeUntil(this.destroy$)).subscribe(() => {
+    inputEnd$.pipe(takeUntil(this.destroy$)).subscribe(({ source }) => {
+      if (this.activeInputSource !== source) {
+        return;
+      }
+
+      this.activeInputSource = null;
       if (!this.dragging()) {
         return;
       }
@@ -472,7 +504,7 @@ export class ZardSliderComponent implements ControlValueAccessor, AfterViewInit,
     this.emitChangeEnd();
   }
 
-  private handlePointerDown(event: PointerEvent): void {
+  private handlePointerDown(event: PointerEvent | MouseEvent): void {
     const target = event.target as HTMLElement;
     const directThumbIndex = this.findThumbIndex(target);
     const thumbIndex = directThumbIndex ?? this.findClosestThumbIndex(this.coordinateToValue(event));
@@ -491,7 +523,7 @@ export class ZardSliderComponent implements ControlValueAccessor, AfterViewInit,
     event.preventDefault();
   }
 
-  private handlePointerMove(event: PointerEvent): void {
+  private handlePointerMove(event: PointerEvent | MouseEvent): void {
     if (this.disabled()) {
       return;
     }
@@ -613,7 +645,7 @@ export class ZardSliderComponent implements ControlValueAccessor, AfterViewInit,
     return Math.abs(value - start) <= Math.abs(value - end) ? 0 : 1;
   }
 
-  private coordinateToValue(event: PointerEvent): number {
+  private coordinateToValue(event: PointerEvent | MouseEvent): number {
     const rect = this.trackRef().nativeElement.getBoundingClientRect();
     if (!rect.width || !rect.height) {
       return this.internalValue()[this.activeThumbIndex()];
@@ -646,5 +678,13 @@ export class ZardSliderComponent implements ControlValueAccessor, AfterViewInit,
   private safeStep(): number {
     const step = this.step();
     return Number.isFinite(step) && step > 0 ? step : 1;
+  }
+
+  protected formatDisplayValue(value: number): string {
+    if (this.formatValue() !== defaultSliderValueFormatter) {
+      return this.formatValue()(value);
+    }
+
+    return `${roundToStep(value, this.min(), this.safeStep())}`;
   }
 }
