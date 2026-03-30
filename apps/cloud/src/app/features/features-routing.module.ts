@@ -114,15 +114,6 @@ const routes: Routes = [
           }
         }
       },
-      {
-        path: 'indicator',
-        loadChildren: () => import('./indicator/indicator.module').then((m) => m.PACIndicatorModule),
-        canActivate: [authGuard],
-        data: {
-          title: 'Indicator',
-          scopeContext: 'dual-scope',
-        }
-      },
       // {
       //   path: 'subscription',
       //   loadChildren: () => import('./subscription/subscription.module').then((m) => m.PACSubscriptionModule),

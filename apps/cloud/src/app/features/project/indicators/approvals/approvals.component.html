@@ -59,7 +59,7 @@
 </ng-template>
 
 <ng-template #indicatorTempl let-indicator="indicator">
-  <a [routerLink]="['/indicator/viewer', indicator?.id]">{{ indicator?.name }}</a>
+  <span>{{ indicator?.name }}</span>
 </ng-template>
 
 <ng-template #usersTempl let-userApprovals="userApprovals">

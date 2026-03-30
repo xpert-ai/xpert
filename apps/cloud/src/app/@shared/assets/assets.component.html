@@ -43,11 +43,11 @@
       }
 
       @if (asset.type === 'indicator') {
-        <li role="listitem" class="cursor-pointer group flex items-start gap-3 rounded-lg px-3 py-2 hover:bg-hover-bg" [routerLink]="['/indicator/viewer', asset.id]">
+        <li role="listitem" class="flex items-start gap-3 rounded-lg px-3 py-2">
           <span class="shrink-0 text-lg">💹</span>
           <div class="min-w-0 flex flex-1 flex-col">
             <div class="text-base">{{ asset.name }}</div>
-            <div class="flex-1 flex justify-between items-baseline text-xs text-opacity-60 group-hover:text-opacity-80 text-text-tertiary">
+            <div class="flex-1 flex justify-between items-baseline text-xs text-opacity-60 text-text-tertiary">
               <div class="mr-2">
                 {{ 'PAC.KEY_WORDS.Indicator' | translate: { Default: 'Indicator' } }}
               </div>

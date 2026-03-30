@@ -336,17 +336,6 @@ export function getFeatureMenus(
       ]
     },
     {
-      title: 'Indicator Market',
-      icon: 'local_grocery_store',
-      link: '/indicator/market',
-      scopeContext: 'dual-scope',
-      data: {
-        translationKey: 'Indicator Market',
-        featureKey: [AnalyticsFeatures.FEATURE_INDICATOR, AnalyticsFeatures.FEATURE_INDICATOR_MARKET],
-        permissionKeys: [AnalyticsPermissionsEnum.INDICATOR_MARTKET_VIEW]
-      }
-    },
-    {
       title: 'Indicator App',
       icon: 'trending_up',
       pathMatch: 'prefix',
@@ -355,7 +344,7 @@ export function getFeatureMenus(
       data: {
         translationKey: 'Indicator App',
         featureKey: [AnalyticsFeatures.FEATURE_INDICATOR, AnalyticsFeatures.FEATURE_INDICATOR_APP],
-        permissionKeys: [AnalyticsPermissionsEnum.INDICATOR_VIEW]
+        permissionKeys: [AnalyticsPermissionsEnum.INDICATOR_MARTKET_VIEW]
       }
     },
     {
