@@ -12,7 +12,7 @@ import {
 } from '@angular/forms'
 import { BusinessAreasService, hierarchizeBusinessAreas, NgmSemanticModel } from '@metad/cloud/state'
 import { nonBlank, nonNullable } from '@metad/core'
-import { NgmAdvancedSelectComponent, NgmHierarchySelectComponent, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
+import { NgmAdvancedSelectComponent, NgmHierarchySelectComponent } from '@metad/ocap-angular/common'
 import { ISelectOption, NgmDSCoreService, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import { NgmCalculatedMeasureComponent } from '@metad/ocap-angular/entity'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
@@ -58,6 +58,7 @@ import {
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '../types'
+import { XpTreeSelectComponent } from '../../form-fields'
 
 @Component({
   standalone: true,
@@ -77,7 +78,7 @@ import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '../types'
     ZardInputDirective,
     ZardCheckboxComponent,
     NgmAdvancedSelectComponent,
-    NgmTreeSelectComponent,
+    XpTreeSelectComponent,
     TagEditorComponent,
     NgmHierarchySelectComponent,
     NgmCalculatedMeasureComponent,

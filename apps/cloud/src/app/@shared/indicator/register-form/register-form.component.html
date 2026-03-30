@@ -23,15 +23,15 @@
     {{ 'PAC.INDICATOR.REGISTER.BASIC_INFO' | translate: { Default: 'Basic Info' } }}
   </div>
 
-  <div class="section grid grid-cols-1 gap-0 sm:grid-cols-2 sm:gap-3">
-    <ngm-tree-select
+  <div class="section grid grid-cols-1 items-start gap-0 sm:grid-cols-2 sm:gap-3">
+    <xp-tree-select
       formControlName="businessAreaId"
       [appearance]="appearance"
       label="{{ 'PAC.INDICATOR.REGISTER.BUSINESS_AREA' | translate: { Default: 'Business Area' } }}"
       [treeNodes]="businessAreasTree()"
       displayBehaviour="descriptionOnly"
       searchable
-    />
+    ></xp-tree-select>
 
     <ngm-advanced-select
       [appearance]="appearance"

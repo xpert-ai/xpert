@@ -20,6 +20,7 @@
       </z-form-label>
       <input
         z-input
+        cdkFocusInitial
         [placeholder]="'PAC.MODEL.ModelName' | translate: { Default: 'Model Name' }"
         formControlName="name"
         required
@@ -38,7 +39,7 @@
       ></textarea>
     </z-form-field>
 
-    <ngm-tree-select
+    <xp-tree-select
       class="w-full"
       appearance="fill"
       formControlName="businessAreaId"
@@ -46,7 +47,7 @@
       [treeNodes]="businessAreas$ | async"
       displayBehaviour="descriptionOnly"
       searchable
-    ></ngm-tree-select>
+    ></xp-tree-select>
 
     @if (enableMDX) {
       <z-checkbox class="m-2" formControlName="mdx">
@@ -61,7 +62,6 @@
         z-button
         zType="default"
         color="accent"
-        cdkFocusInitial
         [zDisabled]="formGroup.invalid || formGroup.pristine"
         (click)="create()"
       >

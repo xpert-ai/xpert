@@ -17,13 +17,14 @@ import { ZardButtonComponent, ZardCheckboxComponent, ZardFormImports, ZardInputD
 import { RouterModule } from '@angular/router'
 import { BusinessAreasService, DataSourceService, ISemanticModel } from '@metad/cloud/state'
 import { nonBlank } from '@metad/core'
-import { NgmSelectionTableComponent, NgmTreeSelectComponent, SelectionTableColumn } from '@metad/ocap-angular/common'
+import { NgmSelectionTableComponent, SelectionTableColumn } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@metad/ocap-angular/core'
 import { AgentType, Catalog, isNil } from '@metad/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { environment } from 'apps/cloud/src/environments/environment'
 import { Observable, Subject, catchError, filter, map, of, startWith, switchMap, tap } from 'rxjs'
 import { IDataSource, getErrorMessage } from '../../../@core'
+import { XpTreeSelectComponent } from '../../form-fields'
 
 @Component({
   standalone: true,
@@ -45,7 +46,7 @@ import { IDataSource, getErrorMessage } from '../../../@core'
     ZardCheckboxComponent,
     DensityDirective,
     ButtonGroupDirective,
-    NgmTreeSelectComponent,
+    XpTreeSelectComponent,
     NgmSelectionTableComponent
   ],
   host: {

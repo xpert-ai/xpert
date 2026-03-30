@@ -5,7 +5,6 @@ import { NgmDialogComponent } from '@metad/components/dialog'
 import {
   NgmCommonModule,
   NgmTableComponent,
-  NgmTreeSelectComponent,
   ResizerModule,
   TreeTableModule
 } from '@metad/ocap-angular/common'
@@ -39,8 +38,7 @@ import { provideLogger } from '../../@core'
     ResizerModule,
     NgmTableComponent,
 
-    TreeTableModule,
-    NgmTreeSelectComponent
+    TreeTableModule
   ],
   exports: [],
   providers: [

@@ -1,0 +1,11 @@
+:host {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 100%;
+  min-height: 0;
+}
+
+z-tree {
+  min-height: 0;
+}

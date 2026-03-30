@@ -13,7 +13,7 @@ import {
 import { BusinessAreasService, NgmSemanticModel } from '@metad/cloud/state'
 import { CommandDialogComponent } from '@metad/copilot-angular'
 import { nonBlank, nonNullable } from '@metad/core'
-import { NgmAdvancedSelectComponent, NgmHierarchySelectComponent, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
+import { NgmAdvancedSelectComponent, NgmHierarchySelectComponent } from '@metad/ocap-angular/common'
 import { DensityDirective, ISelectOption, NgmDSCoreService, NgmFieldAppearance } from '@metad/ocap-angular/core'
 import { NgmCalculatedMeasureComponent } from '@metad/ocap-angular/entity'
 import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
@@ -62,6 +62,7 @@ import {
   ZardTooltipImports
 } from '@xpert-ai/headless-ui'
 import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '@cloud/app/@shared/indicator/'
+import { XpTreeSelectComponent } from '../../../../@shared/form-fields'
 
 /**
  * @deprecated use {@link XpIndicatorRegisterFormComponent} instead
@@ -85,7 +86,7 @@ import { INDICATOR_AGGREGATORS, injectFetchModelDetails } from '@cloud/app/@shar
     ZardCheckboxComponent,
     DensityDirective,
     NgmAdvancedSelectComponent,
-    NgmTreeSelectComponent,
+    XpTreeSelectComponent,
     TagEditorComponent,
     NgmHierarchySelectComponent,
     NgmCalculatedMeasureComponent,

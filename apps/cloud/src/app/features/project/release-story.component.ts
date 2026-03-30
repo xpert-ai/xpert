@@ -3,7 +3,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, Inject, computed, inject } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { NgmCommonModule, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
+import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
 import { pick } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -13,6 +13,7 @@ import { IStory, StoryStatusEnum, ToastrService, Visibility } from '../../@core'
 import { SharedUiModule } from '../../@shared/ui.module'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { nonNullable } from '@metad/core'
+import { XpTreeSelectComponent } from '../../@shared/form-fields'
 
 import { ZardDialogRef } from '@xpert-ai/headless-ui'
 @Component({
@@ -27,7 +28,7 @@ import { ZardDialogRef } from '@xpert-ai/headless-ui'
     DensityDirective,
     NgmCommonModule,
     ButtonGroupDirective,
-    NgmTreeSelectComponent
+    XpTreeSelectComponent
   ],
   selector: 'pac-project-release-story-dialog',
   template: `<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
@@ -63,11 +64,11 @@ import { ZardDialogRef } from '@xpert-ai/headless-ui'
       }
   
       @if (type() === 1) {
-        <ngm-tree-select appearance="fill" searchable displayBehaviour="descriptionOnly"
+        <xp-tree-select appearance="fill" searchable displayBehaviour="descriptionOnly"
           formControlName="businessAreaId"
           label="{{ 'PAC.KEY_WORDS.BusinessArea' | translate: { Default: 'Business Area' } }}"
           [treeNodes]="businessArea$ | async"
-        ></ngm-tree-select>
+        ></xp-tree-select>
       }
   
       <z-form-field appearance="fill" floatLabel="always" >

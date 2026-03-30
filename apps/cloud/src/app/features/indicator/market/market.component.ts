@@ -4,7 +4,7 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { BusinessAreasService, IndicatorsService, Store, ToastrService, hierarchize } from '@metad/cloud/state'
 import { IndicatorType, PermissionApprovalStatusTypesEnum, TagCategoryEnum } from '@cloud/app/@core/types'
-import { NgmCommonModule, NgmHighlightDirective, NgmTreeSelectComponent, ResizerModule } from '@metad/ocap-angular/common'
+import { NgmCommonModule, NgmHighlightDirective, ResizerModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { findTreeNode } from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
@@ -25,6 +25,7 @@ import { AppService } from '../../../app.service'
 import { SharedUiModule } from '../../../@shared/ui.module'
 import { SharedModule } from '../../../@shared/shared.module'
 import { TagViewerComponent } from '../../../@shared/tag'
+import { XpTreeSelectComponent } from '../../../@shared/form-fields'
 
 @Component({
   standalone: true,
@@ -42,7 +43,7 @@ import { TagViewerComponent } from '../../../@shared/tag'
     ButtonGroupDirective,
     InlineSearchComponent,
     IndicatorTypeComponent,
-    NgmTreeSelectComponent,
+    XpTreeSelectComponent,
     TagViewerComponent,
     NgmHighlightDirective
   ],
