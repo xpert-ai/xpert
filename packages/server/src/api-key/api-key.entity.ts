@@ -1,4 +1,4 @@
-import { IApiKey } from '@metad/contracts'
+import { ApiKeyBindingType, IApiKey } from '@metad/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { IsString, IsOptional } from 'class-validator';
 import { differenceInMinutes } from 'date-fns'
@@ -24,7 +24,7 @@ export class ApiKey extends TenantOrganizationBaseEntity implements IApiKey {
 	 * Stable binding kind for resolving the technical principal behind this key.
 	 */
 	@Column({ nullable: true })
-	type?: string
+	type?: ApiKeyBindingType
 
 	/**
 	 * Stable binding target used together with `type` to resolve the technical principal.
