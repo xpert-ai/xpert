@@ -6,8 +6,8 @@ import { Store } from './store.service'
 export class OrganizationBaseCrudService<T> extends CrudService<T> {
   protected store = inject(Store)
 
-  private readonly organizationId$ = this.store.selectedOrganization$.pipe(
-    map((org) => org?.id),
+  private readonly organizationId$ = this.store.selectOrganizationId().pipe(
+    map((organizationId) => organizationId ?? null),
     distinctUntilChanged()
   )
 

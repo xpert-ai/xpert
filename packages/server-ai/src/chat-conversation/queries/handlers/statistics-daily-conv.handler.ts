@@ -28,7 +28,11 @@ export class StatisticsDailyConvHandler implements IQueryHandler<StatisticsDaily
 			.andWhere('conversation.from != :from', { from: 'debugger' })
 
 		if (!xpertId) {
-			query.andWhere('conversation.organizationId = :organizationId', {organizationId})
+			if (organizationId) {
+				query.andWhere('conversation.organizationId = :organizationId', { organizationId })
+			} else {
+				query.andWhere('conversation.organizationId IS NULL')
+			}
 		}
 		if (xpertId) {
 			query.andWhere('conversation.xpertId = :xpertId', { xpertId })

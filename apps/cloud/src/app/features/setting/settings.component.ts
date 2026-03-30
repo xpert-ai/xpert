@@ -13,6 +13,7 @@ import {
   AnalyticsPermissionsEnum,
   FeatureEnum,
   PermissionsEnum,
+  RequestScopeLevel,
   RolesEnum,
   Store,
   routeAnimations
@@ -24,7 +25,7 @@ import { ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
   imports: [RouterModule, ...ZardTooltipImports, ZardIconComponent, TranslateModule, NgmCommonModule],
   selector: 'pac-settings',
   templateUrl: `settings.component.html`,
-  styleUrl: './settings.component.scss',
+  styleUrl: './settings.component.css',
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -37,10 +38,14 @@ export class PACSettingComponent {
   readonly isMobile = this.appService.isMobile
   readonly sideMenuOpened = model(!this.isMobile())
   readonly selectedOrganization = toSignal(this.store.selectedOrganization$)
+  readonly activeScope = toSignal(this.store.selectActiveScope(), {
+    initialValue: this.store.activeScope
+  })
   readonly permissions = toSignal(this.permissionsService.permissions$.pipe(distinctUntilChanged()))
 
   readonly menus = computed(() => {
     const organization = this.selectedOrganization()
+    const scopeLevel = this.activeScope().level
     const permissions = this.permissions()
 
     const menus = [
@@ -53,6 +58,7 @@ export class PACSettingComponent {
         link: 'copilot',
         label: 'AI Copilot',
         icon: 'psychology',
+        scopeContext: 'dual-scope',
         data: {
           featureKey: AiFeatureEnum.FEATURE_COPILOT,
           permissionKeys: [AIPermissionsEnum.COPILOT_EDIT]
@@ -74,6 +80,7 @@ export class PACSettingComponent {
         link: 'data-sources',
         label: 'Data Sources',
         icon: 'database',
+        scopeContext: 'organization-only',
         data: {
           permissionKeys: [AnalyticsPermissionsEnum.DATA_SOURCE_EDIT],
           featureKey: AnalyticsFeatures.FEATURE_MODEL
@@ -83,6 +90,15 @@ export class PACSettingComponent {
         link: 'assistants',
         label: 'Assistants',
         icon: 'robot_2',
+        scopeContext: 'dual-scope',
+        subtitleKey:
+          scopeLevel === RequestScopeLevel.TENANT
+            ? 'PAC.Assistant.MenuTenantSubtitle'
+            : 'PAC.Assistant.MenuOrganizationSubtitle',
+        subtitleDefault:
+          scopeLevel === RequestScopeLevel.TENANT
+            ? 'Tenant defaults'
+            : 'Organization overrides',
         data: {
           featureKey: AiFeatureEnum.FEATURE_XPERT,
           permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
@@ -92,6 +108,7 @@ export class PACSettingComponent {
         link: 'chatbi',
         label: 'Chat BI',
         icon: 'try',
+        scopeContext: 'dual-scope',
         data: {
           permissionKeys: [AnalyticsPermissionsEnum.MODELS_EDIT],
           featureKey: [AiFeatureEnum.FEATURE_XPERT, AnalyticsFeatures.FEATURE_MODEL]
@@ -101,6 +118,7 @@ export class PACSettingComponent {
         link: 'business-area',
         label: 'Business Area',
         icon: 'business_center',
+        scopeContext: 'organization-only',
         data: {
           featureKey: AnalyticsFeatures.FEATURE_BUSINESS_AREA,
           permissionKeys: [AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT]
@@ -110,6 +128,7 @@ export class PACSettingComponent {
         link: 'certification',
         label: 'Certification',
         icon: 'verified_user',
+        scopeContext: 'organization-only',
         data: {
           permissionKeys: [AnalyticsPermissionsEnum.CERTIFICATION_EDIT]
           // permissionKeys: [AnalyticsPermissionsEnum.CERTIFICATION_EDIT]
@@ -119,6 +138,7 @@ export class PACSettingComponent {
         link: 'integration',
         label: 'System Integration',
         icon: 'hub',
+        scopeContext: 'organization-only',
         data: {
           featureKey: FeatureEnum.FEATURE_INTEGRATION,
           permissionKeys: [PermissionsEnum.INTEGRATION_EDIT]
@@ -128,6 +148,7 @@ export class PACSettingComponent {
         link: 'users',
         label: 'User',
         icon: 'people',
+        scopeContext: 'tenant-only',
         data: {
           featureKey: FeatureEnum.FEATURE_USER,
           permissionKeys: [PermissionsEnum.ORG_USERS_EDIT]
@@ -137,6 +158,7 @@ export class PACSettingComponent {
         link: 'roles',
         label: 'Role & Permission',
         icon: 'supervisor_account',
+        scopeContext: 'tenant-only',
         data: {
           featureKey: FeatureEnum.FEATURE_ROLES_PERMISSION,
           permissionKeys: [PermissionsEnum.CHANGE_ROLES_PERMISSIONS]
@@ -147,6 +169,7 @@ export class PACSettingComponent {
         link: 'email-templates',
         label: 'Email Template',
         icon: 'email',
+        scopeContext: 'dual-scope',
         data: {
           featureKey: FeatureEnum.FEATURE_EMAIL_TEMPLATE,
           permissionKeys: [PermissionsEnum.VIEW_ALL_EMAIL_TEMPLATES]
@@ -156,6 +179,7 @@ export class PACSettingComponent {
         link: 'custom-smtp',
         label: 'Custom SMTP',
         icon: 'alternate_email',
+        scopeContext: 'dual-scope',
         data: {
           featureKey: FeatureEnum.FEATURE_SMTP,
           permissionKeys: [PermissionsEnum.CUSTOM_SMTP_VIEW]
@@ -163,9 +187,13 @@ export class PACSettingComponent {
       },
 
       {
-        link: 'features',
+        link:
+          scopeLevel === RequestScopeLevel.TENANT
+            ? 'features/tenant'
+            : 'features/organization',
         label: 'Feature',
         icon: 'widgets',
+        scopeContext: 'dual-scope',
         data: {
           permissionKeys: [PermissionsEnum.CHANGE_ROLES_PERMISSIONS]
         }
@@ -174,6 +202,7 @@ export class PACSettingComponent {
         link: 'organizations',
         label: 'Organization',
         icon: 'corporate_fare',
+        scopeContext: 'tenant-only',
         data: {
           permissionKeys: [RolesEnum.SUPER_ADMIN]
         }
@@ -182,17 +211,19 @@ export class PACSettingComponent {
         link: 'plugins',
         label: 'Plugins',
         icon: 'extension',
+        scopeContext: 'dual-scope',
         data: {
           permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL]
         }
       }
     ]
 
-    if (!organization) {
+    if (scopeLevel === RequestScopeLevel.TENANT) {
       menus.push({
         link: 'tenant',
         label: 'Tenant',
-        icon: 'tenancy',
+        icon: 'computer',
+        scopeContext: 'tenant-only',
         data: {
           permissionKeys: [RolesEnum.SUPER_ADMIN]
         }
@@ -200,6 +231,14 @@ export class PACSettingComponent {
     }
 
     return menus.filter((item: any) => {
+      const scopeContext = item.scopeContext ?? 'dual-scope'
+      if (
+        (scopeContext === 'tenant-only' && scopeLevel !== RequestScopeLevel.TENANT) ||
+        (scopeContext === 'organization-only' &&
+          scopeLevel !== RequestScopeLevel.ORGANIZATION)
+      ) {
+        return false
+      }
       if (item.data?.featureKey) {
         const featureKey = Array.isArray(item.data.featureKey) ? item.data.featureKey : [item.data.featureKey]
         if (!featureKey.every((key) => this.store.hasFeatureEnabled(key))) {

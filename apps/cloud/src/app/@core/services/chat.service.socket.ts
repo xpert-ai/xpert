@@ -106,7 +106,8 @@ export class ChatWebsocketServer {
   }
 
   message(data: Omit<ChatGatewayMessage, 'organizationId'>) {
-    const event = { ...data, organizationId: this.#store.selectedOrganization.id }
+    const organizationId = this.#store.organizationId
+    const event = organizationId ? { ...data, organizationId } : { ...data }
     // If the retry message is not cleared within a certain period of time by return message,
     // it means an error has occurred for example the token expires.
     // The message will be resent.

@@ -5,6 +5,7 @@ import { IOrganizationProjectsUpdateInput } from './organization-projects.model'
 import { IOrganizationUpdateInput } from './organization.model';
 import { ITag } from './tag-entity.model';
 import { I18nObject, IconDefinition, TAvatar, TParameterSchema } from './types';
+import { IUser } from './user.model';
 
 
 export interface IIntegration<T = any> extends IBasePerTenantAndOrganizationEntityModel {
@@ -28,6 +29,12 @@ export interface IIntegration<T = any> extends IBasePerTenantAndOrganizationEnti
 	options?: T
 
 	tags?: ITag[]
+	/**
+	 * Stable technical principal for this integration.
+	 * One integration should map to one long-lived communication user.
+	 */
+	userId?: string
+	user?: IUser
 }
 
 export interface IIntegrationFilter {

@@ -8,6 +8,7 @@ import { MaskPipe } from '@metad/core'
 import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
+  ApiKeyBindingType,
   ApiKeyService,
   DateFormatPipe,
   DateRelativePipe,
@@ -38,7 +39,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 export class XpertDevelopApiKeyComponent {
   readonly #dialogRef = inject(DialogRef)
   readonly #dialog = inject(Dialog)
-  readonly #data = inject<{ type: 'xpert' | 'knowledgebase'; id: string }>(DIALOG_DATA)
+  readonly #data = inject<{ type: ApiKeyBindingType; id: string }>(DIALOG_DATA)
   readonly apiKeyService = inject(ApiKeyService)
   readonly #clipboard = inject(Clipboard)
   readonly #toastr = injectToastr()

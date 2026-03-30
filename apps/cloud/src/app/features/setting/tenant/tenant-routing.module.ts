@@ -17,6 +17,7 @@ const routes: Routes = [
     component: PACTenantComponent,
     canActivate: [NgxPermissionsGuard],
     data: {
+      scopeContext: 'tenant-only',
       permissions: {
         only: [RolesEnum.SUPER_ADMIN],
         redirectTo

@@ -13,14 +13,16 @@ export default [
     path: '',
     component: XpertWorkspaceHomeComponent,
     data: {
-      title: 'Expert Workspace'
+      title: 'Expert Workspace',
+      scopeContext: 'dual-scope'
     }
   },
   {
     path: ':id',
     component: XpertWorkspaceHomeComponent,
     data: {
-      title: 'Expert Workspaces'
+      title: 'Expert Workspaces',
+      scopeContext: 'dual-scope'
     },
     children: [
       {

@@ -119,7 +119,7 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 		const { relations, order, take } = data ?? {}
 		let { where } = data ?? {}
 		where = where ?? {}
-		const organizationId = RequestContext.getOrganizationId()
+		const organizationId = RequestContext.getOrganizationId() ?? IsNull()
 		
 		if (workspaceId === 'null' || workspaceId === 'undefined' || !workspaceId) {
 			where = {

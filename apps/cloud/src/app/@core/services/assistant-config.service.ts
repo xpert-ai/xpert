@@ -5,7 +5,8 @@ import {
   AssistantConfigScope,
   IAssistantConfig,
   IAssistantConfigUpsertInput,
-  IResolvedAssistantConfig
+  IResolvedAssistantConfig,
+  IXpert
 } from '../types'
 import { API_PREFIX } from '@metad/cloud/state'
 
@@ -25,6 +26,14 @@ export class AssistantConfigService {
 
   getEffective(code: AssistantCode) {
     return this.#http.get<IResolvedAssistantConfig>(`${API_ASSISTANT_CONFIG}/effective/${code}`)
+  }
+
+  getAvailableXperts(scope: AssistantConfigScope) {
+    return this.#http.get<IXpert[]>(`${API_ASSISTANT_CONFIG}/xperts`, {
+      params: {
+        scope
+      }
+    })
   }
 
   upsert(input: IAssistantConfigUpsertInput) {

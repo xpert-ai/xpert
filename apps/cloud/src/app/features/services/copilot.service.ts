@@ -3,6 +3,7 @@ import { effect, inject, Injectable } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { Router } from '@angular/router'
 import { AuthService } from '@metad/cloud/state'
+import { RequestScopeLevel } from '@metad/contracts'
 import { BusinessRoleType } from '@metad/copilot'
 import { NgmCopilotService } from '@metad/copilot-angular'
 import { pick } from '@metad/ocap-core'
@@ -44,11 +45,14 @@ export class PACCopilotService extends NgmCopilotService {
       this.roles.set(roles as unknown as BusinessRoleType[])
     })
 
-  private clientOptionsSub = combineLatest([this.#store.token$, this.#store.selectOrganizationId()])
+  private clientOptionsSub = combineLatest([this.#store.token$, this.#store.selectActiveScope()])
     .pipe(
-      map(([token, organizationId]) => ({
+      map(([token, scope]) => ({
         defaultHeaders: {
-          'Organization-Id': `${organizationId}`,
+          'X-Scope-Level': scope.level,
+          ...(scope.level === RequestScopeLevel.ORGANIZATION
+            ? { 'Organization-Id': `${scope.organizationId}` }
+            : {}),
           Authorization: `Bearer ${token}`
         },
         fetch: (async (url: string, request: RequestInit) => {

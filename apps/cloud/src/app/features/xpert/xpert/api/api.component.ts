@@ -9,6 +9,7 @@ import { OverlayAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
+  ApiKeyBindingType,
   derivedHelpUrl,
   getErrorMessage,
   injectApiBaseUrl,
@@ -89,12 +90,14 @@ export class XpertAPIComponent {
     this.#dialog
       .open(XpertDevelopApiKeyComponent, {
         data: {
-          type: 'xpert',
+          type: ApiKeyBindingType.ASSISTANT,
           id: this.xpert().id
         }
       })
       .closed.subscribe({
-        next: () => {}
+        next: () => {
+          //
+        }
       })
   }
 }

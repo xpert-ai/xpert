@@ -49,6 +49,10 @@ jest.mock('apps/cloud/src/app/@core', () => {
       return of([])
     }
 
+    getAvailableXperts(): any {
+      return of([])
+    }
+
     getEffective(): any {
       return of({
         code: 'chatbi',
@@ -73,9 +77,14 @@ jest.mock('apps/cloud/src/app/@core', () => {
     selectedOrganization$ = of(null)
     user$ = of(null)
     selectedOrganization = null
+    activeScope = { level: 'organization', organizationId: 'org-1' }
 
     selectOrganizationId() {
       return of(null)
+    }
+
+    selectActiveScope() {
+      return of(this.activeScope)
     }
 
     hasFeatureEnabled() {
@@ -111,12 +120,15 @@ jest.mock('apps/cloud/src/app/@core', () => {
       TENANT: 'tenant',
       ORGANIZATION: 'organization'
     },
+    RequestScopeLevel: {
+      TENANT: 'tenant',
+      ORGANIZATION: 'organization'
+    },
     AssistantConfigService,
     RolesEnum: {
       SUPER_ADMIN: 'SUPER_ADMIN',
       ADMIN: 'ADMIN'
     },
-    XpertAPIService: class XpertAPIService {},
     Store,
     ToastrService,
     getErrorMessage: (error: any) => error?.message ?? '',
@@ -129,7 +141,6 @@ const {
   AssistantConfigScope,
   AssistantConfigService,
   RolesEnum,
-  XpertAPIService,
   Store,
   ToastrService
 } = jest.requireMock('apps/cloud/src/app/@core') as {
@@ -146,7 +157,6 @@ const {
     SUPER_ADMIN: string
     ADMIN: string
   }
-  XpertAPIService: new (...args: any[]) => unknown
   Store: new (...args: any[]) => unknown
   ToastrService: new (...args: any[]) => unknown
 }
@@ -154,6 +164,7 @@ const {
 describe('AssistantsSettingsComponent', () => {
   let assistantConfigService: {
     getByScope: jest.Mock
+    getAvailableXperts: jest.Mock
     getEffective: jest.Mock
     upsert: jest.Mock
     delete: jest.Mock
@@ -163,15 +174,17 @@ describe('AssistantsSettingsComponent', () => {
     featureTenant$: any
     selectedOrganization$: any
     user$: any
+    activeScope: {
+      level: string
+      organizationId: string
+    }
     selectOrganizationId: jest.Mock
+    selectActiveScope: jest.Mock
     hasFeatureEnabled: jest.Mock
   }
   let toastr: {
     success: jest.Mock
     error: jest.Mock
-  }
-  let xpertService: {
-    getMyAll: jest.Mock
   }
 
   beforeEach(async () => {
@@ -218,6 +231,33 @@ describe('AssistantsSettingsComponent', () => {
           sourceScope: code === AssistantCode.XPERT_SHARED ? 'tenant' : 'organization'
         })
       ),
+      getAvailableXperts: jest.fn((scope: string) =>
+        of(
+          scope === AssistantConfigScope.TENANT
+            ? [
+                {
+                  id: 'tenant-assistant',
+                  name: 'Tenant Assistant',
+                  title: 'Tenant Assistant',
+                  latest: true
+                }
+              ]
+            : [
+                {
+                  id: 'tenant-assistant',
+                  name: 'Tenant Assistant',
+                  title: 'Tenant Assistant',
+                  latest: true
+                },
+                {
+                  id: 'org-assistant',
+                  name: 'Org Assistant',
+                  title: 'Org Assistant',
+                  latest: true
+                }
+              ]
+        )
+      ),
       upsert: jest.fn(() => of({})),
       delete: jest.fn(() => of({}))
     }
@@ -227,33 +267,15 @@ describe('AssistantsSettingsComponent', () => {
       featureTenant$: of([]),
       selectedOrganization$: of({ id: 'org-1', name: 'Org One' }),
       user$: of({ role: { name: RolesEnum.ADMIN } }),
+      activeScope: { level: 'organization', organizationId: 'org-1' },
       selectOrganizationId: jest.fn(() => of('org-1')),
+      selectActiveScope: jest.fn(() => of({ level: 'organization', organizationId: 'org-1' })),
       hasFeatureEnabled: jest.fn(() => true)
     }
 
     toastr = {
       success: jest.fn(),
       error: jest.fn()
-    }
-    xpertService = {
-      getMyAll: jest.fn(() =>
-        of({
-          items: [
-            {
-              id: 'workspace-assistant',
-              name: 'Workspace Assistant',
-              title: 'Workspace Assistant',
-              latest: true
-            },
-            {
-              id: 'chatbi-assistant',
-              name: 'ChatBI Assistant',
-              title: 'ChatBI Assistant',
-              latest: true
-            }
-          ]
-        })
-      )
     }
 
     TestBed.resetTestingModule()
@@ -271,10 +293,6 @@ describe('AssistantsSettingsComponent', () => {
         {
           provide: ToastrService,
           useValue: toastr
-        },
-        {
-          provide: XpertAPIService,
-          useValue: xpertService
         }
       ]
     }).compileComponents()
@@ -325,5 +343,24 @@ describe('AssistantsSettingsComponent', () => {
       AssistantConfigScope.ORGANIZATION
     )
     expect(toastr.success).toHaveBeenCalled()
+  })
+
+  it('uses tenant-only xperts for tenant defaults and tenant-plus-org xperts for organization overrides', async () => {
+    const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    await fixture.whenStable()
+
+    const component = fixture.componentInstance
+
+    const tenantOptions = component.assistantXpertOptions(
+      AssistantConfigScope.TENANT as any,
+      AssistantCode.XPERT_SHARED as any
+    )
+    const organizationOptions = component.assistantXpertOptions(
+      AssistantConfigScope.ORGANIZATION as any,
+      AssistantCode.CHATBI as any
+    )
+
+    expect(tenantOptions.map((option) => option.value)).toEqual(['tenant-assistant'])
+    expect(organizationOptions.map((option) => option.value)).toEqual(['tenant-assistant', 'org-assistant'])
   })
 })

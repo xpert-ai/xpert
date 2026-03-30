@@ -3,6 +3,7 @@ import { PassportStrategy } from '@nestjs/passport'
 import { IncomingMessage } from 'http'
 import { Strategy } from 'passport'
 import { ApiKeyService } from '../api-key/api-key.service'
+import { applyTenantScopeHeaders, resolveApiKeyRequestedUserId } from '../api-key/api-key-principal'
 import { SecretTokenService } from './secret-token.service'
 
 @Injectable()
@@ -29,13 +30,21 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 			token = authHeader.split(' ')[1]
 		}
 
+		const requestedUserId = resolveApiKeyRequestedUserId(req)
+
 		this.validateToken(token)
-			.then((apiKey) => {
+			.then(async (apiKey) => {
 				if (!apiKey?.createdBy) {
 					return this.fail(new UnauthorizedException('Invalid token'))
 				}
-				req.headers['organization-id'] = apiKey.organizationId
-				this.success({ ...apiKey.createdBy, apiKey })
+
+				applyTenantScopeHeaders(req)
+				this.success(
+					await this.apiKeyService.resolvePrincipal(apiKey, {
+						requestedUserId,
+						principalType: 'client_secret'
+					})
+				)
 			})
 			.catch((err) => {
 				return this.error(new UnauthorizedException('Unauthorized', err.message))
@@ -53,7 +62,7 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 		}
 
 		const apiKey = await this.apiKeyService.findOne(secretToken.entityId, {
-			relations: ['createdBy']
+			relations: ['createdBy', 'user']
 		})
 
 		if (apiKey.validUntil && apiKey.validUntil <= new Date()) {

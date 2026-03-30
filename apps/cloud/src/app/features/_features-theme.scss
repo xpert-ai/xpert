@@ -4,7 +4,6 @@
 @use './setting/settings-theme' as settings;
 @use './story/story-theme' as story;
 @use './semantic-model/semantic-models' as semantic-models;
-@use './indicator/indicator-theme' as indicator;
 @use './home/home-theme' as home;
 @use '../@core/variables';
 
@@ -24,8 +23,6 @@ $sidebar-collapsed-width: 40px;
   @include settings.color($theme);
   @include story.color($theme);
   @include semantic-models.color($theme);
-  @include indicator.color($theme);
-
   .pac__shell-bar {
     // position: relative; // 使 z-index 生效的属性
     z-index: 2;
@@ -244,7 +241,6 @@ $sidebar-collapsed-width: 40px;
   @include home.density($theme);
   @include story.density($theme);
   @include semantic-models.density($theme);
-  @include indicator.density($theme);
 
   /**
    * @deprecated

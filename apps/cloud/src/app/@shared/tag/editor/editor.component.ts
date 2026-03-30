@@ -160,7 +160,7 @@ export class TagEditorComponent implements ControlValueAccessor {
         name,
         color: 'blue',
         category: this.category(),
-        organizationId: this.store.selectedOrganization.id
+        organizationId: this.store.organizationId
       }
     ])
     this.onChange(this.tags())

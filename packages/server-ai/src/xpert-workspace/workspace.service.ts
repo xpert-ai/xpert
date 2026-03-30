@@ -30,7 +30,6 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
 			.createQueryBuilder('workspace')
 			.leftJoinAndSelect('workspace.members', 'member')
 			.where('workspace.tenantId = :tenantId', { tenantId: user.tenantId })
-			.andWhere('workspace.organizationId = :organizationId', { organizationId })
 			.andWhere(new Brackets((qb) => {
 				qb.where(`workspace.status <> 'archived'`)
 					.orWhere(`workspace.status IS NULL`)
@@ -40,6 +39,12 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
 					.orWhere('member.id = :userId', { userId: user.id })
 			}))
 			.orderBy(orderBy)
+
+		if (organizationId) {
+			query.andWhere('workspace.organizationId = :organizationId', { organizationId })
+		} else {
+			query.andWhere('workspace.organizationId IS NULL')
+		}
 			
 		const workspaces = await query.getMany()
 

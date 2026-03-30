@@ -235,6 +235,27 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 		return team
 	}
 
+	async findOneByIdWithinTenant(
+		id: string,
+		options?: Partial<Pick<OptionParams<Xpert>, 'relations' | 'select' | 'withDeleted'>>
+	) {
+		const tenantId = RequestContext.currentTenantId()
+
+		const entity = await this.repository.findOne({
+			...(options ?? {}),
+			where: {
+				id,
+				tenantId
+			}
+		})
+
+		if (!entity) {
+			throw new NotFoundException(`Not found xpert '${id}' in current tenant`)
+		}
+
+		return entity
+	}
+
 	async save(entity: Xpert) {
 		return await this.repository.save(entity)
 	}

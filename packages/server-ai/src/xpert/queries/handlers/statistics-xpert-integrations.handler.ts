@@ -19,8 +19,13 @@ export class StatisticsXpertIntegrationsHandler implements IQueryHandler<Statist
 			.createQueryBuilder('integration')
 			.select('COUNT(DISTINCT integration.id) AS count')
 			.where('integration.tenantId = :tenantId', { tenantId })
-			.andWhere('integration.organizationId = :organizationId', { organizationId })
 			.andWhere(`integration.options->>'xpertId' IS NOT NULL`)
+
+		if (organizationId) {
+			query.andWhere('integration.organizationId = :organizationId', { organizationId })
+		} else {
+			query.andWhere('integration.organizationId IS NULL')
+		}
 
 		if (start) {
 			query.andWhere('integration.createdAt >= :start', { start })

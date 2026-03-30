@@ -171,11 +171,16 @@ export class FeaturesComponent implements OnInit {
         filter((permissions: IRolePermission[]) => isNotEmpty(permissions)),
         map((permissions) => permissions.map(({ permission }) => permission)),
         tap((permissions) => this.#ngxPermissionsService.loadPermissions(permissions)),
-        combineLatestWith(this.#translateService.onLangChange.pipe(startWith(null)), this.selectedOrganization$),
+        combineLatestWith(
+          this.#translateService.onLangChange.pipe(startWith(null)),
+          this.selectedOrganization$,
+          this.#store.selectActiveScope()
+        ),
         takeUntilDestroyed(this.#destroyRef)
       )
-      .subscribe(([permissions, lang, org]) => {
-        this.menus.set(getFeatureMenus(org))
+      .subscribe(([permissions, lang, org, scope]) => {
+        this.organization = org
+        this.menus.set(getFeatureMenus(scope.level, org))
         this.loadItems()
       })
   }

@@ -8,7 +8,7 @@ import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { OverlayAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { getErrorMessage, injectApiBaseUrl, injectToastr, routeAnimations, XpertAPIService } from '../../../../../@core'
+import { ApiKeyBindingType, getErrorMessage, injectApiBaseUrl, injectToastr, routeAnimations, XpertAPIService } from '../../../../../@core'
 import { XpertDevelopApiKeyComponent } from '../../../xpert/develop'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
@@ -62,11 +62,13 @@ export class XpertKBAPIComponent {
       .open(XpertDevelopApiKeyComponent, {
         data: {
           id: this.id(),
-          type: 'knowledgebase'
+          type: ApiKeyBindingType.KNOWLEDGEBASE
         }
       })
       .closed.subscribe({
-        next: () => {}
+        next: () => {
+          //
+        }
       })
   }
 }

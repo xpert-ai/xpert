@@ -1,33 +1,74 @@
 <div
-  class="rounded-xl hover:bg-hover-bg"
+  class="rounded-2xl border border-divider-regular bg-components-card-bg/70 p-1 transition-colors hover:bg-hover-bg"
   [zTooltip]="
-    ('PAC.Header.Organization.SwitchOrganization' | translate: { Default: 'Switch Organization' }) +
-    (organization()?.name || '')
+    ('PAC.Scope.Switch' | translate: { Default: 'Switch scope' }) +
+    ': ' +
+    scopeLabel()
   "
   zPosition="right"
   [zDisabled]="!isCollapsed()"
   [cdkMenuTriggerFor]="menu"
 >
-  @if (organization()) {
-    <div class="flex justify-start items-center">
-      <pac-org-avatar [organization]="organization()" class="shrink-0 w-8 h-8 rounded-full overflow-hidden block m-1" />
+  <div class="flex items-center gap-2">
+    @if (isTenantScope()) {
+      <div class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300">
+        <i class="ri-building-4-line text-base"></i>
+      </div>
+    } @else if (currentOrganization()) {
+      <pac-org-avatar
+        [organization]="currentOrganization()"
+        class="block h-8 w-8 shrink-0 overflow-hidden rounded-xl"
+      />
+    }
 
-      @if (!isCollapsed()) {
-        <div class="flex-1 truncate mr-2">{{ organization().name }}</div>
-      }
-    </div>
-  }
+    @if (!isCollapsed()) {
+      <div class="min-w-0 flex-1 pr-1">
+        <div class="truncate text-[10px] uppercase tracking-[0.24em] text-text-tertiary">
+          {{ scopeEyebrow() }}
+        </div>
+        <div class="truncate text-sm font-medium text-text-primary">
+          {{ scopeLabel() }}
+        </div>
+      </div>
+      <i class="ri-arrow-down-s-line shrink-0 text-text-tertiary"></i>
+    }
+  </div>
 </div>
 
 <ng-template #menu>
-  <div cdkMenu class="cdk-menu__large" @overlayAnimation1>
-    <div class="sticky top-0 w-full mb-1 bg-components-card-bg border-b border-solid border-divider-deep z-10">
+  <div cdkMenu class="cdk-menu__large max-w-sm" @overlayAnimation1>
+    <div class="sticky top-0 z-10 mb-1 w-full border-b border-solid border-divider-deep bg-components-card-bg">
       <ngm-search class="w-full mb-1 rounded-lg overflow-hidden" [(ngModel)]="searchTerm" />
     </div>
+
+    @if (canUseTenantScope()) {
+      <div class="px-3 pb-1 pt-2 text-[10px] uppercase tracking-[0.24em] text-text-tertiary">
+        {{ 'PAC.Scope.TenantSection' | translate: { Default: 'Tenant Console' } }}
+      </div>
+      <div cdkMenuItem [class.active]="isTenantScope()" (click)="selectTenantScope()">
+        <div class="flex items-start gap-3 overflow-hidden">
+          <div class="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-primary-100 text-primary-700 dark:bg-primary-500/15 dark:text-primary-300">
+            <i class="ri-building-4-line text-base"></i>
+          </div>
+          <div class="min-w-0">
+            <div class="truncate font-medium text-text-primary">
+              {{ 'PAC.Scope.TenantLabel' | translate: { Default: 'Tenant defaults and governance' } }}
+            </div>
+            <div class="truncate text-xs text-text-secondary">
+              {{ 'PAC.Scope.TenantHint' | translate: { Default: 'Manage tenant-wide defaults, organizations, and inherited configuration.' } }}
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    <div class="px-3 pb-1 pt-2 text-[10px] uppercase tracking-[0.24em] text-text-tertiary">
+      {{ 'PAC.Scope.OrganizationSection' | translate: { Default: 'Organizations' } }}
+    </div>
     @for (org of organizations(); track org.id) {
-      <div cdkMenuItem [class.active]="org.id === organization()?.id" (click)="selectOrganization(org)">
-        <div class="flex justify-start items-center overflow-hidden text-ellipsis">
-          <pac-org-avatar [organization]="org" class="shrink-0 w-6 h-6 rounded-full overflow-hidden block mr-2" />
+      <div cdkMenuItem [class.active]="isActiveOrganization(org)" (click)="selectOrganization(org)">
+        <div class="flex items-center overflow-hidden text-ellipsis">
+          <pac-org-avatar [organization]="org" class="mr-2 block h-6 w-6 shrink-0 overflow-hidden rounded-full" />
           <span class="whitespace-nowrap" [title]="org.name" [ngmHighlight]="searchTerm()" [content]="org.name">{{
             org.name
           }}</span>

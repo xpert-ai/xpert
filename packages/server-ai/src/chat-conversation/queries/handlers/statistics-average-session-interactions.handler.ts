@@ -34,7 +34,11 @@ export class StatisticsAverageSessionInteractionsHandler
 			.andWhere('chat_message.role = :role', { role: 'human' })
 
 		if (!xpertId) {
-			query.andWhere('conversation.organizationId = :organizationId', {organizationId})
+			if (organizationId) {
+				query.andWhere('conversation.organizationId = :organizationId', { organizationId })
+			} else {
+				query.andWhere('conversation.organizationId IS NULL')
+			}
 		}
 		if (xpertId) {
 			query.andWhere('conversation.xpertId = :xpertId', { xpertId })

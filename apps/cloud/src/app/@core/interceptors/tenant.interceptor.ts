@@ -1,50 +1,41 @@
 import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http'
-import { DestroyRef, Injectable, inject } from '@angular/core'
-import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { IUser, IOrganization } from '@metad/contracts'
+import { Injectable } from '@angular/core'
+import { RequestScopeLevel } from '@metad/contracts'
 import { Observable } from 'rxjs'
-import { combineLatestWith, filter } from 'rxjs/operators'
 import { RequestMethodEnum } from '../types'
 import { Store } from './../services/store.service'
 
 @Injectable()
 export class TenantInterceptor implements HttpInterceptor {
-  readonly destroyRef = inject(DestroyRef)
-  
   constructor(private store: Store) {}
 
   intercept(request: HttpRequest<any>, next: HttpHandler): Observable<HttpEvent<any>> {
-    this.store.user$
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        filter((user) => !!user),
-        combineLatestWith(this.store.selectedOrganization$)
-      )
-      .subscribe(([user, organization]: [IUser, IOrganization]) => {
-        //bind tenantId for DELETE http method
-        const tenantId = user.tenantId
-        if (request.method === RequestMethodEnum.DELETE) {
-          const params = { tenantId }
-          request = request.clone({
-            setParams: params
-          })
-        }
+    const tenantId = this.store.user?.tenantId
+    const activeScope = this.store.activeScope
 
-        request = request.clone({
-          setHeaders: {
-            'Tenant-Id': `${tenantId}`
-          }
-        })
-
-        if (organization?.id) {
-          request = request.clone({
-            setHeaders: {
-              'Organization-Id': `${organization.id}`
-            }
-          })
+    if (tenantId && request.method === RequestMethodEnum.DELETE) {
+      request = request.clone({
+        setParams: {
+          tenantId
         }
       })
-    
+    }
+
+    request = request.clone({
+      setHeaders: {
+        ...(tenantId ? { 'Tenant-Id': `${tenantId}` } : {}),
+        'X-Scope-Level': activeScope.level
+      }
+    })
+
+    if (activeScope.level === RequestScopeLevel.ORGANIZATION) {
+      request = request.clone({
+        setHeaders: {
+          'Organization-Id': `${activeScope.organizationId}`
+        }
+      })
+    }
+
     return next.handle(request)
   }
 }

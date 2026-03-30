@@ -4,7 +4,8 @@ import {
   AssistantConfigSourceScope,
   IAssistantConfigUpsertInput,
   IResolvedAssistantConfig,
-  RolesEnum
+  RolesEnum,
+  XpertTypeEnum
 } from '@metad/contracts'
 import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import {
@@ -13,19 +14,24 @@ import {
   Injectable
 } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { DeepPartial, IsNull, Repository } from 'typeorm'
+import { DeepPartial, FindOptionsWhere, IsNull, Not, Repository } from 'typeorm'
 import { AssistantConfig } from './assistant-config.entity'
+import { Xpert } from '../xpert/xpert.entity'
 
 @Injectable()
 export class AssistantConfigService extends TenantOrganizationAwareCrudService<AssistantConfig> {
   constructor(
     @InjectRepository(AssistantConfig)
-    repository: Repository<AssistantConfig>
+    repository: Repository<AssistantConfig>,
+    @InjectRepository(Xpert)
+    private readonly xpertRepository: Repository<Xpert>
   ) {
     super(repository)
   }
 
   async getScopedConfigs(scope: AssistantConfigScope) {
+    this.ensureActiveRequestScopeAccess()
+
     const tenantId = this.requireTenantId()
     const organizationId =
       scope === AssistantConfigScope.ORGANIZATION ? RequestContext.getOrganizationId() : null
@@ -46,8 +52,10 @@ export class AssistantConfigService extends TenantOrganizationAwareCrudService<A
   }
 
   async getEffectiveConfig(code: AssistantCode): Promise<IResolvedAssistantConfig> {
+    this.ensureActiveRequestScopeAccess()
+
     const tenantId = this.requireTenantId()
-    const organizationId = RequestContext.getOrganizationId()
+    const organizationId = RequestContext.getScope().organizationId
 
     if (organizationId) {
       const organizationConfig = await this.repository.findOne({
@@ -84,8 +92,26 @@ export class AssistantConfigService extends TenantOrganizationAwareCrudService<A
     }
   }
 
+  async getAvailableXperts(scope: AssistantConfigScope) {
+    this.ensureActiveRequestScopeAccess()
+
+    const where = this.buildAvailableXpertWhere(scope)
+    if (!where) {
+      return []
+    }
+
+    return this.xpertRepository.find({
+      where,
+      order: {
+        createdAt: 'DESC'
+      }
+    })
+  }
+
   async upsertConfig(input: IAssistantConfigUpsertInput) {
+    this.ensureActiveRequestScopeAccess()
     this.ensureWriteAccess(input.scope)
+    await this.ensureAssistantSelectionAllowed(input.scope, input.options?.assistantId)
 
     const tenantId = this.requireTenantId()
     const organizationId = this.resolveOrganizationId(input.scope)
@@ -115,6 +141,7 @@ export class AssistantConfigService extends TenantOrganizationAwareCrudService<A
   }
 
   async deleteConfig(code: AssistantCode, scope: AssistantConfigScope) {
+    this.ensureActiveRequestScopeAccess()
     this.ensureWriteAccess(scope)
 
     const tenantId = this.requireTenantId()
@@ -140,6 +167,80 @@ export class AssistantConfigService extends TenantOrganizationAwareCrudService<A
     })
   }
 
+  private async ensureAssistantSelectionAllowed(scope: AssistantConfigScope, assistantId?: string | null) {
+    const normalizedAssistantId = assistantId?.trim()
+    if (!normalizedAssistantId) {
+      return
+    }
+
+    const where = this.withAssistantId(this.buildAvailableXpertWhere(scope), normalizedAssistantId)
+    if (!where) {
+      throw new BadRequestException('Organization scope is required for organization assistant configuration.')
+    }
+
+    const xpert = await this.xpertRepository.findOne({
+      where
+    })
+
+    if (!xpert) {
+      throw new BadRequestException('Selected assistant Xpert is not available in this configuration scope.')
+    }
+  }
+
+  private buildAvailableXpertWhere(scope: AssistantConfigScope): FindOptionsWhere<Xpert> | FindOptionsWhere<Xpert>[] | null {
+    const tenantId = this.requireTenantId()
+    const organizationId = scope === AssistantConfigScope.ORGANIZATION ? RequestContext.getOrganizationId() : null
+    const baseWhere = {
+      tenantId,
+      type: XpertTypeEnum.Agent,
+      latest: true,
+      publishAt: Not(IsNull())
+    } as FindOptionsWhere<Xpert>
+
+    if (scope === AssistantConfigScope.TENANT) {
+      return {
+        ...baseWhere,
+        organizationId: IsNull()
+      }
+    }
+
+    if (!organizationId) {
+      return null
+    }
+
+    return [
+      {
+        ...baseWhere,
+        organizationId: IsNull()
+      },
+      {
+        ...baseWhere,
+        organizationId
+      }
+    ]
+  }
+
+  private withAssistantId(
+    where: FindOptionsWhere<Xpert> | FindOptionsWhere<Xpert>[] | null,
+    id: string
+  ): FindOptionsWhere<Xpert> | FindOptionsWhere<Xpert>[] | null {
+    if (!where) {
+      return null
+    }
+
+    if (Array.isArray(where)) {
+      return where.map((item) => ({
+        ...item,
+        id
+      }))
+    }
+
+    return {
+      ...where,
+      id
+    }
+  }
+
   private ensureWriteAccess(scope: AssistantConfigScope) {
     if (scope === AssistantConfigScope.TENANT) {
       if (!RequestContext.hasRole(RolesEnum.SUPER_ADMIN)) {
@@ -150,6 +251,12 @@ export class AssistantConfigService extends TenantOrganizationAwareCrudService<A
 
     if (!RequestContext.hasRoles([RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN])) {
       throw new ForbiddenException('Organization assistant configuration requires admin access.')
+    }
+  }
+
+  private ensureActiveRequestScopeAccess() {
+    if (RequestContext.isTenantScope() && !RequestContext.hasRole(RolesEnum.SUPER_ADMIN)) {
+      throw new ForbiddenException('Tenant scope requires super admin access.')
     }
   }
 
@@ -166,12 +273,7 @@ export class AssistantConfigService extends TenantOrganizationAwareCrudService<A
       return null
     }
 
-    const organizationId = RequestContext.getOrganizationId()
-    if (!organizationId) {
-      throw new BadRequestException('Organization context is required for organization assistant configuration.')
-    }
-
-    return organizationId
+    return RequestContext.requireOrganizationScope()
   }
 
   private toResolvedConfig(config: AssistantConfig, sourceScope: AssistantConfigSourceScope): IResolvedAssistantConfig {

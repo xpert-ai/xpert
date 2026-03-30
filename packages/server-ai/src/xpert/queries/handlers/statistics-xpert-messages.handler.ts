@@ -25,9 +25,14 @@ export class StatisticsXpertMessagesHandler implements IQueryHandler<StatisticsX
 			.select('xpert.slug as slug')
 			.addSelect('COUNT(DISTINCT message.id) as count')
 			.where('conversation.tenantId = :tenantId', {tenantId})
-			.andWhere('conversation.organizationId = :organizationId', {organizationId})
 			.andWhere('conversation.from != :from', { from: 'debugger' })
 			.andWhere('message.role = :role', {role: 'ai'})
+
+		if (organizationId) {
+			query.andWhere('conversation.organizationId = :organizationId', { organizationId })
+		} else {
+			query.andWhere('conversation.organizationId IS NULL')
+		}
 
 		if (start) {
 			query.andWhere('conversation.createdAt >= :start', { start })

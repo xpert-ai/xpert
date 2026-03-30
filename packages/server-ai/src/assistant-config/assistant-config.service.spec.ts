@@ -17,6 +17,9 @@ jest.mock('@metad/contracts', () => ({
   RolesEnum: {
     SUPER_ADMIN: 'SUPER_ADMIN',
     ADMIN: 'ADMIN'
+  },
+  XpertTypeEnum: {
+    Agent: 'Agent'
   }
 }))
 
@@ -24,9 +27,12 @@ jest.mock('@metad/server-core', () => ({
   RequestContext: {
     currentTenantId: jest.fn(),
     getOrganizationId: jest.fn(),
+    getScope: jest.fn(),
     currentUserId: jest.fn(),
     hasRole: jest.fn(),
-    hasRoles: jest.fn()
+    hasRoles: jest.fn(),
+    isTenantScope: jest.fn(),
+    requireOrganizationScope: jest.fn()
   },
   TenantOrganizationBaseEntity: class {},
   TenantOrganizationAwareCrudService: class {
@@ -36,6 +42,10 @@ jest.mock('@metad/server-core', () => ({
       this.repository = repository
     }
   }
+}))
+
+jest.mock('../xpert/xpert.entity', () => ({
+  Xpert: class {}
 }))
 
 import { RequestContext } from '@metad/server-core'
@@ -55,6 +65,10 @@ describe('AssistantConfigService', () => {
     save: jest.Mock
     delete: jest.Mock
   }
+  let xpertRepository: {
+    find: jest.Mock
+    findOne: jest.Mock
+  }
   let service: AssistantConfigService
 
   beforeEach(() => {
@@ -65,14 +79,25 @@ describe('AssistantConfigService', () => {
       save: jest.fn(async (input) => input),
       delete: jest.fn()
     }
+    xpertRepository = {
+      find: jest.fn(),
+      findOne: jest.fn()
+    }
 
-    service = new AssistantConfigService(repository as any)
+    service = new AssistantConfigService(repository as any, xpertRepository as any)
 
     ;(RequestContext.currentTenantId as jest.Mock).mockReturnValue('tenant-1')
     ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue('org-1')
+    ;(RequestContext.getScope as jest.Mock).mockReturnValue({
+      tenantId: 'tenant-1',
+      level: 'organization',
+      organizationId: 'org-1'
+    })
     ;(RequestContext.currentUserId as jest.Mock).mockReturnValue('user-1')
     ;(RequestContext.hasRole as jest.Mock).mockImplementation((role) => role === RolesEnum.SUPER_ADMIN)
     ;(RequestContext.hasRoles as jest.Mock).mockReturnValue(true)
+    ;(RequestContext.isTenantScope as jest.Mock).mockReturnValue(false)
+    ;(RequestContext.requireOrganizationScope as jest.Mock).mockReturnValue('org-1')
   })
 
   afterEach(() => {
@@ -157,5 +182,62 @@ describe('AssistantConfigService', () => {
         }
       })
     ).rejects.toBeInstanceOf(ForbiddenException)
+  })
+
+  it('returns tenant-only xperts for tenant assistant selection', async () => {
+    xpertRepository.find.mockResolvedValue([{ id: 'tenant-xpert' }])
+
+    const result = await service.getAvailableXperts(AssistantConfigScope.TENANT)
+
+    expect(result).toEqual([{ id: 'tenant-xpert' }])
+    expect(xpertRepository.find).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: expect.objectContaining({
+          tenantId: 'tenant-1',
+          latest: true
+        })
+      })
+    )
+  })
+
+  it('allows tenant and current-organization xperts for organization overrides', async () => {
+    xpertRepository.findOne.mockResolvedValue({ id: 'tenant-xpert' })
+
+    await expect(
+      service.upsertConfig({
+        code: AssistantCode.CHATBI,
+        scope: AssistantConfigScope.ORGANIZATION,
+        enabled: true,
+        options: {
+          assistantId: 'tenant-xpert',
+          frameUrl: 'https://frame.example.com'
+        }
+      })
+    ).resolves.toBeDefined()
+
+    expect(xpertRepository.findOne).toHaveBeenCalledWith(
+      expect.objectContaining({
+        where: [
+          expect.objectContaining({ id: 'tenant-xpert' }),
+          expect.objectContaining({ id: 'tenant-xpert', organizationId: 'org-1' })
+        ]
+      })
+    )
+  })
+
+  it('rejects xperts outside the allowed scope when saving assistant config', async () => {
+    xpertRepository.findOne.mockResolvedValue(null)
+
+    await expect(
+      service.upsertConfig({
+        code: AssistantCode.CHATBI,
+        scope: AssistantConfigScope.ORGANIZATION,
+        enabled: true,
+        options: {
+          assistantId: 'foreign-org-xpert',
+          frameUrl: 'https://frame.example.com'
+        }
+      })
+    ).rejects.toThrow('Selected assistant Xpert is not available in this configuration scope.')
   })
 })

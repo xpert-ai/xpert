@@ -17,7 +17,21 @@ import { AppService } from '../../app.service'
 export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'disabled' | 'error'
 
 type AssistantLocale = 'en' | 'zh-Hans' | 'zh-Hant'
-type AssistantTheme = NonNullable<Parameters<typeof createChatKit>[0]['theme']>
+type AssistantChatKitOptions = Parameters<typeof createChatKit>[0]
+type AssistantTheme = NonNullable<AssistantChatKitOptions['theme']>
+type AssistantHostedClientSecret =
+  | string
+  | {
+      secret: string
+      organizationId: string
+    }
+type AssistantHostedChatKitOptions = Omit<AssistantChatKitOptions, 'api'> & {
+  api: {
+    apiUrl: string
+    xpertId?: string
+    getClientSecret: (currentClientSecret: string | null) => Promise<AssistantHostedClientSecret>
+  }
+}
 
 type AssistantRuntimeInput = {
   assistantCode: Signal<AssistantCode | null>
@@ -36,9 +50,16 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
 
   const refreshNonce = signal(0)
   const authToken = toSignal(store.token$.pipe(startWith(store.token)), { initialValue: store.token })
+  const organizationId = toSignal(store.selectOrganizationId(), { initialValue: store.organizationId ?? null })
   const fixedApiUrl = buildAssistantApiUrl(environment.API_BASE_URL)
   const requestState = toSignal(
-    toObservable(computed(() => ({ code: input.assistantCode(), refreshNonce: refreshNonce() }))).pipe(
+    toObservable(
+      computed(() => ({
+        code: input.assistantCode(),
+        organizationId: organizationId(),
+        refreshNonce: refreshNonce()
+      }))
+    ).pipe(
       switchMap(({ code }) => {
         if (!code) {
           return of({
@@ -126,7 +147,8 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
       currentConfig.options.assistantId,
       currentConfig.options.frameUrl,
       fixedApiUrl,
-      authToken() ?? ''
+      authToken() ?? '',
+      organizationId() ?? ''
     ].join(':')
   })
   const activeRuntimeKey = signal<string | null>(null)
@@ -137,6 +159,7 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
     const currentTheme = theme()
     const currentLocale = locale()
     const currentToken = authToken() ?? ''
+    const currentOrganizationId = organizationId()
     const requestContext = input.requestContext?.() ?? null
 
     if (!key || !currentConfig?.options) {
@@ -150,7 +173,7 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
       api: {
         apiUrl: fixedApiUrl,
         xpertId: currentConfig.options.assistantId,
-        getClientSecret: async () => currentToken
+        getClientSecret: async () => buildAssistantClientSecret(currentToken, currentOrganizationId)
       },
       locale: currentLocale,
       theme: currentTheme,
@@ -166,15 +189,15 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
       onError: (event: { error?: { message?: string } }) => {
         toastr.error(event?.error?.message || translate.instant('PAC.KEY_WORDS.Error', { Default: 'Error' }))
       }
-    } satisfies Parameters<typeof createChatKit>[0]
+    } satisfies AssistantHostedChatKitOptions
 
     if (!control() || activeRuntimeKey() !== key) {
-      control.set(createChatKit(options))
+      control.set(createChatKit(options as AssistantChatKitOptions))
       activeRuntimeKey.set(key)
       return
     }
 
-    control()?.setOptions(options)
+    control()?.setOptions(options as AssistantChatKitOptions)
   })
 
   return {
@@ -208,6 +231,17 @@ function normalizeChatKitLocale(locale?: string | null): AssistantLocale {
 function buildAssistantApiUrl(baseUrl?: string | null) {
   const normalizedBaseUrl = normalizeBaseUrl(baseUrl)
   return normalizedBaseUrl ? `${normalizedBaseUrl}/api/ai` : '/api/ai'
+}
+
+function buildAssistantClientSecret(secret: string, organizationId?: string | null): AssistantHostedClientSecret {
+  if (!organizationId) {
+    return secret
+  }
+
+  return {
+    secret,
+    organizationId
+  }
 }
 
 function normalizeBaseUrl(baseUrl?: string | null) {

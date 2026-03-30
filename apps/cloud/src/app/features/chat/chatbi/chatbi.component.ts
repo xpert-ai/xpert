@@ -81,12 +81,6 @@ import { injectAssistantChatkitRuntime } from '../../assistant/assistant-chatkit
           <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
             {{ 'PAC.ChatBI.AssistantShell' | translate: { Default: 'Assistant Shell' } }}
           </div>
-          <div class="mt-2 text-lg font-semibold text-text-primary">
-            {{ definition.titleKey | translate: { Default: definition.defaultTitle } }}
-          </div>
-          <p class="mt-2 text-sm text-text-secondary">
-            {{ definition.descriptionKey | translate: { Default: definition.defaultDescription } }}
-          </p>
         </div>
 
         <div class="min-h-0 flex-1 p-3">
