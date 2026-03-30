@@ -17,7 +17,6 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { SemanticModelServerService } from '@metad/cloud/state'
-import { CopilotChatMessageRoleEnum, CopilotEngine } from '@metad/copilot'
 import { nonBlank } from '@metad/core'
 import {
   NgmCommonModule,
@@ -26,7 +25,6 @@ import {
   ResizerModule,
   SplitterModule
 } from '@metad/ocap-angular/common'
-import { NgmCopilotChatComponent, provideCopilotDropAction } from '@metad/copilot-angular'
 import { DBTable, PropertyAttributes, TableEntity, VirtualCube, pick } from '@metad/ocap-core'
 import { NX_STORY_STORE, NxStoryStore, StoryModel } from '@metad/story/core'
 import { NxSettingsPanelService } from '@metad/story/designer'
@@ -40,7 +38,6 @@ import { ContentLoaderModule } from '@ngneat/content-loader'
 import { ScrollingModule } from '@angular/cdk/scrolling'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
 import { lowerCase, snakeCase, sortBy, uniqBy } from 'lodash-es'
-import { nanoid } from 'nanoid'
 import { NGXLogger } from 'ngx-logger'
 import {
   BehaviorSubject,
@@ -72,14 +69,6 @@ import { AppService } from '../../../app.service'
 import { exportSemanticModel } from '../types'
 import { ModelUploadComponent } from '../upload/upload.component'
 import {
-  injectCubeCommand,
-  injectDBACommand,
-  injectDimensionCommand,
-  injectModelerCommand,
-  injectTableCommand,
-  provideCopilotTables
-} from './copilot'
-import {
   CreateEntityDialogDataType,
   CreateEntityDialogRetType,
   ModelCreateEntityComponent
@@ -94,7 +83,6 @@ import {
   SemanticModelEntityType,
   TOOLBAR_ACTION_CATEGORY
 } from './types'
-import { markdownTableData, stringifyTableType } from './utils'
 import { ZardButtonComponent, ZardDialogOpenConfig, ZardDialogService, ZardDrawerImports, ZardIconComponent, ZardLoaderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
@@ -151,7 +139,6 @@ export class ModelComponent {
   readonly #logger = inject(NGXLogger)
   readonly #translate = inject(TranslateService)
   readonly destroyRef = inject(DestroyRef)
-  readonly copilotContext = provideCopilotTables()
 
   /**
   |--------------------------------------------------------------------------
@@ -159,7 +146,6 @@ export class ModelComponent {
   |--------------------------------------------------------------------------
   */
   @ViewChild('tableTemplate') tableTemplate!: TemplateRef<any>
-  @ViewChild('copilotChat') copilotChat!: NgmCopilotChatComponent
 
   @HostBinding('class.pac-fullscreen')
   public isFullscreen = false
@@ -276,82 +262,6 @@ export class ModelComponent {
   readonly publishing = signal(false)
   readonly canPublish = this.modelService.canPublish
   readonly checklist = this.modelService.checklist
-
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot
-  |--------------------------------------------------------------------------
-  */
-  #cubeCommand = injectCubeCommand(this.dimensions)
-  #dimensionCommand = injectDimensionCommand(this.dimensions)
-  #dbaCommand = injectDBACommand()
-  #tableCommand = injectTableCommand()
-  #entityDropAction = provideCopilotDropAction({
-    id: CdkDragDropContainers.Tables,
-    implementation: async (event: CdkDragDrop<any[], any[], any>, copilotEngine: CopilotEngine) => {
-      this.#logger.debug(`Drop table to copilot chat:`, event)
-      const data = event.item.data
-      // Get the source table or source cube structure
-      const entityType = await firstValueFrom(this.modelService.selectOriginalEntityType(data.name))
-
-      const topCount = 10
-      const samples = await firstValueFrom(this.modelService.selectTableSamples(data.name, topCount))
-
-      const tableHeader = `The structure of table "${data.name}" is as follows:`
-      const dataHeader = `The first ${topCount} rows of the table "${data.name}" are as follows:`
-
-      return [
-        {
-          id: nanoid(),
-          role: CopilotChatMessageRoleEnum.User,
-          data: {
-            columns: [
-              { name: 'name', caption: 'Name' },
-              { name: 'caption', caption: 'Description' }
-            ],
-            content: Object.values(entityType.properties) as any[],
-            header: tableHeader
-          },
-          content: tableHeader + '\n' + stringifyTableType(entityType),
-          templateRef: this.tableTemplate
-        },
-        {
-          id: nanoid(),
-          role: CopilotChatMessageRoleEnum.User,
-          data: {
-            columns: samples.columns,
-            content: samples.data,
-            header: dataHeader
-          },
-          content: dataHeader + '\n' + markdownTableData(samples),
-          templateRef: this.tableTemplate
-        }
-      ]
-    }
-  })
-  #queryResultDropAction = provideCopilotDropAction({
-    id: 'pac-model__query-results',
-    implementation: async (event: CdkDragDrop<any[], any[], any>, copilotEngine: CopilotEngine) => {
-      this.#logger.debug(`Drop query result to copilot chat:`, event)
-      const data = event.item.data
-      // Custom query result data
-      return {
-        id: nanoid(),
-        role: CopilotChatMessageRoleEnum.User,
-        data: {
-          columns: data.columns,
-          content: data.preview
-        },
-        content:
-          data.columns.map((column) => column.name).join(',') +
-          `\n` +
-          data.preview.map((row) => data.columns.map((column) => row[column.name]).join(',')).join('\n'),
-        templateRef: this.tableTemplate
-      }
-    }
-  })
-
-  #modelerCommand = injectModelerCommand()
 
   ngOnInit() {
     this.model = this.route.snapshot.data['storyModel']

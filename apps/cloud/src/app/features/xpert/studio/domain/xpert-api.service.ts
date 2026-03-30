@@ -59,7 +59,6 @@ import {
   UpdateNodeHandler,
   UpdateNodeRequest
 } from './node'
-import { PACCopilotService } from '../../../services'
 import { EReloadReason, IStudioStore, TStateHistory } from './types'
 import { CreateTeamHandler, CreateTeamRequest, ExpandTeamRequest, ExpandTeamHandler, UpdateXpertHandler, UpdateXpertRequest } from './xpert'
 import { genAgentKey, genWorkflowKey, injectGetXpertsByWorkspace, injectGetXpertTeam } from '../../utils'
@@ -73,7 +72,6 @@ export class XpertStudioApiService {
   readonly xpertAPI = inject(XpertAPIService)
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly toolsetService = inject(XpertToolsetService)
-  readonly copilotService = inject(PACCopilotService)
   readonly environmentService = inject(EnvironmentService)
   readonly #toastr = inject(ToastrService)
   readonly getXpertTeam = injectGetXpertTeam()

@@ -34,7 +34,6 @@ import { NGXLogger } from 'ngx-logger'
 import { connect } from 'ngxtension/connect'
 import { BehaviorSubject, Subscription, firstValueFrom, of } from 'rxjs'
 import { catchError, finalize, map, tap } from 'rxjs/operators'
-import { injectQueryCommand } from '../../copilot'
 import { ModelComponent } from '../../model.component'
 import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE } from '../../types'
@@ -131,17 +130,6 @@ export class EntityQueryComponent {
   })
 
   readonly displayBehaviour = signal<DisplayBehaviour>(DisplayBehaviour.auto)
-
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot
-  |--------------------------------------------------------------------------
-  */
-  #queryCommand = injectQueryCommand(this.statement, this.queryContext, async (query: string) => {
-    this._error.set(null)
-    this.loading$.next(true)
-    return await firstValueFrom(this._query(query))
-  })
 
   constructor() {
     connect(this.statement, this.entityService.statement$)

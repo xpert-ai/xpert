@@ -14,7 +14,6 @@ import {
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { CommandDialogComponent } from '@metad/copilot-angular'
 import { convertQueryResultColumns, linkedModel } from '@metad/core'
 import { NgmSpinComponent, NgmTableComponent } from '@metad/ocap-angular/common'
 import { DisplayDensity } from '@metad/ocap-angular/core'
@@ -37,7 +36,6 @@ import { EMPTY, of } from 'rxjs'
 import { catchError, map, startWith } from 'rxjs/operators'
 import { getErrorMessage, ToastrService } from '../../../../../@core'
 import { AppService } from '../../../../../app.service'
-import { injectFormulaCommand } from '../../copilot/'
 import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE, ModelDesignerType } from '../../types'
 import { ModelEntityService } from '../entity.service'
@@ -199,13 +197,6 @@ export class ModelEntityCalculationComponent {
       : of(null)
   })
 
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot
-  |--------------------------------------------------------------------------
-  */
-  #formulaCommand = injectFormulaCommand(this.calculatedMember)
-
   constructor() {
     effect(
       () => {
@@ -256,18 +247,6 @@ export class ModelEntityCalculationComponent {
 
   onEditorKeyDown(event) {
     console.log(event)
-  }
-
-  aiFormula() {
-    this.#dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        data: {
-          commands: ['formula']
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {})
   }
 
   toggleTest() {

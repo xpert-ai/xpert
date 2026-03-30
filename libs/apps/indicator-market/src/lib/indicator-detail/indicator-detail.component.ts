@@ -16,7 +16,6 @@ import { Dialog } from '@angular/cdk/dialog'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { CommentsService, Store, ToastrService } from '@metad/cloud/state'
 import { BusinessAreaRole, IBusinessAreaUser, IComment } from '@metad/contracts'
-import { NgmCopilotService } from '@metad/copilot-angular'
 import { convertTableToCSV, nonNullable } from '@metad/core'
 import { DisplayDensity, NgmDSCoreService, NgmLanguageEnum, PERIODS } from '@metad/ocap-angular/core'
 import {
@@ -99,7 +98,6 @@ export class IndicatorDetailComponent {
   private _bottomSheetRef? = inject<ZardSheetRef<IndicatorDetailComponent>>(ZardSheetRef, { optional: true })
   private _cdr = inject(ChangeDetectorRef)
   private toastrService = inject(ToastrService)
-  private copilotService = inject(NgmCopilotService)
   private dsCoreService = inject(NgmDSCoreService)
   private commentsService = inject(CommentsService)
   readonly #translate = inject(TranslateService)
@@ -605,7 +603,6 @@ export class IndicatorDetailComponent {
   readonly indicator = toSignal(this.indicator$)
   readonly indicatorMeasureName = computed(() => getIndicatorMeasureName(this.indicator() as Indicator))
   readonly favour = computed(() => this.store.favorites()?.includes(this.indicator()?.id))
-  readonly copilotEnabled = toSignal(this.copilotService.enabled$)
 
   readonly entityType = toSignal(this.entityType$)
 

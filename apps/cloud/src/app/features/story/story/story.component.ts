@@ -38,7 +38,6 @@ import {
   NxStoryComponent,
   NxStoryModule
 } from '@metad/story/story'
-import { NgmCopilotContextService, NgmCopilotContextToken } from '@metad/copilot-angular'
 import { TranslateModule } from '@ngx-translate/core'
 import { registerTheme } from 'echarts/core'
 import { NGXLogger } from 'ngx-logger'
@@ -51,7 +50,6 @@ import { StoryToolbarComponent } from '../toolbar/toolbar.component'
 import { StoryToolbarService } from '../toolbar/toolbar.service'
 import { ResponsiveBreakpoints, ResponsiveBreakpointType } from '../types'
 import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
-import { injectCalculationGraphCommand, injectStoryCommand, injectStoryPageCommand, injectStoryStyleCommand, injectStoryWidgetCommand } from '../copilot'
 import { SharedUiModule } from '../../../@shared/ui.module'
 import { TranslationBaseComponent } from '../../../@shared/language'
 
@@ -86,10 +84,6 @@ import { TranslationBaseComponent } from '../../../@shared/language'
     StoryToolbarService,
     provideStoryDesigner(),
     NxCoreService,
-    {
-      provide: NgmCopilotContextToken,
-      useClass: NgmCopilotContextService
-    }
   ]
 })
 export class StoryDesignerComponent extends TranslationBaseComponent implements OnInit, IsDirty {
@@ -105,7 +99,6 @@ export class StoryDesignerComponent extends TranslationBaseComponent implements 
   private route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   private logger = inject(NGXLogger)
-  readonly copilotContext = inject(NgmCopilotContextToken)
   readonly coreService = inject(NgmOcapCoreService)
   readonly #dialog = inject(ZardDialogService)
   readonly _viewContainerRef = inject(ViewContainerRef)
@@ -164,24 +157,6 @@ export class StoryDesignerComponent extends TranslationBaseComponent implements 
 
   // Default
   readonly dataSettings = signal<DataSettings & { modelId: string }>(null)
-
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot
-  |--------------------------------------------------------------------------
-  */
-  #styleCommand = injectStoryStyleCommand()
-  #pageCommand = injectStoryPageCommand()
-  #widgetCommand = injectStoryWidgetCommand()
-  #storyCommand = injectStoryCommand()
-  readonly calculatioCommand = injectCalculationGraphCommand(
-    this.dataSettings,
-    (dataSettings: DataSettings, key: string) => {
-      this.logger.debug(`Created calculation '${key}' for dataSource '${dataSettings.dataSource}' entity '${dataSettings.entitySet}'`)
-      // this.activeEntity(dataSettings.dataSource, dataSettings.entitySet)
-      this.#router.navigate(['calculations', encodeURIComponent(dataSettings.entitySet), key], { relativeTo: this.route })
-    }
-  )
 
   /**
   |--------------------------------------------------------------------------
@@ -289,23 +264,23 @@ export class StoryDesignerComponent extends TranslationBaseComponent implements 
       }
     }
 
-    this.copilotContext.cubes.update(() => this.storyService.modelCubes$.pipe(
-        map((models) => {
-          const items = []
-          models.forEach((model, index) => {
-            items.push(...model.cubes.map((cube) => ({ value: {
-              dataSource: model,
-              dataSourceId: model.value,
-              serizalize: async () => {
-                const entityType = await firstValueFrom(this.storyService.selectEntityType({dataSource: model.key, entitySet: cube.name}))
-                return markdownModelCube({modelId: model.value, dataSource: model.key, cube: entityType})
-              }
-            }, key: cube.name, caption: cube.caption })))
-          })
-          return items
-        }),
-      shareReplay(1)
-    ))
+    // this.copilotContext.cubes.update(() => this.storyService.modelCubes$.pipe(
+    //     map((models) => {
+    //       const items = []
+    //       models.forEach((model, index) => {
+    //         items.push(...model.cubes.map((cube) => ({ value: {
+    //           dataSource: model,
+    //           dataSourceId: model.value,
+    //           serizalize: async () => {
+    //             const entityType = await firstValueFrom(this.storyService.selectEntityType({dataSource: model.key, entitySet: cube.name}))
+    //             return markdownModelCube({modelId: model.value, dataSource: model.key, cube: entityType})
+    //           }
+    //         }, key: cube.name, caption: cube.caption })))
+    //       })
+    //       return items
+    //     }),
+    //   shareReplay(1)
+    // ))
   }
 
   isDirty(): boolean {
@@ -409,6 +384,7 @@ export class StoryDesignerComponent extends TranslationBaseComponent implements 
 
     if (event.metaKey || event.ctrlKey) {
       if (event.shiftKey) {
+        //
       } else {
         if (event.key === 's' || event.key === 'S') {
           this.storyService.saveStory()

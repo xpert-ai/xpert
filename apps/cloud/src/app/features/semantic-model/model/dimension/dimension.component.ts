@@ -17,7 +17,6 @@ import { Observable, combineLatest, pipe } from 'rxjs'
 import { distinctUntilChanged, filter, map, startWith, switchMap, tap, withLatestFrom } from 'rxjs/operators'
 import { ToastrService, routeAnimations, uuid } from '../../../../@core'
 import { AppService } from '../../../../app.service'
-import { injectHierarchyCommand } from '../copilot'
 import { ModelComponent } from '../model.component'
 import { SemanticModelService } from '../model.service'
 import { ModelDesignerType, SemanticModelEntityType, TOOLBAR_ACTION_CATEGORY } from '../types'
@@ -90,13 +89,6 @@ export class ModelDimensionComponent implements OnInit {
     ),
     { initialValue: [] }
   )
-
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot
-  |--------------------------------------------------------------------------
-  */
-  #createHierarchyCommand = injectHierarchyCommand(this.dimensionService, this.tableTypes)
 
   /**
   |--------------------------------------------------------------------------

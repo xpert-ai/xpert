@@ -11,7 +11,6 @@ import {
   Validators
 } from '@angular/forms'
 import { BusinessAreasService, NgmSemanticModel } from '@metad/cloud/state'
-import { CommandDialogComponent } from '@metad/copilot-angular'
 import { nonBlank, nonNullable } from '@metad/core'
 import { NgmAdvancedSelectComponent, NgmHierarchySelectComponent, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
 import { DensityDirective, ISelectOption, NgmDSCoreService, NgmFieldAppearance } from '@metad/ocap-angular/core'
@@ -48,7 +47,6 @@ import {
   tap
 } from 'rxjs'
 import { ProjectService } from '../../project.service'
-import { injectIndicatorFormulaCommand } from '../../copilot'
 import { TagEditorComponent } from 'apps/cloud/src/app/@shared/tag'
 
 import {
@@ -272,13 +270,6 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
 
   /**
   |--------------------------------------------------------------------------
-  | Copilot Commands
-  |--------------------------------------------------------------------------
-  */
-  #formulaCommand = injectIndicatorFormulaCommand()
-
-  /**
-  |--------------------------------------------------------------------------
   | Subscriptions (effect)
   |--------------------------------------------------------------------------
   */
@@ -359,15 +350,4 @@ export class IndicatorRegisterFormComponent implements ControlValueAccessor {
     this.showFormula.update((state) => !state)
   }
 
-  aiFormula() {
-    this._dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        data: {
-          commands: ['iformula']
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {})
-  }
 }

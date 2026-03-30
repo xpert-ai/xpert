@@ -23,7 +23,6 @@ import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
 import { StoriesService, convertNewSemanticModelResult } from '@metad/cloud/state'
 import { CopilotChatMessage } from '@metad/copilot'
-import { CommandDialogComponent } from '@metad/copilot-angular'
 import { IsNilPipe } from '@metad/core'
 import { NgmConfirmUniqueComponent, NgmInputComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
@@ -647,19 +646,6 @@ export class StoryToolbarComponent implements OnInit {
 
   openNewPage() {
     this.showDetails.set('newPages')
-  }
-
-  aiChatStory() {
-    this._dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        disableClose: true,
-        data: {
-          commands: ['story', 'page', 'widget', 'style']
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {})
   }
 
   @HostListener('document:keydown.escape', ['$event'])

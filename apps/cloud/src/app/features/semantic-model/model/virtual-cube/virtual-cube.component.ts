@@ -6,7 +6,6 @@ import { FormControl, FormGroup, Validators } from '@angular/forms'
 import { ActivatedRoute } from '@angular/router'
 import { calcEntityTypePrompt, nonBlank } from '@metad/core'
 import { NgmCommonModule, NgmSelectComponent, ResizerModule } from '@metad/ocap-angular/common'
-import { injectCopilotCommand } from '@metad/copilot-angular'
 import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import { EntityCapacity, NgmCalculatedMeasureComponent, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
 import {
@@ -123,71 +122,11 @@ export class VirtualCubeComponent {
     this.virtualCubeState.init(key)
   })
 
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot Commands
-  |--------------------------------------------------------------------------
-  */
-  #formula = injectCopilotCommand({
-    name: 'formula',
-    description: this.#translate.instant('PAC.MODEL.Copilot.CreateCalculatedFormula', {
-      Default: 'Create a formula for the measure'
-    }),
-    systemPrompt: async () => {
-      let prompt = `你是一名 BI 多维数据建模专家，你现在需要根据用户需求用 Multidimensional Expressions (MDX) 创建计算公式度量。
-如果计算度量结果为比率类型，请将 unit 设置为 % 。 如果有当前计算度量请修改公式，如果未提供则新建。`
-      if (this.showCalculatedMember()) {
-        prompt += `\n当前计算度量为:
-\`\`\`
-${Object.entries(this.calcMemberFormGroup.value)
-  .map(([key, value]) => `${key}: ${value}`)
-  .join('\n')}
-\`\`\`
-`
-      }
-
-      if (this.entityType()) {
-        prompt += `\n当前选择的 Cube 信息为:
-\`\`\`
-${calcEntityTypePrompt(this.entityType())}
-\`\`\`
-`
-      }
-      return prompt
-    },
-    actions: [
-      // injectMakeCopilotActionable({
-      //   name: 'new_or_edit_calculated_member',
-      //   description: 'Create a new formula for the calculated measure',
-      //   argumentAnnotations: [
-      //     {
-      //       name: 'formula',
-      //       type: 'string',
-      //       description: 'provide the new formula',
-      //       required: true
-      //     },
-      //     {
-      //       name: 'unit',
-      //       type: 'string',
-      //       description: 'unit of the formula',
-      //       required: true
-      //     }
-      //   ],
-      //   implementation: async (formula: string, unit: string) => {
-      //     this.#logger.debug(`Copilot command 'formula' params: formula is`, formula, `unit is`, unit)
-      //     this.calcMemberFormGroup.patchValue({ formula, unit })
-      //     this.showCalculatedMember.set(true)
-      //     return `✅`
-      //   }
-      // })
-    ]
-  })
-
-  constructor() {
-    effect(() => {
-      console.log(`[VirtualCubeComponent] dataSettings`, this.dataSettings$())
-    })
-  }
+  // constructor() {
+  //   effect(() => {
+  //     console.log(`[VirtualCubeComponent] dataSettings`, this.dataSettings$())
+  //   })
+  // }
 
   trackByName(index: number, item: CubeUsage) {
     return item.cubeName

@@ -17,7 +17,6 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl } from '@angular/forms'
 import { ActivatedRoute } from '@angular/router'
 import { CopilotChatMessageRoleEnum, CopilotEngine, nanoid } from '@metad/copilot'
-import { NgmCopilotService, provideCopilotDropAction } from '@metad/copilot-angular'
 import { calcEntityTypePrompt, convertQueryResultColumns, getErrorMessage } from '@metad/core'
 import { EntityCapacity, EntitySchemaNode, EntitySchemaType } from '@metad/ocap-angular/entity'
 import { NgmBaseEditorDirective } from '@metad/ocap-angular/formula'
@@ -30,13 +29,11 @@ import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, Subscription, combineLatest, firstValueFrom, of } from 'rxjs'
 import { catchError, distinctUntilChanged, filter, map, shareReplay, startWith, switchMap, tap } from 'rxjs/operators'
 import { FeaturesComponent } from '../../../../features.component'
-import { injectQueryCommand } from '../../copilot'
 import { ModelComponent } from '../../model.component'
 import { SemanticModelService } from '../../model.service'
 import { CdkDragDropContainers, MODEL_TYPE, QueryResult, SemanticModelEntityType } from '../../types'
 import { markdownTableData, quoteLiteral, stringifyTableType } from '../../utils'
 import { QueryLabService } from '../query-lab.service'
-import { QueryCopilotEngineService } from './copilot.service'
 import { QueryService } from './query.service'
 
 @Component({
@@ -45,7 +42,7 @@ import { QueryService } from './query.service'
   selector: 'pac-model-query',
   templateUrl: 'query.component.html',
   styleUrls: ['query.component.scss'],
-  providers: [QueryService, QueryCopilotEngineService]
+  providers: [QueryService]
 })
 export class QueryComponent {
   MODEL_TYPE = MODEL_TYPE
@@ -55,7 +52,6 @@ export class QueryComponent {
   private readonly modelComponent = inject(ModelComponent)
   public readonly modelService = inject(SemanticModelService)
   public readonly queryLabService = inject(QueryLabService)
-  readonly copilotService = inject(NgmCopilotService)
   private readonly _cdr = inject(ChangeDetectorRef)
   private readonly route = inject(ActivatedRoute)
   private readonly store = inject(Store)
@@ -245,60 +241,6 @@ ${calcEntityTypePrompt(entityType)}
   set dirty(value) {
     this.queryLabService.dirty[this.queryKey()] = value
   }
-
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot
-  |--------------------------------------------------------------------------
-  */
-  #queryCommand = injectQueryCommand(this._statement, this.copilotContext, async (statement: string) => {
-    return await firstValueFrom(this._query(statement))
-  })
-
-  #entityDropAction = provideCopilotDropAction({
-    id: CdkDragDropContainers.QueryEntity,
-    implementation: async (event: CdkDragDrop<any[], any[], any>, copilotEngine: CopilotEngine) => {
-      this.#logger.debug(`Drop table entity to copilot chat:`, event)
-      const data = event.item.data
-      // Get the source table or source cube structure
-      const entityType = await firstValueFrom(this.modelService.selectOriginalEntityType(data.name))
-
-      const topCount = 10
-      const samples = await firstValueFrom(this.modelService.selectTableSamples(data.name, topCount))
-
-      const tableHeader = `The structure of table "${data.name}" is as follows:`
-      const dataHeader = `The first ${topCount} rows of the table "${data.name}" are as follows:`
-
-      return [
-        {
-          id: nanoid(),
-          role: CopilotChatMessageRoleEnum.User,
-          data: {
-            columns: [
-              { name: 'name', caption: 'Name' },
-              { name: 'caption', caption: 'Description' },
-              { name: 'dataType', caption: 'Type' }
-            ],
-            content: Object.values(entityType.properties) as any[],
-            header: tableHeader
-          },
-          content: tableHeader + '\n' + stringifyTableType(entityType),
-          templateRef: this.tableTemplate()
-        },
-        {
-          id: nanoid(),
-          role: CopilotChatMessageRoleEnum.User,
-          data: {
-            columns: samples.columns,
-            content: samples.data,
-            header: dataHeader
-          },
-          content: dataHeader + '\n' + markdownTableData(samples),
-          templateRef: this.tableTemplate()
-        }
-      ]
-    }
-  })
 
   /**
   |--------------------------------------------------------------------------

@@ -42,7 +42,6 @@ import {
   WidgetMenuType,
   WidgetService
 } from '@metad/core'
-import { CommandDialogComponent } from '@metad/copilot-angular'
 import { NgmCommonModule, NgmConfirmDeleteService } from '@metad/ocap-angular/common'
 import { effectAction } from '@metad/ocap-angular/core'
 import {
@@ -886,20 +885,6 @@ export class NxStoryWidgetComponent implements OnInit, AfterViewInit {
       queryParams: queryParams,
       queryParamsHandling: 'merge' // remove to replace all query params by provided
     })
-  }
-
-  generateWithAI() {
-    this.selectedChange.emit(true)
-    this._dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        disableClose: true,
-        data: {
-          commands: ['widget']
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {})
   }
 
   @HostListener('click', ['$event'])

@@ -16,7 +16,6 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
 import { FavoritesService, StoriesService, convertStory } from '@metad/cloud/state'
-import { NgmCopilotContextService, NgmCopilotContextToken } from '@metad/copilot-angular'
 import { NgmCommonModule, NgmConfirmDeleteService, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
@@ -53,7 +52,6 @@ import {
 } from '../../../@core'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { AppService } from '../../../app.service'
-import { injectIndicatorArchitectCommand, injectIndicatorCommand, provideCopilotCubes } from '../copilot/'
 import { ReleaseStoryDialog } from '../release-story.component'
 import { SelectModelDialog } from '../select-model.component'
 import { collectionId, treeDataSourceFactory } from '../types'
@@ -94,10 +92,6 @@ import {
   animations: [routeAnimations],
   providers: [
     ProjectService,
-    {
-      provide: NgmCopilotContextToken,
-      useClass: NgmCopilotContextService
-    }
   ]
 })
 export class ProjectComponent extends TranslationBaseComponent {
@@ -112,7 +106,6 @@ export class ProjectComponent extends TranslationBaseComponent {
   readonly appService = inject(AppService)
   readonly destroyRef = inject(DestroyRef)
   readonly fetchModelDetails = injectFetchModelDetails()
-  readonly copilotContext = provideCopilotCubes()
   readonly #confirmDelete = inject(NgmConfirmDeleteService)
 
   @ViewChild('collectionCreation') collectionCreation: TemplateRef<ElementRef>
@@ -269,13 +262,6 @@ export class ProjectComponent extends TranslationBaseComponent {
       this.projectService.setProject(project)
       // this._cdr.detectChanges()
     })
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot Commands
-  |--------------------------------------------------------------------------
-  */
-  private indicatorCommand = injectIndicatorCommand()
-  private indicatorArchitectCommand = injectIndicatorArchitectCommand()
 
   constructor(
     private store: Store,

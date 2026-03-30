@@ -12,7 +12,6 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormArray, FormControl, FormGroup } from '@angular/forms'
-import { CommandDialogComponent, NgmCopilotService } from '@metad/copilot-angular'
 import { NgmFormlyArrayComponent } from '@metad/formly/array'
 import { NgmThemeService } from '@metad/ocap-angular/core'
 import { EditorThemeMap } from '@metad/ocap-angular/formula'
@@ -59,7 +58,6 @@ export class PACFormlyChartTypeComponent extends FieldType implements OnInit {
   ]
 
   readonly formlyArray2? = inject(NgmFormlyArrayComponent, { optional: true })
-  readonly #copilotService = inject(NgmCopilotService)
   readonly #translate = inject(TranslateService)
   readonly #logger = inject(NGXLogger)
   readonly #themeService = inject(NgmThemeService)
@@ -309,19 +307,5 @@ export class PACFormlyChartTypeComponent extends FieldType implements OnInit {
       }
       this.field.parent.formControl.setValue(this.field.parent.model)
     }
-  }
-
-  aiGenerate() {
-    this.#dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        data: {
-          commands: ['chart']
-        }
-      })
-      .afterClosed()
-      .subscribe(() => {
-        //
-      })
   }
 }

@@ -4,7 +4,6 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { MDX } from '@metad/contracts'
 import { nonBlank } from '@metad/core'
-import { injectCopilotCommand } from '@metad/copilot-angular'
 import { EntitySchemaType } from '@metad/ocap-angular/entity'
 import { AggregationRole, C_MEASURES, EntityType, getEntityHierarchy } from '@metad/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
@@ -66,26 +65,6 @@ export class CubeComponent {
     }
   }
 
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot
-  |--------------------------------------------------------------------------
-  */
-  #Command = injectCopilotCommand({
-    name: 'role',
-    description: this.#translate.instant('PAC.MODEL.Copilot.Examples.CreateNewRole', {
-      Default: 'Describe the role you want to create'
-    }),
-    systemPrompt: async () => `Create or edit a role. 如何未提供 cube 信息，请先选择一个 cube`,
-    actions: [
-      // injectMakeCopilotActionable({
-      //   name: 'select_cube',
-      //   description: 'Select a cube',
-      //   argumentAnnotations: [],
-      //   implementation: async () => {}
-      // })
-    ]
-  })
   /**
   |--------------------------------------------------------------------------
   | Subscriptions (effect)

@@ -8,7 +8,6 @@ import { AbstractControl, FormControl, FormGroup, FormsModule, ReactiveFormsModu
 import { ActivatedRoute, Router } from '@angular/router'
 import { IModelRole } from '@metad/contracts'
 import { NgmDisplayBehaviourComponent, NgmSearchComponent } from '@metad/ocap-angular/common'
-import { CommandDialogComponent, injectCopilotCommand } from '@metad/copilot-angular'
 import { buildListboxOptions, ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { cloneDeep } from '@metad/ocap-core'
 import { uuid } from 'apps/cloud/src/app/@core'
@@ -85,62 +84,6 @@ export class AccessControlComponent extends TranslationBaseComponent {
       )
     )
   )
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot
-  |--------------------------------------------------------------------------
-  */
-  #roleCommand = injectCopilotCommand({
-    name: 'role',
-    description: this.translateService.instant('PAC.MODEL.Copilot.Examples.CreateNewRole', {
-      Default: 'Describe the role you want to create'
-    }),
-    systemPrompt: async () => `Create or edit a role. 如何未提供 cube 信息，请先选择一个 cube`,
-    actions: [
-      // injectMakeCopilotActionable({
-      // name: 'select_cube',
-      // description: 'Select a cube',
-      // argumentAnnotations: [],
-      // implementation: async () => {
-      // const result = await firstValueFrom(
-      // this.#dialog.open(CubeSelectorComponent, { data: this.cubes() }).afterClosed()
-      // )
-      // if (result) {
-      // const entityType = await firstValueFrom(this.#modelService.selectEntityType(result[0]))
-      // return {
-      // id: nanoid(),
-      // name: 'select_cube',
-      // role: 'function',
-      // content: `${calcEntityTypePrompt(entityType)}`
-      // }
-      // }
-      // }
-      // }),
-      // injectMakeCopilotActionable({
-      // name: 'new-role',
-      // description: 'Create a new role',
-      // argumentAnnotations: [
-      // {
-      // name: 'role',
-      // type: 'object',
-      // description: 'Role defination',
-      // properties: zodToAnnotations(RoleSchema),
-      // required: true
-      // }
-      // ],
-      // implementation: async (role: any) => {
-      // role.key = nanoid()
-      // this.#logger.debug(`The new role in function call is:`, role)
-      // this.#accessControlState.addRole(role)
-
-      // // Navigate to the new role
-      // this.#router.navigate([role.key], { relativeTo: this.#route })
-
-      // return `创建成功`
-      // }
-      // })
-    ]
-  })
 
   trackByKey(index: number, item: IModelRole) {
     return item.key
@@ -162,19 +105,6 @@ export class AccessControlComponent extends TranslationBaseComponent {
     this.creatFormGroup.reset()
     this.#newDialogRef?.close()
     this.#newDialogRef = null
-  }
-
-  aiCreate() {
-    this.#dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        disableClose: true,
-        data: {
-          commands: ['role',]
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {})
   }
 
   remove(role: IModelRole) {

@@ -24,7 +24,6 @@ import {
   routeAnimations
 } from '../../../../../@core'
 import { EmojiAvatarComponent } from '../../../../../@shared/avatar/'
-import { PACCopilotService } from '../../../../services'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
 
 @Component({
@@ -58,8 +57,6 @@ export class KnowledgeConfigurationComponent {
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
   readonly knowledgebaseComponent = inject(KnowledgebaseComponent)
-  readonly copilotService = inject(PACCopilotService)
-  readonly #cdr = inject(ChangeDetectorRef)
   readonly #translate = inject(I18nService)
 
   readonly organizationId = toSignal(this.#store.selectOrganizationId())

@@ -14,7 +14,6 @@ import { getErrorMessage, injectCopilots, injectCopilotServer, injectToastr } fr
 import { CopilotAiProvidersComponent, CopilotProviderComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { capitalize } from 'lodash-es'
 import { map, Observable, switchMap } from 'rxjs'
-import { PACCopilotService } from '../../../services'
 import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
 import { ZardAccordionImports, type ZardAccordionItemLike, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
@@ -43,7 +42,6 @@ import { ZardAccordionImports, type ZardAccordionItemLike, ZardSwitchComponent, 
 export class CopilotBasicComponent {
   eAiProviderRole = AiProviderRole
 
-  readonly copilotService = inject(PACCopilotService)
   readonly copilotServer = injectCopilotServer()
   readonly #toastr = injectToastr()
   readonly organizationId = injectOrganizationId()

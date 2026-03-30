@@ -4,7 +4,6 @@ import { PacMenuComponent } from '@metad/cloud/auth'
 import { NgmFormlyModule, provideFormly, provideFormlyUi } from '@metad/formly'
 import { registerEChartsThemes } from '@metad/material-theme'
 import { NgmDrawerContentComponent, NgmDrawerTriggerComponent, NgmTableComponent, ResizerModule } from '@metad/ocap-angular/common'
-import { NgmCopilotContextService, NgmCopilotContextToken, NgmCopilotEngineService, NgmCopilotService } from '@metad/copilot-angular'
 import {
   DensityDirective,
   NgmAgentService,
@@ -23,13 +22,12 @@ import { PACThemeModule } from '../@theme/theme.module'
 import { StoryFeedService, StoryModelService, StoryStoreService } from '../services/index'
 import { FeaturesRoutingModule } from './features-routing.module'
 import { FeaturesComponent } from './features.component'
-import { provideCheckpointSaver, provideCommandFewShotPrompt, provideDimensionMemberRetriever } from '../@core/copilot'
+import { provideCheckpointSaver, provideDimensionMemberRetriever } from '../@core/copilot'
 import { NgmDrawerComponent, NgmDrawerContainerComponent } from '@metad/ocap-angular/common'
 import { NgxEchartsModule } from 'ngx-echarts'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { EmojiAvatarComponent } from '../@shared/avatar'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { PACCopilotService } from './services'
 import { LayoutComponent, SidebarComponent } from '@xpert-ai/headless-ui/components/layout'
 import { ZardAvatarComponent, ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
 
@@ -145,18 +143,8 @@ registerEChartsThemes()
       provide: NX_STORY_FEED,
       useClass: StoryFeedService
     },
-    {
-      provide: NgmCopilotService,
-      useExisting: PACCopilotService
-    },
-    NgmCopilotEngineService,
-    {
-      provide: NgmCopilotContextToken,
-      useClass: NgmCopilotContextService
-    },
     provideDimensionMemberRetriever(),
     provideCheckpointSaver(),
-    provideCommandFewShotPrompt(),
   ]
 })
 export class FeaturesModule {}

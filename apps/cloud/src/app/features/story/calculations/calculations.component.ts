@@ -8,7 +8,6 @@ import { FormsModule } from '@angular/forms'
 
 import { ZardButtonComponent, ZardDialogModule, ZardDialogService, ZardDividerComponent, ZardIconComponent, ZardMenuImports, ZardProgressBarComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { CommandDialogComponent } from '@metad/copilot-angular'
 import { NgmCommonModule, NgmConfirmDeleteService } from '@metad/ocap-angular/common'
 import { ISelectOption, filterSearch } from '@metad/ocap-angular/core'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
@@ -142,19 +141,6 @@ export class StoryCalculationsComponent {
 
   readonly property = signal<CalculationProperty>(null)
 
-  // /**
-  // |--------------------------------------------------------------------------
-  // | Copilot
-  // |--------------------------------------------------------------------------
-  // */
-  // readonly calculatioCommand = injectCalculationGraphCommand(
-  //   this.dataSettings,
-  //   (dataSettings: DataSettings, key: string) => {
-  //     this.activeEntity(dataSettings.dataSource, dataSettings.entitySet)
-  //     this.router.navigate([encodeURIComponent(dataSettings.entitySet), key], { relativeTo: this.route })
-  //   }
-  // )
-
   constructor(
     private storyService: NxStoryService,
     private readonly _dialog: ZardDialogService,
@@ -225,18 +211,6 @@ export class StoryCalculationsComponent {
 
   openCreateCalculation() {
     this.router.navigate(['create'], { relativeTo: this.route })
-  }
-
-  aiCreateCalculation() {
-    this._dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        data: {
-          commands: ['calculation']
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {})
   }
 
   openEditCalculation(calculationProperty: CalculationProperty) {

@@ -29,7 +29,6 @@ import { debounceTime, distinctUntilChanged, filter, map, pairwise, startWith, s
 import { AggregationRole, isEntitySet, markdownModelCube, PropertyAttributes } from '@metad/ocap-core'
 import { NgmOcapCoreService } from '@metad/ocap-angular/core'
 import { AppService } from '../../../../app.service'
-import { injectCalculatedCommand } from '../copilot'
 import { ModelCubeStructureComponent } from './cube-structure/cube-structure.component'
 import { ModelEntityCalculationComponent } from './calculation/calculation.component'
 import { ModelEntityService } from './entity.service'
@@ -122,13 +121,6 @@ export class ModelEntityComponent implements OnInit {
       cube: this.entityType()
     })
   )
-
-  /**
-  |--------------------------------------------------------------------------
-  | Copilot Commands
-  |--------------------------------------------------------------------------
-  */
-  #calculatedMeasureCommand = injectCalculatedCommand()
 
   /**
   |--------------------------------------------------------------------------

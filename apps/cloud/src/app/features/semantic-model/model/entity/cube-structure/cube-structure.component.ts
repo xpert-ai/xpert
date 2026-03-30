@@ -18,7 +18,6 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { CommandDialogComponent } from '@metad/copilot-angular'
 import {
   CdkConfirmDeleteComponent,
   injectConfirmOptions,
@@ -513,19 +512,6 @@ export class ModelCubeStructureComponent {
     if (event.previousContainer === event.container) {
       this.entityService.moveItemInParameters(event)
     }
-  }
-
-  aiCalculated() {
-    this._dialog
-      .open(CommandDialogComponent, {
-        backdropClass: 'bg-transparent',
-        disableClose: true,
-        data: {
-          commands: ['calculated']
-        }
-      })
-      .afterClosed()
-      .subscribe((result) => {})
   }
 
   openVariableAttributes(variable: VariableProperty) {
