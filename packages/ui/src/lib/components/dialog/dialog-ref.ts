@@ -36,7 +36,11 @@ export class ZardDialogRef<T = any, R = any, U = any> {
       this.overlayRef
         .outsidePointerEvents()
         .pipe(takeUntil(this.destroy$))
-        .subscribe(() => this.close());
+        .subscribe((event) => {
+          if (this.shouldCloseFromOutsidePointerEvent(event)) {
+            this.close();
+          }
+        });
     }
 
     if (isPlatformBrowser(this.platformId)) {
@@ -105,5 +109,31 @@ export class ZardDialogRef<T = any, R = any, U = any> {
     if (result !== false) {
       this.close(result);
     }
+  }
+
+  private shouldCloseFromOutsidePointerEvent(event: Event): boolean {
+    const target = event.target;
+    if (!(target instanceof HTMLElement)) {
+      return true;
+    }
+
+    // Ignore clicks from nested overlays (for example combobox/popover panels)
+    // so selecting an option does not close the parent dialog.
+    const currentOverlayElement = this.overlayRef?.overlayElement;
+    if (currentOverlayElement?.contains(target)) {
+      return false;
+    }
+
+    const currentBackdropElement = this.overlayRef?.backdropElement;
+    if (currentBackdropElement?.contains(target)) {
+      return true;
+    }
+
+    const nestedOverlayPane = target.closest('.cdk-overlay-pane');
+    if (nestedOverlayPane && nestedOverlayPane !== currentOverlayElement) {
+      return false;
+    }
+
+    return true;
   }
 }

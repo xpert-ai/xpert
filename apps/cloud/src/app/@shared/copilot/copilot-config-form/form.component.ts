@@ -1,10 +1,11 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { Component, computed, effect, inject, input, output, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { AiModelTypeEnum, AiProviderRole, ICopilot } from '@metad/contracts'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { firstValueFrom } from 'rxjs'
+import { auditTime, distinctUntilChanged, firstValueFrom, startWith } from 'rxjs'
 import { CopilotAiProvidersComponent } from '../ai-providers/providers.component'
 import { CopilotModelSelectComponent } from '../copilot-model-select/select.component'
 import { CopilotProviderComponent } from '../copilot-provider/provider.component'
@@ -32,10 +33,19 @@ export class CopilotConfigFormComponent {
     tokenBalance: new FormControl(null),
     copilotModel: new FormControl(null)
   })
+  readonly tokenBalanceControl = this.formGroup.controls.tokenBalance
 
   readonly role = computed(() => this.copilot()?.role)
   readonly modelProvider = computed(() => this.copilot()?.modelProvider)
   readonly saving = signal(false)
+  readonly tokenBalance = toSignal(
+    this.tokenBalanceControl.valueChanges.pipe(
+      startWith(this.tokenBalanceControl.value),
+      auditTime(16),
+      distinctUntilChanged()
+    ),
+    { initialValue: this.tokenBalanceControl.value }
+  )
 
   readonly #hasSelectedModel = computed(() => {
     const model = this.formGroup.get('copilotModel').value
@@ -63,10 +73,6 @@ export class CopilotConfigFormComponent {
         this.formGroup.markAsPristine()
       }
     })
-  }
-
-  get tokenBalance() {
-    return this.formGroup.get('tokenBalance').value
   }
 
   canSubmit() {

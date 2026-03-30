@@ -2,6 +2,7 @@ import { OverlayModule } from '@angular/cdk/overlay';
 import { Component, TemplateRef, ViewChild, inject } from '@angular/core';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 
+import { UiDialogCloseDirective } from './dialog-close.directive';
 import { ZardDialogRef } from './dialog-ref';
 import { Z_MODAL_DATA } from './dialog.service';
 import { ZardDialogService } from './dialog.service';
@@ -32,6 +33,20 @@ class TestDialogComponent {
 class TestTemplateHostComponent {
   @ViewChild('dialog', { static: true })
   dialogTemplate!: TemplateRef<{ dialogRef: ZardDialogRef<unknown, string> }>;
+}
+
+@Component({
+  standalone: true,
+  imports: [UiDialogCloseDirective],
+  template: `
+    <ng-template #dialog>
+      <button type="button" data-testid="template-directive-close" [xpDialogClose]="'directive-result'"></button>
+    </ng-template>
+  `,
+})
+class TestTemplateDirectiveHostComponent {
+  @ViewChild('dialog', { static: true })
+  dialogTemplate!: TemplateRef<unknown>;
 }
 
 describe('ZardDialogService', () => {
@@ -129,5 +144,27 @@ describe('ZardDialogService', () => {
     tick(150);
 
     expect(result).toBe('template-result');
+  }));
+
+  it('lets template content close through xpDialogClose', fakeAsync(() => {
+    TestBed.configureTestingModule({
+      imports: [OverlayModule, TestTemplateDirectiveHostComponent],
+    });
+
+    const fixture = TestBed.createComponent(TestTemplateDirectiveHostComponent);
+    fixture.detectChanges();
+
+    const service = TestBed.inject(ZardDialogService);
+    let result: string | undefined;
+
+    service.open(fixture.componentInstance.dialogTemplate).afterClosed().subscribe((value) => {
+      result = value;
+    });
+
+    tick();
+    (document.querySelector('[data-testid="template-directive-close"]') as HTMLButtonElement).click();
+    tick(150);
+
+    expect(result).toBe('directive-result');
   }));
 });

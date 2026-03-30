@@ -133,6 +133,7 @@ export class ZardDialogService {
 
     if (componentOrTemplateRef instanceof TemplateRef) {
       const viewContainerRef = config.zViewContainerRef ?? dialogContainer.getViewContainerRef();
+      const injector = this.createInjector<T, U>(dialogRef, config);
       dialogContainer.attachTemplatePortal(
         new TemplatePortal<T>(
           componentOrTemplateRef,
@@ -140,6 +141,7 @@ export class ZardDialogService {
           {
             dialogRef,
           } as T,
+          injector,
         ),
       );
     } else if (typeof componentOrTemplateRef !== 'string') {

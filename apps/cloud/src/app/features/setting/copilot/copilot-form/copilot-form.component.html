@@ -1,7 +1,7 @@
 <pac-copilot-config-form #copilotForm [copilot]="copilot()" (saved)="saved.emit()">
   <div [formGroup]="copilotForm.formGroup" class="w-full flex flex-col justify-start items-stretch">
     <div class="w-full flex flex-col justify-start items-stretch">
-      <label>{{ 'PAC.Copilot.TokenLimitPerUser' | translate: {Default: 'Token Limit/User'} }}: {{copilotForm.tokenBalance | number}}</label>
+      <label>{{ 'PAC.Copilot.TokenLimitPerUser' | translate: {Default: 'Token Limit/User'} }}: {{copilotForm.tokenBalance() | number}}</label>
       <z-slider
         min="0"
         max="10000000"

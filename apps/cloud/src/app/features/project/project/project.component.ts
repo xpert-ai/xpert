@@ -17,7 +17,7 @@ import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 import { Router, RouterModule } from '@angular/router'
 import { FavoritesService, StoriesService, convertStory } from '@metad/cloud/state'
 import { NgmCopilotContextService, NgmCopilotContextToken } from '@metad/copilot-angular'
-import { NgmCommonModule, NgmConfirmDeleteService, NgmTreeSelectComponent } from '@metad/ocap-angular/common'
+import { NgmCommonModule, NgmConfirmDeleteService } from '@metad/ocap-angular/common'
 import { AppearanceDirective, ButtonGroupDirective, DensityDirective, NgmDSCoreService } from '@metad/ocap-angular/core'
 import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
 import { DisplayBehaviour, FlatTreeNode, TreeNodeInterface, hierarchize } from '@metad/ocap-core'
@@ -62,6 +62,7 @@ import { SharedUiModule } from '../../../@shared/ui.module'
 import { StoryCreationComponent } from '../../../@shared/story'
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { injectFetchModelDetails } from '@cloud/app/@shared/indicator'
+import { XpTreeSelectComponent } from '../../../@shared/form-fields'
 import {
   ZardDialogRef,
   ZardDialogService,
@@ -85,7 +86,7 @@ import {
     ButtonGroupDirective,
     NgmCommonModule,
     AppearanceDirective,
-    NgmTreeSelectComponent,
+    XpTreeSelectComponent,
     ...ZardTreeImports
   ],
   selector: 'pac-project',
@@ -337,6 +338,8 @@ export class ProjectComponent extends TranslationBaseComponent {
     const story = await firstValueFrom(
       this._dialog
         .open(StoryCreationComponent, {
+          width: '52rem',
+          maxWidth: 'calc(100vw - 2rem)',
           data: {
             story: {
               collectionId: _collectionId
@@ -388,6 +391,8 @@ export class ProjectComponent extends TranslationBaseComponent {
     const _story = await firstValueFrom(
       this._dialog
         .open(StoryCreationComponent, {
+          width: '52rem',
+          maxWidth: 'calc(100vw - 2rem)',
           data: {
             story: story,
             collections,
