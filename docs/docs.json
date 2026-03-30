@@ -47,7 +47,7 @@
               {
                 "group": "AI",
                 "openapi": {
-                  "source": "/api/openapi.ai.json",
+                  "source": "api/openapi.ai.json",
                   "directory": "en/api-reference"
                 }
               }
@@ -91,7 +91,7 @@
               {
                 "group": "AI",
                 "openapi": {
-                  "source": "/api/openapi.ai.json",
+                  "source": "api/openapi.ai.json",
                   "directory": "zh-hans/api-reference"
                 }
               }

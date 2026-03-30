@@ -11,6 +11,8 @@ export class IntegrationDelHandler implements ICommandHandler<IntegrationDelComm
 
 	public async execute(command: IntegrationDelCommand): Promise<void> {
 		const { id } = command
+		const previous = await this.service.findOne(id)
+		await this.service.runStrategyDeleteHook(previous)
 		await this.service.delete(id)
 	}
 }
