@@ -214,6 +214,16 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
           }
         },
         {
+          title: 'Assistants',
+          icon: 'robot_2',
+          link: '/settings/assistants',
+          data: {
+            translationKey: 'Assistants',
+            featureKey: AiFeatureEnum.FEATURE_XPERT,
+            permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
+          }
+        },
+        {
           title: 'Chat BI',
           icon: 'try',
           link: '/settings/chatbi',
@@ -224,28 +234,8 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
           }
         },
         {
-          title: 'User',
-          icon: 'people',
-          link: '/settings/users',
-          data: {
-            translationKey: 'User',
-            permissionKeys: [PermissionsEnum.ORG_USERS_EDIT],
-            featureKey: FeatureEnum.FEATURE_USER
-          }
-        },
-        {
-          title: 'Roles',
-          icon: 'supervisor_account',
-          link: '/settings/roles',
-          data: {
-            translationKey: 'Role & Permission',
-            featureKey: FeatureEnum.FEATURE_ROLES_PERMISSION,
-            permissionKeys: [PermissionsEnum.CHANGE_ROLES_PERMISSIONS]
-          }
-        },
-        {
           title: 'Business Area',
-          icon: 'workspaces',
+          icon: 'business_center',
           link: '/settings/business-area',
           pathMatch: 'prefix',
           data: {
@@ -277,7 +267,26 @@ export function getFeatureMenus(org: IOrganization): PacMenuItem[] {
             permissionKeys: [PermissionsEnum.INTEGRATION_EDIT]
           }
         },
-
+        {
+          title: 'User',
+          icon: 'people',
+          link: '/settings/users',
+          data: {
+            translationKey: 'User',
+            permissionKeys: [PermissionsEnum.ORG_USERS_EDIT],
+            featureKey: FeatureEnum.FEATURE_USER
+          }
+        },
+        {
+          title: 'Roles',
+          icon: 'supervisor_account',
+          link: '/settings/roles',
+          data: {
+            translationKey: 'Role & Permission',
+            featureKey: FeatureEnum.FEATURE_ROLES_PERMISSION,
+            permissionKeys: [PermissionsEnum.CHANGE_ROLES_PERMISSIONS]
+          }
+        },
         {
           title: 'Email Templates',
           icon: 'email',
