@@ -4,13 +4,29 @@ export const Icon = `<svg xmlns="http://www.w3.org/2000/svg" width="24" height="
 
 export type AuthoringToolName = 'newXpert' | 'editXpert'
 export type AuthoringCatalogStatus = 'available' | 'rejected'
+export type AuthoringConflictType = 'unsaved-local' | 'stale-server'
+
+export class AssistantDraftConflictError extends Error {
+  readonly name = 'AssistantDraftConflictError'
+
+  constructor(
+    readonly toolName: AuthoringToolName,
+    readonly conflictType: AuthoringConflictType,
+    message: string,
+    readonly requiresRefresh: boolean,
+    readonly committedDraftHash: string | null
+  ) {
+    super(message)
+    Object.setPrototypeOf(this, new.target.prototype)
+  }
+}
 
 export type AssistantDraftMutationResult = {
   status: 'applied' | 'rejected' | 'conflict'
   toolName: AuthoringToolName
   summary: string
   syncMode: 'none' | 'refresh'
-  conflictType: 'unsaved-local' | 'stale-server' | null
+  conflictType: AuthoringConflictType | null
   requiresRefresh: boolean
   committedDraftHash: string | null
   updatedDraftFragment: Record<string, unknown> | null

@@ -12,7 +12,11 @@ jest.mock('@langchain/langgraph', () => {
 
 import { Command } from '@langchain/langgraph'
 import { XpertAuthoringMiddleware } from './xpert-authoring.middleware'
-import { AssistantDraftMutationResult, AuthoringToolName } from './xpert-authoring.types'
+import {
+  AssistantDraftConflictError,
+  AssistantDraftMutationResult,
+  AuthoringToolName
+} from './xpert-authoring.types'
 
 describe('XpertAuthoringMiddleware', () => {
   let service: {
@@ -441,6 +445,45 @@ describe('XpertAuthoringMiddleware', () => {
         })
       })
     )
+  })
+
+  it('rethrows editXpert conflict errors without emitting refresh_studio', async () => {
+    service.editXpertFromContext.mockRejectedValue(
+      new AssistantDraftConflictError(
+        'editXpert',
+        'stale-server',
+        'Studio draft changed on the server. Refresh before trying again.',
+        true,
+        'hash-server'
+      )
+    )
+
+    const subscriber = {
+      next: jest.fn()
+    }
+
+    await expect(
+      getTool('editXpert').invoke(
+        {
+          dslYaml: 'team:\n  name: Support Expert'
+        },
+        {
+          configurable: {
+            context: {
+              targetXpertId: 'xpert-2',
+              baseDraftHash: 'hash-1'
+            },
+            subscriber
+          }
+        } as any
+      )
+    ).rejects.toMatchObject({
+      name: 'AssistantDraftConflictError',
+      toolName: 'editXpert',
+      conflictType: 'stale-server'
+    } satisfies Partial<AssistantDraftConflictError>)
+
+    expect(subscriber.next).not.toHaveBeenCalled()
   })
 })
 

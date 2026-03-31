@@ -22,7 +22,9 @@ import { XpertExportCommand, XpertImportCommand } from '../commands'
 import { XpertService } from '../xpert.service'
 import {
   AgentMiddlewareCatalogItem,
+  AssistantDraftConflictError,
   AssistantDraftMutationResult,
+  AuthoringConflictType,
   AuthoringCatalogResult,
   AuthoringAssistantRequestContext,
   AuthoringToolName,
@@ -252,7 +254,15 @@ export class XpertAuthoringService {
     const toolName: AuthoringToolName = 'editXpert'
 
     if (context.unsaved) {
-      return this.buildUnsavedConflict(toolName)
+      this.throwConflict(
+        toolName,
+        'unsaved-local',
+        'Studio has unsaved local changes. Save or discard them before using assistant edits.',
+        {
+          requiresRefresh: false,
+          committedDraftHash: null
+        }
+      )
     }
 
     if (!context.targetXpertId) {
@@ -268,17 +278,15 @@ export class XpertAuthoringService {
     const currentDraftHash = this.calculateDraftHash(currentDraft)
 
     if (context.baseDraftHash !== currentDraftHash) {
-      return {
-        status: 'conflict',
+      this.throwConflict(
         toolName,
-        summary: 'Studio draft changed on the server. Refresh before trying again.',
-        syncMode: 'refresh',
-        conflictType: 'stale-server',
-        requiresRefresh: true,
-        committedDraftHash: currentDraftHash,
-        updatedDraftFragment: null,
-        warnings: []
-      }
+        'stale-server',
+        'Studio draft changed on the server. Refresh before trying again.',
+        {
+          requiresRefresh: true,
+          committedDraftHash: currentDraftHash
+        }
+      )
     }
 
     const trimmedDslYaml = payload?.dslYaml?.trim()
@@ -448,18 +456,22 @@ export class XpertAuthoringService {
     }
   }
 
-  private buildUnsavedConflict(toolName: AuthoringToolName): AssistantDraftMutationResult {
-    return {
-      status: 'conflict',
-      toolName,
-      summary: 'Studio has unsaved local changes. Save or discard them before using assistant edits.',
-      syncMode: 'none',
-      conflictType: 'unsaved-local',
-      requiresRefresh: false,
-      committedDraftHash: null,
-      updatedDraftFragment: null,
-      warnings: []
+  private throwConflict(
+    toolName: AuthoringToolName,
+    conflictType: AuthoringConflictType,
+    summary: string,
+    options: {
+      requiresRefresh: boolean
+      committedDraftHash: string | null
     }
+  ): never {
+    throw new AssistantDraftConflictError(
+      toolName,
+      conflictType,
+      summary,
+      options.requiresRefresh,
+      options.committedDraftHash
+    )
   }
 
   private buildInitialDraft(xpert: IXpert): TXpertTeamDraft {
