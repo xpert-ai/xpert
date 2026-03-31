@@ -54,6 +54,7 @@
     <formly-form [form]="optionsFormGroup"
       [fields]="schema$()"
       [model]="model"
+      (modelChange)="onModelChange($event)"
     />
   } @else {
     <list-content-loader />
