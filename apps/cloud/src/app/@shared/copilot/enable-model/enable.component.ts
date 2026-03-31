@@ -1,7 +1,8 @@
-
-import { booleanAttribute, ChangeDetectionStrategy, Component, computed, inject, input, signal } from '@angular/core'
+import { booleanAttribute, ChangeDetectionStrategy, Component, computed, input } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { RouterModule } from '@angular/router'
 import { TranslatePipe } from '@metad/core'
+import { AiProviderRole, injectCopilotServer } from '../../../@core'
 
 /**
  * @deprecated use chatkit
@@ -18,6 +19,7 @@ import { TranslatePipe } from '@metad/core'
   }
 })
 export class CopilotEnableModelComponent {
+  readonly #copilotServer = injectCopilotServer()
 
   // Inputs
   readonly enableModel = input<boolean, string | boolean>(false, {
@@ -25,8 +27,11 @@ export class CopilotEnableModelComponent {
   })
 
   // States
-  readonly copilotEnabled = signal(false)
-  readonly primaryModelEnabled = signal(false)
+  readonly primaryCopilot = toSignal(this.#copilotServer.getAvailableByRole(AiProviderRole.Primary), {
+    initialValue: null
+  })
+  readonly copilotEnabled = computed(() => !!this.primaryCopilot()?.copilotModel?.model)
+  readonly primaryModelEnabled = computed(() => !!this.primaryCopilot()?.copilotModel?.model)
 
   readonly show = computed(() => (this.enableModel() && !this.primaryModelEnabled()) || !this.copilotEnabled())
 }

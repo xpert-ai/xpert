@@ -537,7 +537,7 @@
       "Certification": "認證",
       "Chat": "聊天",
       "Copilot": "智能助理",
-      "AI Copilot": "AI 智能助理",
+      "AI Copilot": "模型提供商",
       "Digital Xpert": "數字專家",
       "Xpert": "數字專家",
       "Explore Xperts": "探索數字專家",
@@ -1859,7 +1859,7 @@
       "Copilot": "智能助理",
       "ConversationVariables": "會話變量",
       "SystemVariables": "系統變量",
-      "AICopilot": "AI 智能助理",
+      "AICopilot": "模型提供商",
       "EnableCopilot": "啟用智能助理",
       "EnablePrimaryDefaultModel": "啟用主默認模型",
       "EnableAIProvider": "啟用 AI 提供商",
@@ -1884,7 +1884,7 @@
       "ExamplesOfPrompts": "提示語示例",
       "APIKey": "API 密鑰",
       "APIHost": "API 主機",
-      "AskAICopilot": "向 AI 智能助理詢問問題",
+      "AskAICopilot": "向模型提供商詢問問題",
       "EnableSecondaryProvider": "啟用副提供商",
       "Prompt": "提示詞",
       "SendPrompt": "發送提示",
@@ -2179,7 +2179,7 @@
         "Title": "💡智慧洞察",
         "CreateSemanticModelForUse": "添加到故事：創建語義模型後才能使用",
         "AddWidgetToStoryTitle": "將微件添加到故事",
-        "AskAICopilot": "向 AI 智能助理詢問問題",
+        "AskAICopilot": "向模型提供商詢問問題",
         "AskAICopilotDesc": "您可以針對您的數據提出問題，並立即將答案以可視化形式呈現。這些可視化圖表最終可以添加到您的故事中。",
         "ForExample": "例如",
         "PromptExamplesForVisit": [
@@ -2246,8 +2246,8 @@
       "EnableFeatures": "啟用功能模塊",
       "EnableFeaturesDesc": "選擇您想要啟用的功能模塊，稍後也可以在系統設置中進行配置。",
       "ConfigureAiModel": "配置 AI 模型",
-      "ConfigureAiModelDesc": "為 AI 智能助理配置主提供商並選擇默認模型。稍後您仍可以在系統設置中繼續完善。",
-      "ConfigureAiModelTitle": "讓您的 AI 智能助理準備就緒",
+      "ConfigureAiModelDesc": "為模型提供商配置主提供商並選擇默認模型。稍後您仍可以在系統設置中繼續完善。",
+      "ConfigureAiModelTitle": "讓您的模型提供商準備就緒",
       "ConfigureAiModelHint": "我們會先為您創建主提供商，然後您可以在這裡繼續填寫授權信息並選擇默認模型。",
       "ConfigureAiModelAction": "開始配置",
       "SaveAndNext": "保存並下一步",
@@ -2291,8 +2291,8 @@
           "Description": "維護系統角色和權限"
         },
         "FEATURE_COPILOT": {
-          "Name": "AI 智能助理",
-          "Description": "配置和使用 AI 智能助理功能"
+          "Name": "模型提供商",
+          "Description": "配置和使用模型提供商功能"
         },
         "FEATURE_COPILOT_KNOWLEDGEBASE": {
           "Name": "AI 知識庫",

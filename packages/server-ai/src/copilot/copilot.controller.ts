@@ -14,6 +14,7 @@ import {
 	ParseJsonPipe,
 	PermissionGuard,
 	Permissions,
+	RequestContext,
 	TransformInterceptor
 } from '@metad/server-core'
 import {
@@ -48,7 +49,7 @@ import {
 import { Copilot } from './copilot.entity'
 import { CopilotService } from './copilot.service'
 import { CopilotDto, CopilotWithProviderDto } from './dto'
-import { FindCopilotModelsQuery, ModelParameterRulesQuery } from './queries'
+import { CopilotOneByRoleQuery, FindCopilotModelsQuery, ModelParameterRulesQuery } from './queries'
 import { GeneratePromptCommand } from './commands/'
 
 @ApiTags('Copilot')
@@ -90,6 +91,15 @@ export class CopilotController extends CrudController<Copilot> {
 	async findAllAvalibles(): Promise<CopilotDto[]> {
 		const items = await this.service.findAvailables()
 		return items.map((item) => new CopilotDto(item, this.baseUrl))
+	}
+
+	@Get('availables/:role')
+	async findAvailableByRole(@Param('role') role: AiProviderRole): Promise<CopilotDto | null> {
+		const copilot = await this.queryBus.execute<CopilotOneByRoleQuery, ICopilot>(
+			new CopilotOneByRoleQuery(RequestContext.currentTenantId(), RequestContext.getOrganizationId(), role)
+		)
+
+		return copilot ? new CopilotDto(copilot, this.baseUrl) : null
 	}
 
 	@Get('model-select-options')

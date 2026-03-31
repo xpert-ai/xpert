@@ -47,6 +47,13 @@ export class CopilotServerService extends OrganizationBaseCrudService<ICopilot> 
     return this.copilots$
   }
 
+  getAvailableByRole(role: AiProviderRole) {
+    return this.refresh$.pipe(
+      switchMap(() => this.selectOrganizationId()),
+      switchMap(() => this.httpClient.get<ICopilot | null>(this.apiBaseUrl + `/availables/${role}`))
+    )
+  }
+
   getAiProviders() {
     return this.aiProviders$
   }

@@ -718,7 +718,7 @@
       "Chat": "聊天",
       "Assistants": "助手",
       "Copilot": "智能助理",
-      "AI Copilot": "AI 智能助理",
+      "AI Copilot": "模型提供商",
       "Digital Xpert": "数字专家",
       "Xpert": "数字专家",
       "Explore Xperts": "探索数字专家",
@@ -2089,7 +2089,7 @@
       "PluginMarketplace": "插件市场",
       "ConversationVariables": "会话变量",
       "SystemVariables": "系统变量",
-      "AICopilot": "AI 智能助理",
+      "AICopilot": "模型提供商",
       "EnableCopilot": "启用智能助理",
       "EnablePrimaryDefaultModel": "启用主默认模型",
       "EnableAIProvider": "启用 AI 提供商",
@@ -2114,7 +2114,7 @@
       "ExamplesOfPrompts": "提示语示例",
       "APIKey": "API 密钥",
       "APIHost": "API 主机",
-      "AskAICopilot": "向 AI 智能助理询问问题",
+      "AskAICopilot": "向模型提供商询问问题",
       "EnableSecondaryProvider": "启用副提供商",
       "Prompt": "提示词",
       "SendPrompt": "发送提示",
@@ -2420,7 +2420,7 @@
         "Title": "💡智慧洞察",
         "CreateSemanticModelForUse": "添加到故事：创建语义模型后才能使用",
         "AddWidgetToStoryTitle": "将微件添加到故事",
-        "AskAICopilot": "向 AI 智能助理询问问题",
+        "AskAICopilot": "向模型提供商询问问题",
         "AskAICopilotDesc": "您可以针对您的数据提出问题，并立即将答案以可视化形式呈现。这些可视化图表最终可以添加到您的故事中。",
         "ForExample": "例如",
         "PromptExamplesForVisit": [
@@ -2487,8 +2487,8 @@
       "EnableFeatures": "启用功能模块",
       "EnableFeaturesDesc": "选择您想要启用的功能模块，稍后也可以在系统设置中进行配置。",
       "ConfigureAiModel": "配置 AI 模型",
-      "ConfigureAiModelDesc": "为 AI 智能助理配置主提供商并选择默认模型。稍后您仍可以在系统设置中继续完善。",
-      "ConfigureAiModelTitle": "让您的 AI 智能助理准备就绪",
+      "ConfigureAiModelDesc": "为模型提供商配置主提供商并选择默认模型。稍后您仍可以在系统设置中继续完善。",
+      "ConfigureAiModelTitle": "让您的模型提供商准备就绪",
       "ConfigureAiModelHint": "我们会先为您创建主提供商，然后您可以在这里继续填写授权信息并选择默认模型。",
       "ConfigureAiModelAction": "开始配置",
       "SaveAndNext": "保存并下一步",
@@ -2534,8 +2534,8 @@
           "Description": "维护系统角色和权限"
         },
         "FEATURE_COPILOT": {
-          "Name": "AI 智能助理",
-          "Description": "配置和使用 AI 智能助理功能"
+          "Name": "模型提供商",
+          "Description": "配置和使用模型提供商功能"
         },
         "FEATURE_COPILOT_KNOWLEDGEBASE": {
           "Name": "AI 知识库",
