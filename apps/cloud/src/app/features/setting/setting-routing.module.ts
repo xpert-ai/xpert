@@ -54,7 +54,7 @@ const routes: Routes = [
       {
         path: 'data-sources',
         loadChildren: () => import('./data-sources/routing').then((m) => m.default),
-        canActivate: [ NgxPermissionsGuard ],
+        canActivate: [NgxPermissionsGuard],
         data: {
           title: 'settings/data-sources',
           scopeContext: 'dual-scope',
@@ -71,6 +71,19 @@ const routes: Routes = [
         data: {
           title: 'settings/users',
           scopeContext: 'tenant-only',
+          permissions: {
+            only: [PermissionsEnum.ORG_USERS_VIEW],
+            redirectTo
+          }
+        }
+      },
+      {
+        path: 'groups',
+        loadChildren: () => import('./groups/routing').then((m) => m.default),
+        canActivate: [NgxPermissionsGuard],
+        data: {
+          title: 'settings/groups',
+          scopeContext: 'organization-only',
           permissions: {
             only: [PermissionsEnum.ORG_USERS_VIEW],
             redirectTo
@@ -145,7 +158,7 @@ const routes: Routes = [
             redirectTo
           }
         },
-        canActivate: [NgxPermissionsGuard],
+        canActivate: [NgxPermissionsGuard]
       },
       {
         path: 'tenant',
@@ -232,7 +245,7 @@ const routes: Routes = [
             only: [PermissionsEnum.INTEGRATION_EDIT],
             redirectTo
           }
-        },
+        }
       },
       {
         path: 'plugins',

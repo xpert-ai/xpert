@@ -16,7 +16,7 @@ export function omitXpertRelations(xpert: Partial<IXpert>) {
     environment,
     integrations,
     toolsets,
-    managers,
+    userGroups,
     ...rest
   } = xpert ?? {}
   return rest

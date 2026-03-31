@@ -3,6 +3,7 @@ import { RunnableToolLike } from '@langchain/core/runnables'
 import { StructuredToolInterface } from '@langchain/core/tools'
 import { ITag } from '../tag-entity.model'
 import { IUser, LanguagesEnum } from '../user.model'
+import { IUserGroup } from '../user-group.model'
 import { ICopilotModel, TCopilotModel } from './copilot-model.model'
 import { IKnowledgebase, TKBRecallParams } from './knowledgebase.model'
 import { ChecklistItem, I18nObject, IPoint, ISize, TAvatar } from '../types'
@@ -190,9 +191,9 @@ export type TXpert = {
   toolsets?: IXpertToolset[]
 
   /**
-   * The corresponding person in charge, whose has the authority to execute this digital expert
+   * User groups that are allowed to use this published digital expert.
    */
-  managers?: IUser[]
+  userGroups?: IUserGroup[]
   /**
    * Integrations for this xpert
    */

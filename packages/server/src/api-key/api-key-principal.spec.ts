@@ -1,5 +1,9 @@
 import { API_PRINCIPAL_USER_ID_HEADER, UserType } from '@metad/contracts'
-import { buildApiKeyPrincipal, resolveApiKeyRequestedUserId } from './api-key-principal'
+import {
+	buildApiKeyPrincipal,
+	resolveApiKeyRequestedOrganizationId,
+	resolveApiKeyRequestedUserId
+} from './api-key-principal'
 
 describe('api-key principal helpers', () => {
 	it('builds an api principal with requested user metadata', () => {
@@ -18,7 +22,8 @@ describe('api-key principal helpers', () => {
 					type: UserType.USER,
 					username: 'end-user'
 				},
-				requestedUserId: 'end-user-1'
+				requestedUserId: 'end-user-1',
+				requestedOrganizationId: 'org-1'
 			}
 		)
 
@@ -29,6 +34,7 @@ describe('api-key principal helpers', () => {
 			apiKeyUserId: 'api-user-1',
 			ownerUserId: 'owner-user-1',
 			requestedUserId: 'end-user-1',
+			requestedOrganizationId: 'org-1',
 			principalType: 'api_key'
 		})
 	})
@@ -41,5 +47,15 @@ describe('api-key principal helpers', () => {
 				}
 			} as any)
 		).toBe('user-from-header')
+	})
+
+	it('reads the requested organization id from the original organization header', () => {
+		expect(
+			resolveApiKeyRequestedOrganizationId({
+				headers: {
+					'organization-id': [' ', 'org-from-header ']
+				}
+			} as any)
+		).toBe('org-from-header')
 	})
 })

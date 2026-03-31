@@ -1,4 +1,5 @@
 export * from './queries/index'
 export * from './commands/index'
+export * from './published-xpert-access.service'
 export * from './xpert.service'
 export * from './xpert.module'

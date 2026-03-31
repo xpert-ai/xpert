@@ -23,7 +23,6 @@ import {
     Permissions,
     RequestContext,
     TransformInterceptor,
-    UserPublicDTO,
     UseValidationPipe,
     UUIDValidationPipe,
     Public,
@@ -376,20 +375,20 @@ export class XpertController extends CrudController<Xpert> {
         return this.commandBus.execute(new XpertDeleteCommand(id))
     }
 
-    @Get(':id/managers')
-    async getManagers(@Param('id') id: string) {
-        const xpert = await this.service.findOne(id, { relations: ['managers'] })
-        return xpert.managers.map((u) => new UserPublicDTO(u))
+    @UseGuards(XpertGuard)
+    @Get(':id/user-groups')
+    async getUserGroups(@Param('id') id: string, @Query('organizationId') organizationId?: string) {
+        return this.service.getUserGroups(id, organizationId)
     }
 
-    @Put(':id/managers')
-    async updateManagers(@Param('id') id: string, @Body() ids: string[]) {
-        return this.service.updateManagers(id, ids)
-    }
-
-    @Delete(':id/managers/:userId')
-    async removeManager(@Param('id') id: string, @Param('userId') userId: string) {
-        await this.service.removeManager(id, userId)
+    @UseGuards(XpertGuard)
+    @Put(':id/user-groups')
+    async updateUserGroups(
+        @Param('id') id: string,
+        @Body() ids: string[],
+        @Query('organizationId') organizationId?: string
+    ) {
+        return this.service.updateUserGroups(id, ids, organizationId)
     }
 
     @Get(':id/memory')

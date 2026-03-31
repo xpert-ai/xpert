@@ -3,7 +3,11 @@ import { QueryBus } from '@nestjs/cqrs'
 import { PassportStrategy } from '@nestjs/passport'
 import { IncomingMessage } from 'http'
 import { Strategy } from 'passport'
-import { applyTenantScopeHeaders, resolveApiKeyRequestedUserId } from './api-key-principal'
+import {
+	applyTenantScopeHeaders,
+	resolveApiKeyRequestedOrganizationId,
+	resolveApiKeyRequestedUserId
+} from './api-key-principal'
 import { ApiKeyService } from './api-key.service'
 import { UseApiKeyQuery } from './queries'
 
@@ -32,6 +36,7 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 		}
 
 		const requestedUserId = resolveApiKeyRequestedUserId(req)
+		const requestedOrganizationId = resolveApiKeyRequestedOrganizationId(req)
 
 		this.validateToken(token)
 			.then(async (apiKey) => {
@@ -42,7 +47,8 @@ export class ApiKeyStrategy extends PassportStrategy(Strategy, 'api-key') {
 				applyTenantScopeHeaders(req)
 				this.success(
 					await this.apiKeyService.resolvePrincipal(apiKey, {
-						requestedUserId
+						requestedUserId,
+						requestedOrganizationId
 					})
 				)
 			})

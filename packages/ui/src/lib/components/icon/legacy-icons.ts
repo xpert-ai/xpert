@@ -262,6 +262,7 @@ const LEGACY_LUCIDE_ICONS: Record<string, LucideIconData> = {
   fullscreen_exit: Minimize,
   functions: Braces,
   generating_tokens: Sparkles,
+  group: UsersRound,
   group_add: UsersRound,
   group_work: Group,
   hub: Network,

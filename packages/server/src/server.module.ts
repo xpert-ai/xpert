@@ -31,6 +31,7 @@ import { TagModule } from './tags/tag.module'
 import { TenantSettingModule } from './tenant/tenant-setting'
 import { TenantModule } from './tenant/tenant.module'
 import { UserOrganizationModule } from './user-organization/user-organization.module'
+import { UserGroupModule } from './user-group/user-group.module'
 import { UserModule } from './user/index'
 import { IntegrationModule } from './integration/integration.module'
 import { ApiKeyModule } from './api-key/api-key.module'
@@ -72,6 +73,7 @@ import { HealthModule } from './health'
 		RoleModule,
 		OrganizationModule,
 		UserOrganizationModule,
+		UserGroupModule,
 		OrganizationContactModule,
 		OrganizationLanguageModule,
 		TagModule,

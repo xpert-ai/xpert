@@ -1,14 +1,24 @@
 import { HttpClient } from '@angular/common/http'
-import { Injectable } from '@angular/core'
-import { IUserOrganization, IUserOrganizationCreateInput, IUserOrganizationFindInput } from '@metad/contracts'
-import { API_PREFIX } from '@metad/cloud/state'
+import { Injectable, inject } from '@angular/core'
+import { API_PREFIX, Store } from '@metad/cloud/state'
 import { firstValueFrom, Observable } from 'rxjs'
+import { distinctUntilChanged, map, switchMap } from 'rxjs/operators'
+import { IUserOrganization, IUserOrganizationCreateInput, IUserOrganizationFindInput } from '../types'
 
 @Injectable({
   providedIn: 'root'
 })
 export class UsersOrganizationsService {
-  constructor(private http: HttpClient) {}
+  private http = inject(HttpClient)
+  private readonly store = inject(Store)
+  private readonly organizationId$ = this.store.selectOrganizationId().pipe(
+    map((organizationId) => organizationId ?? null),
+    distinctUntilChanged()
+  )
+
+  selectOrganizationId() {
+    return this.organizationId$
+  }
 
   getAll(
     relations?: string[],
@@ -19,6 +29,20 @@ export class UsersOrganizationsService {
     return this.http.get<{ items: IUserOrganization[]; total: number }>(`${API_PREFIX}/user-organization`, {
         params: { data }
       })
+  }
+
+  getAllInOrg(
+    relations?: string[],
+    findInput?: IUserOrganizationFindInput
+  ) {
+    return this.selectOrganizationId().pipe(
+      switchMap((organizationId) =>
+        this.getAll(relations, {
+          ...(findInput ?? {}),
+          organizationId
+        })
+      )
+    )
   }
 
   setUserAsInactive(id: string): Promise<IUserOrganization> {

@@ -3,7 +3,11 @@ import { PassportStrategy } from '@nestjs/passport'
 import { IncomingMessage } from 'http'
 import { Strategy } from 'passport'
 import { ApiKeyService } from '../api-key/api-key.service'
-import { applyTenantScopeHeaders, resolveApiKeyRequestedUserId } from '../api-key/api-key-principal'
+import {
+	applyTenantScopeHeaders,
+	resolveApiKeyRequestedOrganizationId,
+	resolveApiKeyRequestedUserId
+} from '../api-key/api-key-principal'
 import { SecretTokenService } from './secret-token.service'
 
 @Injectable()
@@ -31,6 +35,7 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 		}
 
 		const requestedUserId = resolveApiKeyRequestedUserId(req)
+		const requestedOrganizationId = resolveApiKeyRequestedOrganizationId(req)
 
 		this.validateToken(token)
 			.then(async (apiKey) => {
@@ -42,6 +47,7 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 				this.success(
 					await this.apiKeyService.resolvePrincipal(apiKey, {
 						requestedUserId,
+						requestedOrganizationId,
 						principalType: 'client_secret'
 					})
 				)

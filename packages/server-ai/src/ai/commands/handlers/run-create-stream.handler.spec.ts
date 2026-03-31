@@ -13,8 +13,20 @@ jest.mock('../../stream/redis-sse.service', () => ({
 }))
 
 jest.mock('../../../xpert', () => ({
-    XpertService: class XpertService {}
+    PublishedXpertAccessService: class PublishedXpertAccessService {}
 }))
+
+jest.mock('@metad/contracts', () => {
+    const actual = jest.requireActual('@metad/contracts')
+
+    return {
+        ...actual,
+        RequestScopeLevel: {
+            TENANT: 'tenant',
+            ORGANIZATION: 'organization'
+        }
+    }
+})
 
 jest.mock('@metad/server-core', () => ({
     RequestContext: {
@@ -35,6 +47,10 @@ const conversation = {
 } as any
 
 describe('validateRunCreateInput', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+    })
+
     it('accepts send payloads', () => {
         const result = validateRunCreateInput(
             {
@@ -215,6 +231,10 @@ describe('validateRunCreateInput', () => {
 })
 
 describe('RunCreateStreamHandler environment resolution', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+    })
+
     it('merges run context env into the resolved environment', async () => {
         const environmentService = {
             findOne: jest.fn().mockResolvedValue({
@@ -273,6 +293,10 @@ describe('RunCreateStreamHandler environment resolution', () => {
 })
 
 describe('RunCreateStreamHandler execute', () => {
+    beforeEach(() => {
+        jest.clearAllMocks()
+    })
+
     it('forwards the full runCreate.context and merged environment to Xpert chat', async () => {
         ;(RequestContext.currentApiKey as jest.Mock).mockReturnValue(null)
         const commandBus = {
@@ -310,6 +334,13 @@ describe('RunCreateStreamHandler execute', () => {
                 }
             })
         }
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
+                id: 'xpert-1',
+                environmentId: null
+            })
+        }
+
         const handler = new RunCreateStreamHandler(
             commandBus as any,
             queryBus as any,
@@ -320,7 +351,7 @@ describe('RunCreateStreamHandler execute', () => {
                 appendEvent: jest.fn().mockResolvedValue(undefined),
                 appendCompleteEvent: jest.fn().mockResolvedValue(undefined)
             } as any,
-            {} as any
+            publishedXpertAccessService as any
         )
 
         await handler.execute({
@@ -348,8 +379,13 @@ describe('RunCreateStreamHandler execute', () => {
             }
         } as any)
 
-        const xpertChatCommand = commandBus.execute.mock.calls.find(([command]) => command instanceof XpertChatCommand)?.[0]
+        const xpertChatCommand = commandBus.execute.mock.calls.find(
+            ([command]) => command instanceof XpertChatCommand
+        )?.[0]
 
+        expect(publishedXpertAccessService.getAccessiblePublishedXpert).toHaveBeenCalledWith('xpert-1', {
+            relations: ['user', 'createdBy']
+        })
         expect(xpertChatCommand).toBeInstanceOf(XpertChatCommand)
         expect(xpertChatCommand.options).toMatchObject({
             context: {
@@ -433,8 +469,8 @@ describe('RunCreateStreamHandler execute', () => {
                 return null
             })
         }
-        const xpertService = {
-            findOneByIdWithinTenant: jest.fn().mockResolvedValue({
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
                 id: 'xpert-tenant-1',
                 tenantId: 'tenant-1',
                 organizationId: null,
@@ -456,7 +492,7 @@ describe('RunCreateStreamHandler execute', () => {
                 appendEvent: jest.fn().mockResolvedValue(undefined),
                 appendCompleteEvent: jest.fn().mockResolvedValue(undefined)
             } as any,
-            xpertService as any
+            publishedXpertAccessService as any
         )
 
         await handler.execute({
@@ -474,7 +510,7 @@ describe('RunCreateStreamHandler execute', () => {
             }
         } as any)
 
-        expect(xpertService.findOneByIdWithinTenant).toHaveBeenCalledWith('xpert-tenant-1', {
+        expect(publishedXpertAccessService.getAccessiblePublishedXpert).toHaveBeenCalledWith('xpert-tenant-1', {
             relations: ['user', 'createdBy']
         })
         expect(request.headers['organization-id']).toBeUndefined()
@@ -543,8 +579,8 @@ describe('RunCreateStreamHandler execute', () => {
                 return null
             })
         }
-        const xpertService = {
-            findOneByIdWithinTenant: jest.fn().mockResolvedValue({
+        const publishedXpertAccessService = {
+            getAccessiblePublishedXpert: jest.fn().mockResolvedValue({
                 id: 'xpert-tenant-1',
                 tenantId: 'tenant-1',
                 organizationId: null,
@@ -566,7 +602,7 @@ describe('RunCreateStreamHandler execute', () => {
                 appendEvent: jest.fn().mockResolvedValue(undefined),
                 appendCompleteEvent: jest.fn().mockResolvedValue(undefined)
             } as any,
-            xpertService as any
+            publishedXpertAccessService as any
         )
 
         await handler.execute({

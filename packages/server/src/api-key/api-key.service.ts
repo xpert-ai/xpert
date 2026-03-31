@@ -33,6 +33,7 @@ export class ApiKeyService extends TenantOrganizationAwareCrudService<ApiKey> {
 		apiKey: IApiKey & { createdBy?: IUser | null; user?: IUser | null },
 		options?: {
 			requestedUserId?: string | null
+			requestedOrganizationId?: string | null
 			principalType?: ApiPrincipalType
 		}
 	): Promise<IApiPrincipal> {
@@ -49,6 +50,7 @@ export class ApiKeyService extends TenantOrganizationAwareCrudService<ApiKey> {
 		return buildApiKeyPrincipal(apiKey, {
 			actingUser: principalUser,
 			requestedUserId: options?.requestedUserId ?? null,
+			requestedOrganizationId: options?.requestedOrganizationId ?? null,
 			principalType: options?.principalType
 		})
 	}
@@ -71,9 +73,13 @@ export class ApiKeyService extends TenantOrganizationAwareCrudService<ApiKey> {
 		}
 
 		if (apiKey.type === ApiKeyBindingType.INTEGRATION && apiKey.entityId) {
-			const integration = await this.integrationService.findOneByIdWithinTenant(apiKey.entityId, apiKey.tenantId, {
-				relations: ['user']
-			})
+			const integration = await this.integrationService.findOneByIdWithinTenant(
+				apiKey.entityId,
+				apiKey.tenantId,
+				{
+					relations: ['user']
+				}
+			)
 			return this.integrationService.ensurePrincipalUser({
 				id: integration.id!,
 				tenantId: integration.tenantId!,
@@ -96,10 +102,7 @@ export class ApiKeyService extends TenantOrganizationAwareCrudService<ApiKey> {
 		return apiKey.createdBy ?? null
 	}
 
-	private async resolveRequestedUser(
-		apiKey: IApiKey & { user?: IUser | null },
-		requestedUserId: string
-	) {
+	private async resolveRequestedUser(apiKey: IApiKey & { user?: IUser | null }, requestedUserId: string) {
 		if (apiKey.user?.id === requestedUserId) {
 			return apiKey.user
 		}

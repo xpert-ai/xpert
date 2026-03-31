@@ -37,6 +37,10 @@ export const TailwindThemeVars = {
 
   'hover-bg': 'var(--color-hover-bg)',
   'danger-bg': 'var(--color-danger-bg)',
+  'state-base-hover': 'var(--color-hover-bg)',
+  'state-destructive-hover': 'var(--color-state-destructive-hover)',
+  'state-success-solid': 'var(--color-state-success-solid)',
+  'background-default-hover': 'var(--color-hover-bg)',
 
   'token-main-surface-primary': 'var(--main-surface-primary)',
   'token-main-surface-secondary': 'var(--main-surface-secondary)',

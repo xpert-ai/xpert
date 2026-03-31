@@ -18,9 +18,8 @@ import z from 'zod'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
 import { EnvironmentService, getContextEnvState, mergeEnvironmentWithEnvState } from '../../../environment'
-import { XpertService } from '../../../xpert'
+import { PublishedXpertAccessService } from '../../../xpert'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
-import { FindXpertQuery } from '../../../xpert/queries/get-one.query'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { RunCreateStreamCommand } from '../run-create-stream.command'
 import type { components } from '../../schemas/agent-protocol-schema'
@@ -259,7 +258,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         private readonly queryBus: QueryBus,
         private readonly environmentService: EnvironmentService,
         private readonly redisSseStreamService: RedisSseStreamService,
-        private readonly xpertService: XpertService
+        private readonly publishedXpertAccessService: PublishedXpertAccessService
     ) {}
 
     private applyAssistantScopeToCurrentRequest(organizationId?: string | null) {
@@ -279,10 +278,7 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         request.headers['x-scope-level'] = RequestScopeLevel.TENANT
     }
 
-    private applyAssistantPrincipalToCurrentRequest(
-        apiKey: IApiKey,
-        principalUser: IUser | null | undefined
-    ) {
+    private applyAssistantPrincipalToCurrentRequest(apiKey: IApiKey, principalUser: IUser | null | undefined) {
         const request = RequestContext.currentRequest() as any
         const currentUser = RequestContext.currentUser() as IApiPrincipal | null
 
@@ -307,16 +303,12 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
     private async resolveAssistantForRun(assistantId: string) {
         const apiKey = RequestContext.currentApiKey()
 
-        if (!apiKey) {
-            return this.queryBus.execute(new FindXpertQuery({ id: assistantId }, {}))
-        }
-
         // For assistant-bound keys, entityId is the allowed xpert id.
-        if (apiKey.type === 'assistant' && apiKey.entityId && apiKey.entityId !== assistantId) {
+        if (apiKey?.type === 'assistant' && apiKey.entityId && apiKey.entityId !== assistantId) {
             throw new ForbiddenException('API key is not allowed to access this assistant.')
         }
 
-        const xpert = await this.xpertService.findOneByIdWithinTenant(assistantId, {
+        const xpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(assistantId, {
             relations: ['user', 'createdBy']
         })
 

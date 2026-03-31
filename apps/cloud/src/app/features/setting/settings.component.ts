@@ -1,4 +1,3 @@
-
 import { ChangeDetectionStrategy, Component, computed, inject, model } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { RouterModule } from '@angular/router'
@@ -64,18 +63,6 @@ export class PACSettingComponent {
           permissionKeys: [AIPermissionsEnum.COPILOT_EDIT]
         }
       },
-      // {
-      //   link: 'knowledgebase',
-      //   label: 'Knowledgebase',
-      //   icon: 'school',
-      //   data: {
-      //     featureKey: [
-      //       AiFeatureEnum.FEATURE_COPILOT,
-      //       AiFeatureEnum.FEATURE_COPILOT_KNOWLEDGEBASE
-      //     ],
-      //     permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
-      //   }
-      // },
       {
         link: 'data-sources',
         label: 'Data Sources',
@@ -95,10 +82,7 @@ export class PACSettingComponent {
           scopeLevel === RequestScopeLevel.TENANT
             ? 'PAC.Assistant.MenuTenantSubtitle'
             : 'PAC.Assistant.MenuOrganizationSubtitle',
-        subtitleDefault:
-          scopeLevel === RequestScopeLevel.TENANT
-            ? 'Tenant defaults'
-            : 'Organization overrides',
+        subtitleDefault: scopeLevel === RequestScopeLevel.TENANT ? 'Tenant defaults' : 'Organization overrides',
         data: {
           featureKey: AiFeatureEnum.FEATURE_XPERT,
           permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
@@ -155,6 +139,16 @@ export class PACSettingComponent {
         }
       },
       {
+        link: 'groups',
+        label: 'Groups',
+        icon: 'group',
+        scopeContext: 'organization-only',
+        data: {
+          featureKey: FeatureEnum.FEATURE_USER,
+          permissionKeys: [PermissionsEnum.ORG_USERS_EDIT]
+        }
+      },
+      {
         link: 'roles',
         label: 'Role & Permission',
         icon: 'supervisor_account',
@@ -187,10 +181,7 @@ export class PACSettingComponent {
       },
 
       {
-        link:
-          scopeLevel === RequestScopeLevel.TENANT
-            ? 'features/tenant'
-            : 'features/organization',
+        link: scopeLevel === RequestScopeLevel.TENANT ? 'features/tenant' : 'features/organization',
         label: 'Feature',
         icon: 'widgets',
         scopeContext: 'dual-scope',
@@ -234,8 +225,7 @@ export class PACSettingComponent {
       const scopeContext = item.scopeContext ?? 'dual-scope'
       if (
         (scopeContext === 'tenant-only' && scopeLevel !== RequestScopeLevel.TENANT) ||
-        (scopeContext === 'organization-only' &&
-          scopeLevel !== RequestScopeLevel.ORGANIZATION)
+        (scopeContext === 'organization-only' && scopeLevel !== RequestScopeLevel.ORGANIZATION)
       ) {
         return false
       }

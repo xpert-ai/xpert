@@ -65,4 +65,9 @@ export interface IApiPrincipal extends IUser {
    * Explicit business user id requested by the caller via x-principal-user-id.
    */
   requestedUserId?: string | null
+  /**
+   * Original organization context requested by the caller before api-key
+   * authentication normalized the request into tenant scope.
+   */
+  requestedOrganizationId?: string | null
 }

@@ -2,7 +2,7 @@ import { forwardRef, Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
-import { RedisModule, TenantModule, UserModule } from '@metad/server-core'
+import { RedisModule, TenantModule, UserGroupModule, UserModule } from '@metad/server-core'
 import { XpertController } from './xpert.controller'
 import { Xpert } from './xpert.entity'
 import { XpertService } from './xpert.service'
@@ -22,6 +22,7 @@ import { XpertTriggerBootstrapRecoveryService } from './jobs/trigger-bootstrap-r
 import { XpertAuthoringMiddleware } from './middlewares/xpert-authoring.middleware'
 import { XpertAuthoringService } from './middlewares/xpert-authoring.service'
 import { XpertToolsetModule } from '../xpert-toolset'
+import { PublishedXpertAccessService } from './published-xpert-access.service'
 
 @Module({
     imports: [
@@ -34,6 +35,7 @@ import { XpertToolsetModule } from '../xpert-toolset'
         forwardRef(() => KnowledgebaseModule),
         forwardRef(() => XpertAgentModule),
         forwardRef(() => XpertToolsetModule),
+        forwardRef(() => UserGroupModule),
         forwardRef(() => UserModule),
         forwardRef(() => XpertWorkspaceModule),
         forwardRef(() => EnvironmentModule),
@@ -48,11 +50,12 @@ import { XpertToolsetModule } from '../xpert-toolset'
         XpertTriggerBootstrapRecoveryService,
         AnonymousStrategy,
         WorkflowTriggerRegistry,
+        PublishedXpertAccessService,
         XpertAuthoringService,
         XpertAuthoringMiddleware,
         ...CommandHandlers,
         ...QueryHandlers
     ],
-    exports: [XpertService]
+    exports: [XpertService, PublishedXpertAccessService]
 })
-export class XpertModule { }
+export class XpertModule {}
