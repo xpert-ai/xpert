@@ -62,6 +62,27 @@ describe('PublishedXpertAccessService', () => {
         )
     })
 
+    it('allows the creator to access a tenant-level published xpert without a user-group grant', async () => {
+        const repository = {
+            findOne: jest.fn().mockResolvedValue({
+                id: 'xpert-1',
+                tenantId: 'tenant-1',
+                organizationId: null,
+                createdById: 'user-1',
+                publishAt: new Date()
+            }),
+            createQueryBuilder: jest.fn()
+        }
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(null)
+
+        const service = new PublishedXpertAccessService(repository as any)
+
+        await expect(service.getAccessiblePublishedXpert('xpert-1')).resolves.toMatchObject({
+            id: 'xpert-1'
+        })
+        expect(repository.createQueryBuilder).not.toHaveBeenCalled()
+    })
+
     it('rejects access when the published xpert cannot be found', async () => {
         const repository = {
             findOne: jest.fn().mockResolvedValue(null),
