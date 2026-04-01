@@ -149,6 +149,12 @@ import { AssistantsSettingsFacade } from './assistants.facade'
                     [readonly]="isTenantScope() && !facade.canManageTenant()"
                     placeholder="https://app.xpertai.cn/chatkit"
                   />
+                  <span class="text-xs text-text-secondary">
+                    {{
+                      'PAC.Assistant.FrameUrlLocalHint'
+                        | translate: { Default: 'Use /chatkit for the same-origin local ChatKit page.' }
+                    }}
+                  </span>
                 </label>
               </div>
 

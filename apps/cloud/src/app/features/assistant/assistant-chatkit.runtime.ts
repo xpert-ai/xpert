@@ -13,6 +13,7 @@ import {
   ToastrService
 } from '../../@core'
 import { AppService } from '../../app.service'
+import { normalizeAssistantFrameUrl } from './assistant-chatkit-frame-url'
 
 export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'disabled' | 'error'
 
@@ -110,7 +111,7 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
   const hasSource = computed(() => !!config()?.sourceScope && config()?.sourceScope !== AssistantConfigSourceScope.NONE)
   const hasCompleteOptions = computed(() => {
     const options = config()?.options
-    return !!(options?.assistantId && options?.frameUrl)
+    return !!(options?.assistantId && normalizeAssistantFrameUrl(options?.frameUrl))
   })
   const isConfigured = computed(() => !!config() && !!hasSource() && config()?.enabled && hasCompleteOptions())
   const status = computed<AssistantRuntimeStatus>(() => {
@@ -144,10 +145,11 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
       return null
     }
 
+    const normalizedFrameUrl = normalizeAssistantFrameUrl(currentConfig.options.frameUrl)
     return [
       input.assistantCode(),
       currentConfig.options.assistantId,
-      currentConfig.options.frameUrl,
+      normalizedFrameUrl,
       fixedApiUrl,
       authToken() ?? '',
       organizationId() ?? ''
@@ -171,8 +173,9 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
       return
     }
 
+    const normalizedFrameUrl = normalizeAssistantFrameUrl(currentConfig.options.frameUrl)
     const options = {
-      frameUrl: currentConfig.options.frameUrl,
+      frameUrl: normalizedFrameUrl,
       api: {
         apiUrl: fixedApiUrl,
         xpertId: currentConfig.options.assistantId,
