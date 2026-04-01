@@ -2,7 +2,6 @@ import { getConfig } from '@metad/server-config'
 import { PluginLevel } from '@metad/contracts'
 import { GLOBAL_ORGANIZATION_SCOPE } from '@xpert-ai/plugin-sdk'
 import { DataSource, DataSourceOptions } from 'typeorm'
-import { PluginInstance } from './plugin-instance.entity'
 import { deserializePluginConfig } from './plugin-config.crypto'
 
 export interface OrganizationPluginConfig {
@@ -13,26 +12,24 @@ export interface OrganizationPluginConfig {
 
 /**
  * Before system initialization, connect to the data source via database configuration and read the plugin list.
+ * Query the plugin_instance table directly so plugin restore does not depend on unrelated ORM metadata.
  *
  * @returns
  */
-export async function loadPluginInstances(): Promise<PluginInstance[]> {
+export async function loadPluginInstances(): Promise<Array<Record<string, any>>> {
 	const cfg = getConfig()
 	const options = cfg.dbConnectionOptions as DataSourceOptions
-	const existingEntities = Array.isArray(options.entities)
-		? options.entities
-		: options.entities
-			? Object.values(options.entities)
-			: []
 	const dataSource = new DataSource({
 		...options,
-		// Ensure the PluginInstance entity is included in bootstrap scanning
-		entities: [...existingEntities, PluginInstance]
+		entities: [],
+		subscribers: [],
+		migrations: []
 	})
 	await dataSource.initialize()
 	try {
-		const repo = dataSource.getRepository(PluginInstance)
-		return await repo.find()
+		return await dataSource.query(
+			'SELECT "organizationId", "pluginName", "packageName", version, source, level, config FROM plugin_instance'
+		)
 	} finally {
 		await dataSource.destroy()
 	}
@@ -59,7 +56,17 @@ export async function loadOrganizationPluginConfigs(): Promise<OrganizationPlugi
 				source: instance.source,
 				level: instance.level
 			})
-			record.configs[instance.pluginName] = deserializePluginConfig(instance.config)
+			record.configs[instance.pluginName] = deserializePluginConfig(
+				typeof instance.config === 'string'
+					? (() => {
+							try {
+								return JSON.parse(instance.config)
+							} catch {
+								return instance.config
+							}
+						})()
+					: instance.config
+			)
 			byOrg.set(orgId, record)
 		}
 
