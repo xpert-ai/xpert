@@ -5,6 +5,8 @@ import {
   AssistantBindingScope,
   AssistantCode,
   IAssistantBinding,
+  IAssistantBindingUserPreference,
+  IAssistantBindingUserPreferenceUpsertInput,
   IAssistantBindingUpsertInput,
   IPagination,
   IResolvedAssistantBinding,
@@ -34,6 +36,14 @@ export class AssistantBindingService {
     })
   }
 
+  getPreference(code: AssistantCode, scope: AssistantBindingScope) {
+    return this.#http.get<IAssistantBindingUserPreference | null>(`${API_ASSISTANT_BINDING}/${code}/preference`, {
+      params: {
+        scope
+      }
+    })
+  }
+
   getEffective(code: AssistantCode) {
     return this.#http.get<IResolvedAssistantBinding>(`${API_ASSISTANT_BINDING}/effective/${code}`)
   }
@@ -51,6 +61,10 @@ export class AssistantBindingService {
 
   upsert(input: IAssistantBindingUpsertInput) {
     return this.#http.post<IAssistantBinding>(API_ASSISTANT_BINDING, input)
+  }
+
+  upsertPreference(code: AssistantCode, input: IAssistantBindingUserPreferenceUpsertInput) {
+    return this.#http.post<IAssistantBindingUserPreference>(`${API_ASSISTANT_BINDING}/${code}/preference`, input)
   }
 
   delete(code: AssistantCode, scope: AssistantBindingScope) {

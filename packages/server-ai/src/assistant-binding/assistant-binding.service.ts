@@ -3,6 +3,8 @@ import {
   AssistantBindingSourceScope,
   AssistantCode,
   IAssistantBinding,
+  IAssistantBindingUserPreference,
+  IAssistantBindingUserPreferenceUpsertInput,
   IAssistantBindingUpsertInput,
   IResolvedAssistantBinding,
   RolesEnum,
@@ -30,6 +32,7 @@ import {
 import { PublishedXpertAccessService } from '../xpert'
 import { Xpert } from '../xpert/xpert.entity'
 import { AssistantBinding } from './assistant-binding.entity'
+import { AssistantBindingUserPreference } from './assistant-binding-user-preference.entity'
 
 type SystemScope = AssistantBindingScope.TENANT | AssistantBindingScope.ORGANIZATION
 type ScopeContext = {
@@ -68,6 +71,8 @@ export class AssistantBindingService
   constructor(
     @InjectRepository(AssistantBinding)
     repository: Repository<AssistantBinding>,
+    @InjectRepository(AssistantBindingUserPreference)
+    private readonly preferenceRepository: Repository<AssistantBindingUserPreference>,
     @InjectRepository(Xpert)
     private readonly xpertRepository: Repository<Xpert>,
     private readonly dataSource: DataSource,
@@ -125,6 +130,27 @@ export class AssistantBindingService
     }
 
     return this.findBinding(code, scope, context)
+  }
+
+  async getBindingPreference(code: AssistantCode, scope: AssistantBindingScope) {
+    this.ensureUserPreferenceScope(scope)
+    this.ensureUserManagedCode(code)
+
+    const binding = await this.getBinding(code, scope)
+    if (!binding?.id) {
+      return null
+    }
+
+    const { tenantId, organizationId, userId } = this.requireUserScope()
+
+    return this.preferenceRepository.findOne({
+      where: {
+        tenantId,
+        organizationId,
+        assistantBindingId: binding.id,
+        userId
+      }
+    })
   }
 
   async getEffectiveBinding(code: AssistantCode): Promise<IResolvedAssistantBinding> {
@@ -259,6 +285,59 @@ export class AssistantBindingService
       },
       false
     )
+  }
+
+  async upsertBindingPreference(
+    code: AssistantCode,
+    input: IAssistantBindingUserPreferenceUpsertInput
+  ): Promise<IAssistantBindingUserPreference> {
+    this.ensureUserPreferenceScope(input.scope)
+    this.ensureUserManagedCode(code)
+
+    const { tenantId, organizationId, userId } = this.requireUserScope()
+    const binding = await this.findBinding(code, input.scope, {
+      tenantId,
+      organizationId,
+      userId
+    })
+
+    if (!binding?.id) {
+      throw new BadRequestException('Assistant binding is required before user preferences can be saved.')
+    }
+
+    const currentUserId = RequestContext.currentUserId()
+    const existing = await this.preferenceRepository.findOne({
+      where: {
+        tenantId,
+        organizationId,
+        assistantBindingId: binding.id,
+        userId
+      }
+    })
+
+    if (existing) {
+      existing.behaviorRulesMarkdown = normalizeMarkdownValue(input.behaviorRulesMarkdown)
+      existing.userProfileMarkdown = normalizeMarkdownValue(input.userProfileMarkdown)
+      existing.updatedBy = currentUserId ? ({ id: currentUserId } as any) : existing.updatedBy
+      return this.preferenceRepository.save(existing)
+    }
+
+    const entity = this.preferenceRepository.create({
+      tenant: { id: tenantId },
+      tenantId,
+      organization: organizationId ? ({ id: organizationId } as any) : null,
+      organizationId,
+      assistantBinding: binding as AssistantBinding,
+      assistantBindingId: binding.id,
+      user: userId ? ({ id: userId } as any) : null,
+      userId,
+      behaviorRulesMarkdown: normalizeMarkdownValue(input.behaviorRulesMarkdown),
+      userProfileMarkdown: normalizeMarkdownValue(input.userProfileMarkdown),
+      createdBy: currentUserId ? ({ id: currentUserId } as any) : undefined,
+      updatedBy: currentUserId ? ({ id: currentUserId } as any) : undefined
+    } as DeepPartial<AssistantBindingUserPreference>)
+
+    return this.preferenceRepository.save(entity)
   }
 
   async deleteBinding(code: AssistantCode, scope: AssistantBindingScope) {
@@ -646,4 +725,14 @@ export class AssistantBindingService
       sourceScope
     }
   }
+
+  private ensureUserPreferenceScope(scope: AssistantBindingScope) {
+    if (scope !== AssistantBindingScope.USER) {
+      throw new BadRequestException('User preferences only support user scope.')
+    }
+  }
+}
+
+function normalizeMarkdownValue(value?: string | null) {
+  return value ?? null
 }

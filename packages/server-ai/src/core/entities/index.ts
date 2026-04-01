@@ -34,6 +34,7 @@ import {
 	XpertTable,
 	Environment,
 	AssistantBinding,
+	AssistantBindingUserPreference,
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
@@ -72,4 +73,5 @@ export const ALL_AI_ENTITIES = [
 	XpertTable,
 	Environment,
 	AssistantBinding,
+	AssistantBindingUserPreference,
 ]

@@ -1,6 +1,7 @@
 import {
   AssistantBindingScope,
   AssistantCode,
+  IAssistantBindingUserPreferenceUpsertInput,
   IAssistantBindingUpsertInput
 } from '@metad/contracts'
 import { TransformInterceptor } from '@metad/server-core'
@@ -44,6 +45,14 @@ export class AssistantBindingController {
     return this.service.getAvailableXperts(scope, code)
   }
 
+  @Get(':code/preference')
+  async getBindingPreference(
+    @Param('code') code: AssistantCode,
+    @Query('scope') scope: AssistantBindingScope = AssistantBindingScope.USER
+  ) {
+    return this.service.getBindingPreference(code, scope)
+  }
+
   @Get(':code')
   async getBinding(
     @Param('code') code: AssistantCode,
@@ -55,6 +64,14 @@ export class AssistantBindingController {
   @Post()
   async upsertBinding(@Body() input: IAssistantBindingUpsertInput) {
     return this.service.upsertBinding(input)
+  }
+
+  @Post(':code/preference')
+  async upsertBindingPreference(
+    @Param('code') code: AssistantCode,
+    @Body() input: IAssistantBindingUserPreferenceUpsertInput
+  ) {
+    return this.service.upsertBindingPreference(code, input)
   }
 
   @Delete(':code')

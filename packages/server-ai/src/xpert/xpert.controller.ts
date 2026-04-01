@@ -992,8 +992,15 @@ export class XpertController extends CrudController<Xpert> {
 
     @UseGuards(XpertGuard)
     @Get(':id/statistics/daily-messages')
-    async getDailyMessages(@Param('id') id: string, @Query('start') start: string, @Query('end') end: string) {
-        return await this.queryBus.execute(new StatisticsDailyMessagesQuery(start, end, id))
+    async getDailyMessages(
+        @Param('id') id: string,
+        @Query('start') start: string,
+        @Query('end') end: string,
+        @Query('currentUserOnly') currentUserOnly?: string
+    ) {
+        return await this.queryBus.execute(
+            new StatisticsDailyMessagesQuery(start, end, id, currentUserOnly === 'true' || currentUserOnly === '1')
+        )
     }
 
     @UseGuards(XpertGuard)

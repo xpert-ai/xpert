@@ -76,6 +76,11 @@ describe('AssistantBindingService', () => {
     save: jest.Mock
     delete: jest.Mock
   }
+  let preferenceRepository: {
+    findOne: jest.Mock
+    create: jest.Mock
+    save: jest.Mock
+  }
   let xpertRepository: {
     find: jest.Mock
     findOne: jest.Mock
@@ -97,6 +102,11 @@ describe('AssistantBindingService', () => {
       save: jest.fn(async (input) => input),
       delete: jest.fn()
     }
+    preferenceRepository = {
+      findOne: jest.fn(),
+      create: jest.fn((input) => input),
+      save: jest.fn(async (input) => input)
+    }
     xpertRepository = {
       find: jest.fn(),
       findOne: jest.fn()
@@ -111,6 +121,7 @@ describe('AssistantBindingService', () => {
 
     service = new AssistantBindingService(
       repository as any,
+      preferenceRepository as any,
       xpertRepository as any,
       dataSource as any,
       publishedXpertAccessService as any
@@ -254,5 +265,53 @@ describe('AssistantBindingService', () => {
     await expect(service.getBinding(AssistantCode.CHATBI, AssistantBindingScope.USER)).rejects.toBeInstanceOf(
       BadRequestException
     )
+  })
+
+  it('reads user markdown preferences for a bound clawxpert assistant', async () => {
+    repository.findOne.mockResolvedValueOnce({
+      id: 'binding-1',
+      code: AssistantCode.CLAWXPERT,
+      scope: AssistantBindingScope.USER
+    })
+    preferenceRepository.findOne.mockResolvedValueOnce({
+      assistantBindingId: 'binding-1',
+      behaviorRulesMarkdown: '# Rules',
+      userProfileMarkdown: '# Profile'
+    })
+
+    const result = await service.getBindingPreference(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        behaviorRulesMarkdown: '# Rules',
+        userProfileMarkdown: '# Profile'
+      })
+    )
+    expect(preferenceRepository.findOne).toHaveBeenCalled()
+  })
+
+  it('upserts user markdown preferences for a bound clawxpert assistant', async () => {
+    repository.findOne.mockResolvedValueOnce({
+      id: 'binding-1',
+      code: AssistantCode.CLAWXPERT,
+      scope: AssistantBindingScope.USER
+    })
+    preferenceRepository.findOne.mockResolvedValueOnce(null)
+
+    const result = await service.upsertBindingPreference(AssistantCode.CLAWXPERT, {
+      scope: AssistantBindingScope.USER,
+      behaviorRulesMarkdown: '# Rules',
+      userProfileMarkdown: '# Profile'
+    })
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        assistantBindingId: 'binding-1',
+        behaviorRulesMarkdown: '# Rules',
+        userProfileMarkdown: '# Profile',
+        userId: 'user-1'
+      })
+    )
+    expect(preferenceRepository.save).toHaveBeenCalled()
   })
 })

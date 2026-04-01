@@ -1,5 +1,5 @@
 import { inject } from '@angular/core'
-import { Router, Routes } from '@angular/router'
+import { Router, Routes, UrlMatchResult, UrlSegment } from '@angular/router'
 import { AiFeatureEnum, Store } from '../../@core'
 import { ChatTasksComponent } from './tasks/tasks.component'
 import { ChatXpertComponent } from './xpert/xpert.component'
@@ -10,7 +10,9 @@ import { ChatProjectConversationComponent } from './project/conversation/convers
 import { ChatProjectComponent } from './project/project.component'
 import { ChatBiComponent } from './chatbi/chatbi.component'
 import { ChatCommonAssistantComponent } from './common/common.component'
+import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
+import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
 
 export const routes: Routes = [
   {
@@ -72,7 +74,23 @@ export const routes: Routes = [
         ],
         data: {
           title: 'ClawXpert',
-        }
+        },
+        children: [
+          {
+            path: '',
+            component: ClawXpertOverviewComponent,
+            data: {
+              title: 'ClawXpert Overview',
+            }
+          },
+          {
+            matcher: clawxpertConversationMatcher,
+            component: ClawXpertConversationDetailComponent,
+            data: {
+              title: 'ClawXpert Conversation',
+            }
+          }
+        ]
       },
       {
         path: 'chatbi',
@@ -167,3 +185,26 @@ export const routes: Routes = [
     ]
   },
 ]
+
+function clawxpertConversationMatcher(segments: UrlSegment[]): UrlMatchResult | null {
+  if (segments[0]?.path !== 'c') {
+    return null
+  }
+
+  if (segments.length === 1) {
+    return {
+      consumed: segments
+    }
+  }
+
+  if (segments.length === 2) {
+    return {
+      consumed: segments,
+      posParams: {
+        threadId: segments[1]
+      }
+    }
+  }
+
+  return null
+}

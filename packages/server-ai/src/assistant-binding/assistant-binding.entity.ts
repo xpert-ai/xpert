@@ -19,8 +19,10 @@ import {
   Index,
   JoinColumn,
   ManyToOne,
+  OneToMany,
   RelationId
 } from 'typeorm'
+import { AssistantBindingUserPreference } from './assistant-binding-user-preference.entity'
 
 @Entity('assistant_binding')
 @Index('IDX_assistant_binding_tenant_unique', ['tenantId', 'code'], {
@@ -76,4 +78,9 @@ export class AssistantBinding extends TenantOrganizationBaseEntity implements IA
   @IsOptional()
   @Column({ nullable: true })
   userId?: string | null
+
+  @ApiPropertyOptional({ type: () => AssistantBindingUserPreference, isArray: true, readOnly: true })
+  @IsOptional()
+  @OneToMany(() => AssistantBindingUserPreference, (preference) => preference.assistantBinding)
+  preferences?: AssistantBindingUserPreference[]
 }

@@ -10,5 +10,6 @@ export class StatisticsDailyMessagesQuery implements IQuery {
         public readonly start: string,
         public readonly end: string,
         public readonly xpertId?: string,
+        public readonly currentUserOnly?: boolean
     ) {}
 }

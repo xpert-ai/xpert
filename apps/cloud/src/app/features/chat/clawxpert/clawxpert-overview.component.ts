@@ -1,0 +1,586 @@
+import { CommonModule } from '@angular/common'
+import { Component, computed, inject } from '@angular/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import {
+  ZardAvatarComponent,
+  ZardButtonComponent,
+  ZardCardImports,
+  ZardDividerComponent,
+  ZardIconComponent
+} from '@xpert-ai/headless-ui'
+import { IXpert } from '../../../@core'
+import { ClawXpertFacade } from './clawxpert.facade'
+import { ClawXpertPreferencesEditorComponent } from './clawxpert-preferences-editor.component'
+import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.component'
+
+type ClawXpertMetric = {
+  labelKey: string
+  defaultLabel: string
+  value: number
+}
+
+type ClawXpertDocumentCard = {
+  labelKey: string
+  defaultLabel: string
+  descriptionKey: string
+  defaultDescription: string
+  words: number
+}
+
+type ClawXpertHeatmapCell = {
+  key: string
+  count: number
+  title: string
+  isFuture: boolean
+  background: string
+  borderColor: string
+}
+
+type ClawXpertHeatmapWeek = {
+  key: string
+  monthLabel: string
+  cells: ClawXpertHeatmapCell[]
+}
+
+type ClawXpertHeatmapModel = {
+  weeks: ClawXpertHeatmapWeek[]
+  dayLabels: string[]
+  totalMessages: number
+  activeDays: number
+}
+
+const HEATMAP_WEEK_COUNT = 12
+const HEATMAP_DAYS_PER_WEEK = 7
+const HEATMAP_DAY_LABEL_INDEXES = new Set([0, 2, 4, 6])
+const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
+
+@Component({
+  standalone: true,
+  selector: 'pac-clawxpert-overview',
+  imports: [
+    CommonModule,
+    TranslateModule,
+    ZardAvatarComponent,
+    ZardButtonComponent,
+    ZardDividerComponent,
+    ZardIconComponent,
+    ClawXpertPreferencesEditorComponent,
+    ClawXpertSetupWizardComponent,
+    ...ZardCardImports
+  ],
+  template: `
+    <div class="h-full min-h-0">
+      @if (facade.loading()) {
+        <div class="flex h-full min-h-[32rem] items-center justify-center rounded-3xl bg-background-default-subtle px-6 text-sm text-text-secondary">
+          {{ 'PAC.Chat.ClawXpert.Loading' | translate: { Default: 'Preparing ClawXpert…' } }}
+        </div>
+      } @else if (!facade.organizationId()) {
+        <div class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-3xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+          <z-icon zType="domain" class="text-3xl text-text-tertiary"></z-icon>
+          <div class="mt-4 text-base font-medium text-text-primary">
+            {{
+              'PAC.Chat.ClawXpert.OrganizationRequired'
+                | translate
+                  : { Default: 'Select an organization to use ClawXpert' }
+            }}
+          </div>
+          <div class="mt-2 max-w-sm text-sm text-text-secondary">
+            {{
+              'PAC.Chat.ClawXpert.OrganizationRequiredDesc'
+                | translate
+                  : { Default: 'ClawXpert stores one assistant binding per user and per organization.' }
+            }}
+          </div>
+        </div>
+      } @else if (facade.viewState() === 'error') {
+        <div class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-3xl border border-divider-regular bg-background-default-subtle px-6 text-center">
+          <z-icon zType="warning" class="text-3xl text-text-tertiary"></z-icon>
+          <div class="mt-4 text-base font-medium text-text-primary">
+            {{ 'PAC.Chat.ClawXpert.LoadFailed' | translate: { Default: 'Failed to load ClawXpert.' } }}
+          </div>
+          <div class="mt-2 max-w-sm text-sm text-text-secondary">
+            {{ facade.viewErrorMessage() }}
+          </div>
+        </div>
+      } @else if (facade.viewState() === 'wizard') {
+        <pac-clawxpert-setup-wizard class="block h-full" />
+      } @else {
+        <div class="grid min-h-0 gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+          <div class="flex h-full min-h-0 flex-col gap-5 overflow-auto p-6">
+            <div class="flex items-start gap-4">
+              <z-avatar
+                class="shrink-0 border border-divider-regular shadow-sm"
+                [zFallback]="avatarFallback()"
+                [zSize]="64"
+                [zSrc]="avatarUrl()"
+              />
+
+              <div class="min-w-0">
+                <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
+                  {{ facade.definition.labelKey | translate: { Default: facade.definition.defaultLabel } }}
+                </div>
+                <div class="mt-2 text-2xl font-semibold tracking-tight text-text-primary">
+                  {{ headerTitle() }}
+                </div>
+                <p class="mt-3 text-sm leading-6 text-text-secondary">
+                  {{ overviewDescription() }}
+                </p>
+              </div>
+            </div>
+
+            @if (facade.resolvedPreference() && facade.viewState() === 'ready') {
+              <div class="grid grid-cols-2 gap-2">
+                <button z-button zType="outline" displayDensity="cosy" type="button" class="w-full" (click)="openWizard()">
+                  {{ 'PAC.Chat.ClawXpert.Change' | translate: { Default: 'Change ClawXpert' } }}
+                </button>
+                <button
+                  z-button
+                  zType="outline"
+                  displayDensity="cosy"
+                  type="button"
+                  class="w-full"
+                  [disabled]="facade.clearing()"
+                  (click)="clearPreference()"
+                >
+                  {{ 'PAC.Chat.ClawXpert.Clear' | translate: { Default: 'Clear ClawXpert' } }}
+                </button>
+              </div>
+            }
+
+            <div class="flex flex-wrap items-center gap-2">
+              <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary">
+                {{
+                  (facade.resolvedPreference()
+                    ? 'PAC.Chat.ClawXpert.StatusBound'
+                    : 'PAC.Chat.ClawXpert.StatusPending')
+                    | translate
+                      : { Default: facade.resolvedPreference() ? 'Bound' : 'Setup required' }
+                }}
+              </span>
+              <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary">
+                {{ modelLabel() }}
+              </span>
+            </div>
+
+            <div class="grid grid-cols-3 gap-3">
+              @for (metric of metrics(); track metric.labelKey) {
+                <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-3 py-4 text-center">
+                  <div class="text-2xl font-semibold text-text-primary">{{ metric.value }}</div>
+                  <div class="mt-2 text-xs text-text-tertiary">
+                    {{ metric.labelKey | translate: { Default: metric.defaultLabel } }}
+                  </div>
+                </div>
+              }
+            </div>
+
+            <button
+              z-button
+              zType="default"
+              color="primary"
+              type="button"
+              class="w-full"
+              [disabled]="facade.viewState() !== 'ready'"
+              (click)="startConversation()"
+            >
+              <z-icon zType="chat"></z-icon>
+              {{ 'PAC.Chat.ClawXpert.GoToChat' | translate: { Default: 'Go to chat' } }}
+            </button>
+
+            <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4">
+              <div class="flex items-start justify-between gap-3">
+                <div class="min-w-0">
+                  <div class="text-sm font-medium text-text-primary">
+                    {{ 'PAC.Chat.ClawXpert.ConversationStatsTitle' | translate: { Default: 'Conversation stats' } }}
+                  </div>
+                  <p class="mt-1 text-sm leading-6 text-text-secondary">
+                    {{
+                      'PAC.Chat.ClawXpert.ConversationStatsDesc'
+                        | translate
+                          : {
+                              Default: 'Daily message volume between you and this assistant over the last 12 weeks.'
+                            }
+                    }}
+                  </p>
+                </div>
+
+                <div class="grid shrink-0 grid-cols-2 gap-2">
+                  <div class="rounded-2xl border border-divider-regular bg-background-default px-3 py-2 text-center">
+                    <div class="text-lg font-semibold text-text-primary">{{ heatmap().totalMessages }}</div>
+                    <div class="mt-1 text-[11px] text-text-tertiary">
+                      {{ 'PAC.Chat.ClawXpert.TotalMessages' | translate: { Default: 'Total messages' } }}
+                    </div>
+                  </div>
+                  <div class="rounded-2xl border border-divider-regular bg-background-default px-3 py-2 text-center">
+                    <div class="text-lg font-semibold text-text-primary">{{ heatmap().activeDays }}</div>
+                    <div class="mt-1 text-[11px] text-text-tertiary">
+                      {{ 'PAC.Chat.ClawXpert.ActiveDays' | translate: { Default: 'Active days' } }}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 overflow-x-auto">
+                <div class="flex min-w-[18.5rem] gap-2">
+                  <div class="grid grid-rows-8 gap-1 text-[10px] text-text-tertiary">
+                    <div class="h-4"></div>
+                    @for (label of heatmap().dayLabels; track $index) {
+                      <div class="flex h-5 items-center justify-end pr-1">
+                        {{ label }}
+                      </div>
+                    }
+                  </div>
+
+                  <div class="min-w-0 flex-1">
+                    <div class="grid grid-cols-12 gap-1 text-[10px] text-text-tertiary">
+                      @for (week of heatmap().weeks; track week.key) {
+                        <div class="h-4 truncate">{{ week.monthLabel }}</div>
+                      }
+                    </div>
+
+                    <div class="mt-1 grid grid-cols-12 gap-1">
+                      @for (week of heatmap().weeks; track week.key) {
+                        <div class="grid grid-rows-7 gap-1">
+                          @for (cell of week.cells; track cell.key) {
+                            <div
+                              class="h-5 w-5 rounded-md border transition-colors"
+                              [style.background]="cell.background"
+                              [style.border-color]="cell.borderColor"
+                              [class.opacity-60]="cell.isFuture"
+                              [attr.aria-label]="cell.title"
+                              [attr.title]="cell.title"
+                            ></div>
+                          }
+                        </div>
+                      }
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div class="mt-4 flex flex-wrap items-center justify-between gap-3">
+                <div class="text-xs text-text-tertiary">
+                  @if (heatmap().totalMessages === 0) {
+                    {{
+                      'PAC.Chat.ClawXpert.NoMessageActivity'
+                        | translate
+                          : {
+                              Default: 'No message activity yet. Start a conversation to populate this heatmap.'
+                            }
+                    }}
+                  }
+                </div>
+
+                <div class="flex items-center gap-2 text-[11px] text-text-tertiary">
+                  <span>{{ 'PAC.Chat.ClawXpert.HeatmapLegendQuiet' | translate: { Default: 'Quiet' } }}</span>
+                  @for (legendCell of heatmapLegend; track legendCell.background) {
+                    <div
+                      class="h-3 w-3 rounded-[4px] border"
+                      [style.background]="legendCell.background"
+                      [style.border-color]="legendCell.borderColor"
+                    ></div>
+                  }
+                  <span>{{ 'PAC.Chat.ClawXpert.HeatmapLegendBusy' | translate: { Default: 'Busy' } }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="grid min-h-0 gap-4 xl:grid-rows-[minmax(0,1fr)_13rem]">
+            <pac-clawxpert-preferences-editor class="min-h-0" />
+
+            <z-card class="rounded-3xl border border-dashed border-divider-regular shadow-none">
+              <z-card-content class="flex h-full flex-col justify-center px-6">
+                <div class="flex items-center gap-2 text-sm font-medium text-text-primary">
+                  <z-icon zType="deployed_code_history"></z-icon>
+                  {{ 'PAC.Chat.ClawXpert.LowerPlaceholderTitle' | translate: { Default: 'More panels are reserved here' } }}
+                </div>
+                <p class="mt-3 text-sm leading-6 text-text-secondary">
+                  {{
+                    'PAC.Chat.ClawXpert.LowerPlaceholderOverviewDesc'
+                      | translate
+                        : {
+                            Default:
+                              'The lower-right area stays as a placeholder for the next batch of ClawXpert workspace capabilities.'
+                          }
+                  }}
+                </p>
+              </z-card-content>
+            </z-card>
+          </div>
+        </div>
+      }
+    </div>
+  `
+})
+export class ClawXpertOverviewComponent {
+  readonly facade = inject(ClawXpertFacade)
+  readonly #translate = inject(TranslateService)
+  readonly #locale = normalizeLocale(this.#translate.currentLang || this.#translate.getDefaultLang())
+
+  readonly avatarUrl = computed(() => this.facade.currentXpert()?.avatar?.url ?? '')
+  readonly avatarFallback = computed(() => buildAvatarFallback(this.headerTitle()))
+  readonly headerTitle = computed(() => {
+    return (
+      this.facade.currentXpertLabel() ||
+      this.#translate.instant(this.facade.definition.titleKey, {
+        Default: this.facade.definition.defaultTitle
+      })
+    )
+  })
+  readonly overviewDescription = computed(() => {
+    if (!this.facade.resolvedPreference()) {
+      return this.#translate.instant('PAC.Chat.ClawXpert.OverviewEmptyDesc', {
+        Default: 'Bind one published Xpert first. Once ready, this panel becomes the editable ClawXpert workspace.'
+      })
+    }
+
+    return (
+      this.facade.currentXpert()?.description ||
+      this.#translate.instant('PAC.Chat.ClawXpert.OverviewReadyDesc', {
+        Default: 'Use the markdown workspace to maintain behavior rules and user profile context for this ClawXpert binding.'
+      })
+    )
+  })
+  readonly modelLabel = computed(() => buildModelLabel(this.facade.currentXpert(), this.facade.resolvedPreference()?.assistantId))
+  readonly metrics = computed<ClawXpertMetric[]>(() => [
+    {
+      labelKey: 'PAC.Chat.ClawXpert.BoundDays',
+      defaultLabel: 'Companion days',
+      value: this.facade.boundDays()
+    },
+    {
+      labelKey: 'PAC.Chat.ClawXpert.ConversationCount',
+      defaultLabel: 'Conversations',
+      value: this.facade.conversationCount()
+    },
+    {
+      labelKey: 'PAC.Chat.ClawXpert.TaskCount',
+      defaultLabel: 'Tasks',
+      value: this.facade.taskCount()
+    }
+  ])
+  readonly heatmap = computed<ClawXpertHeatmapModel>(() =>
+    buildHeatmapModel(this.facade.dailyMessageSeries(), this.#locale, this.#translate)
+  )
+  readonly heatmapLegend = HEATMAP_LEGEND_LEVELS.map((level) => buildHeatmapStyles(level, false))
+  readonly documentCards = computed<ClawXpertDocumentCard[]>(() => [
+    {
+      labelKey: 'PAC.Chat.ClawXpert.TabBehavior',
+      defaultLabel: 'Behavior Guidelines',
+      descriptionKey: 'PAC.Chat.ClawXpert.BehaviorEditorDesc',
+      defaultDescription: 'Edit the markdown file that defines the assistant behavior baseline for this binding.',
+      words: countWords(this.facade.userPreference()?.behaviorRulesMarkdown)
+    },
+    {
+      labelKey: 'PAC.Chat.ClawXpert.TabUserProfile',
+      defaultLabel: 'User Profile',
+      descriptionKey: 'PAC.Chat.ClawXpert.UserProfileEditorDesc',
+      defaultDescription: 'Capture stable user context in markdown so future sessions can start with better grounding.',
+      words: countWords(this.facade.userPreference()?.userProfileMarkdown)
+    }
+  ])
+
+  startConversation() {
+    void this.facade.startConversation()
+  }
+
+  openWizard() {
+    this.facade.openWizard()
+  }
+
+  async clearPreference() {
+    await this.facade.clearPreference()
+  }
+}
+
+function buildAvatarFallback(label: string) {
+  const parts = label
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+
+  return (parts.map((part) => part[0]?.toUpperCase() ?? '').join('') || 'CX').slice(0, 2)
+}
+
+function buildModelLabel(xpert: IXpert | null, assistantId?: string | null) {
+  if (xpert?.version) {
+    return `v${xpert.version}`
+  }
+
+  return xpert?.slug || assistantId || 'ClawXpert'
+}
+
+function countWords(value?: string | null) {
+  const content = value?.trim()
+  if (!content) {
+    return 0
+  }
+
+  return content.split(/\s+/).length
+}
+
+function buildHeatmapModel(
+  series: Array<{ date: string; count: number }>,
+  locale: string,
+  translate: TranslateService
+): ClawXpertHeatmapModel {
+  const today = startOfDay(new Date())
+  const currentWeekStart = startOfWeek(today)
+  const firstWeekStart = addDays(currentWeekStart, -((HEATMAP_WEEK_COUNT - 1) * HEATMAP_DAYS_PER_WEEK))
+  const counts = new Map<string, number>()
+
+  for (const item of series ?? []) {
+    if (!item?.date) {
+      continue
+    }
+
+    counts.set(item.date, Number(item.count ?? 0))
+  }
+
+  const totalMessages = Array.from(counts.values()).reduce((sum, count) => sum + count, 0)
+  const activeDays = Array.from(counts.values()).filter((count) => count > 0).length
+  const maxCount = Math.max(0, ...counts.values())
+  const monthFormatter = new Intl.DateTimeFormat(locale, { month: 'short' })
+  const dayFormatter = new Intl.DateTimeFormat(locale, { weekday: 'short' })
+  const dateFormatter = new Intl.DateTimeFormat(locale, { month: 'short', day: 'numeric', year: 'numeric' })
+  const dayLabels = Array.from({ length: HEATMAP_DAYS_PER_WEEK }, (_, dayIndex) => {
+    if (!HEATMAP_DAY_LABEL_INDEXES.has(dayIndex)) {
+      return ''
+    }
+
+    return dayFormatter.format(addDays(currentWeekStart, dayIndex))
+  })
+
+  const weeks = Array.from({ length: HEATMAP_WEEK_COUNT }, (_, weekIndex) => {
+    const weekStart = addDays(firstWeekStart, weekIndex * HEATMAP_DAYS_PER_WEEK)
+    const labelDate = getMonthLabelDate(weekStart, weekIndex === 0)
+
+    return {
+      key: formatDateKey(weekStart),
+      monthLabel: labelDate ? monthFormatter.format(labelDate) : '',
+      cells: Array.from({ length: HEATMAP_DAYS_PER_WEEK }, (_, dayIndex) => {
+        const date = addDays(weekStart, dayIndex)
+        const dateKey = formatDateKey(date)
+        const count = counts.get(dateKey) ?? 0
+        const isFuture = date.getTime() > today.getTime()
+        const title = buildHeatmapCellTitle(date, count, isFuture, dateFormatter, translate)
+        const styles = buildHeatmapStyles(maxCount > 0 ? count / maxCount : 0, isFuture)
+
+        return {
+          key: `${dateKey}-${dayIndex}`,
+          count,
+          title,
+          isFuture,
+          background: styles.background,
+          borderColor: styles.borderColor
+        }
+      })
+    }
+  })
+
+  return {
+    weeks,
+    dayLabels,
+    totalMessages,
+    activeDays
+  }
+}
+
+function buildHeatmapCellTitle(
+  date: Date,
+  count: number,
+  isFuture: boolean,
+  formatter: Intl.DateTimeFormat,
+  translate: TranslateService
+) {
+  const formattedDate = formatter.format(date)
+
+  if (isFuture) {
+    return translate.instant('PAC.Chat.ClawXpert.HeatmapCellFuture', {
+      date: formattedDate,
+      Default: `${formattedDate}: upcoming`
+    })
+  }
+
+  if (count > 0) {
+    return translate.instant('PAC.Chat.ClawXpert.HeatmapCellTitle', {
+      date: formattedDate,
+      count,
+      Default: `${formattedDate}: ${count} messages`
+    })
+  }
+
+  return translate.instant('PAC.Chat.ClawXpert.HeatmapCellEmpty', {
+    date: formattedDate,
+    Default: `${formattedDate}: 0 messages`
+  })
+}
+
+function buildHeatmapStyles(level: number, isFuture: boolean) {
+  if (isFuture) {
+    return {
+      background: 'color-mix(in srgb, var(--color-components-toggle-bg-unchecked) 32%, transparent)',
+      borderColor: 'color-mix(in srgb, var(--color-components-toggle-bg-unchecked) 48%, transparent)'
+    }
+  }
+
+  if (level <= 0) {
+    return {
+      background: 'color-mix(in srgb, var(--color-components-toggle-bg) 10%, transparent)',
+      borderColor: 'color-mix(in srgb, var(--color-divider-regular) 75%, transparent)'
+    }
+  }
+
+  const fillWeight = Math.round(24 + level * 76)
+  const borderWeight = Math.round(38 + level * 62)
+
+  return {
+    background: `color-mix(in srgb, var(--color-state-success-solid) ${fillWeight}%, var(--color-components-toggle-bg))`,
+    borderColor: `color-mix(in srgb, var(--color-state-success-solid) ${borderWeight}%, var(--color-divider-regular))`
+  }
+}
+
+function normalizeLocale(value?: string | null) {
+  return value || 'en'
+}
+
+function startOfDay(date: Date) {
+  const next = new Date(date)
+  next.setHours(0, 0, 0, 0)
+  return next
+}
+
+function startOfWeek(date: Date) {
+  const next = startOfDay(date)
+  next.setDate(next.getDate() - next.getDay())
+  return next
+}
+
+function addDays(date: Date, days: number) {
+  const next = new Date(date)
+  next.setDate(next.getDate() + days)
+  return next
+}
+
+function getMonthLabelDate(weekStart: Date, includeWeekStart: boolean) {
+  if (includeWeekStart) {
+    return weekStart
+  }
+
+  for (let dayIndex = 0; dayIndex < HEATMAP_DAYS_PER_WEEK; dayIndex++) {
+    const date = addDays(weekStart, dayIndex)
+    if (date.getDate() === 1) {
+      return date
+    }
+  }
+
+  return null
+}
+
+function formatDateKey(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}

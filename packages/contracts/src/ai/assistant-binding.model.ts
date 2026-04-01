@@ -29,6 +29,16 @@ export interface IAssistantBinding extends IBasePerTenantAndOrganizationEntityMo
   enabled?: boolean | null
   userId?: string | null
   user?: IUser
+  preferences?: IAssistantBindingUserPreference[]
+}
+
+export interface IAssistantBindingUserPreference extends IBasePerTenantAndOrganizationEntityModel {
+  assistantBindingId: string
+  assistantBinding?: IAssistantBinding
+  userId?: string | null
+  user?: IUser
+  behaviorRulesMarkdown?: string | null
+  userProfileMarkdown?: string | null
 }
 
 export interface IResolvedAssistantBinding extends IAssistantBinding {
@@ -40,6 +50,12 @@ export interface IAssistantBindingUpsertInput {
   scope: AssistantBindingScope
   assistantId?: string | null
   enabled?: boolean
+}
+
+export interface IAssistantBindingUserPreferenceUpsertInput {
+  scope: AssistantBindingScope
+  behaviorRulesMarkdown?: string | null
+  userProfileMarkdown?: string | null
 }
 
 const USER_MANAGED_ASSISTANTS = new Set<AssistantCode>([AssistantCode.CLAWXPERT])

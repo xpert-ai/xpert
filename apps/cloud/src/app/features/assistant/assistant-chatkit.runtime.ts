@@ -42,6 +42,7 @@ type AssistantRuntimeInput = {
   titleKey: string
   titleDefault: string
   onEffect?: NonNullable<ChatKitEventHandlers['onEffect']>
+  onThreadChange?: NonNullable<ChatKitEventHandlers['onThreadChange']>
 }
 
 type AssistantHostedRuntimeInput = {
@@ -54,6 +55,7 @@ type AssistantHostedRuntimeInput = {
   titleKey: string
   titleDefault: string
   onEffect?: NonNullable<ChatKitEventHandlers['onEffect']>
+  onThreadChange?: NonNullable<ChatKitEventHandlers['onThreadChange']>
 }
 
 export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
@@ -152,7 +154,8 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
     initialThread: input.initialThread,
     titleKey: input.titleKey,
     titleDefault: input.titleDefault,
-    onEffect: input.onEffect
+    onEffect: input.onEffect,
+    onThreadChange: input.onThreadChange
   })
 
   return {
@@ -231,6 +234,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
         context: requestContext ?? {}
       },
       onEffect: input.onEffect,
+      onThreadChange: input.onThreadChange,
       onError: (event: { error?: { message?: string } }) => {
         toastr.error(event?.error?.message || translate.instant('PAC.KEY_WORDS.Error', { Default: 'Error' }))
       }

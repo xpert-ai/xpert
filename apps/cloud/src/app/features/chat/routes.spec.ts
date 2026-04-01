@@ -27,6 +27,14 @@ jest.mock('./clawxpert/clawxpert.component', () => ({
   ClawXpertComponent: class ClawXpertComponent {}
 }))
 
+jest.mock('./clawxpert/clawxpert-overview.component', () => ({
+  ClawXpertOverviewComponent: class ClawXpertOverviewComponent {}
+}))
+
+jest.mock('./clawxpert/clawxpert-conversation-detail.component', () => ({
+  ClawXpertConversationDetailComponent: class ClawXpertConversationDetailComponent {}
+}))
+
 jest.mock('./tasks/tasks.component', () => ({
   ChatTasksComponent: class ChatTasksComponent {}
 }))
@@ -54,7 +62,9 @@ jest.mock('./home/home.component', () => ({
 import { ChatCommonAssistantComponent } from './common/common.component'
 import { routes } from './routes'
 import { ChatXpertComponent } from './xpert/xpert.component'
+import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
+import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
 
 describe('chat routes', () => {
   const children = routes[0].children ?? []
@@ -81,5 +91,9 @@ describe('chat routes', () => {
     const route = children.find((item) => item.path === 'clawxpert')
 
     expect(route?.component).toBe(ClawXpertComponent)
+    expect(route?.children?.find((item) => item.path === '')?.component).toBe(ClawXpertOverviewComponent)
+    expect(route?.children?.find((item) => item.path === 'c/:threadId')?.component).toBe(
+      ClawXpertConversationDetailComponent
+    )
   })
 })

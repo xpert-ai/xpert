@@ -13,6 +13,10 @@ jest.mock('apps/cloud/src/app/@core', () => {
       return of(null)
     }
 
+    getPreference(): any {
+      return of(null)
+    }
+
     getAvailableXperts(): any {
       return of([])
     }
@@ -28,6 +32,13 @@ jest.mock('apps/cloud/src/app/@core', () => {
 
     delete(): any {
       return of({})
+    }
+
+    upsertPreference(): any {
+      return of({
+        behaviorRulesMarkdown: '# Rules',
+        userProfileMarkdown: '# Profile'
+      })
     }
   }
 
@@ -51,6 +62,22 @@ jest.mock('apps/cloud/src/app/@core', () => {
     }
   }
 
+  class XpertAPIService {
+    getConversations(): any {
+      return of({ items: [], total: 0 })
+    }
+
+    getDailyMessages(): any {
+      return of([])
+    }
+  }
+
+  class XpertTaskService {
+    getMyAll(): any {
+      return of({ items: [], total: 0 })
+    }
+  }
+
   return {
     AssistantCode: {
       CHAT_COMMON: 'chat_common',
@@ -69,6 +96,11 @@ jest.mock('apps/cloud/src/app/@core', () => {
     AssistantBindingService,
     Store,
     ToastrService,
+    XpertAPIService,
+    XpertTaskService,
+    OrderTypeEnum: {
+      DESC: 'DESC'
+    },
     getErrorMessage: (error: any) => error?.message ?? ''
   }
 })
@@ -91,7 +123,7 @@ const runtimeState = jest.requireMock('../../assistant/assistant-chatkit.runtime
   control: ReturnType<typeof signal>
 }
 
-const { AssistantBindingScope, AssistantBindingService, Store, ToastrService } = jest.requireMock(
+const { AssistantBindingScope, AssistantBindingService, Store, ToastrService, XpertAPIService, XpertTaskService } = jest.requireMock(
   'apps/cloud/src/app/@core'
 ) as {
   AssistantBindingScope: {
@@ -100,14 +132,18 @@ const { AssistantBindingScope, AssistantBindingService, Store, ToastrService } =
   AssistantBindingService: new (...args: any[]) => unknown
   Store: new (...args: any[]) => unknown
   ToastrService: new (...args: any[]) => unknown
+  XpertAPIService: new (...args: any[]) => unknown
+  XpertTaskService: new (...args: any[]) => unknown
 }
 
 describe('ClawXpertComponent', () => {
   let assistantBindingService: {
     get: jest.Mock
+    getPreference: jest.Mock
     getAvailableXperts: jest.Mock
     upsert: jest.Mock
     delete: jest.Mock
+    upsertPreference: jest.Mock
   }
   let store: {
     organizationId: string | null
@@ -119,12 +155,20 @@ describe('ClawXpertComponent', () => {
     success: jest.Mock
     error: jest.Mock
   }
+  let xpertService: {
+    getConversations: jest.Mock
+    getDailyMessages: jest.Mock
+  }
+  let taskService: {
+    getMyAll: jest.Mock
+  }
 
   beforeEach(() => {
     runtimeState.control.set(null)
 
     assistantBindingService = {
       get: jest.fn(() => of(null)),
+      getPreference: jest.fn(() => of(null)),
       getAvailableXperts: jest.fn(() =>
         of([
           {
@@ -143,7 +187,13 @@ describe('ClawXpertComponent', () => {
           userId: 'user-1'
         })
       ),
-      delete: jest.fn(() => of({}))
+      delete: jest.fn(() => of({})),
+      upsertPreference: jest.fn(() =>
+        of({
+          behaviorRulesMarkdown: '# Rules',
+          userProfileMarkdown: '# Profile'
+        })
+      )
     }
     store = {
       organizationId: 'org-1',
@@ -154,6 +204,13 @@ describe('ClawXpertComponent', () => {
     toastr = {
       success: jest.fn(),
       error: jest.fn()
+    }
+    xpertService = {
+      getConversations: jest.fn(() => of({ items: [], total: 0 })),
+      getDailyMessages: jest.fn(() => of([]))
+    }
+    taskService = {
+      getMyAll: jest.fn(() => of({ items: [], total: 0 }))
     }
 
     TestBed.resetTestingModule()
@@ -172,6 +229,14 @@ describe('ClawXpertComponent', () => {
         {
           provide: ToastrService,
           useValue: toastr
+        },
+        {
+          provide: XpertAPIService,
+          useValue: xpertService
+        },
+        {
+          provide: XpertTaskService,
+          useValue: taskService
         }
       ]
     })
