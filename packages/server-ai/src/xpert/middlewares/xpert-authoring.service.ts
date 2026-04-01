@@ -59,11 +59,13 @@ export class XpertAuthoringService {
     }
 
     const xpert = await this.loadXpertById(context.targetXpertId)
+    const currentDraft = this.getEditableDraft(xpert)
 
     return {
       xpertId: xpert.id,
       dslYaml: await this.exportDraftDslYaml(xpert.id),
-      summary: `Loaded "${xpert.title || xpert.name || 'current Xpert'}" as YAML DSL.`
+      summary: `Loaded "${xpert.title || xpert.name || 'current Xpert'}" as YAML DSL.`,
+      committedDraftHash: this.calculateDraftHash(currentDraft)
     }
   }
 
@@ -253,41 +255,13 @@ export class XpertAuthoringService {
   ): Promise<AssistantDraftMutationResult> {
     const toolName: AuthoringToolName = 'editXpert'
 
-    if (context.unsaved) {
-      this.throwConflict(
-        toolName,
-        'unsaved-local',
-        'Studio has unsaved local changes. Save or discard them before using assistant edits.',
-        {
-          requiresRefresh: false,
-          committedDraftHash: null
-        }
-      )
-    }
-
     if (!context.targetXpertId) {
       return this.buildRejectedResult(toolName, 'Missing xpertId for Studio draft mutation.')
-    }
-
-    if (!context.baseDraftHash) {
-      return this.buildRejectedResult(toolName, 'Missing baseDraftHash for Studio draft mutation.')
     }
 
     const xpert = await this.loadXpertById(context.targetXpertId)
     const currentDraft = this.getEditableDraft(xpert)
     const currentDraftHash = this.calculateDraftHash(currentDraft)
-
-    if (context.baseDraftHash !== currentDraftHash) {
-      this.throwConflict(
-        toolName,
-        'stale-server',
-        'Studio draft changed on the server. Refresh before trying again.',
-        {
-          requiresRefresh: true,
-          committedDraftHash: currentDraftHash
-        }
-      )
-    }
 
     const trimmedDslYaml = payload?.dslYaml?.trim()
     if (!trimmedDslYaml) {

@@ -102,8 +102,10 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
   private createGetCurrentXpertTool() {
     return tool(
       async (_input, config) => {
-        const context = this.resolveContext(this.readContext(config), this.readState())
-        return this.authoringService.getCurrentXpertFromContext(context)
+        const runtimeState = this.readState()
+        const context = this.resolveContext(this.readContext(config), runtimeState)
+        const result = await this.authoringService.getCurrentXpertFromContext(context)
+        return this.withCurrentXpertStateUpdate(result, runtimeState, config)
       },
       {
         name: 'getCurrentXpert',
@@ -341,7 +343,7 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
       typeof context['baseDraftHash'] === 'string' && context['baseDraftHash'].trim()
         ? (context['baseDraftHash'] as string).trim()
         : null
-    const resolvedBaseDraftHash = explicitBaseDraftHash ?? stateBaseDraftHash
+    const resolvedBaseDraftHash = stateBaseDraftHash ?? explicitBaseDraftHash
     if (resolvedBaseDraftHash) {
       context['baseDraftHash'] = resolvedBaseDraftHash
     } else {
@@ -349,6 +351,40 @@ export class XpertAuthoringMiddleware implements IAgentMiddlewareStrategy {
     }
 
     return context
+  }
+
+  private withCurrentXpertStateUpdate(
+    result: {
+      xpertId: string | null
+      committedDraftHash?: string | null
+    },
+    runtimeState: AuthoringAssistantState | null,
+    config: unknown
+  ) {
+    const toolCallId = this.readToolCallId(config)
+    const xpertId = typeof result.xpertId === 'string' && result.xpertId.trim() ? result.xpertId : null
+    const baseDraftHash =
+      typeof result.committedDraftHash === 'string' && result.committedDraftHash.trim()
+        ? result.committedDraftHash
+        : null
+
+    if (runtimeState === null || !toolCallId || (!xpertId && !baseDraftHash)) {
+      return result
+    }
+
+    return new Command({
+      update: {
+        ...(xpertId ? { xpertId } : {}),
+        ...(baseDraftHash ? { baseDraftHash } : {}),
+        messages: [
+          new ToolMessage({
+            name: 'getCurrentXpert',
+            content: JSON.stringify(result),
+            tool_call_id: toolCallId
+          })
+        ]
+      }
+    })
   }
 
   private withAuthoringStateUpdate(
