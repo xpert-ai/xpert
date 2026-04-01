@@ -13,6 +13,7 @@ import {
   ToastrService
 } from '../../@core'
 import { AppService } from '../../app.service'
+import { normalizeAssistantFrameUrl } from './assistant-chatkit-frame-url'
 
 export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'disabled' | 'error'
 
@@ -115,7 +116,10 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
   const config = computed(() => requestState().config)
   const loading = computed(() => requestState().loading)
   const hasSource = computed(() => !!config()?.sourceScope && config()?.sourceScope !== AssistantBindingSourceScope.NONE)
-  const hasCompleteOptions = computed(() => !!config()?.assistantId && !!frameUrl())
+  const hasCompleteOptions = computed(() => {
+    const options = config()?.options
+    return !!(options?.assistantId && normalizeAssistantFrameUrl(options?.frameUrl))
+  })
   const isConfigured = computed(() => !!config() && !!hasSource() && config()?.enabled && hasCompleteOptions())
   const status = computed<AssistantRuntimeStatus>(() => {
     if (loading()) {

@@ -101,6 +101,16 @@
             "input": "packages/ui/src/i18n/",
             "output": "./assets/locales/xp-ui/"
           },
+          {
+            "glob": "index.html",
+            "input": "node_modules/@xpert-ai/chatkit-ui/dist/app",
+            "output": "./chatkit"
+          },
+          {
+            "glob": "**/*",
+            "input": "node_modules/@xpert-ai/chatkit-ui/dist/app/assets",
+            "output": "./assets"
+          },
           "apps/cloud/src/favicon.ico",
           "apps/cloud/src/assets",
           "apps/cloud/src/manifest.webmanifest"
