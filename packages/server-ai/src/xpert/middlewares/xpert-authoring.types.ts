@@ -38,6 +38,7 @@ export type CurrentXpertDslResult = {
   xpertId: string | null
   dslYaml: string | null
   summary: string
+  committedDraftHash?: string | null
 }
 
 export type AuthoringCatalogResult<T> = {

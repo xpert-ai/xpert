@@ -20,12 +20,10 @@ jest.mock('../../xpert-toolset/xpert-toolset.service', () => ({
   XpertToolsetService: class XpertToolsetService {}
 }))
 
-import { createHash } from 'crypto'
 import { RequestContext } from '@metad/server-core'
 import { XpertExportCommand, XpertImportCommand } from '../commands'
 import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
 import { XpertAuthoringService } from './xpert-authoring.service'
-import { AssistantDraftConflictError } from './xpert-authoring.types'
 
 describe('XpertAuthoringService', () => {
   const buildPersistedXpert = (overrides: Record<string, any> = {}) => ({
@@ -269,7 +267,29 @@ describe('XpertAuthoringService', () => {
   })
 
   it('returns the current xpert as yaml dsl', async () => {
-    const { service, commandBus } = createService()
+    const currentDraft = {
+      team: {
+        id: 'xpert-1',
+        name: 'Support Expert',
+        agent: {
+          key: 'Agent_full'
+        }
+      },
+      nodes: [],
+      connections: []
+    }
+    const { service, commandBus } = createService({
+      xpertService: {
+        repository: {
+          findOne: jest.fn().mockResolvedValue(
+            buildPersistedXpert({
+              id: 'xpert-1',
+              draft: currentDraft
+            })
+          )
+        }
+      }
+    })
 
     const result = await service.getCurrentXpertFromContext({
       targetXpertId: 'xpert-1'
@@ -279,7 +299,8 @@ describe('XpertAuthoringService', () => {
     expect(result).toEqual(
       expect.objectContaining({
         xpertId: 'xpert-1',
-        dslYaml: expect.stringContaining('Support Expert')
+        dslYaml: expect.stringContaining('Support Expert'),
+        committedDraftHash: (service as any).calculateDraftHash(currentDraft)
       })
     )
   })
@@ -528,32 +549,65 @@ describe('XpertAuthoringService', () => {
     expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(XpertImportCommand))
   })
 
-  it('throws unsaved-local conflict before loading the draft', async () => {
-    const { service, xpertService } = createService()
-
-    await expect(
-      service.editXpertFromContext(
-        {
-          targetXpertId: 'xpert-5',
-          baseDraftHash: 'hash-1',
-          unsaved: true
-        },
-        {
-          dslYaml: 'team:\n  name: Support Expert'
+  it('allows editXpert to proceed when studio has unsaved local changes', async () => {
+    const currentDraft = {
+      team: {
+        id: 'xpert-5',
+        name: 'Support Expert',
+        agent: {
+          key: 'Agent_1'
         }
-      )
-    ).rejects.toMatchObject({
-      name: 'AssistantDraftConflictError',
-      toolName: 'editXpert',
-      conflictType: 'unsaved-local',
-      requiresRefresh: false,
-      committedDraftHash: null,
-      message: 'Studio has unsaved local changes. Save or discard them before using assistant edits.'
-    } satisfies Partial<AssistantDraftConflictError>)
-    expect(xpertService.repository.findOne).not.toHaveBeenCalled()
+      },
+      nodes: [],
+      connections: []
+    }
+    const { service, commandBus, xpertService } = createService({
+      xpertService: {
+        repository: {
+          findOne: jest.fn().mockResolvedValue(
+            buildPersistedXpert({
+              id: 'xpert-5',
+              draft: currentDraft
+            })
+          )
+        }
+      }
+    })
+
+    const result = await service.editXpertFromContext(
+      {
+        targetXpertId: 'xpert-5',
+        baseDraftHash: (service as any).calculateDraftHash(currentDraft),
+        unsaved: true
+      },
+      {
+        dslYaml: `team:
+  name: Updated Expert
+  type: agent
+  agent:
+    key: Agent_1
+nodes: []
+connections: []`
+      }
+    )
+
+    expect(xpertService.repository.findOne).toHaveBeenCalled()
+    expect(commandBus.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: {
+          targetXpertId: 'xpert-5'
+        }
+      })
+    )
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'applied',
+        toolName: 'editXpert'
+      })
+    )
   })
 
-  it('throws stale-server conflict when the draft hash changes', async () => {
+  it('allows editXpert to proceed when baseDraftHash is stale', async () => {
     const currentDraft = {
       team: {
         id: 'xpert-6',
@@ -576,27 +630,77 @@ describe('XpertAuthoringService', () => {
         }
       }
     })
-    const expectedHash = createHash('sha256').update(JSON.stringify(currentDraft)).digest('hex')
+    const result = await service.editXpertFromContext(
+      {
+        targetXpertId: 'xpert-6',
+        baseDraftHash: 'stale-hash'
+      },
+      {
+        dslYaml: 'team:\n  name: Support Expert'
+      }
+    )
 
-    await expect(
-      service.editXpertFromContext(
-        {
-          targetXpertId: 'xpert-6',
-          baseDraftHash: 'stale-hash'
-        },
-        {
-          dslYaml: 'team:\n  name: Support Expert'
+    expect(commandBus.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: {
+          targetXpertId: 'xpert-6'
         }
-      )
-    ).rejects.toMatchObject({
-      name: 'AssistantDraftConflictError',
-      toolName: 'editXpert',
-      conflictType: 'stale-server',
-      requiresRefresh: true,
-      committedDraftHash: expectedHash,
-      message: 'Studio draft changed on the server. Refresh before trying again.'
-    } satisfies Partial<AssistantDraftConflictError>)
-    expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(XpertImportCommand))
+      })
+    )
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'applied',
+        toolName: 'editXpert'
+      })
+    )
+  })
+
+  it('allows editXpert to proceed when baseDraftHash is missing', async () => {
+    const currentDraft = {
+      team: {
+        id: 'xpert-6b',
+        agent: {
+          key: 'Agent_1'
+        }
+      },
+      nodes: [],
+      connections: []
+    }
+    const { service, commandBus } = createService({
+      xpertService: {
+        repository: {
+          findOne: jest.fn().mockResolvedValue(
+            buildPersistedXpert({
+              id: 'xpert-6b',
+              draft: currentDraft
+            })
+          )
+        }
+      }
+    })
+
+    const result = await service.editXpertFromContext(
+      {
+        targetXpertId: 'xpert-6b'
+      },
+      {
+        dslYaml: 'team:\n  name: Support Expert'
+      }
+    )
+
+    expect(commandBus.execute).toHaveBeenCalledWith(
+      expect.objectContaining({
+        options: {
+          targetXpertId: 'xpert-6b'
+        }
+      })
+    )
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'applied',
+        toolName: 'editXpert'
+      })
+    )
   })
 
   it('imports yaml dsl into the current xpert and returns normalized yaml', async () => {
