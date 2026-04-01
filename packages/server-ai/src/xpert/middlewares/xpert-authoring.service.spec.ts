@@ -25,6 +25,7 @@ import { RequestContext } from '@metad/server-core'
 import { XpertExportCommand, XpertImportCommand } from '../commands'
 import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
 import { XpertAuthoringService } from './xpert-authoring.service'
+import { AssistantDraftConflictError } from './xpert-authoring.types'
 
 describe('XpertAuthoringService', () => {
   const buildPersistedXpert = (overrides: Record<string, any> = {}) => ({
@@ -527,31 +528,32 @@ describe('XpertAuthoringService', () => {
     expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(XpertImportCommand))
   })
 
-  it('returns unsaved-local conflict before loading the draft', async () => {
+  it('throws unsaved-local conflict before loading the draft', async () => {
     const { service, xpertService } = createService()
 
-    const result = await service.editXpertFromContext(
-      {
-        targetXpertId: 'xpert-5',
-        baseDraftHash: 'hash-1',
-        unsaved: true
-      },
-      {
-        dslYaml: 'team:\n  name: Support Expert'
-      }
-    )
-
-    expect(result).toEqual(
-      expect.objectContaining({
-        status: 'conflict',
-        toolName: 'editXpert',
-        conflictType: 'unsaved-local'
-      })
-    )
+    await expect(
+      service.editXpertFromContext(
+        {
+          targetXpertId: 'xpert-5',
+          baseDraftHash: 'hash-1',
+          unsaved: true
+        },
+        {
+          dslYaml: 'team:\n  name: Support Expert'
+        }
+      )
+    ).rejects.toMatchObject({
+      name: 'AssistantDraftConflictError',
+      toolName: 'editXpert',
+      conflictType: 'unsaved-local',
+      requiresRefresh: false,
+      committedDraftHash: null,
+      message: 'Studio has unsaved local changes. Save or discard them before using assistant edits.'
+    } satisfies Partial<AssistantDraftConflictError>)
     expect(xpertService.repository.findOne).not.toHaveBeenCalled()
   })
 
-  it('returns stale-server conflict when the draft hash changes', async () => {
+  it('throws stale-server conflict when the draft hash changes', async () => {
     const currentDraft = {
       team: {
         id: 'xpert-6',
@@ -576,24 +578,24 @@ describe('XpertAuthoringService', () => {
     })
     const expectedHash = createHash('sha256').update(JSON.stringify(currentDraft)).digest('hex')
 
-    const result = await service.editXpertFromContext(
-      {
-        targetXpertId: 'xpert-6',
-        baseDraftHash: 'stale-hash'
-      },
-      {
-        dslYaml: 'team:\n  name: Support Expert'
-      }
-    )
-
-    expect(result).toEqual(
-      expect.objectContaining({
-        status: 'conflict',
-        toolName: 'editXpert',
-        conflictType: 'stale-server',
-        committedDraftHash: expectedHash
-      })
-    )
+    await expect(
+      service.editXpertFromContext(
+        {
+          targetXpertId: 'xpert-6',
+          baseDraftHash: 'stale-hash'
+        },
+        {
+          dslYaml: 'team:\n  name: Support Expert'
+        }
+      )
+    ).rejects.toMatchObject({
+      name: 'AssistantDraftConflictError',
+      toolName: 'editXpert',
+      conflictType: 'stale-server',
+      requiresRefresh: true,
+      committedDraftHash: expectedHash,
+      message: 'Studio draft changed on the server. Refresh before trying again.'
+    } satisfies Partial<AssistantDraftConflictError>)
     expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(XpertImportCommand))
   })
 

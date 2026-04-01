@@ -176,6 +176,7 @@ export class PublishedXpertAccessService {
 
     async getAccessiblePublishedXpert(id: string, options?: Omit<FindOneOptions<Xpert>, 'where'>) {
         const tenantId = this.currentTenantId()
+        const userId = this.currentUserId()
         const xpert = await this.repository.findOne({
             ...(options ?? {}),
             where: {
@@ -188,6 +189,10 @@ export class PublishedXpertAccessService {
 
         if (!xpert) {
             throw new NotFoundException('The requested record was not found')
+        }
+
+        if (!xpert.organizationId && xpert.createdById === userId) {
+            return xpert
         }
 
         const organizationId = this.currentOrganizationId()
@@ -207,7 +212,7 @@ export class PublishedXpertAccessService {
                 }
             )
             .innerJoin('userGroup.members', 'member', 'member.id = :userId', {
-                userId: this.currentUserId()
+                userId
             })
             .where('xpert.id = :id', { id })
             .andWhere('xpert.publishAt IS NOT NULL')
