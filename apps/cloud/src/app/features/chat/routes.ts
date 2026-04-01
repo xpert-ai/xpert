@@ -9,12 +9,30 @@ import { ChatProjectHomeComponent } from './project/home/home.component'
 import { ChatProjectConversationComponent } from './project/conversation/conversation.component'
 import { ChatProjectComponent } from './project/project.component'
 import { ChatBiComponent } from './chatbi/chatbi.component'
+import { ChatCommonAssistantComponent } from './common/common.component'
 
 export const routes: Routes = [
   {
     path: '',
     component: ChatHomeComponent,
     children: [
+      {
+        path: '',
+        redirectTo: 'x/common',
+        pathMatch: 'full'
+      },
+      {
+        path: 'x/common/c/:id',
+        redirectTo: '/chat/x/common',
+        pathMatch: 'full'
+      },
+      {
+        path: 'x/common',
+        component: ChatCommonAssistantComponent,
+        data: {
+          title: 'Common Assistant',
+        }
+      },
       {
         path: 'x/:name',
         component: ChatXpertComponent,

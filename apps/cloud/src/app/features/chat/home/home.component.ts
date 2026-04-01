@@ -15,7 +15,7 @@ import {
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { ActivatedRoute, Router, RouterModule, RouterOutlet } from '@angular/router'
+import { ActivatedRoute, NavigationEnd, Router, RouterModule, RouterOutlet } from '@angular/router'
 import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { groupConversations } from '@cloud/app/xpert/types'
 import {
@@ -33,7 +33,7 @@ import { DisplayBehaviour } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'
-import { map, startWith } from 'rxjs/operators'
+import { filter, map, startWith } from 'rxjs/operators'
 import {
   AiFeatureEnum,
   ChatConversationService,
@@ -112,6 +112,19 @@ export class ChatHomeComponent {
   readonly conversationId = this.homeService.conversationId
 
   readonly xpert = this.homeService.xpert
+  readonly currentUrl = toSignal(
+    this.#router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      startWith(null),
+      map(() => normalizeChatRoute(this.#router.url))
+    ),
+    { initialValue: normalizeChatRoute(this.#router.url) }
+  )
+  readonly isCommonAssistantRoute = computed(() => {
+    const url = this.currentUrl()
+    return url === '/chat' || url === '/chat/x/common' || url.startsWith('/chat/x/common/')
+  })
+  readonly showLegacyHistory = computed(() => !this.isCommonAssistantRoute())
 
   readonly chatSidebar = attrModel(this.#preferences, 'chatSidebar')
   readonly featureOrganizations = toSignal(this.#store.featureOrganizations$.pipe(startWith([])))
@@ -238,6 +251,22 @@ export class ChatHomeComponent {
 
   constructor() {
     effect(() => {
+      if (!this.isCommonAssistantRoute()) {
+        return
+      }
+
+      this.currentPage.set({ type: 'conversation' })
+
+      if (this.homeService.conversationId()) {
+        this.homeService.conversationId.set(null)
+      }
+
+      if (this.homeService.conversation()) {
+        this.homeService.conversation.set(null)
+      }
+    })
+
+    effect(() => {
       const conversation = this.homeService.conversation()
       if (!conversation?.id || conversation.projectId || !['platform', 'job'].includes(conversation.from)) {
         return
@@ -300,6 +329,10 @@ export class ChatHomeComponent {
   }
 
   openConversations() {
+    if (!this.showLegacyHistory()) {
+      return
+    }
+
     this.#dialog
       .open(ChatConversationsComponent, {
         viewContainerRef: this.#vcr,
@@ -408,9 +441,18 @@ export class ChatHomeComponent {
 
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
-    if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'k' && this.showLegacyHistory()) {
       event.preventDefault() // Prevent the default action
       this.openConversations() // Execute the openConversations method
     }
   }
+}
+
+function normalizeChatRoute(url: string) {
+  const [pathname] = (url || '/chat').split('?')
+  if (!pathname || pathname === '/') {
+    return '/chat'
+  }
+
+  return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname
 }

@@ -13,6 +13,16 @@ export type AssistantRegistryItem = {
 
 export const ASSISTANT_REGISTRY: AssistantRegistryItem[] = [
   {
+    code: AssistantCode.CHAT_COMMON,
+    featureKeys: [AiFeatureEnum.FEATURE_XPERT],
+    labelKey: 'PAC.Assistant.ChatCommon.Label',
+    defaultLabel: 'Common Assistant',
+    titleKey: 'PAC.Chat.Common',
+    defaultTitle: 'Common',
+    descriptionKey: 'PAC.Assistant.ChatCommon.Description',
+    defaultDescription: 'Embedded assistant used by the common chat page.'
+  },
+  {
     code: AssistantCode.XPERT_SHARED,
     featureKeys: [AiFeatureEnum.FEATURE_XPERT],
     labelKey: 'PAC.Assistant.XpertShared.Label',

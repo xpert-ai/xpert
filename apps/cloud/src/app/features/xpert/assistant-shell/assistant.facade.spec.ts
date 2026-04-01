@@ -5,9 +5,14 @@ import { AppService } from 'apps/cloud/src/app/app.service'
 import { of, Subject } from 'rxjs'
 import { XpertAssistantFacade } from './assistant.facade'
 
+jest.mock('apps/cloud/src/app/app.service', () => ({
+  AppService: class AppService {}
+}))
+
 jest.mock('apps/cloud/src/app/@core', () => {
   return {
     AssistantCode: {
+      CHAT_COMMON: 'chat_common',
       XPERT_SHARED: 'xpert_shared',
       CHATBI: 'chatbi'
     },
@@ -46,6 +51,7 @@ const { AssistantCode, AssistantConfigSourceScope, XpertAPIService } = jest.requ
   'apps/cloud/src/app/@core'
 ) as {
   AssistantCode: {
+    CHAT_COMMON: string
     XPERT_SHARED: string
     CHATBI: string
   }

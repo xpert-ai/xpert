@@ -36,6 +36,8 @@ type AssistantHostedChatKitOptions = Omit<AssistantChatKitOptions, 'api'> & {
 type AssistantRuntimeInput = {
   assistantCode: Signal<AssistantCode | null>
   requestContext?: Signal<Record<string, unknown> | null>
+  history?: AssistantHostedChatKitOptions['history']
+  initialThread?: Signal<string | null>
   titleKey: string
   titleDefault: string
   onEffect?: NonNullable<ChatKitEventHandlers['onEffect']>
@@ -160,6 +162,7 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
     const currentLocale = locale()
     const currentToken = authToken() ?? ''
     const currentOrganizationId = organizationId()
+    const initialThread = input.initialThread?.() ?? null
     const requestContext = input.requestContext?.() ?? null
 
     if (!key || !currentConfig?.options) {
@@ -177,11 +180,13 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
       },
       locale: currentLocale,
       theme: currentTheme,
+      initialThread,
       header: {
         title: {
           text: translate.instant(input.titleKey, { Default: input.titleDefault })
         }
       },
+      history: input.history,
       request: {
         context: requestContext ?? {}
       },

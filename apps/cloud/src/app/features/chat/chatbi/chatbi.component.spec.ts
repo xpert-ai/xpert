@@ -6,6 +6,7 @@ import { ChatBiComponent } from './chatbi.component'
 jest.mock('apps/cloud/src/app/@core', () => {
   return {
     AssistantCode: {
+      CHAT_COMMON: 'chat_common',
       XPERT_SHARED: 'xpert_shared',
       CHATBI: 'chatbi'
     },

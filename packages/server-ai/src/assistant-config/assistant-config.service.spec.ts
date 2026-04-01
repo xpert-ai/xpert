@@ -2,6 +2,7 @@ import { ForbiddenException } from '@nestjs/common'
 
 jest.mock('@metad/contracts', () => ({
   AssistantCode: {
+    CHAT_COMMON: 'chat_common',
     XPERT_SHARED: 'xpert_shared',
     CHATBI: 'chatbi'
   },
@@ -147,10 +148,10 @@ describe('AssistantConfigService', () => {
   it('returns a disabled none-source config when nothing is saved', async () => {
     repository.findOne.mockResolvedValue(null)
 
-    const result = await service.getEffectiveConfig(AssistantCode.CHATBI)
+    const result = await service.getEffectiveConfig(AssistantCode.CHAT_COMMON)
 
     expect(result).toEqual({
-      code: AssistantCode.CHATBI,
+      code: AssistantCode.CHAT_COMMON,
       enabled: false,
       options: null,
       tenantId: 'tenant-1',

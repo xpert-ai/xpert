@@ -108,6 +108,7 @@ jest.mock('apps/cloud/src/app/@core', () => {
       FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI'
     },
     AssistantCode: {
+      CHAT_COMMON: 'chat_common',
       XPERT_SHARED: 'xpert_shared',
       CHATBI: 'chatbi'
     },
@@ -145,6 +146,7 @@ const {
   ToastrService
 } = jest.requireMock('apps/cloud/src/app/@core') as {
   AssistantCode: {
+    CHAT_COMMON: string
     XPERT_SHARED: string
     CHATBI: string
   }
@@ -279,6 +281,11 @@ describe('AssistantsSettingsComponent', () => {
     }
 
     TestBed.resetTestingModule()
+    TestBed.overrideComponent(AssistantsSettingsComponent, {
+      set: {
+        template: ''
+      }
+    })
     await TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), AssistantsSettingsComponent],
       providers: [
@@ -348,6 +355,8 @@ describe('AssistantsSettingsComponent', () => {
   it('uses tenant-only xperts for tenant defaults and tenant-plus-org xperts for organization overrides', async () => {
     const fixture = TestBed.createComponent(AssistantsSettingsComponent)
     await fixture.whenStable()
+    fixture.detectChanges()
+    await fixture.whenStable()
 
     const component = fixture.componentInstance
 
@@ -362,5 +371,9 @@ describe('AssistantsSettingsComponent', () => {
 
     expect(tenantOptions.map((option) => option.value)).toEqual(['tenant-assistant'])
     expect(organizationOptions.map((option) => option.value)).toEqual(['tenant-assistant', 'org-assistant'])
+  })
+
+  it('registers the common assistant in the settings registry', () => {
+    expect(ASSISTANT_REGISTRY.some((item) => item.code === AssistantCode.CHAT_COMMON)).toBe(true)
   })
 })

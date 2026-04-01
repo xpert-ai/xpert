@@ -1,6 +1,7 @@
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 
 export enum AssistantCode {
+  CHAT_COMMON = 'chat_common',
   XPERT_SHARED = 'xpert_shared',
   CHATBI = 'chatbi'
 }
