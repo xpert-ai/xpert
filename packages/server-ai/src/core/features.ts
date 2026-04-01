@@ -45,6 +45,15 @@ export const DEFAULT_FEATURES: Partial<IFeatureCreateInput>[] = [
 		status: 'accent',
 		children: [
 			{
+				name: 'ClawXpert',
+				code: AiFeatureEnum.FEATURE_XPERT_CLAWXPERT,
+				description: 'Show the ClawXpert entry in chat sidebar',
+				link: 'chat/clawxpert',
+				isEnabled: true,
+				icon: 'account-circle',
+				status: 'info'
+			},
+			{
 				name: 'ChatBI',
 				code: AiFeatureEnum.FEATURE_XPERT_CHATBI,
 				description: 'Show the ChatBI entry in chat sidebar',

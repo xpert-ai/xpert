@@ -7,7 +7,7 @@ import {
   ZardComboboxOptionTemplateDirective,
   ZardFormImports
 } from '@xpert-ai/headless-ui'
-import { AssistantCode, AssistantConfigScope } from '../../../@core'
+import { AssistantBindingScope, AssistantCode } from '../../../@core'
 import { AssistantsSettingsFacade } from './assistants.facade'
 
 @Component({
@@ -138,18 +138,25 @@ import { AssistantsSettingsFacade } from './assistants.facade'
                     </ng-template>
                   </z-combobox>
                 </label>
+              </div>
 
-                <label class="grid gap-2">
-                  <span class="text-sm text-text-secondary">
-                    {{ 'PAC.Assistant.FrameUrl' | translate: { Default: 'Frame URL' } }}
-                  </span>
-                  <input
-                    class="rounded-2xl border border-divider-regular bg-components-card-bg px-3 py-2 text-sm text-text-primary outline-none"
-                    formControlName="frameUrl"
-                    [readonly]="isTenantScope() && !facade.canManageTenant()"
-                    placeholder="https://app.xpertai.cn/chatkit"
-                  />
-                </label>
+              <div class="mt-4 rounded-2xl border border-dashed border-divider-regular bg-components-card-bg px-4 py-3">
+                <div class="text-xs uppercase tracking-[0.18em] text-text-tertiary">
+                  {{ 'PAC.Assistant.RuntimeFrameUrl' | translate: { Default: 'ChatKit Frame URL' } }}
+                </div>
+                <div class="mt-2 break-all font-mono text-xs text-text-primary">
+                  {{
+                    facade.chatkitFrameUrl ||
+                      ('PAC.Assistant.FrameUrlMissing' | translate: { Default: 'Deployment variable not configured' })
+                  }}
+                </div>
+                <div class="mt-3 text-xs text-text-secondary">
+                  {{
+                    'PAC.Assistant.RuntimeFrameUrlDesc'
+                      | translate
+                        : { Default: 'ChatKit frame is deployment-configured and shared by all assistant pages.' }
+                  }}
+                </div>
               </div>
 
               <div class="mt-4 rounded-2xl border border-dashed border-divider-regular bg-components-card-bg px-4 py-3">
@@ -229,7 +236,7 @@ import { AssistantsSettingsFacade } from './assistants.facade'
 })
 export class AssistantsScopeComponent {
   readonly facade = inject(AssistantsSettingsFacade)
-  readonly scope = input.required<AssistantConfigScope>()
+  readonly scope = input.required<AssistantBindingScope>()
 
   form(code: AssistantCode) {
     return this.isTenantScope() ? this.facade.tenantForm(code) : this.facade.organizationForm(code)
@@ -244,11 +251,11 @@ export class AssistantsScopeComponent {
   }
 
   isTenantScope() {
-    return this.scope() === AssistantConfigScope.TENANT
+    return this.scope() === AssistantBindingScope.TENANT
   }
 
   isOrganizationScope() {
-    return this.scope() === AssistantConfigScope.ORGANIZATION
+    return this.scope() === AssistantBindingScope.ORGANIZATION
   }
 
   savingKey(code: AssistantCode) {

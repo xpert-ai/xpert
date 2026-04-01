@@ -10,6 +10,7 @@ import { ChatProjectConversationComponent } from './project/conversation/convers
 import { ChatProjectComponent } from './project/project.component'
 import { ChatBiComponent } from './chatbi/chatbi.component'
 import { ChatCommonAssistantComponent } from './common/common.component'
+import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 
 export const routes: Routes = [
   {
@@ -52,6 +53,25 @@ export const routes: Routes = [
         component: ChatXpertComponent,
         data: {
           title: 'Chat Xpert Conversation',
+        }
+      },
+      {
+        path: 'clawxpert',
+        component: ClawXpertComponent,
+        canActivate: [
+          () => {
+            const store = inject(Store)
+            if (
+              store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) &&
+              store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_CLAWXPERT)
+            ) {
+              return true
+            }
+            return inject(Router).createUrlTree(['/chat'])
+          }
+        ],
+        data: {
+          title: 'ClawXpert',
         }
       },
       {

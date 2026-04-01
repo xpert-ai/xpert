@@ -33,7 +33,7 @@ import {
 	XpertProjectVCS,
 	XpertTable,
 	Environment,
-	AssistantConfig,
+	AssistantBinding,
 } from './internal'
 
 export const ALL_AI_ENTITIES = [
@@ -71,5 +71,5 @@ export const ALL_AI_ENTITIES = [
 	XpertProjectVCS,
 	XpertTable,
 	Environment,
-	AssistantConfig,
+	AssistantBinding,
 ]

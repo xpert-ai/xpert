@@ -81,7 +81,7 @@ export class XpertAssistantFacade {
       return null
     }
 
-    return this.runtime.config()?.options?.assistantId ?? null
+    return this.runtime.config()?.assistantId ?? null
   })
   readonly control = this.runtime.control
   readonly status = this.runtime.status

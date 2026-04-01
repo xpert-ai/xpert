@@ -141,6 +141,13 @@ export class ChatHomeComponent {
   private leaveTimer = null
   readonly allAgentLinks: TAgentLink[] = [
     {
+      key: 'clawxpert',
+      defaultLabel: 'ClawXpert',
+      featureKey: AiFeatureEnum.FEATURE_XPERT_CLAWXPERT,
+      iconClass: 'ri-user-star-line',
+      link: '/chat/clawxpert'
+    },
+    {
       key: 'chatbi',
       defaultLabel: 'ChatBI',
       featureKey: AiFeatureEnum.FEATURE_XPERT_CHATBI,

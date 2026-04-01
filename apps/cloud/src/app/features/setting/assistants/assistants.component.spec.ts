@@ -3,6 +3,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { ASSISTANT_REGISTRY } from '../../assistant/assistant.registry'
 import { AssistantsSettingsComponent } from './assistants.component'
+import { AssistantsSettingsFacade } from './assistants.facade'
 
 jest.mock('@xpert-ai/headless-ui', () => {
   const angularCore = jest.requireActual('@angular/core')
@@ -44,7 +45,7 @@ jest.mock('@xpert-ai/headless-ui', () => {
 jest.mock('apps/cloud/src/app/@core', () => {
   const { of } = jest.requireActual('rxjs')
 
-  class AssistantConfigService {
+  class AssistantBindingService {
     getByScope(): any {
       return of([])
     }
@@ -57,7 +58,7 @@ jest.mock('apps/cloud/src/app/@core', () => {
       return of({
         code: 'chatbi',
         enabled: false,
-        options: null,
+        assistantId: null,
         sourceScope: 'none'
       })
     }
@@ -105,18 +106,20 @@ jest.mock('apps/cloud/src/app/@core', () => {
   return {
     AiFeatureEnum: {
       FEATURE_XPERT: 'FEATURE_XPERT',
-      FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI'
+      FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI',
+      FEATURE_XPERT_CLAWXPERT: 'FEATURE_XPERT_CLAWXPERT'
     },
     AssistantCode: {
       CHAT_COMMON: 'chat_common',
       XPERT_SHARED: 'xpert_shared',
-      CHATBI: 'chatbi'
+      CHATBI: 'chatbi',
+      CLAWXPERT: 'clawxpert'
     },
-    AssistantConfigScope: {
+    AssistantBindingScope: {
       TENANT: 'tenant',
       ORGANIZATION: 'organization'
     },
-    AssistantConfigSourceScope: {
+    AssistantBindingSourceScope: {
       NONE: 'none',
       TENANT: 'tenant',
       ORGANIZATION: 'organization'
@@ -125,7 +128,7 @@ jest.mock('apps/cloud/src/app/@core', () => {
       TENANT: 'tenant',
       ORGANIZATION: 'organization'
     },
-    AssistantConfigService,
+    AssistantBindingService,
     RolesEnum: {
       SUPER_ADMIN: 'SUPER_ADMIN',
       ADMIN: 'ADMIN'
@@ -139,8 +142,8 @@ jest.mock('apps/cloud/src/app/@core', () => {
 
 const {
   AssistantCode,
-  AssistantConfigScope,
-  AssistantConfigService,
+  AssistantBindingScope,
+  AssistantBindingService,
   RolesEnum,
   Store,
   ToastrService
@@ -149,12 +152,13 @@ const {
     CHAT_COMMON: string
     XPERT_SHARED: string
     CHATBI: string
+    CLAWXPERT: string
   }
-  AssistantConfigScope: {
+  AssistantBindingScope: {
     TENANT: string
     ORGANIZATION: string
   }
-  AssistantConfigService: new (...args: any[]) => unknown
+  AssistantBindingService: new (...args: any[]) => unknown
   RolesEnum: {
     SUPER_ADMIN: string
     ADMIN: string
@@ -164,7 +168,7 @@ const {
 }
 
 describe('AssistantsSettingsComponent', () => {
-  let assistantConfigService: {
+  let assistantBindingService: {
     getByScope: jest.Mock
     getAvailableXperts: jest.Mock
     getEffective: jest.Mock
@@ -190,18 +194,16 @@ describe('AssistantsSettingsComponent', () => {
   }
 
   beforeEach(async () => {
-    assistantConfigService = {
+    assistantBindingService = {
       getByScope: jest.fn((scope: string) =>
         of(
-          scope === AssistantConfigScope.TENANT
+          scope === AssistantBindingScope.TENANT
             ? [
                 {
                   code: AssistantCode.XPERT_SHARED,
                   enabled: true,
-                  options: {
-                    assistantId: 'workspace-assistant',
-                    frameUrl: 'https://frame.example.com'
-                  },
+                  assistantId: 'workspace-assistant',
+                  scope,
                   tenantId: 'tenant-1',
                   organizationId: null
                 }
@@ -210,10 +212,8 @@ describe('AssistantsSettingsComponent', () => {
                 {
                   code: AssistantCode.CHATBI,
                   enabled: false,
-                  options: {
-                    assistantId: 'chatbi-assistant',
-                    frameUrl: 'https://frame.example.com'
-                  },
+                  assistantId: 'chatbi-assistant',
+                  scope,
                   tenantId: 'tenant-1',
                   organizationId: 'org-1'
                 }
@@ -224,10 +224,9 @@ describe('AssistantsSettingsComponent', () => {
         of({
           code,
           enabled: code === AssistantCode.XPERT_SHARED,
-          options: {
-            assistantId: code === AssistantCode.XPERT_SHARED ? 'workspace-assistant' : 'chatbi-assistant',
-            frameUrl: 'https://frame.example.com'
-          },
+          assistantId: code === AssistantCode.XPERT_SHARED ? 'workspace-assistant' : 'chatbi-assistant',
+          scope:
+            code === AssistantCode.XPERT_SHARED ? AssistantBindingScope.TENANT : AssistantBindingScope.ORGANIZATION,
           tenantId: 'tenant-1',
           organizationId: code === AssistantCode.XPERT_SHARED ? null : 'org-1',
           sourceScope: code === AssistantCode.XPERT_SHARED ? 'tenant' : 'organization'
@@ -235,7 +234,7 @@ describe('AssistantsSettingsComponent', () => {
       ),
       getAvailableXperts: jest.fn((scope: string) =>
         of(
-          scope === AssistantConfigScope.TENANT
+          scope === AssistantBindingScope.TENANT
             ? [
                 {
                   id: 'tenant-assistant',
@@ -290,8 +289,8 @@ describe('AssistantsSettingsComponent', () => {
       imports: [TranslateModule.forRoot(), AssistantsSettingsComponent],
       providers: [
         {
-          provide: AssistantConfigService,
-          useValue: assistantConfigService
+          provide: AssistantBindingService,
+          useValue: assistantBindingService
         },
         {
           provide: Store,
@@ -317,23 +316,19 @@ describe('AssistantsSettingsComponent', () => {
     const component = fixture.componentInstance
     component.organizationForm(AssistantCode.CHATBI as any).patchValue({
       enabled: true,
-      assistantId: 'chatbi-override',
-      frameUrl: 'https://override-frame.example.com'
+      assistantId: 'chatbi-override'
     })
 
     await component.saveConfig(
       ASSISTANT_REGISTRY.find((item) => item.code === AssistantCode.CHATBI)!,
-      AssistantConfigScope.ORGANIZATION as any
+      AssistantBindingScope.ORGANIZATION as any
     )
 
-    expect(assistantConfigService.upsert).toHaveBeenCalledWith({
+    expect(assistantBindingService.upsert).toHaveBeenCalledWith({
       code: AssistantCode.CHATBI,
-      scope: AssistantConfigScope.ORGANIZATION,
+      scope: AssistantBindingScope.ORGANIZATION,
       enabled: true,
-      options: {
-        assistantId: 'chatbi-override',
-        frameUrl: 'https://override-frame.example.com'
-      }
+      assistantId: 'chatbi-override'
     })
     expect(toastr.success).toHaveBeenCalled()
   })
@@ -345,9 +340,9 @@ describe('AssistantsSettingsComponent', () => {
     const component = fixture.componentInstance
     await component.resetOrganizationOverride(ASSISTANT_REGISTRY.find((item) => item.code === AssistantCode.CHATBI)!)
 
-    expect(assistantConfigService.delete).toHaveBeenCalledWith(
+    expect(assistantBindingService.delete).toHaveBeenCalledWith(
       AssistantCode.CHATBI,
-      AssistantConfigScope.ORGANIZATION
+      AssistantBindingScope.ORGANIZATION
     )
     expect(toastr.success).toHaveBeenCalled()
   })
@@ -361,11 +356,11 @@ describe('AssistantsSettingsComponent', () => {
     const component = fixture.componentInstance
 
     const tenantOptions = component.assistantXpertOptions(
-      AssistantConfigScope.TENANT as any,
+      AssistantBindingScope.TENANT as any,
       AssistantCode.XPERT_SHARED as any
     )
     const organizationOptions = component.assistantXpertOptions(
-      AssistantConfigScope.ORGANIZATION as any,
+      AssistantBindingScope.ORGANIZATION as any,
       AssistantCode.CHATBI as any
     )
 
@@ -375,5 +370,16 @@ describe('AssistantsSettingsComponent', () => {
 
   it('registers the common assistant in the settings registry', () => {
     expect(ASSISTANT_REGISTRY.some((item) => item.code === AssistantCode.CHAT_COMMON)).toBe(true)
+  })
+
+  it('keeps ClawXpert out of the admin assistants settings list', async () => {
+    const fixture = TestBed.createComponent(AssistantsSettingsComponent)
+    await fixture.whenStable()
+
+    const facade = fixture.debugElement.injector.get(AssistantsSettingsFacade)
+    const assistantCodes = facade.assistants().map((item) => item.code)
+
+    expect(assistantCodes).not.toContain(AssistantCode.CLAWXPERT)
+    expect(assistantCodes).toContain(AssistantCode.CHAT_COMMON)
   })
 })

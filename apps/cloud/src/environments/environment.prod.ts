@@ -1,6 +1,7 @@
 import { IEnvironment, VERSION } from './types'
 
 const API_BASE_URL = 'DOCKER_API_BASE_URL'
+const CHATKIT_FRAME_URL = 'DOCKER_CHATKIT_FRAME_URL'
 
 export const environment: IEnvironment = {
   version: VERSION,
@@ -10,6 +11,10 @@ export const environment: IEnvironment = {
    * Replace this with the actual API base URL in env file
    */
   API_BASE_URL,
+  /**
+   * Replace this with the actual ChatKit frame URL in env file
+   */
+  CHATKIT_FRAME_URL,
   /**
    * Replace this with the actual API base URL in env file
    */

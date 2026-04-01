@@ -1,7 +1,8 @@
 jest.mock('../../@core', () => ({
   AiFeatureEnum: {
     FEATURE_XPERT: 'FEATURE_XPERT',
-    FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI'
+    FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI',
+    FEATURE_XPERT_CLAWXPERT: 'FEATURE_XPERT_CLAWXPERT'
   },
   Store: class Store {
     hasFeatureEnabled() {
@@ -20,6 +21,10 @@ jest.mock('./xpert/xpert.component', () => ({
 
 jest.mock('./chatbi/chatbi.component', () => ({
   ChatBiComponent: class ChatBiComponent {}
+}))
+
+jest.mock('./clawxpert/clawxpert.component', () => ({
+  ClawXpertComponent: class ClawXpertComponent {}
 }))
 
 jest.mock('./tasks/tasks.component', () => ({
@@ -49,6 +54,7 @@ jest.mock('./home/home.component', () => ({
 import { ChatCommonAssistantComponent } from './common/common.component'
 import { routes } from './routes'
 import { ChatXpertComponent } from './xpert/xpert.component'
+import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 
 describe('chat routes', () => {
   const children = routes[0].children ?? []
@@ -69,5 +75,11 @@ describe('chat routes', () => {
     const route = children.find((item) => item.path === 'c/:id')
 
     expect(route?.component).toBe(ChatXpertComponent)
+  })
+
+  it('routes /chat/clawxpert to the ClawXpert page', () => {
+    const route = children.find((item) => item.path === 'clawxpert')
+
+    expect(route?.component).toBe(ClawXpertComponent)
   })
 })

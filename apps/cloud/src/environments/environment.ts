@@ -1,12 +1,14 @@
 import { IEnvironment, VERSION } from "./types"
 
 let API_BASE_URL = 'http://localhost:3000'
+let CHATKIT_FRAME_URL = '/chatkit'
 
 export const environment: IEnvironment = {
 	version: VERSION,
 	production: false,
 	DEMO: false,
 	API_BASE_URL: API_BASE_URL,
+	CHATKIT_FRAME_URL: CHATKIT_FRAME_URL,
 	enableLocalAgent: false,
 
 	GOOGLE_AUTH_LINK: API_BASE_URL + '/api/auth/google',
