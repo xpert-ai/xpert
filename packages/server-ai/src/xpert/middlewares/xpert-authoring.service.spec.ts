@@ -71,6 +71,7 @@ describe('XpertAuthoringService', () => {
     const xpertService = {
       create: jest.fn().mockResolvedValue({ id: persistedXpert.id }),
       validateName: jest.fn().mockResolvedValue(true),
+      validate: jest.fn().mockResolvedValue([]),
       saveDraft: jest.fn().mockImplementation(async (_id, draft) => draft),
       repository: {
         findOne: jest.fn().mockResolvedValue(persistedXpert)
@@ -549,6 +550,94 @@ describe('XpertAuthoringService', () => {
     expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(XpertImportCommand))
   })
 
+  it('rejects editXpert when the candidate draft contains broken graph connections', async () => {
+    const currentDraft = {
+      team: {
+        id: 'xpert-graph',
+        name: 'Support Expert',
+        type: 'agent',
+        agent: {
+          key: 'Agent_current'
+        }
+      },
+      nodes: [
+        {
+          type: 'agent',
+          key: 'Agent_current',
+          position: { x: 0, y: 0 },
+          entity: {
+            key: 'Agent_current',
+            name: 'Support Expert'
+          }
+        }
+      ],
+      connections: []
+    }
+    const { service, commandBus } = createService({
+      xpertService: {
+        repository: {
+          findOne: jest.fn().mockResolvedValue(
+            buildPersistedXpert({
+              id: 'xpert-graph',
+              agent: {
+                id: 'agent-current',
+                key: 'Agent_current',
+                name: 'Support Expert'
+              },
+              draft: currentDraft
+            })
+          )
+        }
+      }
+    })
+
+    const result = await service.editXpertFromContext(
+      {
+        targetXpertId: 'xpert-graph',
+        baseDraftHash: (service as any).calculateDraftHash(currentDraft)
+      },
+      {
+        dslYaml: `team:
+  name: Support Expert
+  type: agent
+  agent:
+    key: Agent_imported
+nodes:
+  - type: agent
+    key: Agent_imported
+    position:
+      x: 0
+      y: 0
+    entity:
+      key: Agent_imported
+      name: Support Expert
+  - type: workflow
+    key: Workflow_Code
+    position:
+      x: 200
+      y: 0
+    entity:
+      key: Workflow_Code
+      type: code
+      title: Broken Target
+connections:
+  - key: Agent_imported/Workflow_Code
+    from: Agent_imported
+    to: Workflow_Code
+    type: workflow`
+      }
+    )
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        status: 'rejected',
+        toolName: 'editXpert',
+        summary: expect.stringContaining('Draft validation failed')
+      })
+    )
+    expect(commandBus.execute).not.toHaveBeenCalledWith(expect.any(XpertImportCommand))
+  })
+
   it('allows editXpert to proceed when studio has unsaved local changes', async () => {
     const currentDraft = {
       team: {
@@ -636,7 +725,21 @@ connections: []`
         baseDraftHash: 'stale-hash'
       },
       {
-        dslYaml: 'team:\n  name: Support Expert'
+        dslYaml: `team:
+  name: Support Expert
+  type: agent
+  agent:
+    key: Agent_1
+nodes:
+  - type: agent
+    key: Agent_1
+    position:
+      x: 0
+      y: 0
+    entity:
+      key: Agent_1
+      name: Support Expert
+connections: []`
       }
     )
 
@@ -684,7 +787,21 @@ connections: []`
         targetXpertId: 'xpert-6b'
       },
       {
-        dslYaml: 'team:\n  name: Support Expert'
+        dslYaml: `team:
+  name: Support Expert
+  type: agent
+  agent:
+    key: Agent_1
+nodes:
+  - type: agent
+    key: Agent_1
+    position:
+      x: 0
+      y: 0
+    entity:
+      key: Agent_1
+      name: Support Expert
+connections: []`
       }
     )
 

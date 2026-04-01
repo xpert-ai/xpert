@@ -1,7 +1,11 @@
 import {
+  ChecklistItem,
   ISkillPackage,
   IXpert,
   TXpertTeamDraft,
+  TXpertTeamNode,
+  TXpertTeamConnection,
+  WorkflowNodeTypeEnum,
   XpertTypeEnum,
   createAgentConnections,
   createXpertNodes,
@@ -19,6 +23,7 @@ import { XpertAgentService } from '../../xpert-agent/xpert-agent.service'
 import { ListWorkspaceSkillsQuery } from '../../xpert-agent/queries/list-workspace-skills.query'
 import { XpertToolsetService } from '../../xpert-toolset/xpert-toolset.service'
 import { XpertExportCommand, XpertImportCommand } from '../commands'
+import { buildOverwriteDraftFromImportedDsl } from '../import-draft.utils'
 import { XpertService } from '../xpert.service'
 import {
   AgentMiddlewareCatalogItem,
@@ -35,6 +40,42 @@ import {
   SkillCatalogItem,
   ToolsetCatalogItem
 } from './xpert-authoring.types'
+
+const VALID_NODE_TYPES = new Set(['agent', 'knowledge', 'toolset', 'xpert', 'workflow'])
+const VALID_CONNECTION_TYPES = new Set(['edge', 'agent', 'knowledge', 'toolset', 'xpert', 'workflow'])
+const VALID_WORKFLOW_NODE_TYPES = new Set(Object.values(WorkflowNodeTypeEnum))
+const WORKFLOW_TOP_INPUT_TYPES = new Set([
+  WorkflowNodeTypeEnum.AGENT_TOOL,
+  WorkflowNodeTypeEnum.MIDDLEWARE,
+  WorkflowNodeTypeEnum.SKILL,
+  WorkflowNodeTypeEnum.TASK
+])
+const WORKFLOW_EDGE_INPUT_DISABLED_TYPES = new Set([
+  WorkflowNodeTypeEnum.AGENT_TOOL,
+  WorkflowNodeTypeEnum.MIDDLEWARE,
+  WorkflowNodeTypeEnum.NOTE,
+  WorkflowNodeTypeEnum.START,
+  WorkflowNodeTypeEnum.TASK,
+  WorkflowNodeTypeEnum.TRIGGER
+])
+const WORKFLOW_EDGE_OUTPUT_DISABLED_TYPES = new Set([
+  WorkflowNodeTypeEnum.MIDDLEWARE,
+  WorkflowNodeTypeEnum.NOTE,
+  WorkflowNodeTypeEnum.SKILL,
+  WorkflowNodeTypeEnum.TASK
+])
+const WORKFLOW_AGENT_OUTPUT_TYPES = new Set([
+  WorkflowNodeTypeEnum.ITERATING,
+  WorkflowNodeTypeEnum.ITERATOR,
+  WorkflowNodeTypeEnum.SKILL,
+  WorkflowNodeTypeEnum.SUBFLOW,
+  WorkflowNodeTypeEnum.TASK
+])
+const WORKFLOW_XPERT_OUTPUT_TYPES = new Set([
+  WorkflowNodeTypeEnum.ITERATING,
+  WorkflowNodeTypeEnum.ITERATOR,
+  WorkflowNodeTypeEnum.SUBFLOW
+])
 
 @Injectable()
 export class XpertAuthoringService {
@@ -280,6 +321,22 @@ export class XpertAuthoringService {
       return this.buildRejectedResult(toolName, 'Invalid YAML DSL provided for editXpert.', currentDraftHash)
     }
 
+    let candidateDraft: TXpertTeamDraft
+    try {
+      candidateDraft = buildOverwriteDraftFromImportedDsl(xpert, parsedDsl as Partial<TXpertTeamDraft>)
+    } catch (error) {
+      return this.buildRejectedResult(
+        toolName,
+        error instanceof Error ? error.message : 'Invalid YAML DSL provided for editXpert.',
+        currentDraftHash
+      )
+    }
+
+    const validationErrors = await this.validateCandidateDraft(candidateDraft)
+    if (validationErrors.length) {
+      return this.buildRejectedResult(toolName, this.formatValidationSummary(validationErrors), currentDraftHash)
+    }
+
     try {
       await this.commandBus.execute(new XpertImportCommand(parsedDsl, { targetXpertId: context.targetXpertId }))
     } catch (error) {
@@ -428,6 +485,195 @@ export class XpertAuthoringService {
       updatedDraftFragment: null,
       warnings: []
     }
+  }
+
+  private async validateCandidateDraft(draft: TXpertTeamDraft) {
+    const structuralErrors = this.validateGraphStructure(draft)
+    let checklistErrors: string[] = []
+
+    try {
+      const checklist = await this.xpertService.validate(draft)
+      checklistErrors = this.collectChecklistErrors(checklist)
+    } catch (error) {
+      checklistErrors = [error instanceof Error ? error.message : 'Draft checklist validation failed.']
+    }
+
+    return Array.from(new Set([...structuralErrors, ...checklistErrors]))
+  }
+
+  private validateGraphStructure(draft: TXpertTeamDraft) {
+    const errors: string[] = []
+    const nodeKeys = new Set<string>()
+    const connectionKeys = new Set<string>()
+    const nodes = draft.nodes ?? []
+
+    for (const node of nodes) {
+      const nodeKey = typeof node?.key === 'string' ? node.key.trim() : ''
+      if (!nodeKey) {
+        errors.push('Node key cannot be empty.')
+      } else if (nodeKeys.has(nodeKey)) {
+        errors.push(`Duplicate node key "${nodeKey}".`)
+      } else {
+        nodeKeys.add(nodeKey)
+      }
+
+      if (!VALID_NODE_TYPES.has(node?.type)) {
+        errors.push(`Node "${nodeKey || '(empty)'}" has unsupported type "${String(node?.type ?? '')}".`)
+      }
+
+      if (node?.type === 'workflow') {
+        const workflowType = node.entity?.type
+        if (!VALID_WORKFLOW_NODE_TYPES.has(workflowType)) {
+          errors.push(
+            `Workflow node "${nodeKey || '(empty)'}" has unsupported entity.type "${String(workflowType ?? '')}".`
+          )
+        }
+      }
+    }
+
+    for (const connection of draft.connections ?? []) {
+      const connectionKey = typeof connection?.key === 'string' ? connection.key.trim() : ''
+      const from = typeof connection?.from === 'string' ? connection.from.trim() : ''
+      const to = typeof connection?.to === 'string' ? connection.to.trim() : ''
+
+      if (!connectionKey) {
+        errors.push('Connection key cannot be empty.')
+      } else if (connectionKeys.has(connectionKey)) {
+        errors.push(`Duplicate connection key "${connectionKey}".`)
+      } else {
+        connectionKeys.add(connectionKey)
+      }
+
+      if (!from) {
+        errors.push(`Connection "${connectionKey || '(empty)'}" is missing a source.`)
+      }
+      if (!to) {
+        errors.push(`Connection "${connectionKey || '(empty)'}" is missing a target.`)
+      }
+      if (!VALID_CONNECTION_TYPES.has(connection?.type)) {
+        errors.push(
+          `Connection "${connectionKey || '(empty)'}" has unsupported type "${String(connection?.type ?? '')}".`
+        )
+      }
+
+      const sourceNode = this.findSourceNode(nodes, from)
+      if (!sourceNode) {
+        errors.push(`Connection "${connectionKey || '(empty)'}" references missing source node "${from || '(empty)'}".`)
+      }
+
+      const targetNode = nodes.find((node) => node.key === to)
+      if (!targetNode) {
+        errors.push(`Connection "${connectionKey || '(empty)'}" references missing target node "${to || '(empty)'}".`)
+      }
+
+      if (sourceNode && !this.supportsSourceConnection(sourceNode, connection.type)) {
+        errors.push(
+          `Connection "${connectionKey || '(empty)'}" uses unsupported source "${from}" for type "${connection.type}".`
+        )
+      }
+
+      if (targetNode && !this.supportsTargetConnection(targetNode, connection.type)) {
+        errors.push(
+          `Connection "${connectionKey || '(empty)'}" targets "${to}" with unsupported type "${connection.type}".`
+        )
+      }
+    }
+
+    return errors
+  }
+
+  private findSourceNode(nodes: TXpertTeamNode[], from: string) {
+    if (!from) {
+      return null
+    }
+
+    const [sourceNodeKey] = from.split('/')
+    return nodes.find((node) => node.key === sourceNodeKey) ?? null
+  }
+
+  private supportsSourceConnection(node: TXpertTeamNode, connectionType: TXpertTeamConnection['type']) {
+    if (node.type === 'agent') {
+      return true
+    }
+
+    if (node.type === 'knowledge' || node.type === 'toolset') {
+      return false
+    }
+
+    if (node.type === 'xpert') {
+      return connectionType === 'edge'
+    }
+
+    const workflowType = node.entity?.type
+    if (!VALID_WORKFLOW_NODE_TYPES.has(workflowType)) {
+      return false
+    }
+
+    if (connectionType === 'edge') {
+      return !WORKFLOW_EDGE_OUTPUT_DISABLED_TYPES.has(workflowType)
+    }
+
+    if (connectionType === 'agent') {
+      return WORKFLOW_AGENT_OUTPUT_TYPES.has(workflowType)
+    }
+
+    if (connectionType === 'xpert') {
+      return WORKFLOW_XPERT_OUTPUT_TYPES.has(workflowType)
+    }
+
+    return false
+  }
+
+  private supportsTargetConnection(node: TXpertTeamNode, connectionType: TXpertTeamConnection['type']) {
+    if (connectionType === 'edge') {
+      if (node.type === 'agent' || node.type === 'xpert') {
+        return true
+      }
+
+      if (node.type !== 'workflow') {
+        return false
+      }
+
+      const workflowType = node.entity?.type
+      return VALID_WORKFLOW_NODE_TYPES.has(workflowType) && !WORKFLOW_EDGE_INPUT_DISABLED_TYPES.has(workflowType)
+    }
+
+    if (connectionType !== node.type) {
+      return false
+    }
+
+    if (node.type !== 'workflow') {
+      return true
+    }
+
+    const workflowType = node.entity?.type
+    return VALID_WORKFLOW_NODE_TYPES.has(workflowType) && WORKFLOW_TOP_INPUT_TYPES.has(workflowType)
+  }
+
+  private collectChecklistErrors(items: ChecklistItem[] = []) {
+    return items
+      .filter((item) => item?.level === 'error')
+      .map((item) => this.getChecklistMessage(item))
+      .filter((message): message is string => Boolean(message))
+  }
+
+  private getChecklistMessage(item: ChecklistItem) {
+    if (typeof item?.message === 'string') {
+      return item.message
+    }
+
+    return item?.message?.en_US ?? item?.message?.zh_Hans ?? null
+  }
+
+  private formatValidationSummary(errors: string[]) {
+    const [firstError, ...rest] = errors
+    if (!firstError) {
+      return 'Draft validation failed for editXpert.'
+    }
+
+    return rest.length
+      ? `Draft validation failed: ${firstError} (${rest.length} more issue${rest.length > 1 ? 's' : ''}).`
+      : `Draft validation failed: ${firstError}`
   }
 
   private throwConflict(

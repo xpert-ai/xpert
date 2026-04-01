@@ -524,6 +524,41 @@ describe('XpertAuthoringMiddleware', () => {
 
     expect(subscriber.next).not.toHaveBeenCalled()
   })
+
+  it('does not emit refresh_studio when editXpert is rejected', async () => {
+    service.editXpertFromContext.mockResolvedValue({
+      ...buildAppliedResult('editXpert'),
+      status: 'rejected',
+      requiresRefresh: false,
+      syncMode: 'none',
+      updatedDraftFragment: null
+    })
+
+    const subscriber = {
+      next: jest.fn()
+    }
+
+    const result = await getTool('editXpert').invoke(
+      {
+        dslYaml: 'team:\n  name: Support Expert'
+      },
+      {
+        configurable: {
+          context: {
+            targetXpertId: 'xpert-2',
+            baseDraftHash: 'hash-1'
+          },
+          subscriber
+        }
+      } as any
+    )
+
+    expect(result).toMatchObject({
+      status: 'rejected',
+      toolName: 'editXpert'
+    })
+    expect(subscriber.next).not.toHaveBeenCalled()
+  })
 })
 
 function buildAppliedResult(
