@@ -131,7 +131,46 @@ describe('XpertAuthoringMiddleware', () => {
     })
   })
 
-  it('prefers explicit context baseDraftHash over middleware state hash', async () => {
+  it('stores latest baseDraftHash into middleware state after getCurrentXpert succeeds inside graph execution', async () => {
+    jest.spyOn(strategy as any, 'readState').mockReturnValue({
+      xpertId: 'xpert-from-state',
+      baseDraftHash: 'hash-old'
+    })
+    service.getCurrentXpertFromContext.mockResolvedValue({
+      xpertId: 'xpert-from-state',
+      dslYaml: 'team:\n  name: Updated Expert',
+      summary: 'Loaded current xpert.',
+      committedDraftHash: 'hash-new'
+    })
+
+    const result = await getTool('getCurrentXpert').invoke(
+      {},
+      {
+        metadata: {
+          tool_call_id: 'tool-call-get-1'
+        },
+        configurable: {
+          context: {
+            targetXpertId: 'xpert-from-state'
+          }
+        }
+      } as any
+    )
+
+    expect(result).toBeInstanceOf(Command)
+    expect((result as Command).update).toEqual({
+      xpertId: 'xpert-from-state',
+      baseDraftHash: 'hash-new',
+      messages: [
+        expect.objectContaining({
+          name: 'getCurrentXpert',
+          tool_call_id: 'tool-call-get-1'
+        })
+      ]
+    })
+  })
+
+  it('prefers middleware state baseDraftHash over explicit context hash', async () => {
     jest.spyOn(strategy as any, 'readState').mockReturnValue({
       baseDraftHash: 'hash-from-state'
     })
@@ -154,7 +193,7 @@ describe('XpertAuthoringMiddleware', () => {
     expect(service.editXpertFromContext).toHaveBeenCalledWith(
       expect.objectContaining({
         targetXpertId: 'xpert-2',
-        baseDraftHash: 'hash-from-context'
+        baseDraftHash: 'hash-from-state'
       }),
       {
         dslYaml: 'team:\n  name: Support Expert'
