@@ -52,11 +52,13 @@ export class XpertPublishHandler implements ICommandHandler<XpertPublishCommand>
                 'userGroups'
             ]
         })
+        const currentUserId = RequestContext.currentUserId()
+        const canPublishWithoutUserGroups = !xpert.organizationId && xpert.createdById === currentUserId
 
         if (!xpert.draft) {
             throw new NotFoundException(`No draft found on Xpert '${xpert.name}'`)
         }
-        if (!xpert.userGroups?.length) {
+        if (!xpert.userGroups?.length && !canPublishWithoutUserGroups) {
             throw new BadRequestException('Published xperts must be assigned to at least one user group.')
         }
 
