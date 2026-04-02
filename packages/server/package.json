@@ -22,7 +22,7 @@
 		"@nestjs/typeorm": "^11.0.0",
 		"@ntegral/nestjs-sentry": "^3.0.6",
 		"@sentry/node": "^6.13.2",
-		"@xpert-ai/plugin-sdk": "^3.8.1",
+		"@xpert-ai/plugin-sdk": "^3.8.4",
 		"ali-oss": "6.17.1",
 		"apollo-server-core": "^3.3.0",
 		"aws-sdk": "^2.995.0",

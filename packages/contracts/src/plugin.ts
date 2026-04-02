@@ -37,6 +37,7 @@ export type PluginLevel = (typeof PLUGIN_LEVEL)[keyof typeof PLUGIN_LEVEL]
 export type PluginSource = (typeof PLUGIN_SOURCE)[keyof typeof PLUGIN_SOURCE]
 export type PluginConfigurationStatus = (typeof PLUGIN_CONFIGURATION_STATUS)[keyof typeof PLUGIN_CONFIGURATION_STATUS]
 export type PluginLoadStatus = (typeof PLUGIN_LOAD_STATUS)[keyof typeof PLUGIN_LOAD_STATUS]
+export type PluginScopeRelation = 'none' | 'overrides-global' | 'shadowed-by-organization'
 
 export interface PluginMeta {
   name: PluginName
@@ -95,6 +96,8 @@ export interface IPluginDescriptor {
   configurationError?: string | null
   loadStatus?: PluginLoadStatus | null
   loadError?: string | null
+  effectiveInCurrentScope: boolean
+  scopeRelation?: PluginScopeRelation
 }
 
 export interface IPluginConfiguration<TConfig extends Record<string, any> = Record<string, any>> {
