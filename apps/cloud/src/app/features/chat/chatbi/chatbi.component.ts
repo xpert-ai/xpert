@@ -1,21 +1,50 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, signal } from '@angular/core'
+import { Component, Injectable, effect, inject, signal } from '@angular/core'
 import { RouterModule } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
+import { provideOcapCore } from '@metad/ocap-angular/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
 import { AssistantCode } from '../../../@core'
+import { provideOcap } from '../../../@core/providers/ocap'
+import { ChatToolCallChunkComponent } from '../../../@shared/chat'
+import { ChatService, XpertOcapService } from '../../../xpert'
+import { ChatMessageDashboardComponent } from '../../../xpert/ai-message/dashboard/dashboard.component'
 import { getAssistantRegistryItem } from '../../assistant/assistant.registry'
 import { injectAssistantChatkitRuntime } from '../../assistant/assistant-chatkit.runtime'
+import { ChatBiTraceFacade } from './chatbi-trace.facade'
+
+@Injectable()
+class ChatBiDashboardChatService {
+  readonly conversation = signal(null)
+  readonly xpert = signal(null)
+
+  isPublic() {
+    return false
+  }
+}
 
 @Component({
   standalone: true,
   selector: 'pac-chat-bi',
-  imports: [CommonModule, RouterModule, TranslateModule, ChatKit],
+  imports: [
+    CommonModule,
+    RouterModule,
+    TranslateModule,
+    ChatKit,
+    ChatToolCallChunkComponent,
+    ChatMessageDashboardComponent
+  ],
+  providers: [
+    ChatBiTraceFacade,
+    ChatBiDashboardChatService,
+    { provide: ChatService, useExisting: ChatBiDashboardChatService },
+    provideOcapCore(),
+    provideOcap(),
+    XpertOcapService
+  ],
   template: `
     <div class="flex h-full flex-col gap-4 overflow-hidden p-4 lg:grid lg:grid-cols-[minmax(0,1fr)_420px]">
-      <section
-        class="order-2 flex min-h-0 flex-col overflow-hidden rounded-3xl lg:order-1"
-      >
+      <section class="order-2 flex min-h-0 flex-col overflow-hidden rounded-3xl lg:order-1">
         <div class="border-b border-divider-regular px-5 py-4">
           <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
             {{ 'PAC.ChatBI.EventCanvas' | translate: { Default: 'Event Canvas' } }}
@@ -35,40 +64,88 @@ import { injectAssistantChatkitRuntime } from '../../assistant/assistant-chatkit
           </p>
         </div>
 
-        <div class="grid flex-1 gap-4 overflow-auto p-4 md:grid-cols-2">
+        <div class="flex flex-1 min-h-0 flex-col overflow-hidden p-4">
           <article
-            class="rounded-2xl border border-divider-regular bg-components-card-bg p-4 shadow-sm"
+            class="flex min-h-0 flex-1 flex-col rounded-3xl border border-divider-regular bg-components-card-bg p-4 shadow-sm"
           >
             <div class="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-text-tertiary">
-              <i class="ri-pulse-line text-base"></i>
-              <span>{{ 'PAC.ChatBI.LiveSignals' | translate: { Default: 'Live Signals' } }}</span>
+              <i class="ri-terminal-window-line text-base"></i>
+              <span>{{ 'PAC.ChatBI.ComputerTrace' | translate: { Default: 'Thread Activity' } }}</span>
             </div>
-            <div class="mt-4 space-y-3">
-              @for (item of placeholderSignals(); track item.titleKey) {
-                <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3">
-                  <div class="text-sm font-medium text-text-primary">
-                    {{ item.titleKey | translate: { Default: item.defaultTitle } }}
-                  </div>
-                  <div class="mt-1 text-xs text-text-secondary">
-                    {{ item.descriptionKey | translate: { Default: item.defaultDescription } }}
-                  </div>
-                </div>
-              }
-            </div>
-          </article>
 
-          <article
-            class="rounded-2xl border border-dashed border-divider-regular bg-components-card-bg p-4 shadow-sm"
-          >
-            <div class="flex items-center gap-2 text-xs uppercase tracking-[0.24em] text-text-tertiary">
-              <i class="ri-terminal-box-line text-base"></i>
-              <span>{{ 'PAC.ChatBI.PendingEvents' | translate: { Default: 'Pending Event Stream' } }}</span>
-            </div>
-            <div class="mt-4 rounded-2xl bg-background-default-subtle p-4 font-mono text-xs text-text-secondary">
-              <div>&gt; conversation.started</div>
-              <div class="mt-2">&gt; tool.answer_question.waiting</div>
-              <div class="mt-2">&gt; visualization.render.placeholder</div>
-              <div class="mt-2">&gt; event.timeline.coming_soon</div>
+            <div class="mt-4 min-h-0 flex-1 overflow-auto pr-1">
+              @if (traceSteps().length) {
+                <div class="space-y-3">
+                  @for (step of traceSteps(); track step.id) {
+                    @switch (step.data.category) {
+                      @case ('Dashboard') {
+                        <div class="overflow-hidden rounded-2xl border border-divider-regular bg-background-default p-2">
+                          <div class="mb-2 flex items-center justify-end">
+                            <button
+                              type="button"
+                              class="inline-flex items-center gap-2 rounded-full border border-divider-regular px-3 py-1.5 text-xs font-medium text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-primary"
+                              [attr.data-step-pin]="step.id"
+                              (click)="toggleDashboardPin(step.id)"
+                            >
+                              <i [class]="step.pinned ? 'ri-pushpin-2-fill' : 'ri-pushpin-2-line'"></i>
+                              <span>
+                                {{
+                                  (step.pinned ? 'PAC.ChatBI.UnpinDashboard' : 'PAC.ChatBI.PinDashboard')
+                                    | translate
+                                      : {
+                                          Default: step.pinned ? 'Unpin snapshot' : 'Pin snapshot'
+                                        }
+                                }}
+                              </span>
+                            </button>
+                          </div>
+                          <chat-message-dashboard class="block w-full" [message]="step" [inline]="false" />
+                        </div>
+                      }
+                      @default {
+                        <chat-tool-call-chunk [chunk]="$any(step.data)" [conversationStatus]="traceConversationStatus()" />
+                      }
+                    }
+                  }
+                </div>
+              } @else {
+                @switch (traceState()) {
+                  @case ('loading') {
+                    <div class="flex h-full min-h-[18rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary">
+                      {{ 'PAC.ChatBI.TraceLoading' | translate: { Default: 'Loading thread activity...' } }}
+                    </div>
+                  }
+                  @case ('error') {
+                    <div class="flex h-full min-h-[18rem] flex-col items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle px-6 text-center">
+                      <i class="ri-error-warning-line text-3xl text-text-tertiary"></i>
+                      <div class="mt-4 text-base font-medium text-text-primary">
+                        {{ 'PAC.ChatBI.TraceLoadFailed' | translate: { Default: 'Failed to load thread activity' } }}
+                      </div>
+                      <div class="mt-2 max-w-md text-sm text-text-secondary">
+                        {{ traceError() }}
+                      </div>
+                    </div>
+                  }
+                  @default {
+                    <div class="flex h-full min-h-[18rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+                      <i class="ri-computer-line text-3xl text-text-tertiary"></i>
+                      <div class="mt-4 text-base font-medium text-text-primary">
+                        {{ 'PAC.ChatBI.TraceEmpty' | translate: { Default: 'No thread activity yet' } }}
+                      </div>
+                      <div class="mt-2 max-w-md text-sm text-text-secondary">
+                        {{
+                          'PAC.ChatBI.TraceEmptyDesc'
+                            | translate
+                              : {
+                                  Default:
+                                    'Dashboard outputs and computer-side steps from this ChatBI thread will appear here as the assistant builds charts, explores files, runs programs, and emits structured actions.'
+                                }
+                        }}
+                      </div>
+                    </div>
+                  }
+                }
+              }
             </div>
           </article>
         </div>
@@ -138,35 +215,53 @@ import { injectAssistantChatkitRuntime } from '../../assistant/assistant-chatkit
   `
 })
 export class ChatBiComponent {
+  readonly traceFacade = inject(ChatBiTraceFacade)
   readonly definition = getAssistantRegistryItem(AssistantCode.CHATBI)!
   readonly assistantCode = signal(AssistantCode.CHATBI)
   readonly assistantsRoute = ['/settings/assistants']
   readonly runtime = injectAssistantChatkitRuntime({
     assistantCode: this.assistantCode.asReadonly(),
     titleKey: this.definition.titleKey,
-    titleDefault: this.definition.defaultTitle
+    titleDefault: this.definition.defaultTitle,
+    onLog: (event) => {
+      this.traceFacade.handleLog(event)
+    },
+    onResponseStart: () => {
+      this.traceFacade.handleResponseStart()
+    },
+    onResponseEnd: () => {
+      this.traceFacade.handleResponseEnd()
+    },
+    onThreadChange: ({ threadId }) => {
+      this.traceFacade.handleThreadChange(threadId)
+    },
+    onThreadLoadStart: ({ threadId }) => {
+      this.traceFacade.handleThreadLoadStart(threadId)
+    },
+    onThreadLoadEnd: ({ threadId }) => {
+      this.traceFacade.handleThreadLoadEnd(threadId)
+    }
   })
 
   readonly control = this.runtime.control
   readonly status = this.runtime.status
-  readonly placeholderSignals = computed(() => [
-    {
-      titleKey: 'PAC.ChatBI.QuestionTimeline',
-      defaultTitle: 'Question Timeline',
-      descriptionKey: 'PAC.ChatBI.QuestionTimelineDesc',
-      defaultDescription: 'Track prompt milestones, model actions, and event nodes emitted during the analysis flow.'
-    },
-    {
-      titleKey: 'PAC.ChatBI.ToolInvocations',
-      defaultTitle: 'Tool Invocations',
-      descriptionKey: 'PAC.ChatBI.ToolInvocationsDesc',
-      defaultDescription: 'Reserve space for model queries, chart generation, and semantic model lookups.'
-    },
-    {
-      titleKey: 'PAC.ChatBI.BusinessAlerts',
-      defaultTitle: 'Business Alerts',
-      descriptionKey: 'PAC.ChatBI.BusinessAlertsDesc',
-      defaultDescription: 'Highlight KPI movements, anomalies, and decision points surfaced by the assistant.'
-    }
-  ])
+  readonly traceSteps = this.traceFacade.steps
+  readonly traceState = this.traceFacade.state
+  readonly traceError = this.traceFacade.error
+  readonly traceConversationStatus = this.traceFacade.conversationStatus
+
+  toggleDashboardPin(stepId: string) {
+    this.traceFacade.toggleDashboardPin(stepId)
+  }
+
+  constructor() {
+    effect(() => {
+      const status = this.status()
+      if (status === 'ready') {
+        document.title = `${this.definition.defaultLabel} - ChatBI - Power BI Copilot`
+      } else {
+        document.title = `ChatBI - Power BI Copilot`
+      }
+    })
+  }
 }

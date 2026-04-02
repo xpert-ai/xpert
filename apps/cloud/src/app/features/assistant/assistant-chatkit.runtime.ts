@@ -9,6 +9,7 @@ import {
   AssistantBindingSourceScope,
   AssistantCode,
   Store,
+  type IResolvedAssistantBinding,
   getErrorMessage,
   ToastrService
 } from '../../@core'
@@ -42,7 +43,12 @@ type AssistantRuntimeInput = {
   titleKey: string
   titleDefault: string
   onEffect?: NonNullable<ChatKitEventHandlers['onEffect']>
+  onLog?: NonNullable<ChatKitEventHandlers['onLog']>
+  onResponseStart?: NonNullable<ChatKitEventHandlers['onResponseStart']>
+  onResponseEnd?: NonNullable<ChatKitEventHandlers['onResponseEnd']>
   onThreadChange?: NonNullable<ChatKitEventHandlers['onThreadChange']>
+  onThreadLoadStart?: NonNullable<ChatKitEventHandlers['onThreadLoadStart']>
+  onThreadLoadEnd?: NonNullable<ChatKitEventHandlers['onThreadLoadEnd']>
 }
 
 type AssistantHostedRuntimeInput = {
@@ -55,7 +61,12 @@ type AssistantHostedRuntimeInput = {
   titleKey: string
   titleDefault: string
   onEffect?: NonNullable<ChatKitEventHandlers['onEffect']>
+  onLog?: NonNullable<ChatKitEventHandlers['onLog']>
+  onResponseStart?: NonNullable<ChatKitEventHandlers['onResponseStart']>
+  onResponseEnd?: NonNullable<ChatKitEventHandlers['onResponseEnd']>
   onThreadChange?: NonNullable<ChatKitEventHandlers['onThreadChange']>
+  onThreadLoadStart?: NonNullable<ChatKitEventHandlers['onThreadLoadStart']>
+  onThreadLoadEnd?: NonNullable<ChatKitEventHandlers['onThreadLoadEnd']>
 }
 
 export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
@@ -117,12 +128,9 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
 
   const config = computed(() => requestState().config)
   const loading = computed(() => requestState().loading)
-  const hasSource = computed(() => !!config()?.sourceScope && config()?.sourceScope !== AssistantBindingSourceScope.NONE)
-  const hasCompleteOptions = computed(() => {
-    const options = config()?.options
-    return !!(options?.assistantId && normalizeAssistantFrameUrl(options?.frameUrl))
-  })
-  const isConfigured = computed(() => !!config() && !!hasSource() && config()?.enabled && hasCompleteOptions())
+  const hasSource = computed(() => hasAssistantBindingSource(config()))
+  const hasCompleteConfiguration = computed(() => hasCompleteAssistantBinding(config(), frameUrl()))
+  const isConfigured = computed(() => !!config() && !!hasSource() && config()?.enabled && hasCompleteConfiguration())
   const status = computed<AssistantRuntimeStatus>(() => {
     if (loading()) {
       return 'loading'
@@ -139,7 +147,7 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
     if (!config()?.enabled) {
       return 'disabled'
     }
-    if (!hasCompleteOptions()) {
+    if (!hasCompleteConfiguration()) {
       return 'missing'
     }
     return 'ready'
@@ -155,7 +163,12 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
     titleKey: input.titleKey,
     titleDefault: input.titleDefault,
     onEffect: input.onEffect,
-    onThreadChange: input.onThreadChange
+    onLog: input.onLog,
+    onResponseStart: input.onResponseStart,
+    onResponseEnd: input.onResponseEnd,
+    onThreadChange: input.onThreadChange,
+    onThreadLoadStart: input.onThreadLoadStart,
+    onThreadLoadEnd: input.onThreadLoadEnd
   })
 
   return {
@@ -234,7 +247,12 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
         context: requestContext ?? {}
       },
       onEffect: input.onEffect,
+      onLog: input.onLog,
+      onResponseStart: input.onResponseStart,
+      onResponseEnd: input.onResponseEnd,
       onThreadChange: input.onThreadChange,
+      onThreadLoadStart: input.onThreadLoadStart,
+      onThreadLoadEnd: input.onThreadLoadEnd,
       onError: (event: { error?: { message?: string } }) => {
         toastr.error(event?.error?.message || translate.instant('PAC.KEY_WORDS.Error', { Default: 'Error' }))
       }
@@ -259,6 +277,14 @@ export function sanitizeAssistantFrameUrl(frameUrl?: string | null) {
   }
 
   return normalized
+}
+
+export function hasAssistantBindingSource(config?: IResolvedAssistantBinding | null) {
+  return !!config?.sourceScope && config.sourceScope !== AssistantBindingSourceScope.NONE
+}
+
+export function hasCompleteAssistantBinding(config?: IResolvedAssistantBinding | null, frameUrl?: string | null) {
+  return !!(config?.assistantId && normalizeAssistantFrameUrl(frameUrl))
 }
 
 function normalizeChatKitLocale(locale?: string | null): AssistantLocale {
