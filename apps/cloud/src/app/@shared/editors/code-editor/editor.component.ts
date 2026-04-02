@@ -8,12 +8,11 @@ import {
   input,
   signal
 } from '@angular/core'
-import { ControlValueAccessor, FormsModule } from '@angular/forms'
+import { FormsModule } from '@angular/forms'
 import { NgmResizableDirective } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { distinctUntilChanged } from 'rxjs'
 import { AppService } from '../../../app.service'
 
 @Component({
@@ -24,7 +23,7 @@ import { AppService } from '../../../app.service'
   styleUrls: ['./editor.component.scss'],
   hostDirectives: [NgxControlValueAccessor]
 })
-export class CodeEditorComponent implements ControlValueAccessor {
+export class CodeEditorComponent {
   protected cva = inject<NgxControlValueAccessor<string | null>>(NgxControlValueAccessor)
   readonly #cdr = inject(ChangeDetectorRef)
   readonly #appService = inject(AppService)
@@ -73,12 +72,6 @@ export class CodeEditorComponent implements ControlValueAccessor {
 
   readonly #editor = signal(null)
 
-  onChange: ((value: string | null) => void) | null = null
-  onTouched: (() => void) | null = null
-  private valueChangeSub = this.cva.valueChange.pipe(distinctUntilChanged()).subscribe((value) => {
-    this.onChange?.(value)
-  })
-
   constructor() {
     afterNextRender(() => {
       setTimeout(() => {
@@ -91,27 +84,21 @@ export class CodeEditorComponent implements ControlValueAccessor {
   // Editor
   onInit(editor: any) {
     this.#editor.set(editor)
+    editor.onDidBlurEditorWidget(() => {
+      this.cva.markAsTouched()
+    })
   }
 
   onEditorChange(event: string) {
-    this.value$.set(event)
+    this.cva.value = event
+
+    if (this.cva.ngControl?.control?.pristine) {
+      this.cva.ngControl.control.markAsDirty()
+    }
   }
 
   onResized() {
     this.#editor()?.layout()
-  }
-
-  writeValue(obj: any): void {
-    this.cva.writeValue(obj)
-  }
-  registerOnChange(fn: any): void {
-    this.onChange = fn
-  }
-  registerOnTouched(fn: any): void {
-    this.onTouched = fn
-  }
-  setDisabledState?(isDisabled: boolean): void {
-    this.cva.setDisabledState(isDisabled)
   }
 
   mapFileLanguage(url: string) {
