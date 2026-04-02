@@ -17,6 +17,9 @@ import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, Zar
   selector: 'emoji-avatar-editor',
   templateUrl: './avatar-editor.component.html',
   styleUrl: './avatar-editor.component.scss',
+  host: {
+    class: 'ngm-dialog-container'
+  },
   imports: [
     CommonModule,
     CdkListboxModule,
@@ -70,6 +73,7 @@ export class EmojiAvatarEditorComponent {
     effect(
       () => {
         if (this.avatar) {
+          this.type.set(this.avatar.url ? 'image' : 'emoji')
           this.background.set(this.avatar.background)
           this.emoji.set(this.avatar.emoji)
           this.set.set(this.avatar.emoji?.set)
@@ -84,6 +88,7 @@ export class EmojiAvatarEditorComponent {
     const screenshot = await this.uploadScreenshot(file!)
     this.imageUrl.set(screenshot.url)
     this.emoji.set(null)
+    this.type.set('image')
   }
 
   async uploadScreenshot(fileUpload: File) {
@@ -98,11 +103,13 @@ export class EmojiAvatarEditorComponent {
       const screenshot = await this.uploadScreenshot(file)
       this.imageUrl.set(screenshot.url)
       this.emoji.set(null)
+      this.type.set('image')
     }
   }
 
   addEmoji(event: { emoji: any }) {
     this.emoji.set(pick(event.emoji, 'id', 'set', 'colons', 'unified'))
+    this.type.set('emoji')
   }
 
   apply() {

@@ -84,7 +84,8 @@ export class EmojiAvatarComponent {
       this.focused = true
       this.dialog
         .open(EmojiAvatarEditorComponent, {
-          data: this.avatar()
+          data: this.avatar(),
+          panelClass: 'gap-3 p-4'
         })
         .afterClosed()
         .subscribe({

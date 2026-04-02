@@ -2,9 +2,9 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
+import { ZardButtonComponent, ZardCardImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { AssistantCode } from '../../../@core'
 import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
-import { ZardButtonComponent, ZardCardImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { ClawXpertFacade } from './clawxpert.facade'
 
 @Component({
