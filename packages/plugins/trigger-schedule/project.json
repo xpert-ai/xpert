@@ -28,6 +28,7 @@
           "@nestjs/common",
           "@nestjs/config",
           "@nestjs/core",
+          "@xpert-ai/plugin-sdk",
           "@nestjs/schedule",
           "@nestjs/microservices",
           "kafkajs",

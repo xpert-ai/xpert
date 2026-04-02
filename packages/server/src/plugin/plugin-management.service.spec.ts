@@ -39,6 +39,13 @@ jest.mock('./plugin-loader', () => ({
 	loadPlugin: jest.fn()
 }))
 
+jest.mock('./plugin-sdk-versioning', () => ({
+	assertPluginSdkInstallCandidate: jest.fn(async () => ({
+		hostVersion: '3.8.4',
+		peerRange: '^3.8.0'
+	}))
+}))
+
 jest.mock('./organization-plugin.store', () => ({
 	getOrganizationPluginPath: jest.fn(() => '/tmp/plugins/demo'),
 	getOrganizationPluginRoot: jest.fn(() => '/tmp/plugins'),
@@ -61,6 +68,7 @@ jest.mock('./plugin-instance.entity', () => ({
 const { RequestContext } = require('@xpert-ai/plugin-sdk')
 const { canManageGlobalPlugins, canManageSystemPlugins } = require('./plugin-update.utils')
 const { loadPlugin } = require('./plugin-loader')
+const { assertPluginSdkInstallCandidate } = require('./plugin-sdk-versioning')
 const { registerPluginsAsync } = require('./plugin.helper')
 const { upsertPluginLoadFailure } = require('./plugin.helper')
 const { PluginManagementService } = require('./plugin-management.service')
@@ -92,6 +100,10 @@ describe('PluginManagementService', () => {
 		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(false)
 		;(canManageSystemPlugins as jest.Mock).mockReturnValue(true)
 		;(registerPluginsAsync as jest.Mock).mockResolvedValue({ modules: [], errors: [] })
+		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
+			hostVersion: '3.8.4',
+			peerRange: '^3.8.0'
+		})
 		service = new PluginManagementService(
 			loadedPlugins,
 			pluginInstanceService,
@@ -135,6 +147,12 @@ describe('PluginManagementService', () => {
 				configurationError: expect.stringContaining('apiKey')
 			})
 		)
+		expect(assertPluginSdkInstallCandidate).toHaveBeenCalledWith({
+			pluginName: '@xpert-ai/plugin-config-demo',
+			version: undefined,
+			source: 'marketplace',
+			workspacePath: undefined
+		})
 	})
 
 	it('persists a placeholder plugin record when installation fails', async () => {
@@ -166,6 +184,29 @@ describe('PluginManagementService', () => {
 				pluginName: '@xpert-ai/plugin-broken-demo'
 			})
 		)
+	})
+
+	it('rejects sdk-incompatible plugins before uninstalling the current installation', async () => {
+		;(assertPluginSdkInstallCandidate as jest.Mock).mockRejectedValue(
+			new Error('plugin-sdk peerDependencies range "^4.0.0" is incompatible with host SDK version 3.8.4')
+		)
+
+		await expect(
+			service.installPlugin({
+				pluginName: '@xpert-ai/plugin-future-demo',
+				version: '1.2.3',
+				source: 'npm'
+			})
+		).rejects.toBeInstanceOf(Error)
+
+		expect(assertPluginSdkInstallCandidate).toHaveBeenCalledWith({
+			pluginName: '@xpert-ai/plugin-future-demo',
+			version: '1.2.3',
+			source: 'npm',
+			workspacePath: undefined
+		})
+		expect((pluginInstanceService as any).uninstallByPackageName).not.toHaveBeenCalled()
+		expect(registerPluginsAsync).not.toHaveBeenCalled()
 	})
 
 	it('allows super admins to uninstall global plugins from an organization context', async () => {

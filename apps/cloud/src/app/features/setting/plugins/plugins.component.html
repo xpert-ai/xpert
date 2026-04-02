@@ -433,7 +433,7 @@
         />
       </div>
       @if (npmInstallError()) {
-        <div class="max-w-sm text-sm text-text-destructive">{{ npmInstallError() }}</div>
+        <div class="max-w-sm text-sm max-h-96 overflow-auto text-text-destructive">{{ npmInstallError() }}</div>
       }
       @if (npmInstalling()) {
         <ngm-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />

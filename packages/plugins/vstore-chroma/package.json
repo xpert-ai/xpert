@@ -14,6 +14,6 @@
   "peerDependencies": {
     "@langchain/community": "*",
     "@langchain/core": "*",
-    "@xpert-ai/plugin-sdk": "*"
+    "@xpert-ai/plugin-sdk": "^3.8.0"
   }
 }

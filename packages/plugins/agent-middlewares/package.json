@@ -11,6 +11,6 @@
   "module": "./index.js",
   "peerDependencies": {
     "@xpert-ai/chatkit-types": "^0.0.15",
-    "@xpert-ai/plugin-sdk": "*"
+    "@xpert-ai/plugin-sdk": "^3.8.0"
   }
 }

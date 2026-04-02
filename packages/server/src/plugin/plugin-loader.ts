@@ -4,6 +4,7 @@ import type { XpertPlugin } from '@xpert-ai/plugin-sdk'
 import { existsSync, readFileSync } from 'fs'
 import { createRequire } from 'node:module'
 import { join, resolve } from 'path'
+import { assertInstalledPluginSdkCompatibility, ensureHostPluginSdkLink } from './plugin-sdk-versioning'
 import { PluginLoadError } from './errors'
 
 export interface PluginLoadOptions {
@@ -131,6 +132,8 @@ export async function loadPlugin(modName: string, opts: PluginLoadOptions = {}):
 		}
 	}
 
+	ensureHostPluginSdkLink(opts.basedir)
+	assertInstalledPluginSdkCompatibility(modName, opts.basedir)
 	const m = await loadModule(modName, opts)
 	const plugin = (m?.default ?? m) as XpertPlugin
 	if (!plugin?.meta || typeof plugin.register !== 'function') {

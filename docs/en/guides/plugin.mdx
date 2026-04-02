@@ -14,6 +14,12 @@ For deployment-time plugin injection, set the `PLUGINS` environment variable.
 
 - use a comma-separated list for multiple plugins
 
+## SDK versioning
+
+- declare `@xpert-ai/plugin-sdk` in `peerDependencies`, not `dependencies`
+- use an explicit single-major range such as `^3.8.0`
+- the host validates SDK compatibility before activating a plugin and rejects packages that bundle their own SDK copy
+
 ## Plugin configuration support
 
 If a plugin needs user-managed configuration:

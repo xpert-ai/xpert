@@ -14,6 +14,12 @@
 
 - 多个插件使用英文逗号分隔
 
+## SDK 版本约束
+
+- `@xpert-ai/plugin-sdk` 只能声明在 `peerDependencies`，不要放到 `dependencies`
+- 使用明确的单 major 兼容范围，例如 `^3.8.0`
+- 宿主会在激活插件前校验 SDK 兼容性，并拒绝自带 SDK 副本的插件包
+
 ## 插件配置支持
 
 如果插件需要用户可管理配置：

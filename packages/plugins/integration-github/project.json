@@ -19,6 +19,7 @@
         "external": [
           "@nestjs/common",
           "@nestjs/core",
+          "@xpert-ai/plugin-sdk",
           "@nestjs/microservices",
           "kafkajs",
           "amqplib",
