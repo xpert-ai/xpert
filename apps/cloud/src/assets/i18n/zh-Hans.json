@@ -2446,7 +2446,7 @@
         "FilesPlaceholderTitle": "文件中心即将支持",
         "FilesPlaceholderDesc": "线程附件、可复用源文件和可检索知识资料会在后续版本汇总到这里。",
         "ConversationStatsTitle": "对话统计",
-        "ConversationStatsDesc": "展示最近 12 周你与当前 assistant 的每日消息量。",
+        "ConversationStatsDesc": "展示最近 12 周你与当前助理的每日消息量。",
         "TotalMessages": "总消息数",
         "ActiveDays": "活跃天数",
         "HeatmapLegendQuiet": "较少",

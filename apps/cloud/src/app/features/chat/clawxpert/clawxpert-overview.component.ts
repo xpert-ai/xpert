@@ -31,6 +31,7 @@ type ClawXpertHeatmapCell = {
   isFuture: boolean
   background: string
   borderColor: string
+  opacity: number
 }
 
 type ClawXpertHeatmapWeek = {
@@ -279,9 +280,9 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
                           @for (cell of week.cells; track cell.key) {
                             <div
                               class="h-5 w-5 rounded-md border transition-colors"
-                              [style.background]="cell.background"
+                              [style.background-color]="cell.background"
                               [style.border-color]="cell.borderColor"
-                              [class.opacity-60]="cell.isFuture"
+                              [style.opacity]="cell.opacity"
                               [attr.aria-label]="cell.title"
                               [attr.title]="cell.title"
                             ></div>
@@ -311,8 +312,9 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
                   @for (legendCell of heatmapLegend; track legendCell.background) {
                     <div
                       class="h-3 w-3 rounded-[4px] border"
-                      [style.background]="legendCell.background"
+                      [style.background-color]="legendCell.background"
                       [style.border-color]="legendCell.borderColor"
+                      [style.opacity]="legendCell.opacity"
                     ></div>
                   }
                   <span>{{ 'PAC.Chat.ClawXpert.HeatmapLegendBusy' | translate: { Default: 'Busy' } }}</span>
@@ -442,11 +444,12 @@ function buildHeatmapModel(
   const counts = new Map<string, number>()
 
   for (const item of series ?? []) {
-    if (!item?.date) {
+    const dateKey = normalizeHeatmapDateKey(item?.date)
+    if (!dateKey) {
       continue
     }
 
-    counts.set(item.date, Number(item.count ?? 0))
+    counts.set(dateKey, (counts.get(dateKey) ?? 0) + Number(item.count ?? 0))
   }
 
   const totalMessages = Array.from(counts.values()).reduce((sum, count) => sum + count, 0)
@@ -484,7 +487,8 @@ function buildHeatmapModel(
           title,
           isFuture,
           background: styles.background,
-          borderColor: styles.borderColor
+          borderColor: styles.borderColor,
+          opacity: styles.opacity
         }
       })
     }
@@ -531,24 +535,24 @@ function buildHeatmapCellTitle(
 function buildHeatmapStyles(level: number, isFuture: boolean) {
   if (isFuture) {
     return {
-      background: 'color-mix(in srgb, var(--color-components-toggle-bg-unchecked) 32%, transparent)',
-      borderColor: 'color-mix(in srgb, var(--color-components-toggle-bg-unchecked) 48%, transparent)'
+      background: 'var(--color-components-toggle-bg-unchecked)',
+      borderColor: 'var(--color-components-toggle-bg-unchecked)',
+      opacity: 0.24
     }
   }
 
   if (level <= 0) {
     return {
-      background: 'color-mix(in srgb, var(--color-components-toggle-bg) 10%, transparent)',
-      borderColor: 'color-mix(in srgb, var(--color-divider-regular) 75%, transparent)'
+      background: 'var(--color-components-toggle-bg-unchecked)',
+      borderColor: 'var(--color-divider-regular)',
+      opacity: 0.14
     }
   }
 
-  const fillWeight = Math.round(24 + level * 76)
-  const borderWeight = Math.round(38 + level * 62)
-
   return {
-    background: `color-mix(in srgb, var(--color-state-success-solid) ${fillWeight}%, var(--color-components-toggle-bg))`,
-    borderColor: `color-mix(in srgb, var(--color-state-success-solid) ${borderWeight}%, var(--color-divider-regular))`
+    background: 'var(--color-state-success-solid)',
+    borderColor: 'var(--color-state-success-solid)',
+    opacity: Math.min(1, Math.max(0.24, Number((0.24 + level * 0.76).toFixed(3))))
   }
 }
 
@@ -594,4 +598,24 @@ function formatDateKey(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+function normalizeHeatmapDateKey(value?: string | null) {
+  const normalizedValue = value?.trim()
+
+  if (!normalizedValue) {
+    return null
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
+    return normalizedValue
+  }
+
+  const date = new Date(normalizedValue)
+
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return formatDateKey(date)
 }
