@@ -5,9 +5,8 @@ import { Component, computed, HostListener, inject, model, signal, ViewContainer
 import { toObservable } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { attrModel, OverlayAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, nonBlank } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, nonBlank } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ChatConversationService,
@@ -40,6 +39,7 @@ import { XpertPublishVersionComponent } from './publish/publish.component'
 import { ChecklistComponent } from '@cloud/app/@shared/common'
 import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import type { ZardSliderValue } from '@xpert-ai/headless-ui'
+import { OverlayAnimations } from '@metad/core'
 
 @Component({
   selector: 'xpert-studio-header',
@@ -111,7 +111,7 @@ export class XpertStudioHeaderComponent {
     }
   })
   readonly maxConcurrency = attrModel(this.agentConfig, 'maxConcurrency')
-  readonly recursionLimit = attrModel(this.agentConfig, 'recursionLimit')
+  readonly recursionLimit = attrModel(this.agentConfig, 'recursionLimit', 1000)
 
   // Executions
   readonly xpertId$ = toObservable(this.team).pipe(

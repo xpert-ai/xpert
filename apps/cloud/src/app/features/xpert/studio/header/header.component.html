@@ -487,17 +487,17 @@
         <div class="flex items-center gap-6 w-[240px]">
           <z-slider
             class="relative slider grow"
-            min="10"
-            max="1000"
-            step="10"
+            min="100"
+            max="10000"
+            step="100"
             [showValueLabel]="true"
             [value]="recursionLimit()"
             (changeEnd)="setRecursionLimit($event)"
           ></z-slider>
           <input
-            min="10"
-            max="1000"
-            step="10"
+            min="100"
+            max="10000"
+            step="100"
             class="block w-16 h-7 leading-7 rounded-lg border-0 pl-1 px-1.5 bg-components-input-bg-normal text-text-primary placeholder:text-components-input-text-placeholder focus:ring-1 focus:ring-inset focus:ring-primary-600"
             type="number"
             [(ngModel)]="recursionLimit"
