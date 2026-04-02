@@ -1,10 +1,10 @@
 import {
-	createAgentConnections,
-	createXpertNodes,
-	IXpert,
-	LongTermMemoryTypeEnum,
-	TXpertTeamConnection,
-	TXpertTeamDraft
+    createAgentConnections,
+    createXpertNodes,
+    IXpert,
+    LongTermMemoryTypeEnum,
+    TXpertTeamConnection,
+    TXpertTeamDraft
 } from '@metad/contracts'
 import { omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
@@ -14,74 +14,72 @@ import { XpertService } from '../../xpert.service'
 import { XpertExportCommand } from '../export.command'
 
 /**
- * 
+ *
  */
 @CommandHandler(XpertExportCommand)
 export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
-	readonly #logger = new Logger(XpertExportHandler.name)
+    readonly #logger = new Logger(XpertExportHandler.name)
 
-	constructor(
-		private readonly xpertService: XpertService,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
-	) {}
+    constructor(
+        private readonly xpertService: XpertService,
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus
+    ) {}
 
-	public async execute(command: XpertExportCommand): Promise<Record<string, any>> {
-		const { id, isDraft, includeMemory } = command
+    public async execute(command: XpertExportCommand): Promise<Record<string, any>> {
+        const { id, isDraft, includeMemory } = command
 
-		const relations = isDraft ? [
-				'agent',
-				'agent.copilotModel',
-			] 
-			: [
-				'agent',
-				'agent.copilotModel',
-				'agents',
-				'agents.copilotModel',
-				'executors',
-				'executors.agent',
-				'executors.copilotModel',
-				'copilotModel',
-				'toolsets',
-				'toolsets.tools',
-				'knowledgebases'
-			]
-		const xpert = await this.xpertService.findOne(id, {relations})
+        const relations = isDraft
+            ? ['agent', 'agent.copilotModel', 'copilotModel']
+            : [
+                  'agent',
+                  'agent.copilotModel',
+                  'agents',
+                  'agents.copilotModel',
+                  'executors',
+                  'executors.agent',
+                  'executors.copilotModel',
+                  'copilotModel',
+                  'toolsets',
+                  'toolsets.tools',
+                  'knowledgebases'
+              ]
+        const xpert = await this.xpertService.findOne(id, { relations })
 
-		const draft = isDraft ? xpert.draft ?? this.getInitialDraft(xpert) : this.getInitialDraft(xpert)
-		// In some cases, there is no primary agent in the draft.
-		if (!draft.team.agent) {
-			draft.team.agent = xpert.agent
-		}
-		
-		const dto = new XpertDraftDslDTO(draft)
-		if (includeMemory) {
-			const result = await this.xpertService.findAllMemory(id, [LongTermMemoryTypeEnum.QA])
-			dto.memories = result.items.map((memory) => new MemoryDslDTO(memory))
-		}
-		
-		return dto
-	}
+        const draft = isDraft ? (xpert.draft ?? this.getInitialDraft(xpert)) : this.getInitialDraft(xpert)
+        // In some cases, there is no primary agent in the draft.
+        if (!draft.team.agent) {
+            draft.team.agent = xpert.agent
+        }
 
-	getInitialDraft(xpert: IXpert) {
-		return {
-			team: {
-				...omit(xpert, 'agents'),
-				id: xpert.id
-			},
-			nodes: xpert.graph?.nodes ?? createXpertNodes(xpert, { x: 0, y: 0 }).nodes,
-			connections: xpert.graph?.connections ?? this.makeConnections(xpert)
-		} as TXpertTeamDraft
-	}
+        const dto = new XpertDraftDslDTO(draft)
+        if (includeMemory) {
+            const result = await this.xpertService.findAllMemory(id, [LongTermMemoryTypeEnum.QA])
+            dto.memories = result.items.map((memory) => new MemoryDslDTO(memory))
+        }
 
-	makeConnections(xpert: IXpert): TXpertTeamConnection[] {
-		const connections: TXpertTeamConnection[] = []
+        return dto
+    }
 
-		connections.push(...createAgentConnections(xpert.agent, xpert.executors))
-		for (const agent of xpert.agents ?? []) {
-			connections.push(...createAgentConnections(agent, xpert.executors))
-		}
+    getInitialDraft(xpert: IXpert) {
+        return {
+            team: {
+                ...omit(xpert, 'agents'),
+                id: xpert.id
+            },
+            nodes: xpert.graph?.nodes ?? createXpertNodes(xpert, { x: 0, y: 0 }).nodes,
+            connections: xpert.graph?.connections ?? this.makeConnections(xpert)
+        } as TXpertTeamDraft
+    }
 
-		return connections
-	}
+    makeConnections(xpert: IXpert): TXpertTeamConnection[] {
+        const connections: TXpertTeamConnection[] = []
+
+        connections.push(...createAgentConnections(xpert.agent, xpert.executors))
+        for (const agent of xpert.agents ?? []) {
+            connections.push(...createAgentConnections(agent, xpert.executors))
+        }
+
+        return connections
+    }
 }
