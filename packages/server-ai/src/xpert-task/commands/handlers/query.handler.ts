@@ -39,7 +39,7 @@ export class QueryXpertTaskHandler implements ICommandHandler<QueryXpertTaskComm
 				deletedAt: task.deletedAt,
 			}
 			try {
-				const job = this.schedulerRegistry.getCronJob(task.name)
+				const job = this.schedulerRegistry.getCronJob(task.id)
 				return {
 					..._task,
 					job

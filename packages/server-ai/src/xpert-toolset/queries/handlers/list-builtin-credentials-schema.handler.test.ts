@@ -1,5 +1,6 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { QueryBus } from '@nestjs/cqrs'
+import { ToolsetRegistry } from '@xpert-ai/plugin-sdk'
 import { ListBuiltinCredentialsSchemaHandler } from './list-builtin-credentials-schema.handler'
 import { ListBuiltinCredentialsSchemaQuery } from '../list-builtin-credentials-schema.query'
 import { ToolProviderNotFoundError } from '../../errors'
@@ -16,6 +17,14 @@ describe('ListBuiltinCredentialsSchemaHandler', () => {
           provide: QueryBus,
           useValue: {
             execute: jest.fn()
+          }
+        },
+        {
+          provide: ToolsetRegistry,
+          useValue: {
+            get: jest.fn(() => {
+              throw new Error('not a plugin toolset')
+            })
           }
         }
       ]
