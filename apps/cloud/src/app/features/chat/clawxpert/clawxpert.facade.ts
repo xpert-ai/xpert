@@ -7,25 +7,33 @@ import { ChatKitControl } from '@xpert-ai/chatkit-angular'
 import { firstValueFrom, of } from 'rxjs'
 import { catchError, filter, map, startWith, switchMap } from 'rxjs/operators'
 import {
+  EnvironmentService,
   AssistantBindingScope,
   AssistantBindingService,
   AssistantCode,
   IAssistantBinding,
   IAssistantBindingUserPreference,
   IAssistantBindingUserPreferenceUpsertInput,
+  IWFNTrigger,
   IXpert,
   IXpertTask,
   OrderTypeEnum,
   Store,
+  TWorkflowTriggerMeta,
+  TXpertTeamDraft,
+  TXpertTeamNode,
+  WorkflowNodeTypeEnum,
   ToastrService,
   XpertAPIService,
   XpertTaskService,
   getErrorMessage
 } from '../../../@core'
+import { CHAT_WORKFLOW_TRIGGER_PROVIDER, WorkflowTriggerProviderOption } from '../../../@shared/workflow'
 import {
   sanitizeAssistantFrameUrl
 } from '../../assistant/assistant-chatkit.runtime'
 import { getAssistantRegistryItem } from '../../assistant/assistant.registry'
+import { buildEditableXpertDraft } from '../../xpert/editable-draft.util'
 
 export type ClawXpertViewState = 'organization-required' | 'wizard' | 'ready' | 'error'
 
@@ -39,15 +47,34 @@ type ClawXpertTaskSummary = {
   total: number
 }
 
+export type ClawXpertTriggerEditorItem = {
+  nodeKey: string
+  provider: WorkflowTriggerProviderOption
+  config?: Record<string, unknown> | null
+}
+
 type XpertCollection = IXpert[] | { items?: IXpert[] } | null | undefined
 
 const HEATMAP_DAY_COUNT = 84
 const ALL_TIME_START = '2000-01-01'
+const CLAWXPERT_PUBLISH_RELEASE_NOTES = 'Published from ClawXpert workspace.'
+const XPERT_TEAM_RELATIONS = [
+  'agent',
+  'agent.copilotModel',
+  'agents',
+  'agents.copilotModel',
+  'executors',
+  'executors.agent',
+  'executors.copilotModel',
+  'copilotModel',
+  'knowledgebase'
+]
 
 @Injectable()
 export class ClawXpertFacade {
   #loadRequestId = 0
   #preferenceLoadRequestId = 0
+  #triggerDraftLoadRequestId = 0
   #nullThreadChangeGuard: { threadId: string | null; expiresAt: number } = {
     threadId: null,
     expiresAt: 0
@@ -58,6 +85,7 @@ export class ClawXpertFacade {
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly #router = inject(Router)
+  readonly #environmentService = inject(EnvironmentService)
   readonly #xpertService = inject(XpertAPIService)
   readonly #taskService = inject(XpertTaskService)
 
@@ -82,11 +110,21 @@ export class ClawXpertFacade {
   readonly clearing = signal(false)
   readonly loadingUserPreference = signal(false)
   readonly savingUserPreference = signal(false)
+  readonly loadingTriggerDraft = signal(false)
+  readonly savingTriggerDraft = signal(false)
+  readonly publishingXpert = signal(false)
   readonly showWizard = signal(false)
   readonly pendingConversationStartId = signal(0)
   readonly errorMessage = signal<string | null>(null)
+  readonly triggerDraftErrorMessage = signal<string | null>(null)
   readonly hasLoadedXperts = signal(false)
+  readonly triggerDraftSource = signal<IXpert | null>(null)
+  readonly triggerDraft = signal<TXpertTeamDraft | null>(null)
   readonly chatkitFrameUrl = computed(() => sanitizeAssistantFrameUrl(environment.CHATKIT_FRAME_URL))
+  readonly triggerProviders = toSignal(
+    this.#xpertService.getTriggerProviders().pipe(catchError(() => of([] as TWorkflowTriggerMeta[]))),
+    { initialValue: [] as TWorkflowTriggerMeta[] }
+  )
   readonly resolvedPreference = computed(() => {
     const preference = this.preference()
     if (!preference) {
@@ -184,6 +222,61 @@ export class ClawXpertFacade {
   )
   readonly recentTasks = computed(() => this.taskSummary().items ?? [])
   readonly taskCount = computed(() => this.taskSummary().total ?? this.recentTasks().length)
+  readonly triggerProviderOptions = computed<WorkflowTriggerProviderOption[]>(() => {
+    const deduped = new Map<string, WorkflowTriggerProviderOption>()
+
+    for (const provider of [CHAT_WORKFLOW_TRIGGER_PROVIDER, ...this.triggerProviders()]) {
+      const name = provider?.name?.trim()
+      if (!name || deduped.has(name)) {
+        continue
+      }
+
+      deduped.set(name, {
+        ...provider,
+        name
+      })
+    }
+
+    return Array.from(deduped.values())
+  })
+  readonly triggerEditorItems = computed<ClawXpertTriggerEditorItem[]>(() => {
+    const providerMap = new Map(this.triggerProviderOptions().map((provider) => [provider.name, provider]))
+
+    return (this.triggerDraft()?.nodes ?? [])
+      .filter(
+        (node): node is TXpertTeamNode<'workflow'> =>
+          node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.TRIGGER
+      )
+      .map((node) => {
+        const trigger = node.entity as IWFNTrigger
+        const providerName = `${trigger.from ?? 'chat'}`.trim() || 'chat'
+
+        return {
+          node,
+          providerName,
+          trigger
+        }
+      })
+      .filter(({ providerName }) => providerName !== 'chat')
+      .map(({ node, providerName, trigger }) => {
+        const provider =
+          providerMap.get(providerName) ??
+          ({
+            name: providerName,
+            label: {
+              en_US: providerName,
+              zh_Hans: providerName
+            }
+          } satisfies WorkflowTriggerProviderOption)
+
+        return {
+          nodeKey: node.key,
+          provider,
+          config: cloneTriggerConfig(trigger.config)
+        }
+      })
+  })
+  readonly hasPersistedDraft = computed(() => !!this.triggerDraftSource()?.draft)
 
   constructor() {
     effect(() => {
@@ -199,6 +292,12 @@ export class ClawXpertFacade {
         this.hasLoadedXperts.set(false)
         this.loading.set(false)
         this.loadingUserPreference.set(false)
+        this.loadingTriggerDraft.set(false)
+        this.savingTriggerDraft.set(false)
+        this.publishingXpert.set(false)
+        this.triggerDraftErrorMessage.set(null)
+        this.triggerDraftSource.set(null)
+        this.triggerDraft.set(null)
         return
       }
 
@@ -217,6 +316,25 @@ export class ClawXpertFacade {
       }
 
       void this.loadUserPreference()
+    })
+
+    effect(() => {
+      const organizationId = this.organizationId()
+      const xpertId = this.xpertId()
+      const viewState = this.viewState()
+
+      if (!organizationId || !xpertId || viewState !== 'ready') {
+        this.#triggerDraftLoadRequestId++
+        this.loadingTriggerDraft.set(false)
+        this.savingTriggerDraft.set(false)
+        this.publishingXpert.set(false)
+        this.triggerDraftErrorMessage.set(null)
+        this.triggerDraftSource.set(null)
+        this.triggerDraft.set(null)
+        return
+      }
+
+      void this.loadTriggerDraft(xpertId)
     })
   }
 
@@ -351,6 +469,108 @@ export class ClawXpertFacade {
       return null
     } finally {
       this.savingUserPreference.set(false)
+    }
+  }
+
+  async saveTriggerDraft(items: ClawXpertTriggerEditorItem[]) {
+    const draft = this.triggerDraft()
+    const xpertId = draft?.team?.id ?? this.xpertId()
+
+    if (!draft || !xpertId) {
+      return null
+    }
+
+    const configByNodeKey = new Map(items.map((item) => [item.nodeKey, cloneTriggerConfig(item.config)]))
+    const nextDraft: TXpertTeamDraft = {
+      ...draft,
+      team: {
+        ...draft.team
+      },
+      nodes: draft.nodes.map((node) => {
+        if (node.type !== 'workflow' || node.entity.type !== WorkflowNodeTypeEnum.TRIGGER || !configByNodeKey.has(node.key)) {
+          return node
+        }
+
+        return {
+          ...node,
+          entity: {
+            ...node.entity,
+            config: cloneTriggerConfig(configByNodeKey.get(node.key))
+          }
+        }
+      }),
+      connections: [...(draft.connections ?? [])]
+    }
+
+    this.savingTriggerDraft.set(true)
+    try {
+      const savedDraft = (await firstValueFrom(this.#xpertService.saveDraft(xpertId, nextDraft))) as TXpertTeamDraft
+
+      this.triggerDraft.set(savedDraft)
+      this.triggerDraftSource.update((state) => (state ? ({ ...state, draft: savedDraft } as IXpert) : state))
+      this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+
+      return savedDraft
+    } catch (error) {
+      this.#toastr.error(
+        getErrorMessage(error) ||
+          this.#translate.instant('PAC.Chat.ClawXpert.TriggerDraftSaveFailed', {
+            Default: 'Failed to save the ClawXpert trigger draft.'
+          })
+      )
+      return null
+    } finally {
+      this.savingTriggerDraft.set(false)
+    }
+  }
+
+  async publishXpert() {
+    const xpert = this.triggerDraftSource() ?? this.currentXpert()
+    const xpertId = xpert?.id ?? this.xpertId()
+
+    if (!xpertId || !xpert?.draft) {
+      return null
+    }
+
+    this.publishingXpert.set(true)
+    try {
+      const workspaceId = xpert.workspaceId ?? null
+      const environment = workspaceId
+        ? await firstValueFrom(this.#environmentService.getDefaultByWorkspace(workspaceId).pipe(catchError(() => of(null))))
+        : null
+      const publishedXpert = (await firstValueFrom(
+        this.#xpertService.publish(xpertId, false, {
+          environmentId: environment?.id ?? null,
+          releaseNotes: CLAWXPERT_PUBLISH_RELEASE_NOTES
+        })
+      )) as IXpert
+
+      const nextXpert = {
+        ...(this.triggerDraftSource() ?? {}),
+        ...(publishedXpert ?? {}),
+        draft: null
+      } as IXpert
+
+      this.mergeAvailableXpert(nextXpert)
+      this.triggerDraftSource.set(nextXpert)
+      this.triggerDraft.set(buildEditableXpertDraft(nextXpert))
+      this.#toastr.success(
+        'PAC.Xpert.PublishedSuccessfully',
+        { Default: 'Published successfully' },
+        publishedXpert?.version ? `v${publishedXpert.version}` : undefined
+      )
+
+      return publishedXpert
+    } catch (error) {
+      this.#toastr.error(
+        getErrorMessage(error) ||
+          this.#translate.instant('PAC.Chat.ClawXpert.PublishFailed', {
+            Default: 'Failed to publish the current ClawXpert xpert.'
+          })
+      )
+      return null
+    } finally {
+      this.publishingXpert.set(false)
     }
   }
 
@@ -558,6 +778,42 @@ export class ClawXpertFacade {
       }
     }
   }
+
+  private async loadTriggerDraft(xpertId: string) {
+    const requestId = ++this.#triggerDraftLoadRequestId
+    this.loadingTriggerDraft.set(true)
+    this.triggerDraftErrorMessage.set(null)
+
+    try {
+      const xpert = (await firstValueFrom(
+        this.#xpertService.getTeam(xpertId, { relations: [...XPERT_TEAM_RELATIONS] })
+      )) as IXpert
+
+      if (requestId !== this.#triggerDraftLoadRequestId) {
+        return
+      }
+
+      this.triggerDraftSource.set(xpert ?? null)
+      this.triggerDraft.set(xpert ? buildEditableXpertDraft(xpert) : null)
+    } catch (error) {
+      if (requestId !== this.#triggerDraftLoadRequestId) {
+        return
+      }
+
+      this.triggerDraftSource.set(null)
+      this.triggerDraft.set(null)
+      this.triggerDraftErrorMessage.set(
+        getErrorMessage(error) ||
+          this.#translate.instant('PAC.Chat.ClawXpert.TriggerDraftLoadFailedDesc', {
+            Default: 'Failed to load the bound xpert draft for trigger configuration.'
+          })
+      )
+    } finally {
+      if (requestId === this.#triggerDraftLoadRequestId) {
+        this.loadingTriggerDraft.set(false)
+      }
+    }
+  }
 }
 
 function normalizeClawXpertPath(url: string) {
@@ -587,6 +843,14 @@ function calculateBoundDays(createdAt?: Date | string | null) {
   const now = new Date()
   const diffMs = now.getTime() - start.getTime()
   return Math.max(1, Math.floor(diffMs / 86400000) + 1)
+}
+
+function cloneTriggerConfig<T>(value: T): T {
+  if (value == null || typeof value !== 'object') {
+    return value
+  }
+
+  return JSON.parse(JSON.stringify(value)) as T
 }
 
 function buildAllTimeRange() {

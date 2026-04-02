@@ -1,4 +1,4 @@
-import { JsonSchemaObjectType } from '../../../../@core'
+import { JsonSchemaObjectType } from '../../../@core'
 
 type JsonSchemaLike = JsonSchemaObjectType | Record<string, any> | null | undefined
 

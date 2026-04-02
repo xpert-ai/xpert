@@ -42,7 +42,7 @@ import {
   TXpertTeamDraft,
   TXpertTeamNode,
 } from '../../../../@core/types'
-import { CreateConnectionHandler, CreateConnectionRequest, RemoveConnectionHandler, RemoveConnectionRequest, ToConnectionViewModelHandler } from './connection'
+import { CreateConnectionHandler, CreateConnectionRequest, RemoveConnectionHandler, RemoveConnectionRequest } from './connection'
 import { LayoutHandler, LayoutRequest } from './layout'
 import {
   CreateNodeHandler,
@@ -53,7 +53,6 @@ import {
   RemoveNodeRequest,
   ReplaceNodeHandler,
   ReplaceNodeRequest,
-  ToNodeViewModelHandler,
   UpdateAgentHandler,
   UpdateAgentRequest,
   UpdateNodeHandler,
@@ -64,6 +63,7 @@ import { CreateTeamHandler, CreateTeamRequest, ExpandTeamRequest, ExpandTeamHand
 import { genAgentKey, genWorkflowKey, injectGetXpertsByWorkspace, injectGetXpertTeam } from '../../utils'
 import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNodeHandler, UpdateWorkflowNodeRequest } from './workflow'
 import { XpertService } from '../../xpert/xpert.service'
+import { buildEditableXpertDraft } from '../../editable-draft.util'
 
 const SaveDraftDebounceTime = 1 // s
 
@@ -294,28 +294,14 @@ export class XpertStudioApiService {
   }
   
   getInitialDraft() {
-    const xpert = this.team()
-    return {
-      team: {
-        ...omit(xpert, 'agents'),
-        id: xpert.id
-      },
-      ...(xpert.graph ?? {
-        nodes: new ToNodeViewModelHandler(xpert).handle().nodes,
-        connections: new ToConnectionViewModelHandler(xpert).handle()
-      }),
-    } as TXpertTeamDraft
+    return buildEditableXpertDraft(this.team())
   }
 
   public initRole(xpert: IXpert) {
     this.team.set(xpert)
 
     this.store.update(() => ({
-      draft: xpert.draft ? {
-        team: xpert.draft.team ?? omit(xpert, 'agents'),
-        nodes: xpert.draft.nodes ?? xpert.graph?.nodes ?? new ToNodeViewModelHandler(xpert).handle().nodes,
-        connections: xpert.draft.connections ?? xpert.graph?.connections ?? new ToConnectionViewModelHandler(xpert).handle()
-      } : this.getInitialDraft()
+      draft: buildEditableXpertDraft(xpert)
     }))
 
     this.#reload.next(EReloadReason.INIT)

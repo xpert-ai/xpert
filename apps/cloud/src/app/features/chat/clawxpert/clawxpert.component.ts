@@ -9,7 +9,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
   providers: [ClawXpertFacade],
   imports: [CommonModule, RouterModule],
   template: `
-    <div class="h-full overflow-hidden p-4">
+    <div class="h-full overflow-hidden">
       <router-outlet />
     </div>
   `

@@ -7,6 +7,7 @@ import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertPreferencesEditorComponent } from './clawxpert-preferences-editor.component'
 import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.component'
+import { ClawXpertTriggerConfigEditorComponent } from './clawxpert-trigger-config-editor.component'
 
 type ClawXpertMetric = {
   labelKey: string
@@ -60,9 +61,14 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
     ZardIconComponent,
     EmojiAvatarComponent,
     ClawXpertPreferencesEditorComponent,
+    ClawXpertTriggerConfigEditorComponent,
     ClawXpertSetupWizardComponent,
     ...ZardCardImports
   ],
+  styles: [`
+    :host {
+      @apply block relative h-full overflow-auto;
+    }`],
   template: `
     <div class="h-full min-h-0">
       @if (facade.loading()) {
@@ -104,8 +110,8 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
       } @else if (facade.viewState() === 'wizard') {
         <pac-clawxpert-setup-wizard class="block h-full" />
       } @else {
-        <div class="grid min-h-0 gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <div class="flex h-full min-h-0 flex-col gap-5 overflow-auto p-6">
+        <div class="flex">
+          <div class="w-100 flex h-full min-h-0 flex-col gap-5 overflow-auto p-6 sticky top-0 z-10">
             <div class="flex items-start gap-4">
               <emoji-avatar
                 class="shrink-0 overflow-hidden rounded-[2rem] border border-divider-regular bg-background-default-subtle text-2xl shadow-sm"
@@ -184,18 +190,35 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
               }
             </div>
 
-            <button
-              z-button
-              zType="default"
-              color="primary"
-              type="button"
-              class="w-full"
-              [disabled]="facade.viewState() !== 'ready'"
-              (click)="startConversation()"
-            >
-              <z-icon zType="chat"></z-icon>
-              {{ 'PAC.Chat.ClawXpert.GoToChat' | translate: { Default: 'Go to chat' } }}
-            </button>
+            <div class="grid gap-2" [class.grid-cols-2]="facade.hasPersistedDraft()">
+              <button
+                z-button
+                zType="default"
+                color="primary"
+                type="button"
+                class="w-full"
+                [disabled]="facade.viewState() !== 'ready' || facade.publishingXpert()"
+                (click)="startConversation()"
+              >
+                <z-icon zType="chat"></z-icon>
+                {{ 'PAC.Chat.ClawXpert.GoToChat' | translate: { Default: 'Go to chat' } }}
+              </button>
+
+              @if (facade.hasPersistedDraft()) {
+                <button
+                  z-button
+                  zType="outline"
+                  color="primary"
+                  type="button"
+                  class="w-full"
+                  [disabled]="facade.viewState() !== 'ready' || facade.publishingXpert() || facade.loadingTriggerDraft()"
+                  (click)="publishXpert()"
+                >
+                  <z-icon zType="upload"></z-icon>
+                  {{ 'PAC.Xpert.Publish' | translate: { Default: 'Publish' } }}
+                </button>
+              }
+            </div>
 
             <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4">
               <div class="flex items-start justify-between gap-3">
@@ -296,29 +319,9 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
             </div>
           </div>
 
-          <div class="grid min-h-0 gap-4 xl:grid-rows-[minmax(0,1fr)_13rem]">
-            <pac-clawxpert-preferences-editor class="min-h-0" />
-
-            <z-card class="rounded-3xl border border-dashed border-divider-regular shadow-none">
-              <z-card-content class="flex h-full flex-col justify-center px-6">
-                <div class="flex items-center gap-2 text-sm font-medium text-text-primary">
-                  <z-icon zType="deployed_code_history"></z-icon>
-                  {{
-                    'PAC.Chat.ClawXpert.LowerPlaceholderTitle' | translate: { Default: 'More panels are reserved here' }
-                  }}
-                </div>
-                <p class="mt-3 text-sm leading-6 text-text-secondary">
-                  {{
-                    'PAC.Chat.ClawXpert.LowerPlaceholderOverviewDesc'
-                      | translate
-                        : {
-                            Default:
-                              'The lower-right area stays as a placeholder for the next batch of ClawXpert workspace capabilities.'
-                          }
-                  }}
-                </p>
-              </z-card-content>
-            </z-card>
+          <div class="flex-1 min-h-0 p-4 flex flex-col gap-4">
+            <pac-clawxpert-preferences-editor />
+            <pac-clawxpert-trigger-config-editor />
           </div>
         </div>
       }
@@ -393,6 +396,10 @@ export class ClawXpertOverviewComponent {
 
   startConversation() {
     void this.facade.startConversation()
+  }
+
+  publishXpert() {
+    void this.facade.publishXpert()
   }
 
   openWizard() {
