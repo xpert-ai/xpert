@@ -161,7 +161,7 @@ const PREFERENCE_TABS: PreferenceTab[] = [
                     zType="outline"
                     type="button"
                     displayDensity="cosy"
-                    [disabled]="facade.savingUserPreference() || !form.dirty"
+                    [disabled]="facade.savingUserPreference() || !activeControl().dirty"
                     (click)="reset()"
                   >
                     {{ 'PAC.Common.Reset' | translate: { Default: 'Reset' } }}
@@ -172,7 +172,7 @@ const PREFERENCE_TABS: PreferenceTab[] = [
                     color="primary"
                     type="button"
                     displayDensity="cosy"
-                    [disabled]="facade.savingUserPreference()"
+                    [disabled]="facade.savingUserPreference() || !activeControl().dirty"
                     (click)="save()"
                   >
                     {{ 'PAC.Chat.ClawXpert.SaveDocs' | translate: { Default: 'Save markdown' } }}
@@ -195,6 +195,9 @@ export class ClawXpertPreferencesEditorComponent {
   readonly form = this.#formBuilder.nonNullable.group({
     soul: [''],
     profile: ['']
+  })
+  readonly activeControl = computed(() => {
+    return this.activeTab() === 'behavior' ? this.form.controls.soul : this.form.controls.profile
   })
   readonly activeTabMeta = computed(() => {
     return this.tabs.find((tab) => tab.key === this.activeTab()) ?? this.tabs[0]
