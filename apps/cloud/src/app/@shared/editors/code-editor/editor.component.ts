@@ -1,11 +1,20 @@
-
-import { afterNextRender, booleanAttribute, ChangeDetectorRef, Component, computed, inject, input, signal } from '@angular/core'
+import {
+  afterNextRender,
+  booleanAttribute,
+  ChangeDetectorRef,
+  Component,
+  computed,
+  inject,
+  input,
+  signal
+} from '@angular/core'
 import { ControlValueAccessor, FormsModule } from '@angular/forms'
 import { NgmResizableDirective } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { distinctUntilChanged } from 'rxjs'
+import { AppService } from '../../../app.service'
 
 @Component({
   standalone: true,
@@ -16,9 +25,9 @@ import { distinctUntilChanged } from 'rxjs'
   hostDirectives: [NgxControlValueAccessor]
 })
 export class CodeEditorComponent implements ControlValueAccessor {
-
   protected cva = inject<NgxControlValueAccessor<string | null>>(NgxControlValueAccessor)
   readonly #cdr = inject(ChangeDetectorRef)
+  readonly #appService = inject(AppService)
 
   // Inputs
   readonly fileName = input<string>()
@@ -38,7 +47,6 @@ export class CodeEditorComponent implements ControlValueAccessor {
 
   // States
   readonly defaultOptions = {
-    theme: 'vs',
     automaticLayout: true,
     language: 'markdown',
     glyphMargin: 0,
@@ -47,10 +55,14 @@ export class CodeEditorComponent implements ControlValueAccessor {
     }
   }
 
+  readonly editorTheme = computed(() => (this.#appService.theme$().primary?.startsWith('dark') ? 'vs-dark' : 'vs'))
+
   readonly editorOptions = computed(() => {
     return {
       ...this.defaultOptions,
-      language: this.language() || (this.fileName() ? this.mapFileLanguage(this.fileName()) : this.defaultOptions.language),
+      theme: this.editorTheme(),
+      language:
+        this.language() || (this.fileName() ? this.mapFileLanguage(this.fileName()) : this.defaultOptions.language),
       readOnly: this.readonly() || !this.editable(),
       lineNumbers: this.lineNumbers() ? 'on' : 'off',
       wordWrap: this.wordWrap()
@@ -72,7 +84,7 @@ export class CodeEditorComponent implements ControlValueAccessor {
       setTimeout(() => {
         this.#editor()?.layout()
         this.#cdr.detectChanges()
-      }, 600);
+      }, 600)
     })
   }
 

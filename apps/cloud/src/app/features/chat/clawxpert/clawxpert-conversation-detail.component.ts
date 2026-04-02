@@ -14,12 +14,12 @@ import { ClawXpertFacade } from './clawxpert.facade'
   template: `
     <div [class]="workspaceLayoutClasses()">
       @if (showDetailPanel()) {
-        <section class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-divider-regular bg-components-card-bg shadow-sm">
+        <section class="flex min-h-0 flex-col overflow-hidden">
           <div class="min-h-0 flex-1"></div>
         </section>
       }
 
-      <section class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-divider-regular bg-components-card-bg shadow-sm">
+      <section class="flex min-h-0 flex-col overflow-hidden">
         <div class="flex items-start justify-between gap-4 border-b border-divider-regular px-5 py-4">
           <div>
             <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
