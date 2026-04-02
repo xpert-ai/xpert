@@ -1,9 +1,8 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { CdkMenuModule } from '@angular/cdk/menu'
-import { CommonModule, Location } from '@angular/common';
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
+import { CommonModule, Location } from '@angular/common'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, input, output, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { Router, RouterModule } from '@angular/router'
+import { RouterModule } from '@angular/router'
 import { XpertInlineProfileComponent } from '@cloud/app/@shared/xpert'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { myRxResource } from '@metad/ocap-angular/core'
@@ -22,7 +21,7 @@ import {
 } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { sortBy } from 'lodash-es'
-import { XpertTaskDialogComponent } from '@cloud/app/@shared/chat'
+import { XpertTaskDialogComponent, XpertTaskDialogService } from '@cloud/app/@shared/chat'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({
@@ -32,7 +31,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     FormsModule,
     ReactiveFormsModule,
     RouterModule,
-    CdkMenuModule,
     TranslateModule,
     ...ZardTooltipImports,
     NgmCommonModule,
@@ -51,9 +49,12 @@ export class ChatTasksComponent {
   readonly taskService = inject(XpertTaskService)
   readonly #toastr = injectToastr()
   readonly dialog = inject(Dialog)
-  readonly router = inject(Router)
+  readonly #taskDialog = inject(XpertTaskDialogService)
   readonly #location = inject(Location)
   readonly paramId = injectParams('id')
+  readonly embedded = input(false)
+  readonly xpertId = input<string | null>(null)
+  readonly tasksChanged = output<void>()
 
   // Refresh debounce 5 seconds
   readonly #refresh$ = new BehaviorSubject<void>(null)
@@ -61,14 +62,27 @@ export class ChatTasksComponent {
   // Refresh immediately
   readonly _refresh = signal({})
   readonly tasks = derivedAsync(
-    () =>
-      this._refresh() &&
-      this.refresh$.pipe(
+    () => {
+      this._refresh()
+      const xpertId = this.xpertId()
+
+      return this.refresh$.pipe(
         switchMap(() =>
-          this.taskService.getMyAll({ relations: ['xpert', 'conversations'], order: { updatedAt: OrderTypeEnum.DESC } })
+          this.taskService.getMyAll({
+            relations: ['xpert', 'conversations'],
+            order: { updatedAt: OrderTypeEnum.DESC },
+            ...(xpertId
+              ? {
+                  where: {
+                    xpertId
+                  } as never
+                }
+              : {})
+          })
         ),
         map(({ items }) => items)
       )
+    }
   )
 
   readonly scheduledTasks = derivedAsync(() =>
@@ -102,15 +116,21 @@ export class ChatTasksComponent {
   readonly loading = signal(false)
 
   constructor() {
-    effect(
-      () => {
-        if (this.paramId()) {
-          this.taskId.set(this.paramId())
-        }
+    effect(() => {
+      if (this.embedded()) {
+        return
       }
-    )
+
+      if (this.paramId()) {
+        this.taskId.set(this.paramId())
+      }
+    })
 
     effect(() => {
+      if (this.embedded()) {
+        return
+      }
+
       if (this.taskId() && this.taskId() !== this.paramId()) {
         this.#location.replaceState('/chat/tasks/' + this.taskId())
       }
@@ -140,7 +160,7 @@ export class ChatTasksComponent {
       .closed.subscribe({
         next: (task) => {
           if (task) {
-            this._refresh.set({})
+            this.refreshTasks()
           }
         }
       })
@@ -151,7 +171,7 @@ export class ChatTasksComponent {
     this.taskService.pause(task.id).subscribe({
       next: () => {
         this.loading.set(false)
-        this._refresh.set({})
+        this.refreshTasks()
       },
       error: (err) => {
         this.loading.set(false)
@@ -165,7 +185,7 @@ export class ChatTasksComponent {
     this.taskService.schedule(task.id).subscribe({
       next: () => {
         this.loading.set(false)
-        this._refresh.set({})
+        this.refreshTasks()
       },
       error: (err) => {
         this.loading.set(false)
@@ -179,7 +199,7 @@ export class ChatTasksComponent {
     this.taskService.archive(task.id).subscribe({
       next: () => {
         this.loading.set(false)
-        this._refresh.set({})
+        this.refreshTasks()
       },
       error: (err) => {
         this.loading.set(false)
@@ -188,23 +208,17 @@ export class ChatTasksComponent {
     })
   }
 
-  viewAllTaks() {
-    this.router.navigate(['/chat/tasks'])
-  }
-
   newTask() {
-    this.dialog
-      .open<IXpertTask>(XpertTaskDialogComponent, {
-        data: { total: this.scheduledTasks()?.length },
-        disableClose: true,
-        backdropClass: 'xp-overlay-share-sheet',
-        panelClass: 'xp-overlay-pane-share-sheet'
+    this.#taskDialog
+      .openCreateTask({
+        total: this.scheduledTasks()?.length,
+        xpertId: this.xpertId(),
+        lockXpertSelection: !!this.xpertId()
       })
       .closed.subscribe({
         next: (task) => {
           if (task?.id) {
-            this.taskId.set(task.id)
-            this._refresh.set({})
+            this.refreshTasks(task.id)
           }
         }
       })
@@ -215,12 +229,21 @@ export class ChatTasksComponent {
     this.taskService.test(task.id).subscribe({
       next: () => {
         this.loading.set(false)
-        this._refresh.set({})
+        this.refreshTasks()
       },
       error: (err) => {
         this.loading.set(false)
         this.#toastr.error(getErrorMessage(err))
       }
     })
+  }
+
+  private refreshTasks(taskId?: string) {
+    if (taskId) {
+      this.taskId.set(taskId)
+    }
+
+    this._refresh.set({})
+    this.tasksChanged.emit()
   }
 }

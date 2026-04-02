@@ -23,13 +23,19 @@
 <div class="relative gap-3 flex flex-col px-6">
   <xp-schedule-form [(ngModel)]="options" />
 
-  <button class="flex justify-start items-center gap-2 border-solid border-[0.5px] border-input-border rounded-xl p-2 disabled:text-text-secondary disabled:shadow-none disabled:cursor-not-allowed"
-    [cdkMenuTriggerFor]="xpertsMenu">
+  <button
+    class="flex justify-start items-center gap-2 border-solid border-[0.5px] border-input-border rounded-xl p-2 disabled:text-text-secondary disabled:shadow-none disabled:cursor-not-allowed"
+    [disabled]="lockXpertSelection()"
+    [cdkMenuTriggerFor]="lockXpertSelection() ? null : xpertsMenu"
+  >
     <i class="ri-links-line ml-1 text-lg"></i>
     <emoji-avatar [avatar]="xpert()?.avatar" xs class="shrink-0 rounded-lg overflow-hidden" />
     <span>
       {{ xpert()?.title || xpert()?.name || ('PAC.Xpert.SelectExpert' | translate: {Default: 'Select Expert'}) }}
     </span>
+    @if (lockXpertSelection()) {
+      <i class="ri-lock-line ml-auto text-text-tertiary"></i>
+    }
   </button>
 
   <textarea

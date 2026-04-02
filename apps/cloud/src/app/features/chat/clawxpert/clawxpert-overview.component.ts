@@ -6,6 +6,7 @@ import { IXpert } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertPreferencesEditorComponent } from './clawxpert-preferences-editor.component'
+import { ClawXpertScheduledTasksComponent } from './clawxpert-scheduled-tasks.component'
 import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.component'
 import { ClawXpertTriggerConfigEditorComponent } from './clawxpert-trigger-config-editor.component'
 
@@ -61,6 +62,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
     ZardIconComponent,
     EmojiAvatarComponent,
     ClawXpertPreferencesEditorComponent,
+    ClawXpertScheduledTasksComponent,
     ClawXpertTriggerConfigEditorComponent,
     ClawXpertSetupWizardComponent,
     ...ZardCardImports
@@ -322,6 +324,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
           <div class="flex-1 min-h-0 p-4 flex flex-col gap-4">
             <pac-clawxpert-preferences-editor />
             <pac-clawxpert-trigger-config-editor />
+            <pac-clawxpert-scheduled-tasks />
           </div>
         </div>
       }

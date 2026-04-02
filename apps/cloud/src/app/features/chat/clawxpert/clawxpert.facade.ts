@@ -18,6 +18,7 @@ import {
   IXpert,
   IXpertTask,
   OrderTypeEnum,
+  ScheduleTaskStatus,
   Store,
   TWorkflowTriggerMeta,
   TXpertTeamDraft,
@@ -115,6 +116,7 @@ export class ClawXpertFacade {
   readonly publishingXpert = signal(false)
   readonly showWizard = signal(false)
   readonly pendingConversationStartId = signal(0)
+  readonly taskRefreshTick = signal(0)
   readonly errorMessage = signal<string | null>(null)
   readonly triggerDraftErrorMessage = signal<string | null>(null)
   readonly hasLoadedXperts = signal(false)
@@ -197,9 +199,13 @@ export class ClawXpertFacade {
     ),
     { initialValue: [] as ClawXpertDailyConversation[] }
   )
+  readonly taskScope = computed(() => ({
+    xpertId: this.xpertId(),
+    refreshTick: this.taskRefreshTick()
+  }))
   readonly taskSummary = toSignal(
-    toObservable(this.xpertId).pipe(
-      switchMap((xpertId) =>
+    toObservable(this.taskScope).pipe(
+      switchMap(({ xpertId }) =>
         xpertId
           ? this.#taskService
               .getMyAll({
@@ -220,8 +226,35 @@ export class ClawXpertFacade {
     ),
     { initialValue: { items: [], total: 0 } satisfies ClawXpertTaskSummary }
   )
+  readonly scheduledTaskSummary = toSignal(
+    toObservable(this.taskScope).pipe(
+      switchMap(({ xpertId }) =>
+        xpertId
+          ? this.#taskService
+              .getMyAll({
+                order: { updatedAt: OrderTypeEnum.DESC },
+                take: 5,
+                where: {
+                  xpertId,
+                  status: ScheduleTaskStatus.SCHEDULED
+                } as never
+              })
+              .pipe(
+                map(({ items, total }) => ({
+                  items: items ?? [],
+                  total: total ?? items?.length ?? 0
+                })),
+                catchError(() => of({ items: [], total: 0 } satisfies ClawXpertTaskSummary))
+              )
+          : of({ items: [], total: 0 } satisfies ClawXpertTaskSummary)
+      )
+    ),
+    { initialValue: { items: [], total: 0 } satisfies ClawXpertTaskSummary }
+  )
   readonly recentTasks = computed(() => this.taskSummary().items ?? [])
   readonly taskCount = computed(() => this.taskSummary().total ?? this.recentTasks().length)
+  readonly scheduledTasks = computed(() => this.scheduledTaskSummary().items ?? [])
+  readonly scheduledTaskCount = computed(() => this.scheduledTaskSummary().total ?? this.scheduledTasks().length)
   readonly triggerProviderOptions = computed<WorkflowTriggerProviderOption[]>(() => {
     const deduped = new Map<string, WorkflowTriggerProviderOption>()
 
@@ -578,6 +611,10 @@ export class ClawXpertFacade {
     const startId = this.pendingConversationStartId() + 1
     this.pendingConversationStartId.set(startId)
     await this.navigateToChat()
+  }
+
+  refreshTaskSummaries() {
+    this.taskRefreshTick.update((value) => value + 1)
   }
 
   navigateToOverview() {

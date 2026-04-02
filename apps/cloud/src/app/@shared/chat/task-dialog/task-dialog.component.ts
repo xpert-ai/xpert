@@ -42,7 +42,7 @@ import { ScheduleFormComponent } from '../../schedule'
 export class XpertTaskDialogComponent {
   eTaskFrequency = TaskFrequency
 
-  readonly #data = inject<{ task: IXpertTask; total: number }>(DIALOG_DATA)
+  readonly #data = inject<{ task?: Partial<IXpertTask>; total?: number; lockXpertSelection?: boolean }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef<IXpertTask | undefined>)
   readonly #toastr = inject(ToastrService)
   readonly taskAPI = inject(XpertTaskService)
@@ -55,18 +55,23 @@ export class XpertTaskDialogComponent {
     }
   })
   readonly total = this.#myTasks.value
-  readonly task = model<Partial<IXpertTask>>(this.#data.task ?? {})
+  readonly task = model<Partial<IXpertTask>>(this.#data?.task ?? {})
   readonly name = attrModel(this.task, 'name')
   readonly xpertId = attrModel(this.task, 'xpertId')
   readonly options = attrModel(this.task, 'options')
   readonly prompt = attrModel(this.task, 'prompt')
 
   readonly xpert = computed(() => this.myXperts()?.find((xpert) => xpert.id === this.xpertId()))
+  readonly lockXpertSelection = computed(() => !!this.#data?.lockXpertSelection)
 
   readonly loading = signal(false)
   readonly search = model<string>('')
 
   bindExpert(xpert: IXpert) {
+    if (this.lockXpertSelection()) {
+      return
+    }
+
     this.xpertId.set(xpert.id)
   }
 
