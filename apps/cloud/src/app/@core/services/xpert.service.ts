@@ -112,7 +112,7 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.put<TXpertTeamDraft>(this.apiBaseUrl + `/${id}/draft`, draft)
   }
 
-  publish(id: string, newVersion: boolean, body: { environmentId: string; releaseNotes: string }) {
+  publish(id: string, newVersion: boolean, body: { environmentId?: string | null; releaseNotes: string }) {
     return this.httpClient.post<IXpert>(this.apiBaseUrl + `/${id}/publish`, body, {
       params: new HttpParams().append('newVersion', newVersion)
     })

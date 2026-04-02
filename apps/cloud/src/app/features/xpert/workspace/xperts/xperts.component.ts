@@ -28,7 +28,7 @@ import {
   XpertWorkspaceService
 } from '../../../../@core'
 import { AppService } from '../../../../app.service'
-import { XpertNewBlankComponent } from '../../xpert/index'
+import { BlankXpertWizardResult, XpertNewBlankComponent } from '../../xpert/index'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 
 @Component({
@@ -124,16 +124,17 @@ export class XpertWorkspaceXpertsComponent {
 
   newBlank() {
     this.dialog
-      .open<IXpert>(XpertNewBlankComponent, {
+      .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
         disableClose: true,
         data: {
           workspace: this.workspace(),
-          type: this.type()
+          type: this.type(),
+          completionMode: 'create'
         }
       })
-      .closed.subscribe((xpert) => {
-        if (xpert?.id) {
-          this.openXpert(xpert)
+      .closed.subscribe((result) => {
+        if (result?.xpert?.id) {
+          this.openXpert(result.xpert)
         }
       })
   }

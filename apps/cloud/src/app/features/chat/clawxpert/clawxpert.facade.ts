@@ -236,15 +236,35 @@ export class ClawXpertFacade {
   }
 
   async savePreference(assistantId: string) {
+    await this.persistPreference(assistantId)
+  }
+
+  async bindPublishedXpert(xpert: IXpert) {
+    if (!xpert?.id) {
+      return
+    }
+
+    this.mergeAvailableXpert(xpert)
+    await this.persistPreference(xpert.id, { forceAssistantId: true })
+  }
+
+  private async persistPreference(assistantId: string, options?: { forceAssistantId?: boolean }) {
     this.saving.set(true)
+    const currentPreference = this.preference()
     try {
-      const preference = (await firstValueFrom(
+      const persistedPreference = (await firstValueFrom(
         this.#assistantBindingService.upsert({
           code: AssistantCode.CLAWXPERT,
           scope: AssistantBindingScope.USER,
           assistantId
         })
       )) as IAssistantBinding
+
+      const preference = this.normalizePersistedPreference(
+        persistedPreference,
+        currentPreference,
+        options?.forceAssistantId ? assistantId : undefined
+      )
 
       this.preference.set(preference)
       this.showWizard.set(false)
@@ -259,6 +279,31 @@ export class ClawXpertFacade {
     } finally {
       this.saving.set(false)
     }
+  }
+
+  private normalizePersistedPreference(
+    persistedPreference: IAssistantBinding | null | undefined,
+    currentPreference: IAssistantBinding | null,
+    assistantId?: string
+  ): IAssistantBinding {
+    return {
+      ...(currentPreference ?? {}),
+      ...(persistedPreference ?? {}),
+      ...(assistantId ? { assistantId } : {})
+    } as IAssistantBinding
+  }
+
+  private mergeAvailableXpert(xpert: IXpert) {
+    if (!xpert?.id) {
+      return
+    }
+
+    this.availableXperts.update((items) => {
+      const nextItems = [xpert, ...items.filter((item) => item.id !== xpert.id)]
+      return this.normalizeXperts(nextItems)
+    })
+    this.hasLoadedXperts.set(true)
+    this.errorMessage.set(null)
   }
 
   async clearPreference() {
