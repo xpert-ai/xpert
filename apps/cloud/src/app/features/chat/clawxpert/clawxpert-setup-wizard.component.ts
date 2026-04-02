@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject } from '@angular/core'
+import { Dialog } from '@angular/cdk/dialog'
+import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { RouterModule } from '@angular/router'
@@ -11,7 +12,8 @@ import {
   ZardInputDirective
 } from '@xpert-ai/headless-ui'
 import { startWith } from 'rxjs'
-import { IXpert } from '../../../@core'
+import { IXpert, XpertTypeEnum } from '../../../@core'
+import { BlankXpertWizardResult, XpertNewBlankComponent } from '../../xpert/xpert'
 import { ClawXpertFacade } from './clawxpert.facade'
 
 @Component({
@@ -48,6 +50,22 @@ import { ClawXpertFacade } from './clawxpert.facade'
           }}
         </p>
 
+        @if (facade.availableXperts().length > 0) {
+          <div class="mt-4 flex flex-wrap items-center gap-2">
+            <button
+              z-button
+              zType="default"
+              color="primary"
+              displayDensity="cosy"
+              type="button"
+              [disabled]="creatingXpert()"
+              (click)="openCreateWizard()"
+            >
+              {{ 'PAC.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
+            </button>
+          </div>
+        }
+
         @if (facade.orphanedPreference()) {
           <z-card class="mt-4 border border-divider-regular bg-components-card-bg shadow-none">
             <z-card-content class="px-4 py-3 text-sm text-text-secondary">
@@ -74,12 +92,31 @@ import { ClawXpertFacade } from './clawxpert.facade'
               {{
                 'PAC.Chat.ClawXpert.NoAssistantsDesc'
                   | translate
-                    : { Default: 'Publish an Xpert that you can access, then come back and bind it to ClawXpert.' }
+                    : { Default: 'Create a new ClawXpert here, or publish an existing Xpert and bind it here later.' }
               }}
             </div>
-            <button z-button zType="outline" displayDensity="cosy" type="button" class="mt-4" routerLink="/xpert/w">
-              {{ 'PAC.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
-            </button>
+            <div class="mt-4 flex flex-wrap items-center justify-center gap-2">
+              <button
+                z-button
+                zType="default"
+                color="primary"
+                displayDensity="cosy"
+                type="button"
+                [disabled]="creatingXpert()"
+                (click)="openCreateWizard()"
+              >
+                {{ 'PAC.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
+              </button>
+              <button
+                z-button
+                zType="outline"
+                displayDensity="cosy"
+                type="button"
+                routerLink="/xpert/w"
+              >
+                {{ 'PAC.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
+              </button>
+            </div>
           </div>
         } @else {
           <form class="mt-5 flex min-h-0 flex-1 flex-col" [formGroup]="form">
@@ -131,6 +168,16 @@ import { ClawXpertFacade } from './clawxpert.facade'
             </div>
 
             <div class="mt-4 flex items-center justify-end gap-2">
+              <button
+                z-button
+                zType="outline"
+                displayDensity="cosy"
+                type="button"
+                [disabled]="creatingXpert()"
+                (click)="openCreateWizard()"
+              >
+                {{ 'PAC.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
+              </button>
               @if (facade.resolvedPreference()) {
                 <button z-button zType="outline" displayDensity="cosy" type="button" (click)="cancelWizard()">
                   {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
@@ -156,7 +203,9 @@ import { ClawXpertFacade } from './clawxpert.facade'
 })
 export class ClawXpertSetupWizardComponent {
   readonly facade = inject(ClawXpertFacade)
+  readonly #dialog = inject(Dialog)
   readonly #formBuilder = inject(FormBuilder)
+  readonly creatingXpert = signal(false)
 
   readonly searchControl = this.#formBuilder.nonNullable.control('')
   readonly searchText = toSignal(this.searchControl.valueChanges.pipe(startWith(this.searchControl.value)), {
@@ -221,5 +270,33 @@ export class ClawXpertSetupWizardComponent {
 
   getXpertLabel(xpert: Partial<IXpert> | null | undefined) {
     return this.facade.getXpertLabel(xpert)
+  }
+
+  openCreateWizard() {
+    if (this.creatingXpert()) {
+      return
+    }
+
+    this.creatingXpert.set(true)
+    this.#dialog
+      .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
+        disableClose: true,
+        data: {
+          allowWorkspaceSelection: true,
+          allowedModes: [XpertTypeEnum.Agent],
+          completionMode: 'publish',
+          type: XpertTypeEnum.Agent
+        }
+      })
+      .closed.subscribe(async (result) => {
+        try {
+          if (result?.status === 'published' && result.xpert?.id) {
+            await this.facade.bindPublishedXpert(result.xpert)
+            this.searchControl.setValue('', { emitEvent: false })
+          }
+        } finally {
+          this.creatingXpert.set(false)
+        }
+      })
   }
 }

@@ -10,7 +10,7 @@ import { IXpert, IXpertWorkspace, OrderTypeEnum, XpertAPIService, XpertTypeEnum 
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
 import { map, of } from 'rxjs'
 import { XpertService } from '../xpert.service'
-import { XpertNewBlankComponent } from '../blank/blank.component'
+import { BlankXpertWizardResult, XpertNewBlankComponent } from '../blank/blank.component'
 
 @Component({
   selector: 'xp-header-switcher',
@@ -90,16 +90,17 @@ export class XpertHeaderSwitcherComponent {
     }
 
     this.#dialog
-      .open<IXpert>(XpertNewBlankComponent, {
+      .open<BlankXpertWizardResult>(XpertNewBlankComponent, {
         disableClose: true,
         data: {
           workspace: this.xpert()?.workspace ?? ({ id: workspaceId } as IXpertWorkspace),
-          type: XpertTypeEnum.Agent
+          type: XpertTypeEnum.Agent,
+          completionMode: 'create'
         }
       })
-      .closed.subscribe((xpert) => {
-        if (xpert?.id) {
-          this.openXpert(xpert)
+      .closed.subscribe((result) => {
+        if (result?.xpert?.id) {
+          this.openXpert(result.xpert)
         }
       })
   }
