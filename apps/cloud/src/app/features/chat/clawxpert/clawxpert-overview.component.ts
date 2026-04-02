@@ -2,13 +2,13 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, inject } from '@angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
-  ZardAvatarComponent,
   ZardButtonComponent,
   ZardCardImports,
   ZardDividerComponent,
   ZardIconComponent
 } from '@xpert-ai/headless-ui'
 import { IXpert } from '../../../@core'
+import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertPreferencesEditorComponent } from './clawxpert-preferences-editor.component'
 import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.component'
@@ -60,10 +60,10 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
   imports: [
     CommonModule,
     TranslateModule,
-    ZardAvatarComponent,
     ZardButtonComponent,
     ZardDividerComponent,
     ZardIconComponent,
+    EmojiAvatarComponent,
     ClawXpertPreferencesEditorComponent,
     ClawXpertSetupWizardComponent,
     ...ZardCardImports
@@ -108,12 +108,22 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
         <div class="grid min-h-0 gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
           <div class="flex h-full min-h-0 flex-col gap-5 overflow-auto p-6">
             <div class="flex items-start gap-4">
-              <z-avatar
-                class="shrink-0 border border-divider-regular shadow-sm"
-                [zFallback]="avatarFallback()"
-                [zSize]="64"
-                [zSrc]="avatarUrl()"
-              />
+              @if (hasXpertAvatar()) {
+                <emoji-avatar
+                  class="shrink-0 overflow-hidden rounded-[2rem] border border-divider-regular bg-background-default-subtle shadow-sm"
+                  [style.width.px]="96"
+                  [style.height.px]="96"
+                  [avatar]="xpertAvatar()"
+                  [alt]="avatarLabel()"
+                />
+              } @else {
+                <div
+                  class="flex h-24 w-24 shrink-0 items-center justify-center rounded-[2rem] border border-divider-regular bg-background-default-subtle text-2xl font-medium text-text-primary shadow-sm"
+                  [attr.aria-label]="avatarLabel()"
+                >
+                  {{ avatarFallback() }}
+                </div>
+              }
 
               <div class="min-w-0">
                 <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
@@ -317,15 +327,14 @@ export class ClawXpertOverviewComponent {
   readonly #translate = inject(TranslateService)
   readonly #locale = normalizeLocale(this.#translate.currentLang || this.#translate.getDefaultLang())
 
-  readonly avatarUrl = computed(() => this.facade.currentXpert()?.avatar?.url ?? '')
-  readonly avatarFallback = computed(() => buildAvatarFallback(this.headerTitle()))
+  readonly xpertAvatar = computed(() => this.facade.currentXpert()?.avatar ?? null)
+  readonly hasXpertAvatar = computed(() => !!this.xpertAvatar()?.url || !!this.xpertAvatar()?.emoji?.id)
+  readonly avatarLabel = computed(() => this.facade.currentXpertLabel() || this.headerTitle())
+  readonly avatarFallback = computed(() => buildAvatarFallback(this.avatarLabel()))
   readonly headerTitle = computed(() => {
-    return (
-      this.facade.currentXpertLabel() ||
-      this.#translate.instant(this.facade.definition.titleKey, {
-        Default: this.facade.definition.defaultTitle
-      })
-    )
+    return this.#translate.instant(this.facade.definition.titleKey, {
+      Default: this.facade.definition.defaultTitle
+    })
   })
   readonly overviewDescription = computed(() => {
     if (!this.facade.resolvedPreference()) {
@@ -334,12 +343,7 @@ export class ClawXpertOverviewComponent {
       })
     }
 
-    return (
-      this.facade.currentXpert()?.description ||
-      this.#translate.instant('PAC.Chat.ClawXpert.OverviewReadyDesc', {
-        Default: 'Use the markdown workspace to maintain behavior rules and user profile context for this ClawXpert binding.'
-      })
-    )
+    return this.facade.currentXpertDescription()
   })
   readonly modelLabel = computed(() => buildModelLabel(this.facade.currentXpert(), this.facade.resolvedPreference()?.assistantId))
   readonly metrics = computed<ClawXpertMetric[]>(() => [

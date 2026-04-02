@@ -42,9 +42,9 @@ import { ZardIconComponent } from '../icon/icon.component';
     '[attr.data-z-shape]': 'zShape()',
     '[attr.data-z-size]': 'zSize()',
     '[attr.data-z-type]': 'zType()',
-    '[attr.data-disabled]': 'isNotInsideOfButtonOrLink() && zDisabled() || null',
-    '[attr.aria-disabled]': 'isNotInsideOfButtonOrLink() && zDisabled() || null',
-    '[attr.disabled]': 'isNotInsideOfButtonOrLink() && zDisabled() ? "" : null',
+    '[attr.data-disabled]': 'isNotInsideOfButtonOrLink() && isDisabled() || null',
+    '[attr.aria-disabled]': 'isNotInsideOfButtonOrLink() && isDisabled() || null',
+    '[attr.disabled]': 'isNotInsideOfButtonOrLink() && isDisabled() ? "" : null',
     '[attr.role]': 'isNotInsideOfButtonOrLink() ? "button" : null',
     '[attr.tabindex]': 'isNotInsideOfButtonOrLink() ? "0" : null',
   },
@@ -61,6 +61,7 @@ export class ZardButtonComponent implements OnDestroy {
   readonly zFull = input(false, { transform: booleanAttribute });
   readonly zLoading = input(false, { transform: booleanAttribute });
   readonly zDisabled = input(false, { transform: booleanAttribute });
+  readonly disabled = input(false, { alias: 'disabled', transform: booleanAttribute });
 
   private readonly iconOnlyState = signal(false);
   readonly iconOnly = this.iconOnlyState.asReadonly();
@@ -111,6 +112,8 @@ export class ZardButtonComponent implements OnDestroy {
     }
   }
 
+  protected readonly isDisabled = computed(() => this.zDisabled() || this.disabled());
+
   protected readonly classes = computed(() =>
     mergeClasses(
       buttonVariants({
@@ -119,7 +122,7 @@ export class ZardButtonComponent implements OnDestroy {
         zShape: this.zShape(),
         zFull: this.zFull(),
         zLoading: this.zLoading(),
-        zDisabled: this.zDisabled(),
+        zDisabled: this.isDisabled(),
       }),
       this.class(),
     ),
