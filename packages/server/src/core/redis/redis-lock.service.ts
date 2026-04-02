@@ -3,6 +3,24 @@ import { randomUUID } from 'crypto'
 import { Redis } from 'ioredis'
 import { REDIS_CLIENT } from './types'
 
+const RELEASE_LOCK_SCRIPT = `
+  if redis.call("get", KEYS[1]) == ARGV[1]
+  then
+    return redis.call("del", KEYS[1])
+  else
+    return 0
+  end
+`
+
+const REFRESH_LOCK_SCRIPT = `
+  if redis.call("get", KEYS[1]) == ARGV[1]
+  then
+    return redis.call("pexpire", KEYS[1], ARGV[2])
+  else
+    return 0
+  end
+`
+
 @Injectable()
 export class RedisLockService {
 	@Inject(REDIS_CLIENT)
@@ -17,15 +35,13 @@ export class RedisLockService {
 
 	// Release lock (only if lockId matches)
 	async releaseLock(key: string, lockId: string): Promise<boolean> {
-		const script = `
-      if redis.call("get", KEYS[1]) == ARGV[1] 
-      then 
-        return redis.call("del", KEYS[1]) 
-      else 
-        return 0 
-      end
-    `
-		const result = await this.redis.eval(script, 1, key, lockId)
+		const result = await this.redis.eval(RELEASE_LOCK_SCRIPT, 1, key, lockId)
+		return result === 1
+	}
+
+	// Refresh lock TTL (only if lockId matches)
+	async refreshLock(key: string, lockId: string, ttl: number): Promise<boolean> {
+		const result = await this.redis.eval(REFRESH_LOCK_SCRIPT, 1, key, lockId, `${ttl}`)
 		return result === 1
 	}
 }

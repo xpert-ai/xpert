@@ -1,5 +1,5 @@
 import { IIntegration, INTEGRATION_PROVIDERS, IUser } from '@metad/contracts'
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { IntegrationStrategyRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
 import { FindOneOptions, Repository } from 'typeorm'
@@ -33,6 +33,31 @@ export class IntegrationService extends TenantOrganizationAwareCrudService<Integ
 	async test(integration: IIntegration) {
 		const strategy = this.getIntegrationStrategy(integration.provider)
 		return strategy.validateConfig(integration.options, integration)
+	}
+
+	async runStrategyUpdateHook(previous: IIntegration, current: IIntegration) {
+		const strategy = previous?.provider ? this.getIntegrationStrategy(previous.provider) : null
+
+		try {
+			if (previous?.provider !== current?.provider) {
+				await strategy?.onDelete?.(previous)
+				return
+			}
+
+			await strategy?.onUpdate?.(previous, current)
+		} catch (error) {
+			throw new BadRequestException(error instanceof Error ? error.message : String(error))
+		}
+	}
+
+	async runStrategyDeleteHook(integration: IIntegration) {
+		const strategy = integration?.provider ? this.getIntegrationStrategy(integration.provider) : null
+
+		try {
+			await strategy?.onDelete?.(integration)
+		} catch (error) {
+			throw new BadRequestException(error instanceof Error ? error.message : String(error))
+		}
 	}
 
 	readOneById(id: string, options?: FindOneOptions<Integration>) {

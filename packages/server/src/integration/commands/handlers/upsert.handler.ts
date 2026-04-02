@@ -14,7 +14,14 @@ export class IntegrationUpsertHandler implements ICommandHandler<IntegrationUpse
 	public async execute(command: IntegrationUpsertCommand): Promise<IIntegration> {
 		const { input } = command
 		if (input.id) {
-			await this.service.update(input.id, omit(input, 'id'))
+			const previous = await this.service.findOne(input.id)
+			const patch = omit(input, 'id')
+			const current = {
+				...previous,
+				...patch
+			} as IIntegration
+			await this.service.runStrategyUpdateHook(previous, current)
+			await this.service.update(input.id, patch)
 			return await this.service.findOne(input.id)
 		} else {
 			return await this.service.create(omit(input, 'id'))

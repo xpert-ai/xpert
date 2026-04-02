@@ -1,8 +1,8 @@
-import { IIntegration } from "@metad/contracts"
+import { IIntegration, IPagination } from "@metad/contracts"
 import { Injectable } from "@nestjs/common"
 import { ModuleRef } from "@nestjs/core"
 import { IntegrationPermissionService } from "@xpert-ai/plugin-sdk"
-import { FindOneOptions } from "typeorm"
+import { FindManyOptions, FindOneOptions } from "typeorm"
 import { IntegrationService } from "../../integration/integration.service"
 import { Integration } from "../../core/entities/internal"
 
@@ -31,6 +31,32 @@ export class PluginIntegrationPermissionService implements IntegrationPermission
       return (await integrationService.readOneById(id, options)) as TIntegration
     } catch {
       return null
+    }
+  }
+
+  async findAll<TIntegration = IIntegration>(
+    options?: FindManyOptions<Integration>
+  ): Promise<IPagination<TIntegration>> {
+    let integrationService: IntegrationService
+    try {
+      integrationService = this.moduleRef.get<IntegrationService>(IntegrationService, {
+        strict: false,
+      })
+    } catch {
+      return { items: [], total: 0 }
+    }
+    if (!integrationService) {
+      return { items: [], total: 0 }
+    }
+
+    try {
+      const result = await integrationService.findAll(options)
+      return {
+        items: (result?.items ?? []) as TIntegration[],
+        total: result?.total ?? 0
+      }
+    } catch {
+      return { items: [], total: 0 }
     }
   }
 }
