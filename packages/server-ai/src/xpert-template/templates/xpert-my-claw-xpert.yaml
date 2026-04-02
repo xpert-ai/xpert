@@ -1,0 +1,163 @@
+team:
+  name: My Claw Xpert
+  type: agent
+  title: Claw Xpert
+  description: 一只专家级龙虾。
+  avatar:
+    emoji:
+      id: lobster
+      set: ""
+      colons: ":lobster:"
+      unified: 1F99E
+    background: rgba(254, 247, 195, 0.8)
+  starters: null
+  options:
+    agent:
+      Agent_xtcQNJthR8:
+        position:
+          x: 428
+          y: 12
+    workflow:
+      Trigger_v3nDiDgTLf:
+        position:
+          x: 12
+          y: 12
+      Middleware_iYD7nhEDzL:
+        position:
+          x: 740
+          y: 260
+      Middleware_H8ipCuLsIi:
+        position:
+          x: 160
+          y: 320
+      Middleware_S2qEeR8Fta:
+        position:
+          x: 200
+          y: 160
+      Middleware_w9bCaRR7bT:
+        position:
+          x: 500
+          y: 340
+    position:
+      x: -18
+      y: 164
+    scale: 1
+  agentConfig: null
+  memory: null
+  summarize: null
+  features: null
+  version: "1"
+  agent:
+    key: Agent_xtcQNJthR8
+  copilotModel:
+    copilotId: 5cd5b5e1-40ff-4e46-a16b-306f002140ee
+    referencedId: null
+    modelType: llm
+    model: doubao-seed-2-0-pro-260215
+    options:
+      context_size: 256000
+      temperature: 0.2
+      maxRetries: 6
+      top_p: 1
+      max_tokens: 64
+      thinking: enabled
+  knowledgebases: []
+  toolsets: []
+  tags: []
+nodes:
+  - type: agent
+    key: Agent_xtcQNJthR8
+    position:
+      x: 428
+      y: 12
+    entity:
+      key: Agent_xtcQNJthR8
+      name: null
+      title: null
+      description: null
+      avatar: null
+      prompt: null
+      promptTemplates: null
+      parameters: null
+      outputVariables: null
+      options:
+        vision:
+          enabled: true
+      copilotModel: null
+      leaderKey: null
+      collaboratorNames: []
+      toolsetIds: []
+      knowledgebaseIds: []
+  - type: workflow
+    key: Middleware_iYD7nhEDzL
+    position:
+      x: 740
+      y: 260
+    entity:
+      type: middleware
+      key: Middleware_iYD7nhEDzL
+      title: ModelRetryMiddleware
+      provider: ModelRetryMiddleware
+    hash: 1294a215e6e143d537ff8877965d592f054b0198393f5bb4e682ff4049248108
+  - type: workflow
+    key: Middleware_H8ipCuLsIi
+    position:
+      x: 160
+      y: 320
+    entity:
+      type: middleware
+      key: Middleware_H8ipCuLsIi
+      title: WebTools
+      provider: WebTools
+    hash: b33e889004d72a188c68bfe47ffb0bf8dce29ef8c31a719a5f2663a7de6f4056
+  - type: workflow
+    key: Middleware_S2qEeR8Fta
+    position:
+      x: 200
+      y: 160
+    entity:
+      type: middleware
+      key: Middleware_S2qEeR8Fta
+      title: SummarizationMiddleware
+      provider: SummarizationMiddleware
+      options:
+        model:
+          model: doubao-seed-2-0-pro-260215
+          copilotId: 5cd5b5e1-40ff-4e46-a16b-306f002140ee
+          modelType: llm
+          options:
+            context_size: 256000
+            temperature: 0.2
+            maxRetries: 6
+            top_p: 1
+            max_tokens: 64
+            thinking: enabled
+    hash: 6ec4207fdf312cb739e39fb7611f7bc5acfe5e4a5976623fb44597947f306c84
+  - type: workflow
+    key: Middleware_w9bCaRR7bT
+    position:
+      x: 500
+      y: 340
+    entity:
+      type: middleware
+      key: Middleware_w9bCaRR7bT
+      title: todoListMiddleware
+      provider: todoListMiddleware
+    hash: 694360ba269cb81b7cb36af55f1b71ea013e93811bbe3a0e72291a21937dded2
+connections:
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_iYD7nhEDzL
+    from: Agent_xtcQNJthR8
+    to: Middleware_iYD7nhEDzL
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_H8ipCuLsIi
+    from: Agent_xtcQNJthR8
+    to: Middleware_H8ipCuLsIi
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_S2qEeR8Fta
+    from: Agent_xtcQNJthR8
+    to: Middleware_S2qEeR8Fta
+  - type: workflow
+    key: Agent_xtcQNJthR8/Middleware_w9bCaRR7bT
+    from: Agent_xtcQNJthR8
+    to: Middleware_w9bCaRR7bT

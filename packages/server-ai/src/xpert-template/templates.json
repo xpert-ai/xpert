@@ -255,6 +255,7 @@
             "categories": [
                 "Agent",
                 "Workflow",
+                "Claw",
                 "HR",
                 "Programming",
                 "Writing",
@@ -262,6 +263,26 @@
                 "Analysis"
             ],
             "recommendedApps": [
+                {
+                    "name": "Claw Xpert",
+                    "type": "agent",
+                    "title": "Claw 智能体",
+                    "description": "Claw 是一个智能体，能够通过工具使用和环境交互来完成复杂任务。它具有计划、工具使用、环境交互和学习的能力，使其能够适应各种任务和挑战。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "lobster"
+                        },
+                        "background": "rgba(254, 247, 195, 0.8)"
+                    },
+                    "id": "xpert-my-claw-xpert",
+                    "category": "Claw",
+                    "copyright": null,
+                    "privacyPolicy": null,
+                    "copilotModel": {
+                        "modelType": "llm",
+                        "model": "deepseek-chat"
+                    }
+                },
                 {
                     "name": "Research Deep Agents",
                     "type": "agent",

@@ -102,6 +102,7 @@ export type BlankXpertDialogData = {
   allowWorkspaceSelection?: boolean
   allowedModes?: BlankXpertMode[] | null
   completionMode?: BlankXpertCompletionMode
+  category?: string | null
 }
 
 type DraftPreparationResult = {
@@ -111,7 +112,7 @@ type DraftPreparationResult = {
   preparationFailed: boolean
 }
 
-const CLAWXPERT_AUTO_PUBLISH_RELEASE_NOTES = 'Initial ClawXpert bootstrap release.'
+const XPERT_AUTO_PUBLISH_RELEASE_NOTES = 'Initial Xpert bootstrap release.'
 
 const WORKFLOW_ACTION_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
   {
@@ -209,6 +210,7 @@ export class XpertNewBlankComponent {
   readonly requestedType = signal(this.#dialogData.type ?? null)
   readonly allowedModes = this.#dialogData.allowedModes ?? null
   readonly completionMode = this.#dialogData.completionMode ?? ('create' as BlankXpertCompletionMode)
+  readonly templateCategory = this.#dialogData.category?.trim() || null
   readonly allowWorkspaceSelection = !!this.#dialogData.allowWorkspaceSelection
   readonly availableModes = computed(() => getBlankWizardAvailableModes(this.requestedType(), this.allowedModes))
   readonly types = model<BlankXpertMode[]>([getBlankWizardDefaultMode(this.#dialogData.type, this.allowedModes)])
@@ -954,7 +956,7 @@ export class XpertNewBlankComponent {
       switchMap((environment) =>
         this.xpertService.publish(xpert.id, false, {
           environmentId: environment?.id ?? null,
-          releaseNotes: CLAWXPERT_AUTO_PUBLISH_RELEASE_NOTES
+          releaseNotes: XPERT_AUTO_PUBLISH_RELEASE_NOTES
         })
       )
     )

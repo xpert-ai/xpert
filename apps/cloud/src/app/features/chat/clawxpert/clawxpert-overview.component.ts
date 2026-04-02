@@ -70,7 +70,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
   ],
   styles: [`
     :host {
-      @apply block relative h-full overflow-auto;
+      @apply block relative h-full overflow-y-auto overflow-x-hidden;
     }`],
   template: `
     <div class="h-full min-h-0">
@@ -114,7 +114,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
         <pac-clawxpert-setup-wizard class="block h-full" />
       } @else {
         <div class="flex">
-          <div class="w-100 flex h-full min-h-0 flex-col gap-5 overflow-auto p-6 sticky top-0 z-10">
+          <div class="w-100 shrink-0 flex h-full min-h-0 flex-col gap-5 overflow-auto p-6 sticky top-0 z-10">
             <div class="flex items-start gap-4">
               <emoji-avatar
                 class="shrink-0 overflow-hidden rounded-[2rem] border border-divider-regular bg-background-default-subtle text-2xl shadow-sm"
@@ -323,7 +323,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
             </div>
           </div>
 
-          <div class="flex-1 min-h-0 p-4 flex flex-col gap-4">
+          <div class="flex-1 min-h-0 p-4 flex flex-col gap-4 overflow-hidden">
             <pac-clawxpert-preferences-editor />
             <pac-clawxpert-trigger-config-editor />
             <pac-clawxpert-scheduled-tasks />

@@ -12,7 +12,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
   selector: 'pac-clawxpert-conversation-detail',
   imports: [CommonModule, TranslateModule, ChatKit, ZardButtonComponent, ZardIconComponent, ...ZardCardImports],
   template: `
-    <div [class]="workspaceLayoutClasses()">
+    <div [class]="workspaceLayoutClasses() + ' bg-components-card-bg'">
       @if (showDetailPanel()) {
         <section class="flex min-h-0 flex-col overflow-hidden">
           <div class="min-h-0 flex-1"></div>

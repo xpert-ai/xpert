@@ -189,7 +189,7 @@
         "CreateNew": "New ClawXpert",
         "BindingUnavailable": "Your previous ClawXpert binding is no longer available. Please select another assistant.",
         "NoAssistants": "No published assistants are available yet",
-        "NoAssistantsDesc": "Publish an Xpert that you can access, then come back and bind it to ClawXpert.",
+        "NoAssistantsDesc": "Create a new ClawXpert here, or publish an existing Xpert and bind it here later.",
         "SearchPlaceholder": "Search your available assistants by title, name, slug, or id",
         "NoMatches": "No assistants match your current search.",
         "SaveFailed": "Failed to save the ClawXpert binding.",
