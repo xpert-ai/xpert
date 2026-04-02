@@ -5,13 +5,18 @@ import { AppService } from 'apps/cloud/src/app/app.service'
 import { of, Subject } from 'rxjs'
 import { XpertAssistantFacade } from './assistant.facade'
 
+jest.mock('apps/cloud/src/app/app.service', () => ({
+  AppService: class AppService {}
+}))
+
 jest.mock('apps/cloud/src/app/@core', () => {
   return {
     AssistantCode: {
+      CHAT_COMMON: 'chat_common',
       XPERT_SHARED: 'xpert_shared',
       CHATBI: 'chatbi'
     },
-    AssistantConfigSourceScope: {
+    AssistantBindingSourceScope: {
       NONE: 'none',
       TENANT: 'tenant',
       ORGANIZATION: 'organization'
@@ -42,14 +47,15 @@ jest.mock('../../assistant/assistant-chatkit.runtime', () => {
 })
 
 const runtimeState = jest.requireMock('../../assistant/assistant-chatkit.runtime').__runtimeState as any
-const { AssistantCode, AssistantConfigSourceScope, XpertAPIService } = jest.requireMock(
+const { AssistantBindingSourceScope, AssistantCode, XpertAPIService } = jest.requireMock(
   'apps/cloud/src/app/@core'
 ) as {
   AssistantCode: {
+    CHAT_COMMON: string
     XPERT_SHARED: string
     CHATBI: string
   }
-  AssistantConfigSourceScope: {
+  AssistantBindingSourceScope: {
     NONE: string
     TENANT: string
     ORGANIZATION: string
@@ -157,13 +163,10 @@ describe('XpertAssistantFacade', () => {
     runtimeState.config.set({
       code: AssistantCode.XPERT_SHARED,
       enabled: true,
-      options: {
-        assistantId: 'assistant-1',
-        frameUrl: 'https://frame.example.com'
-      },
+      assistantId: 'assistant-1',
       tenantId: 'tenant-1',
       organizationId: null,
-      sourceScope: AssistantConfigSourceScope.TENANT
+      sourceScope: AssistantBindingSourceScope.TENANT
     })
     runtimeState.isConfigured.set(true)
     runtimeState.status.set('ready')

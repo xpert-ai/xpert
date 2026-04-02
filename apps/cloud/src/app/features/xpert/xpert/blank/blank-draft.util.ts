@@ -83,13 +83,20 @@ export const BLANK_WORKFLOW_NODE_ORDER = [
 
 export type BlankWorkflowStarterNodeKey = (typeof BLANK_WORKFLOW_NODE_ORDER)[number]
 
+export type BlankTriggerSelection = {
+  provider: string
+  config?: Record<string, unknown> | null
+}
+
 export type XpertBlankWizardSelections = {
+  triggers?: BlankTriggerSelection[]
   triggerProviders?: string[]
   skills?: string[]
   middlewares?: string[]
 }
 
 export type KnowledgeBlankWizardSelections = {
+  triggers?: BlankTriggerSelection[]
   triggerProviders?: string[]
   sourceProviders?: string[]
   processorProviders?: string[]
@@ -101,10 +108,25 @@ export type WorkflowBlankWizardSelections = {
   nodes?: BlankWorkflowStarterNodeKey[]
 }
 
+export type BlankXpertSelectionGraph = {
+  triggerNodes: TXpertTeamNode<'workflow'>[]
+  skillNodes: TXpertTeamNode<'workflow'>[]
+  middlewareNodes: TXpertTeamNode<'workflow'>[]
+  nodes: TXpertTeamNode<'workflow'>[]
+  connections: TXpertTeamConnection[]
+}
+
+export type BlankKnowledgeSelectionGraph = {
+  stageGroups: TXpertTeamNode<'workflow'>[][]
+  nodes: TXpertTeamNode<'workflow'>[]
+  connections: TXpertTeamConnection[]
+}
+
 export function normalizeBlankWizardSelections(
   selections?: XpertBlankWizardSelections
 ): Required<XpertBlankWizardSelections> {
   return {
+    triggers: normalizeBlankTriggerSelections(selections?.triggers, selections?.triggerProviders),
     triggerProviders: uniqueStrings(selections?.triggerProviders),
     skills: uniqueStrings(selections?.skills),
     middlewares: uniqueStrings(selections?.middlewares)
@@ -113,13 +135,14 @@ export function normalizeBlankWizardSelections(
 
 export function hasBlankWizardSelections(selections?: XpertBlankWizardSelections): boolean {
   const normalized = normalizeBlankWizardSelections(selections)
-  return !!(normalized.triggerProviders.length || normalized.skills.length || normalized.middlewares.length)
+  return !!(normalized.triggers.length || normalized.skills.length || normalized.middlewares.length)
 }
 
 export function normalizeKnowledgeBlankWizardSelections(
   selections?: KnowledgeBlankWizardSelections
 ): Required<KnowledgeBlankWizardSelections> {
   return {
+    triggers: normalizeBlankTriggerSelections(selections?.triggers, selections?.triggerProviders),
     triggerProviders: uniqueStrings(selections?.triggerProviders),
     sourceProviders: uniqueStrings(selections?.sourceProviders),
     processorProviders: uniqueStrings(selections?.processorProviders),
@@ -155,16 +178,16 @@ export async function buildBlankXpertDraft(
     throw new Error('Primary agent node not found for blank xpert draft initialization')
   }
 
-  const triggerNodes = createTriggerNodes(primaryAgentNode, normalized.triggerProviders)
-  const skillNodes = createSkillNodes(primaryAgentNode, normalized.skills)
-  const middlewareNodes = createMiddlewareNodes(primaryAgentNode, normalized.middlewares)
+  const {
+    triggerNodes,
+    skillNodes,
+    middlewareNodes,
+    nodes: selectionNodes,
+    connections: selectionConnections
+  } = buildBlankXpertSelectionGraph(primaryAgentNode, normalized)
 
-  nodes.push(...triggerNodes, ...skillNodes, ...middlewareNodes)
-  connections.push(
-    ...triggerNodes.map((node) => createConnection('edge', node.key, primaryAgentKey)),
-    ...skillNodes.map((node) => createConnection('workflow', primaryAgentKey, node.key)),
-    ...middlewareNodes.map((node) => createConnection('workflow', primaryAgentKey, node.key))
-  )
+  nodes.push(...selectionNodes)
+  connections.push(...selectionConnections)
 
   const draft: TXpertTeamDraft = {
     team: {
@@ -198,11 +221,8 @@ export async function buildBlankKnowledgeDraft(
   xpert: IXpert,
   selections?: KnowledgeBlankWizardSelections
 ): Promise<TXpertTeamDraft> {
-  const normalized = normalizeKnowledgeBlankWizardSelections(selections)
   const { agents, ...team } = xpert
-  const stageGroups = createKnowledgePipelineStageGroups(normalized)
-  const nodes = stageGroups.flat()
-  const connections = createKnowledgePipelineConnections(stageGroups)
+  const { nodes, connections } = buildBlankKnowledgeSelectionGraph(selections)
 
   const draft: TXpertTeamDraft = {
     team: {
@@ -220,6 +240,46 @@ export async function buildBlankKnowledgeDraft(
   }
 
   return draft
+}
+
+export function buildBlankXpertSelectionGraph(
+  agentNode: TXpertTeamNode<'agent'>,
+  selections?: XpertBlankWizardSelections
+): BlankXpertSelectionGraph {
+  const normalized = normalizeBlankWizardSelections(selections)
+  const triggerNodes = createTriggerNodes(agentNode, normalized.triggers)
+  const skillNodes = createSkillNodes(agentNode, normalized.skills)
+  const middlewareNodes = createMiddlewareNodes(agentNode, normalized.middlewares)
+  const nodes = [...triggerNodes, ...skillNodes, ...middlewareNodes]
+  const connections = [
+    ...triggerNodes.map((node) => createConnection('edge', node.key, agentNode.key)),
+    ...skillNodes.map((node) => createConnection('workflow', agentNode.key, node.key)),
+    ...middlewareNodes.map((node) => createConnection('workflow', agentNode.key, node.key))
+  ]
+
+  return {
+    triggerNodes,
+    skillNodes,
+    middlewareNodes,
+    nodes,
+    connections
+  }
+}
+
+export function buildBlankKnowledgeSelectionGraph(
+  selections?: KnowledgeBlankWizardSelections,
+  options?: { includeKnowledgeBase?: boolean }
+): BlankKnowledgeSelectionGraph {
+  const normalized = normalizeKnowledgeBlankWizardSelections(selections)
+  const stageGroups = createKnowledgePipelineStageGroups(normalized, options)
+  const nodes = stageGroups.flat()
+  const connections = createKnowledgePipelineConnections(stageGroups)
+
+  return {
+    stageGroups,
+    nodes,
+    connections
+  }
 }
 
 export async function buildBlankWorkflowDraft(
@@ -265,9 +325,10 @@ function createBaseConnections(xpert: IXpert): TXpertTeamConnection[] {
 
 function createTriggerNodes(
   agentNode: TXpertTeamNode<'agent'>,
-  triggerProviders: string[]
+  triggers: BlankTriggerSelection[]
 ): TXpertTeamNode<'workflow'>[] {
-  return triggerProviders.map((provider, index, providers) => {
+  return triggers.map((trigger, index, providers) => {
+    const provider = trigger.provider
     const key = genXpertTriggerKey()
     return {
       type: 'workflow',
@@ -280,30 +341,34 @@ function createTriggerNodes(
         type: WorkflowNodeTypeEnum.TRIGGER,
         key,
         from: provider,
-        title: provider === 'chat' ? 'Trigger' : provider
+        title: provider === 'chat' ? 'Trigger' : provider,
+        config: provider === 'chat' ? undefined : (trigger.config ?? {})
       } as IWFNTrigger
     }
   })
 }
 
 function createKnowledgePipelineStageGroups(
-  selections: Required<KnowledgeBlankWizardSelections>
+  selections: Required<KnowledgeBlankWizardSelections>,
+  options?: { includeKnowledgeBase?: boolean }
 ): TXpertTeamNode<'workflow'>[][] {
+  const includeKnowledgeBase = options?.includeKnowledgeBase ?? true
   const stageGroups: TXpertTeamNode<'workflow'>[][] = [
-    selections.triggerProviders.map((provider) => createKnowledgeTriggerNode(provider)),
+    selections.triggers.map((trigger) => createKnowledgeTriggerNode(trigger)),
     selections.sourceProviders.map((provider) => createKnowledgeSourceNode(provider)),
     selections.processorProviders.map((provider) => createKnowledgeProcessorNode(provider)),
     selections.chunkerProviders.map((provider) => createKnowledgeChunkerNode(provider)),
     selections.understandingProviders.map((provider) => createKnowledgeUnderstandingNode(provider)),
-    [createKnowledgeBaseNode()]
-  ].filter((group, index) => index === 5 || group.length)
+    ...(includeKnowledgeBase ? [[createKnowledgeBaseNode()]] : [])
+  ].filter((group) => group.length)
 
   positionKnowledgePipelineStageGroups(stageGroups)
 
   return stageGroups
 }
 
-function createKnowledgeTriggerNode(provider: string): TXpertTeamNode<'workflow'> {
+function createKnowledgeTriggerNode(trigger: BlankTriggerSelection): TXpertTeamNode<'workflow'> {
+  const provider = trigger.provider
   const key = genXpertTriggerKey()
   return {
     type: 'workflow',
@@ -313,7 +378,8 @@ function createKnowledgeTriggerNode(provider: string): TXpertTeamNode<'workflow'
       type: WorkflowNodeTypeEnum.TRIGGER,
       key,
       from: provider,
-      title: provider === 'chat' ? 'Chat' : provider
+      title: provider === 'chat' ? 'Chat' : provider,
+      config: provider === 'chat' ? undefined : (trigger.config ?? {})
     } as IWFNTrigger
   }
 }
@@ -695,6 +761,35 @@ function createConnection(type: TXpertTeamConnection['type'], from: string, to: 
 
 function getCenteredY(anchorY: number, total: number, index: number) {
   return anchorY - ((total - 1) * NODE_VERTICAL_GAP) / 2 + index * NODE_VERTICAL_GAP
+}
+
+export function normalizeBlankTriggerSelections(
+  selections?: BlankTriggerSelection[] | null,
+  triggerProviders?: string[] | null
+): BlankTriggerSelection[] {
+  const normalizedSelections: BlankTriggerSelection[] = [
+    ...(selections ?? []),
+    ...uniqueStrings(triggerProviders).map((provider): BlankTriggerSelection => ({ provider }))
+  ]
+  const deduped = new Map<string, BlankTriggerSelection>()
+
+  for (const selection of normalizedSelections) {
+    const provider = selection?.provider?.trim()
+    if (!provider) {
+      continue
+    }
+
+    const config =
+      selection.config && typeof selection.config === 'object' && !Array.isArray(selection.config)
+        ? { ...(selection.config as Record<string, unknown>) }
+        : selection.config === null
+          ? null
+          : undefined
+
+    deduped.set(provider, config === undefined ? { provider } : { provider, config })
+  }
+
+  return Array.from(deduped.values())
 }
 
 function uniqueStrings(values?: string[]) {

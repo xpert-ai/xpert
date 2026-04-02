@@ -1,11 +1,13 @@
 import { OverlayModule } from '@angular/cdk/overlay';
-import { Component, TemplateRef, ViewChild, inject } from '@angular/core';
+import { Component, InjectionToken, TemplateRef, ViewChild, ViewContainerRef, inject } from '@angular/core';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 
 import { UiDialogCloseDirective } from './dialog-close.directive';
 import { ZardDialogRef } from './dialog-ref';
 import { Z_MODAL_DATA } from './dialog.service';
 import { ZardDialogService } from './dialog.service';
+
+const TEST_PARENT_TOKEN = new InjectionToken<string>('TEST_PARENT_TOKEN');
 
 @Component({
   standalone: true,
@@ -47,6 +49,33 @@ class TestTemplateHostComponent {
 class TestTemplateDirectiveHostComponent {
   @ViewChild('dialog', { static: true })
   dialogTemplate!: TemplateRef<unknown>;
+}
+
+@Component({
+  standalone: true,
+  template: `
+    <button type="button" data-testid="inherit-close" (click)="close()"></button>
+  `,
+})
+class TestInheritedInjectorDialogComponent {
+  readonly inherited = inject(TEST_PARENT_TOKEN, { optional: true });
+  private readonly dialogRef = inject(ZardDialogRef<TestInheritedInjectorDialogComponent, string>);
+
+  close() {
+    this.dialogRef.close(this.inherited ?? 'missing');
+  }
+}
+
+@Component({
+  standalone: true,
+  template: `
+    <ng-container #anchor></ng-container>
+  `,
+  providers: [{ provide: TEST_PARENT_TOKEN, useValue: 'from-view-container' }],
+})
+class TestInjectorHostComponent {
+  @ViewChild('anchor', { static: true, read: ViewContainerRef })
+  viewContainerRef!: ViewContainerRef;
 }
 
 describe('ZardDialogService', () => {
@@ -166,5 +195,32 @@ describe('ZardDialogService', () => {
     tick(150);
 
     expect(result).toBe('directive-result');
+  }));
+
+  it('inherits providers from the supplied view container injector', fakeAsync(() => {
+    TestBed.configureTestingModule({
+      imports: [OverlayModule, TestInheritedInjectorDialogComponent, TestInjectorHostComponent],
+    });
+
+    const fixture = TestBed.createComponent(TestInjectorHostComponent);
+    fixture.detectChanges();
+
+    const service = TestBed.inject(ZardDialogService);
+    let result: string | undefined;
+
+    service
+      .open(TestInheritedInjectorDialogComponent, {
+        viewContainerRef: fixture.componentInstance.viewContainerRef,
+      })
+      .afterClosed()
+      .subscribe((value) => {
+        result = value;
+      });
+
+    tick();
+    (document.querySelector('[data-testid="inherit-close"]') as HTMLButtonElement).click();
+    tick(150);
+
+    expect(result).toBe('from-view-container');
   }));
 });

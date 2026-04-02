@@ -23,6 +23,7 @@ import { XpertAuthoringMiddleware } from './middlewares/xpert-authoring.middlewa
 import { XpertAuthoringService } from './middlewares/xpert-authoring.service'
 import { XpertToolsetModule } from '../xpert-toolset'
 import { PublishedXpertAccessService } from './published-xpert-access.service'
+import { AssistantBindingModule } from '../assistant-binding/assistant-binding.module'
 
 @Module({
     imports: [
@@ -39,6 +40,7 @@ import { PublishedXpertAccessService } from './published-xpert-access.service'
         forwardRef(() => UserModule),
         forwardRef(() => XpertWorkspaceModule),
         forwardRef(() => EnvironmentModule),
+        forwardRef(() => AssistantBindingModule),
         SandboxModule,
         CopilotCheckpointModule,
         CopilotStoreModule,

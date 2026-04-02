@@ -88,7 +88,11 @@ export class PublishedXpertAccessService {
         const userId = this.currentUserId()
         const qb = this.repository
             .createQueryBuilder('xpert')
-            .innerJoin(
+            .leftJoin('xpert.workspace', 'workspace')
+            .leftJoin('workspace.members', 'workspaceMember', 'workspaceMember.id = :userId', {
+                userId
+            })
+            .leftJoin(
                 'xpert.userGroups',
                 'userGroup',
                 'userGroup.tenantId = :tenantId AND userGroup.organizationId = :organizationId',
@@ -97,7 +101,7 @@ export class PublishedXpertAccessService {
                     organizationId
                 }
             )
-            .innerJoin('userGroup.members', 'member', 'member.id = :userId', {
+            .leftJoin('userGroup.members', 'member', 'member.id = :userId', {
                 userId
             })
             .where('xpert.tenantId = :tenantId', {
@@ -111,6 +115,15 @@ export class PublishedXpertAccessService {
                             organizationId
                         })
                         .orWhere('xpert.organizationId IS NULL')
+                })
+            )
+            .andWhere(
+                new Brackets((accessQb) => {
+                    accessQb
+                        .where('xpert.createdById = :userId', { userId })
+                        .orWhere('workspace.ownerId = :userId', { userId })
+                        .orWhere('workspaceMember.id = :userId', { userId })
+                        .orWhere('member.id = :userId', { userId })
                 })
             )
 
@@ -163,10 +176,15 @@ export class PublishedXpertAccessService {
     }
 
     async findAccessiblePublishedXperts(options?: PublishedXpertQueryOptions) {
-        const rows = await this.buildAccessibleQuery(options)
+        const query = this.buildAccessibleQuery(options)
             .select('xpert.id', 'id')
             .distinct(true)
-            .getRawMany<{ id: string }>()
+
+        Object.keys(options?.order ?? {}).forEach((name) => {
+            query.addSelect(`xpert.${name}`, `order_${name}`)
+        })
+
+        const rows = await query.getRawMany<{ id: string }>()
 
         return this.loadByIds(
             rows.map((row) => row.id),
@@ -200,23 +218,15 @@ export class PublishedXpertAccessService {
             throw new ForbiddenException('You do not have access to this assistant.')
         }
 
-        const count = await this.repository
-            .createQueryBuilder('xpert')
-            .innerJoin(
-                'xpert.userGroups',
-                'userGroup',
-                'userGroup.tenantId = :tenantId AND userGroup.organizationId = :organizationId',
-                {
-                    tenantId,
-                    organizationId
-                }
-            )
-            .innerJoin('userGroup.members', 'member', 'member.id = :userId', {
-                userId
-            })
-            .where('xpert.id = :id', { id })
-            .andWhere('xpert.publishAt IS NOT NULL')
-            .getCount()
+        if (xpert.createdById === userId) {
+            return xpert
+        }
+
+        const count = await this.buildAccessibleQuery({
+            where: {
+                id
+            }
+        }).getCount()
 
         if (!count) {
             throw new ForbiddenException('You do not have access to this assistant.')

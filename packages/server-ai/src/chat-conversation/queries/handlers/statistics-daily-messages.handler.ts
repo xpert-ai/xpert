@@ -14,20 +14,21 @@ export class StatisticsDailyMessagesHandler implements IQueryHandler<StatisticsD
 	) {}
 
 	public async execute(command: StatisticsDailyMessagesQuery) {
-		const { xpertId, start, end } = command
+		const { xpertId, start, end, currentUserOnly } = command
 		const tenantId = RequestContext.currentTenantId()
 		const organizationId = RequestContext.getOrganizationId()
+		const userId = RequestContext.currentUserId()
 
 		const repository = this.repository
 
 		const query = repository
 			.createQueryBuilder('conversation')
 			.innerJoinAndSelect('conversation.messages', 'chat_message')
-			.select('DATE(conversation."createdAt") as date')
-			.addSelect('COUNT(DISTINCT chat_message.id) as count')
+			.select('DATE(chat_message."createdAt") as date')
+			.addSelect('COUNT(chat_message.id) as count')
 			.where('conversation.tenantId = :tenantId', {tenantId})
 			.andWhere('conversation.from != :from', { from: 'debugger' })
-			.andWhere('chat_message.role = :role', { role: 'ai' })
+			.andWhere('chat_message.role IN (:...roles)', { roles: ['human', 'ai'] })
 
 		if (!xpertId) {
 			if (organizationId) {
@@ -39,11 +40,14 @@ export class StatisticsDailyMessagesHandler implements IQueryHandler<StatisticsD
 		if (xpertId) {
 			query.andWhere('conversation.xpertId = :xpertId', { xpertId })
 		}
+		if (currentUserOnly && userId) {
+			query.andWhere('conversation.createdById = :userId', { userId })
+		}
 		if (start) {
-			query.andWhere('conversation.createdAt >= :start', { start })
+			query.andWhere('chat_message.createdAt >= :start', { start })
 		}
 		if (end) {
-			query.andWhere('conversation.createdAt <= :end', { end })
+			query.andWhere('chat_message.createdAt <= :end', { end })
 		}
 		query.addGroupBy('date').orderBy('date')
 

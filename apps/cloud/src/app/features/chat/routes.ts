@@ -1,5 +1,5 @@
 import { inject } from '@angular/core'
-import { Router, Routes } from '@angular/router'
+import { Router, Routes, UrlMatchResult, UrlSegment } from '@angular/router'
 import { AiFeatureEnum, Store } from '../../@core'
 import { ChatTasksComponent } from './tasks/tasks.component'
 import { ChatXpertComponent } from './xpert/xpert.component'
@@ -9,12 +9,33 @@ import { ChatProjectHomeComponent } from './project/home/home.component'
 import { ChatProjectConversationComponent } from './project/conversation/conversation.component'
 import { ChatProjectComponent } from './project/project.component'
 import { ChatBiComponent } from './chatbi/chatbi.component'
+import { ChatCommonAssistantComponent } from './common/common.component'
+import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
+import { ClawXpertComponent } from './clawxpert/clawxpert.component'
+import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
 
 export const routes: Routes = [
   {
     path: '',
     component: ChatHomeComponent,
     children: [
+      {
+        path: '',
+        redirectTo: 'x/common',
+        pathMatch: 'full'
+      },
+      {
+        path: 'x/common/c/:id',
+        redirectTo: '/chat/x/common',
+        pathMatch: 'full'
+      },
+      {
+        path: 'x/common',
+        component: ChatCommonAssistantComponent,
+        data: {
+          title: 'Common Assistant',
+        }
+      },
       {
         path: 'x/:name',
         component: ChatXpertComponent,
@@ -35,6 +56,41 @@ export const routes: Routes = [
         data: {
           title: 'Chat Xpert Conversation',
         }
+      },
+      {
+        path: 'clawxpert',
+        component: ClawXpertComponent,
+        canActivate: [
+          () => {
+            const store = inject(Store)
+            if (
+              store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) &&
+              store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_CLAWXPERT)
+            ) {
+              return true
+            }
+            return inject(Router).createUrlTree(['/chat'])
+          }
+        ],
+        data: {
+          title: 'ClawXpert',
+        },
+        children: [
+          {
+            path: '',
+            component: ClawXpertOverviewComponent,
+            data: {
+              title: 'ClawXpert Overview',
+            }
+          },
+          {
+            matcher: clawxpertConversationMatcher,
+            component: ClawXpertConversationDetailComponent,
+            data: {
+              title: 'ClawXpert Conversation',
+            }
+          }
+        ]
       },
       {
         path: 'chatbi',
@@ -129,3 +185,26 @@ export const routes: Routes = [
     ]
   },
 ]
+
+function clawxpertConversationMatcher(segments: UrlSegment[]): UrlMatchResult | null {
+  if (segments[0]?.path !== 'c') {
+    return null
+  }
+
+  if (segments.length === 1) {
+    return {
+      consumed: segments
+    }
+  }
+
+  if (segments.length === 2) {
+    return {
+      consumed: segments,
+      posParams: {
+        threadId: segments[1]
+      }
+    }
+  }
+
+  return null
+}

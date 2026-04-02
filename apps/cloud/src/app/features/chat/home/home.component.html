@@ -49,6 +49,7 @@
           <li
             data-sidebar="menu-item"
             class="group/menu-item whitespace-nowrap mx-[.125rem] relative"
+            [class.hidden]="!showLegacyHistory()"
             [zTooltip]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search' }"
             zPosition="right"
             [zDisabled]="sidebarState() === 'expanded'"
@@ -135,6 +136,7 @@
       <div
         data-sidebar="group"
         class="relative flex w-full min-w-0 flex-col px-1.5 py-[2px] shrink-0 transition-[width,transform,opacity] duration-200"
+        [class.hidden]="!showLegacyHistory()"
         (click)="$event.stopPropagation()"
       >
         <ul data-sidebar="menu" class="flex w-full min-w-0 flex-col cursor-default">
@@ -401,7 +403,7 @@
 <ng-template
   cdkConnectedOverlay
   [cdkConnectedOverlayOrigin]="history_trigger"
-  [cdkConnectedOverlayOpen]="menuOverlay() === 'history' && sidebarState() === 'closed'"
+  [cdkConnectedOverlayOpen]="showLegacyHistory() && menuOverlay() === 'history' && sidebarState() === 'closed'"
   [cdkConnectedOverlayOffsetY]="-15"
   [cdkConnectedOverlayPositions]="[
     {

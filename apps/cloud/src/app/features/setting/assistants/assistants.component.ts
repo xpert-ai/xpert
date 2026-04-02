@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { RequestScopeLevel } from '@metad/contracts'
-import { AssistantCode, AssistantConfigScope, Store, routeAnimations } from '../../../@core'
+import { AssistantBindingScope, AssistantCode, Store, routeAnimations } from '../../../@core'
 import { type AssistantRegistryItem } from '../../assistant/assistant.registry'
 import { AssistantsSettingsFacade } from './assistants.facade'
 import { AssistantsOrganizationPageComponent } from './assistants-organization.component'
@@ -31,7 +31,7 @@ export class AssistantsSettingsComponent {
     initialValue: this.#store.activeScope
   })
   readonly requestScopeLevel = RequestScopeLevel
-  readonly assistantConfigScope = AssistantConfigScope
+  readonly assistantBindingScope = AssistantBindingScope
 
   tenantForm(code: AssistantCode) {
     return this.#facade.tenantForm(code)
@@ -41,11 +41,11 @@ export class AssistantsSettingsComponent {
     return this.#facade.organizationForm(code)
   }
 
-  assistantXpertOptions(scope: AssistantConfigScope, code: AssistantCode) {
+  assistantXpertOptions(scope: AssistantBindingScope, code: AssistantCode) {
     return this.#facade.assistantXpertOptions(scope, code)
   }
 
-  saveConfig(assistant: AssistantRegistryItem, scope: AssistantConfigScope) {
+  saveConfig(assistant: AssistantRegistryItem, scope: AssistantBindingScope) {
     return this.#facade.saveConfig(assistant, scope)
   }
 

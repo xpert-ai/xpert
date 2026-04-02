@@ -5,6 +5,7 @@ import {
   buildBlankWorkflowDraft,
   buildBlankXpertDraft,
   hasBlankWizardSelections,
+  normalizeBlankTriggerSelections,
   normalizeKnowledgeBlankWizardSelections,
   normalizeBlankWizardSelections,
   normalizeWorkflowBlankWizardSelections
@@ -56,29 +57,47 @@ describe('blank draft util', () => {
   it('should normalize and detect selections', () => {
     expect(
       normalizeBlankWizardSelections({
-        triggerProviders: ['chat', 'chat', '  scheduler  '],
+        triggers: [
+          { provider: 'chat' },
+          { provider: 'chat', config: { enabled: true } },
+          { provider: '  scheduler  ', config: { enabled: true, cron: '0 * * * *' } }
+        ],
         skills: ['Skill A', ' ', 'Skill A'],
         middlewares: ['guard', 'guard']
       })
     ).toEqual({
-      triggerProviders: ['chat', 'scheduler'],
+      triggers: [
+        { provider: 'chat', config: { enabled: true } },
+        { provider: 'scheduler', config: { enabled: true, cron: '0 * * * *' } }
+      ],
+      triggerProviders: [],
       skills: ['Skill A'],
       middlewares: ['guard']
     })
 
     expect(hasBlankWizardSelections()).toBe(false)
     expect(hasBlankWizardSelections({ skills: ['Skill A'] })).toBe(true)
+    expect(
+      normalizeBlankTriggerSelections(
+        [
+          { provider: 'schedule', config: { enabled: true, cron: '0 * * * *' } },
+          { provider: 'schedule', config: { enabled: false } }
+        ],
+        ['chat']
+      )
+    ).toEqual([{ provider: 'schedule', config: { enabled: false } }, { provider: 'chat' }])
 
     expect(
       normalizeKnowledgeBlankWizardSelections({
-        triggerProviders: [' chat ', 'chat'],
+        triggers: [{ provider: ' chat ' }, { provider: 'chat' }],
         sourceProviders: ['source'],
         processorProviders: ['   '],
         chunkerProviders: [],
         understandingProviders: ['vision']
       })
     ).toEqual({
-      triggerProviders: ['chat'],
+      triggers: [{ provider: 'chat' }],
+      triggerProviders: [],
       sourceProviders: ['source'],
       processorProviders: [],
       chunkerProviders: [],
@@ -105,7 +124,7 @@ describe('blank draft util', () => {
 
   it('should append trigger, skill and middleware nodes with expected connections', async () => {
     const draft = await buildBlankXpertDraft(createXpert(), {
-      triggerProviders: ['chat'],
+      triggers: [{ provider: 'schedule', config: { enabled: true, cron: '0 * * * *', task: 'Ping' } }],
       skills: ['Skill A', 'Skill B'],
       middlewares: ['guard', 'audit']
     })
@@ -118,6 +137,7 @@ describe('blank draft util', () => {
     expect(triggerNodes).toHaveLength(1)
     expect(skillNodes).toHaveLength(2)
     expect(middlewareNodes).toHaveLength(2)
+    expect((triggerNodes[0].entity as any).config).toEqual({ enabled: true, cron: '0 * * * *', task: 'Ping' })
 
     expect(draft.connections).toEqual(
       expect.arrayContaining([
@@ -173,7 +193,7 @@ describe('blank draft util', () => {
 
   it('should create a linear knowledge pipeline in the requested step order', async () => {
     const draft = await buildBlankKnowledgeDraft(createKnowledgeXpert(), {
-      triggerProviders: ['chat'],
+      triggers: [{ provider: 'schedule', config: { enabled: true, cron: '0 * * * *', task: 'Sync documents' } }],
       sourceProviders: ['local-file'],
       processorProviders: ['markdown-cleaner'],
       chunkerProviders: ['recursive-text-splitter'],
@@ -189,6 +209,11 @@ describe('blank draft util', () => {
       WorkflowNodeTypeEnum.UNDERSTANDING,
       WorkflowNodeTypeEnum.KNOWLEDGE_BASE
     ])
+    expect((workflowNodes[0].entity as any).config).toEqual({
+      enabled: true,
+      cron: '0 * * * *',
+      task: 'Sync documents'
+    })
 
     expect(draft.connections).toHaveLength(5)
     expect(draft.connections.every((connection) => connection.type === 'edge')).toBe(true)
@@ -199,7 +224,10 @@ describe('blank draft util', () => {
 
   it('should support multiple nodes within the same knowledge pipeline stage', async () => {
     const draft = await buildBlankKnowledgeDraft(createKnowledgeXpert(), {
-      triggerProviders: ['chat', 'schedule'],
+      triggers: [
+        { provider: 'chat' },
+        { provider: 'schedule', config: { enabled: true, cron: '0 * * * *', task: 'Refresh knowledge' } }
+      ],
       sourceProviders: ['local-file', 'web-loader'],
       processorProviders: ['markdown-cleaner'],
       chunkerProviders: ['recursive-text-splitter', 'token-splitter'],
@@ -214,6 +242,11 @@ describe('blank draft util', () => {
     expect(triggerNodes).toHaveLength(2)
     expect(sourceNodes).toHaveLength(2)
     expect(kbNode).toBeDefined()
+    expect((triggerNodes.find((node) => (node.entity as any).from === 'schedule')?.entity as any)?.config).toEqual({
+      enabled: true,
+      cron: '0 * * * *',
+      task: 'Refresh knowledge'
+    })
     expect(
       draft.connections.filter((connection) => triggerNodes.some((node) => node.key === connection.from))
     ).toHaveLength(4)

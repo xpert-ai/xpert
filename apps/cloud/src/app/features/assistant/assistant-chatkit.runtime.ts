@@ -5,14 +5,16 @@ import { ChatKitControl, ChatKitEventHandlers, createChatKit } from '@xpert-ai/c
 import { catchError, map, of, startWith, switchMap } from 'rxjs'
 import { environment } from '@cloud/environments/environment'
 import {
+  AssistantBindingService,
+  AssistantBindingSourceScope,
   AssistantCode,
-  AssistantConfigSourceScope,
-  AssistantConfigService,
   Store,
+  type IResolvedAssistantBinding,
   getErrorMessage,
   ToastrService
 } from '../../@core'
 import { AppService } from '../../app.service'
+import { normalizeAssistantFrameUrl } from './assistant-chatkit-frame-url'
 
 export type AssistantRuntimeStatus = 'idle' | 'loading' | 'ready' | 'missing' | 'disabled' | 'error'
 
@@ -36,27 +38,48 @@ type AssistantHostedChatKitOptions = Omit<AssistantChatKitOptions, 'api'> & {
 type AssistantRuntimeInput = {
   assistantCode: Signal<AssistantCode | null>
   requestContext?: Signal<Record<string, unknown> | null>
+  history?: AssistantHostedChatKitOptions['history']
+  initialThread?: Signal<string | null>
   titleKey: string
   titleDefault: string
   onEffect?: NonNullable<ChatKitEventHandlers['onEffect']>
+  onLog?: NonNullable<ChatKitEventHandlers['onLog']>
+  onResponseStart?: NonNullable<ChatKitEventHandlers['onResponseStart']>
+  onResponseEnd?: NonNullable<ChatKitEventHandlers['onResponseEnd']>
+  onThreadChange?: NonNullable<ChatKitEventHandlers['onThreadChange']>
+  onThreadLoadStart?: NonNullable<ChatKitEventHandlers['onThreadLoadStart']>
+  onThreadLoadEnd?: NonNullable<ChatKitEventHandlers['onThreadLoadEnd']>
+}
+
+type AssistantHostedRuntimeInput = {
+  identity: Signal<string | null>
+  assistantId: Signal<string | null>
+  frameUrl: Signal<string | null>
+  requestContext?: Signal<Record<string, unknown> | null>
+  history?: AssistantHostedChatKitOptions['history']
+  initialThread?: Signal<string | null>
+  titleKey: string
+  titleDefault: string
+  onEffect?: NonNullable<ChatKitEventHandlers['onEffect']>
+  onLog?: NonNullable<ChatKitEventHandlers['onLog']>
+  onResponseStart?: NonNullable<ChatKitEventHandlers['onResponseStart']>
+  onResponseEnd?: NonNullable<ChatKitEventHandlers['onResponseEnd']>
+  onThreadChange?: NonNullable<ChatKitEventHandlers['onThreadChange']>
+  onThreadLoadStart?: NonNullable<ChatKitEventHandlers['onThreadLoadStart']>
+  onThreadLoadEnd?: NonNullable<ChatKitEventHandlers['onThreadLoadEnd']>
 }
 
 export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
-  const assistantConfigService = inject(AssistantConfigService)
+  const assistantBindingService = inject(AssistantBindingService)
   const translate = inject(TranslateService)
   const toastr = inject(ToastrService)
-  const appService = inject(AppService)
-  const store = inject(Store)
+  const frameUrl = computed(() => sanitizeAssistantFrameUrl(environment.CHATKIT_FRAME_URL))
 
   const refreshNonce = signal(0)
-  const authToken = toSignal(store.token$.pipe(startWith(store.token)), { initialValue: store.token })
-  const organizationId = toSignal(store.selectOrganizationId(), { initialValue: store.organizationId ?? null })
-  const fixedApiUrl = buildAssistantApiUrl(environment.API_BASE_URL)
   const requestState = toSignal(
     toObservable(
       computed(() => ({
         code: input.assistantCode(),
-        organizationId: organizationId(),
         refreshNonce: refreshNonce()
       }))
     ).pipe(
@@ -69,7 +92,7 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
           })
         }
 
-        return assistantConfigService.getEffective(code).pipe(
+        return assistantBindingService.getEffective(code).pipe(
           map((config) => ({
             loading: false,
             config,
@@ -105,17 +128,17 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
 
   const config = computed(() => requestState().config)
   const loading = computed(() => requestState().loading)
-  const hasSource = computed(() => !!config()?.sourceScope && config()?.sourceScope !== AssistantConfigSourceScope.NONE)
-  const hasCompleteOptions = computed(() => {
-    const options = config()?.options
-    return !!(options?.assistantId && options?.frameUrl)
-  })
-  const isConfigured = computed(() => !!config() && !!hasSource() && config()?.enabled && hasCompleteOptions())
+  const hasSource = computed(() => hasAssistantBindingSource(config()))
+  const hasCompleteConfiguration = computed(() => hasCompleteAssistantBinding(config(), frameUrl()))
+  const isConfigured = computed(() => !!config() && !!hasSource() && config()?.enabled && hasCompleteConfiguration())
   const status = computed<AssistantRuntimeStatus>(() => {
     if (loading()) {
       return 'loading'
     }
     if (requestState().error) {
+      return 'error'
+    }
+    if (!frameUrl()) {
       return 'error'
     }
     if (!hasSource()) {
@@ -124,68 +147,112 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
     if (!config()?.enabled) {
       return 'disabled'
     }
-    if (!hasCompleteOptions()) {
+    if (!hasCompleteConfiguration()) {
       return 'missing'
     }
     return 'ready'
   })
 
-  const locale = computed<AssistantLocale>(() => normalizeChatKitLocale(appService.lang() || translate.currentLang))
+  const control = injectHostedAssistantChatkitControl({
+    identity: computed(() => (status() === 'ready' ? input.assistantCode() : null)),
+    assistantId: computed(() => config()?.assistantId ?? null),
+    frameUrl,
+    requestContext: input.requestContext,
+    history: input.history,
+    initialThread: input.initialThread,
+    titleKey: input.titleKey,
+    titleDefault: input.titleDefault,
+    onEffect: input.onEffect,
+    onLog: input.onLog,
+    onResponseStart: input.onResponseStart,
+    onResponseEnd: input.onResponseEnd,
+    onThreadChange: input.onThreadChange,
+    onThreadLoadStart: input.onThreadLoadStart,
+    onThreadLoadEnd: input.onThreadLoadEnd
+  })
+
+  return {
+    config,
+    control,
+    hasSource,
+    isConfigured,
+    loading,
+    refresh: () => refreshNonce.update((value) => value + 1),
+    status
+  }
+}
+
+export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntimeInput) {
+  const translate = inject(TranslateService)
+  const toastr = inject(ToastrService)
+  const appService = inject(AppService)
+  const store = inject(Store)
+
+  const authToken = toSignal(store.token$.pipe(startWith(store.token)), { initialValue: store.token })
+  const organizationId = toSignal(store.selectOrganizationId(), { initialValue: store.organizationId ?? null })
+  const fixedApiUrl = buildAssistantApiUrl(environment.API_BASE_URL)
   const theme = computed<AssistantTheme>(() => ({
     colorScheme: appService.theme$().primary === 'dark' ? ('dark' as const) : ('light' as const),
     radius: 'soft'
   }))
+  const locale = computed<AssistantLocale>(() => normalizeChatKitLocale(appService.lang() || translate.currentLang))
   const control = signal<ChatKitControl | null>(null)
+  const activeRuntimeKey = signal<string | null>(null)
   const runtimeKey = computed(() => {
-    const currentConfig = config()
-    if (status() !== 'ready' || !currentConfig?.options) {
+    const identity = input.identity()
+    const assistantId = input.assistantId()
+    const frameUrl = input.frameUrl()
+
+    if (!identity || !assistantId || !frameUrl) {
       return null
     }
 
-    return [
-      input.assistantCode(),
-      currentConfig.options.assistantId,
-      currentConfig.options.frameUrl,
-      fixedApiUrl,
-      authToken() ?? '',
-      organizationId() ?? ''
-    ].join(':')
+    return [identity, assistantId, frameUrl, fixedApiUrl, authToken() ?? '', organizationId() ?? ''].join(':')
   })
-  const activeRuntimeKey = signal<string | null>(null)
 
   effect(() => {
     const key = runtimeKey()
-    const currentConfig = config()
+    const assistantId = input.assistantId()
+    const frameUrl = input.frameUrl()
     const currentTheme = theme()
     const currentLocale = locale()
     const currentToken = authToken() ?? ''
     const currentOrganizationId = organizationId()
+    const initialThread = input.initialThread?.() ?? null
     const requestContext = input.requestContext?.() ?? null
 
-    if (!key || !currentConfig?.options) {
+    if (!key || !assistantId || !frameUrl) {
       activeRuntimeKey.set(null)
       control.set(null)
       return
     }
 
     const options = {
-      frameUrl: currentConfig.options.frameUrl,
+      frameUrl,
       api: {
         apiUrl: fixedApiUrl,
-        xpertId: currentConfig.options.assistantId,
+        xpertId: assistantId,
         getClientSecret: async () => buildAssistantClientSecret(currentToken, currentOrganizationId)
       },
       locale: currentLocale,
       theme: currentTheme,
+      initialThread,
       header: {
         title: {
           text: translate.instant(input.titleKey, { Default: input.titleDefault })
         }
       },
+      history: input.history,
       request: {
         context: requestContext ?? {}
       },
       onEffect: input.onEffect,
+      onLog: input.onLog,
+      onResponseStart: input.onResponseStart,
+      onResponseEnd: input.onResponseEnd,
+      onThreadChange: input.onThreadChange,
+      onThreadLoadStart: input.onThreadLoadStart,
+      onThreadLoadEnd: input.onThreadLoadEnd,
       onError: (event: { error?: { message?: string } }) => {
         toastr.error(event?.error?.message || translate.instant('PAC.KEY_WORDS.Error', { Default: 'Error' }))
       }
@@ -200,15 +267,24 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
     control()?.setOptions(options as AssistantChatKitOptions)
   })
 
-  return {
-    config,
-    control,
-    hasSource,
-    isConfigured,
-    loading,
-    refresh: () => refreshNonce.update((value) => value + 1),
-    status
+  return control
+}
+
+export function sanitizeAssistantFrameUrl(frameUrl?: string | null) {
+  const normalized = frameUrl?.trim()
+  if (!normalized || normalized.startsWith('DOCKER_')) {
+    return null
   }
+
+  return normalized
+}
+
+export function hasAssistantBindingSource(config?: IResolvedAssistantBinding | null) {
+  return !!config?.sourceScope && config.sourceScope !== AssistantBindingSourceScope.NONE
+}
+
+export function hasCompleteAssistantBinding(config?: IResolvedAssistantBinding | null, frameUrl?: string | null) {
+  return !!(config?.assistantId && normalizeAssistantFrameUrl(frameUrl))
 }
 
 function normalizeChatKitLocale(locale?: string | null): AssistantLocale {

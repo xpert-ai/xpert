@@ -112,7 +112,7 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.put<TXpertTeamDraft>(this.apiBaseUrl + `/${id}/draft`, draft)
   }
 
-  publish(id: string, newVersion: boolean, body: { environmentId: string; releaseNotes: string }) {
+  publish(id: string, newVersion: boolean, body: { environmentId?: string | null; releaseNotes: string }) {
     return this.httpClient.post<IXpert>(this.apiBaseUrl + `/${id}/publish`, body, {
       params: new HttpParams().append('newVersion', newVersion)
     })
@@ -409,11 +409,16 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     )
   }
 
-  getDailyMessages(id: string, timeRange: string[]) {
+  getDailyMessages(id: string, timeRange: string[], options?: { currentUserOnly?: boolean }) {
+    let params = timeRangeToParams(new HttpParams(), timeRange)
+    if (options?.currentUserOnly != null) {
+      params = params.append('currentUserOnly', String(options.currentUserOnly))
+    }
+
     return this.httpClient.get<{ date: string; count: number }[]>(
       this.apiBaseUrl + `/${id}/statistics/daily-messages`,
       {
-        params: timeRangeToParams(new HttpParams(), timeRange)
+        params
       }
     )
   }

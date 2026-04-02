@@ -1,17 +1,39 @@
+import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatBiComponent } from './chatbi.component'
+import { ChatBiTraceFacade } from './chatbi-trace.facade'
+
+jest.mock('../../../xpert/ai-message/dashboard/dashboard.component', () => {
+  const angularCore = jest.requireActual('@angular/core')
+
+  class ChatMessageDashboardComponent {}
+
+  angularCore.Component({
+    selector: 'chat-message-dashboard',
+    standalone: true,
+    template: '',
+    inputs: ['message', 'messageId', 'inline']
+  })(ChatMessageDashboardComponent)
+
+  return {
+    ChatMessageDashboardComponent
+  }
+})
 
 jest.mock('apps/cloud/src/app/@core', () => {
   return {
     AssistantCode: {
+      CHAT_COMMON: 'chat_common',
       XPERT_SHARED: 'xpert_shared',
-      CHATBI: 'chatbi'
+      CHATBI: 'chatbi',
+      CLAWXPERT: 'clawxpert'
     },
     AiFeatureEnum: {
       FEATURE_XPERT: 'FEATURE_XPERT',
-      FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI'
+      FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI',
+      FEATURE_XPERT_CLAWXPERT: 'FEATURE_XPERT_CLAWXPERT'
     }
   }
 })
@@ -34,6 +56,19 @@ jest.mock('../../assistant/assistant-chatkit.runtime', () => {
 })
 
 const runtimeState = jest.requireMock('../../assistant/assistant-chatkit.runtime').__runtimeState as any
+const traceFacade = {
+  steps: signal([]),
+  state: signal('idle'),
+  error: signal(null),
+  conversationStatus: signal('idle'),
+  toggleDashboardPin: jest.fn(),
+  handleLog: jest.fn(),
+  handleResponseStart: jest.fn(),
+  handleResponseEnd: jest.fn(),
+  handleThreadChange: jest.fn(),
+  handleThreadLoadStart: jest.fn(),
+  handleThreadLoadEnd: jest.fn()
+}
 
 describe('ChatBiComponent', () => {
   beforeEach(() => {
@@ -42,11 +77,32 @@ describe('ChatBiComponent', () => {
     runtimeState.loading.set(false)
     runtimeState.status.set('missing')
     runtimeState.isConfigured.set(false)
+    traceFacade.steps.set([])
+    traceFacade.state.set('idle')
+    traceFacade.error.set(null)
+    traceFacade.conversationStatus.set('idle')
+    traceFacade.toggleDashboardPin.mockClear()
+    traceFacade.handleLog.mockClear()
+    traceFacade.handleResponseStart.mockClear()
+    traceFacade.handleResponseEnd.mockClear()
+    traceFacade.handleThreadChange.mockClear()
+    traceFacade.handleThreadLoadStart.mockClear()
+    traceFacade.handleThreadLoadEnd.mockClear()
 
     TestBed.resetTestingModule()
     TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ChatBiComponent],
       providers: [provideRouter([])]
+    })
+    TestBed.overrideComponent(ChatBiComponent, {
+      set: {
+        providers: [
+          {
+            provide: ChatBiTraceFacade,
+            useValue: traceFacade
+          }
+        ]
+      }
     })
   })
 
@@ -86,5 +142,50 @@ describe('ChatBiComponent', () => {
     fixture.detectChanges()
 
     expect(fixture.nativeElement.querySelector('xpert-chatkit')).not.toBeNull()
+  })
+
+  it('renders dashboard activity in the left panel when a dashboard item exists', () => {
+    traceFacade.steps.set([
+      {
+        id: 'dashboard-1',
+        pinned: false,
+        type: 'component',
+        data: {
+          id: 'dashboard-1',
+          category: 'Dashboard',
+          type: 'AnalyticalCard',
+          title: 'Sales Trend'
+        }
+      } as any
+    ])
+
+    const fixture = TestBed.createComponent(ChatBiComponent)
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.querySelector('chat-message-dashboard')).not.toBeNull()
+    expect(fixture.nativeElement.textContent).not.toContain('PAC.ChatBI.TraceEmpty')
+  })
+
+  it('forwards dashboard pin toggles to the trace facade', () => {
+    traceFacade.steps.set([
+      {
+        id: 'dashboard-1',
+        pinned: false,
+        type: 'component',
+        data: {
+          id: 'dashboard-1',
+          category: 'Dashboard',
+          type: 'AnalyticalCard',
+          title: 'Sales Trend'
+        }
+      } as any
+    ])
+
+    const fixture = TestBed.createComponent(ChatBiComponent)
+    fixture.detectChanges()
+
+    fixture.nativeElement.querySelector('[data-step-pin=\"dashboard-1\"]').click()
+
+    expect(traceFacade.toggleDashboardPin).toHaveBeenCalledWith('dashboard-1')
   })
 })

@@ -1,5 +1,6 @@
 export * from './app-init-service'
-export * from './assistant-config.service'
+export * from './ai-thread.service'
+export * from './assistant-binding.service'
 export * from './certification.service'
 export * from './chat-conversation.service'
 export * from './chat.service'

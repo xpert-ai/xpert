@@ -157,7 +157,7 @@ export class ZardDialogService {
 
   private createInjector<T, U>(dialogRef: ZardDialogRef<T>, config: ZardDialogOptions<T, U>) {
     return Injector.create({
-      parent: this.injector,
+      parent: config.zViewContainerRef?.injector ?? this.injector,
       providers: [
         { provide: DialogRef, useValue: dialogRef },
         { provide: DIALOG_DATA, useValue: config.zData },

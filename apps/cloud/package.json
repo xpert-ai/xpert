@@ -18,13 +18,13 @@
 		"@foblex/platform": "^1.0.4",
 		"@foblex/utils": "^1.1.1",
 		"@langchain/anthropic": "^0.3.26",
-		"@octokit/types": "14.1.0",
 		"@xpert-ai/chatkit-angular": "^0.0.1",
+		"@xpert-ai/chatkit-ui": "0.0.20",
 		"crypto-js": "^4.2.0",
-		"json-2-csv": "^5.5.9",
 		"i18next": "~23.14.0",
 		"i18next-browser-languagedetector": "^8.0.5",
 		"i18next-http-backend": "^3.0.2",
+		"json-2-csv": "^5.5.9",
 		"ngx-json-viewer": "^3.2.1"
 	}
 }

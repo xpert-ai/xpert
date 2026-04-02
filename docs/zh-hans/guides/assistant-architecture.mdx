@@ -1,0 +1,496 @@
+# Assistant 技术架构
+
+Assistant 在 Xpert 里不是一个独立的 AI 执行引擎，而是一层“产品入口到已发布 Xpert”的绑定与运行时适配层。
+
+它解决的是三个问题：
+
+- 某个页面入口应该绑定哪个已发布 `Xpert`
+- 当前用户是否有权限访问这个 `Xpert`
+- 前端如何用统一的 ChatKit 运行时把它嵌入到页面里
+
+## 一句话理解
+
+当前系统的核心链路可以概括为：
+
+`AssistantCode -> AssistantRegistry -> AssistantBinding -> published Xpert -> /api/ai assistant protocol -> Xpert runtime`
+
+其中：
+
+- `AssistantCode` 表示产品入口
+- `AssistantBinding` 表示入口和已发布 `Xpert` 的绑定关系
+- ChatKit 负责会话 UI 与协议对接
+- 真正执行消息、工具和工作流的仍然是 `Xpert`
+
+## 当前内置 Assistant 入口
+
+系统当前内置 4 个 Assistant 入口：
+
+| AssistantCode | management | 用途 | 前端入口 |
+| --- | --- | --- | --- |
+| `chat_common` | `system` | 通用聊天页内嵌助手 | `/chat/x/common` |
+| `xpert_shared` | `system` | Xpert 工作区 / Studio 共享助手 | `xpert` 相关页面壳层 |
+| `chatbi` | `system` | ChatBI 页面助手 | `/chat/chatbi` |
+| `clawxpert` | `user` | 每个用户在每个组织下自己的独立助手 | `/chat/clawxpert` |
+
+这些入口统一定义在前端注册表中。注册表负责：
+
+- 定义 `code`
+- 定义 `management: system | user`
+- 定义标题、描述、翻译 key、默认文案
+- 定义 feature 开关约束
+
+`management` 是静态产品元数据，不存数据库。
+
+## 核心设计原则
+
+### 1. Assistant 是入口，不是执行实体
+
+平台并没有维护一套独立的 “Assistant 实体 + Assistant 引擎”。
+
+在当前实现里：
+
+- 页面只声明自己使用哪个 `AssistantCode`
+- 绑定层负责把这个 code 解析成一个已发布 `Xpert`
+- `/api/ai` 再把这个 `Xpert` 暴露成 assistant 协议对象
+
+因此 Assistant 本质上是“入口语义”，不是“执行对象”。
+
+### 2. assistantId 实际上是已发布 Xpert 的 id
+
+虽然字段名叫 `assistantId`，但当前系统中它存的就是目标已发布 `Xpert.id`。
+
+也就是说：
+
+- `AssistantBinding.assistantId` 指向的是已发布 `Xpert`
+- `/api/ai/assistants/:id` 最终按 `Xpert.id` 取数据
+- ChatKit 中使用的 `assistant_id` 也是 `Xpert.id`
+
+### 3. ChatKit frame 由部署环境统一提供
+
+现在的规则是：
+
+- `frameUrl` 不进入数据库
+- `frameUrl` 不出现在管理表单里
+- 所有助手页统一从 `environment.CHATKIT_FRAME_URL` 读取
+
+这让 AssistantBinding 只负责“绑定谁”，不再负责“嵌到哪里”。
+
+### 4. system 与 user 的管理边界是分开的
+
+系统把内置 Assistant 明确分成两类：
+
+- `system`
+  - 由管理员在 `Settings / Assistants` 中维护
+  - 支持租户默认值和组织覆盖值
+- `user`
+  - 由普通用户在自己的页面中维护
+  - 当前只有 `clawxpert`
+
+这个边界由注册表和 `AssistantCode` 元数据定义，不通过请求体传递，也不落库。
+
+## 统一数据模型：AssistantBinding
+
+当前绑定模型为 `AssistantBinding`。
+
+核心类型包括：
+
+- `AssistantCode`
+- `AssistantBindingScope = tenant | organization | user`
+- `AssistantBindingSourceScope = none | tenant | organization`
+- `IAssistantBinding`
+- `IResolvedAssistantBinding`
+- `IAssistantBindingUpsertInput`
+
+### 字段语义
+
+`AssistantBinding` 的核心字段包括：
+
+- `code`
+- `scope`
+- `assistantId`
+- `enabled`
+- `tenantId`
+- `organizationId`
+- `userId`
+
+其中：
+
+- `assistantId` 指向目标已发布 `Xpert`
+- `enabled` 只对 `system` 助手有意义
+- `user` 助手用“binding 是否存在”表示是否已配置
+
+### scope 规则
+
+| scope | organizationId | userId | enabled |
+| --- | --- | --- | --- |
+| `tenant` | 必须为空 | 必须为空 | 必须有意义 |
+| `organization` | 必填 | 必须为空 | 必须有意义 |
+| `user` | 必填 | 必填 | 忽略，实际保存为 `null` |
+
+### 唯一约束
+
+实体按 scope 建了三组唯一索引：
+
+- `tenantId + code` 对应 `scope=tenant`
+- `tenantId + organizationId + code` 对应 `scope=organization`
+- `tenantId + organizationId + userId + code` 对应 `scope=user`
+
+因此同一个入口可以同时存在：
+
+- 一条租户默认绑定
+- 多条组织级覆盖绑定
+- 多条用户级个人绑定
+
+## system 与 user 两类助手
+
+### system 助手
+
+当前 `system` 助手有：
+
+- `chat_common`
+- `xpert_shared`
+- `chatbi`
+
+它们的特点是：
+
+- 后端支持 `tenant` 和 `organization` 两种 scope
+- 运行时读取的是“生效绑定”
+- 生效规则为 `organization -> tenant`
+- `enabled` 为必填并参与运行时状态判断
+
+### user 助手
+
+当前 `user` 助手只有：
+
+- `clawxpert`
+
+它的特点是：
+
+- 只读当前用户、当前组织下的 `scope=user` binding
+- 不参与 `organization -> tenant` fallback
+- 不使用 `enabled`
+- 是否已配置由该 binding 是否存在决定
+
+## 后端统一 API
+
+当前统一接口为 `/assistant-binding`：
+
+### 查询某个 scope 下的 system 绑定列表
+
+`GET /assistant-binding?scope=tenant|organization`
+
+用于管理员设置页加载当前 scope 下的所有 `system` 绑定。
+
+### 查询单条 binding
+
+`GET /assistant-binding/:code?scope=user|tenant|organization`
+
+规则如下：
+
+- `scope=user` 读取当前用户当前组织下的绑定
+- `scope=tenant|organization` 读取指定 scope 下的 `system` binding
+
+### 查询 system 助手的生效 binding
+
+`GET /assistant-binding/effective/:code`
+
+只用于 `system` 助手，返回：
+
+- 最终生效的 `assistantId`
+- `enabled`
+- `sourceScope`
+
+### 查询当前 scope 可绑定的 Xpert 列表
+
+`GET /assistant-binding/xperts?scope=...&code=...`
+
+它根据 `scope` 和 `AssistantCode` 走不同的候选逻辑：
+
+- `scope=user` 走用户可访问已发布 Xpert 逻辑
+- `scope=tenant|organization` 走管理员可配置候选逻辑
+
+### 统一 upsert
+
+`POST /assistant-binding`
+
+输入为：
+
+```ts
+{
+  code: AssistantCode
+  scope: AssistantBindingScope
+  assistantId: string
+  enabled?: boolean
+}
+```
+
+约束如下：
+
+- `assistantId` 当前实现中必填
+- `scope=user` 时只允许 user-managed code
+- `scope=tenant|organization` 时只允许 system-managed code
+- `enabled` 对 `system` 助手必填，对 `user` 助手忽略
+
+### 删除 binding
+
+`DELETE /assistant-binding/:code?scope=tenant|organization|user`
+
+删除后：
+
+- `system` 助手会回退到上层生效逻辑
+- `user` 助手会恢复未配置状态
+
+## 权限与校验规则
+
+### system 绑定
+
+`system` 绑定的读写权限如下：
+
+- `tenant` scope 需要 `SUPER_ADMIN`
+- `organization` scope 需要 `ADMIN` 或 `SUPER_ADMIN`
+
+候选 `Xpert` 必须满足：
+
+- `type = Agent`
+- `latest = true`
+- `publishAt IS NOT NULL`
+
+scope 约束如下：
+
+- `tenant` 只能绑定租户级已发布 Xpert
+- `organization` 可以绑定租户级已发布 Xpert，或当前组织下已发布 Xpert
+
+### user 绑定
+
+`user` 绑定允许普通登录用户管理自己的记录，但只能操作：
+
+- 当前 tenant
+- 当前 organization
+- 当前 user
+
+并且只能绑定“自己当前有权限访问的已发布 Xpert”。
+
+## 已发布 Xpert 的可访问性规则
+
+`scope=user` 的候选列表和单条校验都复用了 `PublishedXpertAccessService`，并且两者已经统一成同一套访问规则。
+
+一个已发布 Xpert 对当前用户可访问，需要同时满足：
+
+- 属于当前 tenant
+- 已发布，也就是 `publishAt IS NOT NULL`
+- 作用域属于当前组织，或是租户级 Xpert
+
+并且用户至少满足以下任一条件：
+
+- `createdById = currentUser`
+- 当前用户是 workspace owner
+- 当前用户是 workspace member
+- 当前用户属于该 Xpert 绑定的 user group 成员
+
+这意味着：
+
+- 自己创建并发布的 Xpert，即使没有配置 `userGroups`，仍然可以被自己选中
+- 候选列表展示逻辑和提交后的单条校验逻辑是一致的
+
+## 绑定解析规则
+
+### system 助手的生效解析
+
+`getEffectiveBinding(code)` 的解析顺序是：
+
+1. 先找当前组织下的 `organization` binding
+2. 没有则回退到 `tenant` binding
+3. 仍然没有则返回 `sourceScope = none`
+
+因此 `system` 助手页面在运行时永远只消费一份最终结果。
+
+### user 助手的读取规则
+
+`clawxpert` 不做 fallback。
+
+它只读取：
+
+- 当前 tenant
+- 当前 organization
+- 当前 user
+- `scope=user`
+- `code=clawxpert`
+
+不存在就视为“尚未绑定”。
+
+## 前端服务与运行时
+
+前端统一通过 `AssistantBindingService` 调用后端：
+
+- `getByScope(scope)`
+- `get(code, scope)`
+- `getEffective(code)`
+- `getAvailableXperts(scope, code)`
+- `upsert(input)`
+- `delete(code, scope)`
+
+### 通用 Assistant ChatKit 运行时
+
+`injectAssistantChatkitRuntime()` 负责把一个 `system` 助手入口转成可运行的 ChatKit control。
+
+它的关键行为是：
+
+- 调用 `GET /assistant-binding/effective/:code`
+- 从 `environment.CHATKIT_FRAME_URL` 读取 `frameUrl`
+- 把 `assistantId` 作为 `xpertId` 传给 ChatKit
+- 把 API URL 固定拼成 `${API_BASE_URL}/api/ai`
+- 用当前登录用户 JWT 生成 `getClientSecret()`
+- 如果存在组织上下文，一并附带 `organizationId`
+
+通用运行时状态包括：
+
+- `idle`
+- `loading`
+- `ready`
+- `missing`
+- `disabled`
+- `error`
+
+状态判断规则很直接：
+
+- 没有生效来源是 `missing`
+- `enabled = false` 是 `disabled`
+- 缺少 `assistantId` 或部署未配置 `CHATKIT_FRAME_URL` 时不能进入 `ready`
+
+### ClawXpert 的页面运行时
+
+`ClawXpert` 页面没有走 system 的 effective 解析，而是自己读取 `scope=user` binding。
+
+它的页面状态固定为：
+
+- `organization-required`
+- `wizard`
+- `ready`
+- `error`
+
+规则如下：
+
+- 未选择组织时，直接进入 `organization-required`
+- 有组织但未绑定时，显示页面内向导
+- 保存 binding 成功后进入 `ready`
+- 如果部署未配置 `CHATKIT_FRAME_URL`，进入 `error`
+
+## Settings / Assistants 与 ClawXpert 的边界
+
+### 管理员设置页
+
+`Settings / Assistants` 只显示 `management === 'system'` 的 Assistant。
+
+因此当前设置页只管理：
+
+- `chat_common`
+- `xpert_shared`
+- `chatbi`
+
+它不会显示 `ClawXpert`。
+
+表单字段当前只有：
+
+- `enabled`
+- `assistantId`
+
+页面会额外展示两个运行时只读信息：
+
+- 部署级 `CHATKIT_FRAME_URL`
+- `${API_BASE_URL}/api/ai`
+
+### ClawXpert 页面
+
+`ClawXpert` 是一个独立路由页面：
+
+- 路由：`/chat/clawxpert`
+- 左侧聊天菜单有独立入口
+- 受 `FEATURE_XPERT_CLAWXPERT` 控制
+
+首次进入未绑定时，页面内会展示向导，让用户从“自己可访问的已发布 Xpert”中选择一个进行绑定。
+
+页面还支持：
+
+- `Change ClawXpert`
+- `Clear ClawXpert`
+
+也就是说，`ClawXpert` 的配置入口不在管理员设置页，而在它自己的产品页内部。
+
+## `/api/ai` 如何把 Xpert 暴露为 Assistant
+
+`/api/ai/assistants` 并不是从某张独立 Assistant 表里读数据。
+
+当前做法是：
+
+- 从可访问的已发布 `Xpert` 中查询候选
+- 把 `Xpert` 转换成 LangGraph 风格的 assistant 协议对象
+- 返回 `assistant_id = xpert.id`
+
+因此对 ChatKit 而言：
+
+- 它看到的是标准 assistant 协议
+
+但对平台内部而言：
+
+- 真正的执行主体始终是 `Xpert`
+
+这也是为什么 `AssistantBinding.assistantId` 其实存的是 `Xpert.id`。
+
+## xpert_shared 的上下文能力
+
+`xpert_shared` 不只是一个普通聊天入口，它还是 Xpert 工作区和 Studio 的共享上下文助手。
+
+前端会在特定场景把上下文放进 ChatKit `request.context`，例如：
+
+- `workspaceId`
+- `xpertId`
+- `targetXpertId`
+- `unsaved`
+- `baseDraftHash`
+
+服务端的 `XpertAuthoringMiddleware` 会消费这些上下文，用于：
+
+- 读取当前 Xpert 草稿
+- 列出工作区资源
+- 创建或编辑 Xpert 草稿
+- 在需要时向前端回推 `navigate_to_studio`、`refresh_studio` 等 effect
+
+所以 `xpert_shared` 的本质仍然是“绑定到已发布 Xpert 的助手入口”，只是它在工作区场景里额外具备了上下文感知与创作能力。
+
+## 关键文件索引
+
+- `packages/contracts/src/ai/assistant-binding.model.ts`
+- `packages/server-ai/src/assistant-binding/assistant-binding.entity.ts`
+- `packages/server-ai/src/assistant-binding/assistant-binding.service.ts`
+- `packages/server-ai/src/assistant-binding/assistant-binding.controller.ts`
+- `packages/server-ai/src/ai/assistant.controller.ts`
+- `packages/server-ai/src/ai/commands/handlers/run-create-stream.handler.ts`
+- `packages/server-ai/src/xpert/published-xpert-access.service.ts`
+- `packages/server-ai/src/xpert/middlewares/xpert-authoring.middleware.ts`
+- `packages/server-ai/src/xpert/middlewares/xpert-authoring.service.ts`
+- `apps/cloud/src/app/features/assistant/assistant.registry.ts`
+- `apps/cloud/src/app/features/assistant/assistant-chatkit.runtime.ts`
+- `apps/cloud/src/app/@core/services/assistant-binding.service.ts`
+- `apps/cloud/src/app/features/setting/assistants/assistants.facade.ts`
+- `apps/cloud/src/app/features/setting/assistants/assistants-scope.component.ts`
+- `apps/cloud/src/app/features/chat/clawxpert/clawxpert.component.ts`
+- `apps/cloud/src/app/features/chat/routes.ts`
+- `apps/cloud/src/app/features/chat/home/home.component.ts`
+- `apps/cloud/src/app/features/xpert/assistant-shell/assistant.facade.ts`
+- `apps/cloud/src/environments/types.ts`
+
+## 总结
+
+当前 Assistant 架构可以理解成三层分工：
+
+- 产品入口层：用 `AssistantCode` 和注册表定义“页面里有什么助手入口”
+- 绑定层：用 `AssistantBinding` 决定“这个入口当前绑定哪个已发布 Xpert”
+- 运行时层：用 ChatKit 和 `/api/ai` 把这个已发布 Xpert 暴露成可对话、可执行的 assistant
+
+其中最关键的设计点有三点：
+
+- 配置模型已经统一为 `AssistantBinding`
+- `frameUrl` 不进入数据库，统一走部署环境变量
+- `ClawXpert` 把用户级助手正式纳入同一套 Assistant 架构中
+
+这让系统既能支持管理员统一维护的共享助手，也能支持用户在自己页面内自主管理的个人助手，而且两者最终都复用同一套已发布 Xpert 执行体系。

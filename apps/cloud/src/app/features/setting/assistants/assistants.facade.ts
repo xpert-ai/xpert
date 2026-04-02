@@ -7,12 +7,13 @@ import { firstValueFrom, map, of, startWith, switchMap } from 'rxjs'
 import { type ZardComboboxOption } from '@xpert-ai/headless-ui'
 import {
   AiFeatureEnum,
+  AssistantBindingScope,
+  AssistantBindingSourceScope,
+  AssistantBindingService,
   AssistantCode,
-  AssistantConfigScope,
-  AssistantConfigSourceScope,
-  AssistantConfigService,
-  IAssistantConfig,
-  IResolvedAssistantConfig,
+  IAssistantBinding,
+  IPagination,
+  IResolvedAssistantBinding,
   IXpert,
   RolesEnum,
   Store,
@@ -21,15 +22,11 @@ import {
 } from '../../../@core'
 import { ASSISTANT_REGISTRY, type AssistantRegistryItem } from '../../assistant/assistant.registry'
 
-type AssistantFormValue = {
-  enabled: boolean
-  assistantId: string
-  frameUrl: string
-}
+const SETTINGS_XPERT_SCOPE_CODE = AssistantCode.CHAT_COMMON
 
 @Injectable()
 export class AssistantsSettingsFacade {
-  readonly #assistantConfigService = inject(AssistantConfigService)
+  readonly #assistantBindingService = inject(AssistantBindingService)
   readonly #store = inject(Store)
   readonly #formBuilder = inject(FormBuilder)
   readonly #toastr = inject(ToastrService)
@@ -42,9 +39,10 @@ export class AssistantsSettingsFacade {
   readonly selectedOrganization = toSignal(this.#store.selectedOrganization$.pipe(startWith(null)))
   readonly user = toSignal(this.#store.user$)
   readonly fixedApiUrl = buildAssistantRuntimeApiUrl(environment.API_BASE_URL)
+  readonly chatkitFrameUrl = sanitizeConfiguredFrameUrl(environment.CHATKIT_FRAME_URL)
   readonly tenantXperts: Signal<IXpert[]> = toSignal(
-    this.#assistantConfigService.getAvailableXperts(AssistantConfigScope.TENANT).pipe(
-      map((items: IXpert[] | null | undefined) => this.normalizeXperts(items))
+    this.#assistantBindingService.getAvailableXperts(AssistantBindingScope.TENANT, SETTINGS_XPERT_SCOPE_CODE).pipe(
+      map((items: IXpert[] | IPagination<IXpert> | null | undefined) => this.normalizeXperts(items))
     ),
     { initialValue: [] as IXpert[] }
   )
@@ -52,10 +50,13 @@ export class AssistantsSettingsFacade {
     toObservable(this.organizationId).pipe(
       switchMap((organizationId) =>
         organizationId
-          ? this.#assistantConfigService.getAvailableXperts(AssistantConfigScope.ORGANIZATION)
+          ? this.#assistantBindingService.getAvailableXperts(
+              AssistantBindingScope.ORGANIZATION,
+              SETTINGS_XPERT_SCOPE_CODE
+            )
           : of([] as IXpert[])
       ),
-      map((items: IXpert[] | null | undefined) => this.normalizeXperts(items))
+      map((items: IXpert[] | IPagination<IXpert> | null | undefined) => this.normalizeXperts(items))
     ),
     { initialValue: [] as IXpert[] }
   )
@@ -76,6 +77,10 @@ export class AssistantsSettingsFacade {
     this.featureTenant()
 
     return ASSISTANT_REGISTRY.filter((assistant) => {
+      if (assistant.management !== 'system') {
+        return false
+      }
+
       if (!this.#store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT)) {
         return false
       }
@@ -86,10 +91,9 @@ export class AssistantsSettingsFacade {
 
   readonly loading = signal(true)
   readonly savingKey = signal<string | null>(null)
-  readonly assistantConfigScope = AssistantConfigScope
-  readonly tenantConfigs = signal<Partial<Record<AssistantCode, IAssistantConfig>>>({})
-  readonly organizationConfigs = signal<Partial<Record<AssistantCode, IAssistantConfig>>>({})
-  readonly effectiveConfigs = signal<Partial<Record<AssistantCode, IResolvedAssistantConfig>>>({})
+  readonly tenantConfigs = signal<Partial<Record<AssistantCode, IAssistantBinding>>>({})
+  readonly organizationConfigs = signal<Partial<Record<AssistantCode, IAssistantBinding>>>({})
+  readonly effectiveConfigs = signal<Partial<Record<AssistantCode, IResolvedAssistantBinding>>>({})
 
   readonly tenantForms = Object.fromEntries(
     ASSISTANT_REGISTRY.map((assistant) => [assistant.code, this.createForm()])
@@ -150,17 +154,17 @@ export class AssistantsSettingsFacade {
 
   sourceLabel(sourceScope?: string | null) {
     switch (sourceScope) {
-      case AssistantConfigSourceScope.ORGANIZATION:
+      case AssistantBindingSourceScope.ORGANIZATION:
         return this.t('PAC.Assistant.OrganizationOverride', 'Organization Override')
-      case AssistantConfigSourceScope.TENANT:
+      case AssistantBindingSourceScope.TENANT:
         return this.t('PAC.Assistant.TenantDefault', 'Tenant Default')
       default:
         return this.t('PAC.Assistant.NotConfigured', 'Not Configured')
     }
   }
 
-  effectiveStatusLabel(config?: IResolvedAssistantConfig | null) {
-    if (!config || config.sourceScope === AssistantConfigSourceScope.NONE) {
+  effectiveStatusLabel(config?: IResolvedAssistantBinding | null) {
+    if (!config || config.sourceScope === AssistantBindingSourceScope.NONE) {
       return this.t('PAC.Assistant.NotConfigured', 'Not Configured')
     }
 
@@ -169,9 +173,9 @@ export class AssistantsSettingsFacade {
       : this.t('PAC.KEY_WORDS.Disabled', 'Disabled')
   }
 
-  sourceStateLabel(config?: IAssistantConfig | null) {
+  sourceStateLabel(config?: IAssistantBinding | null) {
     if (config) {
-      return config.organizationId
+      return config.scope === AssistantBindingScope.ORGANIZATION
         ? this.t('PAC.Assistant.SavedInOrganizationScope', 'Saved in organization scope')
         : this.t('PAC.Assistant.SavedInTenantScope', 'Saved in tenant scope')
     }
@@ -179,20 +183,20 @@ export class AssistantsSettingsFacade {
     return this.t('PAC.Assistant.NoSavedConfigInScope', 'No saved config in this scope')
   }
 
-  assistantSearchTerm(scope: AssistantConfigScope, code: AssistantCode) {
+  assistantSearchTerm(scope: AssistantBindingScope, code: AssistantCode) {
     return this.assistantSearchTerms()[this.assistantSearchKey(scope, code)] ?? ''
   }
 
-  assistantSelectionValue(scope: AssistantConfigScope, code: AssistantCode) {
-    return scope === AssistantConfigScope.TENANT
+  assistantSelectionValue(scope: AssistantBindingScope, code: AssistantCode) {
+    return scope === AssistantBindingScope.TENANT
       ? this.tenantForm(code).controls.assistantId.value
       : this.organizationForm(code).controls.assistantId.value
   }
 
-  assistantXpertOptions(scope: AssistantConfigScope, code: AssistantCode): ZardComboboxOption[] {
+  assistantXpertOptions(scope: AssistantBindingScope, code: AssistantCode): ZardComboboxOption[] {
     const searchTerm = this.assistantSearchTerm(scope, code).trim().toLowerCase()
     const xperts =
-      scope === AssistantConfigScope.TENANT
+      scope === AssistantBindingScope.TENANT
         ? this.tenantXperts()
         : this.organizationAvailableXperts()
 
@@ -217,7 +221,7 @@ export class AssistantsSettingsFacade {
       }))
   }
 
-  onAssistantSearchTermChange(scope: AssistantConfigScope, code: AssistantCode, value: string) {
+  onAssistantSearchTermChange(scope: AssistantBindingScope, code: AssistantCode, value: string) {
     const key = this.assistantSearchKey(scope, code)
 
     if (this.#skipNextAssistantSearchSync.has(key)) {
@@ -229,9 +233,9 @@ export class AssistantsSettingsFacade {
     this.setAssistantSearchTerm(key, value)
   }
 
-  selectAssistantXpert(scope: AssistantConfigScope, code: AssistantCode, value: unknown) {
+  selectAssistantXpert(scope: AssistantBindingScope, code: AssistantCode, value: unknown) {
     const assistantId = value ? `${value}` : ''
-    const form = scope === AssistantConfigScope.TENANT ? this.tenantForm(code) : this.organizationForm(code)
+    const form = scope === AssistantBindingScope.TENANT ? this.tenantForm(code) : this.organizationForm(code)
 
     form.controls.assistantId.setValue(assistantId)
     form.controls.assistantId.markAsDirty()
@@ -239,9 +243,9 @@ export class AssistantsSettingsFacade {
     this.resetAssistantSearch(scope, code)
   }
 
-  async saveConfig(assistant: AssistantRegistryItem, scope: AssistantConfigScope) {
+  async saveConfig(assistant: AssistantRegistryItem, scope: AssistantBindingScope) {
     const form =
-      scope === AssistantConfigScope.TENANT ? this.tenantForm(assistant.code) : this.organizationForm(assistant.code)
+      scope === AssistantBindingScope.TENANT ? this.tenantForm(assistant.code) : this.organizationForm(assistant.code)
     form.markAllAsTouched()
 
     if (form.invalid) {
@@ -253,11 +257,11 @@ export class AssistantsSettingsFacade {
 
     try {
       await firstValueFrom(
-        this.#assistantConfigService.upsert({
+        this.#assistantBindingService.upsert({
           code: assistant.code,
           scope,
           enabled: form.getRawValue().enabled,
-          options: this.toOptions(form.getRawValue())
+          assistantId: form.getRawValue().assistantId
         })
       )
       this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
@@ -280,7 +284,7 @@ export class AssistantsSettingsFacade {
     this.savingKey.set(savingKey)
 
     try {
-      await firstValueFrom(this.#assistantConfigService.delete(assistant.code, AssistantConfigScope.ORGANIZATION))
+      await firstValueFrom(this.#assistantBindingService.delete(assistant.code, AssistantBindingScope.ORGANIZATION))
       this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
       await this.loadConfigs()
     } catch (error) {
@@ -299,19 +303,19 @@ export class AssistantsSettingsFacade {
     this.loading.set(true)
     try {
       const [tenantConfigs, organizationConfigs, effectiveConfigs]: [
-        IAssistantConfig[],
-        IAssistantConfig[],
-        IResolvedAssistantConfig[]
+        IAssistantBinding[],
+        IAssistantBinding[],
+        IResolvedAssistantBinding[]
       ] = await Promise.all([
-        firstValueFrom<IAssistantConfig[]>(this.#assistantConfigService.getByScope(AssistantConfigScope.TENANT)),
+        firstValueFrom<IAssistantBinding[]>(this.#assistantBindingService.getByScope(AssistantBindingScope.TENANT)),
         this.organizationId()
-          ? firstValueFrom<IAssistantConfig[]>(
-              this.#assistantConfigService.getByScope(AssistantConfigScope.ORGANIZATION)
+          ? firstValueFrom<IAssistantBinding[]>(
+              this.#assistantBindingService.getByScope(AssistantBindingScope.ORGANIZATION)
             )
-          : Promise.resolve([] as IAssistantConfig[]),
+          : Promise.resolve([] as IAssistantBinding[]),
         Promise.all(
           assistants.map((assistant) =>
-            firstValueFrom<IResolvedAssistantConfig>(this.#assistantConfigService.getEffective(assistant.code))
+            firstValueFrom<IResolvedAssistantBinding>(this.#assistantBindingService.getEffective(assistant.code))
           )
         )
       ])
@@ -322,14 +326,14 @@ export class AssistantsSettingsFacade {
         effectiveConfigs.reduce((acc, item) => {
           acc[item.code] = item
           return acc
-        }, {} as Partial<Record<AssistantCode, IResolvedAssistantConfig>>)
+        }, {} as Partial<Record<AssistantCode, IResolvedAssistantBinding>>)
       )
 
       ASSISTANT_REGISTRY.forEach((assistant) => {
         this.patchForm(this.tenantForm(assistant.code), this.tenantConfig(assistant.code))
         this.patchForm(this.organizationForm(assistant.code), this.organizationConfig(assistant.code))
-        this.clearAssistantSearch(AssistantConfigScope.TENANT, assistant.code)
-        this.clearAssistantSearch(AssistantConfigScope.ORGANIZATION, assistant.code)
+        this.clearAssistantSearch(AssistantBindingScope.TENANT, assistant.code)
+        this.clearAssistantSearch(AssistantBindingScope.ORGANIZATION, assistant.code)
       })
 
       if (!this.canManageTenant()) {
@@ -347,12 +351,11 @@ export class AssistantsSettingsFacade {
     }
   }
 
-  private patchForm(form: ReturnType<AssistantsSettingsFacade['createForm']>, config?: IAssistantConfig | null) {
+  private patchForm(form: ReturnType<AssistantsSettingsFacade['createForm']>, config?: IAssistantBinding | null) {
     form.reset(
       {
         enabled: config?.enabled ?? true,
-        assistantId: config?.options?.assistantId ?? '',
-        frameUrl: config?.options?.frameUrl ?? ''
+        assistantId: config?.assistantId ?? ''
       },
       { emitEvent: false }
     )
@@ -361,33 +364,26 @@ export class AssistantsSettingsFacade {
   private createForm() {
     return this.#formBuilder.nonNullable.group({
       enabled: this.#formBuilder.nonNullable.control(true),
-      assistantId: this.#formBuilder.nonNullable.control('', Validators.required),
-      frameUrl: this.#formBuilder.nonNullable.control('', Validators.required)
+      assistantId: this.#formBuilder.nonNullable.control('', Validators.required)
     })
   }
 
-  private toConfigMap(items: IAssistantConfig[]) {
+  private toConfigMap(items: IAssistantBinding[]) {
     return items.reduce((acc, item) => {
       acc[item.code] = item
       return acc
-    }, {} as Partial<Record<AssistantCode, IAssistantConfig>>)
-  }
-
-  private toOptions(value: AssistantFormValue) {
-    return {
-      assistantId: value.assistantId,
-      frameUrl: value.frameUrl
-    }
+    }, {} as Partial<Record<AssistantCode, IAssistantBinding>>)
   }
 
   private getXpertLabel(xpert: Partial<IXpert> | null | undefined) {
     return xpert?.title || xpert?.titleCN || xpert?.name || xpert?.slug || xpert?.id || ''
   }
 
-  private normalizeXperts(items: IXpert[] | null | undefined): IXpert[] {
+  private normalizeXperts(items: IXpert[] | IPagination<IXpert> | null | undefined): IXpert[] {
     const seen = new Set<string>()
+    const candidates = Array.isArray(items) ? items : (Array.isArray(items?.items) ? items.items : [])
 
-    return (items ?? []).filter((xpert): xpert is IXpert => {
+    return candidates.filter((xpert): xpert is IXpert => {
       if (!xpert?.id || xpert.latest === false || seen.has(xpert.id)) {
         return false
       }
@@ -397,7 +393,7 @@ export class AssistantsSettingsFacade {
     })
   }
 
-  private assistantSearchKey(scope: AssistantConfigScope, code: AssistantCode) {
+  private assistantSearchKey(scope: AssistantBindingScope, code: AssistantCode) {
     return `${scope}:${code}`
   }
 
@@ -408,13 +404,13 @@ export class AssistantsSettingsFacade {
     }))
   }
 
-  private resetAssistantSearch(scope: AssistantConfigScope, code: AssistantCode) {
+  private resetAssistantSearch(scope: AssistantBindingScope, code: AssistantCode) {
     const key = this.assistantSearchKey(scope, code)
     this.#skipNextAssistantSearchSync.add(key)
     this.setAssistantSearchTerm(key, '')
   }
 
-  private clearAssistantSearch(scope: AssistantConfigScope, code: AssistantCode) {
+  private clearAssistantSearch(scope: AssistantBindingScope, code: AssistantCode) {
     this.#skipNextAssistantSearchSync.delete(this.assistantSearchKey(scope, code))
     this.setAssistantSearchTerm(this.assistantSearchKey(scope, code), '')
   }
@@ -442,6 +438,15 @@ function normalizeAssistantBaseUrl(baseUrl?: string | null) {
   if (normalized.startsWith('//')) {
     const protocol = typeof window === 'undefined' ? 'https:' : window.location.protocol
     return `${protocol}${normalized}`
+  }
+
+  return normalized
+}
+
+function sanitizeConfiguredFrameUrl(frameUrl?: string | null) {
+  const normalized = frameUrl?.trim()
+  if (!normalized || normalized.startsWith('DOCKER_')) {
+    return null
   }
 
   return normalized

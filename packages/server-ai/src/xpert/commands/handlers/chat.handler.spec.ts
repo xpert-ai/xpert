@@ -1,6 +1,9 @@
 jest.mock('../../xpert.service', () => ({
     XpertService: class {}
 }))
+jest.mock('../../../assistant-binding/assistant-binding.service', () => ({
+    AssistantBindingService: class {}
+}))
 jest.mock('@metad/contracts', () => {
     const actual = jest.requireActual('@metad/contracts')
     return {
@@ -29,6 +32,7 @@ import { XpertChatHandler } from './chat.handler'
 
 describe('XpertChatHandler', () => {
     let xpertService: { findOne: jest.Mock }
+    let assistantBindingService: { getUserPreferenceByAssistantId: jest.Mock }
     let commandBus: { execute: jest.Mock }
     let queryBus: { execute: jest.Mock }
     let handler: XpertChatHandler
@@ -47,6 +51,12 @@ describe('XpertChatHandler', () => {
         xpertService = {
             findOne: jest.fn().mockResolvedValue(xpert)
         }
+        assistantBindingService = {
+            getUserPreferenceByAssistantId: jest.fn().mockResolvedValue({
+                soul: '# Rules',
+                profile: '# Profile'
+            })
+        }
         commandBus = {
             execute: jest.fn()
         }
@@ -54,7 +64,12 @@ describe('XpertChatHandler', () => {
             execute: jest.fn()
         }
 
-        handler = new XpertChatHandler(xpertService as any, commandBus as any, queryBus as any)
+        handler = new XpertChatHandler(
+            xpertService as any,
+            assistantBindingService as any,
+            commandBus as any,
+            queryBus as any
+        )
     })
 
     it('creates a new conversation, human message, ai placeholder and execution for send', async () => {
@@ -184,6 +199,12 @@ describe('XpertChatHandler', () => {
             (command) => command instanceof XpertAgentChatCommand
         ) as XpertAgentChatCommand
         expect(agentCommand.options.resume).toBeUndefined()
+        expect(agentCommand.state.sys).toEqual(
+            expect.objectContaining({
+                soul: '# Rules',
+                profile: '# Profile'
+            })
+        )
     })
 
     it('reuses the interrupted ai message and execution for resume', async () => {

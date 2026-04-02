@@ -44,6 +44,10 @@ jest.mock('../../../shared', () => ({
     VolumeClient: class VolumeClient {
         static getWorkspacePath = jest.fn()
         static getWorkspaceUrl = jest.fn()
+
+        getVolumePath(workspace?: string) {
+            return workspace ? `/volume/${workspace}` : '/volume'
+        }
     },
     ExecutionCancelService: class ExecutionCancelService {}
 }))
@@ -56,6 +60,7 @@ jest.mock('../../../knowledgebase', () => ({
 import { RequestContext } from '@metad/server-core'
 import { I18nService } from 'nestjs-i18n'
 import { Observable } from 'rxjs'
+import { Command } from '@langchain/langgraph'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentInvokeHandler } from './invoke.handler'
@@ -121,47 +126,12 @@ describe('XpertAgentInvokeHandler', () => {
         jest.clearAllMocks()
     })
 
-    it('replays from checkpoint without sending a fresh graph input', async () => {
-        const graph = {
-            streamEvents: jest.fn().mockReturnValue(
-                (async function* () {
-                    //
-                })()
-            ),
-            getState: jest.fn().mockResolvedValue({
-                config: {
-                    configurable: {
-                        thread_id: 'thread-1',
-                        checkpoint_ns: '',
-                        checkpoint_id: 'checkpoint-new'
-                    }
-                },
-                parentConfig: {
-                    configurable: {
-                        thread_id: 'thread-1',
-                        checkpoint_ns: ''
-                    }
-                },
-                values: {},
-                tasks: []
-            })
-        }
+    it('preserves soul and profile in fresh graph input sys state', async () => {
+        const graph = createGraph()
 
         commandBus.execute.mockImplementation(async (command) => {
             if (command instanceof CompileGraphCommand) {
-                return {
-                    graph,
-                    agent: {
-                        key: 'agent-1',
-                        team: {
-                            id: 'team-1',
-                            agentConfig: {}
-                        }
-                    },
-                    xpertGraph: {
-                        nodes: []
-                    }
-                }
+                return createCompiledGraph(graph)
             }
             return null
         })
@@ -171,6 +141,124 @@ describe('XpertAgentInvokeHandler', () => {
                 {
                     human: {
                         input: 'Original prompt'
+                    },
+                    sys: {
+                        soul: '# Rules',
+                        profile: '# Profile'
+                    }
+                } as any,
+                'agent-1',
+                {
+                    id: 'xpert-1',
+                    features: {}
+                } as any,
+                {
+                    isDraft: true,
+                    thread_id: 'thread-1',
+                    execution: {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    },
+                    rootExecutionId: 'execution-1',
+                    subscriber: {
+                        next: jest.fn()
+                    },
+                    store: null
+                } as any
+            )
+        )
+
+        await consumeStream(stream)
+
+        expect(graph.streamEvents).toHaveBeenCalledTimes(1)
+        expect(graph.streamEvents.mock.calls[0][0]).toMatchObject({
+            sys: expect.objectContaining({
+                soul: '# Rules',
+                profile: '# Profile',
+                language: 'en-US',
+                user_email: 'user@example.com'
+            })
+        })
+    })
+
+    it('merges soul and profile into resume command updates', async () => {
+        const graph = createGraph()
+
+        commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof CompileGraphCommand) {
+                return createCompiledGraph(graph)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                {
+                    sys: {
+                        soul: '# Rules',
+                        profile: '# Profile'
+                    }
+                } as any,
+                'agent-1',
+                {
+                    id: 'xpert-1',
+                    features: {}
+                } as any,
+                {
+                    isDraft: true,
+                    thread_id: 'thread-1',
+                    resume: {
+                        decision: {
+                            type: 'confirm'
+                        }
+                    },
+                    execution: {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    },
+                    rootExecutionId: 'execution-1',
+                    subscriber: {
+                        next: jest.fn()
+                    },
+                    store: null
+                } as any
+            )
+        )
+
+        await consumeStream(stream)
+
+        expect(graph.streamEvents).toHaveBeenCalledTimes(1)
+        expect(graph.streamEvents.mock.calls[0][0]).toBeInstanceOf(Command)
+        expect(graph.streamEvents.mock.calls[0][0]).toMatchObject({
+            update: {
+                sys: expect.objectContaining({
+                    soul: '# Rules',
+                    profile: '# Profile',
+                    language: 'en-US'
+                })
+            }
+        })
+    })
+
+    it('replays from checkpoint without sending a fresh graph input', async () => {
+        const graph = createGraph()
+
+        commandBus.execute.mockImplementation(async (command) => {
+            if (command instanceof CompileGraphCommand) {
+                return createCompiledGraph(graph)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertAgentInvokeCommand(
+                {
+                    human: {
+                        input: 'Original prompt'
+                    },
+                    sys: {
+                        soul: '# Rules',
+                        profile: '# Profile'
                     }
                 } as any,
                 'agent-1',
@@ -210,15 +298,10 @@ describe('XpertAgentInvokeHandler', () => {
             )
         )
 
-        await new Promise<void>((resolve, reject) => {
-            ;(stream as Observable<unknown>).subscribe({
-                error: reject,
-                complete: () => resolve()
-            })
-        })
+        await consumeStream(stream)
 
         expect(graph.streamEvents).toHaveBeenCalledTimes(1)
-        expect(graph.streamEvents.mock.calls[0][0]).toBeNull()
+        expect(graph.streamEvents.mock.calls[0][0]).toBeInstanceOf(Command)
         expect(graph.streamEvents.mock.calls[0][1]).toMatchObject({
             configurable: {
                 thread_id: 'thread-1',
@@ -232,5 +315,67 @@ describe('XpertAgentInvokeHandler', () => {
                 }
             }
         })
+        expect(graph.streamEvents.mock.calls[0][0]).toMatchObject({
+            update: {
+                sys: expect.objectContaining({
+                    soul: '# Rules',
+                    profile: '# Profile',
+                    language: 'en-US'
+                })
+            }
+        })
     })
 })
+
+function createGraph() {
+    return {
+        streamEvents: jest.fn().mockReturnValue(
+            (async function* () {
+                //
+            })()
+        ),
+        getState: jest.fn().mockResolvedValue({
+            config: {
+                configurable: {
+                    thread_id: 'thread-1',
+                    checkpoint_ns: '',
+                    checkpoint_id: 'checkpoint-new'
+                }
+            },
+            parentConfig: {
+                configurable: {
+                    thread_id: 'thread-1',
+                    checkpoint_ns: ''
+                }
+            },
+            values: {},
+            tasks: []
+        }),
+        updateState: jest.fn().mockResolvedValue(undefined)
+    }
+}
+
+function createCompiledGraph(graph: ReturnType<typeof createGraph>) {
+    return {
+        graph,
+        agent: {
+            key: 'agent-1',
+            team: {
+                id: 'team-1',
+                agentConfig: {}
+            }
+        },
+        xpertGraph: {
+            nodes: []
+        }
+    }
+}
+
+async function consumeStream(stream: Observable<unknown>) {
+    await new Promise<void>((resolve, reject) => {
+        stream.subscribe({
+            error: reject,
+            complete: () => resolve()
+        })
+    })
+}

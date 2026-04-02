@@ -17,7 +17,7 @@
 
   &.active {
     .menu-button {
-      @apply rounded-lg shadow-lg bg-white text-primary-600;
+      @apply rounded-lg shadow-lg bg-background-default-subtle text-primary-600;
     }
   }
 }

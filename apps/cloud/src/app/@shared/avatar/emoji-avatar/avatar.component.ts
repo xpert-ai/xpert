@@ -1,5 +1,15 @@
 import { CommonModule } from '@angular/common'
-import { booleanAttribute, Component, computed, HostListener, HostBinding, inject, input, model, effect } from '@angular/core'
+import {
+  booleanAttribute,
+  Component,
+  computed,
+  HostListener,
+  HostBinding,
+  inject,
+  input,
+  model,
+  effect
+} from '@angular/core'
 import { EmojiComponent } from '@ctrl/ngx-emoji-mart/ngx-emoji'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { TAvatar } from '../../../@core'
@@ -11,10 +21,13 @@ import { ZardDialogService } from '@xpert-ai/headless-ui'
   imports: [CommonModule, EmojiComponent],
   selector: 'emoji-avatar',
   hostDirectives: [NgxControlValueAccessor],
-  template: `@if (avatar()?.url) {
-      <img class="max-h-full" [src]="avatar().url" [alt]="alt()" />
+  template: `@if (resolvedAvatar()?.url) {
+      <img class="max-h-full" [src]="resolvedAvatar()?.url" [alt]="alt()" />
     } @else if (emoji()?.emoji) {
-      <div class="emoji-container flex justify-center items-center w-full h-full" [ngStyle]="{ background: emoji().background }">
+      <div
+        class="emoji-container flex justify-center items-center w-full h-full"
+        [ngStyle]="{ background: emoji().background }"
+      >
         <ngx-emoji
           class="flex"
           [emoji]="emoji().emoji.id"
@@ -22,6 +35,13 @@ import { ZardDialogService } from '@xpert-ai/headless-ui'
           [isNative]="!emoji().emoji.set"
           [size]="emojiSize()"
         />
+      </div>
+    } @else if (avatarFallback()) {
+      <div
+        class="flex h-full w-full items-center justify-center bg-background-default-subtle text-center font-medium text-text-primary"
+        [attr.aria-label]="alt() || fallbackLabel()"
+      >
+        {{ avatarFallback() }}
       </div>
     }`,
   styleUrl: 'avatar.component.scss',
@@ -39,6 +59,7 @@ export class EmojiAvatarComponent {
   protected cva = inject<NgxControlValueAccessor<Partial<TAvatar> | null>>(NgxControlValueAccessor)
 
   readonly alt = input<string>()
+  readonly fallbackLabel = input<string>()
   readonly avatar = model<TAvatar>()
 
   readonly editable = input<boolean, string | boolean>(false, {
@@ -55,20 +76,29 @@ export class EmojiAvatarComponent {
     transform: booleanAttribute
   })
 
-  readonly emoji = computed(
-    () =>
-      this.avatar() ??
-      this.cva.value$() ?? {
-        emoji: {
-          id: 'robot_face'
-        },
-        background: 'rgb(213, 245, 246)'
-      }
-  )
+  readonly resolvedAvatar = computed(() => this.avatar() ?? this.cva.value$() ?? null)
+  readonly avatarFallback = computed(() => buildAvatarFallback(this.fallbackLabel()))
+  readonly emoji = computed(() => {
+    const avatar = this.resolvedAvatar()
+    if (avatar?.url || avatar?.emoji?.id) {
+      return avatar
+    }
+
+    if (this.avatarFallback()) {
+      return null
+    }
+
+    return {
+      emoji: {
+        id: 'robot_face'
+      },
+      background: 'rgb(213, 245, 246)'
+    } satisfies Partial<TAvatar>
+  })
 
   readonly emojiSize = computed(() => (this.large() ? 24 : this.small() ? 16 : this.xs() ? 14 : 18))
 
-  @HostBinding('class.focused') focused = false;
+  @HostBinding('class.focused') focused = false
 
   constructor() {
     effect(() => {
@@ -84,7 +114,8 @@ export class EmojiAvatarComponent {
       this.focused = true
       this.dialog
         .open(EmojiAvatarEditorComponent, {
-          data: this.avatar()
+          data: this.avatar(),
+          panelClass: 'gap-3 p-4'
         })
         .afterClosed()
         .subscribe({
@@ -101,11 +132,17 @@ export class EmojiAvatarComponent {
 
   @HostListener('focus')
   onFocus() {
-    this.focused = true;
+    this.focused = true
   }
 
   @HostListener('blur')
   onBlur() {
-    this.focused = false;
+    this.focused = false
   }
+}
+
+function buildAvatarFallback(label?: string | null) {
+  const parts = label?.trim().split(/\s+/).filter(Boolean).slice(0, 2)
+
+  return (parts?.map((part) => part[0]?.toUpperCase() ?? '').join('') || '').slice(0, 2)
 }

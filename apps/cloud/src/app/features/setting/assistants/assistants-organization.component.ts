@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { AssistantConfigScope } from '../../../@core'
+import { AssistantBindingScope } from '../../../@core'
 import { AssistantsSettingsFacade } from './assistants.facade'
 import { AssistantsScopeComponent } from './assistants-scope.component'
 
@@ -41,7 +41,7 @@ import { AssistantsScopeComponent } from './assistants-scope.component'
               </p>
             </section>
 
-            <pac-settings-assistants-scope [scope]="assistantConfigScope.ORGANIZATION" />
+            <pac-settings-assistants-scope [scope]="assistantBindingScope.ORGANIZATION" />
           </div>
         }
       </div>
@@ -50,5 +50,5 @@ import { AssistantsScopeComponent } from './assistants-scope.component'
 })
 export class AssistantsOrganizationPageComponent {
   readonly facade = inject(AssistantsSettingsFacade)
-  readonly assistantConfigScope = AssistantConfigScope
+  readonly assistantBindingScope = AssistantBindingScope
 }
