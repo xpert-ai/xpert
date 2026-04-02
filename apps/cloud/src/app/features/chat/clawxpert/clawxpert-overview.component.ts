@@ -369,14 +369,14 @@ export class ClawXpertOverviewComponent {
       defaultLabel: 'Behavior Guidelines',
       descriptionKey: 'PAC.Chat.ClawXpert.BehaviorEditorDesc',
       defaultDescription: 'Edit the markdown file that defines the assistant behavior baseline for this binding.',
-      words: countWords(this.facade.userPreference()?.behaviorRulesMarkdown)
+      words: countWords(this.facade.userPreference()?.soul)
     },
     {
       labelKey: 'PAC.Chat.ClawXpert.TabUserProfile',
       defaultLabel: 'User Profile',
       descriptionKey: 'PAC.Chat.ClawXpert.UserProfileEditorDesc',
       defaultDescription: 'Capture stable user context in markdown so future sessions can start with better grounding.',
-      words: countWords(this.facade.userPreference()?.userProfileMarkdown)
+      words: countWords(this.facade.userPreference()?.profile)
     }
   ])
 

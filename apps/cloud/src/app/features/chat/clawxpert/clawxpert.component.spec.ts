@@ -36,8 +36,8 @@ jest.mock('apps/cloud/src/app/@core', () => {
 
     upsertPreference(): any {
       return of({
-        behaviorRulesMarkdown: '# Rules',
-        userProfileMarkdown: '# Profile'
+        soul: '# Rules',
+        profile: '# Profile'
       })
     }
   }
@@ -190,8 +190,8 @@ describe('ClawXpertComponent', () => {
       delete: jest.fn(() => of({})),
       upsertPreference: jest.fn(() =>
         of({
-          behaviorRulesMarkdown: '# Rules',
-          userProfileMarkdown: '# Profile'
+          soul: '# Rules',
+          profile: '# Profile'
         })
       )
     }

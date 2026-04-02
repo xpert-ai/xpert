@@ -37,8 +37,8 @@ export interface IAssistantBindingUserPreference extends IBasePerTenantAndOrgani
   assistantBinding?: IAssistantBinding
   userId?: string | null
   user?: IUser
-  behaviorRulesMarkdown?: string | null
-  userProfileMarkdown?: string | null
+  soul?: string | null
+  profile?: string | null
 }
 
 export interface IResolvedAssistantBinding extends IAssistantBinding {
@@ -54,8 +54,8 @@ export interface IAssistantBindingUpsertInput {
 
 export interface IAssistantBindingUserPreferenceUpsertInput {
   scope: AssistantBindingScope
-  behaviorRulesMarkdown?: string | null
-  userProfileMarkdown?: string | null
+  soul?: string | null
+  profile?: string | null
 }
 
 const USER_MANAGED_ASSISTANTS = new Set<AssistantCode>([AssistantCode.CLAWXPERT])

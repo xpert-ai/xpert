@@ -61,11 +61,11 @@ export class AssistantBindingUserPreference
   @IsString()
   @IsOptional()
   @Column({ type: 'text', nullable: true })
-  behaviorRulesMarkdown?: string | null
+  soul?: string | null
 
   @ApiPropertyOptional({ type: () => String })
   @IsString()
   @IsOptional()
   @Column({ type: 'text', nullable: true })
-  userProfileMarkdown?: string | null
+  profile?: string | null
 }

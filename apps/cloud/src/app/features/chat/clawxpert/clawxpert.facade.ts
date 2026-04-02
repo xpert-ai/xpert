@@ -135,7 +135,7 @@ export class ClawXpertFacade {
   readonly boundDays = computed(() => calculateBoundDays(this.preference()?.createdAt))
   readonly conversationCount = toSignal(
     toObservable(this.xpertId).pipe(
-      switchMap((xpertId) =>
+      switchMap((xpertId: string | null) =>
         xpertId
           ? this.#xpertService.getConversations(xpertId, { take: 1 }, buildAllTimeRange()).pipe(
               map(({ total }) => total ?? 0),
@@ -148,10 +148,10 @@ export class ClawXpertFacade {
   )
   readonly dailyMessageSeries = toSignal(
     toObservable(this.xpertId).pipe(
-      switchMap((xpertId) =>
+      switchMap((xpertId: string | null) =>
         xpertId
           ? this.#xpertService.getDailyMessages(xpertId, buildHeatmapRange(), { currentUserOnly: true }).pipe(
-              map((items) => normalizeDailyConversations(items)),
+              map((items: Array<{ date: string; count?: number }>) => normalizeDailyConversations(items)),
               catchError(() => of([] as ClawXpertDailyConversation[]))
             )
           : of([] as ClawXpertDailyConversation[])
@@ -293,16 +293,16 @@ export class ClawXpertFacade {
     }
   }
 
-  async saveUserPreference(input: Pick<IAssistantBindingUserPreferenceUpsertInput, 'behaviorRulesMarkdown' | 'userProfileMarkdown'>) {
+  async saveUserPreference(input: Pick<IAssistantBindingUserPreferenceUpsertInput, 'soul' | 'profile'>) {
     this.savingUserPreference.set(true)
     try {
-      const preference = await firstValueFrom(
+      const preference = (await firstValueFrom(
         this.#assistantBindingService.upsertPreference(AssistantCode.CLAWXPERT, {
           scope: AssistantBindingScope.USER,
-          behaviorRulesMarkdown: input.behaviorRulesMarkdown ?? '',
-          userProfileMarkdown: input.userProfileMarkdown ?? ''
+          soul: input.soul ?? '',
+          profile: input.profile ?? ''
         })
-      )
+      )) as IAssistantBindingUserPreference
 
       this.userPreference.set(preference)
       this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
@@ -499,9 +499,9 @@ export class ClawXpertFacade {
     this.loadingUserPreference.set(true)
 
     try {
-      const preference = await firstValueFrom(
+      const preference = (await firstValueFrom(
         this.#assistantBindingService.getPreference(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
-      )
+      )) as IAssistantBindingUserPreference | null
 
       if (requestId !== this.#preferenceLoadRequestId) {
         return

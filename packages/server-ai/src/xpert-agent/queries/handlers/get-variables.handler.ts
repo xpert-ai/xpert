@@ -198,6 +198,22 @@ export class XpertAgentVariablesHandler implements IQueryHandler<XpertAgentVaria
                         }
                     },
                     {
+                        name: 'soul',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'Assistant soul',
+                            zh_Hans: '助手灵魂'
+                        }
+                    },
+                    {
+                        name: 'profile',
+                        type: XpertParameterTypeEnum.STRING,
+                        description: {
+                            en_US: 'User profile',
+                            zh_Hans: '用户档案'
+                        }
+                    },
+                    {
                         name: 'workspace_path',
                         type: XpertParameterTypeEnum.STRING,
                         description: {

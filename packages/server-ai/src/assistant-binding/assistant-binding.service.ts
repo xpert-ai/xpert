@@ -29,7 +29,7 @@ import {
   Not,
   Repository
 } from 'typeorm'
-import { PublishedXpertAccessService } from '../xpert'
+import { PublishedXpertAccessService } from '../xpert/published-xpert-access.service'
 import { Xpert } from '../xpert/xpert.entity'
 import { AssistantBinding } from './assistant-binding.entity'
 import { AssistantBindingUserPreference } from './assistant-binding-user-preference.entity'
@@ -142,6 +142,41 @@ export class AssistantBindingService
     }
 
     const { tenantId, organizationId, userId } = this.requireUserScope()
+
+    return this.preferenceRepository.findOne({
+      where: {
+        tenantId,
+        organizationId,
+        assistantBindingId: binding.id,
+        userId
+      }
+    })
+  }
+
+  async getUserPreferenceByAssistantId(assistantId: string): Promise<IAssistantBindingUserPreference | null> {
+    const tenantId = RequestContext.currentTenantId()
+    const organizationId = RequestContext.getOrganizationId()
+    const userId = RequestContext.currentUserId()
+    const normalizedAssistantId = assistantId?.trim()
+
+    if (!tenantId || !organizationId || !userId || !normalizedAssistantId) {
+      return null
+    }
+
+    const binding = await this.repository.findOne({
+      where: {
+        tenantId,
+        organizationId,
+        userId,
+        scope: AssistantBindingScope.USER,
+        code: AssistantCode.CLAWXPERT,
+        assistantId: normalizedAssistantId
+      }
+    })
+
+    if (!binding?.id) {
+      return null
+    }
 
     return this.preferenceRepository.findOne({
       where: {
@@ -316,8 +351,8 @@ export class AssistantBindingService
     })
 
     if (existing) {
-      existing.behaviorRulesMarkdown = normalizeMarkdownValue(input.behaviorRulesMarkdown)
-      existing.userProfileMarkdown = normalizeMarkdownValue(input.userProfileMarkdown)
+      existing.soul = normalizeMarkdownValue(input.soul)
+      existing.profile = normalizeMarkdownValue(input.profile)
       existing.updatedBy = currentUserId ? ({ id: currentUserId } as any) : existing.updatedBy
       return this.preferenceRepository.save(existing)
     }
@@ -331,8 +366,8 @@ export class AssistantBindingService
       assistantBindingId: binding.id,
       user: userId ? ({ id: userId } as any) : null,
       userId,
-      behaviorRulesMarkdown: normalizeMarkdownValue(input.behaviorRulesMarkdown),
-      userProfileMarkdown: normalizeMarkdownValue(input.userProfileMarkdown),
+      soul: normalizeMarkdownValue(input.soul),
+      profile: normalizeMarkdownValue(input.profile),
       createdBy: currentUserId ? ({ id: currentUserId } as any) : undefined,
       updatedBy: currentUserId ? ({ id: currentUserId } as any) : undefined
     } as DeepPartial<AssistantBindingUserPreference>)

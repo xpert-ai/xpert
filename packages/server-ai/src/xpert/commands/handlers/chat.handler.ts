@@ -17,6 +17,7 @@ import {
     shortTitle,
     stringifyMessageContent,
     STATE_VARIABLE_HUMAN,
+    STATE_VARIABLE_SYS,
     TChatConversationStatus,
     TChatRequestHuman,
     TSensitiveOperation,
@@ -43,6 +44,7 @@ import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory
 import { normalizeChatState } from '../../../shared/agent/utils'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
+import { AssistantBindingService } from '../../../assistant-binding/assistant-binding.service'
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
@@ -50,6 +52,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
 
     constructor(
         private readonly xpertService: XpertService,
+        private readonly assistantBindingService: AssistantBindingService,
         private readonly commandBus: CommandBus,
         private readonly queryBus: QueryBus
     ) {}
@@ -123,6 +126,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         const timeStart = Date.now()
 
         const xpert = await this.xpertService.findOne(xpertId, { relations: ['agent', 'knowledgebase'] })
+        const userPreference = await this.assistantBindingService.getUserPreferenceByAssistantId(xpertId)
         const latestXpert = figureOutXpert(xpert, options?.isDraft)
         const abortController = new AbortController()
         const memory = latestXpert.memory
@@ -298,6 +302,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             )
         }
         state ??= normalizeChatState(undefined, input)
+        state = withPreferenceSystemState(state, userPreference)
 
         return new Observable<MessageEvent>((subscriber) => {
             // New conversation
@@ -623,6 +628,23 @@ function appendMessageSteps(aiMessage: IChatMessage, steps: TChatMessageStep[]) 
         }
         aiMessage.events.push(item)
     })
+}
+
+function withPreferenceSystemState(
+    state: Record<string, any>,
+    preference?: {
+        soul?: string | null
+        profile?: string | null
+    } | null
+) {
+    return {
+        ...state,
+        [STATE_VARIABLE_SYS]: {
+            ...(state?.[STATE_VARIABLE_SYS] ?? {}),
+            soul: preference?.soul ?? null,
+            profile: preference?.profile ?? null
+        }
+    }
 }
 
 async function getLongTermMemory(store: BaseStore, xpertId: string, input: string) {

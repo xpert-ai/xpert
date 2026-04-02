@@ -32,6 +32,8 @@ export type TAgentStateSystem = {
 	date: string
 	datetime: string
 	common_times: string
+	soul?: string | null
+	profile?: string | null
 }
 
 export type TStateChannel = {

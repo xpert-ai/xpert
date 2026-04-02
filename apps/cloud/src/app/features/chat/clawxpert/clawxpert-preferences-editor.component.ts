@@ -129,7 +129,7 @@ const PREFERENCE_TABS: PreferenceTab[] = [
                     lineNumbers
                     editable
                     wordWrap
-                    [formControl]="form.controls.behaviorRulesMarkdown"
+                    [formControl]="form.controls.soul"
                   />
                 } @else {
                   <pac-code-editor
@@ -138,7 +138,7 @@ const PREFERENCE_TABS: PreferenceTab[] = [
                     lineNumbers
                     editable
                     wordWrap
-                    [formControl]="form.controls.userProfileMarkdown"
+                    [formControl]="form.controls.profile"
                   />
                 }
               </div>
@@ -193,8 +193,8 @@ export class ClawXpertPreferencesEditorComponent {
   readonly tabs = PREFERENCE_TABS
   readonly activeTab = signal<PreferenceTabKey>('behavior')
   readonly form = this.#formBuilder.nonNullable.group({
-    behaviorRulesMarkdown: [''],
-    userProfileMarkdown: ['']
+    soul: [''],
+    profile: ['']
   })
   readonly activeTabMeta = computed(() => {
     return this.tabs.find((tab) => tab.key === this.activeTab()) ?? this.tabs[0]
@@ -235,8 +235,8 @@ export class ClawXpertPreferencesEditorComponent {
       untracked(() => {
         this.form.reset(
           {
-            behaviorRulesMarkdown: bindingId ? preference?.behaviorRulesMarkdown ?? '' : '',
-            userProfileMarkdown: bindingId ? preference?.userProfileMarkdown ?? '' : ''
+            soul: bindingId ? preference?.soul ?? '' : '',
+            profile: bindingId ? preference?.profile ?? '' : ''
           },
           { emitEvent: false }
         )
@@ -252,8 +252,8 @@ export class ClawXpertPreferencesEditorComponent {
     const preference = this.facade.userPreference()
     this.form.reset(
       {
-        behaviorRulesMarkdown: preference?.behaviorRulesMarkdown ?? '',
-        userProfileMarkdown: preference?.userProfileMarkdown ?? ''
+        soul: preference?.soul ?? '',
+        profile: preference?.profile ?? ''
       },
       { emitEvent: false }
     )
@@ -267,8 +267,8 @@ export class ClawXpertPreferencesEditorComponent {
 
     this.form.reset(
       {
-        behaviorRulesMarkdown: preference.behaviorRulesMarkdown ?? '',
-        userProfileMarkdown: preference.userProfileMarkdown ?? ''
+        soul: preference.soul ?? '',
+        profile: preference.profile ?? ''
       },
       { emitEvent: false }
     )
@@ -276,12 +276,12 @@ export class ClawXpertPreferencesEditorComponent {
 
   getActiveWordCount() {
     return this.activeTab() === 'behavior'
-      ? countWords(this.form.controls.behaviorRulesMarkdown.value)
-      : countWords(this.form.controls.userProfileMarkdown.value)
+      ? countWords(this.form.controls.soul.value)
+      : countWords(this.form.controls.profile.value)
   }
 
   getTotalWordCount() {
-    return countWords(this.form.controls.behaviorRulesMarkdown.value) + countWords(this.form.controls.userProfileMarkdown.value)
+    return countWords(this.form.controls.soul.value) + countWords(this.form.controls.profile.value)
   }
 }
 
