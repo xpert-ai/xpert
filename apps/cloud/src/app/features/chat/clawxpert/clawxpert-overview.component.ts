@@ -1,12 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject } from '@angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import {
-  ZardButtonComponent,
-  ZardCardImports,
-  ZardDividerComponent,
-  ZardIconComponent
-} from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardCardImports, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { IXpert } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { ClawXpertFacade } from './clawxpert.facade'
@@ -71,29 +66,33 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
   template: `
     <div class="h-full min-h-0">
       @if (facade.loading()) {
-        <div class="flex h-full min-h-[32rem] items-center justify-center rounded-3xl bg-background-default-subtle px-6 text-sm text-text-secondary">
+        <div
+          class="flex h-full min-h-[32rem] items-center justify-center rounded-3xl bg-background-default-subtle px-6 text-sm text-text-secondary"
+        >
           {{ 'PAC.Chat.ClawXpert.Loading' | translate: { Default: 'Preparing ClawXpert…' } }}
         </div>
       } @else if (!facade.organizationId()) {
-        <div class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-3xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+        <div
+          class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-3xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center"
+        >
           <z-icon zType="domain" class="text-3xl text-text-tertiary"></z-icon>
           <div class="mt-4 text-base font-medium text-text-primary">
             {{
               'PAC.Chat.ClawXpert.OrganizationRequired'
-                | translate
-                  : { Default: 'Select an organization to use ClawXpert' }
+                | translate: { Default: 'Select an organization to use ClawXpert' }
             }}
           </div>
           <div class="mt-2 max-w-sm text-sm text-text-secondary">
             {{
               'PAC.Chat.ClawXpert.OrganizationRequiredDesc'
-                | translate
-                  : { Default: 'ClawXpert stores one assistant binding per user and per organization.' }
+                | translate: { Default: 'ClawXpert stores one assistant binding per user and per organization.' }
             }}
           </div>
         </div>
       } @else if (facade.viewState() === 'error') {
-        <div class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-3xl border border-divider-regular bg-background-default-subtle px-6 text-center">
+        <div
+          class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-3xl border border-divider-regular bg-background-default-subtle px-6 text-center"
+        >
           <z-icon zType="warning" class="text-3xl text-text-tertiary"></z-icon>
           <div class="mt-4 text-base font-medium text-text-primary">
             {{ 'PAC.Chat.ClawXpert.LoadFailed' | translate: { Default: 'Failed to load ClawXpert.' } }}
@@ -108,22 +107,14 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
         <div class="grid min-h-0 gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
           <div class="flex h-full min-h-0 flex-col gap-5 overflow-auto p-6">
             <div class="flex items-start gap-4">
-              @if (hasXpertAvatar()) {
-                <emoji-avatar
-                  class="shrink-0 overflow-hidden rounded-[2rem] border border-divider-regular bg-background-default-subtle shadow-sm"
-                  [style.width.px]="96"
-                  [style.height.px]="96"
-                  [avatar]="xpertAvatar()"
-                  [alt]="avatarLabel()"
-                />
-              } @else {
-                <div
-                  class="flex h-24 w-24 shrink-0 items-center justify-center rounded-[2rem] border border-divider-regular bg-background-default-subtle text-2xl font-medium text-text-primary shadow-sm"
-                  [attr.aria-label]="avatarLabel()"
-                >
-                  {{ avatarFallback() }}
-                </div>
-              }
+              <emoji-avatar
+                class="shrink-0 overflow-hidden rounded-[2rem] border border-divider-regular bg-background-default-subtle text-2xl shadow-sm"
+                [style.width.px]="96"
+                [style.height.px]="96"
+                [avatar]="xpertAvatar()"
+                [alt]="avatarLabel()"
+                [fallbackLabel]="avatarLabel()"
+              />
 
               <div class="min-w-0">
                 <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
@@ -132,7 +123,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
                 <div class="mt-2 text-2xl font-semibold tracking-tight text-text-primary">
                   {{ headerTitle() }}
                 </div>
-                <p class="mt-3 text-sm leading-6 text-text-secondary">
+                <p class="mt-3 line-clamp-3 text-sm leading-6 text-text-secondary" [title]="overviewDescription()">
                   {{ overviewDescription() }}
                 </p>
               </div>
@@ -140,7 +131,14 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
 
             @if (facade.resolvedPreference() && facade.viewState() === 'ready') {
               <div class="grid grid-cols-2 gap-2">
-                <button z-button zType="outline" displayDensity="cosy" type="button" class="w-full" (click)="openWizard()">
+                <button
+                  z-button
+                  zType="outline"
+                  displayDensity="cosy"
+                  type="button"
+                  class="w-full"
+                  (click)="openWizard()"
+                >
                   {{ 'PAC.Chat.ClawXpert.Change' | translate: { Default: 'Change ClawXpert' } }}
                 </button>
                 <button
@@ -158,23 +156,26 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
             }
 
             <div class="flex flex-wrap items-center gap-2">
-              <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary">
+              <span
+                class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
+              >
                 {{
-                  (facade.resolvedPreference()
-                    ? 'PAC.Chat.ClawXpert.StatusBound'
-                    : 'PAC.Chat.ClawXpert.StatusPending')
-                    | translate
-                      : { Default: facade.resolvedPreference() ? 'Bound' : 'Setup required' }
+                  (facade.resolvedPreference() ? 'PAC.Chat.ClawXpert.StatusBound' : 'PAC.Chat.ClawXpert.StatusPending')
+                    | translate: { Default: facade.resolvedPreference() ? 'Bound' : 'Setup required' }
                 }}
               </span>
-              <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary">
+              <span
+                class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
+              >
                 {{ modelLabel() }}
               </span>
             </div>
 
             <div class="grid grid-cols-3 gap-3">
               @for (metric of metrics(); track metric.labelKey) {
-                <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-3 py-4 text-center">
+                <div
+                  class="rounded-2xl border border-divider-regular bg-background-default-subtle px-3 py-4 text-center"
+                >
                   <div class="text-2xl font-semibold text-text-primary">{{ metric.value }}</div>
                   <div class="mt-2 text-xs text-text-tertiary">
                     {{ metric.labelKey | translate: { Default: metric.defaultLabel } }}
@@ -302,7 +303,9 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
               <z-card-content class="flex h-full flex-col justify-center px-6">
                 <div class="flex items-center gap-2 text-sm font-medium text-text-primary">
                   <z-icon zType="deployed_code_history"></z-icon>
-                  {{ 'PAC.Chat.ClawXpert.LowerPlaceholderTitle' | translate: { Default: 'More panels are reserved here' } }}
+                  {{
+                    'PAC.Chat.ClawXpert.LowerPlaceholderTitle' | translate: { Default: 'More panels are reserved here' }
+                  }}
                 </div>
                 <p class="mt-3 text-sm leading-6 text-text-secondary">
                   {{
@@ -328,13 +331,15 @@ export class ClawXpertOverviewComponent {
   readonly #locale = normalizeLocale(this.#translate.currentLang || this.#translate.getDefaultLang())
 
   readonly xpertAvatar = computed(() => this.facade.currentXpert()?.avatar ?? null)
-  readonly hasXpertAvatar = computed(() => !!this.xpertAvatar()?.url || !!this.xpertAvatar()?.emoji?.id)
   readonly avatarLabel = computed(() => this.facade.currentXpertLabel() || this.headerTitle())
-  readonly avatarFallback = computed(() => buildAvatarFallback(this.avatarLabel()))
   readonly headerTitle = computed(() => {
-    return this.#translate.instant(this.facade.definition.titleKey, {
-      Default: this.facade.definition.defaultTitle
-    })
+    return (
+      this.facade.currentXpert()?.title ||
+      this.facade.currentXpert()?.name ||
+      this.#translate.instant(this.facade.definition.titleKey, {
+        Default: this.facade.definition.defaultTitle
+      })
+    )
   })
   readonly overviewDescription = computed(() => {
     if (!this.facade.resolvedPreference()) {
@@ -345,7 +350,9 @@ export class ClawXpertOverviewComponent {
 
     return this.facade.currentXpertDescription()
   })
-  readonly modelLabel = computed(() => buildModelLabel(this.facade.currentXpert(), this.facade.resolvedPreference()?.assistantId))
+  readonly modelLabel = computed(() =>
+    buildModelLabel(this.facade.currentXpert(), this.facade.resolvedPreference()?.assistantId)
+  )
   readonly metrics = computed<ClawXpertMetric[]>(() => [
     {
       labelKey: 'PAC.Chat.ClawXpert.BoundDays',
@@ -395,16 +402,6 @@ export class ClawXpertOverviewComponent {
   async clearPreference() {
     await this.facade.clearPreference()
   }
-}
-
-function buildAvatarFallback(label: string) {
-  const parts = label
-    .trim()
-    .split(/\s+/)
-    .filter(Boolean)
-    .slice(0, 2)
-
-  return (parts.map((part) => part[0]?.toUpperCase() ?? '').join('') || 'CX').slice(0, 2)
 }
 
 function buildModelLabel(xpert: IXpert | null, assistantId?: string | null) {
