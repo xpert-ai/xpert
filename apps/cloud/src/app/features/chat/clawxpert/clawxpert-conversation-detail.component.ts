@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common'
-import { Component, effect, inject } from '@angular/core'
+import { Component, computed, effect, inject } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatKit } from '@xpert-ai/chatkit-angular'
+import { AssistantCode } from '../../../@core'
+import { injectHostedAssistantChatkitControl } from '../../assistant/assistant-chatkit.runtime'
 import { ZardButtonComponent, ZardCardImports, ZardIconComponent } from '@xpert-ai/headless-ui'
 import { ClawXpertFacade } from './clawxpert.facade'
 
@@ -10,7 +12,13 @@ import { ClawXpertFacade } from './clawxpert.facade'
   selector: 'pac-clawxpert-conversation-detail',
   imports: [CommonModule, TranslateModule, ChatKit, ZardButtonComponent, ZardIconComponent, ...ZardCardImports],
   template: `
-    <div class="grid h-full min-h-0 gap-4 xl:grid-cols-[minmax(0,1fr)_460px]">
+    <div [class]="workspaceLayoutClasses()">
+      @if (showDetailPanel()) {
+        <section class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-divider-regular bg-components-card-bg shadow-sm">
+          <div class="min-h-0 flex-1"></div>
+        </section>
+      }
+
       <section class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-divider-regular bg-components-card-bg shadow-sm">
         <div class="flex items-start justify-between gap-4 border-b border-divider-regular px-5 py-4">
           <div>
@@ -27,10 +35,6 @@ import { ClawXpertFacade } from './clawxpert.facade'
           </button>
         </div>
 
-        <div class="min-h-0 flex-1"></div>
-      </section>
-
-      <section class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-divider-regular bg-components-card-bg shadow-sm">
         <div class="min-h-0 flex-1 p-3">
           @if (facade.loading()) {
             <div class="flex h-full min-h-[32rem] items-center justify-center rounded-2xl bg-background-default-subtle px-6 text-sm text-text-secondary">
@@ -69,7 +73,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
                 </div>
               }
               @case ('ready') {
-                <xpert-chatkit class="h-full min-h-[32rem]" [control]="facade.control()!" />
+                <xpert-chatkit class="h-full min-h-[32rem]" [control]="control()!" />
               }
               @default {
                 <div class="flex h-full min-h-[32rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
@@ -95,11 +99,28 @@ import { ClawXpertFacade } from './clawxpert.facade'
 })
 export class ClawXpertConversationDetailComponent {
   readonly facade = inject(ClawXpertFacade)
+  readonly control = injectHostedAssistantChatkitControl({
+    identity: computed(() => (this.facade.viewState() === 'ready' ? AssistantCode.CLAWXPERT : null)),
+    assistantId: computed(() => this.facade.resolvedPreference()?.assistantId ?? null),
+    frameUrl: this.facade.chatkitFrameUrl,
+    initialThread: this.facade.threadId,
+    titleKey: this.facade.definition.titleKey,
+    titleDefault: this.facade.definition.defaultTitle,
+    onThreadChange: ({ threadId }) => {
+      this.facade.onChatThreadChange(threadId)
+    }
+  })
+  readonly showDetailPanel = computed(() => false)
+  readonly workspaceLayoutClasses = computed(() =>
+    this.showDetailPanel()
+      ? 'grid h-full min-h-0 gap-4 xl:grid-cols-[380px_minmax(0,1fr)]'
+      : 'grid h-full min-h-0 gap-4'
+  )
 
   constructor() {
     effect((onCleanup) => {
       const pendingStartId = this.facade.pendingConversationStartId()
-      const control = this.facade.control()
+      const control = this.control()
 
       if (!pendingStartId || this.facade.viewState() !== 'ready' || !control) {
         return
@@ -111,7 +132,7 @@ export class ClawXpertConversationDetailComponent {
           return
         }
 
-        void this.facade.beginPendingConversation(pendingStartId)
+        void this.facade.beginPendingConversation(pendingStartId, control)
       })
 
       onCleanup(() => {

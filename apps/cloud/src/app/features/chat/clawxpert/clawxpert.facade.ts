@@ -3,6 +3,7 @@ import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router } from '@angular/router'
 import { environment } from '@cloud/environments/environment'
 import { TranslateService } from '@ngx-translate/core'
+import { ChatKitControl } from '@xpert-ai/chatkit-angular'
 import { firstValueFrom, of } from 'rxjs'
 import { catchError, filter, map, startWith, switchMap } from 'rxjs/operators'
 import {
@@ -22,7 +23,6 @@ import {
   getErrorMessage
 } from '../../../@core'
 import {
-  injectHostedAssistantChatkitControl,
   sanitizeAssistantFrameUrl
 } from '../../assistant/assistant-chatkit.runtime'
 import { getAssistantRegistryItem } from '../../assistant/assistant.registry'
@@ -184,17 +184,6 @@ export class ClawXpertFacade {
   )
   readonly recentTasks = computed(() => this.taskSummary().items ?? [])
   readonly taskCount = computed(() => this.taskSummary().total ?? this.recentTasks().length)
-  readonly control = injectHostedAssistantChatkitControl({
-    identity: computed(() => (this.viewState() === 'ready' ? AssistantCode.CLAWXPERT : null)),
-    assistantId: computed(() => this.resolvedPreference()?.assistantId ?? null),
-    frameUrl: this.chatkitFrameUrl,
-    initialThread: this.threadId,
-    titleKey: this.definition.titleKey,
-    titleDefault: this.definition.defaultTitle,
-    onThreadChange: ({ threadId }) => {
-      this.handleThreadChange(threadId)
-    }
-  })
 
   constructor() {
     effect(() => {
@@ -350,14 +339,14 @@ export class ClawXpertFacade {
     void this.#router.navigate(['/chat/clawxpert', 'c', threadId])
   }
 
-  async beginPendingConversation(startId: number) {
+  async beginPendingConversation(startId: number, control: ChatKitControl) {
     if (!startId || this.pendingConversationStartId() !== startId) {
       return
     }
 
     try {
-      await this.control()?.setThreadId(null)
-      await this.control()?.focusComposer()
+      await control.setThreadId(null)
+      await control.focusComposer()
     } finally {
       if (this.pendingConversationStartId() === startId) {
         this.pendingConversationStartId.set(0)
@@ -394,6 +383,10 @@ export class ClawXpertFacade {
         Default: 'Check your assistant access and try again.'
       })
     )
+  }
+
+  onChatThreadChange(threadId: string | null) {
+    this.handleThreadChange(threadId)
   }
 
   private handleThreadChange(threadId: string | null) {
