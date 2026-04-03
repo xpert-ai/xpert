@@ -3,11 +3,11 @@ import { Component, Input, OnInit, forwardRef } from '@angular/core'
 import { ControlValueAccessor, FormControl, ReactiveFormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { distinctUntilChanged } from 'rxjs'
 import { NgmFieldAppearance, NgmFieldColor } from "@metad/ocap-angular/core";
-import { ZardChipInputEvent, ZardChipsImports, ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { ZardChipInputEvent, ZardChipsImports, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [...ZardChipsImports, ...ZardFormImports, ZardIconComponent, ReactiveFormsModule],
+  imports: [...ZardChipsImports, ...ZardFormImports, ZardIconComponent, ZardInputDirective, ReactiveFormsModule],
   selector: 'pac-form-field-emails',
   templateUrl: 'emails.component.html',
   providers: [
@@ -38,9 +38,9 @@ export class FormFieldEmailsComponent implements ControlValueAccessor, OnInit {
   }
 
   writeValue(obj: any): void {
-    if (obj) {
-      this.formControl.setValue(obj)
-    }
+    const values = Array.isArray(obj) ? obj.filter(Boolean) : []
+    this.keywords = new Set(values)
+    this.formControl.setValue(values, { emitEvent: false })
   }
   registerOnChange(fn: any): void {
     this._onChange = fn

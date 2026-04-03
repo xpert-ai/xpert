@@ -1210,10 +1210,19 @@
       "Files": "文件"
     },
     "Certification": {
-      "Certification": "认证",
+      "Entry": "认证条目",
       "UpdateCertification": "更新认证",
       "DeleteCertification": "删除认证",
-      "CreateCertification": "创建认证"
+      "CreateCertification": "创建认证",
+      "CreateFirst": "创建第一个认证",
+      "EmptyHint": "定义可复用的认证类型，用于项目、资产或审核流程。",
+      "DefaultName": "新认证",
+      "EmptyDescription": "暂未添加描述。",
+      "NamePlaceholder": "请输入认证名称",
+      "DescriptionPlaceholder": "描述该认证类型校验或表示的内容",
+      "OwnerPlaceholder": "请选择所有者",
+      "NoOwner": "未分配所有者",
+      "Untitled": "未命名认证"
     },
     "Copilot": {
       "Copilot": "Copilot",

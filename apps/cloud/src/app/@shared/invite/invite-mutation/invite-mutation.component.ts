@@ -58,7 +58,7 @@ export class InviteMutationComponent extends TranslationBaseComponent {
 
       this._dialogRef.close(result)
     } catch (err) {
-      this.toastrService.success(getErrorMessage(err))
+      this.toastrService.error(getErrorMessage(err))
     }
   }
 

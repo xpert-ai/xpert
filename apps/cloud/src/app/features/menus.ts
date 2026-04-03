@@ -104,7 +104,6 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       pathMatch: 'prefix',
       scopeContext: 'organization-only',
       data: {
-        featureKey: AnalyticsFeatures.FEATURE_MODEL,
         permissionKeys: [AnalyticsPermissionsEnum.CERTIFICATION_EDIT]
       }
     },
@@ -124,6 +123,16 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       label: 'User',
       icon: 'people',
       scopeContext: 'tenant-only',
+      data: {
+        permissionKeys: [PermissionsEnum.ORG_USERS_EDIT],
+        featureKey: FeatureEnum.FEATURE_USER
+      }
+    },
+    {
+      path: 'groups',
+      label: 'Groups',
+      icon: 'group',
+      scopeContext: 'organization-only',
       data: {
         permissionKeys: [PermissionsEnum.ORG_USERS_EDIT],
         featureKey: FeatureEnum.FEATURE_USER

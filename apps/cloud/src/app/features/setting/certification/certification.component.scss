@@ -1,6 +1,6 @@
 @reference "../../../../styles/tailwind-reference.css";
 :host {
-    @apply w-full flex flex-col;
+    @apply flex h-full min-h-0 w-full flex-col;
     --mdc-elevated-card-container-color: var(--ngm-color-surface-container);
 }
 

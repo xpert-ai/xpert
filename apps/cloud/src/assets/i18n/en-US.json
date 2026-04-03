@@ -543,6 +543,21 @@
       "NoOrganizationsAvailableHint": "You need access to at least one organization before you can bind organization groups to this tenant xpert.",
       "NoMatchingMembers": "No matching members",
       "NoMatchingMembersHint": "Try another search keyword."
+    },
+    "Certification": {
+      "Entry": "Certification entry",
+      "UpdateCertification": "Update certification",
+      "DeleteCertification": "Delete certification",
+      "CreateCertification": "Create certification",
+      "CreateFirst": "Create your first certification",
+      "EmptyHint": "Define reusable certification types for projects, assets, or review workflows.",
+      "DefaultName": "New certification",
+      "EmptyDescription": "No description added yet.",
+      "NamePlaceholder": "Enter certification name",
+      "DescriptionPlaceholder": "Describe what this certification type validates or represents",
+      "OwnerPlaceholder": "Select owner",
+      "NoOwner": "No owner assigned",
+      "Untitled": "Untitled certification"
     }
   },
   "COMPONENTS": {

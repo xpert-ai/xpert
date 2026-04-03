@@ -15,5 +15,5 @@
   overflow-x: hidden;
 }
 .link.active {
-  @apply bg-components-panel-bg;
+  @apply bg-components-panel-bg dark:bg-components-list-option-active-bg;
 }

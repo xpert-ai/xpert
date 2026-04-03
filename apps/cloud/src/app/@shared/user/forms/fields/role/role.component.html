@@ -1,4 +1,10 @@
 <z-form-field class="w-full" [appearance]="appearance">
 	<z-form-label>{{ (label || 'FORM.LABELS.ROLE') | translate }}</z-form-label>
-	<ngm-select [formControl]="ctrl" [(ngModel)]="roleId" [selectOptions]="roleOptions" />
+	<ngm-select
+		[ngModel]="roleId"
+		[ngModelOptions]="{ standalone: true }"
+		[placeholder]="placeholder"
+		[selectOptions]="roleOptions"
+		(ngModelChange)="onRoleIdChange($event)"
+	/>
 </z-form-field>
