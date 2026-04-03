@@ -105,7 +105,7 @@ interface ZardComboboxGroupEntry {
   standalone: true,
 })
 export class ZardComboboxOptionTemplateDirective {
-  constructor(public readonly template: TemplateRef<ZardComboboxOptionContext>) {}
+  readonly template = inject<TemplateRef<ZardComboboxOptionContext>>(TemplateRef);
 }
 
 @Directive({
@@ -113,7 +113,7 @@ export class ZardComboboxOptionTemplateDirective {
   standalone: true,
 })
 export class ZardComboboxPanelTemplateDirective {
-  constructor(public readonly template: TemplateRef<ZardComboboxPanelContext>) {}
+  readonly template = inject<TemplateRef<ZardComboboxPanelContext>>(TemplateRef);
 }
 
 @Component({
@@ -171,6 +171,7 @@ export class ZardComboboxPanelTemplateDirective {
                 zShape="circle"
                 class="size-6"
                 [zDisabled]="isDisabled()"
+                (mousedown)="$event.preventDefault(); $event.stopPropagation()"
                 (click)="clearValue($event)"
               >
                 <z-icon zType="close" class="opacity-70" />
@@ -214,6 +215,7 @@ export class ZardComboboxPanelTemplateDirective {
                 zShape="circle"
                 class="size-6"
                 [zDisabled]="isDisabled()"
+                (mousedown)="$event.preventDefault(); $event.stopPropagation()"
                 (click)="clearValue($event)"
               >
                 <z-icon zType="close" class="opacity-70" />
