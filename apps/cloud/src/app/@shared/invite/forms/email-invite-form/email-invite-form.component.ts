@@ -97,6 +97,17 @@ export class EmailInviteFormComponent extends TranslationBaseComponent implement
   }
 
   ngOnInit(): void {
+    const organization = this.store.selectedOrganization
+
+    if (organization) {
+      this.organization = organization
+      this.renderInvitationExpiryOptions()
+
+      if (organization.invitesAllowed) {
+        this.setInvitationPeriodFormValue(organization)
+      }
+    }
+
     this.store.user$
       .pipe(
         filter((user: IUser) => !!user),
@@ -215,8 +226,18 @@ export class EmailInviteFormComponent extends TranslationBaseComponent implement
       return Promise.reject()
     }
 
+    const organization = this.organization ?? this.store.selectedOrganization
+
+    if (!organization?.id) {
+      throw new Error(
+        this.getTranslation('PAC.Scope.SelectOrganization', {
+          Default: 'Select an organization before sending invites'
+        })
+      )
+    }
+
     const { tenantId, id: invitedById } = this.store.user
-    const { id: organizationId } = this.organization
+    const { id: organizationId } = organization
 
     const {
       role,

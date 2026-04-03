@@ -18,7 +18,9 @@
   </z-chip-grid>
 
   <input
-    [placeholder]="placeholder"
+    z-input
+    class="w-full"
+    [placeholder]="placeholder ?? ''"
     [zChipInputFor]="chipGrid"
     [zChipInputAddOnBlur]="addOnBlur"
     (zChipInputTokenEnd)="addKeywordFromInput($event)"
