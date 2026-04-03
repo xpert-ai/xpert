@@ -11,193 +11,198 @@ import {
   RolesEnum
 } from '../@core/types'
 
-type MenuScope = 'tenant-only' | 'organization-only' | 'dual-scope'
+export type MenuScope = 'tenant-only' | 'organization-only' | 'dual-scope'
+type MenuFeatureKey = AiFeatureEnum | AnalyticsFeatures | FeatureEnum
+type MenuData = {
+  translationKey?: string
+  permissionKeys?: string[]
+  featureKey?: MenuFeatureKey | MenuFeatureKey[]
+  [key: string]: unknown
+}
+
+export interface SettingsMenuItem {
+  path: string
+  label: string
+  icon: string
+  admin?: boolean
+  pathMatch?: 'full' | 'prefix'
+  scopeContext?: MenuScope
+  subtitleKey?: string
+  subtitleDefault?: string
+  data?: MenuData
+}
+
 type ScopedMenuItem = PacMenuItem & { scopeContext?: MenuScope }
 
-export function getFeatureMenus(
-  scopeLevel: RequestScopeLevel,
-  _org: IOrganization | null
-): PacMenuItem[] {
-  const settingsChildren: ScopedMenuItem[] = [
+export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMenuItem[] {
+  const isTenantScope = scopeLevel === RequestScopeLevel.TENANT
+  const items: SettingsMenuItem[] = [
     {
-      title: 'Account',
+      path: 'account',
+      label: 'Account',
       icon: 'account_circle',
-      link: '/settings/account',
-      scopeContext: 'dual-scope' as MenuScope,
-      data: {
-        translationKey: 'Account'
-      }
+      scopeContext: 'dual-scope'
     },
     {
-      title: 'AI Copilot',
+      path: 'copilot',
+      label: 'AI Copilot',
       icon: 'psychology',
-      link: '/settings/copilot',
-      scopeContext: 'organization-only' as MenuScope,
+      scopeContext: 'dual-scope',
       data: {
-        translationKey: 'AI Copilot',
         permissionKeys: [AIPermissionsEnum.COPILOT_EDIT],
         featureKey: AiFeatureEnum.FEATURE_COPILOT
       }
     },
     {
-      title: 'Data Sources',
+      path: 'data-sources',
+      label: 'Data Sources',
       icon: 'database',
-      link: '/settings/data-sources',
       admin: true,
-      scopeContext: 'organization-only' as MenuScope,
+      scopeContext: 'organization-only',
       data: {
-        translationKey: 'Data Sources',
         permissionKeys: [AnalyticsPermissionsEnum.DATA_SOURCE_EDIT],
         featureKey: AnalyticsFeatures.FEATURE_MODEL
       }
     },
     {
-      title: 'Assistants',
+      path: 'assistants',
+      label: 'Assistants',
       icon: 'robot_2',
-      link: '/settings/assistants',
-      scopeContext: 'dual-scope' as MenuScope,
+      scopeContext: 'dual-scope',
+      subtitleKey: isTenantScope ? 'PAC.Assistant.MenuTenantSubtitle' : 'PAC.Assistant.MenuOrganizationSubtitle',
+      subtitleDefault: isTenantScope ? 'Tenant defaults' : 'Organization overrides',
       data: {
-        translationKey: 'Assistants',
         featureKey: AiFeatureEnum.FEATURE_XPERT,
         permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
       }
     },
     {
-      title: 'Chat BI',
+      path: 'chatbi',
+      label: 'Chat BI',
       icon: 'try',
-      link: '/settings/chatbi',
-      scopeContext: 'organization-only' as MenuScope,
+      scopeContext: 'dual-scope',
       data: {
-        translationKey: 'Chat BI',
         permissionKeys: [AnalyticsPermissionsEnum.MODELS_EDIT],
         featureKey: [AiFeatureEnum.FEATURE_XPERT, AnalyticsFeatures.FEATURE_MODEL]
       }
     },
     {
-      title: 'User',
-      icon: 'people',
-      link: '/settings/users',
-      scopeContext: 'tenant-only' as MenuScope,
-      data: {
-        translationKey: 'User',
-        permissionKeys: [PermissionsEnum.ORG_USERS_EDIT],
-        featureKey: FeatureEnum.FEATURE_USER
-      }
-    },
-    {
-      title: 'Roles',
-      icon: 'supervisor_account',
-      link: '/settings/roles',
-      scopeContext: 'tenant-only' as MenuScope,
-      data: {
-        translationKey: 'Role & Permission',
-        featureKey: FeatureEnum.FEATURE_ROLES_PERMISSION,
-        permissionKeys: [PermissionsEnum.CHANGE_ROLES_PERMISSIONS]
-      }
-    },
-    {
-      title: 'Business Area',
-      icon: 'workspaces',
-      link: '/settings/business-area',
+      path: 'business-area',
+      label: 'Business Area',
+      icon: 'business_center',
       pathMatch: 'prefix',
-      scopeContext: 'organization-only' as MenuScope,
+      scopeContext: 'organization-only',
       data: {
-        translationKey: 'Business Area',
         featureKey: AnalyticsFeatures.FEATURE_BUSINESS_AREA,
         permissionKeys: [AnalyticsPermissionsEnum.BUSINESS_AREA_EDIT]
       }
     },
     {
-      title: 'Certification',
+      path: 'certification',
+      label: 'Certification',
       icon: 'verified_user',
-      link: '/settings/certification',
       pathMatch: 'prefix',
-      scopeContext: 'organization-only' as MenuScope,
+      scopeContext: 'organization-only',
       data: {
-        translationKey: 'Certification',
         featureKey: AnalyticsFeatures.FEATURE_MODEL,
         permissionKeys: [AnalyticsPermissionsEnum.CERTIFICATION_EDIT]
       }
     },
     {
-      title: 'Integration',
+      path: 'integration',
+      label: 'System Integration',
       icon: 'hub',
-      link: '/settings/integration',
       pathMatch: 'prefix',
-      scopeContext: 'organization-only' as MenuScope,
+      scopeContext: 'organization-only',
       data: {
-        translationKey: 'System Integration',
         featureKey: FeatureEnum.FEATURE_INTEGRATION,
         permissionKeys: [PermissionsEnum.INTEGRATION_EDIT]
       }
     },
     {
-      title: 'Email Templates',
-      icon: 'email',
-      link: '/settings/email-templates',
-      scopeContext: 'dual-scope' as MenuScope,
+      path: 'users',
+      label: 'User',
+      icon: 'people',
+      scopeContext: 'tenant-only',
       data: {
-        translationKey: 'Email Template',
+        permissionKeys: [PermissionsEnum.ORG_USERS_EDIT],
+        featureKey: FeatureEnum.FEATURE_USER
+      }
+    },
+    {
+      path: 'roles',
+      label: 'Role & Permission',
+      icon: 'supervisor_account',
+      scopeContext: 'tenant-only',
+      data: {
+        featureKey: FeatureEnum.FEATURE_ROLES_PERMISSION,
+        permissionKeys: [PermissionsEnum.CHANGE_ROLES_PERMISSIONS]
+      }
+    },
+    {
+      path: 'email-templates',
+      label: 'Email Template',
+      icon: 'email',
+      scopeContext: 'dual-scope',
+      data: {
         permissionKeys: [PermissionsEnum.VIEW_ALL_EMAIL_TEMPLATES],
         featureKey: FeatureEnum.FEATURE_EMAIL_TEMPLATE
       }
     },
     {
-      title: 'Custom SMTP',
+      path: 'custom-smtp',
+      label: 'Custom SMTP',
       icon: 'alternate_email',
-      link: '/settings/custom-smtp',
-      scopeContext: 'dual-scope' as MenuScope,
+      scopeContext: 'dual-scope',
       data: {
-        translationKey: 'Custom SMTP',
         permissionKeys: [PermissionsEnum.CUSTOM_SMTP_VIEW],
         featureKey: FeatureEnum.FEATURE_SMTP
       }
     },
     {
-      title: 'Feature',
+      path: scopeLevel === RequestScopeLevel.TENANT ? 'features/tenant' : 'features/organization',
+      label: 'Feature',
       icon: 'widgets',
-      link:
-        scopeLevel === RequestScopeLevel.TENANT
-          ? '/settings/features/tenant'
-          : '/settings/features/organization',
-      scopeContext: 'dual-scope' as MenuScope,
+      scopeContext: 'dual-scope',
       data: {
-        translationKey: 'Feature',
         permissionKeys: [PermissionsEnum.CHANGE_ROLES_PERMISSIONS]
       }
     },
     {
-      title: 'Organizations',
+      path: 'organizations',
+      label: 'Organization',
       icon: 'corporate_fare',
-      link: '/settings/organizations',
-      scopeContext: 'tenant-only' as MenuScope,
+      scopeContext: 'dual-scope',
+      subtitleKey: isTenantScope ? 'PAC.Organization.MenuTenantSubtitle' : 'PAC.Organization.MenuOrganizationSubtitle',
+      subtitleDefault: isTenantScope ? 'Manage all organizations' : 'Review the current organization',
       data: {
-        translationKey: 'Organization',
-        permissionKeys: [RolesEnum.SUPER_ADMIN]
+        permissionKeys: [PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.CHANGE_SELECTED_ORGANIZATION]
       }
     },
     {
-      title: 'Plugins',
+      path: 'plugins',
+      label: 'Plugins',
       icon: 'extension',
-      link: '/settings/plugins',
-      scopeContext: 'dual-scope' as MenuScope,
+      scopeContext: 'dual-scope',
       data: {
-        translationKey: 'Plugins',
         permissionKeys: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN, RolesEnum.TRIAL]
       }
     },
     {
-      title: 'Tenant',
+      path: 'tenant',
+      label: 'Tenant',
       icon: 'storage',
-      link: '/settings/tenant',
-      scopeContext: 'tenant-only' as MenuScope,
+      scopeContext: 'tenant-only',
       data: {
-        translationKey: 'Tenant',
         permissionKeys: [RolesEnum.SUPER_ADMIN]
       }
     }
-  ].filter((item) => matchesScope(item.scopeContext, scopeLevel))
+  ]
 
+  return items.filter((item) => matchesScope(item.scopeContext ?? 'dual-scope', scopeLevel))
+}
+
+export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganization | null): PacMenuItem[] {
   const menus: ScopedMenuItem[] = [
     // Xpert AI Features
     {
@@ -356,8 +361,7 @@ export function getFeatureMenus(
       data: {
         translationKey: 'Settings',
         featureKey: FeatureEnum.FEATURE_SETTING
-      },
-      children: settingsChildren
+      }
     }
   ]
 

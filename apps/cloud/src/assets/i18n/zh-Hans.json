@@ -1947,6 +1947,7 @@
       }
     },
     "Scope": {
+      "Current": "当前范围",
       "Switch": "切换范围",
       "TenantEyebrow": "租户控制台",
       "TenantSection": "租户控制台",

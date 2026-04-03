@@ -1050,6 +1050,17 @@
       "MenuTenantSubtitle": "租户默认配置",
       "MenuOrganizationSubtitle": "组织覆盖配置"
     },
+    "Scope": {
+      "Current": "当前范围",
+      "Switch": "切换范围",
+      "TenantEyebrow": "租户控制台",
+      "TenantSection": "租户控制台",
+      "TenantLabel": "租户默认值与治理",
+      "TenantHint": "管理租户级默认值、组织以及继承的配置。",
+      "OrganizationEyebrow": "组织范围",
+      "OrganizationSection": "组织",
+      "SelectOrganization": "请选择一个组织"
+    },
     "Organization": {
       "MenuTenantSubtitle": "管理所有组织",
       "MenuOrganizationSubtitle": "查看当前组织",

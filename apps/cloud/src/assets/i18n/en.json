@@ -80,6 +80,17 @@
         "TITLE": "Tenant"
       }
     },
+    "Scope": {
+      "Current": "Current Scope",
+      "Switch": "Switch scope",
+      "TenantEyebrow": "Tenant Console",
+      "TenantSection": "Tenant Console",
+      "TenantLabel": "Tenant defaults and governance",
+      "TenantHint": "Manage tenant-wide defaults, organizations, and inherited configuration.",
+      "OrganizationEyebrow": "Organization Scope",
+      "OrganizationSection": "Organizations",
+      "SelectOrganization": "Select an organization"
+    },
     "Organization": {
       "MenuTenantSubtitle": "Manage all organizations",
       "MenuOrganizationSubtitle": "Review the current organization",
