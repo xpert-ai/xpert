@@ -59,7 +59,10 @@ export class UserGroupsSettingsComponent {
   readonly selectedMemberIds = signal<string[]>([])
 
   readonly selectedGroupId = toSignal(this.#route.paramMap.pipe(map((params) => params.get('id'))), {
-    initialValue: null
+    initialValue: this.#route.snapshot.paramMap.get('id')
+  })
+  readonly createMode = toSignal(this.#route.queryParamMap.pipe(map((params) => params.get('mode') === 'create')), {
+    initialValue: this.#route.snapshot.queryParamMap.get('mode') === 'create'
   })
 
   readonly selectedGroup = computed(() => {
@@ -206,7 +209,7 @@ export class UserGroupsSettingsComponent {
           this.loading.set(false)
 
           const selectedGroupId = this.selectedGroupId()
-          if (!selectedGroupId && nextGroups.length && !this.preferCreateMode()) {
+          if (!selectedGroupId && nextGroups.length && !this.preferCreateMode() && !this.createMode()) {
             this.openGroup(nextGroups[0].id)
             return
           }
@@ -229,7 +232,11 @@ export class UserGroupsSettingsComponent {
 
   startCreate() {
     this.preferCreateMode.set(true)
-    this.#router.navigate(['/settings/groups'])
+    this.#router.navigate(['/settings/groups'], {
+      queryParams: {
+        mode: 'create'
+      }
+    })
   }
 
   updateGroupQuery(value: string) {
