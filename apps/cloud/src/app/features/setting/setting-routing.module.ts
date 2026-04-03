@@ -259,7 +259,19 @@ const routes: Routes = [
             redirectTo
           }
         }
-      }
+      },
+      {
+        path: 'skill-repository',
+        loadChildren: () => import('./skill-repository').then((m) => m.routes),
+        canActivate: [NgxPermissionsGuard],
+        data: {
+          title: 'settings/skill-repository',
+          permissions: {
+            only: [RolesEnum.SUPER_ADMIN],
+            redirectTo
+          }
+        }
+      },
     ]
   }
 ]

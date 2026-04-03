@@ -215,6 +215,11 @@ export interface IXpert extends IBasePerWorkspaceEntityModel, TXpert {
 }
 
 export type TXpertOptions = {
+  bootstrap?: {
+    source: 'template'
+    templateKey: string
+    workspaceKind: 'org-default'
+  }
   knowledge?: Record<
     string,
     {

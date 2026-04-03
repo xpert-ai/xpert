@@ -1,0 +1,357 @@
+# Organization And User Bootstrap Architecture
+
+This guide explains how Xpert initializes newly created organizations and users joining organizations, including trigger points, async execution, idempotency, and configuration.
+
+## Goals
+
+This bootstrap architecture solves four problems:
+
+- Create a default workspace for every new organization
+- Create a per-user workspace when a user joins an organization
+- Initialize semantic-model prerequisites for analytics
+- Keep the whole process async, retryable, and safe under duplicate event delivery
+
+## Core principles
+
+### 1. User bootstrap is not triggered by bare `user.created`
+
+The system uses a “one workspace per user inside each organization” model, so AI bootstrap should not run when a `User` record is created without an organization.
+
+That means:
+
+- Creating only a `User` does not create any AI workspace
+- Bootstrap starts only after a `UserOrganization` relation is actually created
+
+The internal event is:
+
+- `user.organization.created`
+
+### 2. Organization bootstrap runs only after initial membership is persisted
+
+Organization bootstrap depends on both the organization owner and current organization members, so `organization.created` must be emitted only after:
+
+- `Organization` is persisted
+- the initial `UserOrganization` relation is persisted
+
+This guarantees stable owner resolution and member synchronization later.
+
+### 3. All bootstrap work is async
+
+The main organization creation flow and the “user joins organization” flow do not wait for bootstrap to finish.
+
+After events are emitted:
+
+- `server-ai` listens and enqueues jobs
+- `analytics` listens to organization creation and enqueues jobs
+- processors consume the jobs in the background
+
+This keeps the business path short and prevents bootstrap failures from rolling back the main flow.
+
+### 4. All organization-aware writes must run inside request context
+
+Many services in the codebase are organization-aware.
+
+If async jobs write directly without explicitly setting organization context, `organizationId` may be resolved as `null`.
+
+Because of that, all bootstrap writes must be wrapped in:
+
+```ts
+runWithRequestContext(
+  {
+    user,
+    headers: {
+      'organization-id': organizationId
+    }
+  },
+  () => {
+    // bootstrap writes
+  }
+)
+```
+
+## Event model
+
+The implementation introduces two internal events.
+
+### `organization.created`
+
+```ts
+{
+  tenantId: string
+  organizationId: string
+  ownerUserId?: string | null
+}
+```
+
+Emission point:
+
+- after the organization is created
+- after the initial organization membership is created
+
+### `user.organization.created`
+
+```ts
+{
+  tenantId: string
+  organizationId: string
+  userId: string
+  bootstrapPersonalWorkspace: boolean
+}
+```
+
+Emission point:
+
+- after a `UserOrganization` relation is created for the first time
+
+Notes:
+
+- the event is emitted from the unified “add user to organization” write path, not only from signup
+- this allows existing users joining another organization to get their own workspace there
+- `bootstrapPersonalWorkspace=false` is used when organization creation auto-adds tenant super admins but should not create personal workspaces for them
+
+## End-to-end flow
+
+```mermaid
+flowchart TD
+  A["Create organization"] --> B["Persist Organization"]
+  B --> C["Persist initial UserOrganization"]
+  C --> D["Emit organization.created"]
+  D --> E["server-ai enqueue org-bootstrap:{organizationId}"]
+  D --> F["analytics enqueue org-bootstrap:{organizationId}"]
+  E --> G["Run in organization request context"]
+  F --> H["Run in organization request context"]
+  G --> I["Create org default workspace and environment"]
+  I --> J["Sync organization members"]
+  J --> K["Import template xperts"]
+  H --> L["Initialize semantic model data"]
+
+  M["Create UserOrganization"] --> N["Emit user.organization.created"]
+  N --> O["server-ai enqueue user-org-bootstrap:{organizationId}:{userId}"]
+  O --> P["Run in organization request context"]
+  P --> Q["Optionally create personal workspace"]
+  Q --> R["Create personal default environment"]
+  R --> S["Ensure user joins org default workspace"]
+```
+
+## `server-ai` responsibilities
+
+`server-ai` handles two kinds of jobs: organization bootstrap and user bootstrap.
+
+### Organization bootstrap
+
+Responsibilities:
+
+- idempotently create the organization default workspace
+- idempotently create the default environment for that workspace
+- add current organization members into the default workspace
+- import default template xperts based on environment configuration
+
+Default names:
+
+- organization default workspace: `Default Workspace`
+- default environment: `Default`
+
+The organization workspace is marked with:
+
+```ts
+workspace.settings.system.kind = 'org-default'
+```
+
+### User bootstrap
+
+When a user joins an organization, `server-ai`:
+
+- idempotently creates the personal workspace when `bootstrapPersonalWorkspace=true`
+- idempotently creates the personal default environment
+- idempotently adds the user into the organization default workspace
+
+The personal workspace is marked with:
+
+```ts
+settings.system.kind = 'user-default'
+settings.system.userId = userId
+```
+
+The personal workspace name is:
+
+```ts
+${displayName || email} Workspace
+```
+
+### Why `ensureMember` exists
+
+Organization default workspace membership is updated in two places:
+
+- during organization bootstrap, which syncs current members
+- during user bootstrap, which incrementally adds the new user
+
+Replacing the full `members` list would be vulnerable to concurrent overwrite.
+
+To avoid that, the implementation uses an incremental helper:
+
+- `ensureMember(workspaceId, userId)`
+
+It only ensures presence and does not rewrite the whole member list.
+
+## Template xpert import
+
+Default organization xperts are configured through:
+
+```bash
+ORG_DEFAULT_XPERT_TEMPLATE_KEYS=id1,id2,id3
+```
+
+The import flow:
+
+- loads template details
+- parses template YAML
+- rewrites the target workspace to the organization default workspace
+- writes bootstrap metadata into the imported draft
+
+The idempotency marker is:
+
+```ts
+options.bootstrap = {
+  source: 'template',
+  templateKey: string,
+  workspaceKind: 'org-default'
+}
+```
+
+Before import, the system checks for an existing xpert using:
+
+- `workspaceId`
+- `options.bootstrap.templateKey`
+- `options.bootstrap.workspaceKind = 'org-default'`
+- `latest = true`
+- `deletedAt IS NULL`
+
+If one exists, the import overwrites that xpert. Otherwise it creates a new one.
+
+### Duplicate template names
+
+Published xpert naming is still close to globally unique, so organization bootstrap uses a deterministic fallback sequence:
+
+1. original template name
+2. `template name (organization name)`
+3. `template name (organization name organizationId-prefix)`
+
+## `analytics` responsibilities
+
+`analytics` currently listens only to organization creation.
+
+It reuses the existing seed logic, but exposes it through a reusable organization bootstrap entry point.
+
+Default mode:
+
+- `semantic-only`
+
+Optional mode:
+
+- `full-demo`
+
+Configured through:
+
+```bash
+ORG_ANALYTICS_BOOTSTRAP_MODE=semantic-only
+```
+
+### What `semantic-only` creates
+
+This mode creates only semantic-model prerequisites:
+
+- data source
+- business area
+- business-area-user
+- semantic model
+- semantic model roles
+- catalog update
+
+### What `full-demo` adds
+
+On top of `semantic-only`, it also imports:
+
+- demo indicators
+- demo story
+
+## Idempotency and retry
+
+Bootstrap is designed with “events may be delivered more than once” as a default assumption.
+
+Because of that, idempotency exists at several layers.
+
+### Queue job ids
+
+- organization bootstrap: `org-bootstrap:${organizationId}`
+- user bootstrap: `user-org-bootstrap:${organizationId}:${userId}`
+
+### Record-level markers
+
+- org default workspace: `settings.system.kind = 'org-default'`
+- user default workspace: `settings.system.kind = 'user-default'` plus `settings.system.userId`
+- imported template xpert: `options.bootstrap.templateKey` plus `options.bootstrap.workspaceKind`
+
+### Behavioral idempotency
+
+- environments are created only after checking for the existing default one
+- workspace membership uses `ensureMember`
+- analytics seed logic de-duplicates by organization scope
+
+## Failure semantics
+
+Bootstrap failure does not roll back organization creation or user membership creation.
+
+Current failure behavior:
+
+- the main business flow returns once it succeeds
+- bootstrap retries in the background
+- failures are logged in structured form
+- later duplicate deliveries can still converge to the target state
+
+## Extension boundaries
+
+If you want to extend this bootstrap system, these are the recommended boundaries.
+
+### Good candidates for organization bootstrap
+
+- organization default workspace setup
+- organization default environment setup
+- organization template xpert import
+- organization analytics semantic-model setup
+
+### Good candidates for user bootstrap
+
+- personal workspace setup inside an organization
+- default environment setup
+- automatically joining shared organization workspaces
+- future user preference or assistant binding setup
+
+### What should not be forced into this path
+
+- global slug-scope refactors for published xperts
+- large sync jobs that depend heavily on external systems
+- long write chains that require strict transactional consistency
+
+Those are better handled as separate projects instead of being tightly coupled to bootstrap.
+
+## Recommended deployment config
+
+For analytics-heavy organizations, a practical starting point is:
+
+```bash
+ORG_DEFAULT_XPERT_TEMPLATE_KEYS=af7133cb-32b3-47ff-90c1-b144c4d4887e,af7133cb-32b3-47ff-90c1-b144c4d48872
+ORG_ANALYTICS_BOOTSTRAP_MODE=semantic-only
+```
+
+Those two template ids currently map to:
+
+- `ChatBI with Sales Analysis Expert`
+- `Text2SQL-ChatDB`
+
+## Summary
+
+At a high level, this bootstrap architecture is:
+
+`business flow emits events -> AI and analytics enqueue async jobs -> workers converge idempotently inside organization context`
+
+That gives Xpert automatic organization and user initialization without forcing the main request path to wait on heavier background writes.

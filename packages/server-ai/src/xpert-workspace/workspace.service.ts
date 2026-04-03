@@ -1,6 +1,6 @@
 import { IUser } from '@metad/contracts'
 import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
-import { Injectable, Logger } from '@nestjs/common'
+import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Brackets, Repository } from 'typeorm'
 import { WorkspacePublicDTO } from './dto'
@@ -12,9 +12,9 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
 
 	constructor(
 		@InjectRepository(XpertWorkspace)
-		repository: Repository<XpertWorkspace>
+		private readonly workspaceRepository: Repository<XpertWorkspace>
 	) {
-		super(repository)
+		super(workspaceRepository)
 	}
 
 	async findAllMy(options: PaginationParams<XpertWorkspace>) {
@@ -26,7 +26,7 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
 			return order
 		}, {}) : {}
 
-		const query = this.repository
+		const query = this.workspaceRepository
 			.createQueryBuilder('workspace')
 			.leftJoinAndSelect('workspace.members', 'member')
 			.where('workspace.tenantId = :tenantId', { tenantId: user.tenantId })
@@ -56,7 +56,7 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
 	async updateMembers(id: string, members: string[]) {
 		const workspace = await this.findOne(id)
 		workspace.members = members.map((id) => ({ id }) as IUser)
-		await this.repository.save(workspace)
+		await this.workspaceRepository.save(workspace)
 
 		return await this.findOne(id, { relations: ['members'] })
 	}
@@ -76,5 +76,51 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
 		}
 
 		return true
+	}
+
+	async findOrganizationDefaultWorkspace(organizationId: string) {
+		return this.workspaceRepository
+			.createQueryBuilder('workspace')
+			.where('workspace.organizationId = :organizationId', { organizationId })
+			.andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'kind', '') = :kind`, {
+				kind: 'org-default'
+			})
+			.getOne()
+	}
+
+	async findUserDefaultWorkspace(organizationId: string, userId: string) {
+		return this.workspaceRepository
+			.createQueryBuilder('workspace')
+			.where('workspace.organizationId = :organizationId', { organizationId })
+			.andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'kind', '') = :kind`, {
+				kind: 'user-default'
+			})
+			.andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'userId', '') = :userId`, {
+				userId
+			})
+			.getOne()
+	}
+
+	async ensureMember(id: string, userId: string) {
+		const workspace = await this.workspaceRepository.findOne({
+			where: { id },
+			relations: ['members']
+		})
+
+		if (!workspace) {
+			throw new NotFoundException(`Workspace '${id}' was not found`)
+		}
+
+		const isOwner = workspace.ownerId === userId
+		const isMember = workspace.members?.some((member) => member.id === userId)
+
+		if (isOwner || isMember) {
+			return workspace
+		}
+
+		workspace.members = [...(workspace.members ?? []), { id: userId } as IUser]
+		await this.workspaceRepository.save(workspace)
+
+		return workspace
 	}
 }
