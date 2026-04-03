@@ -29,7 +29,7 @@
       (zSearchTermChange)="onSearchTermChange($event)"
       (zValueChange)="onOptionSelected($event)"
     >
-      <ng-template zComboboxPanel let-activeIndex="activeIndex" let-select="select">
+      <ng-template zComboboxPanel let-activeIndex="activeIndex" let-select="select" let-setActiveIndex="setActiveIndex">
         @if (props?.virtualScroll) {
           <cdk-virtual-scroll-viewport
             class="pac-formly-select__viewport p-1!"
@@ -46,6 +46,7 @@
               [class.bg-accent]="i === activeIndex"
               [class.text-accent-foreground]="i === activeIndex"
               (mousedown)="$event.preventDefault()"
+              (mouseenter)="setActiveIndex(i)"
               (click)="select(option)"
             >
               <ngm-display-behaviour
@@ -62,10 +63,11 @@
               <button
                 type="button"
                 role="option"
-                class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm bg-hover-bg"
+                class="flex w-full items-center rounded-md px-2 py-1.5 text-left text-sm hover:bg-hover-bg"
                 [class.bg-accent]="i === activeIndex"
                 [class.text-accent-foreground]="i === activeIndex"
                 (mousedown)="$event.preventDefault()"
+                (mouseenter)="setActiveIndex(i)"
                 (click)="select(option)"
               >
                 <ngm-display-behaviour

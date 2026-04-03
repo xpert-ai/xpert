@@ -120,11 +120,12 @@ export class NgmAdvancedSelectComponent implements OnChanges, ControlValueAccess
 
   formControl = new FormControl<string | string[] | null>(null)
   readonly selectionSignal = selectionModel<string>()
+  readonly singleValue = signal<string | null>(null)
   readonly searchTerm = signal('')
   readonly selectedValues = computed(() => this.selectionSignal(), { equal: isEqual })
   readonly highlight = computed(() => this.searchTerm().trim())
   readonly isNotInitial = computed(() =>
-    this.multiple ? this.selectedValues().length : !!this.formControl.value
+    this.multiple ? this.selectedValues().length : !!this.singleValue()
   )
 
   readonly comboboxOptions = computed<ZardComboboxOption[]>(() =>
@@ -152,11 +153,12 @@ export class NgmAdvancedSelectComponent implements OnChanges, ControlValueAccess
   })
 
   readonly comboboxValue = computed(() =>
-    this.multiple ? (this.selectedValues().length ? this.selectedValues() : null) : this.formControl.value
+    this.multiple ? (this.selectedValues().length ? this.selectedValues() : null) : this.singleValue()
   )
 
   onChange: (input: any) => void
   onTouched: () => void
+  private skipNextSearchTermChange = false
 
   ngOnChanges({ displayDensity, validators }: SimpleChanges): void {
     if (displayDensity) {
@@ -177,10 +179,14 @@ export class NgmAdvancedSelectComponent implements OnChanges, ControlValueAccess
   writeValue(obj: any): void {
     if (this.multiple) {
       const values = Array.isArray(obj) ? obj : []
+      this.singleValue.set(null)
       this.selectionSignal.set(values)
       this.formControl.setValue(values, { emitEvent: false })
     } else {
-      this.formControl.setValue(obj ?? null, { emitEvent: false })
+      const normalized = (obj ?? null) as string | null
+      this.selectionSignal.clear()
+      this.singleValue.set(normalized)
+      this.formControl.setValue(normalized, { emitEvent: false })
     }
     this.searchTerm.set('')
   }
@@ -195,7 +201,11 @@ export class NgmAdvancedSelectComponent implements OnChanges, ControlValueAccess
 
   setDisabledState?(isDisabled: boolean): void {
     this.disabled = isDisabled
-    isDisabled ? this.formControl.disable() : this.formControl.enable()
+    if (isDisabled) {
+      this.formControl.disable()
+    } else {
+      this.formControl.enable()
+    }
   }
 
   trackBy(i: number, item: ZardComboboxOption | ISelectOption) {
@@ -223,10 +233,17 @@ export class NgmAdvancedSelectComponent implements OnChanges, ControlValueAccess
   }
 
   onSearchTermChange(value: string) {
+    if (this.skipNextSearchTermChange) {
+      this.skipNextSearchTermChange = false
+      return
+    }
+
     this.searchTerm.set(value)
   }
 
   onComboboxValueChange(value: unknown) {
+    this.skipNextSearchTermChange = true
+
     if (value !== null || !this.multiple) {
       this.searchTerm.set('')
     }
@@ -239,6 +256,7 @@ export class NgmAdvancedSelectComponent implements OnChanges, ControlValueAccess
     }
 
     const normalized = (value ?? null) as string | null
+    this.singleValue.set(normalized)
     this.formControl.setValue(normalized)
     this.onChange?.(normalized)
   }
@@ -266,6 +284,7 @@ export class NgmAdvancedSelectComponent implements OnChanges, ControlValueAccess
       this.formControl.setValue([])
       this.onChange?.([])
     } else {
+      this.singleValue.set(null)
       this.formControl.setValue(null)
       this.onChange?.(null)
     }

@@ -115,7 +115,7 @@
 
   .btn {
     &.btn-danger, &.danger {
-      @apply text-red-500 border-red-50 hover:border-red-500 hover:bg-red-50;
+      @apply text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive;
     }
 
     &.active {

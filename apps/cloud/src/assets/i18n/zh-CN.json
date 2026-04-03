@@ -157,7 +157,20 @@
       "SemanticModels": "语义模型",
       "Stories": "故事",
       "Indicators": "指标",
-      "IndicatorMarket": "指标市场"
+      "IndicatorMarket": "指标市场",
+      "Custom": "自定义",
+      "Disabled": "禁用",
+      "ID": "标识",
+      "IsActive": "启用",
+      "IsDefault": "默认",
+      "Loading": "加载中",
+      "No": "否",
+      "NotSet": "未设置",
+      "Saving": "保存中",
+      "Status": "状态",
+      "TimeZone": "时区",
+      "Uploading": "上传中",
+      "Yes": "是"
     },
     "Common": {
       "Tools": "工具",
@@ -424,7 +437,8 @@
         "DELETE_CONFIRM": "确定从服务器上删除此组织?",
         "DELETE_ORGANIZATION": "组织'{{name}}'删除成功",
         "DEMO_GENERATE_ERROR": "演示数据生成错误",
-        "DEMO_GENERATED": "演示数据生成"
+        "DEMO_GENERATED": "演示数据生成",
+        "AddNewOrganization": "添加新组织"
       },
       "ROLES": {
         "PERMISSION_UPDATED": "角色'{{name}}'更新成功",
@@ -1032,6 +1046,59 @@
         "Version": "版本"
       }
     },
+    "Assistant": {
+      "MenuTenantSubtitle": "租户默认配置",
+      "MenuOrganizationSubtitle": "组织覆盖配置"
+    },
+    "Scope": {
+      "Current": "当前范围",
+      "Switch": "切换范围",
+      "TenantEyebrow": "租户控制台",
+      "TenantSection": "租户控制台",
+      "TenantLabel": "租户默认值与治理",
+      "TenantHint": "管理租户级默认值、组织以及继承的配置。",
+      "OrganizationEyebrow": "组织范围",
+      "OrganizationSection": "组织",
+      "SelectOrganization": "请选择一个组织"
+    },
+    "Organization": {
+      "MenuTenantSubtitle": "管理所有组织",
+      "MenuOrganizationSubtitle": "查看当前组织",
+      "RegistryTitle": "组织列表",
+      "CurrentOrganizationTitle": "当前组织",
+      "BackToList": "返回列表",
+      "RegistryTenantHelp": "租户范围会显示租户下的所有组织。选择一行即可打开下方详情工作区。",
+      "RegistryOrganizationHelp": "组织范围仅显示当前组织，方便你直接在此查看详情。",
+      "LoadFailed": "无法加载组织",
+      "EmptyStateTitle": "暂无可用组织",
+      "EmptyStateDescription": "当前范围下暂无组织。请在租户范围中新增组织，或先切换到某个组织上下文。",
+      "TabGeneral": "常规",
+      "TabControls": "控制项",
+      "LogoLabel": "徽标",
+      "LogoPreviewHint": "预览并维护当前组织头像。",
+      "RecordSummary": "记录摘要",
+      "ScopeRules": "范围规则",
+      "ScopeRulesTenant": "租户范围可查看所有组织，并维护本页可见的全部设置。",
+      "ScopeRulesOrganization": "组织范围仅限当前组织。治理类开关在此保持只读。",
+      "Today": "今天",
+      "StartOfMonth": "月初",
+      "EndOfMonth": "月末",
+      "Collaboration": "协作",
+      "InvitesAllowedHelp": "允许此组织接收并管理邀请链接。",
+      "Governance": "治理",
+      "GovernanceReadonlyHint": "租户治理字段在组织范围下保持锁定。",
+      "DefaultHelp": "租户范围决定哪个组织作为新会话的默认入口。",
+      "ActiveHelp": "停用可冻结该组织访问权限，而不删除其记录。",
+      "NoTags": "此组织尚未关联任何标签。",
+      "TagContext": "标签上下文",
+      "TagContextHelp": "此面板展示当前组织已绑定的标签。如有需要，标签治理仍可在专门的流程中处理。",
+      "GitHubSourceHelp": "使用维护中的 GitHub 演示数据源。",
+      "AliyunSourceHelp": "使用镜像的 Aliyun OSS 数据源。",
+      "CustomSourceHelp": "提供你自己的文件 URL。",
+      "ReadonlyActionHint": "你需要编辑权限才能执行演示数据生成。",
+      "SelectPromptTitle": "请选择一个组织",
+      "SelectPromptDescription": "请从上方列表选择一行以打开下方详情工作区。"
+    },
     "Story": {
       "EditStory": "编辑故事",
       "DuplicateStory": "复印故事",
@@ -1494,7 +1561,10 @@
         "OfficialName": "组织全称",
         "ShortDescription": "组织简介",
         "Website": "网站链接",
-        "SelectDataNetwork": "选择数据网络"
+        "SelectDataNetwork": "选择数据网络",
+        "DataNetworkDescription": "服务端将从此网络存储地址下载相应的数据文件进行演示数据的导入",
+        "FileUrl": "文件链接",
+        "SelectTimeZone": "选择一个时区"
       }
     }
   },

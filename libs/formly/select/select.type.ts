@@ -64,6 +64,7 @@ const isNonNullable = <T>(value: T | null | undefined): value is T => value !== 
 export class PACFormlySelectComponent extends FieldType implements OnInit {
   readonly #translate = inject(TranslateService)
   readonly #destroyRef = inject(DestroyRef)
+  private skipNextSearchTermChange = false
 
   get valueFormControl() {
     return this.formControl as FormControl
@@ -164,11 +165,17 @@ export class PACFormlySelectComponent extends FieldType implements OnInit {
   }
 
   onSearchTermChange(value: string) {
+    if (this.skipNextSearchTermChange) {
+      this.skipNextSearchTermChange = false
+      return
+    }
+
     this.searchTerm.set(value)
   }
 
   onOptionSelected(value: unknown) {
     const normalized = value ?? null
+    this.skipNextSearchTermChange = true
     this.searchTerm.set('')
     if (this.valueFormControl.value !== normalized) {
       this.valueFormControl.setValue(normalized)

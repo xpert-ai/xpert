@@ -173,7 +173,7 @@ const routes: Routes = [
         loadChildren: () => import('./organizations/organizations.module').then((m) => m.OrganizationsModule),
         data: {
           title: 'settings/organizations',
-          scopeContext: 'tenant-only'
+          scopeContext: 'dual-scope'
         }
       },
       {
