@@ -136,6 +136,7 @@
   --border-light: theme('colors.neutral.700');
   --components-card-option-selected-border: theme('colors.blue.500');
   --color-components-panel-bg: #222225;
+  --color-components-panel-bg-blur: rgba(34, 34, 37, 0.9);
   --color-components-panel-border: theme('colors.neutral.600');
   --color-components-card-bg: #16181c;
   --color-overlay-backdrop-strong: color-mix(in oklab, theme('colors.neutral.800') 72%, transparent);
@@ -170,10 +171,10 @@
   // Text
   --color-base-content: #e3e3e3;
   --color-text-primary: var(--color-base-content);
-  --text-secondary: theme('colors.zinc.400');
+  --text-secondary: theme('colors.neutral.400');
   --color-text-success: theme('colors.green.500');
-  --color-text-secondary: theme('colors.zinc.500');
-  --color-text-tertiary: theme('colors.neutral.600');
+  --color-text-secondary: var(--text-secondary);
+  --color-text-tertiary: theme('colors.neutral.500');
   --color-text-quaternary: theme('colors.neutral.600');
   --color-text-warning: theme('colors.red.300');
   --color-text-destructive: theme('colors.red.400');

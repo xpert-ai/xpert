@@ -12,7 +12,7 @@ import { XpertSkillIndexesComponent } from '../indexes/indexes.component'
   standalone: true,
   selector: 'xp-skill-repository',
   templateUrl: './skill-repository.component.html',
-  styleUrls: ['./skill-repository.component.scss'],
+  styleUrls: ['./skill-repository.component.css'],
   imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, TranslateModule, XpertSkillIndexesComponent]
 })
 export class XpertSkillRepositoryComponent {
