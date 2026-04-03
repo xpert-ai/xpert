@@ -113,7 +113,7 @@ export class NgmMemberTreeComponent<T extends IDimensionMember = IDimensionMembe
 
   onChange: (input: any) => void
 
-  itemSize = 40
+  itemSize = 30
   treeNodePaddingIndent = 20
   unfold = false
   searchControl = new FormControl()

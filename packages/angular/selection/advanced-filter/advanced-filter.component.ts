@@ -1,5 +1,5 @@
+import { DIALOG_DATA, Dialog, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectorRef, Component, HostBinding, Inject, Input, OnInit, Optional, ViewChild, ViewContainerRef } from '@angular/core'
-import { Z_MODAL_DATA, ZardDialogRef, ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   Dimension,
   DisplayBehaviour,
@@ -12,6 +12,7 @@ import {
   isAdvancedFilter,
   FilterOperator,
   IFilter,
+  ISlicer,
   Property,
   Syntax,
   EntitySet,
@@ -158,17 +159,17 @@ export class NgmAdvancedFilterComponent implements OnInit {
   private _preventChipClick = false
   constructor(
     public cdr: ChangeDetectorRef,
-    public dialog: ZardDialogService,
+    public dialog: Dialog,
     private readonly _viewContainerRef: ViewContainerRef,
     @Optional()
-    @Inject(Z_MODAL_DATA) public data?: {
+    @Inject(DIALOG_DATA) public data?: {
       dataSettings: DataSettings,
       entityType: EntityType,
       syntax: Syntax,
       advancedFilter: IAdvancedFilter
     },
     @Optional()
-    public dialogRef?: ZardDialogRef<NgmAdvancedFilterComponent>,
+    public dialogRef?: DialogRef,
   ) {}
 
   ngOnInit(): void {
@@ -688,7 +689,7 @@ export class NgmAdvancedFilterComponent implements OnInit {
   }
 
   async openValueHelp(dimension: Dimension) {
-    return firstValueFrom(this.dialog.open(NgmValueHelpComponent, {
+    return firstValueFrom(this.dialog.open<ISlicer>(NgmValueHelpComponent, {
       viewContainerRef: this._viewContainerRef,
       data: {
         dataSettings: this.data.dataSettings,
@@ -699,7 +700,7 @@ export class NgmAdvancedFilterComponent implements OnInit {
           showAllMember: false
         }
       }
-    }).afterClosed())
+    }).closed)
   }
 
   async openLowValueHelp(dimension: Dimension) {

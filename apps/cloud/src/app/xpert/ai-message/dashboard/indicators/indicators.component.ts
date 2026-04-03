@@ -22,6 +22,7 @@ import { NgmIndicatorComponent, NgmIndicatorExplorerComponent } from '@metad/oca
 import { DataSettings, IndicatorTagEnum, IndicatorType, TimeGranularity } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { derivedAsync } from 'ngxtension/derived-async'
+import { isEqual } from 'lodash-es'
 import { combineLatest, map, of } from 'rxjs'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
@@ -75,36 +76,74 @@ export class ChatComponentIndicatorsComponent {
     return of(null)
   })
 
-  // Processing indicators: If it is a measurement, add a temporary equivalent indicator
-  readonly _indicators = computed(() => {
-    const indicators = this.indicators()
-    if (indicators && this.dataSources()) {
-      return indicators.map((indicator) => {
-        const dataSource = this.dataSources()[indicator.dataSource]
-        if (dataSource) {
-          const _indicator = dataSource.getIndicator(indicator.indicatorCode)
-          if (!_indicator) {
-            dataSource.upsertIndicator({
+  readonly temporaryIndicatorRequests = computed(
+    () => {
+      const indicators = this.indicators()
+      const dataSources = this.dataSources()
+
+      if (!indicators?.length || !dataSources) {
+        return []
+      }
+
+      return indicators.flatMap((indicator) => {
+        const dataSource = dataSources[indicator.dataSource]
+        if (!dataSource) {
+          return []
+        }
+
+        const temporaryCode = getTemporaryIndicatorCode(indicator.indicatorCode)
+        const existingIndicator = dataSource.getIndicator(indicator.indicatorCode, indicator.entitySet)
+        const existingTemporaryIndicator = dataSource.getIndicator(temporaryCode, indicator.entitySet)
+
+        if (existingIndicator || existingTemporaryIndicator) {
+          return []
+        }
+
+        return [
+          {
+            dataSource: indicator.dataSource,
+            indicator: {
               name: indicator.indicatorCode,
-              code: `Measure_${indicator.indicatorCode}`,
+              code: temporaryCode,
               entity: indicator.entitySet,
               type: IndicatorType.BASIC,
               measure: indicator.indicatorCode,
               visible: true
-            })
+            }
+          }
+        ]
+      })
+    },
+    { equal: isEqual }
+  )
+
+  // Processing indicators: If it is a measurement, add a temporary equivalent indicator
+  readonly _indicators = computed(
+    () => {
+      const indicators = this.indicators()
+      const dataSources = this.dataSources()
+      if (indicators && dataSources) {
+        return indicators.map((indicator) => {
+          const dataSource = dataSources[indicator.dataSource]
+          if (dataSource) {
+            const existingIndicator = dataSource.getIndicator(indicator.indicatorCode, indicator.entitySet)
+            if (existingIndicator) {
+              return indicator
+            }
 
             return {
               ...indicator,
-              indicatorCode: `Measure_${indicator.indicatorCode}`
+              indicatorCode: getTemporaryIndicatorCode(indicator.indicatorCode)
             }
           }
-        }
 
-        return indicator
-      })
-    }
-    return indicators
-  })
+          return indicator
+        })
+      }
+      return indicators
+    },
+    { equal: isEqual }
+  )
   readonly pageSize = signal(5)
   readonly pageNo = signal(0)
 
@@ -112,14 +151,24 @@ export class ChatComponentIndicatorsComponent {
     return this._indicators()?.slice(0, (this.pageNo() + 1) * this.pageSize())
   })
 
-  readonly hasMore = computed(() => this._indicators().length > (this.pageNo() + 1) * this.pageSize())
+  readonly hasMore = computed(() => (this._indicators()?.length ?? 0) > (this.pageNo() + 1) * this.pageSize())
 
   readonly indicatorExplorer = signal<string>(null)
   readonly indicatorTagType = signal<IndicatorTagEnum>(IndicatorTagEnum.MOM)
 
   constructor() {
-    // effect(() => {
-    // })
+    effect(() => {
+      const requests = this.temporaryIndicatorRequests()
+      const dataSources = this.dataSources()
+
+      if (!requests.length || !dataSources) {
+        return
+      }
+
+      requests.forEach(({ dataSource: dataSourceName, indicator }) => {
+        dataSources[dataSourceName]?.upsertIndicator(indicator)
+      })
+    })
   }
 
   toggleIndicatorTagType() {
@@ -160,4 +209,8 @@ export class ChatComponentIndicatorsComponent {
         }
       })
   }
+}
+
+function getTemporaryIndicatorCode(indicatorCode: string) {
+  return `Measure_${indicatorCode}`
 }

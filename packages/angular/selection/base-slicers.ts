@@ -1,8 +1,9 @@
+import { Dialog, DialogRef } from '@angular/cdk/dialog'
+import { ComponentType } from '@angular/cdk/portal'
 import { booleanAttribute, Directive, inject, Input, input, signal, ViewContainerRef } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
 import { NgmTimeFilterEditorComponent, NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { DateVariableEnum, NgmOcapCoreService } from '@metad/ocap-angular/core'
-import { ZardDialogService } from '@xpert-ai/headless-ui'
 import {
   AdvancedSlicer,
   AggregationRole,
@@ -33,7 +34,7 @@ export class BaseSlicersComponent {
   isSemanticCalendar = isSemanticCalendar
 
   public coreService = inject(NgmOcapCoreService)
-  public _dialog = inject(ZardDialogService)
+  public _dialog = inject(Dialog)
   public viewContainerRef? = inject(ViewContainerRef)
 
   @Input() get dataSettings(): DataSettings {
@@ -59,40 +60,36 @@ export class BaseSlicersComponent {
 
   readonly dateVariables = this.coreService.getDateVariables().filter((variable) => !!variable.dateRange)
 
+  protected openDialog<C, D, R = any>(component: ComponentType<C>, data: D): DialogRef<R, C> {
+    return this._dialog.open<R, D, C>(component, {
+      viewContainerRef: this.viewContainerRef,
+      data,
+      backdropClass: 'xp-overlay-share-sheet',
+      panelClass: 'xp-overlay-pane-share-sheet'
+    })
+  }
+
   async openSlicerCreator(property: Property | VariableProperty | SlicersCapacity) {
     const entityType = this.entityType
 
     if (property === SlicersCapacity.CombinationSlicer) {
       const combinationSlicer: IAdvancedFilter = await firstValueFrom(
-        this._dialog
-          .open(NgmAdvancedFilterComponent, {
-            viewContainerRef: this.viewContainerRef,
-            data: {
-              dataSettings: this.dataSettings,
-              entityType: entityType,
-              syntax: entityType.syntax
-            }
-          })
-          .afterClosed()
+        this.openDialog(NgmAdvancedFilterComponent, {
+          dataSettings: this.dataSettings,
+          entityType: entityType,
+          syntax: entityType.syntax
+        }).closed
       )
       if (combinationSlicer) {
         await this.addSlicer(combinationSlicer)
       }
     } else if (property === SlicersCapacity.AdvancedSlicer) {
       const advancedSlicer: AdvancedSlicer = await firstValueFrom(
-        this._dialog
-          .open(NgmAdvancedSlicerComponent, {
-            /**
-             * @todo 为什么之前去掉了这个? 加上有什么问题吗?
-             */
-            viewContainerRef: this.viewContainerRef,
-            data: {
-              dataSettings: {
-                ...this.dataSettings
-              }
-            }
-          })
-          .afterClosed()
+        this.openDialog(NgmAdvancedSlicerComponent, {
+          dataSettings: {
+            ...this.dataSettings
+          }
+        }).closed
       )
       if (advancedSlicer) {
         await this.addSlicer(advancedSlicer)
@@ -116,23 +113,18 @@ export class BaseSlicersComponent {
    */
   async openDynamicDateHelp(property: Property, variable?: TimeRange) {
     const timeRangesSlicer = await firstValueFrom(
-      this._dialog
-        .open(NgmTimeFilterEditorComponent, {
-          viewContainerRef: this.viewContainerRef,
-          data: {
-            currentDate: 'SYSTEMTIME',
-            dataSettings: this.dataSettings,
-            entityType: this.entityType,
-            slicer: {
-              dimension: {
-                dimension: property.name
-              },
-              currentDate: DateVariableEnum.TODAY,
-              ranges: variable ? [variable] : []
-            }
-          }
-        })
-        .afterClosed()
+      this.openDialog(NgmTimeFilterEditorComponent, {
+        currentDate: 'SYSTEMTIME',
+        dataSettings: this.dataSettings,
+        entityType: this.entityType,
+        slicer: {
+          dimension: {
+            dimension: property.name
+          },
+          currentDate: DateVariableEnum.TODAY,
+          ranges: variable ? [variable] : []
+        }
+      }).closed
     )
 
     if (timeRangesSlicer) {
@@ -166,20 +158,15 @@ export class BaseSlicersComponent {
           : FilterSelectionType.Multiple
         : FilterSelectionType.Multiple
     const slicer = await firstValueFrom(
-      this._dialog
-        .open(NgmValueHelpComponent, {
-          viewContainerRef: this.viewContainerRef,
-          data: {
-            dataSettings: pick(this.dataSettings, ['dataSource', 'entitySet']),
-            dimension,
-            options: {
-              selectionType,
-              searchable: true,
-              initialLevel: 1
-            }
-          }
-        })
-        .afterClosed()
+      this.openDialog(NgmValueHelpComponent, {
+        dataSettings: pick(this.dataSettings, ['dataSource', 'entitySet']),
+        dimension,
+        options: {
+          selectionType,
+          searchable: true,
+          initialLevel: 1
+        }
+      }).closed
     )
     if (slicer) {
       await this.addSlicer({ ...slicer } as ISlicer)
@@ -189,59 +176,41 @@ export class BaseSlicersComponent {
   async openSlicerEditor(slicer: ISlicer) {
     if (isAdvancedFilter(slicer)) {
       return await firstValueFrom(
-        this._dialog
-          .open(NgmAdvancedFilterComponent, {
-            viewContainerRef: this.viewContainerRef,
-            data: {
-              dataSettings: this.dataSettings,
-              entityType: this.entityType,
-              syntax: this.entityType.syntax,
-              advancedFilter: cloneDeep(slicer)
-            }
-          })
-          .afterClosed()
+        this.openDialog(NgmAdvancedFilterComponent, {
+          dataSettings: this.dataSettings,
+          entityType: this.entityType,
+          syntax: this.entityType.syntax,
+          advancedFilter: cloneDeep(slicer)
+        }).closed
       )
     } else if (isAdvancedSlicer(slicer)) {
       return await firstValueFrom(
-        this._dialog
-          .open(NgmAdvancedSlicerComponent, {
-            viewContainerRef: this.viewContainerRef,
-            data: {
-              dataSettings: this.dataSettings,
-              // coreService: this.coreService,
-              model: slicer
-            }
-          })
-          .afterClosed()
+        this.openDialog(NgmAdvancedSlicerComponent, {
+          dataSettings: this.dataSettings,
+          // coreService: this.coreService,
+          model: slicer
+        }).closed
       )
     } else if (isTimeRangesSlicer(slicer)) {
       return await firstValueFrom(
-        this._dialog
-          .open(NgmTimeFilterEditorComponent, {
-            viewContainerRef: this.viewContainerRef,
-            data: {
-              entityType: this.entityType,
-              slicer
-            }
-          })
-          .afterClosed()
+        this.openDialog(NgmTimeFilterEditorComponent, {
+          entityType: this.entityType,
+          slicer
+        }).closed
       )
     } else {
-      const dialogRef = this._dialog.open(NgmValueHelpComponent, {
-        viewContainerRef: this.viewContainerRef,
-        data: {
-          dimension: pick(slicer?.dimension, 'dimension', 'hierarchy', 'displayBehaviour'),
-          slicer: slicer,
-          dataSettings: this.dataSettings,
-          options: {
-            selectionType: slicer.selectionType,
-            searchable: true,
-            initialLevel: 1
-          }
+      const dialogRef = this.openDialog(NgmValueHelpComponent, {
+        dimension: pick(slicer?.dimension, 'dimension', 'hierarchy', 'displayBehaviour'),
+        slicer: slicer,
+        dataSettings: this.dataSettings,
+        options: {
+          selectionType: slicer.selectionType,
+          searchable: true,
+          initialLevel: 1
         }
       })
 
-      return await firstValueFrom(dialogRef.afterClosed())
+      return await firstValueFrom(dialogRef.closed)
     }
   }
 }

@@ -13,10 +13,19 @@ import {
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
-import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardDividerComponent, ZardFormImports, ZardIconComponent } from '@xpert-ai/headless-ui'
+import {
+  Z_MODAL_DATA,
+  ZardButtonComponent,
+  ZardDialogModule,
+  ZardDialogRef,
+  ZardDividerComponent,
+  ZardFormImports,
+  ZardIconComponent,
+  ZardSelectImports
+} from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { NgmCommonModule, NgmResizableDirective, NgmSelectComponent } from '@metad/ocap-angular/common'
+import { NgmCommonModule, NgmResizableDirective } from '@metad/ocap-angular/common'
 import {
   DisplayDensity,
   NgmAppearance,
@@ -63,13 +72,13 @@ import { ControlOptions, TreeControlOptions } from '../types'
     ZardIconComponent,
     ZardDividerComponent,
     ...ZardFormImports,
+    ...ZardSelectImports,
     ZardButtonComponent,
     NgmCommonModule,
     OcapCoreModule,
     NgmMemberListComponent,
     NgmMemberTreeComponent,
-    NgmResizableDirective,
-    NgmSelectComponent
+    NgmResizableDirective
   ]
 })
 export class NgmValueHelpComponent implements OnInit {
@@ -77,8 +86,6 @@ export class NgmValueHelpComponent implements OnInit {
   FilterSelectionType = FilterSelectionType
   TreeSelectionMode = TreeSelectionMode
   PresentationEnum = PresentationEnum
-  eFilterOperator = FilterOperator
-  eDisplayBehaviour = DisplayBehaviour
   readonly autoDisplayBehaviour = '__auto__'
   readonly displayBehaviourOptions = [
     { value: DisplayBehaviour.descriptionOnly, label: 'Description' },
@@ -86,6 +93,106 @@ export class NgmValueHelpComponent implements OnInit {
     { value: DisplayBehaviour.idAndDescription, label: 'ID Description' },
     { value: DisplayBehaviour.idOnly, label: 'ID' },
     { value: this.autoDisplayBehaviour, label: 'Auto' }
+  ]
+  readonly selectionTypeOptions = [
+    {
+      value: FilterSelectionType.Single,
+      i18nKey: 'Ngm.Common.SelectionType_Single',
+      defaultLabel: 'Single'
+    },
+    {
+      value: FilterSelectionType.Multiple,
+      i18nKey: 'Ngm.Common.SelectionType_Multiple',
+      defaultLabel: 'Multiple'
+    },
+    {
+      value: FilterSelectionType.SingleRange,
+      i18nKey: 'Ngm.Common.SelectionType_SingleRange',
+      defaultLabel: 'Single Range'
+    }
+  ]
+  readonly presentationOptions = [
+    {
+      value: PresentationEnum.Flat,
+      i18nKey: 'Ngm.Common.Presentation_Flat',
+      defaultLabel: 'Flat'
+    },
+    {
+      value: PresentationEnum.Hierarchy,
+      i18nKey: 'Ngm.Common.Presentation_Hierarchy',
+      defaultLabel: 'Hierarchy'
+    }
+  ]
+  readonly treeSelectionModeOptions = [
+    {
+      value: TreeSelectionMode.Individual,
+      i18nKey: 'Ngm.Common.HierarchySelectionMode_Individual',
+      defaultLabel: 'Individual'
+    },
+    {
+      value: TreeSelectionMode.SelfDescendants,
+      i18nKey: 'Ngm.Common.HierarchySelectionMode_SelfDescendants',
+      defaultLabel: 'Self & Descendants'
+    },
+    {
+      value: TreeSelectionMode.DescendantsOnly,
+      i18nKey: 'Ngm.Common.HierarchySelectionMode_DescendantsOnly',
+      defaultLabel: 'Descendants Only'
+    },
+    {
+      value: TreeSelectionMode.SelfChildren,
+      i18nKey: 'Ngm.Common.HierarchySelectionMode_SelfChildren',
+      defaultLabel: 'Self & Children'
+    },
+    {
+      value: TreeSelectionMode.ChildrenOnly,
+      i18nKey: 'Ngm.Common.HierarchySelectionMode_ChildrenOnly',
+      defaultLabel: 'Children Only'
+    }
+  ]
+  readonly memberPropertyOptions = [
+    {
+      value: 'UniqueName',
+      i18nKey: 'Ngm.Controls.ValueHelp.UniqueName',
+      defaultLabel: 'Unique Name'
+    },
+    {
+      value: 'Caption',
+      i18nKey: 'Ngm.Controls.ValueHelp.Caption',
+      defaultLabel: 'Caption'
+    }
+  ]
+  readonly memberOperatorOptions = [
+    {
+      value: FilterOperator.Contains,
+      i18nKey: 'Ngm.Controls.ValueHelp.Contains',
+      defaultLabel: 'Contains'
+    },
+    {
+      value: FilterOperator.StartsWith,
+      i18nKey: 'Ngm.Controls.ValueHelp.StartsWith',
+      defaultLabel: 'Starts With'
+    },
+    {
+      value: FilterOperator.EndsWith,
+      i18nKey: 'Ngm.Controls.ValueHelp.EndsWith',
+      defaultLabel: 'Ends With'
+    },
+    {
+      value: FilterOperator.NotContains,
+      i18nKey: 'Ngm.Controls.ValueHelp.NotContains',
+      defaultLabel: 'Not Contains'
+    },
+    {
+      value: FilterOperator.NotStartsWith,
+      i18nKey: 'Ngm.Controls.ValueHelp.NotStartsWith',
+      defaultLabel: 'Not Starts With'
+    },
+    {
+      value: FilterOperator.NotEndsWith,
+      i18nKey: 'Ngm.Controls.ValueHelp.NotEndsWith',
+      defaultLabel: 'Not Ends With'
+    }
   ]
 
   private dsCoreService? = inject(NgmDSCoreService, { optional: true })

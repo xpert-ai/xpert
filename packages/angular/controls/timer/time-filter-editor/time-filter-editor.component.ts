@@ -1,9 +1,10 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, Input, OnInit, inject } from '@angular/core'
 import { FormArray, FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 
-import { Z_MODAL_DATA, ZardAccordionImports, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardAccordionImports, ZardButtonComponent, ZardDialogModule, ZardDividerComponent, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmSelectComponent } from '@metad/ocap-angular/common'
 import { ISelectOption, NgmOcapCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
 import {
@@ -38,9 +39,9 @@ export class NgmTimeFilterEditorComponent implements OnInit {
     entityType: EntityType
     slicer: TimeRangesSlicer
     forControl: boolean
-  }>(Z_MODAL_DATA, {optional: true})
+  }>(DIALOG_DATA, {optional: true})
 
-  private _dialogRef? = inject(ZardDialogRef<NgmTimeFilterEditorComponent>, {optional: true})
+  private _dialogRef? = inject(DialogRef, {optional: true})
 
   @Input() get entityType() {
     return this.entityType$.value

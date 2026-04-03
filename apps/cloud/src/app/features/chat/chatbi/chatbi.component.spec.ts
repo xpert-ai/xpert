@@ -2,6 +2,8 @@ import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
+import { of } from 'rxjs'
+import { XpertAPIService } from '../../../@core'
 import { ChatBiComponent } from './chatbi.component'
 import { ChatBiTraceFacade } from './chatbi-trace.facade'
 
@@ -34,7 +36,8 @@ jest.mock('apps/cloud/src/app/@core', () => {
       FEATURE_XPERT: 'FEATURE_XPERT',
       FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI',
       FEATURE_XPERT_CLAWXPERT: 'FEATURE_XPERT_CLAWXPERT'
-    }
+    },
+    XpertAPIService: class XpertAPIService {}
   }
 })
 
@@ -56,6 +59,9 @@ jest.mock('../../assistant/assistant-chatkit.runtime', () => {
 })
 
 const runtimeState = jest.requireMock('../../assistant/assistant-chatkit.runtime').__runtimeState as any
+const xpertService = {
+  getById: jest.fn<any, any>(() => of(null))
+}
 const traceFacade = {
   steps: signal([]),
   state: signal('idle'),
@@ -77,6 +83,8 @@ describe('ChatBiComponent', () => {
     runtimeState.loading.set(false)
     runtimeState.status.set('missing')
     runtimeState.isConfigured.set(false)
+    xpertService.getById.mockReset()
+    xpertService.getById.mockReturnValue(of(null))
     traceFacade.steps.set([])
     traceFacade.state.set('idle')
     traceFacade.error.set(null)
@@ -92,7 +100,7 @@ describe('ChatBiComponent', () => {
     TestBed.resetTestingModule()
     TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ChatBiComponent],
-      providers: [provideRouter([])]
+      providers: [provideRouter([]), { provide: XpertAPIService, useValue: xpertService }]
     })
     TestBed.overrideComponent(ChatBiComponent, {
       set: {
@@ -142,6 +150,28 @@ describe('ChatBiComponent', () => {
     fixture.detectChanges()
 
     expect(fixture.nativeElement.querySelector('xpert-chatkit')).not.toBeNull()
+  })
+
+  it('renders the bound xpert title and description in the header', async () => {
+    runtimeState.config.set({
+      assistantId: 'xpert-1'
+    })
+    xpertService.getById.mockReturnValue(
+      of({
+        id: 'xpert-1',
+        name: 'ChatBI Assistant',
+        title: 'Revenue Analyst',
+        description: 'Tracks sales trends and explains changes.'
+      })
+    )
+
+    const fixture = TestBed.createComponent(ChatBiComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(fixture.nativeElement.textContent).toContain('Revenue Analyst')
+    expect(fixture.nativeElement.textContent).toContain('Tracks sales trends and explains changes.')
   })
 
   it('renders dashboard activity in the left panel when a dashboard item exists', () => {

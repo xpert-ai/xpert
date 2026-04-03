@@ -1,64 +1,75 @@
+@use "sass:map";
 @reference "../../../tailwind-workspace-reference.css";
+
+$dialog-size-configs: (
+  small: (
+    width: 40vw,
+    height: 40vh,
+    min-width: 40vw,
+    min-height: 40vh,
+    max-width: 60vw,
+    max-height: 80vh
+  ),
+  medium: (
+    width: 60vw,
+    height: 60vh,
+    min-width: 60vw,
+    min-height: 60vh,
+    max-width: 90vw,
+    max-height: 90vh
+  ),
+  large: (
+    width: 80vw,
+    height: 80vh,
+    min-width: 80vw,
+    min-height: 80vh,
+    max-width: 100vw,
+    max-height: 100vh
+  )
+);
+
+@mixin dialog-container-size-classes() {
+  @each $name, $config in $dialog-size-configs {
+    &.#{$name} {
+      min-width: map.get($config, min-width);
+      min-height: map.get($config, min-height);
+    }
+  }
+}
+
+@mixin dialog-surface-size-classes() {
+  @each $name, $config in $dialog-size-configs {
+    &.#{$name} {
+      width: map.get($config, width);
+      min-width: map.get($config, min-width);
+      min-height: map.get($config, min-height);
+      max-width: map.get($config, max-width);
+      max-height: map.get($config, max-height);
+    }
+  }
+}
+
+@mixin dialog-overlay-size-classes() {
+  @each $name, $config in $dialog-size-configs {
+    &.#{$name} {
+      width: map.get($config, width);
+      height: map.get($config, height);
+      max-width: map.get($config, max-width);
+      max-height: map.get($config, max-height);
+    }
+  }
+}
+
 .nx-dialog-container {
-  &.small {
-    min-height: 50vh;
-    min-width: 40vw;
-  }
-  &.medium {
-    min-width: 60vw;
-    min-height: 60vh;
-  }
-  &.large {
-    min-width: 80vw;
-    min-height: 80vh;
-  }
+  @include dialog-container-size-classes();
 }
 
 z-dialog {
-  &.small {
-    width: 40vw;
-    min-width: 40vw;
-    min-height: 50vh;
-    max-width: 60vw;
-    max-height: 80vh;
-  }
-
-  &.medium {
-    width: 60vw;
-    min-width: 60vw;
-    min-height: 60vh;
-    max-width: 90vw;
-    max-height: 90vh;
-  }
-
-  &.large {
-    width: 80vw;
-    min-width: 80vw;
-    min-height: 80vh;
-    max-width: 100vw;
-    max-height: 100vh;
-  }
+  @include dialog-surface-size-classes();
 }
 
 .cdk-overlay-pane {
-  &.small {
-    height: 50vh;
-    width: 40vw;
-    max-width: 60vw;
-    max-height: 80vh;
-  }
-  &.medium {
-    width: 60vw;
-    height: 60vh;
-    max-width: 90vw;
-    max-height: 90vh;
-  }
-  &.large {
-    width: 80vw;
-    height: 80vh;
-    max-width: 100vw;
-    max-height: 100vh;
-  }
+  @include dialog-overlay-size-classes();
 }
 
 .cdk-dialog-container {
@@ -69,6 +80,19 @@ z-dialog {
   @apply bg-components-card-bg rounded-2xl p-4;
 }
 
+.cdk-overlay-backdrop.backdrop-blur-sm-black {
+  @apply backdrop-blur-sm transition-all duration-100 ease-in bg-black/10;
+}
+
+.cdk-overlay-backdrop.backdrop-blur-md-white {
+  @apply backdrop-blur-md transition-all duration-100 ease-in bg-white/50;
+}
+
+.cdk-overlay-backdrop.backdrop-blur-lg-white {
+  @apply backdrop-blur-lg transition-all duration-100 ease-in;
+  background-color: var(--color-overlay-backdrop-strong);
+}
+
 .cdk-overlay-backdrop.xp-overlay-share-sheet {
   pointer-events: auto;
   backdrop-filter: blur(4px);
@@ -77,13 +101,13 @@ z-dialog {
 
 .cdk-overlay-pane.xp-overlay-pane-share-sheet {
   .cdk-dialog-container {
-    @apply overflow-hidden rounded-[36px] shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(255,255,255,0.4)] border-[0.5px] border-solid border-neutral-200 bg-components-card-bg;
+    @apply overflow-hidden rounded-[36px] shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(255,255,255,0.4)] border-[0.5px] border-solid border-divider-deep bg-components-card-bg;
     animation: custom-dialog-enter-bounce 0.5s cubic-bezier(0.22, 1, 0.36, 1);
   }
 }
 
 z-dialog.xp-overlay-pane-share-sheet {
-  @apply overflow-hidden rounded-[36px] border-[0.5px] border-solid border-neutral-200 bg-components-card-bg shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(255,255,255,0.4)];
+  @apply overflow-hidden rounded-[36px] border-[0.5px] border-solid border-divider-deep bg-components-card-bg shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(0,0,0,0.2)] dark:shadow-[0_32px_48px_rgba(0,0,0,0.175),_0_0_1px_rgba(255,255,255,0.4)];
   animation: custom-dialog-enter-bounce 0.5s cubic-bezier(0.22, 1, 0.36, 1);
 }
 
