@@ -22,6 +22,9 @@ type AddDocumentOptions = Record<string, any>
  * Class for performing document retrieval from a VectorStore. Can perform
  * similarity search or maximal marginal relevance search.
  */
+/**
+ * @deprecated use chatkit instead
+ */
 export class ExampleVectorStoreRetriever<V extends VectorStoreInterface = VectorStoreInterface>
   extends BaseRetriever
   implements VectorStoreRetrieverInterface

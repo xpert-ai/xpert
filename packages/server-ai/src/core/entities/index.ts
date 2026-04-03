@@ -33,6 +33,9 @@ import {
 	XpertProjectVCS,
 	XpertTable,
 	Environment,
+	SkillRepository,
+	SkillRepositoryIndex,
+	SkillPackage,
 	AssistantBinding,
 	AssistantBindingUserPreference,
 } from './internal'
@@ -72,6 +75,9 @@ export const ALL_AI_ENTITIES = [
 	XpertProjectVCS,
 	XpertTable,
 	Environment,
+	SkillRepository,
+	SkillRepositoryIndex,
+	SkillPackage,
 	AssistantBinding,
 	AssistantBindingUserPreference,
 ]

@@ -1,0 +1,130 @@
+<div class="flex justify-between items-center gap-2 p-4 sticky top-14 z-10 bg-background-body)">
+  <div class="grow flex justify-start items-center gap-2">
+    <div class="text-2xl font-semibold px-2">
+      {{ 'Pro.InstalledSkills' | translate: {Default: 'Installed Skills'} }}
+    </div>
+  </div>
+  
+  <div class="flex space-x-2">
+    <button type="button" class="btn disabled:btn-disabled btn-primary btn-large"
+      (click)="openUploadDialog()">
+      <i class="ri-upload-2-line mr-1"></i>
+      <div>{{ 'Pro.UploadSkills' | translate: {Default: 'Upload Skills'} }}</div>
+    </button>
+    <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large"
+      (click)="registerFromRepository()"
+    >
+      <i class="ri-git-repository-line mr-1"></i>
+      {{ 'Pro.RegisterFromRepository' | translate: {Default: 'Register from Repository'} }}
+    </button>
+    <div class="relative">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large w-10 p-0"
+        [cdkMenuTriggerFor]="moreMenu"
+      >
+        <i class="ri-more-line"></i>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="w-full">
+  @if ((skills()?.length ?? 0) > 0) {
+    <div class="grid grid-cols-1 md:grid-cols-2 gap-3 px-4 pb-4">
+      @for (skill of skills(); track skill.id) {
+        <div class="group flex items-center justify-between gap-3 rounded-xl border border-divider-regular bg-components-card-bg p-4 shadow-sm transition hover:shadow-md">
+          <div class="flex items-center gap-3 min-w-0">
+            <input
+              type="checkbox"
+              class="h-4 w-4 rounded border-input text-primary focus:ring-ring"
+              [checked]="selectedSkillIds().has(skill.id)"
+              (change)="toggleSkillSelection(skill.id, $event)"
+              [attr.aria-label]="'Pro.SelectSkill' | translate: {Default: 'Select skill'}"
+            />
+            <div class="flex h-10 w-10 items-center justify-center rounded-lg bg-background-default-subtle text-text-secondary">
+              <xp-icon [icon]="getSkillIcon(skill)" [size]="24" />
+            </div>
+            <div class="min-w-0">
+              <div class="truncate text-sm font-semibold text-text-primary">
+                {{ (skill.metadata?.displayName | i18n) || skill.name || skill.metadata?.name || '-' }}
+              </div>
+              <div class="truncate text-xs text-text-tertiary">
+                {{ (skill.metadata?.summary | i18n) || (skill.metadata?.description | i18n) || '-' }}
+              </div>
+              <div class="mt-2 flex flex-wrap gap-2">
+                <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-xs text-text-secondary">
+                  {{ skill.skillIndex?.repository?.name || '-' }}
+                </span>
+                <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-xs text-text-secondary">
+                  {{ skill.skillIndex?.repository?.provider || '-' }}
+                </span>
+                <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-xs text-text-secondary">
+                  {{ skill.visibility }}
+                </span>
+              </div>
+            </div>
+          </div>
+          <div class="flex items-center gap-2 shrink-0">
+            <button
+              type="button"
+              class="btn btn-ghost w-8 h-8 flex justify-center items-center rounded-lg hover:text-text-destructive"
+              (click)="deleteSkill(skill)"
+            >
+              <i class="ri-delete-bin-line"></i>
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  } @else {
+    <div class="flex flex-col items-center justify-center py-16 text-text-tertiary">
+      <div class="text-sm">
+        {{ 'Pro.NoSkills' | translate: {Default: 'No skills installed yet.'} }}
+      </div>
+    </div>
+  }
+</div>
+
+@if (loading()) {
+  <ngm-spin class="absolute left-0 top-0 w-full h-full flex justify-center items-center z-50" />
+}
+
+<ng-template #moreMenu>
+  <div cdkMenu class="cdk-menu__large">
+    <div cdkMenuItem >
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="h-4 w-4 text-text-tertiary mr-1" data-icon="FilePlus02" aria-hidden="true"><path d="M13.3333 6.99992V4.53325C13.3333 3.41315 13.3333 2.85309 13.1153 2.42527C12.9236 2.04895 12.6176 1.74299 12.2413 1.55124C11.8135 1.33325 11.2534 1.33325 10.1333 1.33325H5.86666C4.74655 1.33325 4.1865 1.33325 3.75868 1.55124C3.38235 1.74299 3.07639 2.04895 2.88464 2.42527C2.66666 2.85309 2.66666 3.41315 2.66666 4.53325V11.4666C2.66666 12.5867 2.66666 13.1467 2.88464 13.5746C3.07639 13.9509 3.38235 14.2569 3.75868 14.4486C4.1865 14.6666 4.74655 14.6666 5.86666 14.6666H7.99999M9.33332 7.33325H5.33332M6.66666 9.99992H5.33332M10.6667 4.66659H5.33332M12 13.9999V9.99992M9.99999 11.9999H14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      {{ 'Pro.BulkImport' | translate: {Default: 'Bulk Import'} }}
+    </div>
+    <button
+      cdkMenuItem
+      type="button"
+      class="flex items-center w-full px-1 py-1 text-left danger disabled:opacity-50"
+      [disabled]="!hasSelection()"
+      (click)="deleteSelectedSkills()"
+    >
+      <i class="ri-delete-bin-line mr-1"></i>
+      {{ 'Pro.DeleteSelected' | translate: {Default: 'Delete Selected'} }}
+    </button>
+  </div>
+</ng-template>
+
+<ng-template #registerRepositoryDialog>
+  <div class="relative w-full h-full max-h-[80vh] flex flex-col overflow-hidden">
+    <div class="sticky top-0 z-20 flex w-full items-center justify-between bg-components-card-bg px-6 pb-2 pt-6">
+      <div class="text-lg font-semibold text-text-primary">
+        {{ 'Pro.RegisterSkillRepositoryTitle' | translate: {Default: 'Register a skill repository'} }}
+      </div>
+      <button type="button" class="btn btn-ghost w-8 h-8 flex justify-center items-center rounded-full"
+        (click)="closeRegisterDialog()"
+      >
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+    <div class="flex flex-col px-6 py-4 overflow-auto">
+      <xp-skill-repositories class="mb-4" [readonly]="true" [(selectedRepository)]="selectedRepository" />
+      <xp-skill-indexes [selectedRepository]="selectedRepository()" (installing)="onInstalling($event)"  />
+    </div>
+    @if (registering()) {
+      <ngm-spin class="absolute left-0 top-0 z-10 flex h-full w-full items-center justify-center bg-components-card-bg/20 backdrop-blur-sm transition-colors" />
+    }
+  </div>
+</ng-template>

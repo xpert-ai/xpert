@@ -7,6 +7,7 @@ import { XpertWorkspaceKnowledgesComponent } from './knowledges/knowledges.compo
 import { XpertWorkspaceMCPToolsComponent } from './mcp-tools/tools.component'
 import { XpertWorkspaceXpertsComponent } from './xperts/xperts.component'
 import { XpertWorkspaceDatabaseComponent } from './database/database.component'
+import { XpertWorkspaceSkillsComponent } from './skills/skills.component'
 
 export default [
   {
@@ -52,6 +53,10 @@ export default [
       {
         path: 'database',
         component: XpertWorkspaceDatabaseComponent
+      },
+      {
+        path: 'skills',
+        component: XpertWorkspaceSkillsComponent
       }
     ]
   }

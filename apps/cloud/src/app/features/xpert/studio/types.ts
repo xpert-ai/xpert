@@ -55,6 +55,10 @@ export function isPasteableNode(node: unknown): node is TXpertTeamNode {
 export function provideJsonSchemaWidgets() {
   return provideJsonSchemaWidgetStrategy(
     {
+      name: 'skills-select',
+      load: () => import('@cloud/app/@shared/skills').then((m) => m.XpertSkillSelectComponent)
+    },
+    {
       name: 'ai-model-select',
       /**
        * Lazy load the real component.

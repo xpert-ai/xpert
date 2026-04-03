@@ -1,0 +1,58 @@
+<section class="xp-ui-shell shrink-0 overflow-hidden p-4">
+  <header
+    class="flex items-center gap-2 rounded-2xl border-b border-divider-regular bg-background-default-subtle px-4 py-3 text-text-primary"
+  >
+    <span class="rounded-full border border-divider-regular bg-components-card-bg px-3 py-1 text-sm font-semibold text-text-success">
+      {{ 'Pro.RepositoryReady' | translate: {Default: 'Ready'} }}
+    </span>
+    <span class="font-mono text-text-secondary">{{repository().name}}</span>
+    <span class="rounded-xl border border-divider-regular bg-components-card-bg px-3 py-1 text-sm font-semibold text-text-primary">{{repository().lastSyncAt | date:'medium'}}</span>
+    <span class="flex-1"></span>
+    <button
+      type="button"
+      class="flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-divider-regular text-text-secondary transition-colors hover:bg-hover-bg hover:text-text-destructive"
+      (click)="close()"
+    >
+      <i class="ri-close-line"></i>
+    </button>
+  </header>
+
+  <div class="space-y-4 px-5 py-4">
+    <div class="xp-ui-code-card rounded-xl bg-components-panel-bg px-4 py-3 font-mono text-text-primary">
+      <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
+        <div class="flex items-center gap-2 rounded-full border border-divider-regular bg-background-default-subtle p-1">
+          <button
+            type="button"
+            class="rounded-full px-3 py-1 text-sm font-semibold text-text-secondary transition hover:bg-hover-bg hover:text-text-primary"
+            [class.bg-components-card-bg]="mode() === 'incremental'"
+            [class.text-text-primary]="mode() === 'incremental'"
+            (click)="mode.set('incremental')"
+          >
+            {{ 'Pro.IndexModeIncremental' | translate: {Default: 'Incremental'} }}
+          </button>
+          <button
+            type="button"
+            class="rounded-full px-3 py-1 text-sm font-semibold text-text-secondary transition hover:bg-hover-bg hover:text-text-primary"
+            [class.bg-components-card-bg]="mode() === 'full'"
+            [class.text-text-primary]="mode() === 'full'"
+            (click)="mode.set('full')"
+          >
+            {{ 'Pro.IndexModeFull' | translate: {Default: 'Full'} }}
+          </button>
+        </div>
+        <button
+          type="button"
+          class="ml-auto inline-flex items-center gap-2 rounded-full border border-divider-regular bg-components-card-bg px-4 py-1 text-sm font-semibold text-text-primary transition hover:bg-hover-bg"
+          (click)="reloadIndexes()"
+        >
+          @if (loading()) {
+            <span class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-divider-regular border-t-text-primary"></span>
+          }
+          {{ 'Pro.RefreshIndex' | translate: {Default: 'Refresh index'} }}
+        </button>
+      </div>
+    </div>
+  </div>
+</section>
+
+<xp-skill-indexes class="flex-1 px-4 pb-4 overflow-auto" [indexes]="indexes()" [selectedRepository]="repository()" />

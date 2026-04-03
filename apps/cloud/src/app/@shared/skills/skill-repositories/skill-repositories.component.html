@@ -1,0 +1,62 @@
+<div class="mt-2">
+  <div class="mb-2 text-lg font-semibold text-foreground">
+    {{ 'Pro.Repositories' | translate: {Default: 'Repositories'} }}
+  </div>
+  <div class="mt-2 flex flex-wrap gap-3">
+    @for (repo of repositories(); track repo.id) {
+      <div
+        class="group relative flex min-w-[200px] cursor-pointer rounded-xl border px-4 py-3 text-left shadow-sm transition hover:-translate-y-0.5 hover:bg-accent/60 hover:shadow-lg"
+        [ngClass]="repo.id === selectedRepositoryId() ? 'border-primary bg-card' : 'border-border bg-muted/60'"
+        (click)="selectRepository(repo)"
+      >
+        <div class="flex items-center gap-2 text-base font-semibold text-foreground">
+          <span
+            class="h-2 w-2 rounded-full bg-current"
+            [class.text-text-success]="!!repo.lastSyncAt"
+            [class.text-text-warning]="!repo.lastSyncAt"
+          ></span>
+          {{ repo.name }}
+        </div>
+        <div class="mt-1 flex flex-1 items-center gap-2 text-xs text-muted-foreground">
+          <!-- <span>{{ repo.branch || 'main' }}</span> -->
+          @if (repo.lastSyncAt) {
+            <span class="text-muted-foreground">•</span>
+            <span>{{'Pro.Synced' | translate: {Default: 'Synced'} }} {{ repo.lastSyncAt | date: 'short' }}</span>
+          }
+        </div>
+
+        @if (!readonlyMode()) {
+          <div class="absolute right-2 top-2 flex items-center gap-1 rounded-lg bg-card p-1 opacity-0 transition-opacity group-hover:opacity-100">
+            <button
+              type="button"
+              class="btn btn-ghost flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground"
+              (click)="editRepository(repo, $event)"
+              [title]="'PAC.ACTIONS.Edit' | translate: {Default: 'Edit'}"
+            >
+              <i class="ri-pencil-line"></i>
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-ghost flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-destructive"
+              [disabled]="savingRepo()"
+              (click)="deleteRepository(repo, $event)"
+              [title]="'PAC.ACTIONS.Delete' | translate: {Default: 'Delete'}"
+            >
+              <i class="ri-delete-bin-line"></i>
+            </button>
+
+            <button
+              type="button"
+              class="btn btn-ghost flex h-7 w-7 items-center justify-center rounded-lg text-muted-foreground hover:text-foreground"
+              (click)="openRepository(repo, $event)"
+              [title]="'PAC.ACTIONS.Setting' | translate: {Default: 'Setting'}"
+            >
+              <i class="ri-settings-3-line"></i>
+            </button>
+          </div>
+        }
+      </div>
+    }
+    </div>
+</div>
