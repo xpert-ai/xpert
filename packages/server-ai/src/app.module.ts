@@ -35,6 +35,8 @@ import { RagVStoreModule } from './rag-vstore'
 import { EnvironmentModule } from './environment'
 import { XpertTableModule } from './xpert-table'
 import { HandoffQueueModule } from './handoff/message-queue.module'
+import { SkillRepositoryIndexModule, SkillRepositoryModule } from './skill-repository'
+import { SkillPackageModule } from './skill-package'
 import { FileUploadTargetsModule } from './shared'
 
 @Module({
@@ -69,6 +71,9 @@ import { FileUploadTargetsModule } from './shared'
         XpertTemplateModule,
         XpertTaskModule,
         XpertTableModule,
+        SkillRepositoryModule,
+		SkillRepositoryIndexModule,
+		SkillPackageModule,
         KnowledgebaseModule,
         KnowledgeDocumentModule,
         RagVStoreModule,

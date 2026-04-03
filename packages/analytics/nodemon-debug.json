@@ -9,7 +9,7 @@
 		"../core/src",
 		"../xmla/src",
 		"../copilot/src",
-		"../plugin-sdk",
+		"../plugin-sdk/src",
 		"../plugins/"
 	],
 	"ext": "ts",

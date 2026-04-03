@@ -1,9 +1,10 @@
+import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, HostBinding, Inject, Input, Optional, computed, inject } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardDividerComponent, ZardIconComponent, ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardDialogModule, ZardDividerComponent, ZardIconComponent, ZardInputDirective, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { NgmDSCoreService } from '@metad/ocap-angular/core'
 import { NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
@@ -112,7 +113,7 @@ export class NgmAdvancedSlicerComponent {
   public readonly dsCoreService = inject(NgmDSCoreService)
   private readonly translateService = inject(TranslateService)
   private readonly _formBuilder = inject(FormBuilder)
-  private readonly dialogRef? = inject<ZardDialogRef<NgmAdvancedSlicerComponent>>(ZardDialogRef, { optional: true })
+  private readonly dialogRef? = inject(DialogRef, { optional: true })
 
   @Input() get dataSettings(): DataSettings {
     return this.dataSettings$.value
@@ -173,7 +174,7 @@ export class NgmAdvancedSlicerComponent {
 
   constructor(
     @Optional()
-    @Inject(Z_MODAL_DATA)
+    @Inject(DIALOG_DATA)
     public data
   ) {
     this.dataSettings = this.data?.dataSettings

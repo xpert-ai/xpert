@@ -8,9 +8,15 @@ import { NGXLogger } from 'ngx-logger'
 import { catchError, firstValueFrom, of, timeout } from 'rxjs'
 import { SERVER_REQUEST_TIMEOUT } from '../config'
 
+/**
+ * @deprecated use chatkit instead
+ */
 @Injectable()
 export class CustomRetrieverInput implements BaseRetrieverInput {}
 
+/**
+ * @deprecated use chatkit instead
+ */
 @Injectable()
 export class DimensionMemberRetriever extends BaseDimensionMemberRetriever {
   readonly #logger = inject(NGXLogger)
@@ -46,6 +52,9 @@ export class DimensionMemberRetriever extends BaseDimensionMemberRetriever {
   }
 }
 
+/**
+ * @deprecated use chatkit instead
+ */
 export function provideDimensionMemberRetriever() {
   return {
     provide: MEMBER_RETRIEVER_TOKEN,

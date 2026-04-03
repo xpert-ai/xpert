@@ -1,4 +1,4 @@
-<div cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="text-xl font-semibold p-3 cursor-move">
+<div cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="text-2xl font-semibold px-6 py-3 cursor-move">
   {{
     'Ngm.Controls.ValueHelp.Title'
       | translate: { Default: 'Set Filters for ' + dimension?.dimension, value: dimension?.dimension }
@@ -26,26 +26,39 @@
         class="ngm-value-help__options flex flex-col justify-start items-start gap-2"
       >
         <div class="flex flex-wrap justify-start items-center gap-2">
-          <z-form-field appearance="fill">
+          <z-form-field appearance="fill" class="w-48">
             <z-form-label>
               {{ 'Ngm.Controls.ValueHelp.DisplayBehaviour' | translate: { Default: 'Display Behaviour' } }}
             </z-form-label>
-            <ngm-select
+            <z-select
+              class="w-full"
+              [zPlaceholder]="'Ngm.Controls.ValueHelp.DisplayBehaviour' | translate: { Default: 'Display Behaviour' }"
               [ngModel]="displayBehaviour() ?? autoDisplayBehaviour"
               (ngModelChange)="setDisplayBehaviour($event === autoDisplayBehaviour ? null : $event)"
-              [selectOptions]="displayBehaviourOptions"
-            />
+            >
+              @for (option of displayBehaviourOptions; track option.value) {
+                <z-select-item [zValue]="option.value">
+                  {{ option.label }}
+                </z-select-item>
+              }
+            </z-select>
           </z-form-field>
 
-          <z-form-field appearance="fill">
+          <z-form-field appearance="fill" class="w-48">
             <z-form-label>
               {{ 'Ngm.Controls.ValueHelp.Hierarchy' | translate: { Default: 'Hierarchy' } }}
             </z-form-label>
-            <ngm-select
+            <z-select
+              class="w-full"
               [ngModel]="hierarchy()"
               (ngModelChange)="setHierarchy($event)"
-              [selectOptions]="hierarchyOptions()"
-            />
+            >
+              @for (option of hierarchyOptions(); track option.value) {
+                <z-select-item [zValue]="option.value">
+                  {{ option.label }}
+                </z-select-item>
+              }
+            </z-select>
           </z-form-field>
         </div>
 
@@ -154,72 +167,48 @@
         <z-form-label>
           {{ 'Ngm.Controls.ValueHelp.SelectionType' | translate: { Default: 'Selection Type' } }}
         </z-form-label>
-        <ngm-select
+        <z-select
+          class="w-full"
           [(ngModel)]="selectionType"
-          [selectOptions]="[
-            {
-              value: FilterSelectionType.Single,
-              label: ('Ngm.Common.SelectionType_Single' | translate: { Default: 'Single' })
-            },
-            {
-              value: FilterSelectionType.Multiple,
-              label: ('Ngm.Common.SelectionType_Multiple' | translate: { Default: 'Multiple' })
-            },
-            {
-              value: FilterSelectionType.SingleRange,
-              label: ('Ngm.Common.SelectionType_SingleRange' | translate: { Default: 'Single Range' })
-            }
-          ]"
-        />
+        >
+          @for (option of selectionTypeOptions; track option.value) {
+            <z-select-item [zValue]="option.value">
+              {{ option.i18nKey | translate: { Default: option.defaultLabel } }}
+            </z-select-item>
+          }
+        </z-select>
       </z-form-field>
 
       <z-form-field class="col-span-1" appearance="fill">
         <z-form-label>
           {{ 'Ngm.Controls.ValueHelp.Presentation' | translate: { Default: 'Presentation' } }}
         </z-form-label>
-        <ngm-select
+        <z-select
+          class="w-full"
           [(ngModel)]="presentation"
-          [selectOptions]="[
-            { value: PresentationEnum.Flat, label: ('Ngm.Common.Presentation_Flat' | translate: { Default: 'Flat' }) },
-            {
-              value: PresentationEnum.Hierarchy,
-              label: ('Ngm.Common.Presentation_Hierarchy' | translate: { Default: 'Hierarchy' })
-            }
-          ]"
-        />
+        >
+          @for (option of presentationOptions; track option.value) {
+            <z-select-item [zValue]="option.value">
+              {{ option.i18nKey | translate: { Default: option.defaultLabel } }}
+            </z-select-item>
+          }
+        </z-select>
       </z-form-field>
       @if (presentation === PresentationEnum.Hierarchy && selectionType === FilterSelectionType.Multiple) {
         <z-form-field class="col-span-2" appearance="fill">
           <z-form-label>
             {{ 'Ngm.Controls.ValueHelp.HierarchySelectionMode' | translate: { Default: 'Hierarchy Selection Mode' } }}
           </z-form-label>
-          <ngm-select
+          <z-select
+            class="w-full"
             [(ngModel)]="treeSelectionMode"
-            [selectOptions]="[
-              {
-                value: TreeSelectionMode.Individual,
-                label: ('Ngm.Common.HierarchySelectionMode_Individual' | translate: { Default: 'Individual' })
-              },
-              {
-                value: TreeSelectionMode.SelfDescendants,
-                label:
-                  ('Ngm.Common.HierarchySelectionMode_SelfDescendants' | translate: { Default: 'Self & Descendants' })
-              },
-              {
-                value: TreeSelectionMode.DescendantsOnly,
-                label:
-                  ('Ngm.Common.HierarchySelectionMode_DescendantsOnly' | translate: { Default: 'Descendants Only' })
-              },
-              {
-                value: TreeSelectionMode.SelfChildren,
-                label: ('Ngm.Common.HierarchySelectionMode_SelfChildren' | translate: { Default: 'Self & Children' })
-              },
-              {
-                value: TreeSelectionMode.ChildrenOnly,
-                label: ('Ngm.Common.HierarchySelectionMode_ChildrenOnly' | translate: { Default: 'Children Only' })
-              }
-            ]"
-          />
+          >
+            @for (option of treeSelectionModeOptions; track option.value) {
+              <z-select-item [zValue]="option.value">
+                {{ option.i18nKey | translate: { Default: option.defaultLabel } }}
+              </z-select-item>
+            }
+          </z-select>
         </z-form-field>
       }
     </div>
@@ -245,53 +234,30 @@
       <div class="w-full flex items-center gap-4">
         <div class="grow">
           <label>{{ 'Ngm.Controls.ValueHelp.Property' | translate: { Default: 'Property' } }}</label>
-          <ngm-select
+          <z-select
+            class="w-full"
             formControlName="type"
-            [selectOptions]="[
-              {
-                value: 'UniqueName',
-                label: ('Ngm.Controls.ValueHelp.UniqueName' | translate: { Default: 'Unique Name' })
-              },
-              {
-                value: 'Caption',
-                label: ('Ngm.Controls.ValueHelp.Caption' | translate: { Default: 'Caption' })
-              }
-            ]"
-            [displayBehaviour]="eDisplayBehaviour.descriptionOnly"
-          />
+          >
+            @for (option of memberPropertyOptions; track option.value) {
+              <z-select-item [zValue]="option.value">
+                {{ option.i18nKey | translate: { Default: option.defaultLabel } }}
+              </z-select-item>
+            }
+          </z-select>
         </div>
 
         <div class="grow">
           <label>{{ 'Ngm.Controls.ValueHelp.Condition' | translate: { Default: 'Condition' } }}</label>
-          <ngm-select
+          <z-select
+            class="w-full"
             formControlName="operator"
-            [selectOptions]="[
-              {
-                value: eFilterOperator.Contains,
-                label: ('Ngm.Controls.ValueHelp.Contains' | translate: { Default: 'Contains' })
-              },
-              {
-                value: eFilterOperator.StartsWith,
-                label: ('Ngm.Controls.ValueHelp.StartsWith' | translate: { Default: 'Starts With' })
-              },
-              {
-                value: eFilterOperator.EndsWith,
-                label: ('Ngm.Controls.ValueHelp.EndsWith' | translate: { Default: 'Ends With' })
-              },
-              {
-                value: eFilterOperator.NotContains,
-                label: ('Ngm.Controls.ValueHelp.NotContains' | translate: { Default: 'Not Contains' })
-              },
-              {
-                value: eFilterOperator.NotStartsWith,
-                label: ('Ngm.Controls.ValueHelp.NotStartsWith' | translate: { Default: 'Not Starts With' })
-              },
-              {
-                value: eFilterOperator.NotEndsWith,
-                label: ('Ngm.Controls.ValueHelp.NotEndsWith' | translate: { Default: 'Not Ends With' })
-              }
-            ]"
-          />
+          >
+            @for (option of memberOperatorOptions; track option.value) {
+              <z-select-item [zValue]="option.value">
+                {{ option.i18nKey | translate: { Default: option.defaultLabel } }}
+              </z-select-item>
+            }
+          </z-select>
         </div>
       </div>
 

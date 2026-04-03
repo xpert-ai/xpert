@@ -108,6 +108,7 @@ import {
     TWorkflowGraphNode,
     TStateChannel,
     hasMultipleInputs,
+    filterDisabledTools,
     getAgentMiddlewares,
     orderNodesByKeyOrder,
     createAgentChannel
@@ -267,8 +268,13 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             stateVariables.push(...(_variables ?? []))
             // Filter available tools by agent
             const availableTools = agent.options?.availableTools?.[toolset.getName()] ?? []
-            items
-                .filter((tool) => (availableTools.length ? availableTools.includes(tool.name) : true))
+            const filteredItems = filterDisabledTools(
+                items.filter((tool) => (availableTools.length ? availableTools.includes(tool.name) : true)),
+                'toolset',
+                toolset.getId(),
+                options.toolPreferences
+            )
+            filteredItems
                 .forEach((tool) => {
                     const lc_name =
                         tool instanceof DynamicStructuredTool
@@ -685,6 +691,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
                 xpertId: xpert.id,
                 agentKey,
                 tools: toolMap
+            },
+            {
+                toolPreferences: options.toolPreferences
             }
         )
         // Middleware tools

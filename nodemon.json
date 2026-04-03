@@ -1,7 +1,7 @@
 {
 	"restartable": "rs",
 	"ignore": [".git", "node_modules/", "dist/", "coverage/", "**/*.spec.ts"],
-	"watch": ["apps/api/src", "packages/contacts/src", "packages/common/src", "packages/config/src", "legacies/adapter/src", "packages/server/src", "packages/auth/src", "packages/server-ai/src", "packages/analytics/src", "packages/xmla/src", "packages/plugins"],
+	"watch": ["apps/api/src", "packages/contacts/src", "packages/common/src", "packages/config/src", "legacies/adapter/src", "packages/server/src", "packages/auth/src", "packages/server-ai/src", "packages/analytics/src", "packages/xmla/src", "packages/plugin-sdk/src", "packages/plugins"],
 	"exec": "pnpm ts-node -r tsconfig-paths/register --project apps/api/tsconfig.app.json apps/api/src/main.ts",
 	"env": {
 		"NODE_ENV": "development"

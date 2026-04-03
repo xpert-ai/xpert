@@ -154,15 +154,11 @@ export class SlicersComponent extends BaseSlicersComponent implements ControlVal
 
   async openSlicerBar(event) {
     const slicer = await firstValueFrom(
-      this._dialog
-        .open(SlicerBarComponent, {
-          data: {
-            value: this.slicers,
-            entityType: this.entityType,
-            dataSettings: pick(this.dataSettings, ['dataSource', 'entitySet'])
-          }
-        })
-        .afterClosed()
+      this.openDialog(SlicerBarComponent, {
+        value: this.slicers,
+        entityType: this.entityType,
+        dataSettings: pick(this.dataSettings, ['dataSource', 'entitySet'])
+      }).closed
     )
     if (slicer) {
       this.slicers = [...slicer]

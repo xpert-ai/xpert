@@ -52,11 +52,11 @@ export class SchedulerAgentMiddleware implements IAgentMiddlewareStrategy<Schedu
         name: SCHEDULER_MIDDLEWARE_PROVIDER,
         label: {
             en_US: 'Scheduler',
-            zh_Hans: '调度器'
+            zh_Hans: '定时任务'
         },
         description: {
             en_US: 'Create and manage schedulers.',
-            zh_Hans: '创建和管理调度器。'
+            zh_Hans: '创建和管理定时任务。'
         },
         icon: {
             type: 'svg',

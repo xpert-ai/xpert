@@ -3,6 +3,7 @@ import { Annotation, CompiledStateGraph, messagesStateReducer, BaseChannel } fro
 import { BaseStore, SearchItem } from '@langchain/langgraph-checkpoint'
 import {
 	channelName,
+	IAssistantBindingToolPreferences,
 	IEnvironment,
 	IXpertAgent,
 	STATE_VARIABLE_HUMAN,
@@ -39,6 +40,10 @@ export type TAgentStateSystem = {
 export type TStateChannel = {
 	name: string
 	annotation: BaseChannel
+}
+
+export type TXpertAgentRuntimeOptions = {
+	toolPreferences?: IAssistantBindingToolPreferences | null
 }
 
 export const AgentStateAnnotation = Annotation.Root({
@@ -250,7 +255,7 @@ export function stateVariable(variable: TStateVariable) {
 	}
 }
 
-export type TAgentSubgraphParams = {
+export type TAgentSubgraphParams = TXpertAgentRuntimeOptions & {
 	/**
 	 * Collect mute nodes tag
 	 */

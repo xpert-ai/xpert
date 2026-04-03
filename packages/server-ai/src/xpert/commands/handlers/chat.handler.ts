@@ -365,6 +365,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                             store: memoryStore,
                             conversationId: conversation.id,
                             isDraft: options?.isDraft,
+                            toolPreferences: userPreference?.toolPreferences ?? null,
                             execution: { id: executionId, category: 'agent' },
                             resume:
                                 request.action === 'resume'

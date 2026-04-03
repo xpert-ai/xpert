@@ -34,6 +34,7 @@ import { ExplainComponent } from '@metad/story/story'
 import { NxWidgetKpiComponent } from '@metad/story/widgets/kpi'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
+import { isEqual } from 'lodash-es'
 import { XpertHomeService } from '../../home.service'
 import { XpertOcapService } from '../../ocap.service'
 import { ChatComponentIndicatorsComponent } from './indicators/indicators.component'
@@ -151,6 +152,96 @@ export class ChatMessageDashboardComponent {
   readonly calculatedMembers = computed(() => this.dataSettings()?.calculatedMembers)
 
   readonly explains = signal<any[]>([])
+  readonly refreshModelRequest = computed(
+    () => {
+      const modelId = this.type() === ChatDashboardMessageType.Indicator ? this.data()?.data?.modelId : null
+      return modelId
+        ? {
+            modelId,
+            isIndicatorsDraft: true
+          }
+        : null
+    },
+    { equal: isEqual }
+  )
+  readonly dataSourceRegistrationRequest = computed(
+    () => {
+      const dataSource = this.dataSource()
+      if (!dataSource) {
+        return null
+      }
+
+      const entity = this.entity()
+      const indicators = this.indicators() ?? []
+      const calculatedMembers = this.calculatedMembers() ?? []
+      const calculatedMeasures = []
+
+      if (calculatedMembers.length) {
+        calculatedMeasures.push(
+          ...calculatedMembers.map((member) => {
+            return {
+              ...member,
+              name: tryFixMeasureName(member.name),
+              role: AggregationRole.measure,
+              calculationType: CalculationType.Calculated,
+              visible: true
+            }
+          })
+        )
+      }
+
+      if (indicators.length) {
+        indicators.forEach((indicator) => {
+          calculatedMeasures.push(...mapIndicatorToMeasures(convertIndicatorResult(indicator)))
+        })
+      }
+
+      return [
+        {
+          id: dataSource,
+          isDraft: this.isDraft(),
+          calculatedMeasures: {
+            [entity]: calculatedMeasures
+          }
+        }
+      ]
+    },
+    { equal: isEqual }
+  )
+  readonly indicatorRegistrationRequest = computed(
+    () => {
+      const indicator = this.indicator()
+      if (!indicator) {
+        return null
+      }
+
+      return [
+        {
+          id: indicator.modelId,
+          isDraft: this.isDraft(),
+          calculatedMeasures: {
+            [this.entity()]: mapIndicatorToMeasures(convertIndicatorResult(indicator))
+          }
+        }
+      ]
+    },
+    { equal: isEqual }
+  )
+  readonly draftIndicatorRegistrationRequest = computed(
+    () => {
+      const dataSources = this.dataSources()
+      if (!dataSources) {
+        return null
+      }
+
+      return Object.keys(dataSources).map((id) => ({
+        id,
+        isDraftIndicators: dataSources[id],
+        isDraft: this.isDraft()
+      }))
+    },
+    { equal: isEqual }
+  )
 
   constructor() {
     // effect(() => {
@@ -159,77 +250,38 @@ export class ChatMessageDashboardComponent {
 
     effect(
       () => {
-        if (this.type() === ChatDashboardMessageType.Indicator && this.data()?.data?.modelId) {
-          this.xpertOcapService.refreshModel(this.data().data.modelId, true)
+        const request = this.refreshModelRequest()
+        if (!request) {
+          return
+        }
+
+        this.xpertOcapService.refreshModel(request.modelId, request.isIndicatorsDraft)
+      }
+    )
+
+    effect(
+      () => {
+        const request = this.dataSourceRegistrationRequest()
+        if (request) {
+          this.xpertOcapService.registerSemanticModel(request)
         }
       }
     )
 
     effect(
       () => {
-        if (this.dataSource()) {
-          const calculatedMeasures = []
-          if (this.calculatedMembers()?.length) {
-            calculatedMeasures.push(
-              ...this.calculatedMembers().map((member) => {
-                return {
-                  ...member,
-                  name: tryFixMeasureName(member.name),
-                  role: AggregationRole.measure,
-                  calculationType: CalculationType.Calculated,
-                  visible: true
-                }
-              })
-            )
-          }
-          if (this.indicators()?.length) {
-            this.indicators().forEach((indicator) => {
-              calculatedMeasures.push(...mapIndicatorToMeasures(convertIndicatorResult(indicator)))
-            })
-          }
-
-          this.xpertOcapService.registerSemanticModel([
-            {
-              id: this.dataSource(),
-              // indicators: this.indicators(),
-              isDraft: this.isDraft(),
-              calculatedMeasures: {
-                [this.entity()]: calculatedMeasures
-              }
-            }
-          ])
+        const request = this.indicatorRegistrationRequest()
+        if (request) {
+          this.xpertOcapService.registerSemanticModel(request)
         }
       }
     )
 
     effect(
       () => {
-        const newIndicator = this.indicator()
-        if (newIndicator) {
-          this.xpertOcapService.registerSemanticModel([
-            {
-              id: newIndicator.modelId,
-              // indicators: [newIndicator],
-              isDraft: this.isDraft(),
-              calculatedMeasures: {
-                [this.entity()]: mapIndicatorToMeasures(convertIndicatorResult(newIndicator))
-              }
-            }
-          ])
-        }
-      }
-    )
-
-    effect(
-      () => {
-        if (this.dataSources()) {
-          this.xpertOcapService.registerSemanticModel(
-            Object.keys(this.dataSources()).map((id) => ({
-              id,
-              isDraftIndicators: this.dataSources()[id],
-              isDraft: this.isDraft()
-            }))
-          )
+        const request = this.draftIndicatorRegistrationRequest()
+        if (request) {
+          this.xpertOcapService.registerSemanticModel(request)
         }
       }
     )

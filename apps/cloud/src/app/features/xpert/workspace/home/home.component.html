@@ -173,6 +173,19 @@
           {{ 'PAC.KEY_WORDS.Database' | translate: { Default: 'Database' } }}
         </li>
 
+        <li class="xpert-list-option"
+          [routerLink]="['skills']"
+          routerLinkActive="active"
+          #rla7="routerLinkActive">
+          @if (rla7.isActive) {
+            <i class="ri-pencil-ruler-fill text-lg mr-1"></i>
+          } @else {
+            <i class="ri-pencil-ruler-line text-lg mr-1"></i>
+          }
+          
+          {{ 'PAC.KEY_WORDS.Skills' | translate: {Default: 'Skills'} }}
+        </li>
+
         <li class="xpert-list-option" (click)="openEnvs()">
           <svg
             width="16"

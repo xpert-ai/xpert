@@ -45,6 +45,10 @@ import {
 import { AppService } from '../app.service'
 import { getFeatureMenus } from './menus'
 
+function isWorkspaceRoute(url?: string | null) {
+  return /^\/xpert\/w(?:\/|$)/.test(url?.split('?')[0] ?? '')
+}
+
 @Component({
   standalone: false,
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -74,6 +78,11 @@ export class FeaturesComponent implements OnInit {
 
   // States
   readonly sidebarCollapsed = signal(true);
+  readonly activeRouteUrl = signal(this.#router.url)
+  readonly pendingRouteUrl = signal<string | null>(null)
+  readonly disableContentRouteAnimations = computed(
+    () => isWorkspaceRoute(this.activeRouteUrl()) || isWorkspaceRoute(this.pendingRouteUrl())
+  )
   // readonly fixedLayoutSider = attrModel(this.#preferences, 'fixedLayoutSider')
   // readonly isSideMode = computed(() => !!this.fixedLayoutSider())
 
@@ -305,9 +314,12 @@ export class FeaturesComponent implements OnInit {
   // Shows and hides the loading spinner during RouterEvent changes
   navigationInterceptor(event: RouterEvent): void {
     if (event instanceof NavigationStart) {
+      this.pendingRouteUrl.set(event.url)
       this.loading.set(true)
     }
     if (event instanceof NavigationEnd) {
+      this.activeRouteUrl.set(event.urlAfterRedirects)
+      this.pendingRouteUrl.set(null)
       this.loading.set(false)
       if (event.url.match(/^\/project/g)) {
         this.#appService.setCatalog({
@@ -338,9 +350,11 @@ export class FeaturesComponent implements OnInit {
 
     // Set loading state to false in both of the below events to hide the spinner in case a request fails
     if (event instanceof NavigationCancel) {
+      this.pendingRouteUrl.set(null)
       this.loading.set(false)
     }
     if (event instanceof NavigationError) {
+      this.pendingRouteUrl.set(null)
       this.loading.set(false)
     }
   }
