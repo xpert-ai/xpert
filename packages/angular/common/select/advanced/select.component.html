@@ -16,7 +16,7 @@
     (zValueChange)="onComboboxValueChange($event)"
     (zBlur)="onTouched?.()"
   >
-    <ng-template zComboboxPanel let-activeIndex="activeIndex" let-select="select">
+    <ng-template zComboboxPanel let-activeIndex="activeIndex" let-select="select" let-setActiveIndex="setActiveIndex">
       @if (virtualScroll) {
         <cdk-virtual-scroll-viewport
           [itemSize]="virtualScrollItemSize"
@@ -31,6 +31,8 @@
             *cdkVirtualFor="let option of filteredComboboxOptions(); trackBy: trackBy; let i = index"
             [class.bg-accent]="i === activeIndex"
             [class.text-accent-foreground]="i === activeIndex"
+            (mousedown)="$event.preventDefault()"
+            (mouseenter)="setActiveIndex(i)"
             (click)="multiple ? onSelect(!isSelect(option), option) : select(option)"
           >
             @if (multiple) {
@@ -63,6 +65,8 @@
             class="flex w-full items-center rounded-md px-2 py-1.5 text-left"
             [class.bg-accent]="i === activeIndex"
             [class.text-accent-foreground]="i === activeIndex"
+            (mousedown)="$event.preventDefault()"
+            (mouseenter)="setActiveIndex(i)"
             (click)="multiple ? onSelect(!isSelect(option), option) : select(option)"
           >
             @if (multiple) {

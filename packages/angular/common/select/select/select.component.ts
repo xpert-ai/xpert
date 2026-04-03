@@ -147,6 +147,7 @@ export class NgmSelectComponent implements ControlValueAccessor
 
   onChange: (input: any) => void
   onTouched: () => void
+  private skipNextSearchTermChange = false
 
   private valueSub = this.formControl.valueChanges
     .pipe(
@@ -170,7 +171,11 @@ export class NgmSelectComponent implements ControlValueAccessor
     this.onTouched = fn
   }
   setDisabledState?(isDisabled: boolean): void {
-    isDisabled ? this.formControl.disable() : this.formControl.enable()
+    if (isDisabled) {
+      this.formControl.disable()
+    } else {
+      this.formControl.enable()
+    }
   }
   trackByValue(index: number, item) {
     return item?.id ?? item?.value
@@ -186,12 +191,18 @@ export class NgmSelectComponent implements ControlValueAccessor
   }
 
   onSearchTermChange(value: string) {
+    if (this.skipNextSearchTermChange) {
+      this.skipNextSearchTermChange = false
+      return
+    }
+
     this.inputDirty.set(true)
     this.searchTerm.set(value)
   }
 
   onOptionSelected(value: unknown) {
     this.inputDirty.set(false)
+    this.skipNextSearchTermChange = true
     this.searchTerm.set('')
     this.formControl.setValue((value ?? null) as string | number | null)
   }

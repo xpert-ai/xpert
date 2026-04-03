@@ -1,9 +1,41 @@
 @reference "../../../../styles/tailwind-reference.css";
+
 :host {
-  @apply flex-1 max-w-full flex flex-col items-stretch justify-start;
+  @apply block min-h-0 w-full flex-1 overflow-y-auto;
 }
 
-.pac-page__body.pac-organizations__content {
-  padding-top: 0;
-  overflow: auto;
+.organization-row {
+  @apply cursor-pointer transition-colors duration-150 ease-out hover:bg-hover-bg;
+}
+
+.organization-row.active {
+  @apply bg-background-default-subtle;
+}
+
+.field-shell {
+  @apply rounded-2xl border border-divider-regular bg-background-default-subtle p-4;
+}
+
+.field-label {
+  @apply mb-2 block text-xs font-semibold uppercase tracking-[0.16em] text-text-tertiary;
+}
+
+.field-input {
+  @apply w-full rounded-xl border border-divider-regular bg-components-input-bg-normal px-3 py-2.5 text-sm text-text-primary outline-none placeholder:text-components-input-text-placeholder focus:border-components-input-border-active focus:bg-components-input-bg-active;
+}
+
+.field-textarea {
+  @apply min-h-[140px] w-full resize-y rounded-xl border border-divider-regular bg-components-input-bg-normal px-3 py-2.5 text-sm text-text-primary outline-none placeholder:text-components-input-text-placeholder focus:border-components-input-border-active focus:bg-components-input-bg-active;
+}
+
+.toggle-row {
+  @apply flex items-start justify-between gap-4 rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-3;
+}
+
+.option-card {
+  @apply flex cursor-pointer items-start gap-3 rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-4;
+}
+
+.logo-edit-overlay {
+  @apply absolute inset-0 flex items-center justify-center gap-1 rounded-2xl bg-components-panel-bg/80 text-xs font-medium text-text-primary opacity-0 transition-opacity duration-150 ease-out group-hover:opacity-100 group-focus-within:opacity-100;
 }

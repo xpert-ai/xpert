@@ -454,6 +454,18 @@
       "NoMiddlewaresAvailable": "No middleware providers available"
     },
     "Xpert": {
+      "StartFrom": "Start from",
+      "BlankStart": "Blank",
+      "TemplateStart": "Template",
+      "StartFromHelp": "Choose a blank starter or load a template first. You can keep editing the rest of the wizard before creating the Xpert.",
+      "BlankStartHelp": "Start from the default blank wizard and choose triggers, middlewares, and skills yourself.",
+      "TemplateStartHelp": "Select an agent template, preload the wizard from its draft, and keep tailoring the result before creating.",
+      "WorkflowStartFromHelp": "Workflow templates are not available in this starter yet, so you can begin with the blank workflow setup for now.",
+      "WorkflowBlankStartHelp": "Start with the default chat-trigger workflow scaffold and choose the action and transform nodes you want.",
+      "WorkflowTemplateStartHelp": "Workflow template starters will be supported in a later iteration of the shared wizard.",
+      "KnowledgeStartFromHelp": "Choose a blank pipeline or start from a knowledge template, then keep editing triggers and stages before creating.",
+      "KnowledgeBlankStartHelp": "Start from the default knowledge pipeline wizard and choose the trigger, source, processor, chunker, and understanding stages yourself.",
+      "KnowledgeTemplateStartHelp": "Select a knowledge pipeline template, prefill the wizard from its draft, and continue customizing the pipeline stages.",
       "BasicInformation": "Basic information",
       "Workflow": "Workflow",
       "WorkflowActionNodes": "Action nodes",

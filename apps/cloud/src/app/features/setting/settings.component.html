@@ -2,6 +2,37 @@
   class="flex flex-col w-14 max-w-[240px] shrink-0 transition-all overflow-y-auto bg-background-default-subtle"
   [class.w-[240px]]="sideMenuOpened()"
 >
+  <div class="px-2 pt-2 pb-1">
+    <div
+      class="rounded-lg border border-divider-regular bg-components-card-bg/70 p-2"
+      [zTooltip]="scopeTooltip()"
+      zPosition="right"
+      [zDisabled]="sideMenuOpened()"
+    >
+      <div class="flex items-center gap-2" [class.justify-center]="!sideMenuOpened()">
+        <div
+          class="flex h-8 w-8 shrink-0 items-center justify-center rounded-xl bg-background-default-subtle text-text-secondary"
+        >
+          <z-icon zSize="lg" [zType]="scopeIcon()"></z-icon>
+        </div>
+
+        @if (sideMenuOpened()) {
+          <div class="min-w-0 flex-1">
+            <div class="truncate text-[10px] uppercase tracking-[0.24em] text-text-tertiary">
+              {{ scopeTitle() }}
+            </div>
+            <div class="truncate text-sm font-medium text-text-primary">
+              {{ scopeLabel() }}
+            </div>
+            <div class="truncate text-xs text-text-secondary">
+              {{ scopeDescription() }}
+            </div>
+          </div>
+        }
+      </div>
+    </div>
+  </div>
+
   <ul class="pac-nav__tab-bar flex-1 p-2 rounded-lg space-y-1">
     @for (e of menus(); track $index) {
       <li
@@ -20,15 +51,8 @@
         }
 
         @if (sideMenuOpened()) {
-          <span class="ml-2 min-w-0 flex flex-col">
-            <span class="truncate">
-              {{ 'PAC.MENU.' + e.label | translate: { Default: e.label } }}
-            </span>
-            @if (e.subtitleKey) {
-              <span class="truncate text-xs text-text-tertiary">
-                {{ e.subtitleKey | translate: { Default: e.subtitleDefault } }}
-              </span>
-            }
+          <span class="ml-2 min-w-0 truncate">
+            {{ 'PAC.MENU.' + e.label | translate: { Default: e.label } }}
           </span>
         }
       </li>
