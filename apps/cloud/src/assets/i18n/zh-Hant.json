@@ -1912,10 +1912,19 @@
       "ProjectNavigations": "項目導航欄"
     },
     "Certification": {
-      "Certification": "認證",
+      "Entry": "認證條目",
       "UpdateCertification": "更新認證",
       "DeleteCertification": "刪除認證",
-      "CreateCertification": "創建認證"
+      "CreateCertification": "創建認證",
+      "CreateFirst": "建立第一個認證",
+      "EmptyHint": "定義可重用的認證類型，用於專案、資產或審核流程。",
+      "DefaultName": "新認證",
+      "EmptyDescription": "尚未新增描述。",
+      "NamePlaceholder": "請輸入認證名稱",
+      "DescriptionPlaceholder": "描述此認證類型驗證或代表的內容",
+      "OwnerPlaceholder": "請選擇所有者",
+      "NoOwner": "未指派所有者",
+      "Untitled": "未命名認證"
     },
     "Copilot": {
       "Copilot": "智能助理",

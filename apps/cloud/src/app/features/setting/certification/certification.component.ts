@@ -1,9 +1,10 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectorRef, Component, inject } from '@angular/core'
-import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-import { NgmAdvancedSelectComponent, NgmConfirmDeleteService } from '@metad/ocap-angular/common'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { TranslateModule } from '@ngx-translate/core'
+import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms'
+import { NgmConfirmDeleteService } from '@metad/ocap-angular/common'
+import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { ZardSelectImports } from '@xpert-ai/headless-ui'
 import { UsersService } from '@metad/cloud/state'
 import { BehaviorSubject, catchError, firstValueFrom, from, map, shareReplay, switchMap } from 'rxjs'
 import { CertificationService, ICertification, ToastrService } from '../../../@core'
@@ -22,23 +23,24 @@ import { UserProfileInlineComponent } from '../../../@shared/user'
     CommonModule,
     TranslateModule,
     SharedUiModule,
-    FormsModule,
     ReactiveFormsModule,
     ButtonGroupDirective,
     DensityDirective,
-    AppearanceDirective,
-    NgmAdvancedSelectComponent,
+    ...ZardSelectImports,
     UserProfileInlineComponent
   ]
 })
 export class CertificationComponent {
   private readonly certificationService = inject(CertificationService)
   private readonly userService = inject(UsersService)
+  readonly #translate = inject(TranslateService)
   private readonly _toastrService = inject(ToastrService)
   private readonly _confirmDelete = inject(NgmConfirmDeleteService)
   private readonly _cdr = inject(ChangeDetectorRef)
 
   certification: ICertification | null = null
+  readonly noOwnerValue = '__none__'
+  readonly userLabel = userLabel
   formGroup = new FormGroup({
     name: new FormControl('', [Validators.required]),
     description: new FormControl(null),
@@ -58,7 +60,6 @@ export class CertificationComponent {
       catchError((err) => {
         return from(this.userService.getMe()).pipe(map((user) => [user]))
       }),
-      map((users) => users.map((user) => ({ caption: userLabel(user), key: user.id }))),
       shareReplay({ bufferSize: 1, refCount: true })
     )
 
@@ -66,7 +67,7 @@ export class CertificationComponent {
     try {
       await firstValueFrom(
         this.certificationService.create({
-          name: 'New certification'
+          name: this.#translate.instant('PAC.Certification.DefaultName', { Default: 'New certification' })
         })
       )
 
@@ -96,8 +97,20 @@ export class CertificationComponent {
 
   async editCertification(certification: ICertification) {
     this.certification = certification
-    this.formGroup.patchValue(certification)
+    this.patchCertificationForm(certification)
     this._cdr.detectChanges()
+  }
+
+  ownerSelectionValue(): string {
+    return this.formControls.ownerId.value ?? this.noOwnerValue
+  }
+
+  onOwnerSelectionChange(value: string | number | Array<string | number>) {
+    const ownerId =
+      !Array.isArray(value) && typeof value === 'string' && value !== this.noOwnerValue ? value : null
+    this.formControls.ownerId.setValue(ownerId)
+    this.formControls.ownerId.markAsDirty()
+    this.formControls.ownerId.markAsTouched()
   }
 
   async onSubmit() {
@@ -135,14 +148,34 @@ export class CertificationComponent {
   }
 
   certificationDescription(certification: ICertification): string {
-    return certification.description?.trim() || 'No description added yet.'
+    return (
+      certification.description?.trim() ||
+      this.#translate.instant('PAC.Certification.EmptyDescription', { Default: 'No description added yet.' })
+    )
   }
 
   certificationOwnerLabel(certification: ICertification | null): string {
-    return certification?.owner ? userLabel(certification.owner) : 'No owner assigned'
+    return certification?.owner
+      ? userLabel(certification.owner)
+      : this.#translate.instant('PAC.Certification.NoOwner', { Default: 'No owner assigned' })
   }
 
   selectedCertificationName(): string {
-    return this.formGroup.getRawValue().name?.trim() || this.certification?.name || 'Untitled certification'
+    return (
+      this.formGroup.getRawValue().name?.trim() ||
+      this.certification?.name ||
+      this.#translate.instant('PAC.Certification.Untitled', { Default: 'Untitled certification' })
+    )
+  }
+
+  private patchCertificationForm(certification: ICertification) {
+    this.formGroup.reset(
+      {
+        name: certification.name ?? '',
+        description: certification.description ?? null,
+        ownerId: certification.ownerId ?? certification.owner?.id ?? null
+      },
+      { emitEvent: false }
+    )
   }
 }

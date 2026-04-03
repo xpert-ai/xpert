@@ -127,8 +127,11 @@
           }
         </div>
 
-        @if (certification) {
-          <aside class="flex min-h-0 w-full shrink-0 flex-col bg-components-card-bg xl:w-[28rem]">
+        <aside
+          class="min-h-0 w-full shrink-0 flex-col bg-components-card-bg xl:w-[28rem]"
+          [class.flex]="!!certification"
+          [class.hidden]="!certification"
+        >
             <div class="border-t border-divider-regular px-6 py-5 xl:border-t-0">
               <div class="text-lg font-semibold text-text-primary">
                 {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
@@ -137,56 +140,59 @@
 
             <div class="flex min-h-0 flex-1 flex-col overflow-y-auto px-6 pb-6">
               <form [formGroup]="formGroup" class="flex flex-1 flex-col gap-5" (ngSubmit)="onSubmit()">
-                <label class="flex flex-col gap-2">
-                  <span class="text-sm font-medium text-text-primary">
+                <z-form-field appearance="fill" floatLabel="always">
+                  <z-form-label>
                     {{ 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' } }}
-                  </span>
+                  </z-form-label>
                   <input
+                    z-input
                     type="text"
                     formControlName="name"
-                    class="w-full rounded-xl border bg-components-input-bg-normal px-3 py-2.5 text-sm text-text-primary outline-none transition placeholder:text-components-input-text-placeholder focus:border-components-input-border-active focus:bg-components-input-bg-active"
-                    [class.border-danger-500]="formControls.name.touched && formControls.name.invalid"
-                    [class.border-divider-regular]="!(formControls.name.touched && formControls.name.invalid)"
                     [placeholder]="'PAC.Certification.NamePlaceholder' | translate: { Default: 'Enter certification name' }"
                   />
                   @if (formControls.name.touched && formControls.name.invalid) {
-                    <div class="text-xs text-danger-500">
+                    <z-form-message zType="error">
                       {{ 'PAC.KEY_WORDS.NameRequired' | translate: { Default: 'Name is required' } }}
-                    </div>
+                    </z-form-message>
                   }
-                </label>
+                </z-form-field>
 
-                <label class="flex flex-col gap-2">
-                  <span class="text-sm font-medium text-text-primary">
+                <z-form-field appearance="fill" floatLabel="always">
+                  <z-form-label>
                     {{ 'PAC.KEY_WORDS.Description' | translate: { Default: 'Description' } }}
-                  </span>
+                  </z-form-label>
                   <textarea
+                    z-input
                     rows="6"
                     formControlName="description"
-                    class="min-h-[140px] w-full resize-y rounded-xl border border-divider-regular bg-components-input-bg-normal px-3 py-2.5 text-sm text-text-primary outline-none transition placeholder:text-components-input-text-placeholder focus:border-components-input-border-active focus:bg-components-input-bg-active"
+                    class="min-h-[140px] resize-y"
                     [placeholder]="
                       'PAC.Certification.DescriptionPlaceholder'
                         | translate: { Default: 'Describe what this certification type validates or represents' }
                     "
                   ></textarea>
-                </label>
+                </z-form-field>
 
-                <div class="flex flex-col gap-2">
-                  <span class="text-sm font-medium text-text-primary">
+                <z-form-field appearance="fill" floatLabel="always">
+                  <z-form-label>
                     {{ 'PAC.KEY_WORDS.Owner' | translate: { Default: 'Owner' } }}
-                  </span>
-                  <div class="rounded-xl border border-divider-regular bg-components-input-bg-normal p-1">
-                    <ngm-advanced-select
-                      class="w-full"
-                      appearance="fill"
-                      formControlName="ownerId"
-                      displayBehaviour="descriptionOnly"
-                      [label]="'PAC.KEY_WORDS.Owner' | translate: { Default: 'Owner' }"
-                      [selectOptions]="users$ | async"
-                    >
-                    </ngm-advanced-select>
-                  </div>
-                </div>
+                  </z-form-label>
+                  <z-select
+                    class="w-full"
+                    [zValue]="ownerSelectionValue()"
+                    [zPlaceholder]="'PAC.Certification.OwnerPlaceholder' | translate: { Default: 'Select owner' }"
+                    (zSelectionChange)="onOwnerSelectionChange($event)"
+                  >
+                    <z-select-item [zValue]="noOwnerValue">
+                      {{ 'PAC.Certification.NoOwner' | translate: { Default: 'No owner assigned' } }}
+                    </z-select-item>
+                    @for (user of (users$ | async) ?? []; track user.id) {
+                      <z-select-item [zValue]="user.id">
+                        {{ userLabel(user) }}
+                      </z-select-item>
+                    }
+                  </z-select>
+                </z-form-field>
 
                 <div class="mt-auto flex items-center gap-3 border-t border-divider-regular pt-5">
                   <button z-button zType="default" color="primary" type="submit">
@@ -199,7 +205,6 @@
               </form>
             </div>
           </aside>
-        }
       </section>
     </div>
   </div>
