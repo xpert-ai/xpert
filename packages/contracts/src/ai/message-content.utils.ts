@@ -180,6 +180,30 @@ function filterText(content: string | TMessageContentComplex): string {
   return ''
 }
 
+function mergeTextChunkForDisplay(previous: TMessageContentText, incoming: TMessageContentText): TMessageContentText {
+  return {
+    ...previous,
+    text: `${previous.text}${incoming.text}`,
+    ...(!previous.id && incoming.id ? { id: incoming.id } : {}),
+    ...(!previous.agentKey && incoming.agentKey ? { agentKey: incoming.agentKey } : {}),
+    ...(!previous.xpertName && incoming.xpertName ? { xpertName: incoming.xpertName } : {})
+  }
+}
+
+function stripAutoDisplaySeparator(
+  incoming: TMessageContentText,
+  previousOriginal: TMessageContentComplex | null | undefined
+): TMessageContentText {
+  if (previousOriginal?.type === 'component' && incoming.text.startsWith('\n\n')) {
+    return {
+      ...incoming,
+      text: incoming.text.slice(1)
+    }
+  }
+
+  return incoming
+}
+
 function mergeComponentData(previous: TMessageContentComponent, incoming: TMessageContentComponent) {
   const mergedIncomingData = Object.entries(incoming.data ?? {}).reduce(
     (acc, [key, value]) => {
@@ -279,7 +303,7 @@ export function appendMessageContent(
   context?: TAppendMessageContentOptions
 ) {
   aiMessage.status = 'answering'
-  const { previous, ...contextWithoutPrevious } = context ?? {}
+  const { previous: _previous, ...contextWithoutPrevious } = context ?? {}
   const resolvedContext = {
     ...inferMessageAppendContext(incoming),
     ...contextWithoutPrevious
@@ -305,31 +329,36 @@ export function appendMessageContent(
   const chunks = ensureArrayContent(aiMessage.content)
 
   if (isTextContent(content)) {
-    const joinHint =
-      resolvedContext.joinHint ?? (shouldJoinWithoutSeparator(previous, resolvedContext) ? 'none' : undefined)
+    if (content.id) {
+      const index = chunks.findIndex((item) => isTextContent(item) && item.id === content.id)
+      if (index > -1) {
+        const mergedContent = {
+          ...chunks[index],
+          text: `${(chunks[index] as TMessageContentText).text}${content.text}`,
+          ...(!(chunks[index] as TMessageContentText).id && content.id ? { id: content.id } : {}),
+          ...(!(chunks[index] as TMessageContentText).agentKey && content.agentKey
+            ? { agentKey: content.agentKey }
+            : {}),
+          ...(!(chunks[index] as TMessageContentText).xpertName && content.xpertName
+            ? { xpertName: content.xpertName }
+            : {})
+        } as TMessageContentText
+        aiMessage.content = [...chunks.slice(0, index), mergedContent, ...chunks.slice(index + 1)]
+        return
+      }
+    }
+
     const lastContent = chunks[chunks.length - 1]
-    if (
-      isTextContent(lastContent) &&
-      (joinHint === 'none' || (!!content.id && !!lastContent.id && lastContent.id === content.id))
-    ) {
+    if (isTextContent(lastContent) && !lastContent.id && !content.id) {
       const mergedLastContent = {
         ...lastContent,
-        text: `${lastContent.text}${content.text}`,
-        ...(!lastContent.id && content.id ? { id: content.id } : {})
+        text: `${lastContent.text}${content.text}`
       } as TMessageContentText
       aiMessage.content = [...chunks.slice(0, chunks.length - 1), mergedLastContent]
       return
     }
 
-    const previousType = lastContent?.type ?? null
-    const previousText = isTextContent(lastContent) ? lastContent.text : ''
-    const separator = getSeparator(previousType, previousText, content.text, joinHint)
-
-    const appended = {
-      ...content,
-      text: separator + content.text
-    } as TMessageContentText
-    aiMessage.content = [...chunks, appended]
+    aiMessage.content = [...chunks, content]
     return
   }
 
@@ -365,6 +394,75 @@ export function appendMessagePlainText(
   const previous = accumulator ?? ''
   const separator = getSeparator('text', previous, nextText, resolvedContext.joinHint)
   return previous + separator + nextText
+}
+
+/**
+ * Creates a display-only content view that reassembles text chunks belonging to
+ * the same stream id. This preserves markdown continuity without changing the
+ * underlying stored/streamed message structure.
+ */
+export function mergeMessageContentForDisplay(
+  content: TMessageContent | TMessageContentComplex | null | undefined
+): TMessageContentComplex[] | null {
+  if (!content) {
+    return null
+  }
+
+  if (typeof content === 'string') {
+    return content.length
+      ? ([
+          {
+            type: 'text',
+            text: content
+          } as TMessageContentText
+        ] as TMessageContentComplex[])
+      : null
+  }
+
+  if (!Array.isArray(content)) {
+    return [content]
+  }
+
+  const merged: TMessageContentComplex[] = []
+  const textIndexById = new Map<string, number>()
+
+  content.forEach((item, itemIndex) => {
+    if (!isTextContent(item)) {
+      merged.push(item)
+      return
+    }
+
+    if (item.id) {
+      const mergedIndex = textIndexById.get(item.id)
+      if (mergedIndex !== undefined && isTextContent(merged[mergedIndex])) {
+        const previousOriginal = content[itemIndex - 1]
+        merged[mergedIndex] = mergeTextChunkForDisplay(
+          merged[mergedIndex] as TMessageContentText,
+          stripAutoDisplaySeparator(item, previousOriginal)
+        )
+        return
+      }
+
+      textIndexById.set(item.id, merged.length)
+      merged.push({ ...item })
+      return
+    }
+
+    const lastItem = merged[merged.length - 1]
+    if (
+      isTextContent(lastItem) &&
+      !lastItem.id &&
+      lastItem.agentKey === item.agentKey &&
+      lastItem.xpertName === item.xpertName
+    ) {
+      merged[merged.length - 1] = mergeTextChunkForDisplay(lastItem, item)
+      return
+    }
+
+    merged.push({ ...item })
+  })
+
+  return merged.length ? merged : null
 }
 
 export function stringifyMessageContent(content: TMessageContent | TMessageContentComplex) {
