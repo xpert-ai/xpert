@@ -10,6 +10,7 @@ import { ChatProjectConversationComponent } from './project/conversation/convers
 import { ChatProjectComponent } from './project/project.component'
 import { ChatBiComponent } from './chatbi/chatbi.component'
 import { ChatCommonAssistantComponent } from './common/common.component'
+import { ChatCommonWelcomeComponent } from './common/welcome.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
@@ -21,8 +22,15 @@ export const routes: Routes = [
     children: [
       {
         path: '',
-        redirectTo: 'x/common',
+        redirectTo: 'x/welcome',
         pathMatch: 'full'
+      },
+      {
+        path: 'x/welcome',
+        component: ChatCommonWelcomeComponent,
+        data: {
+          title: 'Common Welcome',
+        }
       },
       {
         path: 'x/common/c/:id',
@@ -179,7 +187,7 @@ export const routes: Routes = [
       },
       {
         path: '**',
-        redirectTo: 'x/common',
+        redirectTo: 'x/welcome',
         pathMatch: 'prefix'
       },
     ]

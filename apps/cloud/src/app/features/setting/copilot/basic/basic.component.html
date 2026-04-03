@@ -19,7 +19,7 @@
     {{ 'PAC.Copilot.CustomCopilots' | translate: { Default: 'Custom Copilots' } }}
   </div>
 }
-<z-accordion>
+<z-accordion class="space-y-2">
   <z-accordion-item
     #expansion="zAccordionItem"
     hideToggle
@@ -101,14 +101,13 @@
           <div class="ml-2 flex items-center justify-start">
             @if (editingId() === copilot.id) {
               <input
-                class="flex-1 bg-transparent focus-visible:outline-none bg-components-input-bg-normal"
+                class="flex-1 bg-background-body focus-visible:outline-none p-1 rounded-xs"
                 cdkFocusInitial
                 type="text"
                 [(ngModel)]="name"
                 (click)="$event.stopPropagation()"
               />
-              <button
-                class="inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-default transition-colors duration-100 [&amp;_svg]:pointer-events-none [&amp;_svg]:shrink-0 [&amp;_svg]:-mx-0.5 text-secondary hover:text-primary hover:bg-hover-bg disabled:hover:text-secondary disabled:hover:bg-inherit h-9 w-9 rounded-full"
+              <button z-button zType="ghost" zSize="sm" class="ml-2 w-4 h-4 shrink-0 rounded-full"
                 type="button"
                 (click)="$event.stopPropagation(); saveCopilotName(copilot)"
               >

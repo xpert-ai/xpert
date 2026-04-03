@@ -47,12 +47,6 @@ export class CopilotConfigFormComponent {
     { initialValue: this.tokenBalanceControl.value }
   )
 
-  readonly #hasSelectedModel = computed(() => {
-    const model = this.formGroup.get('copilotModel').value
-    return !!model?.copilotId && !!model?.model
-  })
-  readonly #canSubmit = computed(() => !this.saving() && this.formGroup.valid && !this.formGroup.pristine)
-
   readonly defaultModelType = computed(() => {
     switch (this.role()) {
       case AiProviderRole.Primary:
@@ -76,11 +70,12 @@ export class CopilotConfigFormComponent {
   }
 
   canSubmit() {
-    return this.#canSubmit()
+    return !this.saving() && this.formGroup.valid && !this.formGroup.pristine
   }
 
   hasSelectedModel() {
-    return this.#hasSelectedModel()
+    const model = this.formGroup.get('copilotModel').value
+    return !!model?.copilotId && !!model?.model
   }
 
   async submit() {

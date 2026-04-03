@@ -122,7 +122,13 @@ export class ChatHomeComponent {
   )
   readonly isCommonAssistantRoute = computed(() => {
     const url = this.currentUrl()
-    return url === '/chat' || url === '/chat/x/common' || url.startsWith('/chat/x/common/')
+    return (
+      url === '/chat' ||
+      url === '/chat/x/welcome' ||
+      url.startsWith('/chat/x/welcome/') ||
+      url === '/chat/x/common' ||
+      url.startsWith('/chat/x/common/')
+    )
   })
   readonly showLegacyHistory = computed(() => !this.isCommonAssistantRoute())
 
@@ -317,7 +323,7 @@ export class ChatHomeComponent {
       return
     }
 
-    this.#router.navigate(['/chat'])
+    this.#router.navigate(['/chat/x/welcome'])
   }
 
   newProject() {
