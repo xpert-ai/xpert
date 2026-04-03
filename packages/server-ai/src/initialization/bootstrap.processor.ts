@@ -7,9 +7,14 @@ import { EVENT_USER_ORGANIZATION_CREATED, UserOrganizationCreatedEvent } from '@
 import {
 	AI_BOOTSTRAP_QUEUE,
 	AI_ORGANIZATION_BOOTSTRAP_JOB,
+	AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB,
 	AI_USER_ORGANIZATION_BOOTSTRAP_JOB
 } from './constants'
 import { ServerAIBootstrapService } from './bootstrap.service'
+
+type OrganizationSkillRepositorySyncJob = OrganizationCreatedEvent & {
+	repositoryId: string
+}
 
 @Processor(AI_BOOTSTRAP_QUEUE)
 export class ServerAIBootstrapProcessor {
@@ -44,7 +49,24 @@ export class ServerAIBootstrapProcessor {
 	@Process(AI_ORGANIZATION_BOOTSTRAP_JOB)
 	async handleOrganizationBootstrap(job: Job<OrganizationCreatedEvent>) {
 		try {
-			await this.bootstrapService.bootstrapOrganization(job.data)
+			const result = await this.bootstrapService.bootstrapOrganization(job.data)
+			await Promise.all(
+				(result.repositoryIds ?? []).map((repositoryId) =>
+					this.bootstrapQueue.add(
+						AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB,
+						{
+							...job.data,
+							repositoryId
+						},
+						{
+							jobId: `org-skill-repository-sync:${job.data.organizationId}:${repositoryId}`,
+							attempts: 3,
+							backoff: 10_000,
+							removeOnComplete: true
+						}
+					)
+				)
+			)
 		} catch (error) {
 			this.logger.error(
 				`Failed organization bootstrap for '${job.data.organizationId}': ${error instanceof Error ? error.stack : error}`
@@ -60,6 +82,20 @@ export class ServerAIBootstrapProcessor {
 		} catch (error) {
 			this.logger.error(
 				`Failed user organization bootstrap for '${job.data.organizationId}:${job.data.userId}': ${
+					error instanceof Error ? error.stack : error
+				}`
+			)
+			throw error
+		}
+	}
+
+	@Process(AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB)
+	async handleOrganizationSkillRepositorySync(job: Job<OrganizationSkillRepositorySyncJob>) {
+		try {
+			await this.bootstrapService.syncOrganizationSkillRepository(job.data)
+		} catch (error) {
+			this.logger.error(
+				`Failed organization skill repository sync for '${job.data.organizationId}:${job.data.repositoryId}': ${
 					error instanceof Error ? error.stack : error
 				}`
 			)

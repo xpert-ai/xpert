@@ -1,4 +1,9 @@
-import { filterDisabledTools, isUserPreferredToolEnabled } from './tool-preference'
+import {
+    filterDisabledSkillIds,
+    filterDisabledTools,
+    isUserPreferredSkillEnabled,
+    isUserPreferredToolEnabled
+} from './tool-preference'
 
 describe('tool preference helpers', () => {
     it('keeps tools enabled by default when no preference exists', () => {
@@ -63,6 +68,46 @@ describe('tool preference helpers', () => {
                         'middleware-2': {
                             provider: 'provider-a',
                             disabledTools: ['search']
+                        }
+                    }
+                }
+            )
+        ).toBe(true)
+    })
+
+    it('disables only matching workspace skills', () => {
+        expect(
+            filterDisabledSkillIds(
+                ['skill-a', 'skill-b'],
+                'workspace-1',
+                {
+                    version: 1,
+                    skills: {
+                        'workspace-1': {
+                            workspaceId: 'workspace-1',
+                            disabledSkillIds: ['skill-b']
+                        },
+                        'workspace-2': {
+                            workspaceId: 'workspace-2',
+                            disabledSkillIds: ['skill-a']
+                        }
+                    }
+                }
+            )
+        ).toEqual(['skill-a'])
+    })
+
+    it('keeps skills enabled when the disabled list belongs to another workspace', () => {
+        expect(
+            isUserPreferredSkillEnabled(
+                'workspace-1',
+                'skill-a',
+                {
+                    version: 1,
+                    skills: {
+                        'workspace-2': {
+                            workspaceId: 'workspace-2',
+                            disabledSkillIds: ['skill-a']
                         }
                     }
                 }

@@ -3,6 +3,7 @@ import { BullModule } from '@nestjs/bull'
 import { Module } from '@nestjs/common'
 import { XpertModule } from '../xpert'
 import { EnvironmentModule } from '../environment'
+import { SkillRepositoryIndexModule, SkillRepositoryModule } from '../skill-repository'
 import { XpertTemplateModule } from '../xpert-template/xpert-template.module'
 import { XpertWorkspaceModule } from '../xpert-workspace/workspace.module'
 import { AI_BOOTSTRAP_QUEUE } from './constants'
@@ -19,6 +20,8 @@ import { ServerAIBootstrapService } from './bootstrap.service'
 		UserOrganizationModule,
 		XpertWorkspaceModule,
 		EnvironmentModule,
+		SkillRepositoryModule,
+		SkillRepositoryIndexModule,
 		XpertModule,
 		XpertTemplateModule
 	],

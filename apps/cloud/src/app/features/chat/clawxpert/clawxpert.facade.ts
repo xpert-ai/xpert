@@ -12,6 +12,7 @@ import {
   AssistantBindingService,
   AssistantCode,
   IAssistantBinding,
+  IAssistantBindingSkillPreference,
   IEnvironment,
   IAssistantBindingToolPreferences,
   IAssistantBindingUserPreference,
@@ -160,6 +161,9 @@ export class ClawXpertFacade {
     return assistantId ? this.availableXperts().find((item) => item.id === assistantId) ?? null : null
   })
   readonly xpertId = computed(() => this.currentXpert()?.id ?? this.resolvedPreference()?.assistantId ?? null)
+  readonly currentWorkspaceId = computed(() => {
+    return this.triggerDraftSource()?.workspaceId ?? this.currentXpert()?.workspaceId ?? null
+  })
   readonly currentXpertLabel = computed(() => {
     return this.getXpertLabel(this.currentXpert() ?? this.resolvedPreference())
   })
@@ -525,6 +529,10 @@ export class ClawXpertFacade {
     return !getDisabledTools(this.toolPreferences(), sourceType, nodeKey).includes(toolName)
   }
 
+  isSkillEnabled(workspaceId: string, skillId: string) {
+    return !getDisabledSkillIds(this.toolPreferences(), workspaceId).includes(skillId)
+  }
+
   async setToolEnabled(
     sourceType: ClawXpertToolPreferenceSourceType,
     nodeKey: string,
@@ -562,6 +570,43 @@ export class ClawXpertFacade {
         getErrorMessage(error) ||
           this.#translate.instant('PAC.Chat.ClawXpert.ToolPreferenceSaveFailed', {
             Default: 'Failed to save the ClawXpert tool preferences.'
+          })
+      )
+      return false
+    }
+  }
+
+  async setSkillEnabled(workspaceId: string, skillId: string, enabled: boolean) {
+    if (!this.preference()?.assistantId || !workspaceId?.trim() || !skillId?.trim()) {
+      return false
+    }
+
+    this.invalidateUserPreferenceLoads()
+    const previousPreference = this.userPreference()
+    const nextToolPreferences = updateSkillPreferences(this.toolPreferences(), workspaceId, skillId, enabled)
+    const nextPreference = {
+      ...(previousPreference ?? {}),
+      toolPreferences: isToolPreferencesEmpty(nextToolPreferences) ? null : nextToolPreferences
+    } as IAssistantBindingUserPreference
+
+    this.userPreference.set(nextPreference)
+
+    try {
+      const preference = (await firstValueFrom(
+        this.#assistantBindingService.upsertPreference(AssistantCode.CLAWXPERT, {
+          scope: AssistantBindingScope.USER,
+          toolPreferences: nextPreference.toolPreferences ?? null
+        })
+      )) as IAssistantBindingUserPreference
+
+      this.userPreference.set(this.normalizePersistedUserPreference(preference, nextPreference))
+      return true
+    } catch (error) {
+      this.userPreference.set(previousPreference ?? null)
+      this.#toastr.error(
+        getErrorMessage(error) ||
+          this.#translate.instant('PAC.Chat.ClawXpert.SkillPreferenceSaveFailed', {
+            Default: 'Failed to save the ClawXpert skill preferences.'
           })
       )
       return false
@@ -899,7 +944,7 @@ export class ClawXpertFacade {
       ...(persistedPreference ?? {}),
       toolPreferences:
         persistedPreference && Object.prototype.hasOwnProperty.call(persistedPreference, 'toolPreferences')
-          ? persistedPreference.toolPreferences ?? null
+          ? mergePersistedToolPreferences(persistedPreference.toolPreferences, currentPreference?.toolPreferences ?? null)
           : currentPreference?.toolPreferences ?? null
     } as IAssistantBindingUserPreference
   }
@@ -991,10 +1036,28 @@ function normalizeToolPreferences(value?: IAssistantBindingToolPreferences | nul
     return acc
   }, {})
 
+  const skills = Object.entries(value.skills ?? {}).reduce<NonNullable<IAssistantBindingToolPreferences['skills']>>(
+    (acc, [key, item]) => {
+      const workspaceId = key?.trim()
+      const normalizedWorkspaceId = item?.workspaceId?.trim() || workspaceId
+      if (!workspaceId || !normalizedWorkspaceId) {
+        return acc
+      }
+
+      acc[workspaceId] = {
+        workspaceId: normalizedWorkspaceId,
+        disabledSkillIds: normalizeDisabledTools(item.disabledSkillIds)
+      } satisfies IAssistantBindingSkillPreference
+      return acc
+    },
+    {}
+  )
+
   return {
     version: 1,
     ...(Object.keys(toolsets).length ? { toolsets } : {}),
-    ...(Object.keys(middlewares).length ? { middlewares } : {})
+    ...(Object.keys(middlewares).length ? { middlewares } : {}),
+    ...(Object.keys(skills).length ? { skills } : {})
   }
 }
 
@@ -1008,6 +1071,42 @@ function normalizeDisabledTools(value?: string[] | null) {
   )
 }
 
+function mergePersistedToolPreferences(
+  persisted: IAssistantBindingToolPreferences | null | undefined,
+  current: IAssistantBindingToolPreferences | null
+): IAssistantBindingToolPreferences | null {
+  if (persisted === undefined) {
+    return current ? normalizeToolPreferences(current) : null
+  }
+
+  if (persisted === null) {
+    return null
+  }
+
+  const normalizedPersisted = normalizeToolPreferences(persisted)
+  const normalizedCurrent = current ? normalizeToolPreferences(current) : null
+  const hasToolsets = Object.prototype.hasOwnProperty.call(persisted, 'toolsets')
+  const hasMiddlewares = Object.prototype.hasOwnProperty.call(persisted, 'middlewares')
+  const hasSkills = Object.prototype.hasOwnProperty.call(persisted, 'skills')
+  const toolsets = hasToolsets ? normalizedPersisted.toolsets : normalizedCurrent?.toolsets
+  const middlewares = hasMiddlewares ? normalizedPersisted.middlewares : normalizedCurrent?.middlewares
+  const skills = hasSkills ? normalizedPersisted.skills : normalizedCurrent?.skills
+
+  return isToolPreferencesEmpty({
+    version: 1,
+    ...(toolsets ? { toolsets } : {}),
+    ...(middlewares ? { middlewares } : {}),
+    ...(skills ? { skills } : {})
+  })
+    ? null
+    : {
+        version: 1,
+        ...(toolsets ? { toolsets } : {}),
+        ...(middlewares ? { middlewares } : {}),
+        ...(skills ? { skills } : {})
+      }
+}
+
 function getDisabledTools(
   preferences: IAssistantBindingToolPreferences,
   sourceType: ClawXpertToolPreferenceSourceType,
@@ -1018,6 +1117,10 @@ function getDisabledTools(
   }
 
   return preferences.middlewares?.[nodeKey]?.disabledTools ?? []
+}
+
+function getDisabledSkillIds(preferences: IAssistantBindingToolPreferences, workspaceId: string) {
+  return preferences.skills?.[workspaceId]?.disabledSkillIds ?? []
 }
 
 function updateToolPreferences(
@@ -1053,7 +1156,8 @@ function updateToolPreferences(
     return {
       version: 1,
       ...(Object.keys(toolsets).length ? { toolsets } : {}),
-      ...(preferences.middlewares ? { middlewares: { ...preferences.middlewares } } : {})
+      ...(preferences.middlewares ? { middlewares: { ...preferences.middlewares } } : {}),
+      ...(preferences.skills ? { skills: { ...preferences.skills } } : {})
     }
   }
 
@@ -1071,15 +1175,55 @@ function updateToolPreferences(
     return {
       version: 1,
       ...(preferences.toolsets ? { toolsets: { ...preferences.toolsets } } : {}),
-      ...(Object.keys(middlewares).length ? { middlewares } : {})
+      ...(Object.keys(middlewares).length ? { middlewares } : {}),
+      ...(preferences.skills ? { skills: { ...preferences.skills } } : {})
     }
   }
 
   return preferences
 }
 
+function updateSkillPreferences(
+  preferences: IAssistantBindingToolPreferences,
+  workspaceId: string,
+  skillId: string,
+  enabled: boolean
+): IAssistantBindingToolPreferences {
+  const normalizedWorkspaceId = workspaceId?.trim()
+  const normalizedSkillId = skillId?.trim()
+  if (!normalizedWorkspaceId || !normalizedSkillId) {
+    return preferences
+  }
+
+  const disabledSkillIds = getDisabledSkillIds(preferences, normalizedWorkspaceId)
+  const nextDisabledSkillIds = enabled
+    ? disabledSkillIds.filter((item) => item !== normalizedSkillId)
+    : normalizeDisabledTools([...disabledSkillIds, normalizedSkillId])
+  const skills = { ...(preferences.skills ?? {}) }
+
+  if (nextDisabledSkillIds.length) {
+    skills[normalizedWorkspaceId] = {
+      workspaceId: normalizedWorkspaceId,
+      disabledSkillIds: nextDisabledSkillIds
+    }
+  } else {
+    delete skills[normalizedWorkspaceId]
+  }
+
+  return {
+    version: 1,
+    ...(preferences.toolsets ? { toolsets: { ...preferences.toolsets } } : {}),
+    ...(preferences.middlewares ? { middlewares: { ...preferences.middlewares } } : {}),
+    ...(Object.keys(skills).length ? { skills } : {})
+  }
+}
+
 function isToolPreferencesEmpty(preferences?: IAssistantBindingToolPreferences | null) {
-  return !Object.keys(preferences?.toolsets ?? {}).length && !Object.keys(preferences?.middlewares ?? {}).length
+  return (
+    !Object.keys(preferences?.toolsets ?? {}).length &&
+    !Object.keys(preferences?.middlewares ?? {}).length &&
+    !Object.keys(preferences?.skills ?? {}).length
+  )
 }
 
 function parseClawXpertThreadId(url: string) {

@@ -1,0 +1,6 @@
+repositories:
+  - name: anthropics/skills
+    provider: github
+    options:
+      url: https://github.com/anthropics/skills
+      branch: main

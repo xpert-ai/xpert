@@ -1,10 +1,19 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, inject, signal } from '@angular/core'
+import { Component, computed, HostBinding, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardCardImports, ZardIconComponent, ZardSwitchComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
+import {
+  ZardButtonComponent,
+  ZardCardImports,
+  ZardDialogModule,
+  ZardDialogRef,
+  ZardDialogService,
+  ZardIconComponent,
+  ZardSwitchComponent,
+  ZardTabsImports
+} from '@xpert-ai/headless-ui'
 import { forkJoin, of } from 'rxjs'
 import { catchError, map, startWith, switchMap, take } from 'rxjs/operators'
 import {
@@ -12,8 +21,13 @@ import {
   getErrorMessage,
   getToolLabel,
   I18nObject,
+  ISkillPackage,
+  ISkillRepository,
+  ISkillRepositoryIndex,
   isMiddlewareToolEnabled,
   IWFNMiddleware,
+  SkillPackageService,
+  ToastrService,
   TAgentMiddlewareMeta,
   TXpertTeamDraft,
   TXpertTeamNode,
@@ -21,6 +35,7 @@ import {
   XpertAgentService,
   XpertToolsetService
 } from '../../../@core'
+import { XpertSkillIndexesComponent, XpertSkillRepositoriesComponent } from '../../../@shared/skills'
 import {
   ClawXpertFacade,
   ClawXpertToolPreferenceSourceMetadata,
@@ -40,6 +55,17 @@ type ToolPreferenceItem = {
   metadata: ClawXpertToolPreferenceSourceMetadata
 }
 
+type SkillPreferenceItem = {
+  id: string
+  packageId: string
+  workspaceId: string
+  skillId: string
+  label: string | I18nObject
+  summary?: string | I18nObject | null
+  repositoryName?: string | null
+  provider?: string | null
+}
+
 type ToolPreferenceSourceError = {
   id: string
   sourceLabel: string | I18nObject
@@ -52,10 +78,22 @@ type ToolPreferenceState = {
   errors: ToolPreferenceSourceError[]
 }
 
+type SkillPreferenceState = {
+  loading: boolean
+  skills: SkillPreferenceItem[]
+  errorMessage: string | null
+}
+
 const EMPTY_TOOL_PREFERENCE_STATE: ToolPreferenceState = {
   loading: false,
   tools: [],
   errors: []
+}
+
+const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
+  loading: false,
+  skills: [],
+  errorMessage: null
 }
 
 @Component({
@@ -66,6 +104,7 @@ const EMPTY_TOOL_PREFERENCE_STATE: ToolPreferenceState = {
     FormsModule,
     TranslateModule,
     NgmI18nPipe,
+    ZardButtonComponent,
     ZardIconComponent,
     ZardSwitchComponent,
     ...ZardCardImports,
@@ -84,7 +123,7 @@ const EMPTY_TOOL_PREFERENCE_STATE: ToolPreferenceState = {
               {{ blockedState().descKey | translate: { Default: blockedState().defaultDesc } }}
             </p>
           </div>
-        } @else if (facade.loadingTriggerDraft() || toolState().loading) {
+        } @else if (facade.loadingTriggerDraft()) {
           <div class="flex min-h-[20rem] flex-1 items-center justify-center px-6 text-sm text-text-secondary">
             {{ 'PAC.Chat.ClawXpert.LoadingToolPreferences' | translate: { Default: 'Loading tool preferences…' } }}
           </div>
@@ -122,21 +161,197 @@ const EMPTY_TOOL_PREFERENCE_STATE: ToolPreferenceState = {
 
           <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
             @if (activeTab() === 'skills') {
-              <div class="flex min-h-[20rem] flex-1 flex-col items-center justify-center px-6 text-center">
-                <z-icon zType="work_history" class="text-3xl text-text-tertiary"></z-icon>
-                <div class="mt-4 text-lg font-semibold text-text-primary">
-                  {{ 'PAC.Chat.ClawXpert.SkillsComingSoonTitle' | translate: { Default: 'Workspace skills are coming soon' } }}
+              <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div class="border-b border-divider-regular px-5 py-4">
+                  <div class="flex flex-wrap items-start justify-between gap-3">
+                    <div>
+                      <div class="text-sm font-medium text-text-primary">
+                        {{ 'PAC.Chat.ClawXpert.SkillPreferencesTitle' | translate: { Default: 'Skill preferences' } }}
+                      </div>
+                      <p class="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
+                        {{
+                          'PAC.Chat.ClawXpert.SkillPreferencesDesc'
+                            | translate
+                              : {
+                                  Default:
+                                    'Choose which installed workspace skills stay available to this ClawXpert. Preferences are saved per user and used by runtime skill filtering.'
+                                }
+                        }}
+                      </p>
+                    </div>
+
+                    <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary">
+                      {{
+                        'PAC.Chat.ClawXpert.SkillCount'
+                          | translate
+                            : {
+                                Default: '{count} skills',
+                                count: skillItems().length
+                              }
+                      }}
+                    </span>
+                  </div>
                 </div>
-                <p class="mt-2 max-w-xl text-sm leading-6 text-text-secondary">
-                  {{
-                    'PAC.Chat.ClawXpert.SkillsComingSoonDesc'
-                      | translate
-                        : {
-                            Default:
-                              'This tab will list all skills installed in the current workspace. For now, you can manage tools below and keep using Studio for skill authoring.'
+
+                <div class="min-h-0 flex-1 overflow-auto px-5 py-4">
+                  @if (!skillWorkspaceId()) {
+                    <div class="flex min-h-[16rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-center">
+                      <z-icon zType="work_history" class="text-3xl text-text-tertiary"></z-icon>
+                      <div class="mt-4 text-lg font-semibold text-text-primary">
+                        {{
+                          'PAC.Chat.ClawXpert.WorkspaceRequiredForSkillsTitle'
+                            | translate: { Default: 'This ClawXpert is not attached to a workspace yet' }
+                        }}
+                      </div>
+                      <p class="mt-2 max-w-xl text-sm leading-6 text-text-secondary">
+                        {{
+                          'PAC.Chat.ClawXpert.WorkspaceRequiredForSkillsDesc'
+                            | translate
+                              : {
+                                  Default:
+                                    'Bind or publish a workspace-backed xpert first, then this tab will load installed skills from that workspace.'
+                                }
+                        }}
+                      </p>
+                    </div>
+                  } @else {
+                    @if (skillState().loading) {
+                      <div class="flex min-h-[16rem] items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-sm text-text-secondary">
+                        {{
+                          'PAC.Chat.ClawXpert.LoadingWorkspaceSkills'
+                            | translate: { Default: 'Loading workspace skills…' }
+                        }}
+                      </div>
+                    } @else {
+                      @if (skillState().errorMessage) {
+                        <div class="rounded-2xl border border-divider-regular bg-background-default px-4 py-4">
+                          <div class="flex items-start gap-3">
+                            <z-icon zType="warning" class="mt-0.5 text-lg text-text-tertiary"></z-icon>
+                            <div class="min-w-0">
+                              <div class="text-sm font-semibold text-text-primary">
+                                {{
+                                  'PAC.Chat.ClawXpert.WorkspaceSkillsLoadFailed'
+                                    | translate: { Default: 'Failed to load workspace skills' }
+                                }}
+                              </div>
+                              <div class="mt-1 text-sm leading-6 text-text-secondary">
+                                {{ skillState().errorMessage }}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      } @else if (!skillItems().length) {
+                        <div class="flex min-h-[16rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-center">
+                          <z-icon zType="work_history" class="text-3xl text-text-tertiary"></z-icon>
+                          <div class="mt-4 text-lg font-semibold text-text-primary">
+                            {{
+                              'PAC.Chat.ClawXpert.NoSkillsAvailableTitle'
+                                | translate: { Default: 'No workspace skills installed yet' }
+                            }}
+                          </div>
+                          <p class="mt-2 max-w-xl text-sm leading-6 text-text-secondary">
+                            {{
+                              'PAC.Chat.ClawXpert.NoSkillsAvailableDesc'
+                                | translate
+                                  : {
+                                      Default:
+                                        'Open the install dialog and add a skill to this workspace to make it available here immediately.'
+                                    }
+                            }}
+                          </p>
+                        </div>
+                      } @else {
+                        <div class="grid gap-3 md:grid-cols-2">
+                          @for (item of skillItems(); track item.id) {
+                            <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4">
+                              <div class="flex items-start justify-between gap-3">
+                                <div class="min-w-0 flex-1">
+                                  <div class="truncate text-base font-semibold text-text-primary">
+                                    {{ item.label | i18n }}
+                                  </div>
+                                  <div class="mt-1 line-clamp-2 text-sm leading-6 text-text-secondary">
+                                    {{
+                                      (item.summary | i18n) ||
+                                        ('PAC.Chat.ClawXpert.SkillSummaryFallback'
+                                          | translate
+                                            : {
+                                                Default: 'This skill is installed in the current workspace and can be enabled for ClawXpert runtime use.'
+                                              })
+                                    }}
+                                  </div>
+                                </div>
+
+                                <z-switch
+                                  zSize="sm"
+                                  [ngModel]="facade.isSkillEnabled(item.workspaceId, item.packageId)"
+                                  [disabled]="busy()"
+                                  (ngModelChange)="toggleSkill(item, $event)"
+                                />
+                              </div>
+
+                              <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
+                                <div class="flex flex-wrap items-center gap-2">
+                                  @if (item.repositoryName) {
+                                    <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default px-3 py-1 text-xs text-text-secondary">
+                                      {{ item.repositoryName }}
+                                    </span>
+                                  }
+                                  @if (item.provider) {
+                                    <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default px-3 py-1 text-xs text-text-secondary">
+                                      {{ item.provider }}
+                                    </span>
+                                  }
+                                </div>
+
+                                @if (isSaving(item.id)) {
+                                  <span class="text-xs text-text-tertiary">
+                                    {{ 'PAC.Common.Saving' | translate: { Default: 'Saving…' } }}
+                                  </span>
+                                }
+                              </div>
+                            </div>
                           }
-                  }}
-                </p>
+                        </div>
+                      }
+
+                      <div class="mt-6 rounded-2xl border border-divider-regular bg-background-default p-4">
+                        <div class="flex flex-wrap items-start justify-between gap-3">
+                          <div>
+                            <div class="text-sm font-medium text-text-primary">
+                              {{ 'PAC.Chat.ClawXpert.InstallWorkspaceSkillsTitle' | translate: { Default: 'Install skills into this workspace' } }}
+                            </div>
+                            <p class="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
+                              {{
+                                'PAC.Chat.ClawXpert.InstallWorkspaceSkillsDesc'
+                                  | translate
+                                    : {
+                                        Default:
+                                          'Open the install dialog to browse repositories and add skills to the bound workspace. New skills appear above with the switch enabled by default.'
+                                      }
+                              }}
+                            </p>
+                          </div>
+
+                          @if (installingSkillPackage()) {
+                            <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary">
+                              {{ 'PAC.Chat.ClawXpert.InstallingSkill' | translate: { Default: 'Installing…' } }}
+                            </span>
+                          }
+                          <button
+                            z-button
+                            zType="default"
+                            color="accent"
+                            type="button"
+                            [disabled]="busy() || !skillWorkspaceId()"
+                            (click)="openSkillInstallDialog()"
+                          >
+                            {{ 'PAC.Chat.ClawXpert.BrowseWorkspaceSkills' | translate: { Default: 'Browse & install skills' } }}
+                          </button>
+                        </div>
+                      </div>
+                    }
+                  }
+                </div>
               </div>
             } @else {
               <div class="flex min-h-0 flex-1 flex-col overflow-hidden">
@@ -172,7 +387,11 @@ const EMPTY_TOOL_PREFERENCE_STATE: ToolPreferenceState = {
                 </div>
 
                 <div class="min-h-0 flex-1 overflow-auto px-5 py-4">
-                  @if (!toolItems().length && !toolErrors().length) {
+                  @if (toolState().loading) {
+                    <div class="flex min-h-[16rem] items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-sm text-text-secondary">
+                      {{ 'PAC.Chat.ClawXpert.LoadingToolPreferences' | translate: { Default: 'Loading tool preferences…' } }}
+                    </div>
+                  } @else if (!toolItems().length && !toolErrors().length) {
                     <div class="flex min-h-[16rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-center">
                       <z-icon zType="build" class="text-3xl text-text-tertiary"></z-icon>
                       <div class="mt-4 text-lg font-semibold text-text-primary">
@@ -219,7 +438,7 @@ const EMPTY_TOOL_PREFERENCE_STATE: ToolPreferenceState = {
                             <z-switch
                               zSize="sm"
                               [ngModel]="facade.isToolEnabled(item.sourceType, item.nodeKey, item.toolName)"
-                              [disabled]="savingAny()"
+                              [disabled]="busy()"
                               (ngModelChange)="toggleTool(item, $event)"
                             />
                           </div>
@@ -268,11 +487,16 @@ const EMPTY_TOOL_PREFERENCE_STATE: ToolPreferenceState = {
 })
 export class ClawXpertToolPreferencesComponent {
   readonly facade = inject(ClawXpertFacade)
+  readonly #dialog = inject(ZardDialogService)
   readonly #toolsetService = inject(XpertToolsetService)
   readonly #xpertAgentService = inject(XpertAgentService)
+  readonly #skillPackageService = inject(SkillPackageService)
+  readonly #toastr = inject(ToastrService)
 
-  readonly activeTab = signal<ToolPreferenceTab>('tools')
-  readonly pendingTools = signal<Record<string, boolean>>({})
+  readonly activeTab = signal<ToolPreferenceTab>('skills')
+  readonly pendingPreferenceItems = signal<Record<string, boolean>>({})
+  readonly installingSkillPackage = signal(false)
+  readonly skillRefreshTick = signal(0)
   readonly middlewareProviders = toSignal(this.#xpertAgentService.agentMiddlewares$, {
     initialValue: [] as { meta: TAgentMiddlewareMeta }[]
   })
@@ -300,8 +524,7 @@ export class ClawXpertToolPreferencesComponent {
                   buildSourceErrorState(
                     node.key,
                     node.entity.name || node.entity.id,
-                    getErrorMessage(error) ||
-                      'Failed to load toolset tools.'
+                    getErrorMessage(error) || 'Failed to load toolset tools.'
                   )
                 )
               )
@@ -318,8 +541,7 @@ export class ClawXpertToolPreferencesComponent {
                   buildSourceErrorState(
                     node.key,
                     meta?.label ?? middleware.provider,
-                    getErrorMessage(error) ||
-                      'Failed to load middleware tools.'
+                    getErrorMessage(error) || 'Failed to load middleware tools.'
                   )
                 )
               )
@@ -346,9 +568,46 @@ export class ClawXpertToolPreferencesComponent {
     ),
     { initialValue: EMPTY_TOOL_PREFERENCE_STATE }
   )
+  readonly skillWorkspaceId = computed(() => this.facade.currentWorkspaceId())
+  readonly skillState = toSignal(
+    toObservable(
+      computed(() => ({
+        ready: this.facade.viewState() === 'ready' && !!this.facade.xpertId(),
+        workspaceId: this.skillWorkspaceId(),
+        refreshTick: this.skillRefreshTick()
+      }))
+    ).pipe(
+      switchMap(({ ready, workspaceId }) => {
+        if (!ready || !workspaceId) {
+          return of(EMPTY_SKILL_PREFERENCE_STATE)
+        }
+
+        return this.#skillPackageService
+          .getAllByWorkspace(workspaceId, { relations: ['skillIndex', 'skillIndex.repository'] })
+          .pipe(
+            take(1),
+            map(({ items }) => buildSkillPreferenceState(workspaceId, items ?? [])),
+            catchError((error) =>
+              of({
+                ...EMPTY_SKILL_PREFERENCE_STATE,
+                errorMessage: getErrorMessage(error) || 'Failed to load workspace skills.'
+              })
+            ),
+            startWith({
+              ...EMPTY_SKILL_PREFERENCE_STATE,
+              loading: true
+            })
+          )
+      })
+    ),
+    { initialValue: EMPTY_SKILL_PREFERENCE_STATE }
+  )
   readonly toolItems = computed(() => this.toolState().tools)
   readonly toolErrors = computed(() => this.toolState().errors)
-  readonly savingAny = computed(() => Object.keys(this.pendingTools()).length > 0)
+  readonly skillItems = computed(() => this.skillState().skills)
+  readonly busy = computed(() => {
+    return Object.keys(this.pendingPreferenceItems()).length > 0 || this.installingSkillPackage()
+  })
   readonly isBlocked = computed(() => this.facade.viewState() !== 'ready' || !this.facade.xpertId())
   readonly blockedState = computed(() => {
     if (!this.facade.organizationId()) {
@@ -382,20 +641,75 @@ export class ClawXpertToolPreferencesComponent {
   }
 
   isSaving(id: string) {
-    return !!this.pendingTools()[id]
+    return !!this.pendingPreferenceItems()[id]
   }
 
   async toggleTool(item: ToolPreferenceItem, enabled: boolean) {
-    if (this.savingAny()) {
+    if (this.busy()) {
       return
     }
 
-    this.pendingTools.set({ [item.id]: true })
+    this.pendingPreferenceItems.set({ [item.id]: true })
     try {
       await this.facade.setToolEnabled(item.sourceType, item.nodeKey, item.metadata, item.toolName, enabled)
     } finally {
-      this.pendingTools.set({})
+      this.pendingPreferenceItems.set({})
     }
+  }
+
+  async toggleSkill(item: SkillPreferenceItem, enabled: boolean) {
+    if (this.busy()) {
+      return
+    }
+
+    this.pendingPreferenceItems.set({ [item.id]: true })
+    try {
+      await this.facade.setSkillEnabled(item.workspaceId, item.packageId, enabled)
+    } finally {
+      this.pendingPreferenceItems.set({})
+    }
+  }
+
+  openSkillInstallDialog() {
+    if (!this.skillWorkspaceId() || this.installingSkillPackage()) {
+      return
+    }
+
+    this.#dialog
+      .open(ClawXpertSkillInstallDialogComponent, {
+        width: 'min(96vw, 72rem)',
+        maxWidth: '72rem'
+      })
+      .afterClosed()
+      .pipe(take(1))
+      .subscribe((skillIndex) => {
+        if (skillIndex) {
+          this.installSkill(skillIndex)
+        }
+      })
+  }
+
+  installSkill(item: ISkillRepositoryIndex) {
+    const workspaceId = this.skillWorkspaceId()
+    if (!workspaceId || this.installingSkillPackage()) {
+      return
+    }
+
+    this.installingSkillPackage.set(true)
+    this.#skillPackageService.installPackage(workspaceId, item.id).pipe(take(1)).subscribe({
+      next: () => {
+        this.installingSkillPackage.set(false)
+        this.refreshSkills()
+      },
+      error: (error) => {
+        this.installingSkillPackage.set(false)
+        this.#toastr.error(getErrorMessage(error) || 'Failed to install the selected skill.')
+      }
+    })
+  }
+
+  private refreshSkills() {
+    this.skillRefreshTick.update((value) => value + 1)
   }
 }
 
@@ -478,4 +792,122 @@ function buildSourceErrorState(
 
 function buildToolPreferenceId(sourceType: ClawXpertToolPreferenceSourceType, nodeKey: string, toolName: string) {
   return `${sourceType}:${nodeKey}:${toolName}`
+}
+
+function buildSkillPreferenceState(workspaceId: string, skills: ISkillPackage[]): SkillPreferenceState {
+  return {
+    loading: false,
+    skills: skills.map((skill) => ({
+      id: buildSkillPreferenceId(workspaceId, skill.id),
+      packageId: skill.id,
+      workspaceId,
+      skillId: skill.skillIndex?.skillId ?? skill.metadata?.name ?? (typeof skill.name === 'string' ? skill.name : skill.id),
+      label:
+        skill.metadata?.displayName ??
+        normalizeI18nCandidate(skill.name) ??
+        skill.metadata?.name ??
+        skill.skillIndex?.name ??
+        skill.skillIndex?.skillId ??
+        skill.id,
+      summary:
+        skill.metadata?.summary ??
+        skill.metadata?.description ??
+        normalizeI18nCandidate(skill.metadata?.description) ??
+        skill.skillIndex?.description ??
+        null,
+      repositoryName: skill.skillIndex?.repository?.name ?? null,
+      provider: skill.skillIndex?.repository?.provider ?? null
+    })),
+    errorMessage: null
+  }
+}
+
+function buildSkillPreferenceId(workspaceId: string, skillId: string) {
+  return `skill:${workspaceId}:${skillId}`
+}
+
+function normalizeI18nCandidate(value: unknown): string | I18nObject | null {
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as I18nObject
+  }
+
+  return null
+}
+
+@Component({
+  standalone: true,
+  selector: 'pac-clawxpert-skill-install-dialog',
+  imports: [
+    CommonModule,
+    TranslateModule,
+    ZardButtonComponent,
+    ZardDialogModule,
+    ZardIconComponent,
+    XpertSkillRepositoriesComponent,
+    XpertSkillIndexesComponent
+  ],
+  styles: [`:host { display: flex; flex-direction: column; max-height: 90vh; }`],
+  template: `
+    <header xpDialogTitle>
+      <div class="flex items-start gap-3">
+        <div class="flex h-10 w-10 items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle">
+          <z-icon zType="work_history" class="text-lg text-text-primary"></z-icon>
+        </div>
+        <div class="min-w-0">
+          <h4 class="text-lg font-semibold text-text-primary">
+            {{ 'PAC.Chat.ClawXpert.InstallWorkspaceSkillsTitle' | translate: { Default: 'Install skills into this workspace' } }}
+          </h4>
+          <p class="mt-1 text-sm leading-6 text-text-secondary">
+            {{
+              'PAC.Chat.ClawXpert.InstallWorkspaceSkillsDialogDesc'
+                | translate
+                  : {
+                      Default:
+                        'Browse repositories, pick a skill, and it will be installed into the current workspace with the ClawXpert toggle enabled by default.'
+                    }
+            }}
+          </p>
+        </div>
+      </div>
+    </header>
+
+    <div xpDialogContent class="w-full relative overflow-auto">
+      <div class="mt-1 rounded-2xl border border-divider-regular bg-background p-3 sticky top-0 z-10">
+        <xp-skill-repositories
+          [readonly]="true"
+          [selectedRepository]="selectedRepository()"
+          (selectedRepositoryChange)="selectedRepository.set($event)"
+        />
+      </div>
+
+      <div class="mt-2 rounded-2xl border border-divider-regular bg-background-default-subtle p-3">
+        <xp-skill-indexes class="overflow-auto"
+          [selectedRepository]="selectedRepository()"
+          (installing)="install($event)"
+        />
+      </div>
+    </div>
+
+    <div xpDialogActions>
+      <div class="flex w-full justify-end">
+        <button z-button zType="outline" type="button" xpDialogClose>
+          {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
+        </button>
+      </div>
+    </div>
+  `
+})
+export class ClawXpertSkillInstallDialogComponent {
+  @HostBinding('class.ngm-dialog-container') readonly isDialogContainer = true
+
+  readonly #dialogRef = inject(ZardDialogRef<ClawXpertSkillInstallDialogComponent, ISkillRepositoryIndex | undefined>)
+  readonly selectedRepository = signal<ISkillRepository | null>(null)
+
+  install(item: ISkillRepositoryIndex) {
+    this.#dialogRef.close(item)
+  }
 }

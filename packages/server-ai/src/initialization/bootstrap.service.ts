@@ -1,4 +1,4 @@
-import { LanguagesEnum, TXpertTeamDraft, IUser } from '@metad/contracts'
+import { ISkillRepository, LanguagesEnum, TXpertTeamDraft, IUser } from '@metad/contracts'
 import { getErrorMessage, yaml } from '@metad/server-common'
 import {
 	OrganizationCreatedEvent,
@@ -11,11 +11,24 @@ import {
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ConfigService } from '@nestjs/config'
+import { readFileSync } from 'fs'
+import { join } from 'path'
+import { SkillRepositoryIndexService, SkillRepositoryService } from '../skill-repository'
 import { XpertImportCommand, XpertService } from '../xpert'
 import { EnvironmentService } from '../environment'
 import { XpertTemplateService } from '../xpert-template/xpert-template.service'
 import { XpertWorkspaceService } from '../xpert-workspace/workspace.service'
 import { DEFAULT_ENVIRONMENT_NAME, DEFAULT_ORGANIZATION_WORKSPACE_NAME } from './constants'
+
+type DefaultSkillRepositoryConfig = {
+	repositories?: Array<Pick<ISkillRepository, 'name' | 'provider'> & Partial<Pick<ISkillRepository, 'options' | 'credentials'>>>
+}
+
+export type OrganizationBootstrapResult = {
+	repositoryIds: string[]
+}
+
+const DEFAULT_SKILL_REPOSITORIES_CONFIG_PATH = join(__dirname, 'default-skill-repositories.yaml')
 
 @Injectable()
 export class ServerAIBootstrapService {
@@ -29,18 +42,22 @@ export class ServerAIBootstrapService {
 		private readonly userOrganizationService: UserOrganizationService,
 		private readonly workspaceService: XpertWorkspaceService,
 		private readonly environmentService: EnvironmentService,
+		private readonly skillRepositoryService: SkillRepositoryService,
+		private readonly skillRepositoryIndexService: SkillRepositoryIndexService,
 		private readonly xpertService: XpertService,
 		private readonly xpertTemplateService: XpertTemplateService
 	) {}
 
-	async bootstrapOrganization(event: OrganizationCreatedEvent) {
+	async bootstrapOrganization(event: OrganizationCreatedEvent): Promise<OrganizationBootstrapResult> {
 		const owner = await this.resolveBootstrapUser(event.organizationId, event.ownerUserId)
 		const organization = await this.organizationService.findOne(event.organizationId)
 		const memberIds = await this.userOrganizationService.findUserIdsByOrganization(event.organizationId)
+		let repositoryIds: string[] = []
 
 		await this.runInOrganizationContext(owner, event.organizationId, async () => {
 			const workspace = await this.ensureOrganizationWorkspace(event.organizationId, owner.id)
 			await this.ensureDefaultEnvironment(workspace.id)
+			repositoryIds = await this.ensureOrganizationSkillRepositories()
 
 			for (const memberId of memberIds) {
 				await this.workspaceService.ensureMember(workspace.id, memberId)
@@ -53,6 +70,10 @@ export class ServerAIBootstrapService {
 				workspaceId: workspace.id
 			})
 		})
+
+		return {
+			repositoryIds
+		}
 	}
 
 	async bootstrapUserInOrganization(event: UserOrganizationCreatedEvent) {
@@ -69,6 +90,66 @@ export class ServerAIBootstrapService {
 				await this.workspaceService.ensureMember(organizationWorkspace.id, user.id)
 			}
 		})
+	}
+
+	async syncOrganizationSkillRepository(event: OrganizationCreatedEvent & { repositoryId: string }) {
+		const owner = await this.resolveBootstrapUser(event.organizationId, event.ownerUserId)
+
+		await this.runInOrganizationContext(owner, event.organizationId, async () => {
+			await this.skillRepositoryIndexService.sync(event.repositoryId, { mode: 'full' })
+		})
+	}
+
+	private async ensureOrganizationSkillRepositories() {
+		const repositories = this.loadDefaultSkillRepositories()
+		if (!repositories.length) {
+			return []
+		}
+
+		const repositoryIds: string[] = []
+		for (const repository of repositories) {
+			const name = repository.name?.trim()
+			const provider = repository.provider?.trim()
+			if (!name || !provider) {
+				this.logger.warn(`Skipping invalid default skill repository entry: ${JSON.stringify(repository)}`)
+				continue
+			}
+
+			const { items } = await this.skillRepositoryService.findAll({
+				where: {
+					name,
+					provider
+				} as any,
+				take: 1
+			})
+			const existing = items[0]
+			const saved = await this.skillRepositoryService.register({
+				...(existing ? { id: existing.id } : {}),
+				name,
+				provider,
+				options: repository.options ?? null,
+				credentials: repository.credentials ?? null
+			} as any)
+
+			if (saved?.id) {
+				repositoryIds.push(saved.id)
+			}
+		}
+
+		return repositoryIds
+	}
+
+	private loadDefaultSkillRepositories() {
+		try {
+			const content = readFileSync(DEFAULT_SKILL_REPOSITORIES_CONFIG_PATH, 'utf8')
+			const config = (yaml.parse(content) ?? {}) as DefaultSkillRepositoryConfig
+			return (config.repositories ?? []).filter(Boolean)
+		} catch (error) {
+			this.logger.warn(
+				`Failed to load default skill repositories from '${DEFAULT_SKILL_REPOSITORIES_CONFIG_PATH}': ${getErrorMessage(error)}`
+			)
+			return []
+		}
 	}
 
 	private async resolveBootstrapUser(organizationId: string, preferredUserId?: string | null) {

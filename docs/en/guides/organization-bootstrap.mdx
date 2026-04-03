@@ -121,16 +121,19 @@ flowchart TD
   E --> G["Run in organization request context"]
   F --> H["Run in organization request context"]
   G --> I["Create org default workspace and environment"]
-  I --> J["Sync organization members"]
-  J --> K["Import template xperts"]
-  H --> L["Initialize semantic model data"]
+  I --> J["Register default skill repositories from YAML"]
+  J --> K["Sync organization members"]
+  K --> L["Import template xperts"]
+  E --> M["Enqueue org-skill-repository-sync jobs"]
+  M --> N["Async full index sync for each repository"]
+  H --> V["Initialize semantic model data"]
 
-  M["Create UserOrganization"] --> N["Emit user.organization.created"]
-  N --> O["server-ai enqueue user-org-bootstrap:{organizationId}:{userId}"]
-  O --> P["Run in organization request context"]
-  P --> Q["Optionally create personal workspace"]
-  Q --> R["Create personal default environment"]
-  R --> S["Ensure user joins org default workspace"]
+  O["Create UserOrganization"] --> P["Emit user.organization.created"]
+  P --> Q["server-ai enqueue user-org-bootstrap:{organizationId}:{userId}"]
+  Q --> R["Run in organization request context"]
+  R --> S["Optionally create personal workspace"]
+  S --> T["Create personal default environment"]
+  T --> U["Ensure user joins org default workspace"]
 ```
 
 ## `server-ai` responsibilities
@@ -143,6 +146,8 @@ Responsibilities:
 
 - idempotently create the organization default workspace
 - idempotently create the default environment for that workspace
+- idempotently register default skill repositories from a fixed YAML file
+- enqueue async full index sync jobs for those repositories
 - add current organization members into the default workspace
 - import default template xperts based on environment configuration
 
@@ -156,6 +161,34 @@ The organization workspace is marked with:
 ```ts
 workspace.settings.system.kind = 'org-default'
 ```
+
+### Default skill repositories
+
+Organization bootstrap also seeds skill repositories from the repo-local file:
+
+```text
+packages/server-ai/src/initialization/default-skill-repositories.yaml
+```
+
+Current YAML shape:
+
+```yaml
+repositories:
+  - name: anthropics/skills
+    provider: github
+    options:
+      url: https://github.com/anthropics/skills
+      branch: main
+```
+
+Notes:
+
+- each entry supports repository fields such as `name`, `provider`, `options`, and `credentials`
+- bootstrap matches existing repositories by `name + provider`
+- when a match exists, bootstrap updates that repository instead of creating a duplicate
+- repositories removed from YAML are not deleted from existing organizations
+
+After registration, bootstrap enqueues a separate async sync job per repository, and each job calls a full repository index sync. That keeps organization creation fast while still making new skills discoverable shortly after bootstrap.
 
 ### User bootstrap
 
@@ -283,6 +316,7 @@ Because of that, idempotency exists at several layers.
 ### Queue job ids
 
 - organization bootstrap: `org-bootstrap:${organizationId}`
+- organization skill repository sync: `org-skill-repository-sync:${organizationId}:${repositoryId}`
 - user bootstrap: `user-org-bootstrap:${organizationId}:${userId}`
 
 ### Record-level markers
@@ -294,6 +328,7 @@ Because of that, idempotency exists at several layers.
 ### Behavioral idempotency
 
 - environments are created only after checking for the existing default one
+- default skill repositories are upserted by `name + provider`
 - workspace membership uses `ensureMember`
 - analytics seed logic de-duplicates by organization scope
 

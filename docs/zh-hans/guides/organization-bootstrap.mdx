@@ -121,16 +121,19 @@ flowchart TD
   E --> G["Run in organization request context"]
   F --> H["Run in organization request context"]
   G --> I["Create org default workspace and environment"]
-  I --> J["Sync organization members"]
-  J --> K["Import template xperts"]
-  H --> L["Initialize semantic model data"]
+  I --> J["Register default skill repositories from YAML"]
+  J --> K["Sync organization members"]
+  K --> L["Import template xperts"]
+  E --> M["Enqueue org-skill-repository-sync jobs"]
+  M --> N["Async full index sync for each repository"]
+  H --> O["Initialize semantic model data"]
 
-  M["Create UserOrganization"] --> N["Emit user.organization.created"]
-  N --> O["server-ai enqueue user-org-bootstrap:{organizationId}:{userId}"]
-  O --> P["Run in organization request context"]
-  P --> Q["Optionally create personal workspace"]
-  Q --> R["Create personal default environment"]
-  R --> S["Ensure user joins org default workspace"]
+  P["Create UserOrganization"] --> Q["Emit user.organization.created"]
+  Q --> R["server-ai enqueue user-org-bootstrap:{organizationId}:{userId}"]
+  R --> S["Run in organization request context"]
+  S --> T["Optionally create personal workspace"]
+  T --> U["Create personal default environment"]
+  U --> V["Ensure user joins org default workspace"]
 ```
 
 ## `server-ai` 初始化职责
@@ -143,6 +146,8 @@ flowchart TD
 
 - 幂等创建组织默认 workspace
 - 为该 workspace 幂等创建默认 environment
+- 从仓库内固定 YAML 幂等注册默认 skill repositories
+- 为这些 repositories 异步入队 full index sync 任务
 - 把当前组织成员全部加入组织默认 workspace
 - 按环境变量导入默认模板 xperts
 
@@ -152,6 +157,34 @@ flowchart TD
 - 默认 environment：`Default`
 
 组织默认 workspace 通过 `workspace.settings.system.kind = 'org-default'` 标记。
+
+### 默认 skill repositories
+
+组织 bootstrap 还会从仓库内的固定文件补齐默认 skill repositories：
+
+```text
+packages/server-ai/src/initialization/default-skill-repositories.yaml
+```
+
+当前 YAML 结构如下：
+
+```yaml
+repositories:
+  - name: anthropics/skills
+    provider: github
+    options:
+      url: https://github.com/anthropics/skills
+      branch: main
+```
+
+说明：
+
+- 每个条目支持 `name`、`provider`、`options`、`credentials` 等 repository 字段
+- bootstrap 以 `name + provider` 为幂等键查找已有 repository
+- 若已存在则执行更新，不会重复创建
+- YAML 中后续删除的条目不会反向删除组织里已存在的自定义 repository
+
+repository 注册完成后，会为每个 repository 单独入队一个异步 sync job，并执行 full index sync。这样既能保证组织创建主链路足够轻，也能让默认 skills 在 bootstrap 后尽快可用。
 
 ### 用户 bootstrap
 
@@ -279,6 +312,7 @@ ORG_ANALYTICS_BOOTSTRAP_MODE=semantic-only
 ### 队列幂等键
 
 - 组织 bootstrap：`org-bootstrap:${organizationId}`
+- 组织 skill repository sync：`org-skill-repository-sync:${organizationId}:${repositoryId}`
 - 用户 bootstrap：`user-org-bootstrap:${organizationId}:${userId}`
 
 ### 记录级幂等标记
@@ -290,6 +324,7 @@ ORG_ANALYTICS_BOOTSTRAP_MODE=semantic-only
 ### 行为级幂等
 
 - environment 创建前先查默认 environment
+- 默认 skill repositories 按 `name + provider` 执行 upsert
 - workspace 成员加入使用 `ensureMember`
 - analytics seed 逻辑按组织范围查重
 
