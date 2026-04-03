@@ -1,7 +1,7 @@
 import { TestBed } from '@angular/core/testing'
 import { provideRouter } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
-import { of, throwError } from 'rxjs'
+import { of, Subject, throwError } from 'rxjs'
 import {
   AssistantBindingService,
   EnvironmentService,
@@ -32,6 +32,7 @@ function createXpert(id: string, name = id): IXpert {
 
 function createBinding(assistantId: string): IAssistantBinding {
   return {
+    id: `${assistantId}-binding`,
     code: 'clawxpert',
     assistantId,
     organizationId: 'org-1',
@@ -55,6 +56,19 @@ function createTeam(id: string, name = id): IXpert {
     ...createXpert(id, name),
     draft: createDraft(id)
   } as IXpert
+}
+
+function createToolPreferences() {
+  return {
+    version: 1 as const,
+    toolsets: {
+      'toolset-node': {
+        toolsetId: 'toolset-1',
+        toolsetName: 'Search',
+        disabledTools: ['tavily_search']
+      }
+    }
+  }
 }
 
 describe('ClawXpertFacade', () => {
@@ -299,5 +313,265 @@ describe('ClawXpertFacade', () => {
     expect(result).toEqual(expect.objectContaining({ id: 'xpert-publish', version: '1.0.0' }))
     expect(facade.hasPersistedDraft()).toBe(false)
     expect(toastr.success).toHaveBeenCalled()
+  })
+
+  it('loads saved tool preferences with the user preference payload', async () => {
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-tools')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-tools', 'Tool Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: createToolPreferences()
+      })
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    expect(facade.toolPreferences()).toEqual(createToolPreferences())
+    expect(facade.isToolEnabled('toolset', 'toolset-node', 'tavily_search')).toBe(false)
+  })
+
+  it('loads user preferences even when the binding payload does not include an id', async () => {
+    assistantBindingService.get.mockReturnValue(
+      of({
+        code: 'clawxpert',
+        assistantId: 'xpert-tools',
+        organizationId: 'org-1',
+        userId: 'user-1'
+      } as IAssistantBinding)
+    )
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-tools', 'Tool Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: createToolPreferences()
+      })
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    expect(assistantBindingService.getPreference).toHaveBeenCalledWith('clawxpert', 'user')
+    expect(facade.isToolEnabled('toolset', 'toolset-node', 'tavily_search')).toBe(false)
+  })
+
+  it('saves tool preference updates without clearing markdown fields', async () => {
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-tools')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-tools', 'Tool Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: {
+          version: 1
+        }
+      })
+    )
+    assistantBindingService.upsertPreference.mockReturnValue(
+      of({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: createToolPreferences()
+      })
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    const result = await facade.setToolEnabled(
+      'toolset',
+      'toolset-node',
+      {
+        toolsetId: 'toolset-1',
+        toolsetName: 'Search'
+      },
+      'tavily_search',
+      false
+    )
+
+    expect(result).toBe(true)
+    expect(assistantBindingService.upsertPreference).toHaveBeenCalledWith('clawxpert', {
+      scope: 'user',
+      toolPreferences: createToolPreferences()
+    })
+    expect(facade.userPreference()).toEqual(
+      expect.objectContaining({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: createToolPreferences()
+      })
+    )
+  })
+
+  it('keeps the optimistic tool preference when the save response omits toolPreferences', async () => {
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-tools')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-tools', 'Tool Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: {
+          version: 1
+        }
+      })
+    )
+    assistantBindingService.upsertPreference.mockReturnValue(
+      of({
+        soul: '# Rules',
+        profile: '# Profile'
+      })
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    const result = await facade.setToolEnabled(
+      'toolset',
+      'toolset-node',
+      {
+        toolsetId: 'toolset-1',
+        toolsetName: 'Search'
+      },
+      'tavily_search',
+      false
+    )
+
+    expect(result).toBe(true)
+    expect(facade.isToolEnabled('toolset', 'toolset-node', 'tavily_search')).toBe(false)
+    expect(facade.userPreference()?.toolPreferences).toEqual(createToolPreferences())
+  })
+
+  it('ignores stale in-flight preference loads after a tool preference save', async () => {
+    const preferenceLoad$ = new Subject<any>()
+
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-tools')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-tools', 'Tool Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(preferenceLoad$.asObservable())
+    assistantBindingService.upsertPreference.mockReturnValue(
+      of({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: createToolPreferences()
+      })
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    const savePromise = facade.setToolEnabled(
+      'toolset',
+      'toolset-node',
+      {
+        toolsetId: 'toolset-1',
+        toolsetName: 'Search'
+      },
+      'tavily_search',
+      false
+    )
+
+    await expect(savePromise).resolves.toBe(true)
+    expect(facade.isToolEnabled('toolset', 'toolset-node', 'tavily_search')).toBe(false)
+
+    preferenceLoad$.next({
+      soul: '# Rules',
+      profile: '# Profile',
+      toolPreferences: {
+        version: 1
+      }
+    })
+    preferenceLoad$.complete()
+    await flushPromises()
+
+    expect(facade.isToolEnabled('toolset', 'toolset-node', 'tavily_search')).toBe(false)
+    expect(facade.userPreference()?.toolPreferences).toEqual(createToolPreferences())
+  })
+
+  it('saves tool preferences even when the loaded binding payload omits id', async () => {
+    assistantBindingService.get.mockReturnValue(
+      of({
+        code: 'clawxpert',
+        assistantId: 'xpert-tools',
+        organizationId: 'org-1',
+        userId: 'user-1'
+      } as IAssistantBinding)
+    )
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-tools', 'Tool Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: {
+          version: 1
+        }
+      })
+    )
+    assistantBindingService.upsertPreference.mockReturnValue(
+      of({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: createToolPreferences()
+      })
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    await expect(
+      facade.setToolEnabled(
+        'toolset',
+        'toolset-node',
+        {
+          toolsetId: 'toolset-1',
+          toolsetName: 'Search'
+        },
+        'tavily_search',
+        false
+      )
+    ).resolves.toBe(true)
+
+    expect(assistantBindingService.upsertPreference).toHaveBeenCalledWith('clawxpert', {
+      scope: 'user',
+      toolPreferences: createToolPreferences()
+    })
+    expect(facade.isToolEnabled('toolset', 'toolset-node', 'tavily_search')).toBe(false)
+  })
+
+  it('keeps existing tool preferences after saving markdown documents', async () => {
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-docs')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-docs', 'Docs Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: createToolPreferences()
+      })
+    )
+    assistantBindingService.upsertPreference.mockReturnValue(
+      of({
+        soul: '# Updated Rules',
+        profile: '# Updated Profile',
+        toolPreferences: createToolPreferences()
+      })
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    const result = await facade.saveUserPreference({
+      soul: '# Updated Rules',
+      profile: '# Updated Profile'
+    })
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        soul: '# Updated Rules',
+        profile: '# Updated Profile',
+        toolPreferences: createToolPreferences()
+      })
+    )
+    expect(facade.userPreference()?.toolPreferences).toEqual(createToolPreferences())
   })
 })

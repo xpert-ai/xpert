@@ -1,5 +1,6 @@
 import {
   IAssistantBinding,
+  IAssistantBindingToolPreferences,
   IAssistantBindingUserPreference,
   IUser
 } from '@metad/contracts'
@@ -68,4 +69,9 @@ export class AssistantBindingUserPreference
   @IsOptional()
   @Column({ type: 'text', nullable: true })
   profile?: string | null
+
+  @ApiPropertyOptional({ type: () => Object })
+  @IsOptional()
+  @Column({ type: 'json', nullable: true })
+  toolPreferences?: IAssistantBindingToolPreferences | null
 }

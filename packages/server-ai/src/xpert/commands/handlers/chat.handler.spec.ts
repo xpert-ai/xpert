@@ -54,7 +54,16 @@ describe('XpertChatHandler', () => {
         assistantBindingService = {
             getUserPreferenceByAssistantId: jest.fn().mockResolvedValue({
                 soul: '# Rules',
-                profile: '# Profile'
+                profile: '# Profile',
+                toolPreferences: {
+                    version: 1,
+                    toolsets: {
+                        'toolset-1': {
+                            toolsetName: 'Toolset 1',
+                            disabledTools: ['search']
+                        }
+                    }
+                }
             })
         }
         commandBus = {
@@ -205,6 +214,114 @@ describe('XpertChatHandler', () => {
                 profile: '# Profile'
             })
         )
+        expect(agentCommand.options.toolPreferences).toEqual({
+            version: 1,
+            toolsets: {
+                'toolset-1': {
+                    toolsetName: 'Toolset 1',
+                    disabledTools: ['search']
+                }
+            }
+        })
+    })
+
+    it('passes a null tool preference snapshot when the user preference has no tool preferences', async () => {
+        assistantBindingService.getUserPreferenceByAssistantId.mockResolvedValueOnce({
+            soul: '# Rules',
+            profile: '# Profile',
+            toolPreferences: null
+        })
+
+        const commands: any[] = []
+        commandBus.execute.mockImplementation(async (command) => {
+            commands.push(command)
+
+            if (command instanceof CreateMemoryStoreCommand) {
+                return null
+            }
+            if (command instanceof ChatConversationUpsertCommand) {
+                if (!command.entity.id) {
+                    return {
+                        id: 'conversation-1',
+                        threadId: 'thread-1',
+                        messages: [],
+                        status: command.entity.status,
+                        title: null,
+                        options: command.entity.options
+                    }
+                }
+                return {
+                    id: 'conversation-1',
+                    threadId: 'thread-1',
+                    status: command.entity.status,
+                    title: command.entity.title,
+                    error: command.entity.error,
+                    operation: command.entity.operation,
+                    options: command.entity.options
+                }
+            }
+            if (command instanceof XpertAgentExecutionUpsertCommand) {
+                if (command.execution.status === XpertAgentExecutionStatusEnum.RUNNING) {
+                    return {
+                        id: 'execution-1',
+                        threadId: 'thread-1'
+                    }
+                }
+                return command.execution
+            }
+            if (command instanceof ChatMessageUpsertCommand) {
+                if (command.entity.role === 'human') {
+                    return {
+                        id: 'human-1',
+                        ...command.entity
+                    }
+                }
+                if (command.entity.role === 'ai' && command.entity.status === 'thinking') {
+                    return {
+                        id: 'ai-1',
+                        ...command.entity
+                    }
+                }
+                return command.entity
+            }
+            if (command instanceof XpertAgentChatCommand) {
+                return of({
+                    data: {
+                        type: ChatMessageTypeEnum.EVENT,
+                        event: ChatMessageEventTypeEnum.ON_AGENT_END,
+                        data: {
+                            id: 'execution-1',
+                            status: XpertAgentExecutionStatusEnum.SUCCESS
+                        }
+                    }
+                } as MessageEvent)
+            }
+            return null
+        })
+
+        const stream = await handler.execute(
+            new XpertChatCommand(
+                {
+                    action: 'send',
+                    message: {
+                        clientMessageId: 'client-1',
+                        input: {
+                            input: 'Hello world'
+                        }
+                    }
+                },
+                {
+                    xpertId: 'xpert-1'
+                } as any
+            )
+        )
+
+        await lastValueFrom(stream.pipe(toArray()))
+
+        const agentCommand = commands.find(
+            (command) => command instanceof XpertAgentChatCommand
+        ) as XpertAgentChatCommand
+        expect(agentCommand.options.toolPreferences).toBeNull()
     })
 
     it('reuses the interrupted ai message and execution for resume', async () => {

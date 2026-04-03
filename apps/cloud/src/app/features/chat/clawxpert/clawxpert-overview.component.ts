@@ -8,6 +8,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertPreferencesEditorComponent } from './clawxpert-preferences-editor.component'
 import { ClawXpertScheduledTasksComponent } from './clawxpert-scheduled-tasks.component'
 import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.component'
+import { ClawXpertToolPreferencesComponent } from './clawxpert-tool-preferences.component'
 import { ClawXpertTriggerConfigEditorComponent } from './clawxpert-trigger-config-editor.component'
 
 type ClawXpertMetric = {
@@ -65,6 +66,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
     ClawXpertPreferencesEditorComponent,
     ClawXpertScheduledTasksComponent,
     ClawXpertTriggerConfigEditorComponent,
+    ClawXpertToolPreferencesComponent,
     ClawXpertSetupWizardComponent,
     ...ZardCardImports
   ],
@@ -327,6 +329,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
             <pac-clawxpert-preferences-editor />
             <pac-clawxpert-trigger-config-editor />
             <pac-clawxpert-scheduled-tasks />
+            <pac-clawxpert-tool-preferences />
           </div>
         </div>
       }

@@ -276,7 +276,17 @@ describe('AssistantBindingService', () => {
     preferenceRepository.findOne.mockResolvedValueOnce({
       assistantBindingId: 'binding-1',
       soul: '# Rules',
-      profile: '# Profile'
+      profile: '# Profile',
+      toolPreferences: {
+        version: 1,
+        toolsets: {
+          'toolset-node': {
+            toolsetId: 'toolset-1',
+            toolsetName: 'Search',
+            disabledTools: ['tavily_search']
+          }
+        }
+      }
     })
 
     const result = await service.getBindingPreference(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
@@ -284,7 +294,17 @@ describe('AssistantBindingService', () => {
     expect(result).toEqual(
       expect.objectContaining({
         soul: '# Rules',
-        profile: '# Profile'
+        profile: '# Profile',
+        toolPreferences: {
+          version: 1,
+          toolsets: {
+            'toolset-node': {
+              toolsetId: 'toolset-1',
+              toolsetName: 'Search',
+              disabledTools: ['tavily_search']
+            }
+          }
+        }
       })
     )
     expect(preferenceRepository.findOne).toHaveBeenCalled()
@@ -300,7 +320,16 @@ describe('AssistantBindingService', () => {
     preferenceRepository.findOne.mockResolvedValueOnce({
       assistantBindingId: 'binding-1',
       soul: '# Rules',
-      profile: '# Profile'
+      profile: '# Profile',
+      toolPreferences: {
+        version: 1,
+        middlewares: {
+          'middleware-node': {
+            provider: 'scheduler',
+            disabledTools: ['delete_scheduler']
+          }
+        }
+      }
     })
 
     const result = await service.getUserPreferenceByAssistantId('xpert-1')
@@ -316,7 +345,16 @@ describe('AssistantBindingService', () => {
     expect(result).toEqual(
       expect.objectContaining({
         soul: '# Rules',
-        profile: '# Profile'
+        profile: '# Profile',
+        toolPreferences: {
+          version: 1,
+          middlewares: {
+            'middleware-node': {
+              provider: 'scheduler',
+              disabledTools: ['delete_scheduler']
+            }
+          }
+        }
       })
     )
   })
@@ -332,7 +370,17 @@ describe('AssistantBindingService', () => {
     const result = await service.upsertBindingPreference(AssistantCode.CLAWXPERT, {
       scope: AssistantBindingScope.USER,
       soul: '# Rules',
-      profile: '# Profile'
+      profile: '# Profile',
+      toolPreferences: {
+        version: 1,
+        toolsets: {
+          'toolset-node': {
+            toolsetId: 'toolset-1',
+            toolsetName: 'Search',
+            disabledTools: ['tavily_search']
+          }
+        }
+      }
     })
 
     expect(result).toEqual(
@@ -340,9 +388,89 @@ describe('AssistantBindingService', () => {
         assistantBindingId: 'binding-1',
         soul: '# Rules',
         profile: '# Profile',
+        toolPreferences: {
+          version: 1,
+          toolsets: {
+            'toolset-node': {
+              toolsetId: 'toolset-1',
+              toolsetName: 'Search',
+              disabledTools: ['tavily_search']
+            }
+          }
+        },
         userId: 'user-1'
       })
     )
     expect(preferenceRepository.save).toHaveBeenCalled()
+  })
+
+  it('merges partial user preferences without clearing omitted fields', async () => {
+    const existingPreference = {
+      assistantBindingId: 'binding-1',
+      soul: '# Rules',
+      profile: '# Profile',
+      toolPreferences: {
+        version: 1,
+        toolsets: {
+          'toolset-node': {
+            toolsetId: 'toolset-1',
+            toolsetName: 'Search',
+            disabledTools: ['tavily_search']
+          }
+        }
+      },
+      updatedBy: null
+    }
+
+    repository.findOne.mockResolvedValueOnce({
+      id: 'binding-1',
+      code: AssistantCode.CLAWXPERT,
+      scope: AssistantBindingScope.USER
+    })
+    preferenceRepository.findOne.mockResolvedValueOnce(existingPreference)
+
+    const result = await service.upsertBindingPreference(AssistantCode.CLAWXPERT, {
+      scope: AssistantBindingScope.USER,
+      toolPreferences: {
+        version: 1,
+        middlewares: {
+          'middleware-node': {
+            provider: 'scheduler',
+            disabledTools: ['delete_scheduler']
+          }
+        }
+      }
+    })
+
+    expect(result).toEqual(
+      expect.objectContaining({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: {
+          version: 1,
+          middlewares: {
+            'middleware-node': {
+              provider: 'scheduler',
+              disabledTools: ['delete_scheduler']
+            }
+          }
+        }
+      })
+    )
+    expect(preferenceRepository.save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: {
+          version: 1,
+          middlewares: {
+            'middleware-node': {
+              provider: 'scheduler',
+              disabledTools: ['delete_scheduler']
+            }
+          }
+        }
+      })
+    )
   })
 })

@@ -12,6 +12,8 @@ import {
   AssistantBindingService,
   AssistantCode,
   IAssistantBinding,
+  IEnvironment,
+  IAssistantBindingToolPreferences,
   IAssistantBindingUserPreference,
   IAssistantBindingUserPreferenceUpsertInput,
   IWFNTrigger,
@@ -53,6 +55,17 @@ export type ClawXpertTriggerEditorItem = {
   provider: WorkflowTriggerProviderOption
   config?: Record<string, unknown> | null
 }
+
+export type ClawXpertToolPreferenceSourceType = 'toolset' | 'middleware'
+
+export type ClawXpertToolPreferenceSourceMetadata =
+  | {
+      toolsetId?: string | null
+      toolsetName: string
+    }
+  | {
+      provider: string
+    }
 
 type XpertCollection = IXpert[] | { items?: IXpert[] } | null | undefined
 
@@ -123,6 +136,7 @@ export class ClawXpertFacade {
   readonly triggerDraftSource = signal<IXpert | null>(null)
   readonly triggerDraft = signal<TXpertTeamDraft | null>(null)
   readonly chatkitFrameUrl = computed(() => sanitizeAssistantFrameUrl(environment.CHATKIT_FRAME_URL))
+  readonly toolPreferences = computed(() => normalizeToolPreferences(this.userPreference()?.toolPreferences))
   readonly triggerProviders = toSignal(
     this.#xpertService.getTriggerProviders().pipe(catchError(() => of([] as TWorkflowTriggerMeta[]))),
     { initialValue: [] as TWorkflowTriggerMeta[] }
@@ -339,9 +353,9 @@ export class ClawXpertFacade {
 
     effect(() => {
       const organizationId = this.organizationId()
-      const bindingId = this.preference()?.id
+      const assistantId = this.preference()?.assistantId
 
-      if (!organizationId || !bindingId) {
+      if (!organizationId || !assistantId) {
         this.#preferenceLoadRequestId++
         this.userPreference.set(null)
         this.loadingUserPreference.set(false)
@@ -480,6 +494,8 @@ export class ClawXpertFacade {
 
   async saveUserPreference(input: Pick<IAssistantBindingUserPreferenceUpsertInput, 'soul' | 'profile'>) {
     this.savingUserPreference.set(true)
+    this.invalidateUserPreferenceLoads()
+    const previousPreference = this.userPreference()
     try {
       const preference = (await firstValueFrom(
         this.#assistantBindingService.upsertPreference(AssistantCode.CLAWXPERT, {
@@ -489,9 +505,9 @@ export class ClawXpertFacade {
         })
       )) as IAssistantBindingUserPreference
 
-      this.userPreference.set(preference)
+      this.userPreference.set(this.normalizePersistedUserPreference(preference, previousPreference))
       this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
-      return preference
+      return this.userPreference()
     } catch (error) {
       this.#toastr.error(
         getErrorMessage(error) ||
@@ -502,6 +518,53 @@ export class ClawXpertFacade {
       return null
     } finally {
       this.savingUserPreference.set(false)
+    }
+  }
+
+  isToolEnabled(sourceType: ClawXpertToolPreferenceSourceType, nodeKey: string, toolName: string) {
+    return !getDisabledTools(this.toolPreferences(), sourceType, nodeKey).includes(toolName)
+  }
+
+  async setToolEnabled(
+    sourceType: ClawXpertToolPreferenceSourceType,
+    nodeKey: string,
+    metadata: ClawXpertToolPreferenceSourceMetadata,
+    toolName: string,
+    enabled: boolean
+  ) {
+    if (!this.preference()?.assistantId) {
+      return false
+    }
+
+    this.invalidateUserPreferenceLoads()
+    const previousPreference = this.userPreference()
+    const nextToolPreferences = updateToolPreferences(this.toolPreferences(), sourceType, nodeKey, metadata, toolName, enabled)
+    const nextPreference = {
+      ...(previousPreference ?? {}),
+      toolPreferences: isToolPreferencesEmpty(nextToolPreferences) ? null : nextToolPreferences
+    } as IAssistantBindingUserPreference
+
+    this.userPreference.set(nextPreference)
+
+    try {
+      const preference = (await firstValueFrom(
+        this.#assistantBindingService.upsertPreference(AssistantCode.CLAWXPERT, {
+          scope: AssistantBindingScope.USER,
+          toolPreferences: nextPreference.toolPreferences ?? null
+        })
+      )) as IAssistantBindingUserPreference
+
+      this.userPreference.set(this.normalizePersistedUserPreference(preference, nextPreference))
+      return true
+    } catch (error) {
+      this.userPreference.set(previousPreference ?? null)
+      this.#toastr.error(
+        getErrorMessage(error) ||
+          this.#translate.instant('PAC.Chat.ClawXpert.ToolPreferenceSaveFailed', {
+            Default: 'Failed to save the ClawXpert tool preferences.'
+          })
+      )
+      return false
     }
   }
 
@@ -568,8 +631,10 @@ export class ClawXpertFacade {
     this.publishingXpert.set(true)
     try {
       const workspaceId = xpert.workspaceId ?? null
-      const environment = workspaceId
-        ? await firstValueFrom(this.#environmentService.getDefaultByWorkspace(workspaceId).pipe(catchError(() => of(null))))
+      const environment: IEnvironment | null = workspaceId
+        ? await firstValueFrom(
+            this.#environmentService.getDefaultByWorkspace(workspaceId).pipe(catchError(() => of(null)))
+          )
         : null
       const publishedXpert = (await firstValueFrom(
         this.#xpertService.publish(xpertId, false, {
@@ -816,6 +881,29 @@ export class ClawXpertFacade {
     }
   }
 
+  private invalidateUserPreferenceLoads() {
+    this.#preferenceLoadRequestId++
+    this.loadingUserPreference.set(false)
+  }
+
+  private normalizePersistedUserPreference(
+    persistedPreference: IAssistantBindingUserPreference | null | undefined,
+    currentPreference: IAssistantBindingUserPreference | null | undefined
+  ): IAssistantBindingUserPreference | null {
+    if (!persistedPreference && !currentPreference) {
+      return null
+    }
+
+    return {
+      ...(currentPreference ?? {}),
+      ...(persistedPreference ?? {}),
+      toolPreferences:
+        persistedPreference && Object.prototype.hasOwnProperty.call(persistedPreference, 'toolPreferences')
+          ? persistedPreference.toolPreferences ?? null
+          : currentPreference?.toolPreferences ?? null
+    } as IAssistantBindingUserPreference
+  }
+
   private async loadTriggerDraft(xpertId: string) {
     const requestId = ++this.#triggerDraftLoadRequestId
     this.loadingTriggerDraft.set(true)
@@ -860,6 +948,138 @@ function normalizeClawXpertPath(url: string) {
   }
 
   return pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname
+}
+
+function normalizeToolPreferences(value?: IAssistantBindingToolPreferences | null): IAssistantBindingToolPreferences {
+  if (!value) {
+    return {
+      version: 1
+    }
+  }
+
+  const toolsets = Object.entries(value.toolsets ?? {}).reduce<NonNullable<IAssistantBindingToolPreferences['toolsets']>>(
+    (acc, [key, item]) => {
+      const nodeKey = key?.trim()
+      const toolsetName = item?.toolsetName?.trim()
+      if (!nodeKey || !toolsetName) {
+        return acc
+      }
+
+      acc[nodeKey] = {
+        toolsetId: item.toolsetId?.trim() || null,
+        toolsetName,
+        disabledTools: normalizeDisabledTools(item.disabledTools)
+      }
+      return acc
+    },
+    {}
+  )
+
+  const middlewares = Object.entries(value.middlewares ?? {}).reduce<
+    NonNullable<IAssistantBindingToolPreferences['middlewares']>
+  >((acc, [key, item]) => {
+    const nodeKey = key?.trim()
+    const provider = item?.provider?.trim()
+    if (!nodeKey || !provider) {
+      return acc
+    }
+
+    acc[nodeKey] = {
+      provider,
+      disabledTools: normalizeDisabledTools(item.disabledTools)
+    }
+    return acc
+  }, {})
+
+  return {
+    version: 1,
+    ...(Object.keys(toolsets).length ? { toolsets } : {}),
+    ...(Object.keys(middlewares).length ? { middlewares } : {})
+  }
+}
+
+function normalizeDisabledTools(value?: string[] | null) {
+  return Array.from(
+    new Set(
+      (value ?? [])
+        .map((item) => item?.trim())
+        .filter((item): item is string => !!item)
+    )
+  )
+}
+
+function getDisabledTools(
+  preferences: IAssistantBindingToolPreferences,
+  sourceType: ClawXpertToolPreferenceSourceType,
+  nodeKey: string
+) {
+  if (sourceType === 'toolset') {
+    return preferences.toolsets?.[nodeKey]?.disabledTools ?? []
+  }
+
+  return preferences.middlewares?.[nodeKey]?.disabledTools ?? []
+}
+
+function updateToolPreferences(
+  preferences: IAssistantBindingToolPreferences,
+  sourceType: ClawXpertToolPreferenceSourceType,
+  nodeKey: string,
+  metadata: ClawXpertToolPreferenceSourceMetadata,
+  toolName: string,
+  enabled: boolean
+): IAssistantBindingToolPreferences {
+  const normalizedToolName = toolName?.trim()
+  if (!nodeKey?.trim() || !normalizedToolName) {
+    return preferences
+  }
+
+  const disabledTools = getDisabledTools(preferences, sourceType, nodeKey)
+  const nextDisabledTools = enabled
+    ? disabledTools.filter((item) => item !== normalizedToolName)
+    : normalizeDisabledTools([...disabledTools, normalizedToolName])
+
+  if (sourceType === 'toolset' && 'toolsetName' in metadata) {
+    const toolsets = { ...(preferences.toolsets ?? {}) }
+    if (nextDisabledTools.length) {
+      toolsets[nodeKey] = {
+        toolsetId: metadata.toolsetId?.trim() || null,
+        toolsetName: metadata.toolsetName,
+        disabledTools: nextDisabledTools
+      }
+    } else {
+      delete toolsets[nodeKey]
+    }
+
+    return {
+      version: 1,
+      ...(Object.keys(toolsets).length ? { toolsets } : {}),
+      ...(preferences.middlewares ? { middlewares: { ...preferences.middlewares } } : {})
+    }
+  }
+
+  if (sourceType === 'middleware' && 'provider' in metadata) {
+    const middlewares = { ...(preferences.middlewares ?? {}) }
+    if (nextDisabledTools.length) {
+      middlewares[nodeKey] = {
+        provider: metadata.provider,
+        disabledTools: nextDisabledTools
+      }
+    } else {
+      delete middlewares[nodeKey]
+    }
+
+    return {
+      version: 1,
+      ...(preferences.toolsets ? { toolsets: { ...preferences.toolsets } } : {}),
+      ...(Object.keys(middlewares).length ? { middlewares } : {})
+    }
+  }
+
+  return preferences
+}
+
+function isToolPreferencesEmpty(preferences?: IAssistantBindingToolPreferences | null) {
+  return !Object.keys(preferences?.toolsets ?? {}).length && !Object.keys(preferences?.middlewares ?? {}).length
 }
 
 function parseClawXpertThreadId(url: string) {

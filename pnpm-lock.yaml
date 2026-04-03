@@ -8945,6 +8945,7 @@ packages:
   '@xmldom/xmldom@0.8.11':
     resolution: {integrity: sha512-cQzWCtO6C8TQiYl1ruKNn2U6Ao4o4WBBcbL61yJl84x+j5sOWWFU9X7DpND8XZG3daDppSsigMdfAIl2upQBRw==}
     engines: {node: '>=10.0.0'}
+    deprecated: this version has critical issues, please update to the latest version
 
   '@xpert-ai/a2ui-react@0.0.1':
     resolution: {integrity: sha512-AYUa0sMwoD3Alj8+AY2WILX4cDl5QW+u53Ac95tb24IoffU/kmSXoweTHo+brrtNmud6O6XCVZ9DCnSEojXPNg==}

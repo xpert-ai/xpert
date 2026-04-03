@@ -8,6 +8,7 @@ import {
     TXpertChatState
 } from '@metad/contracts'
 import { ICommand } from '@nestjs/cqrs'
+import { TXpertAgentRuntimeOptions } from '../agent'
 
 /**
  * Chat with one xpert agent
@@ -19,7 +20,7 @@ export class XpertAgentChatCommand implements ICommand {
         public readonly state: TXpertChatState,
         public readonly agentKey: string,
         public readonly xpert: IXpert,
-        public readonly options: TChatOptions & {
+        public readonly options: TChatOptions & TXpertAgentRuntimeOptions & {
             // Use xpert's draft
             isDraft: boolean
             /**

@@ -22,6 +22,23 @@ export enum AssistantBindingSourceScope {
 
 export type AssistantManagement = 'system' | 'user'
 
+export interface IAssistantBindingToolsetPreference {
+  toolsetId?: string | null
+  toolsetName: string
+  disabledTools: string[]
+}
+
+export interface IAssistantBindingMiddlewarePreference {
+  provider: string
+  disabledTools: string[]
+}
+
+export interface IAssistantBindingToolPreferences {
+  version: 1
+  toolsets?: Record<string, IAssistantBindingToolsetPreference>
+  middlewares?: Record<string, IAssistantBindingMiddlewarePreference>
+}
+
 export interface IAssistantBinding extends IBasePerTenantAndOrganizationEntityModel {
   code: AssistantCode
   scope: AssistantBindingScope
@@ -39,6 +56,7 @@ export interface IAssistantBindingUserPreference extends IBasePerTenantAndOrgani
   user?: IUser
   soul?: string | null
   profile?: string | null
+  toolPreferences?: IAssistantBindingToolPreferences | null
 }
 
 export interface IResolvedAssistantBinding extends IAssistantBinding {
@@ -56,6 +74,7 @@ export interface IAssistantBindingUserPreferenceUpsertInput {
   scope: AssistantBindingScope
   soul?: string | null
   profile?: string | null
+  toolPreferences?: IAssistantBindingToolPreferences | null
 }
 
 const USER_MANAGED_ASSISTANTS = new Set<AssistantCode>([AssistantCode.CLAWXPERT])

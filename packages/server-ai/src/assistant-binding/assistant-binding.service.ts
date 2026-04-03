@@ -3,6 +3,9 @@ import {
   AssistantBindingSourceScope,
   AssistantCode,
   IAssistantBinding,
+  IAssistantBindingMiddlewarePreference,
+  IAssistantBindingToolPreferences,
+  IAssistantBindingToolsetPreference,
   IAssistantBindingUserPreference,
   IAssistantBindingUserPreferenceUpsertInput,
   IAssistantBindingUpsertInput,
@@ -351,8 +354,15 @@ export class AssistantBindingService
     })
 
     if (existing) {
-      existing.soul = normalizeMarkdownValue(input.soul)
-      existing.profile = normalizeMarkdownValue(input.profile)
+      if (hasOwnPreferenceField(input, 'soul')) {
+        existing.soul = normalizeMarkdownValue(input.soul)
+      }
+      if (hasOwnPreferenceField(input, 'profile')) {
+        existing.profile = normalizeMarkdownValue(input.profile)
+      }
+      if (hasOwnPreferenceField(input, 'toolPreferences')) {
+        existing.toolPreferences = normalizeToolPreferencesValue(input.toolPreferences)
+      }
       existing.updatedBy = currentUserId ? ({ id: currentUserId } as any) : existing.updatedBy
       return this.preferenceRepository.save(existing)
     }
@@ -366,8 +376,11 @@ export class AssistantBindingService
       assistantBindingId: binding.id,
       user: userId ? ({ id: userId } as any) : null,
       userId,
-      soul: normalizeMarkdownValue(input.soul),
-      profile: normalizeMarkdownValue(input.profile),
+      soul: hasOwnPreferenceField(input, 'soul') ? normalizeMarkdownValue(input.soul) : undefined,
+      profile: hasOwnPreferenceField(input, 'profile') ? normalizeMarkdownValue(input.profile) : undefined,
+      toolPreferences: hasOwnPreferenceField(input, 'toolPreferences')
+        ? normalizeToolPreferencesValue(input.toolPreferences)
+        : undefined,
       createdBy: currentUserId ? ({ id: currentUserId } as any) : undefined,
       updatedBy: currentUserId ? ({ id: currentUserId } as any) : undefined
     } as DeepPartial<AssistantBindingUserPreference>)
@@ -770,4 +783,64 @@ export class AssistantBindingService
 
 function normalizeMarkdownValue(value?: string | null) {
   return value ?? null
+}
+
+function hasOwnPreferenceField<T extends object>(value: T, key: keyof T) {
+  return Object.prototype.hasOwnProperty.call(value, key)
+}
+
+function normalizeToolPreferencesValue(value?: IAssistantBindingToolPreferences | null): IAssistantBindingToolPreferences | null {
+  if (!value) {
+    return null
+  }
+
+  const toolsets = Object.entries(value.toolsets ?? {}).reduce<Record<string, IAssistantBindingToolsetPreference>>((acc, [key, item]) => {
+    const nodeKey = key?.trim()
+    const toolsetName = item?.toolsetName?.trim()
+    if (!nodeKey || !toolsetName) {
+      return acc
+    }
+
+    const disabledTools = normalizeDisabledTools(item.disabledTools)
+    acc[nodeKey] = {
+      toolsetId: item.toolsetId?.trim() || null,
+      toolsetName,
+      disabledTools
+    }
+    return acc
+  }, {})
+
+  const middlewares = Object.entries(value.middlewares ?? {}).reduce<Record<string, IAssistantBindingMiddlewarePreference>>((acc, [key, item]) => {
+    const nodeKey = key?.trim()
+    const provider = item?.provider?.trim()
+    if (!nodeKey || !provider) {
+      return acc
+    }
+
+    acc[nodeKey] = {
+      provider,
+      disabledTools: normalizeDisabledTools(item.disabledTools)
+    }
+    return acc
+  }, {})
+
+  if (!Object.keys(toolsets).length && !Object.keys(middlewares).length) {
+    return null
+  }
+
+  return {
+    version: 1,
+    ...(Object.keys(toolsets).length ? { toolsets } : {}),
+    ...(Object.keys(middlewares).length ? { middlewares } : {})
+  }
+}
+
+function normalizeDisabledTools(value?: string[] | null) {
+  return Array.from(
+    new Set(
+      (value ?? [])
+        .map((item) => item?.trim())
+        .filter((item): item is string => !!item)
+    )
+  )
 }
