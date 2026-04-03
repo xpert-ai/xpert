@@ -48,6 +48,7 @@ interface SelectHost {
     '[attr.data-disabled]': 'zDisabled() ? "" : null',
     '[attr.data-selected]': 'isSelected() ? "" : null',
     '[attr.aria-selected]': 'isSelected()',
+    '(mousedown)': 'onMouseDown($event)',
     '(click)': 'onClick()',
     '(mouseenter)': 'onMouseEnter()',
     '(keydown.{tab}.prevent)': 'noopFn',
@@ -92,6 +93,16 @@ export class ZardSelectItemComponent {
       return;
     }
     this.select()?.navigateTo();
+  }
+
+  onMouseDown(event: MouseEvent) {
+    if (this.zDisabled()) {
+      return;
+    }
+
+    // Keep the pending click selection from being interrupted by focus/outside-click handling.
+    event.preventDefault();
+    event.stopPropagation();
   }
 
   onClick() {

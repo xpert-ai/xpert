@@ -2,7 +2,6 @@ import { Overlay, OverlayModule, OverlayPositionBuilder, type OverlayRef } from 
 import { TemplatePortal } from '@angular/cdk/portal';
 import { isPlatformBrowser } from '@angular/common';
 import {
-  type AfterContentInit,
   afterNextRender,
   booleanAttribute,
   ChangeDetectionStrategy,
@@ -11,6 +10,7 @@ import {
   contentChildren,
   DestroyRef,
   ElementRef,
+  effect,
   forwardRef,
   inject,
   Injector,
@@ -112,7 +112,7 @@ const COMPACT_MODE_WIDTH_THRESHOLD = 100;
     '(keydown.{enter,space,arrowdown,arrowup,escape}.prevent)': 'onTriggerKeydown($event)',
   },
 })
-export class ZardSelectComponent implements ControlValueAccessor, AfterContentInit, OnDestroy {
+export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
   private readonly destroyRef = inject(DestroyRef);
   private readonly elementRef = inject(ElementRef<HTMLElement>);
   private readonly injector = inject(Injector);
@@ -142,6 +142,23 @@ export class ZardSelectComponent implements ControlValueAccessor, AfterContentIn
   readonly focusedIndex = signal<number>(-1);
   protected readonly isFocus = signal(false);
   protected readonly isCompact = signal(false);
+  private readonly syncSelectItems = effect(() => {
+    const size = this.zSize();
+    const hostWidth = this.elementRef.nativeElement.offsetWidth || 0;
+    const compact = hostWidth <= COMPACT_MODE_WIDTH_THRESHOLD;
+
+    this.isCompact.set(compact);
+
+    for (const [index, item] of this.selectItems().entries()) {
+      item.setSelectHost({
+        selectedValue: () => (this.zMultiple() ? (this.zValue() as ZardSelectValue[]) : [this.zValue() as ZardSelectValue]),
+        selectItem: (value: ZardSelectValue, label: string) => this.selectItem(value, label),
+        navigateTo: () => this.navigateTo(item, index),
+      });
+      item.zSize.set(size);
+      item.zMode.set(compact ? 'compact' : 'normal');
+    }
+  });
 
   protected onFocus(): void {
     if (this.isCompact()) {
@@ -176,26 +193,6 @@ export class ZardSelectComponent implements ControlValueAccessor, AfterContentIn
       }),
     ),
   );
-
-  ngAfterContentInit() {
-    const hostWidth = this.elementRef.nativeElement.offsetWidth || 0;
-    // Setup select host reference for each item
-    let i = 0;
-    for (const item of this.selectItems()) {
-      item.setSelectHost({
-        selectedValue: () => (this.zMultiple() ? (this.zValue() as ZardSelectValue[]) : [this.zValue() as ZardSelectValue]),
-        selectItem: (value: ZardSelectValue, label: string) => this.selectItem(value, label),
-        navigateTo: () => this.navigateTo(item, i),
-      });
-      item.zSize.set(this.zSize());
-      i++;
-
-      if (hostWidth <= COMPACT_MODE_WIDTH_THRESHOLD) {
-        this.isCompact.set(true);
-        item.zMode.set('compact');
-      }
-    }
-  }
 
   ngOnDestroy() {
     this.destroyOverlay();
@@ -478,7 +475,14 @@ export class ZardSelectComponent implements ControlValueAccessor, AfterContentIn
         this.overlayRef
           .outsidePointerEvents()
           .pipe(
-            filter(event => !this.elementRef.nativeElement.contains(event.target)),
+            filter((event) => {
+              const target = event.target;
+              if (!(target instanceof Node)) {
+                return true;
+              }
+
+              return !this.elementRef.nativeElement.contains(target) && !this.overlayRef?.overlayElement.contains(target);
+            }),
             takeUntilDestroyed(this.destroyRef),
           )
           .subscribe(() => {
