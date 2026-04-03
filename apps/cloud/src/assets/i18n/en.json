@@ -42,7 +42,25 @@
       "Conversation": "Conversation",
       "SecretKey": "Key",
       "Middleware": "Middleware",
-      "Skills": "Skills"
+      "Skills": "Skills",
+      "Active": "Active",
+      "CURRENCY": "Currency",
+      "Custom": "Custom",
+      "Disabled": "Disabled",
+      "ID": "Identifier",
+      "IsActive": "Enable organization",
+      "IsDefault": "Default",
+      "Loading": "Loading",
+      "Logo": "Logo",
+      "No": "No",
+      "NotSet": "Not set",
+      "Saving": "Saving...",
+      "Search": "Search",
+      "Status": "Status",
+      "Tags": "Tags",
+      "TimeZone": "Time Zone",
+      "Uploading": "Uploading",
+      "Yes": "Yes"
     },
     "Common": {
       "Tools": "Tools",
@@ -57,14 +75,56 @@
       "LOCAL_AGENT_STATUS": "Local Agent Status",
       "USERS": "Users",
       "FEATURES": "Features",
+      "MANAGE_ORGANIZATIONS": "Manage Organizations",
       "TENANT": {
         "TITLE": "Tenant"
       }
+    },
+    "Organization": {
+      "MenuTenantSubtitle": "Manage all organizations",
+      "MenuOrganizationSubtitle": "Review the current organization",
+      "RegistryTitle": "Organization Registry",
+      "CurrentOrganizationTitle": "Current organization",
+      "BackToList": "Back to list",
+      "RegistryTenantHelp": "Tenant scope shows every organization in the tenant. Pick a row to open its details workspace.",
+      "RegistryOrganizationHelp": "Organization scope is narrowed to the current organization so you can review its details in place.",
+      "LoadFailed": "Unable to load organizations",
+      "EmptyStateTitle": "No organizations available",
+      "EmptyStateDescription": "There is no organization in the current scope yet. Add one from tenant scope or switch to an organization context first.",
+      "TabGeneral": "General",
+      "TabControls": "Controls",
+      "LogoLabel": "Logo",
+      "LogoPreviewHint": "Preview and maintain the current organization avatar.",
+      "RecordSummary": "Record summary",
+      "ScopeRules": "Scope rules",
+      "ScopeRulesTenant": "Tenant scope can inspect every organization and maintain every setting available on this page.",
+      "ScopeRulesOrganization": "Organization scope is restricted to the current organization. Governance switches remain read-only here.",
+      "Today": "Today",
+      "StartOfMonth": "Start of month",
+      "EndOfMonth": "End of month",
+      "Collaboration": "Collaboration",
+      "InvitesAllowedHelp": "Allow this organization to accept and manage invitation links.",
+      "Governance": "Governance",
+      "GovernanceReadonlyHint": "Tenant-governed fields remain locked in organization scope.",
+      "DefaultHelp": "Tenant scope decides which organization becomes the default entry point for new sessions.",
+      "ActiveHelp": "Disable access to freeze the organization without deleting its record.",
+      "NoTags": "No tags are attached to this organization yet.",
+      "TagContext": "Tag context",
+      "TagContextHelp": "This panel surfaces the tags currently attached to the selected organization. Tag governance can stay on its dedicated workflow if needed.",
+      "GitHubSourceHelp": "Use the maintained GitHub demo source.",
+      "AliyunSourceHelp": "Use the mirrored Aliyun OSS source.",
+      "CustomSourceHelp": "Provide your own file URL.",
+      "ReadonlyActionHint": "You need edit permission to run demo generation.",
+      "SelectPromptTitle": "Choose an organization",
+      "SelectPromptDescription": "Select a row from the registry above to open the details workspace."
     },
     "USERS_PAGE": {
       "ADD_USER": "Add User"
     },
     "ACTIONS": {
+      "ADD": "Add",
+      "CANCEL": "Cancel",
+      "SAVE": "Save",
       "CLEAR": "Clear",
       "CLEAR_CACHE": "Clear Cache",
       "DOWNLOAD_AGENT": "Download Agent",
@@ -72,7 +132,10 @@
     },
     "NOTES": {
       "ORGANIZATIONS": {
-        "DELETE_ORGANIZATION": "Organization '{{name}}' Deleted"
+        "DELETE_CONFIRM": "Confirm to delete the org from server?",
+        "DELETE_ORGANIZATION": "Organization '{{name}}' Deleted",
+        "DEMO_GENERATED": "Demo Generated",
+        "AddNewOrganization": "Add New Organization"
       },
       "ROLES": {
         "PERMISSION_UPDATED": "Role '{{name}}' Updated"
@@ -90,6 +153,9 @@
         "READ_FILE": "Read File",
         "STORY_UPLOAD": "Story Upload"
       }
+    },
+    "MESSAGE": {
+      "MAIN_ORGANIZATION_UPDATED": "Organization updated successfully"
     },
     "TOASTR": {
       "TITLE": {
@@ -292,6 +358,8 @@
       }
     },
     "Assistant": {
+      "MenuTenantSubtitle": "Tenant defaults",
+      "MenuOrganizationSubtitle": "Organization overrides",
       "ClawXpert": {
         "Label": "ClawXpert",
         "Description": "Embedded assistant experience for the ClawXpert page."
@@ -487,6 +555,21 @@
         "DATA_FACTORY_VIEW": "Use Data Factory",
         "DATA_FACTORY_EDIT": "Manage Data Factory Configuration",
         "XPERT_EDIT": "Manage Difital Experts"
+      },
+      "Organization": {
+        "DEMO": "Demo",
+        "GENERATE_DEMO": "Generate Demo",
+        "RegenerateDemo": "Re-generate Demo",
+        "OfficialName": "Official Name",
+        "ProfileLink": "Profile Link",
+        "Website": "Website",
+        "ShortDescription": "Short Description",
+        "DefaultValueDateType": "Default Value Date Type",
+        "InviteExpiryPeriod": "Invite Expiry Period (in Days)",
+        "InvitesAllowed": "Invites Allowed",
+        "DataNetworkDescription": "The server will download the corresponding data files from this network storage for the import of demonstration data.",
+        "FileUrl": "File URL",
+        "SelectTimeZone": "Select a time zone"
       }
     },
     "ChatBI": {
@@ -514,6 +597,18 @@
       "DuplicateExternalExpert": "Cannot create duplicate external expert",
       "APIKey": "API Key",
       "APIReference": "API Reference",
+      "StartFrom": "Start from",
+      "BlankStart": "Blank",
+      "TemplateStart": "Template",
+      "StartFromHelp": "Choose a blank starter or load a template first. You can keep editing the rest of the wizard before creating the Xpert.",
+      "BlankStartHelp": "Start from the default blank wizard and choose triggers, middlewares, and skills yourself.",
+      "TemplateStartHelp": "Select an agent template, preload the wizard from its draft, and keep tailoring the result before creating.",
+      "WorkflowStartFromHelp": "Workflow templates are not available in this starter yet, so you can begin with the blank workflow setup for now.",
+      "WorkflowBlankStartHelp": "Start with the default chat-trigger workflow scaffold and choose the action and transform nodes you want.",
+      "WorkflowTemplateStartHelp": "Workflow template starters will be supported in a later iteration of the shared wizard.",
+      "KnowledgeStartFromHelp": "Choose a blank pipeline or start from a knowledge template, then keep editing triggers and stages before creating.",
+      "KnowledgeBlankStartHelp": "Start from the default knowledge pipeline wizard and choose the trigger, source, processor, chunker, and understanding stages yourself.",
+      "KnowledgeTemplateStartHelp": "Select a knowledge pipeline template, prefill the wizard from its draft, and continue customizing the pipeline stages.",
       "BasicInformation": "Basic information",
       "Workflow": "Workflow",
       "WorkflowActionNodes": "Action nodes",
