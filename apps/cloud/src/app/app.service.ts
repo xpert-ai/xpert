@@ -10,6 +10,7 @@ import { includes, some } from 'lodash-es'
 import { combineLatest } from 'rxjs'
 import { filter, map, shareReplay, startWith } from 'rxjs/operators'
 import { LanguagesEnum, MenuCatalog, navigatorLanguage, Store } from './@core'
+import { normalizeLanguageCode } from './@core/config'
 import { I18nService } from './@shared/i18n'
 
 export interface PACAppState {
@@ -108,17 +109,20 @@ export class AppService extends ComponentStore<PACAppState> {
   ) {
     super({ navigation: {}, zIndexs: [] } as PACAppState)
 
+    const initialLanguage = normalizeLanguageCode(this.store.preferredLanguage || navigatorLanguage())
+
     this.translate.setDefaultLang('en')
     // the lang to use, if the lang isn't available, it will use the current loader to get them
-    this.translate.use(this.store.preferredLanguage || navigatorLanguage())
+    this.translate.use(initialLanguage)
 
-    this.#document.documentElement.lang = this.translate.currentLang
+    this.#document.documentElement.lang = initialLanguage
 
     this.store.preferredLanguage$
       .pipe(filter(nonNullable), startWith(this.translate.currentLang))
       .subscribe((language) => {
-        this.translate.use(language)
-        this.#document.documentElement.lang = language
+        const normalizedLanguage = normalizeLanguageCode(language, this.translate.currentLang || LanguagesEnum.English)
+        this.translate.use(normalizedLanguage)
+        this.#document.documentElement.lang = normalizedLanguage
       })
 
     this.store.preferredTheme$.pipe(filter((theme) => normalizeTheme(theme) !== theme)).subscribe((theme) => {

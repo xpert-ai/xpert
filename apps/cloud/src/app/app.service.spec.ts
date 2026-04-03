@@ -92,9 +92,10 @@ class MatchMediaController {
 describe('AppService', () => {
   let service: AppService
   let store: MockStore
+  let translate: MockTranslateService
   let matchMediaController: MatchMediaController
 
-  const setup = (initialDark = false) => {
+  const setup = (initialDark = false, preferredLanguage: string | null = null) => {
     TestBed.resetTestingModule()
 
     matchMediaController = new MatchMediaController()
@@ -117,6 +118,10 @@ describe('AppService', () => {
     })
 
     store = TestBed.inject(Store) as unknown as MockStore
+    translate = TestBed.inject(TranslateService) as unknown as MockTranslateService
+    if (preferredLanguage) {
+      store.preferredLanguage = preferredLanguage
+    }
     service = TestBed.inject(AppService)
   }
 
@@ -146,5 +151,21 @@ describe('AppService', () => {
 
     matchMediaController.setDark(false)
     expect(service.theme$().primary).toBe(ThemesEnum.dark)
+  })
+
+  it('normalizes legacy zh-CN before bootstrapping ngx-translate', () => {
+    setup(false, 'zh-CN')
+
+    expect(translate.currentLang).toBe('zh-Hans')
+    expect(document.documentElement.lang).toBe('zh-Hans')
+  })
+
+  it('normalizes legacy zh-CN when preferred language changes after bootstrap', () => {
+    setup()
+
+    store.preferredLanguage = 'zh-CN'
+
+    expect(translate.currentLang).toBe('zh-Hans')
+    expect(document.documentElement.lang).toBe('zh-Hans')
   })
 })
