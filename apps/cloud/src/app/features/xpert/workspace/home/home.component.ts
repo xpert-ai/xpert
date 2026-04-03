@@ -177,16 +177,6 @@ export class XpertWorkspaceHomeComponent {
   readonly inDevelopmentOpen = signal(false)
 
   constructor() {
-    effect(
-      () => {
-        if (this.selectedWorkspace()) {
-          if (this.router.url === '/xpert/w/' || this.router.url === '/xpert/w') {
-            this.router.navigate(['/xpert/w/', this.selectedWorkspace().id])
-          }
-        }
-      }
-    )
-
     effect(() => {
       if (this.tags()?.[0]) {
         this.searchControl.setValue(this.tags()[0].name)
