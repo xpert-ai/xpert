@@ -307,7 +307,7 @@ describe('XpertNewBlankComponent', () => {
     jest.clearAllMocks()
   })
 
-  it('blocks submit in ClawXpert publish mode when no workspace is selected', async () => {
+  it('blocks submit in publish mode when no workspace is selected', async () => {
     const { component, xpertService } = await createComponent(
       {
         allowWorkspaceSelection: true,
@@ -479,7 +479,7 @@ describe('XpertNewBlankComponent', () => {
       false,
       expect.objectContaining({
         environmentId: 'env-1',
-        releaseNotes: 'Initial ClawXpert bootstrap release.'
+        releaseNotes: 'Initial Xpert bootstrap release.'
       })
     )
     expect(dialogRef.close).toHaveBeenCalledWith({
@@ -554,7 +554,7 @@ describe('XpertNewBlankComponent', () => {
       false,
       expect.objectContaining({
         environmentId: 'env-1',
-        releaseNotes: 'Initial ClawXpert bootstrap release.'
+        releaseNotes: 'Initial Xpert bootstrap release.'
       })
     )
     expect(dialogRef.close).toHaveBeenCalledWith({

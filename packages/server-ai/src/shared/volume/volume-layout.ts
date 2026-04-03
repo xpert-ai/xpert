@@ -8,6 +8,15 @@ function getLocalSandboxDataRoot() {
     return path.join(homeDir, 'data')
 }
 
+function getConfiguredDockerHostSandboxVolumeRootPath(tenantId?: string) {
+    const configuredRoot = environment.sandboxConfig.volume?.trim()
+    if (!configuredRoot) {
+        return null
+    }
+
+    return path.join(configuredRoot, tenantId ?? '')
+}
+
 export function hasConfiguredSandboxVolume() {
     return Boolean(environment.sandboxConfig.volume?.trim())
 }
@@ -16,16 +25,24 @@ export function usesFlattenedSandboxVolumeLayout() {
     return environment.envName === 'dev' && !hasConfiguredSandboxVolume()
 }
 
-export function getSandboxVolumeRootPath(tenantId?: string) {
+export function getApiContainerSandboxVolumeRootPath(tenantId?: string) {
     if (usesFlattenedSandboxVolumeLayout()) {
         return getLocalSandboxDataRoot()
     }
 
     if (environment.envName === 'dev') {
-        return path.join(environment.sandboxConfig.volume!, tenantId ?? '')
+        return getConfiguredDockerHostSandboxVolumeRootPath(tenantId)!
     }
 
     return tenantId ? `/sandbox/${tenantId}` : '/sandbox'
+}
+
+export function getDockerHostSandboxVolumeRootPath(tenantId?: string) {
+    if (usesFlattenedSandboxVolumeLayout()) {
+        return getLocalSandboxDataRoot()
+    }
+
+    return getConfiguredDockerHostSandboxVolumeRootPath(tenantId) ?? getApiContainerSandboxVolumeRootPath(tenantId)
 }
 
 export function normalizeSandboxPublicVolumeSubpath(subpath: string) {

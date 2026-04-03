@@ -447,6 +447,120 @@ describe('PluginController', () => {
 		)
 	})
 
+	it('returns both organization and global plugin records while marking the organization record as effective', async () => {
+		loadedPlugins.push(
+			{
+				organizationId: GLOBAL_ORGANIZATION_SCOPE,
+				name: '@xpert-ai/plugin-scope-demo',
+				packageName: '@xpert-ai/plugin-scope-demo',
+				source: 'code',
+				level: PLUGIN_LEVEL.ORGANIZATION,
+				instance: {
+					meta: {
+						name: '@xpert-ai/plugin-scope-demo',
+						version: '0.0.1',
+						level: PLUGIN_LEVEL.ORGANIZATION
+					}
+				},
+				ctx: {}
+			},
+			{
+				organizationId: 'org-1',
+				name: '@xpert-ai/plugin-scope-demo',
+				packageName: '@xpert-ai/plugin-scope-demo',
+				source: 'code',
+				level: PLUGIN_LEVEL.ORGANIZATION,
+				instance: {
+					meta: {
+						name: '@xpert-ai/plugin-scope-demo',
+						version: '0.0.2',
+						level: PLUGIN_LEVEL.ORGANIZATION
+					}
+				},
+				ctx: {}
+			}
+		)
+
+		const plugins = await controller.getPlugins()
+		const organizationPlugin = plugins.find((plugin) => plugin.organizationId === 'org-1')
+		const globalPlugin = plugins.find((plugin) => plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE)
+
+		expect(plugins).toHaveLength(2)
+		expect(organizationPlugin).toEqual(
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-scope-demo',
+				effectiveInCurrentScope: true,
+				scopeRelation: 'overrides-global',
+				isGlobal: false
+			})
+		)
+		expect(globalPlugin).toEqual(
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-scope-demo',
+				effectiveInCurrentScope: false,
+				scopeRelation: 'shadowed-by-organization',
+				isGlobal: true
+			})
+		)
+	})
+
+	it('keeps the global plugin effective when the organization-scoped installation failed to load', async () => {
+		loadedPlugins.push({
+			organizationId: GLOBAL_ORGANIZATION_SCOPE,
+			name: '@xpert-ai/plugin-scope-demo',
+			packageName: '@xpert-ai/plugin-scope-demo',
+			source: 'code',
+			level: PLUGIN_LEVEL.ORGANIZATION,
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-scope-demo',
+					version: '0.0.1',
+					level: PLUGIN_LEVEL.ORGANIZATION
+				}
+			},
+			ctx: {}
+		})
+		;(pluginInstanceService as any).findVisibleInOrganization.mockResolvedValue([
+			{
+				pluginName: '@xpert-ai/plugin-scope-demo',
+				packageName: '@xpert-ai/plugin-scope-demo',
+				version: '0.0.2',
+				source: 'npm',
+				level: PLUGIN_LEVEL.ORGANIZATION,
+				organizationId: 'org-1',
+				configurationStatus: null,
+				configurationError: null
+			}
+		])
+		;(findPluginLoadFailure as jest.Mock).mockReturnValue({
+			error: 'Cannot find module ./dist/index.js'
+		})
+
+		const plugins = await controller.getPlugins()
+		const organizationPlugin = plugins.find((plugin) => plugin.organizationId === 'org-1')
+		const globalPlugin = plugins.find((plugin) => plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE)
+
+		expect(plugins).toHaveLength(2)
+		expect(organizationPlugin).toEqual(
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-scope-demo',
+				loadStatus: 'failed',
+				effectiveInCurrentScope: false,
+				scopeRelation: 'none',
+				isGlobal: false
+			})
+		)
+		expect(globalPlugin).toEqual(
+			expect.objectContaining({
+				name: '@xpert-ai/plugin-scope-demo',
+				loadStatus: 'loaded',
+				effectiveInCurrentScope: true,
+				scopeRelation: 'none',
+				isGlobal: true
+			})
+		)
+	})
+
 	it('keeps system plugins hidden from non-super-admin users', async () => {
 		loadedPlugins.push({
 			organizationId: GLOBAL_ORGANIZATION_SCOPE,

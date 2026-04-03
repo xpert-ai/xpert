@@ -6,7 +6,9 @@ import { IXpert } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertPreferencesEditorComponent } from './clawxpert-preferences-editor.component'
+import { ClawXpertScheduledTasksComponent } from './clawxpert-scheduled-tasks.component'
 import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.component'
+import { ClawXpertTriggerConfigEditorComponent } from './clawxpert-trigger-config-editor.component'
 
 type ClawXpertMetric = {
   labelKey: string
@@ -29,6 +31,7 @@ type ClawXpertHeatmapCell = {
   isFuture: boolean
   background: string
   borderColor: string
+  opacity: number
 }
 
 type ClawXpertHeatmapWeek = {
@@ -60,9 +63,15 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
     ZardIconComponent,
     EmojiAvatarComponent,
     ClawXpertPreferencesEditorComponent,
+    ClawXpertScheduledTasksComponent,
+    ClawXpertTriggerConfigEditorComponent,
     ClawXpertSetupWizardComponent,
     ...ZardCardImports
   ],
+  styles: [`
+    :host {
+      @apply block relative h-full overflow-y-auto overflow-x-hidden;
+    }`],
   template: `
     <div class="h-full min-h-0">
       @if (facade.loading()) {
@@ -104,8 +113,8 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
       } @else if (facade.viewState() === 'wizard') {
         <pac-clawxpert-setup-wizard class="block h-full" />
       } @else {
-        <div class="grid min-h-0 gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-          <div class="flex h-full min-h-0 flex-col gap-5 overflow-auto p-6">
+        <div class="flex">
+          <div class="w-100 shrink-0 flex h-full min-h-0 flex-col gap-5 overflow-auto p-6 sticky top-0 z-10">
             <div class="flex items-start gap-4">
               <emoji-avatar
                 class="shrink-0 overflow-hidden rounded-[2rem] border border-divider-regular bg-background-default-subtle text-2xl shadow-sm"
@@ -184,18 +193,35 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
               }
             </div>
 
-            <button
-              z-button
-              zType="default"
-              color="primary"
-              type="button"
-              class="w-full"
-              [disabled]="facade.viewState() !== 'ready'"
-              (click)="startConversation()"
-            >
-              <z-icon zType="chat"></z-icon>
-              {{ 'PAC.Chat.ClawXpert.GoToChat' | translate: { Default: 'Go to chat' } }}
-            </button>
+            <div class="grid gap-2" [class.grid-cols-2]="facade.hasPersistedDraft()">
+              <button
+                z-button
+                zType="default"
+                color="primary"
+                type="button"
+                class="w-full"
+                [disabled]="facade.viewState() !== 'ready' || facade.publishingXpert()"
+                (click)="startConversation()"
+              >
+                <z-icon zType="chat"></z-icon>
+                {{ 'PAC.Chat.ClawXpert.GoToChat' | translate: { Default: 'Go to chat' } }}
+              </button>
+
+              @if (facade.hasPersistedDraft()) {
+                <button
+                  z-button
+                  zType="outline"
+                  color="primary"
+                  type="button"
+                  class="w-full"
+                  [disabled]="facade.viewState() !== 'ready' || facade.publishingXpert() || facade.loadingTriggerDraft()"
+                  (click)="publishXpert()"
+                >
+                  <z-icon zType="upload"></z-icon>
+                  {{ 'PAC.Xpert.Publish' | translate: { Default: 'Publish' } }}
+                </button>
+              }
+            </div>
 
             <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4">
               <div class="flex items-start justify-between gap-3">
@@ -254,9 +280,9 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
                           @for (cell of week.cells; track cell.key) {
                             <div
                               class="h-5 w-5 rounded-md border transition-colors"
-                              [style.background]="cell.background"
+                              [style.background-color]="cell.background"
                               [style.border-color]="cell.borderColor"
-                              [class.opacity-60]="cell.isFuture"
+                              [style.opacity]="cell.opacity"
                               [attr.aria-label]="cell.title"
                               [attr.title]="cell.title"
                             ></div>
@@ -286,8 +312,9 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
                   @for (legendCell of heatmapLegend; track legendCell.background) {
                     <div
                       class="h-3 w-3 rounded-[4px] border"
-                      [style.background]="legendCell.background"
+                      [style.background-color]="legendCell.background"
                       [style.border-color]="legendCell.borderColor"
+                      [style.opacity]="legendCell.opacity"
                     ></div>
                   }
                   <span>{{ 'PAC.Chat.ClawXpert.HeatmapLegendBusy' | translate: { Default: 'Busy' } }}</span>
@@ -296,29 +323,10 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
             </div>
           </div>
 
-          <div class="grid min-h-0 gap-4 xl:grid-rows-[minmax(0,1fr)_13rem]">
-            <pac-clawxpert-preferences-editor class="min-h-0" />
-
-            <z-card class="rounded-3xl border border-dashed border-divider-regular shadow-none">
-              <z-card-content class="flex h-full flex-col justify-center px-6">
-                <div class="flex items-center gap-2 text-sm font-medium text-text-primary">
-                  <z-icon zType="deployed_code_history"></z-icon>
-                  {{
-                    'PAC.Chat.ClawXpert.LowerPlaceholderTitle' | translate: { Default: 'More panels are reserved here' }
-                  }}
-                </div>
-                <p class="mt-3 text-sm leading-6 text-text-secondary">
-                  {{
-                    'PAC.Chat.ClawXpert.LowerPlaceholderOverviewDesc'
-                      | translate
-                        : {
-                            Default:
-                              'The lower-right area stays as a placeholder for the next batch of ClawXpert workspace capabilities.'
-                          }
-                  }}
-                </p>
-              </z-card-content>
-            </z-card>
+          <div class="flex-1 min-h-0 p-4 flex flex-col gap-4 overflow-hidden">
+            <pac-clawxpert-preferences-editor />
+            <pac-clawxpert-trigger-config-editor />
+            <pac-clawxpert-scheduled-tasks />
           </div>
         </div>
       }
@@ -395,6 +403,10 @@ export class ClawXpertOverviewComponent {
     void this.facade.startConversation()
   }
 
+  publishXpert() {
+    void this.facade.publishXpert()
+  }
+
   openWizard() {
     this.facade.openWizard()
   }
@@ -432,11 +444,12 @@ function buildHeatmapModel(
   const counts = new Map<string, number>()
 
   for (const item of series ?? []) {
-    if (!item?.date) {
+    const dateKey = normalizeHeatmapDateKey(item?.date)
+    if (!dateKey) {
       continue
     }
 
-    counts.set(item.date, Number(item.count ?? 0))
+    counts.set(dateKey, (counts.get(dateKey) ?? 0) + Number(item.count ?? 0))
   }
 
   const totalMessages = Array.from(counts.values()).reduce((sum, count) => sum + count, 0)
@@ -474,7 +487,8 @@ function buildHeatmapModel(
           title,
           isFuture,
           background: styles.background,
-          borderColor: styles.borderColor
+          borderColor: styles.borderColor,
+          opacity: styles.opacity
         }
       })
     }
@@ -521,24 +535,24 @@ function buildHeatmapCellTitle(
 function buildHeatmapStyles(level: number, isFuture: boolean) {
   if (isFuture) {
     return {
-      background: 'color-mix(in srgb, var(--color-components-toggle-bg-unchecked) 32%, transparent)',
-      borderColor: 'color-mix(in srgb, var(--color-components-toggle-bg-unchecked) 48%, transparent)'
+      background: 'var(--color-components-toggle-bg-unchecked)',
+      borderColor: 'var(--color-components-toggle-bg-unchecked)',
+      opacity: 0.24
     }
   }
 
   if (level <= 0) {
     return {
-      background: 'color-mix(in srgb, var(--color-components-toggle-bg) 10%, transparent)',
-      borderColor: 'color-mix(in srgb, var(--color-divider-regular) 75%, transparent)'
+      background: 'var(--color-components-toggle-bg-unchecked)',
+      borderColor: 'var(--color-divider-regular)',
+      opacity: 0.14
     }
   }
 
-  const fillWeight = Math.round(24 + level * 76)
-  const borderWeight = Math.round(38 + level * 62)
-
   return {
-    background: `color-mix(in srgb, var(--color-state-success-solid) ${fillWeight}%, var(--color-components-toggle-bg))`,
-    borderColor: `color-mix(in srgb, var(--color-state-success-solid) ${borderWeight}%, var(--color-divider-regular))`
+    background: 'var(--color-state-success-solid)',
+    borderColor: 'var(--color-state-success-solid)',
+    opacity: Math.min(1, Math.max(0.24, Number((0.24 + level * 0.76).toFixed(3))))
   }
 }
 
@@ -584,4 +598,24 @@ function formatDateKey(date: Date) {
   const month = String(date.getMonth() + 1).padStart(2, '0')
   const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+function normalizeHeatmapDateKey(value?: string | null) {
+  const normalizedValue = value?.trim()
+
+  if (!normalizedValue) {
+    return null
+  }
+
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalizedValue)) {
+    return normalizedValue
+  }
+
+  const date = new Date(normalizedValue)
+
+  if (Number.isNaN(date.getTime())) {
+    return null
+  }
+
+  return formatDateKey(date)
 }

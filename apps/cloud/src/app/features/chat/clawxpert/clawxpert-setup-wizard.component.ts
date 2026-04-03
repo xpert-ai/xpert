@@ -4,15 +4,11 @@ import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { TranslateModule } from '@ngx-translate/core'
-import {
-  ZardButtonComponent,
-  ZardCardImports,
-  ZardIconComponent,
-  ZardInputDirective
-} from '@xpert-ai/headless-ui'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { ZardButtonComponent, ZardCardImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { startWith } from 'rxjs'
 import { IXpert, XpertTypeEnum } from '../../../@core'
+import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { BlankXpertWizardResult, XpertNewBlankComponent } from '../../xpert/xpert'
 import { ClawXpertFacade } from './clawxpert.facade'
 
@@ -27,10 +23,13 @@ import { ClawXpertFacade } from './clawxpert.facade'
     ZardButtonComponent,
     ZardIconComponent,
     ZardInputDirective,
+    EmojiAvatarComponent,
     ...ZardCardImports
   ],
   template: `
-    <z-card class="flex h-full min-h-[32rem] flex-col overflow-hidden rounded-3xl border border-divider-regular shadow-sm">
+    <z-card
+      class="flex h-full min-h-[32rem] flex-col overflow-hidden rounded-3xl border border-divider-regular shadow-sm"
+    >
       <z-card-content class="flex min-h-0 flex-1 flex-col p-5">
         <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
           {{ 'PAC.Chat.ClawXpert.Wizard' | translate: { Default: 'Setup Wizard' } }}
@@ -38,15 +37,13 @@ import { ClawXpertFacade } from './clawxpert.facade'
         <div class="mt-3 text-xl font-semibold text-text-primary">
           {{
             'PAC.Chat.ClawXpert.WizardTitle'
-              | translate
-                : { Default: 'Choose the published Xpert that should power your ClawXpert page.' }
+              | translate: { Default: 'Choose the published Xpert that should power your ClawXpert page.' }
           }}
         </div>
         <p class="mt-2 max-w-lg text-sm text-text-secondary">
           {{
             'PAC.Chat.ClawXpert.WizardDesc'
-              | translate
-                : { Default: 'This page only needs one binding. You can change it later at any time.' }
+              | translate: { Default: 'This page only needs one binding. You can change it later at any time.' }
           }}
         </p>
 
@@ -72,20 +69,23 @@ import { ClawXpertFacade } from './clawxpert.facade'
               {{
                 'PAC.Chat.ClawXpert.BindingUnavailable'
                   | translate
-                    : { Default: 'Your previous ClawXpert binding is no longer available. Please select another assistant.' }
+                    : {
+                        Default:
+                          'Your previous ClawXpert binding is no longer available. Please select another assistant.'
+                      }
               }}
             </z-card-content>
           </z-card>
         }
 
         @if (facade.availableXperts().length === 0) {
-          <div class="mt-6 flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-components-card-bg px-6 text-center">
+          <div
+            class="mt-6 flex flex-1 flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular bg-components-card-bg px-6 text-center"
+          >
             <z-icon zType="smart_toy" class="text-4xl text-text-tertiary"></z-icon>
             <div class="mt-4 text-base font-medium text-text-primary">
               {{
-                'PAC.Chat.ClawXpert.NoAssistants'
-                  | translate
-                    : { Default: 'No published assistants are available yet' }
+                'PAC.Chat.ClawXpert.NoAssistants' | translate: { Default: 'No published assistants are available yet' }
               }}
             </div>
             <div class="mt-2 max-w-sm text-sm text-text-secondary">
@@ -107,13 +107,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
               >
                 {{ 'PAC.Chat.ClawXpert.CreateNew' | translate: { Default: 'New ClawXpert' } }}
               </button>
-              <button
-                z-button
-                zType="outline"
-                displayDensity="cosy"
-                type="button"
-                routerLink="/xpert/w"
-              >
+              <button z-button zType="outline" displayDensity="cosy" type="button" routerLink="/xpert/w">
                 {{ 'PAC.Chat.GotoWorkspace' | translate: { Default: 'Go to Workspace' } }}
               </button>
             </div>
@@ -124,8 +118,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
               <span class="text-sm text-text-secondary">
                 {{
                   'PAC.Chat.ClawXpert.SearchPlaceholder'
-                    | translate
-                      : { Default: 'Search your available assistants by title, name, slug, or id' }
+                    | translate: { Default: 'Search your available assistants by title, name, slug, or id' }
                 }}
               </span>
               <input
@@ -136,13 +129,15 @@ import { ClawXpertFacade } from './clawxpert.facade'
               />
             </label>
 
-            <div class="mt-4 min-h-0 flex-1 overflow-auto rounded-2xl border border-divider-regular bg-components-card-bg p-2">
+            <div
+              class="mt-4 min-h-0 flex-1 overflow-auto rounded-2xl border border-divider-regular bg-components-card-bg p-2"
+            >
               @if (filteredXperts().length > 0) {
-                <div class="space-y-2">
+                <div class="grid gap-2 lg:grid-cols-2">
                   @for (item of filteredXperts(); track item.id) {
                     <button
                       type="button"
-                      class="w-full rounded-2xl border px-4 py-3 text-left transition-colors"
+                      class="h-full w-full rounded-2xl border px-4 py-3 text-left transition-colors"
                       [class.border-divider-deep]="form.controls.assistantId.value === item.id"
                       [class.border-divider-regular]="form.controls.assistantId.value !== item.id"
                       [class.bg-hover-bg]="form.controls.assistantId.value === item.id"
@@ -151,17 +146,32 @@ import { ClawXpertFacade } from './clawxpert.facade'
                       [class.text-text-primary]="true"
                       (click)="selectXpert(item.id)"
                     >
-                      <div class="font-medium">{{ getXpertLabel(item) }}</div>
-                      <div class="mt-1 font-mono text-xs text-text-secondary">{{ item.id }}</div>
+                      <div class="flex items-start gap-3">
+                        <emoji-avatar
+                          class="mt-0.5 shrink-0 overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle shadow-sm"
+                          [style.width.px]="48"
+                          [style.height.px]="48"
+                          [avatar]="item.avatar ?? null"
+                          [alt]="getXpertLabel(item)"
+                          [fallbackLabel]="getXpertLabel(item)"
+                        />
+
+                        <div class="min-w-0 flex-1">
+                          <div class="truncate font-medium">{{ getXpertLabel(item) }}</div>
+                          <div class="mt-1 line-clamp-2 text-sm leading-5 text-text-secondary">
+                            {{ getXpertDescription(item) }}
+                          </div>
+                        </div>
+                      </div>
                     </button>
                   }
                 </div>
               } @else {
-                <div class="flex h-full min-h-40 items-center justify-center px-4 text-center text-sm text-text-secondary">
+                <div
+                  class="flex h-full min-h-40 items-center justify-center px-4 text-center text-sm text-text-secondary"
+                >
                   {{
-                    'PAC.Chat.ClawXpert.NoMatches'
-                      | translate
-                        : { Default: 'No assistants match your current search.' }
+                    'PAC.Chat.ClawXpert.NoMatches' | translate: { Default: 'No assistants match your current search.' }
                   }}
                 </div>
               }
@@ -205,6 +215,7 @@ export class ClawXpertSetupWizardComponent {
   readonly facade = inject(ClawXpertFacade)
   readonly #dialog = inject(Dialog)
   readonly #formBuilder = inject(FormBuilder)
+  readonly #translate = inject(TranslateService)
   readonly creatingXpert = signal(false)
 
   readonly searchControl = this.#formBuilder.nonNullable.control('')
@@ -220,11 +231,13 @@ export class ClawXpertSetupWizardComponent {
       return this.facade.availableXperts()
     }
 
-    return this.facade.availableXperts().filter((xpert) =>
-      [xpert.id, xpert.slug, xpert.name, xpert.title, xpert.titleCN]
-        .filter((value): value is string => !!value)
-        .some((value) => value.toLowerCase().includes(searchText))
-    )
+    return this.facade
+      .availableXperts()
+      .filter((xpert) =>
+        [xpert.id, xpert.slug, xpert.name, xpert.title, xpert.titleCN]
+          .filter((value): value is string => !!value)
+          .some((value) => value.toLowerCase().includes(searchText))
+      )
   })
 
   constructor() {
@@ -272,6 +285,15 @@ export class ClawXpertSetupWizardComponent {
     return this.facade.getXpertLabel(xpert)
   }
 
+  getXpertDescription(xpert: Partial<IXpert> | null | undefined) {
+    return (
+      xpert?.description ||
+      this.#translate.instant('PAC.Chat.ClawXpert.NoDescription', {
+        Default: 'This assistant does not have a public description yet.'
+      })
+    )
+  }
+
   openCreateWizard() {
     if (this.creatingXpert()) {
       return
@@ -284,6 +306,7 @@ export class ClawXpertSetupWizardComponent {
         data: {
           allowWorkspaceSelection: true,
           allowedModes: [XpertTypeEnum.Agent],
+          category: 'Claw',
           completionMode: 'publish',
           type: XpertTypeEnum.Agent
         }

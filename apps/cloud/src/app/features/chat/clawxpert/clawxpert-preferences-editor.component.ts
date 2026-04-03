@@ -4,7 +4,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardButtonComponent,
   ZardCardImports,
-  ZardDividerComponent,
   ZardIconComponent,
   ZardTabsImports
 } from '@xpert-ai/headless-ui'
@@ -30,20 +29,20 @@ const PREFERENCE_TABS: PreferenceTab[] = [
     labelKey: 'PAC.Chat.ClawXpert.TabBehavior',
     defaultLabel: 'Behavior Guidelines',
     titleKey: 'PAC.Chat.ClawXpert.BehaviorEditorTitle',
-    defaultTitle: 'Behavior guidelines markdown',
+    defaultTitle: 'SOUL.md',
     descKey: 'PAC.Chat.ClawXpert.BehaviorEditorDesc',
-    defaultDesc: 'Edit the markdown file that defines the assistant behavior baseline for this binding.',
-    fileName: 'behavior-guidelines.md'
+    defaultDesc: `The assistant's name, personality, and identity definition`,
+    fileName: 'SOUL.md'
   },
   {
     key: 'userProfile',
     labelKey: 'PAC.Chat.ClawXpert.TabUserProfile',
     defaultLabel: 'User Profile',
     titleKey: 'PAC.Chat.ClawXpert.UserProfileEditorTitle',
-    defaultTitle: 'User profile markdown',
+    defaultTitle: 'USER.md',
     descKey: 'PAC.Chat.ClawXpert.UserProfileEditorDesc',
-    defaultDesc: 'Capture stable user context in markdown so future sessions can start with better grounding.',
-    fileName: 'user-profile.md'
+    defaultDesc: 'User preferences, communication style, and long-term memory',
+    fileName: 'USER.md'
   }
 ]
 
@@ -55,7 +54,6 @@ const PREFERENCE_TABS: PreferenceTab[] = [
     TranslateModule,
     CodeEditorComponent,
     ZardButtonComponent,
-    ZardDividerComponent,
     ZardIconComponent,
     ...ZardCardImports,
     ...ZardTabsImports
@@ -97,12 +95,13 @@ const PREFERENCE_TABS: PreferenceTab[] = [
 
           <z-tab-nav-panel #tabPanel class="flex min-h-0 flex-1 flex-col overflow-hidden">
             <div class="flex min-h-0 flex-1 flex-col gap-4 px-5 pb-5 pt-4">
-              <div class="flex flex-wrap items-start justify-between gap-3">
-                <div>
-                  <div class="text-sm font-medium text-text-primary">
+              <div class="flex flex-wrap items-center justify-between gap-3">
+                <div class="flex min-w-0 flex-1 flex-wrap items-center gap-3">
+                  <div class="shrink-0 text-lg font-semibold tracking-tight text-text-primary">
                     {{ activeTabMeta().titleKey | translate: { Default: activeTabMeta().defaultTitle } }}
                   </div>
-                  <p class="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
+                  <div class="hidden h-5 w-px bg-divider-regular sm:block"></div>
+                  <p class="min-w-0 text-sm leading-6 text-text-secondary">
                     {{ activeTabMeta().descKey | translate: { Default: activeTabMeta().defaultDesc } }}
                   </p>
                 </div>
@@ -117,17 +116,53 @@ const PREFERENCE_TABS: PreferenceTab[] = [
                           }
                   }}
                 </span>
+                <div class="flex flex-wrap items-center gap-2">
+                  @if (editing()) {
+                    <button
+                      z-button
+                      zType="outline"
+                      type="button"
+                      displayDensity="cosy"
+                      [disabled]="facade.savingUserPreference()"
+                      (click)="cancelEdit()"
+                    >
+                      {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+                    </button>
+                    <button
+                      z-button
+                      zType="default"
+                      color="primary"
+                      type="button"
+                      displayDensity="cosy"
+                      [disabled]="facade.savingUserPreference() || !form.dirty"
+                      (click)="save()"
+                    >
+                      {{ 'PAC.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
+                    </button>
+                  } @else {
+                    <button
+                      z-button
+                      zType="outline"
+                      color="primary"
+                      type="button"
+                      displayDensity="cosy"
+                      [disabled]="facade.savingUserPreference()"
+                      (click)="startEdit()"
+                    >
+                      <z-icon zType="edit"></z-icon>
+                      {{ 'PAC.ACTIONS.Edit' | translate: { Default: 'Edit' } }}
+                    </button>
+                  }
+                </div>
               </div>
 
-              <z-divider></z-divider>
-
-              <div class="min-h-0 flex-1 overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle">
+              <div class="min-h-0 flex-1 overflow-hidden">
                 @if (activeTab() === 'behavior') {
                   <pac-code-editor
                     class="block w-full"
                     [fileName]="activeTabMeta().fileName"
                     lineNumbers
-                    editable
+                    [editable]="editing()"
                     wordWrap
                     [formControl]="form.controls.soul"
                   />
@@ -136,48 +171,11 @@ const PREFERENCE_TABS: PreferenceTab[] = [
                     class="block w-full"
                     [fileName]="activeTabMeta().fileName"
                     lineNumbers
-                    editable
+                    [editable]="editing()"
                     wordWrap
                     [formControl]="form.controls.profile"
                   />
                 }
-              </div>
-
-              <div class="flex flex-wrap items-center justify-between gap-3">
-                <div class="text-xs text-text-tertiary">
-                  {{
-                    'PAC.Chat.ClawXpert.PreferenceStorageHint'
-                      | translate
-                        : {
-                            Default:
-                              'These markdown files are stored on the current AssistantBinding user preference record.'
-                          }
-                  }}
-                </div>
-
-                <div class="flex flex-wrap items-center gap-2">
-                  <button
-                    z-button
-                    zType="outline"
-                    type="button"
-                    displayDensity="cosy"
-                    [disabled]="facade.savingUserPreference() || !activeControl().dirty"
-                    (click)="reset()"
-                  >
-                    {{ 'PAC.Common.Reset' | translate: { Default: 'Reset' } }}
-                  </button>
-                  <button
-                    z-button
-                    zType="default"
-                    color="primary"
-                    type="button"
-                    displayDensity="cosy"
-                    [disabled]="facade.savingUserPreference() || !activeControl().dirty"
-                    (click)="save()"
-                  >
-                    {{ 'PAC.Chat.ClawXpert.SaveDocs' | translate: { Default: 'Save markdown' } }}
-                  </button>
-                </div>
               </div>
             </div>
           </z-tab-nav-panel>
@@ -192,12 +190,10 @@ export class ClawXpertPreferencesEditorComponent {
 
   readonly tabs = PREFERENCE_TABS
   readonly activeTab = signal<PreferenceTabKey>('behavior')
+  readonly editing = signal(false)
   readonly form = this.#formBuilder.nonNullable.group({
     soul: [''],
     profile: ['']
-  })
-  readonly activeControl = computed(() => {
-    return this.activeTab() === 'behavior' ? this.form.controls.soul : this.form.controls.profile
   })
   readonly activeTabMeta = computed(() => {
     return this.tabs.find((tab) => tab.key === this.activeTab()) ?? this.tabs[0]
@@ -209,7 +205,7 @@ export class ClawXpertPreferencesEditorComponent {
         titleKey: 'PAC.Chat.ClawXpert.EditorOrganizationRequiredTitle',
         defaultTitle: 'Choose an organization first',
         descKey: 'PAC.Chat.ClawXpert.EditorOrganizationRequiredDesc',
-        defaultDesc: 'Select an organization and finish the ClawXpert setup before editing these markdown files.'
+        defaultDesc: 'Select an organization and finish the ClawXpert setup before editing SOUL.md and USER.md.'
       }
     }
 
@@ -218,7 +214,7 @@ export class ClawXpertPreferencesEditorComponent {
         titleKey: 'PAC.Chat.ClawXpert.EditorBindingRequiredTitle',
         defaultTitle: 'Bind ClawXpert before editing',
         descKey: 'PAC.Chat.ClawXpert.EditorBindingRequiredDesc',
-        defaultDesc: 'Once a ClawXpert binding is created, this editor will load the behavior guidelines and user profile markdown.'
+        defaultDesc: 'Once a ClawXpert binding is created, this editor will load SOUL.md and USER.md.'
       }
     }
 
@@ -243,6 +239,7 @@ export class ClawXpertPreferencesEditorComponent {
           },
           { emitEvent: false }
         )
+        this.editing.set(false)
       })
     })
   }
@@ -251,7 +248,11 @@ export class ClawXpertPreferencesEditorComponent {
     this.activeTab.set(tab)
   }
 
-  reset() {
+  startEdit() {
+    this.editing.set(true)
+  }
+
+  cancelEdit() {
     const preference = this.facade.userPreference()
     this.form.reset(
       {
@@ -260,6 +261,7 @@ export class ClawXpertPreferencesEditorComponent {
       },
       { emitEvent: false }
     )
+    this.editing.set(false)
   }
 
   async save() {
@@ -275,6 +277,7 @@ export class ClawXpertPreferencesEditorComponent {
       },
       { emitEvent: false }
     )
+    this.editing.set(false)
   }
 
   getActiveWordCount() {

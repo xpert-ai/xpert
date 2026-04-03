@@ -22,6 +22,7 @@ import { PluginInstanceService } from './plugin-instance.service'
 import { loadPlugin } from './plugin-loader'
 import { getOrganizationPluginPath, getOrganizationPluginRoot, stageWorkspacePlugin } from './organization-plugin.store'
 import { canManageGlobalPlugins, canManageSystemPlugins } from './plugin-update.utils'
+import { assertPluginSdkInstallCandidate } from './plugin-sdk-versioning'
 import {
 	LOADED_PLUGINS,
 	LoadedPluginRecord,
@@ -79,6 +80,13 @@ export class PluginManagementService {
 		const level = PLUGIN_LEVEL.ORGANIZATION
 
 		try {
+			await assertPluginSdkInstallCandidate({
+				pluginName: packageName,
+				version: body.version,
+				source,
+				workspacePath: body.workspacePath
+			})
+
 			await this.uninstallByPackageNameWithGuard(tenantId, organizationId, packageName, allowSystemPlugins)
 
 			const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName

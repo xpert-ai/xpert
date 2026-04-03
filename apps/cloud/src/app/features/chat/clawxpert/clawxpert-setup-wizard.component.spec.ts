@@ -9,7 +9,10 @@ import { XpertNewBlankComponent } from '../../xpert/xpert'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertSetupWizardComponent } from './clawxpert-setup-wizard.component'
 
-function createFacadeMock(options?: { availableXperts?: Partial<IXpert>[]; resolvedPreference?: { assistantId: string } | null }) {
+function createFacadeMock(options?: {
+  availableXperts?: Partial<IXpert>[]
+  resolvedPreference?: { assistantId: string } | null
+}) {
   return {
     availableXperts: signal((options?.availableXperts ?? []) as IXpert[]),
     bindPublishedXpert: jest.fn().mockResolvedValue(undefined),
@@ -117,6 +120,7 @@ describe('ClawXpertSetupWizardComponent', () => {
         data: expect.objectContaining({
           allowWorkspaceSelection: true,
           allowedModes: [XpertTypeEnum.Agent],
+          category: 'claw',
           completionMode: 'publish',
           type: XpertTypeEnum.Agent
         })

@@ -10,5 +10,8 @@
     "sharp": "^0.34.4"
   },
   "main": "./index.cjs",
-  "module": "./index.js"
+  "module": "./index.js",
+  "peerDependencies": {
+    "@xpert-ai/plugin-sdk": "^3.8.0"
+  }
 }

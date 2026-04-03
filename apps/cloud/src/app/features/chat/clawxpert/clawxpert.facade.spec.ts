@@ -4,9 +4,11 @@ import { TranslateService } from '@ngx-translate/core'
 import { of, throwError } from 'rxjs'
 import {
   AssistantBindingService,
+  EnvironmentService,
   IAssistantBinding,
   IXpert,
   Store,
+  TXpertTeamDraft,
   ToastrService,
   XpertAPIService,
   XpertTaskService,
@@ -37,6 +39,24 @@ function createBinding(assistantId: string): IAssistantBinding {
   } as IAssistantBinding
 }
 
+function createDraft(id: string, overrides?: Partial<TXpertTeamDraft>): TXpertTeamDraft {
+  return {
+    team: {
+      id
+    } as TXpertTeamDraft['team'],
+    nodes: [],
+    connections: [],
+    ...overrides
+  }
+}
+
+function createTeam(id: string, name = id): IXpert {
+  return {
+    ...createXpert(id, name),
+    draft: createDraft(id)
+  } as IXpert
+}
+
 describe('ClawXpertFacade', () => {
   let assistantBindingService: {
     delete: jest.Mock
@@ -60,6 +80,13 @@ describe('ClawXpertFacade', () => {
   let xpertService: {
     getConversations: jest.Mock
     getDailyMessages: jest.Mock
+    publish: jest.Mock
+    getTeam: jest.Mock
+    getTriggerProviders: jest.Mock
+    saveDraft: jest.Mock
+  }
+  let environmentService: {
+    getDefaultByWorkspace: jest.Mock
   }
   let taskService: {
     getMyAll: jest.Mock
@@ -87,7 +114,14 @@ describe('ClawXpertFacade', () => {
     }
     xpertService = {
       getConversations: jest.fn(() => of({ items: [], total: 0 })),
-      getDailyMessages: jest.fn(() => of([]))
+      getDailyMessages: jest.fn(() => of([])),
+      publish: jest.fn(() => of(createXpert('xpert-1'))),
+      getTeam: jest.fn((id: string) => of(createTeam(id))),
+      getTriggerProviders: jest.fn(() => of([])),
+      saveDraft: jest.fn((id: string, draft: TXpertTeamDraft) => of({ ...draft, team: { ...draft.team, id } }))
+    }
+    environmentService = {
+      getDefaultByWorkspace: jest.fn(() => of(null))
     }
     taskService = {
       getMyAll: jest.fn(() => of({ items: [], total: 0 }))
@@ -113,6 +147,10 @@ describe('ClawXpertFacade', () => {
         {
           provide: TranslateService,
           useValue: translate
+        },
+        {
+          provide: EnvironmentService,
+          useValue: environmentService
         },
         {
           provide: XpertAPIService,
@@ -190,5 +228,76 @@ describe('ClawXpertFacade', () => {
     expect(facade.preference()?.assistantId).toBe('xpert-old')
     expect(facade.resolvedPreference()?.assistantId).toBe('xpert-old')
     expect(toastr.error).toHaveBeenCalled()
+  })
+
+  it('loads the bound xpert draft for trigger editing once the binding is ready', async () => {
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-ready')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-ready', 'Ready Xpert')]))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    expect(xpertService.getTeam).toHaveBeenCalledWith('xpert-ready', {
+      relations: [
+        'agent',
+        'agent.copilotModel',
+        'agents',
+        'agents.copilotModel',
+        'executors',
+        'executors.agent',
+        'executors.copilotModel',
+        'copilotModel',
+        'knowledgebase'
+      ]
+    })
+    expect(facade.triggerDraft()?.team?.id).toBe('xpert-ready')
+    expect(facade.loadingTriggerDraft()).toBe(false)
+  })
+
+  it('saves trigger draft updates against the bound xpert draft', async () => {
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-save')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-save', 'Draft Xpert')]))
+
+    const savedDraft = createDraft('xpert-save')
+    xpertService.saveDraft.mockReturnValue(of(savedDraft))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    const result = await facade.saveTriggerDraft([])
+
+    expect(xpertService.saveDraft).toHaveBeenCalledWith(
+      'xpert-save',
+      expect.objectContaining({ team: expect.objectContaining({ id: 'xpert-save' }) })
+    )
+    expect(result).toEqual(savedDraft)
+    expect(facade.triggerDraft()).toEqual(savedDraft)
+    expect(toastr.success).toHaveBeenCalled()
+  })
+
+  it('publishes the bound xpert when a persisted draft exists', async () => {
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-publish')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-publish', 'Publish Xpert')]))
+    xpertService.getTeam.mockReturnValue(
+      of({
+        ...createTeam('xpert-publish', 'Publish Xpert'),
+        workspaceId: 'workspace-1'
+      })
+    )
+    xpertService.publish.mockReturnValue(of({ ...createXpert('xpert-publish', 'Publish Xpert'), version: '1.0.0' }))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    const result = await facade.publishXpert()
+
+    expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-1')
+    expect(xpertService.publish).toHaveBeenCalledWith('xpert-publish', false, {
+      environmentId: null,
+      releaseNotes: 'Published from ClawXpert workspace.'
+    })
+    expect(result).toEqual(expect.objectContaining({ id: 'xpert-publish', version: '1.0.0' }))
+    expect(facade.hasPersistedDraft()).toBe(false)
+    expect(toastr.success).toHaveBeenCalled()
   })
 })

@@ -1,3 +1,4 @@
+import { DOCUMENT } from '@angular/common'
 import { computed, effect, inject, signal, Signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { TranslateService } from '@ngx-translate/core'
@@ -183,6 +184,7 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
 }
 
 export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntimeInput) {
+  const document = inject(DOCUMENT)
   const translate = inject(TranslateService)
   const toastr = inject(ToastrService)
   const appService = inject(AppService)
@@ -191,10 +193,21 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
   const authToken = toSignal(store.token$.pipe(startWith(store.token)), { initialValue: store.token })
   const organizationId = toSignal(store.selectOrganizationId(), { initialValue: store.organizationId ?? null })
   const fixedApiUrl = buildAssistantApiUrl(environment.API_BASE_URL)
-  const theme = computed<AssistantTheme>(() => ({
-    colorScheme: appService.theme$().primary === 'dark' ? ('dark' as const) : ('light' as const),
-    radius: 'soft'
-  }))
+  const theme = computed<AssistantTheme>(() => {
+    const colorScheme = appService.theme$().primary === 'dark' ? ('dark' as const) : ('light' as const)
+    const surfaceFallback = CHATKIT_SURFACE_COLOR_FALLBACKS[colorScheme]
+
+    return {
+      colorScheme,
+      radius: 'soft',
+      color: {
+        surface: {
+          background: resolveDocumentThemeColorHex(document, '--color-components-card-bg', surfaceFallback.background),
+          foreground: resolveDocumentThemeColorHex(document, '--color-text-primary', surfaceFallback.foreground)
+        }
+      }
+    }
+  })
   const locale = computed<AssistantLocale>(() => normalizeChatKitLocale(appService.lang() || translate.currentLang))
   const control = signal<ChatKitControl | null>(null)
   const activeRuntimeKey = signal<string | null>(null)
@@ -302,6 +315,80 @@ function normalizeChatKitLocale(locale?: string | null): AssistantLocale {
     default:
       return 'en'
   }
+}
+
+const CHATKIT_SURFACE_COLOR_FALLBACKS = {
+  light: {
+    background: '#ffffff',
+    foreground: '#1f1f1f'
+  },
+  dark: {
+    background: '#16181c',
+    foreground: '#e3e3e3'
+  }
+} as const
+
+function resolveDocumentThemeColorHex(document: Document, cssVariableName: string, fallback: string) {
+  const rootStyle = document.defaultView?.getComputedStyle(document.documentElement)
+  const rawValue = rootStyle?.getPropertyValue(cssVariableName).trim()
+
+  return normalizeColorToHex(document, rawValue || fallback) ?? fallback
+}
+
+function normalizeColorToHex(document: Document, value?: string | null) {
+  const normalizedValue = value?.trim()
+
+  if (!normalizedValue) {
+    return null
+  }
+
+  const hexColor = normalizeHexColor(normalizedValue)
+
+  if (hexColor) {
+    return hexColor
+  }
+
+  const view = document.defaultView
+
+  if (!view) {
+    return null
+  }
+
+  const probe = document.createElement('span')
+  const probeHost = document.body ?? document.documentElement
+
+  probe.style.color = normalizedValue
+  probeHost.appendChild(probe)
+
+  const computedColor = view.getComputedStyle(probe).color
+  probe.remove()
+
+  return normalizeRgbColor(computedColor)
+}
+
+function normalizeHexColor(value: string) {
+  const match = value.match(/^#?([0-9a-f]{3}|[0-9a-f]{6})$/i)
+
+  if (!match) {
+    return null
+  }
+
+  const [, hex] = match
+  const expandedHex = hex.length === 3 ? [...hex].map((character) => character + character).join('') : hex
+
+  return `#${expandedHex.toLowerCase()}`
+}
+
+function normalizeRgbColor(value: string) {
+  const match = value.match(/rgba?\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/i)
+
+  if (!match) {
+    return null
+  }
+
+  const channels = match.slice(1, 4).map((channel) => Number(channel).toString(16).padStart(2, '0'))
+
+  return `#${channels.join('')}`
 }
 
 function buildAssistantApiUrl(baseUrl?: string | null) {

@@ -6,20 +6,10 @@
     cdkDragHandle
   >
     {{
-      (completionMode === 'publish'
-        ? 'PAC.Xpert.CreateClawXpert'
-        : startMode() === 'template'
-          ? 'PAC.Xpert.CreateXpert'
-          : 'PAC.Xpert.CreateBlankXpert'
-      )
+      (startMode() === 'template' ? 'PAC.Xpert.CreateXpert' : 'PAC.Xpert.CreateBlankXpert')
         | translate
           : {
-              Default:
-                completionMode === 'publish'
-                  ? 'Create ClawXpert'
-                  : startMode() === 'template'
-                    ? 'Create Xpert'
-                    : 'Create blank Xpert'
+              Default: startMode() === 'template' ? 'Create Xpert' : 'Create blank Xpert'
             }
     }}
   </div>
@@ -167,6 +157,7 @@
                 <xpert-blank-template-selection
                   [(selectedId)]="selectedTemplateId"
                   [templates]="templateChoices()"
+                  [category]="templateCategory"
                   [loading]="templateOptionsLoading()"
                   [error]="templateOptionsError()"
                   [emptyKey]="'PAC.Xpert.NoAgentTemplatesFound'"
@@ -220,7 +211,7 @@
                   >
                     {{
                       'PAC.Xpert.NoWorkspaceAvailableForCreate'
-                        | translate: { Default: 'Create a workspace first before creating a new ClawXpert.' }
+                        | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
                     }}
                     <a
                       class="ml-1 inline-flex items-center text-primary-500 hover:underline"
@@ -502,7 +493,7 @@
                   >
                     {{
                       'PAC.Xpert.NoWorkspaceAvailableForCreate'
-                        | translate: { Default: 'Create a workspace first before creating a new ClawXpert.' }
+                        | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
                     }}
                     <a
                       class="ml-1 inline-flex items-center text-primary-500 hover:underline"
@@ -773,6 +764,7 @@
                 <xpert-blank-template-selection
                   [(selectedId)]="selectedTemplateId"
                   [templates]="templateChoices()"
+                  [category]="templateCategory"
                   [loading]="templateOptionsLoading()"
                   [error]="templateOptionsError()"
                   [emptyKey]="'PAC.Xpert.NoKnowledgeTemplatesFound'"
@@ -826,7 +818,7 @@
                   >
                     {{
                       'PAC.Xpert.NoWorkspaceAvailableForCreate'
-                        | translate: { Default: 'Create a workspace first before creating a new ClawXpert.' }
+                        | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
                     }}
                     <a
                       class="ml-1 inline-flex items-center text-primary-500 hover:underline"
@@ -1190,7 +1182,7 @@
                   >
                     {{
                       'PAC.Xpert.NoWorkspaceAvailableForCreate'
-                        | translate: { Default: 'Create a workspace first before creating a new ClawXpert.' }
+                        | translate: { Default: 'Create a workspace first before creating a new Xpert.' }
                     }}
                     <a
                       class="ml-1 inline-flex items-center text-primary-500 hover:underline"

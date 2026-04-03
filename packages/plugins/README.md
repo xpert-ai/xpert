@@ -20,6 +20,10 @@ npx nx g @nx/js:lib packages/plugins/my-plugin --importPath=@xpert-ai/plugin-my-
 
 Add more entries for any runtime dependencies that must stay external.
 
+- Keep `@xpert-ai/plugin-sdk` in `peerDependencies`, never `dependencies`.
+- Use an explicit single-major range for `@xpert-ai/plugin-sdk`, for example `^3.8.0`.
+- If local development needs an installed SDK copy, mirror the same range in `devDependencies`.
+
 ## Local runtime entry
 
 Add `index.cjs` for local plugin loading when needed.

@@ -2,24 +2,20 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
-import { JsonSchemaObjectType, TWorkflowTriggerMeta } from '../../../../@core'
-import { JSONSchemaFormComponent } from 'apps/cloud/src/app/@shared/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
-import { BlankTriggerSelection } from './blank-draft.util'
 import {
+  WorkflowTriggerConfigCardComponent,
+  WorkflowTriggerProviderOption,
   buildJsonSchemaDefaults,
   hasJsonSchemaRequiredErrors,
   jsonSchemaHasConfigFields
-} from './blank-trigger-config.util'
-
-export type BlankTriggerProviderOption = Pick<TWorkflowTriggerMeta, 'name' | 'label'> & {
-  configSchema?: JsonSchemaObjectType | null
-}
+} from 'apps/cloud/src/app/@shared/workflow'
+import { BlankTriggerSelection } from './blank-draft.util'
 
 @Component({
   standalone: true,
   selector: 'xpert-blank-trigger-selection',
-  imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe, JSONSchemaFormComponent],
+  imports: [CommonModule, FormsModule, TranslateModule, NgmI18nPipe, WorkflowTriggerConfigCardComponent],
   template: `
     <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
       <div class="text-sm leading-6 text-text-secondary">
@@ -54,25 +50,14 @@ export type BlankTriggerProviderOption = Pick<TWorkflowTriggerMeta, 'name' | 'la
 
             @if (isSelected(provider.name) && shouldRenderConfig(provider)) {
               <div class="mt-3 rounded-xl border border-divider-regular bg-background-default px-3 py-3">
-                <div class="mb-2 text-xs uppercase tracking-[0.18em] text-text-tertiary">
-                  {{ 'PAC.KEY_WORDS.Configuration' | translate: { Default: 'Configuration' } }}
-                </div>
-                <json-schema-form
-                  class="grid grid-cols-1 gap-2"
-                  [schema]="provider.configSchema!"
-                  [ngModel]="getConfig(provider.name)"
-                  [ngModelOptions]="{ standalone: true }"
-                  (ngModelChange)="updateConfig(provider.name, $event)"
+                <xpert-workflow-trigger-config-card
+                  appearance="inline"
+                  [showHeader]="false"
+                  [showEmptyState]="false"
+                  [provider]="provider"
+                  [config]="getConfig(provider.name)"
+                  (configChange)="updateConfig(provider.name, $event)"
                 />
-
-                @if (isConfigInvalid(provider.name)) {
-                  <div class="mt-2 text-sm text-text-destructive">
-                    {{
-                      'PAC.Workflow.RequiredTriggerConfig'
-                        | translate: { Default: 'Complete the required trigger configuration before continuing.' }
-                    }}
-                  </div>
-                }
               </div>
             }
           </div>
@@ -86,7 +71,7 @@ export type BlankTriggerProviderOption = Pick<TWorkflowTriggerMeta, 'name' | 'la
   `
 })
 export class BlankTriggerSelectionComponent {
-  readonly providers = input<BlankTriggerProviderOption[]>([])
+  readonly providers = input<WorkflowTriggerProviderOption[]>([])
   readonly descriptionKey = input.required<string>()
   readonly defaultDescription = input.required<string>()
   readonly emptyKey = input<string>('PAC.Workflow.NoTriggersAvailable')
@@ -103,7 +88,7 @@ export class BlankTriggerSelectionComponent {
     return this.selections().find((selection) => selection.provider === name)?.config ?? {}
   }
 
-  toggleProvider(provider: BlankTriggerProviderOption, enabled: boolean) {
+  toggleProvider(provider: WorkflowTriggerProviderOption, enabled: boolean) {
     if (enabled) {
       const existing = this.selections().find((selection) => selection.provider === provider.name)
       const config =
@@ -131,7 +116,7 @@ export class BlankTriggerSelectionComponent {
     )
   }
 
-  shouldRenderConfig(provider: BlankTriggerProviderOption) {
+  shouldRenderConfig(provider: WorkflowTriggerProviderOption) {
     return provider.name !== 'chat' && jsonSchemaHasConfigFields(provider.configSchema)
   }
 

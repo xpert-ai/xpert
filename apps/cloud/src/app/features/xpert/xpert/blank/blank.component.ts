@@ -40,7 +40,12 @@ import { XpertBasicFormComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
-import { XpertWorkflowIconComponent } from 'apps/cloud/src/app/@shared/workflow'
+import {
+  CHAT_WORKFLOW_TRIGGER_PROVIDER,
+  WorkflowTriggerProviderOption,
+  XpertWorkflowIconComponent,
+  hasJsonSchemaRequiredErrors
+} from 'apps/cloud/src/app/@shared/workflow'
 import { RouterModule } from '@angular/router'
 import { catchError, from, map, Observable, of, switchMap, throwError } from 'rxjs'
 import {
@@ -62,8 +67,7 @@ import {
   shouldHideBlankWizardPrimaryAgent,
   shouldInitializeBlankWizardDraft
 } from './blank-wizard.util'
-import { BlankTriggerProviderOption, BlankTriggerSelectionComponent } from './blank-trigger-selection.component'
-import { hasJsonSchemaRequiredErrors } from './blank-trigger-config.util'
+import { BlankTriggerSelectionComponent } from './blank-trigger-selection.component'
 import {
   applyAgentTemplateWizardState,
   applyKnowledgeTemplateWizardState,
@@ -98,6 +102,7 @@ export type BlankXpertDialogData = {
   allowWorkspaceSelection?: boolean
   allowedModes?: BlankXpertMode[] | null
   completionMode?: BlankXpertCompletionMode
+  category?: string | null
 }
 
 type DraftPreparationResult = {
@@ -107,15 +112,7 @@ type DraftPreparationResult = {
   preparationFailed: boolean
 }
 
-const CLAWXPERT_AUTO_PUBLISH_RELEASE_NOTES = 'Initial ClawXpert bootstrap release.'
-
-const CHAT_TRIGGER_PROVIDER: BlankTriggerProviderOption = {
-  name: 'chat',
-  label: {
-    en_US: 'Chat',
-    zh_Hans: '聊天'
-  }
-}
+const XPERT_AUTO_PUBLISH_RELEASE_NOTES = 'Initial Xpert bootstrap release.'
 
 const WORKFLOW_ACTION_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
   {
@@ -213,6 +210,7 @@ export class XpertNewBlankComponent {
   readonly requestedType = signal(this.#dialogData.type ?? null)
   readonly allowedModes = this.#dialogData.allowedModes ?? null
   readonly completionMode = this.#dialogData.completionMode ?? ('create' as BlankXpertCompletionMode)
+  readonly templateCategory = this.#dialogData.category?.trim() || null
   readonly allowWorkspaceSelection = !!this.#dialogData.allowWorkspaceSelection
   readonly availableModes = computed(() => getBlankWizardAvailableModes(this.requestedType(), this.allowedModes))
   readonly types = model<BlankXpertMode[]>([getBlankWizardDefaultMode(this.#dialogData.type, this.allowedModes)])
@@ -322,8 +320,8 @@ export class XpertNewBlankComponent {
     }[]
   })
   readonly triggerProviderOptions = computed(() =>
-    uniqueByName<BlankTriggerProviderOption>(
-      [CHAT_TRIGGER_PROVIDER, ...this.triggerProviders()],
+    uniqueByName<WorkflowTriggerProviderOption>(
+      [CHAT_WORKFLOW_TRIGGER_PROVIDER, ...this.triggerProviders()],
       (provider) => provider.name
     )
   )
@@ -958,7 +956,7 @@ export class XpertNewBlankComponent {
       switchMap((environment) =>
         this.xpertService.publish(xpert.id, false, {
           environmentId: environment?.id ?? null,
-          releaseNotes: CLAWXPERT_AUTO_PUBLISH_RELEASE_NOTES
+          releaseNotes: XPERT_AUTO_PUBLISH_RELEASE_NOTES
         })
       )
     )
@@ -1053,7 +1051,7 @@ export class XpertNewBlankComponent {
 
   private hasInvalidTriggerSelections(
     selections: BlankTriggerSelection[],
-    providers: BlankTriggerProviderOption[]
+    providers: WorkflowTriggerProviderOption[]
   ): boolean {
     return selections.some((selection) => {
       const provider = providers.find((item) => item.name === selection.provider)

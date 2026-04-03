@@ -115,7 +115,9 @@
           <div class="system-md-semibold text-text-primary">
             {{ 'PAC.Plugin.LoadPluginsFailed' | translate: { Default: 'Failed to load plugins' } }}
           </div>
-          <div class="max-w-2xl break-words text-sm text-text-tertiary max-h-16 overflow-auto">{{ pluginsError() }}</div>
+          <div class="max-w-2xl break-words text-sm text-text-tertiary max-h-16 overflow-auto">
+            {{ pluginsError() }}
+          </div>
         </div>
       } @else if (!filteredPlugins().length) {
         <div
@@ -224,6 +226,21 @@
                         >
                           {{ plugin.currentVersion || plugin.meta.version || '-' }}
                         </div>
+                        <div
+                          class="ml-1 inline-flex h-5 items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-tertiary shrink-0"
+                        >
+                          <i
+                            class="shrink-0"
+                            [class.ri-global-line]="plugin.isGlobal"
+                            [class.ri-building-line]="!plugin.isGlobal"
+                          ></i>
+                          <span class="font-body font-medium uppercase">
+                            {{
+                              (plugin.isGlobal ? 'PAC.Plugin.ScopeGlobal' : 'PAC.Plugin.ScopeOrganization')
+                                | translate: { Default: plugin.isGlobal ? 'Global' : 'Organization' }
+                            }}
+                          </span>
+                        </div>
                       </div>
                       <div class="flex items-center justify-between">
                         <div class="min-w-0 grow">
@@ -278,20 +295,32 @@
                               </span>
                             </div>
                           }
+                          <div class="mt-2 flex flex-wrap items-center gap-1.5">
+                            @if (plugin.scopeRelation === 'overrides-global') {
+                              <div
+                                class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-secondary"
+                              >
+                                <i class="ri-arrow-up-circle-line shrink-0"></i>
+                                <span>
+                                  {{ 'PAC.Plugin.OverridesGlobal' | translate: { Default: 'Overrides global' } }}
+                                </span>
+                              </div>
+                            } @else if (plugin.scopeRelation === 'shadowed-by-organization') {
+                              <div
+                                class="inline-flex items-center gap-1 rounded-[5px] border border-divider-deep bg-background-default-subtle px-[6px] py-[2px] text-xs text-text-warning"
+                              >
+                                <i class="ri-eye-off-line shrink-0"></i>
+                                <span>
+                                  {{
+                                    'PAC.Plugin.ShadowedByOrganization'
+                                      | translate: { Default: 'Shadowed by organization' }
+                                  }}
+                                </span>
+                              </div>
+                            }
+                          </div>
                         </div>
                         <div class="flex space-x-1">
-                          @if (plugin.isGlobal) {
-                            <div
-                              class="w-7 h-7 flex justify-center items-center"
-                              [zTooltip]="
-                                'PAC.Plugin.GlobalPlugin'
-                                  | translate: { Default: 'This is a global plugin available to all organizations' }
-                              "
-                              zPosition="top"
-                            >
-                              <i class="ri-global-line text-text-tertiary"></i>
-                            </div>
-                          }
                           @if (plugin.canConfigure && plugin.configSchema) {
                             <button
                               type="button"
@@ -326,10 +355,7 @@
                             <button
                               type="button"
                               class="action-btn action-btn-m text-text-tertiary hover:bg-state-destructive-hover hover:text-text-destructive flex items-center justify-center"
-                              [zTooltip]="
-                                'PAC.Plugin.RemovePlugin'
-                                  | translate: { Default: 'Remove this plugin' }
-                              "
+                              [zTooltip]="'PAC.Plugin.RemovePlugin' | translate: { Default: 'Remove this plugin' }"
                               zPosition="top"
                               (click)="uninstall(plugin)"
                             >
@@ -433,7 +459,7 @@
         />
       </div>
       @if (npmInstallError()) {
-        <div class="max-w-sm text-sm text-text-destructive">{{ npmInstallError() }}</div>
+        <div class="max-w-sm text-sm max-h-96 overflow-auto text-text-destructive">{{ npmInstallError() }}</div>
       }
       @if (npmInstalling()) {
         <ngm-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />

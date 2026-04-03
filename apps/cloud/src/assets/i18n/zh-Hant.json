@@ -2126,6 +2126,12 @@
       "TaskFailureCount": "任務執行失敗次數",
       "PauseTask": "暫停此任務",
       "ScheduleTask": "安排此任務",
+      "ClawXpert": {
+        "ScheduledTasksHeading": "定時任務({{count}})",
+        "ViewAllTasks": "查看全部",
+        "CollapseTasks": "收起",
+        "NoScheduledTasksHint": "暫無定時任務，你可以通過對話創建"
+      },
       "StopGenerate": "停止生成",
       "PreviewStopGenerate": "關閉對話面板將停止生成內容",
       "StopGenerateOnRestart": "重新開始對話將停止當前生成的內容",

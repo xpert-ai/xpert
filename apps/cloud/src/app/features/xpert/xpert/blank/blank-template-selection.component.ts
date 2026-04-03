@@ -1,9 +1,15 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, input, model } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { IconDefinition, TAvatar } from '../../../../@core'
-import { EmojiAvatarComponent, IconComponent } from 'apps/cloud/src/app/@shared/avatar'
+import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar/emoji-avatar/avatar.component'
+import { IconComponent } from 'apps/cloud/src/app/@shared/avatar/icon/icon.component'
+import {
+  filterBlankTemplates,
+  getBlankTemplateCategories,
+  normalizeBlankTemplateCategory
+} from './blank-template-selection.util'
 
 export type BlankTemplateChoice = {
   id: string
@@ -22,35 +28,37 @@ export type BlankTemplateChoice = {
   template: `
     <div class="space-y-3">
       <div class="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-        <div class="flex flex-wrap gap-2">
-          <button
-            type="button"
-            class="rounded-lg border px-3 py-1.5 text-sm transition-colors"
-            [class.border-primary-500]="category() === 'all'"
-            [class.bg-background-default]="category() === 'all'"
-            [class.text-text-primary]="category() === 'all'"
-            [class.border-components-panel-border]="category() !== 'all'"
-            [class.text-text-secondary]="category() !== 'all'"
-            (click)="category.set('all')"
-          >
-            {{ 'PAC.KEY_WORDS.All' | translate: { Default: 'All' } }}
-          </button>
-
-          @for (item of categories(); track item) {
+        @if (showCategoryFilters() && categories().length) {
+          <div class="flex flex-wrap gap-2">
             <button
               type="button"
               class="rounded-lg border px-3 py-1.5 text-sm transition-colors"
-              [class.border-primary-500]="category() === item"
-              [class.bg-background-default]="category() === item"
-              [class.text-text-primary]="category() === item"
-              [class.border-components-panel-border]="category() !== item"
-              [class.text-text-secondary]="category() !== item"
-              (click)="category.set(item)"
+              [class.border-primary-500]="activeCategory() === 'all'"
+              [class.bg-background-default]="activeCategory() === 'all'"
+              [class.text-text-primary]="activeCategory() === 'all'"
+              [class.border-components-panel-border]="activeCategory() !== 'all'"
+              [class.text-text-secondary]="activeCategory() !== 'all'"
+              (click)="selectedCategory.set('all')"
             >
-              {{ item }}
+              {{ 'PAC.KEY_WORDS.All' | translate: { Default: 'All' } }}
             </button>
-          }
-        </div>
+
+            @for (item of categories(); track item) {
+              <button
+                type="button"
+                class="rounded-lg border px-3 py-1.5 text-sm transition-colors"
+                [class.border-primary-500]="activeCategory() === item"
+                [class.bg-background-default]="activeCategory() === item"
+                [class.text-text-primary]="activeCategory() === item"
+                [class.border-components-panel-border]="activeCategory() !== item"
+                [class.text-text-secondary]="activeCategory() !== item"
+                (click)="selectedCategory.set(item)"
+              >
+                {{ item }}
+              </button>
+            }
+          </div>
+        }
 
         <label class="relative block w-full lg:max-w-64">
           <i
@@ -149,40 +157,41 @@ export type BlankTemplateChoice = {
 })
 export class BlankTemplateSelectionComponent {
   readonly templates = input<BlankTemplateChoice[]>([])
+  readonly fixedCategory = input<string | null>(null, { alias: 'category' })
   readonly loading = input(false)
   readonly error = input<string | null>(null)
   readonly emptyKey = input('PAC.Xpert.NoTemplatesFound')
   readonly emptyDefault = input('No templates found')
   readonly selectedId = model<string | null>(null)
-  readonly category = model('all')
+  readonly selectedCategory = model('all')
   readonly search = model('')
-
-  readonly categories = computed(() =>
-    Array.from(
-      new Set(
-        this.templates()
-          .map((template) => template.category?.trim())
-          .filter((value): value is string => !!value)
-      )
-    )
+  readonly showCategoryFilters = computed(() => !normalizeBlankTemplateCategory(this.fixedCategory()))
+  readonly activeCategory = computed(
+    () => normalizeBlankTemplateCategory(this.fixedCategory()) ?? this.selectedCategory()
   )
+  readonly categories = computed(() => getBlankTemplateCategories(this.templates()))
+
+  constructor() {
+    effect(() => {
+      if (!this.showCategoryFilters()) {
+        return
+      }
+
+      const selectedCategory = this.selectedCategory()
+      if (selectedCategory === 'all') {
+        return
+      }
+
+      if (!this.categories().includes(selectedCategory)) {
+        this.selectedCategory.set('all')
+      }
+    })
+  }
 
   readonly filteredTemplates = computed(() => {
-    const category = this.category()
-    const search = this.search().trim().toLowerCase()
-
-    return this.templates().filter((template) => {
-      if (category !== 'all' && template.category !== category) {
-        return false
-      }
-
-      if (!search) {
-        return true
-      }
-
-      return [template.title, template.name, template.description]
-        .filter((value): value is string => !!value)
-        .some((value) => value.toLowerCase().includes(search))
+    return filterBlankTemplates(this.templates(), {
+      category: this.activeCategory(),
+      search: this.search()
     })
   })
 }

@@ -4,7 +4,9 @@ import { IncomingMessage, ServerResponse } from 'http'
 import pino from 'pino'
 import { LoggerModule as PinoLoggerModule } from 'nestjs-pino'
 import { Params } from 'nestjs-pino'
+import pretty from 'pino-pretty'
 import * as path from 'path'
+import { RotatingFileStream } from './pino-rotating-file.stream'
 
 const SERVICE_NAME = 'xpert-server'
 
@@ -21,6 +23,11 @@ const PINO_LEVEL_LABELS: Record<number, string> = {
 const resolveEnv = (): string => process.env.NODE_ENV || 'development'
 
 const resolveConfiguredLogLevel = (): string => process.env.LOG_LEVEL || 'log'
+const resolveLogFileMaxSize = (): string => process.env.LOG_FILE_MAX_SIZE || '10m'
+const resolveLogFileMaxFiles = (): number => {
+	const parsed = Number.parseInt(process.env.LOG_FILE_MAX_FILES || '5', 10)
+	return Number.isInteger(parsed) && parsed > 0 ? parsed : 5
+}
 
 export const resolvePinoLogLevel = (): string => {
 	const level = resolveConfiguredLogLevel()
@@ -94,38 +101,27 @@ const isHealthPath = (url?: string): boolean => {
 	return pathname === '/health' || pathname === '/api/health'
 }
 
-const buildConsoleTarget = (logLevel: string, env: string) => {
+const buildConsoleStream = (env: string) => {
 	if (env === 'production') {
-		return {
-			target: 'pino/file',
-			level: logLevel,
-			options: {
-				destination: 1
-			}
-		}
+		return process.stdout
 	}
 
-	return {
-		target: 'pino-pretty',
-		level: logLevel,
-		options: {
-			colorize: true,
-			singleLine: true,
-			translateTime: 'SYS:standard',
-			ignore: 'pid,hostname,levelLabel'
-		}
-	}
+	return pretty({
+		colorize: true,
+		singleLine: true,
+		translateTime: 'SYS:standard',
+		ignore: 'pid,hostname,levelLabel'
+	})
 }
 
-const buildFileTarget = (logLevel: string) => ({
-	target: 'pino/file',
-	level: logLevel,
-	options: {
+const buildFileStream = () =>
+	new RotatingFileStream({
 		destination: resolveLogFilePath(),
 		mkdir: true,
-		append: true
-	}
-})
+		append: true,
+		maxSize: resolveLogFileMaxSize(),
+		maxFiles: resolveLogFileMaxFiles()
+	})
 
 export function buildPinoLoggerParams(): Params {
 	const env = resolveEnv()
@@ -135,9 +131,10 @@ export function buildPinoLoggerParams(): Params {
 		pinoHttp: {
 			level: logLevel,
 			timestamp: pino.stdTimeFunctions.isoTime,
-			transport: {
-				targets: [buildConsoleTarget(logLevel, env), buildFileTarget(logLevel)]
-			},
+			stream: pino.multistream([
+				{ level: logLevel, stream: buildConsoleStream(env) },
+				{ level: logLevel, stream: buildFileStream() }
+			]),
 			genReqId: (req: IncomingMessage, res: ServerResponse) => {
 				const headerValue = normalizeHeaderValue(req.headers['x-request-id'])
 				const requestId = isValidRequestId(headerValue) ? headerValue : randomUUID()
