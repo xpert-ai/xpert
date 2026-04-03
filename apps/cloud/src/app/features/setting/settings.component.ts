@@ -193,9 +193,15 @@ export class PACSettingComponent {
         link: 'organizations',
         label: 'Organization',
         icon: 'corporate_fare',
-        scopeContext: 'tenant-only',
+        scopeContext: 'dual-scope',
+        subtitleKey:
+          scopeLevel === RequestScopeLevel.TENANT
+            ? 'PAC.Organization.MenuTenantSubtitle'
+            : 'PAC.Organization.MenuOrganizationSubtitle',
+        subtitleDefault:
+          scopeLevel === RequestScopeLevel.TENANT ? 'Manage all organizations' : 'Review the current organization',
         data: {
-          permissionKeys: [RolesEnum.SUPER_ADMIN]
+          permissionKeys: [PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.CHANGE_SELECTED_ORGANIZATION]
         }
       },
       {

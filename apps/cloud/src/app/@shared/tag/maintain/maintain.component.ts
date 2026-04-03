@@ -30,6 +30,9 @@ export class TagMaintainComponent {
   readonly tenant = input<boolean, string | boolean>(false, {
     transform: booleanAttribute
   })
+  readonly readonly = input<boolean, string | boolean>(false, {
+    transform: booleanAttribute
+  })
 
   readonly allCategories = toSignal(this.tagService.getAllCategories())
 

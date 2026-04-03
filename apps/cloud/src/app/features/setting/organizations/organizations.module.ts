@@ -8,6 +8,7 @@ import { NgmTableComponent } from '@metad/ocap-angular/common'
 import { ZardStepperImports } from '@xpert-ai/headless-ui'
 import { OrgAvatarEditorComponent, OrgAvatarComponent } from '../../../@shared/organization'
 import { SharedModule } from '../../../@shared/shared.module'
+import { TagMaintainComponent } from '../../../@shared/tag'
 
 @NgModule({
   imports: [
@@ -18,7 +19,8 @@ import { SharedModule } from '../../../@shared/shared.module'
     OrganizationsRoutingModule,
     OrgAvatarEditorComponent,
     OrgAvatarComponent,
-    NgmTableComponent
+    NgmTableComponent,
+    TagMaintainComponent
   ],
   declarations: [
     OrganizationsComponent,
