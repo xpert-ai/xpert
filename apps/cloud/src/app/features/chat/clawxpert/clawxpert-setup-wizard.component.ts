@@ -37,7 +37,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
         <div class="mt-3 text-xl font-semibold text-text-primary">
           {{
             'PAC.Chat.ClawXpert.WizardTitle'
-              | translate: { Default: 'Choose the published Xpert that should power your ClawXpert page.' }
+              | translate: { Default: 'Choose the published Xpert to use as the agent for your ClawXpert.' }
           }}
         </div>
         <p class="mt-2 max-w-lg text-sm text-text-secondary">

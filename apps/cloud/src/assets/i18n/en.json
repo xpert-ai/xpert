@@ -261,7 +261,7 @@
         "LoadFailed": "Failed to load ClawXpert.",
         "LoadFailedDesc": "Check your assistant access and try again.",
         "Wizard": "Setup Wizard",
-        "WizardTitle": "Choose the published Xpert that should power your ClawXpert page.",
+        "WizardTitle": "Choose the published Xpert to use as the agent for your ClawXpert.",
         "WizardDesc": "This page only needs one binding. You can change it later at any time.",
         "CreateNew": "New ClawXpert",
         "BindingUnavailable": "Your previous ClawXpert binding is no longer available. Please select another assistant.",

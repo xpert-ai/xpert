@@ -2575,7 +2575,7 @@
         "LoadFailed": "ClawXpert 加载失败。",
         "LoadFailedDesc": "请检查助手访问权限后重试。",
         "Wizard": "绑定向导",
-        "WizardTitle": "请选择一个已发布的 Xpert，用作当前 ClawXpert 页面的助手。",
+        "WizardTitle": "请选择一个已发布的 Xpert，用作当前 ClawXpert 的智能体。",
         "WizardDesc": "这个页面只需要一个绑定，后续你可以随时切换。",
         "CreateNew": "新建 ClawXpert",
         "BindingUnavailable": "你之前绑定的 ClawXpert 已不可用，请重新选择一个助手。",
