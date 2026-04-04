@@ -1,12 +1,12 @@
 import { getConfig } from '@metad/server-config'
-import { PluginLevel } from '@metad/contracts'
+import { PluginLevel, PluginSourceConfig } from '@metad/contracts'
 import { GLOBAL_ORGANIZATION_SCOPE } from '@xpert-ai/plugin-sdk'
 import { DataSource, DataSourceOptions } from 'typeorm'
 import { deserializePluginConfig } from './plugin-config.crypto'
 
 export interface OrganizationPluginConfig {
 	organizationId?: string
-	plugins: { name: string; version?: string; source?: string; level?: PluginLevel }[]
+	plugins: { name: string; version?: string; source?: string; level?: PluginLevel; sourceConfig?: PluginSourceConfig | null }[]
 	configs: Record<string, any>
 }
 
@@ -28,7 +28,7 @@ export async function loadPluginInstances(): Promise<Array<Record<string, any>>>
 	await dataSource.initialize()
 	try {
 		return await dataSource.query(
-			'SELECT "organizationId", "pluginName", "packageName", version, source, level, config FROM plugin_instance'
+			'SELECT "organizationId", "pluginName", "packageName", version, source, "sourceConfig", level, config FROM plugin_instance'
 		)
 	} finally {
 		await dataSource.destroy()
@@ -54,6 +54,7 @@ export async function loadOrganizationPluginConfigs(): Promise<OrganizationPlugi
 				name,
 				version: instance.version,
 				source: instance.source,
+				sourceConfig: instance.sourceConfig ?? null,
 				level: instance.level
 			})
 			record.configs[instance.pluginName] = deserializePluginConfig(

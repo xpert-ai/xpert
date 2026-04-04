@@ -13,6 +13,7 @@ import {
   XpertAgentService,
   XpertToolsetService
 } from '@cloud/app/@core'
+import { environment } from '@cloud/environments/environment'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { injectPluginAPI } from '@metad/cloud/state'
@@ -47,6 +48,7 @@ import { TInstalledPlugin } from './types'
   animations: [routeAnimations, ...OverlayAnimations]
 })
 export class PluginsComponent {
+  readonly isDevEnvironment = !environment.production
   readonly router = inject(Router)
   readonly #dialog = inject(Dialog)
   readonly _category = injectQueryParams<'plugins' | 'marketplace'>('category')
@@ -59,6 +61,7 @@ export class PluginsComponent {
   readonly #knowledgebaseService = inject(KnowledgebaseService)
   readonly #toolsetService = inject(XpertToolsetService)
   readonly npmInstallDialog = viewChild('npmInstallDialog', { read: TemplateRef })
+  readonly localInstallDialog = viewChild('localInstallDialog', { read: TemplateRef })
 
   readonly category = linkedModel({
     initialValue: this._category() ?? 'plugins',
@@ -95,10 +98,15 @@ export class PluginsComponent {
   })
   readonly removing = signal('')
   readonly updating = signal('')
+  readonly refreshing = signal('')
   readonly npmPackageName = model('')
   readonly npmPackageVersion = model('')
   readonly npmInstalling = signal(false)
   readonly npmInstallError = signal<string | null>(null)
+  readonly localPluginName = model('')
+  readonly localWorkspacePath = model('')
+  readonly localInstalling = signal(false)
+  readonly localInstallError = signal<string | null>(null)
 
   readonly searchText = model('')
   readonly #searchText = debouncedSignal(this.searchText, 300)
@@ -256,6 +264,24 @@ export class PluginsComponent {
     })
   }
 
+  refresh(plugin: TInstalledPlugin) {
+    this.refreshing.set(plugin.name)
+    this.pluginAPI.refresh(plugin.name).subscribe({
+      next: () => {
+        this.refreshing.set('')
+        this.#plugins.reload()
+        this.refreshStrategyCaches()
+        this.#toastr.success('PAC.Plugin.RefreshPluginSuccess', {
+          Default: `${plugin.meta?.displayName || plugin.name} reloaded from local workspace`
+        })
+      },
+      error: (err) => {
+        this.refreshing.set('')
+        this.#toastr.error(getErrorMessage(err))
+      }
+    })
+  }
+
   installNpm() {
     const template = this.npmInstallDialog()
     if (!template) {
@@ -274,6 +300,24 @@ export class PluginsComponent {
     })
   }
 
+  installLocal() {
+    const template = this.localInstallDialog()
+    if (!template) {
+      return
+    }
+
+    this.localInstallError.set(null)
+    this.localInstalling.set(false)
+
+    const dialogRef = this.#dialog.open(template, {
+      backdropClass: 'backdrop-blur-sm-black',
+      minWidth: '480px'
+    })
+    dialogRef.closed.subscribe(() => {
+      this.localInstalling.set(false)
+    })
+  }
+
   confirmInstallNpm(dialogRef: DialogRef) {
     const packageName = this.npmPackageName()?.trim()
     if (!packageName) {
@@ -283,9 +327,8 @@ export class PluginsComponent {
     this.npmInstallError.set(null)
     const version = this.npmPackageVersion()?.trim()
     this.pluginAPI
-      .create({
+      .install({
         pluginName: packageName,
-        packageName,
         version: version || undefined,
         source: 'npm'
       })
@@ -293,15 +336,48 @@ export class PluginsComponent {
       .subscribe({
         next: () => {
           this.npmInstalling.set(false)
-          dialogRef.close()
-          this.#plugins.reload()
-          this.refreshStrategyCaches()
+          this.handleInstallSuccess(dialogRef)
         },
         error: (err) => {
           this.npmInstallError.set(getErrorMessage(err))
           this.npmInstalling.set(false)
         }
       })
+  }
+
+  confirmInstallLocal(dialogRef: DialogRef) {
+    const pluginName = this.localPluginName()?.trim()
+    const workspacePath = this.localWorkspacePath()?.trim()
+    if (!pluginName || !workspacePath) {
+      return
+    }
+
+    this.localInstalling.set(true)
+    this.localInstallError.set(null)
+    this.pluginAPI
+      .install({
+        pluginName,
+        source: 'code',
+        sourceConfig: {
+          workspacePath
+        }
+      })
+      .subscribe({
+        next: () => {
+          this.localInstalling.set(false)
+          this.handleInstallSuccess(dialogRef)
+        },
+        error: (err) => {
+          this.localInstallError.set(getErrorMessage(err))
+          this.localInstalling.set(false)
+        }
+      })
+  }
+
+  private handleInstallSuccess(dialogRef: DialogRef) {
+    dialogRef.close()
+    this.#plugins.reload()
+    this.refreshStrategyCaches()
   }
 
   /**

@@ -1,9 +1,11 @@
+import type { PluginSourceConfig } from '@metad/contracts'
 import { execFile } from 'node:child_process'
 import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import { major, satisfies, validRange } from 'semver'
 import { PluginSdkValidationError } from './errors'
+import { getCodeWorkspacePath } from './source-config'
 import { normalizePluginName } from './types'
 
 const HOSTED_PLUGIN_SDK_PACKAGE = '@xpert-ai/plugin-sdk'
@@ -24,7 +26,7 @@ export interface PluginInstallValidationOptions {
 	pluginName: string
 	version?: string
 	source?: string
-	workspacePath?: string
+	sourceConfig?: PluginSourceConfig
 	registry?: string
 }
 
@@ -354,9 +356,11 @@ export async function assertPluginSdkInstallCandidate(options: PluginInstallVali
 		return undefined
 	}
 
+	const workspacePath = getCodeWorkspacePath(options.sourceConfig)
+
 	const manifest =
 		options.source === 'code'
-			? readWorkspacePluginManifest(options.pluginName, options.workspacePath)
+			? readWorkspacePluginManifest(options.pluginName, workspacePath)
 			: await fetchRegistryPluginManifest(options.pluginName, options.version, options.registry)
 
 	return assertPluginSdkCompatibility(manifest, {

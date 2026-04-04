@@ -71,10 +71,12 @@ const { loadPlugin } = require('./plugin-loader')
 const { assertPluginSdkInstallCandidate } = require('./plugin-sdk-versioning')
 const { registerPluginsAsync } = require('./plugin.helper')
 const { upsertPluginLoadFailure } = require('./plugin.helper')
+const { stageWorkspacePlugin } = require('./organization-plugin.store')
 const { PluginManagementService } = require('./plugin-management.service')
 
 describe('PluginManagementService', () => {
 	const pluginInstanceService = {
+		findOneByPluginName: jest.fn(),
 		uninstall: jest.fn(),
 		uninstallByPackageName: jest.fn(),
 		removePlugins: jest.fn(),
@@ -113,6 +115,7 @@ describe('PluginManagementService', () => {
 		)
 		RequestContext.getOrganizationId.mockReturnValue('org-1')
 		RequestContext.currentTenantId.mockReturnValue('tenant-1')
+		;(pluginInstanceService as any).findOneByPluginName.mockResolvedValue(null)
 	})
 
 	it('persists a non-blocking configuration warning when install-time config is invalid', async () => {
@@ -151,8 +154,125 @@ describe('PluginManagementService', () => {
 			pluginName: '@xpert-ai/plugin-config-demo',
 			version: undefined,
 			source: 'marketplace',
-			workspacePath: undefined
+			sourceConfig: null
 		})
+	})
+
+	it('stages code plugins from local workspaces', async () => {
+		;(loadPlugin as jest.Mock).mockResolvedValue({
+			meta: {
+				name: '@xpert-ai/plugin-code-demo',
+				version: '1.0.0',
+				level: 'organization'
+			}
+		})
+
+		await expect(
+			service.installPlugin({
+				pluginName: '@xpert-ai/plugin-code-demo',
+				source: 'code',
+				sourceConfig: {
+					workspacePath: '/tmp/workspaces/plugin-code-demo'
+				}
+			})
+		).resolves.toEqual(
+			expect.objectContaining({
+				success: true,
+				name: '@xpert-ai/plugin-code-demo'
+			})
+		)
+
+		expect(stageWorkspacePlugin).toHaveBeenCalledWith({
+			organizationId: 'org-1',
+			pluginName: '@xpert-ai/plugin-code-demo',
+			expectedPackageName: '@xpert-ai/plugin-code-demo',
+			workspacePath: '/tmp/workspaces/plugin-code-demo'
+		})
+		expect(assertPluginSdkInstallCandidate).toHaveBeenCalledWith({
+			pluginName: '@xpert-ai/plugin-code-demo',
+			version: undefined,
+			source: 'code',
+			sourceConfig: {
+				workspacePath: '/tmp/workspaces/plugin-code-demo'
+			}
+		})
+		expect((pluginInstanceService as any).upsert).toHaveBeenCalledWith(
+			expect.objectContaining({
+				source: 'code',
+				sourceConfig: {
+					workspacePath: '/tmp/workspaces/plugin-code-demo'
+				}
+			})
+		)
+	})
+
+	it('refreshes code plugins from their persisted workspace path', async () => {
+		loadedPlugins.push({
+			organizationId: 'org-1',
+			name: '@xpert-ai/plugin-code-demo',
+			packageName: '@xpert-ai/plugin-code-demo',
+			source: 'code',
+			ctx: {
+				config: {
+					apiKey: 'demo'
+				}
+			},
+			instance: {
+				meta: {
+					name: '@xpert-ai/plugin-code-demo',
+					version: '1.0.0',
+					level: 'organization'
+				}
+			}
+		})
+		;(pluginInstanceService as any).findOneByPluginName.mockResolvedValue({
+			pluginName: '@xpert-ai/plugin-code-demo',
+			packageName: '@xpert-ai/plugin-code-demo',
+			source: 'code',
+			sourceConfig: {
+				workspacePath: '/tmp/workspaces/plugin-code-demo'
+			},
+			config: {
+				apiKey: 'persisted'
+			}
+		})
+		const installSpy = jest.spyOn(service, 'installPlugin').mockResolvedValue({
+			success: true,
+			name: '@xpert-ai/plugin-code-demo',
+			packageName: '@xpert-ai/plugin-code-demo',
+			organizationId: 'org-1',
+			currentVersion: '1.0.1'
+		})
+
+		await expect(service.refreshCodePlugin('@xpert-ai/plugin-code-demo')).resolves.toEqual(
+			expect.objectContaining({
+				success: true,
+				name: '@xpert-ai/plugin-code-demo'
+			})
+		)
+
+		expect(installSpy).toHaveBeenCalledWith({
+			pluginName: '@xpert-ai/plugin-code-demo',
+			source: 'code',
+			sourceConfig: {
+				workspacePath: '/tmp/workspaces/plugin-code-demo'
+			},
+			config: {
+				apiKey: 'demo'
+			}
+		})
+	})
+
+	it('rejects refreshing code plugins without a stored workspace path', async () => {
+		;(pluginInstanceService as any).findOneByPluginName.mockResolvedValue({
+			pluginName: '@xpert-ai/plugin-code-demo',
+			packageName: '@xpert-ai/plugin-code-demo',
+			source: 'code'
+		})
+
+		await expect(service.refreshCodePlugin('@xpert-ai/plugin-code-demo')).rejects.toThrow(
+			'does not have a stored sourceConfig.workspacePath'
+		)
 	})
 
 	it('persists a placeholder plugin record when installation fails', async () => {
@@ -203,7 +323,7 @@ describe('PluginManagementService', () => {
 			pluginName: '@xpert-ai/plugin-future-demo',
 			version: '1.2.3',
 			source: 'npm',
-			workspacePath: undefined
+			sourceConfig: null
 		})
 		expect((pluginInstanceService as any).uninstallByPackageName).not.toHaveBeenCalled()
 		expect(registerPluginsAsync).not.toHaveBeenCalled()

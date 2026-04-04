@@ -351,6 +351,21 @@
                               <i class="ri-refresh-line"></i>
                             </button>
                           }
+                          @if (isDevEnvironment && plugin.canRefresh) {
+                            <button
+                              type="button"
+                              class="action-btn action-btn-m text-text-tertiary hover:bg-hover-bg hover:text-text-primary flex items-center justify-center"
+                              [zTooltip]="
+                                'PAC.Plugin.RefreshPlugin'
+                                  | translate: { Default: 'Reload this local code plugin from workspace files' }
+                              "
+                              zPosition="top"
+                              [disabled]="refreshing() === plugin.name"
+                              (click)="refresh(plugin)"
+                            >
+                              <i class="ri-restart-line"></i>
+                            </button>
+                          }
                           @if (plugin.canUninstall) {
                             <button
                               type="button"
@@ -399,7 +414,7 @@
                   </div>
                 </div>
 
-                @if (removing() === plugin.name || updating() === plugin.name) {
+                @if (removing() === plugin.name || updating() === plugin.name || refreshing() === plugin.name) {
                   <ngm-spin
                     class="absolute inset-0 z-10 backdrop-blur-sm"
                     style="background-color: color-mix(in oklab, var(--background) 10%, transparent)"
@@ -415,11 +430,17 @@
 }
 
 <ng-template #installMenu>
-  <div cdkMenu class="cdk-menu__large w-28">
+  <div cdkMenu class="cdk-menu__large w-44">
     <div class="font-semibold mb-2">
       {{ 'PAC.Plugin.InstallSource' | translate: { Default: 'Install Source' } }}
     </div>
     <div cdkMenuItem class="" (click)="installNpm()"><i class="ri-npmjs-line mr-1"></i> NPM</div>
+    @if (isDevEnvironment) {
+      <div cdkMenuItem class="" (click)="installLocal()">
+        <i class="ri-folder-open-line mr-1"></i>
+        {{ 'PAC.Plugin.LocalSource' | translate: { Default: 'Local workspace' } }}
+      </div>
+    }
   </div>
 </ng-template>
 
@@ -476,6 +497,80 @@
         (click)="confirmInstallNpm(dialogRef)"
       >
         @if (npmInstalling()) {
+          <ngm-spin small class="!text-primary-200" />
+        }
+        <span>{{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}</span>
+      </button>
+    </div>
+  </div>
+</ng-template>
+
+<ng-template #localInstallDialog let-dialogRef="dialogRef">
+  <div class="w-full rounded-2xl bg-components-card-bg px-6 py-5">
+    <div class="flex items-start justify-between pb-3">
+      <div class="text-xl font-semibold text-text-primary">
+        {{ 'PAC.Plugin.InstallFromLocal' | translate: { Default: 'Install from Local Workspace' } }}
+      </div>
+      <button
+        type="button"
+        class="btn btn-ghost btn-small w-8 h-8 flex items-center justify-center"
+        (click)="dialogRef.close()"
+      >
+        <i class="ri-close-line"></i>
+      </button>
+    </div>
+    <div class="relative flex flex-col gap-4">
+      <div class="rounded-xl border border-divider-regular bg-background-default-subtle px-3 py-2 text-xs text-text-tertiary">
+        {{
+          'PAC.Plugin.LocalInstallHint'
+            | translate
+              : {
+                  Default:
+                    'Development only. workspacePath must be an absolute path on the API host and inside PLUGIN_WORKSPACE_ROOTS. Xpert copies the workspace into the host plugin directory for loading.'
+                }
+        }}
+      </div>
+      <div class="flex flex-col gap-2">
+        <label class="text-sm font-medium text-text-tertiary">
+          {{ 'PAC.Plugin.LocalPluginName' | translate: { Default: 'Plugin package name' } }}
+        </label>
+        <input
+          class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          [placeholder]="'PAC.Plugin.InputLocalPluginName' | translate: { Default: 'e.g. @xpert-ai/plugin-lark' }"
+          [(ngModel)]="localPluginName"
+        />
+      </div>
+      <div class="flex flex-col gap-2">
+        <label class="text-sm font-medium text-text-tertiary">
+          {{ 'PAC.Plugin.LocalWorkspacePath' | translate: { Default: 'Workspace path' } }}
+        </label>
+        <input
+          class="w-full appearance-none border border-transparent py-2 px-3 radius-md system-sm-regular bg-components-input-bg-normal text-components-input-text-filled placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          [placeholder]="
+            'PAC.Plugin.InputLocalWorkspacePath'
+              | translate: { Default: '/Users/.../xpert-plugins/xpertai/integrations/lark' }
+          "
+          [(ngModel)]="localWorkspacePath"
+        />
+      </div>
+      @if (localInstallError()) {
+        <div class="max-w-sm text-sm max-h-96 overflow-auto text-text-destructive">{{ localInstallError() }}</div>
+      }
+      @if (localInstalling()) {
+        <ngm-spin class="absolute left-0 top-0 w-full h-full rounded-xl backdrop-blur-sm bg-components-card-bg/20" />
+      }
+    </div>
+    <div class="flex items-center justify-end gap-2 pt-4">
+      <button type="button" class="btn disabled:btn-disabled btn-secondary btn-large" (click)="dialogRef.close()">
+        {{ 'PAC.ACTIONS.Cancel' | translate: { Default: 'Cancel' } }}
+      </button>
+      <button
+        type="button"
+        class="btn disabled:btn-disabled btn-primary btn-large flex items-center gap-1"
+        [disabled]="localInstalling() || !localPluginName()?.trim() || !localWorkspacePath()?.trim()"
+        (click)="confirmInstallLocal(dialogRef)"
+      >
+        @if (localInstalling()) {
           <ngm-spin small class="!text-primary-200" />
         }
         <span>{{ 'PAC.Plugin.Install' | translate: { Default: 'Install' } }}</span>

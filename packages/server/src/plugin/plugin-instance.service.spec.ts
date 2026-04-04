@@ -116,4 +116,34 @@ describe('PluginInstanceService', () => {
 		expect(loadedPlugins).toHaveLength(0)
 		expect(rmSync).toHaveBeenCalled()
 	})
+
+	it('preserves stored sourceConfig when updating an existing code plugin record', async () => {
+		repo.findOne.mockResolvedValue({
+			pluginName: '@xpert-ai/plugin-code-demo',
+			packageName: '@xpert-ai/plugin-code-demo',
+			source: 'code',
+			sourceConfig: {
+				workspacePath: '/tmp/workspaces/plugin-code-demo'
+			},
+			level: 'organization'
+		})
+		repo.save.mockImplementation(async (entity) => entity)
+
+		await service.upsert({
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			pluginName: '@xpert-ai/plugin-code-demo',
+			packageName: '@xpert-ai/plugin-code-demo',
+			source: 'code',
+			config: { enabled: true }
+		} as any)
+
+		expect(repo.save).toHaveBeenCalledWith(
+			expect.objectContaining({
+				sourceConfig: {
+					workspacePath: '/tmp/workspaces/plugin-code-demo'
+				}
+			})
+		)
+	})
 })

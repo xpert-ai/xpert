@@ -23,6 +23,7 @@ import { loadPlugin } from './plugin-loader'
 import { getOrganizationPluginPath, getOrganizationPluginRoot, stageWorkspacePlugin } from './organization-plugin.store'
 import { canManageGlobalPlugins, canManageSystemPlugins } from './plugin-update.utils'
 import { assertPluginSdkInstallCandidate } from './plugin-sdk-versioning'
+import { getCodeWorkspacePath, normalizePluginSourceConfig } from './source-config'
 import {
 	LOADED_PLUGINS,
 	LoadedPluginRecord,
@@ -63,20 +64,70 @@ export class PluginManagementService {
 		)
 	}
 
+	async refreshCodePlugin(pluginName: string): Promise<PluginInstallResult> {
+		if (!pluginName) {
+			throw new BadRequestException('pluginName is required')
+		}
+
+		const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
+		const loadedPlugin = this.findLoadedPlugin(pluginName, organizationId, false)
+		const existing = await this.pluginInstanceService.findOneByPluginName(
+			loadedPlugin?.name ?? pluginName,
+			organizationId
+		)
+
+		if (!existing) {
+			throw new BadRequestException(`Plugin "${pluginName}" is not refreshable in the current scope`)
+		}
+
+		if ((loadedPlugin?.source ?? existing.source) !== 'code') {
+			throw new BadRequestException(`Plugin "${pluginName}" is not installed from local source code`)
+		}
+
+		const sourceConfig = existing.sourceConfig
+		const workspacePath = getCodeWorkspacePath(sourceConfig)
+
+		if (!workspacePath) {
+			throw new BadRequestException(
+				`Plugin "${pluginName}" does not have a stored sourceConfig.workspacePath to refresh from`
+			)
+		}
+
+		const packageName = normalizePluginName(loadedPlugin?.packageName ?? existing.packageName ?? pluginName)
+		const config = loadedPlugin?.ctx?.config ?? this.pluginInstanceService.getConfig(existing)
+
+		return this.installPlugin({
+			pluginName: packageName,
+			source: 'code',
+			sourceConfig,
+			config
+		})
+	}
+
 	async installPlugin(body: PluginInstallInput): Promise<PluginInstallResult> {
 		if (!body?.pluginName) {
 			throw new BadRequestException(t('server:Error.PluginPackageNameRequired'))
 		}
 
-		if (body.workspacePath && body.source !== 'code') {
-			throw new BadRequestException('workspacePath is only supported when source is "code"')
+		const source = body.source || 'marketplace'
+		if (Object.prototype.hasOwnProperty.call(body, 'workspacePath')) {
+			throw new BadRequestException('workspacePath has been removed. Use sourceConfig.workspacePath instead')
+		}
+		let sourceConfig = null
+		try {
+			sourceConfig = normalizePluginSourceConfig(source, body.sourceConfig)
+		} catch (error) {
+			throw new BadRequestException(getErrorMessage(error))
+		}
+		const workspacePath = getCodeWorkspacePath(sourceConfig)
+		if (source === 'code' && !workspacePath) {
+			throw new BadRequestException('sourceConfig.workspacePath is required when source is "code"')
 		}
 
 		const organizationId = RequestContext.getOrganizationId() ?? GLOBAL_ORGANIZATION_SCOPE
 		const allowSystemPlugins = canManageSystemPlugins(organizationId)
 		const tenantId = RequestContext.currentTenantId()
 		const packageName = body.pluginName
-		const source = body.source || 'marketplace'
 		const level = PLUGIN_LEVEL.ORGANIZATION
 
 		try {
@@ -84,19 +135,19 @@ export class PluginManagementService {
 				pluginName: packageName,
 				version: body.version,
 				source,
-				workspacePath: body.workspacePath
+				sourceConfig
 			})
 
 			await this.uninstallByPackageNameWithGuard(tenantId, organizationId, packageName, allowSystemPlugins)
 
 			const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
 			const organizationBaseDir = getOrganizationPluginRoot(organizationId)
-			if (source === 'code' && body.workspacePath) {
+			if (source === 'code' && workspacePath) {
 				stageWorkspacePlugin({
 					organizationId,
 					pluginName: packageNameWithVersion,
 					expectedPackageName: packageName,
-					workspacePath: body.workspacePath
+					workspacePath
 				})
 			}
 
@@ -178,6 +229,7 @@ export class PluginManagementService {
 				packageName,
 				version: plugin.meta?.version,
 				source,
+				sourceConfig,
 				level: resolvedLevel,
 				config: configInspection.config,
 				configurationStatus: configInspection.error
@@ -217,6 +269,7 @@ export class PluginManagementService {
 					packageName: failedPluginName,
 					version: body.version,
 					source,
+					sourceConfig,
 					level,
 					config: body.config ?? {},
 					configurationStatus: null,

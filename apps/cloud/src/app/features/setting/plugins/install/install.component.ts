@@ -81,7 +81,7 @@ export class PluginInstallComponent {
     this.status.set('installing')
     this.error.set(null)
     this.pluginAPI
-      .create({
+      .install({
         pluginName: this.pluginName(),
         version: this.pluginVersion()
       })

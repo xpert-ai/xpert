@@ -18,6 +18,7 @@ import { resolvePluginConfigSchema } from './plugin-config-schema'
 import { resolvePluginLevel } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
 import { PluginManagementService } from './plugin-management.service'
+import { getCodeWorkspacePath } from './source-config'
 import { canUninstallPlugin, canUpdatePlugin, hasNewerVersion, supportsNpmRegistryUpdates } from './plugin-update.utils'
 import { ResolveLatestPluginVersionQuery } from './queries'
 import { UpdatePluginCommand } from './commands'
@@ -143,6 +144,15 @@ export class PluginController {
 		return this.commandBus.execute(new UpdatePluginCommand(body.pluginName))
 	}
 
+	@Post('refresh')
+	async refreshPlugin(@Body() body: { pluginName: string }) {
+		if (!body?.pluginName) {
+			throw new BadRequestException('pluginName is required')
+		}
+
+		return this.pluginManagementService.refreshCodePlugin(body.pluginName)
+	}
+
 	@Delete('uninstall')
 	async uninstall(@Body() body: { names: string[]; organizationId?: string }) {
 		if (!body?.names || body.names.length === 0) {
@@ -221,6 +231,7 @@ export class PluginController {
 			? PLUGIN_CONFIGURATION_STATUS.INVALID
 			: instance?.configurationStatus
 		const configurationError = inspected.error ?? instance?.configurationError
+		const workspacePath = getCodeWorkspacePath(instance?.sourceConfig)
 		const scopeSemantics = this.resolveDescriptorScopeSemantics(
 			this.getNormalizedPluginName(plugin.name, plugin.packageName, plugin.instance?.meta?.name),
 			scope,
@@ -239,6 +250,7 @@ export class PluginController {
 			isGlobal: scope === GLOBAL_ORGANIZATION_SCOPE,
 			level: plugin.level ?? PLUGIN_LEVEL.ORGANIZATION,
 			canConfigure: plugin.organizationId === organizationId && !!resolvePluginConfigSchema(plugin.instance),
+			canRefresh: plugin.source === 'code' && !!workspacePath && canUninstallPlugin(plugin, organizationId),
 			canUninstall: canUninstallPlugin(plugin, organizationId),
 			canUpdate,
 			hasUpdate: canUpdate && hasNewerVersion(plugin.instance.meta?.version, latestVersion),
@@ -262,6 +274,7 @@ export class PluginController {
 		const loadError =
 			failure?.error ??
 			'This plugin is registered in the database but could not be loaded by the current server process.'
+		const workspacePath = getCodeWorkspacePath(plugin.sourceConfig)
 		const scopeSemantics = this.resolveDescriptorScopeSemantics(
 			this.getNormalizedPluginName(plugin.pluginName, plugin.packageName),
 			scope,
@@ -289,7 +302,8 @@ export class PluginController {
 			isGlobal: !plugin.organizationId,
 			level: plugin.level ?? PLUGIN_LEVEL.ORGANIZATION,
 			canConfigure: false,
-			canUninstall: canUninstallPlugin({ organizationId: scope, level: plugin.level }, organizationId),
+			canRefresh: plugin.source === 'code' && !!workspacePath && canUninstallPlugin({ organizationId: scope, level: plugin.level }, organizationId),
+			canUninstall: true, // allow uninstalling failed plugins to recover from load failures, even if they would normally be protected from uninstallation based on their level
 			canUpdate: false,
 			hasUpdate: false,
 			configSchema: undefined,

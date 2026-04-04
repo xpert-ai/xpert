@@ -13,6 +13,7 @@ import {
 	getOrganizationPluginRoot
 } from './organization-plugin.store'
 import { clearPluginLoadFailure } from './plugin.helper'
+import { normalizePluginSourceConfig } from './source-config'
 import { LOADED_PLUGINS, LoadedPluginRecord, normalizePluginName } from './types'
 
 @Injectable()
@@ -32,17 +33,25 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 	async upsert(input: PluginInstance) {
 		const organizationId = this.getOrganizationCondition(input.organizationId)
 		const decryptedConfig = input.config ?? {}
+		const hasExplicitSourceConfig = input.sourceConfig !== undefined
 		const existing = await this.repo.findOne({
 			where: {
 				organizationId,
 				pluginName: input.pluginName
 			}
 		})
+		const normalizedSourceConfig = normalizePluginSourceConfig(input.source, input.sourceConfig)
+		const persistedSourceConfig = hasExplicitSourceConfig
+			? normalizedSourceConfig
+			: existing && input.source === existing.source
+				? existing.sourceConfig ?? null
+				: normalizedSourceConfig
 
 		if (existing) {
 			existing.packageName = input.packageName
 			existing.version = input.version
 			existing.source = input.source
+			existing.sourceConfig = persistedSourceConfig
 			existing.level = input.level ?? existing.level
 			existing.config = serializePluginConfig(decryptedConfig)
 			existing.configurationStatus = input.configurationStatus ?? null
@@ -60,6 +69,7 @@ export class PluginInstanceService extends TenantOrganizationAwareCrudService<Pl
 			packageName: input.packageName,
 			version: input.version,
 			source: input.source,
+			sourceConfig: normalizedSourceConfig,
 			level: input.level,
 			config: serializePluginConfig(decryptedConfig),
 			configurationStatus: input.configurationStatus ?? null,

@@ -36,6 +36,8 @@
     "start:api:debug": "pnpm -C ./apps/api start:debug",
     "start:analytics:debug": "pnpm -C ./packages/analytics start:debug",
     "start:docs": "pnpm -C ./docs dev",
+    "plugin:install:local": "node tools/scripts/install-local-plugin.mjs",
+    "plugin:reinstall:local": "node tools/scripts/reinstall-local-plugin.mjs",
     "debug:olap": "pnpm -C ./packages/olap debug",
     "format:fix": "prettier --write --ignore-unknown",
     "prepare": "command -v git >/dev/null 2>&1 && git config core.hooksPath git-hooks || exit 0",

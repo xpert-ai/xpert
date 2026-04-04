@@ -75,6 +75,7 @@ describe('PluginController', () => {
 	const pluginManagementService = {
 		findLoadedPlugin: jest.fn(),
 		installPlugin: jest.fn(),
+		refreshCodePlugin: jest.fn(),
 		uninstallByNamesWithGuard: jest.fn()
 	} as unknown as PluginManagementService
 
@@ -302,6 +303,28 @@ describe('PluginController', () => {
 		expect((commandBus as any).execute).toHaveBeenCalledWith(new UpdatePluginCommand('@xpert-ai/plugin-env-demo'))
 	})
 
+	it('delegates code plugin refreshes to plugin management service', async () => {
+		;(pluginManagementService as any).refreshCodePlugin.mockResolvedValue({
+			success: true,
+			name: '@xpert-ai/plugin-code-demo',
+			packageName: '@xpert-ai/plugin-code-demo',
+			organizationId: 'org-1'
+		})
+
+		await expect(controller.refreshPlugin({ pluginName: '@xpert-ai/plugin-code-demo' })).resolves.toEqual(
+			expect.objectContaining({
+				success: true,
+				name: '@xpert-ai/plugin-code-demo'
+			})
+		)
+		expect((pluginManagementService as any).refreshCodePlugin).toHaveBeenCalledWith('@xpert-ai/plugin-code-demo')
+	})
+
+	it('throws when refresh request does not include plugin name', async () => {
+		await expect(controller.refreshPlugin({ pluginName: '' })).rejects.toBeInstanceOf(BadRequestException)
+		expect((pluginManagementService as any).refreshCodePlugin).not.toHaveBeenCalled()
+	})
+
 	it('throws when update request does not include plugin name', async () => {
 		await expect(controller.updatePlugin({ pluginName: '' })).rejects.toBeInstanceOf(BadRequestException)
 		expect((commandBus as any).execute).not.toHaveBeenCalled()
@@ -370,10 +393,17 @@ describe('PluginController', () => {
 			},
 			ctx: {}
 		})
+		;(pluginInstanceService as any).findOneByPluginName.mockResolvedValue({
+			pluginName: '@xpert-ai/plugin-code-demo',
+			sourceConfig: {
+				workspacePath: '/tmp/workspaces/plugin-code-demo'
+			}
+		})
 
 		await expect(controller.getPlugins()).resolves.toEqual([
 			expect.objectContaining({
 				name: '@xpert-ai/plugin-code-demo',
+				canRefresh: true,
 				canUpdate: false,
 				hasUpdate: false,
 				latestVersion: undefined
@@ -525,9 +555,12 @@ describe('PluginController', () => {
 				pluginName: '@xpert-ai/plugin-scope-demo',
 				packageName: '@xpert-ai/plugin-scope-demo',
 				version: '0.0.2',
-				source: 'npm',
+				source: 'code',
 				level: PLUGIN_LEVEL.ORGANIZATION,
 				organizationId: 'org-1',
+				sourceConfig: {
+					workspacePath: '/tmp/workspaces/plugin-scope-demo'
+				},
 				configurationStatus: null,
 				configurationError: null
 			}
@@ -544,6 +577,7 @@ describe('PluginController', () => {
 		expect(organizationPlugin).toEqual(
 			expect.objectContaining({
 				name: '@xpert-ai/plugin-scope-demo',
+				canRefresh: true,
 				loadStatus: 'failed',
 				effectiveInCurrentScope: false,
 				scopeRelation: 'none',

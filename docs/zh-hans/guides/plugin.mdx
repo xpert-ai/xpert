@@ -14,6 +14,73 @@
 
 - 多个插件使用英文逗号分隔
 
+## 独立仓库本地联调
+
+如果插件代码位于 Xpert 主仓库之外，可以直接调用宿主已有的 `POST /api/plugin` 安装接口，不需要发布 npm 包，也不需要把代码拷回主仓库。
+
+启动 API 前，显式设置允许的本地工作区根目录：
+
+```bash
+export PLUGIN_WORKSPACE_ROOTS="/abs/path/to/xpert:/abs/path/to/xpert-plugins"
+```
+
+推荐流程：
+
+1. 在独立插件仓库执行 `pnpm install`
+2. 先用 `plugin-dev-harness` 做一次生命周期预检
+3. 构建插件，或启动对应的 watch 任务
+4. 启动 Xpert API
+5. 调用安装接口挂载本地插件
+6. 代码变更后重新构建，再重复安装请求完成 reload
+
+本地源码安装请求示例：
+
+```bash
+curl -X POST http://localhost:3333/api/plugin \
+  -H 'Content-Type: application/json' \
+  -H 'Organization-Id: <your-org-id>' \
+  --data '{
+    "pluginName": "@xpert-ai/plugin-lark",
+    "source": "code",
+    "sourceConfig": {
+      "workspacePath": "/abs/path/to/xpert-plugins/xpertai/integrations/lark"
+    }
+  }'
+```
+
+也可以使用仓库内置脚本发起同一请求：
+
+```bash
+pnpm plugin:install:local \
+  --workspace-path /abs/path/to/xpert-plugins/xpertai/integrations/lark \
+  --org-id <your-org-id> \
+  --token <your-token>
+```
+
+如果你希望把“重建插件 + 重新安装”串成一步，可以使用：
+
+```bash
+pnpm plugin:reinstall:local \
+  --workspace-path /abs/path/to/xpert-plugins/xpertai/integrations/lark \
+  --org-id <your-org-id> \
+  --token <your-token>
+```
+
+字段说明：
+
+- `source: "code"` 表示从本地源码工作区安装
+- `sourceConfig` 用于存放不同来源的安装元数据
+- 对于本地源码安装，`sourceConfig.workspacePath` 必须是绝对路径，且位于 `PLUGIN_WORKSPACE_ROOTS` 允许范围内
+- 本地源码安装会先把工作区复制到宿主插件目录，再执行加载
+
+注意事项：
+
+- Xpert 不再支持本地源码安装使用 `symlink` 模式
+- 原因是 symlink 加载后会解析到独立仓库真实路径，继续使用独立仓库自己的依赖树，容易与宿主形成两份运行时单例，例如两份 `@nestjs/core`
+- 代码变更后的推荐动作仍然是“重新构建插件，再重新发一次安装请求”
+- 宿主会继续校验 `package.json.name`、SDK 兼容性，以及 `dist/` 或 `src/index.ts` 入口是否存在
+- `plugin-dev-harness` 只负责插件自身生命周期验证，不替代 Xpert 平台内的真实安装测试
+
 ## SDK 版本约束
 
 - `@xpert-ai/plugin-sdk` 只能声明在 `peerDependencies`，不要放到 `dependencies`

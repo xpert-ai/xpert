@@ -1,6 +1,13 @@
 import { inject, Injectable } from '@angular/core'
 import { API_PREFIX } from './constants'
-import { IPlugin, IPluginConfiguration, IPluginDescriptor } from './types'
+import {
+  IPlugin,
+  IPluginConfiguration,
+  IPluginDescriptor,
+  IPluginInstallInput,
+  IPluginInstallResult,
+  IPluginUpdateResult
+} from './types'
 import { OrganizationBaseCrudService } from './organization-base-crud.service'
 
 const API_BASE = API_PREFIX + '/plugin'
@@ -13,6 +20,10 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
 
   getPlugins() {
     return this.httpClient.get<IPluginDescriptor[]>(this.apiBaseUrl)
+  }
+
+  install(input: IPluginInstallInput) {
+    return this.httpClient.post<IPluginInstallResult>(this.apiBaseUrl, input)
   }
 
   getByNames(names: string[]) {
@@ -28,13 +39,11 @@ export class PluginAPIService extends OrganizationBaseCrudService<IPlugin> {
   }
 
   update(pluginName: string) {
-    return this.httpClient.post<{
-      success: boolean
-      updated: boolean
-      previousVersion?: string
-      currentVersion?: string
-      latestVersion?: string
-    }>(`${this.apiBaseUrl}/update`, { pluginName })
+    return this.httpClient.post<IPluginUpdateResult>(`${this.apiBaseUrl}/update`, { pluginName })
+  }
+
+  refresh(pluginName: string) {
+    return this.httpClient.post<IPluginInstallResult>(`${this.apiBaseUrl}/refresh`, { pluginName })
   }
 
   uninstall(names: string[], organizationId?: string) {
