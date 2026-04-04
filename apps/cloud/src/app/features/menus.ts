@@ -333,7 +333,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       data: {
         translationKey: 'BI Project',
         featureKey: AnalyticsFeatures.FEATURE_PROJECT,
-        permissionKeys: [AnalyticsPermissionsEnum.STORIES_VIEW]
+        permissionKeys: [AnalyticsPermissionsEnum.STORIES_EDIT]
       },
       children: [
         {
@@ -343,7 +343,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
           data: {
             translationKey: 'Story',
             featureKey: AnalyticsFeatures.FEATURE_STORY,
-            permissionKeys: [AnalyticsPermissionsEnum.STORIES_VIEW]
+            permissionKeys: [AnalyticsPermissionsEnum.STORIES_EDIT]
           }
         },
         {

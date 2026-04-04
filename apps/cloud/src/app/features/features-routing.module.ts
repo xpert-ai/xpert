@@ -96,7 +96,7 @@ const routes: Routes = [
           title: 'Project',
           scopeContext: 'dual-scope',
           permissions: {
-            only: [AnalyticsPermissionsEnum.STORIES_VIEW],
+            only: [AnalyticsPermissionsEnum.STORIES_EDIT],
             redirectTo
           }
         }
