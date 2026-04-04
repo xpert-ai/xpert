@@ -255,6 +255,7 @@
         "Shell": "ClawXpert Shell",
         "Change": "Change ClawXpert",
         "Clear": "Clear ClawXpert",
+        "MoreActions": "More actions",
         "Loading": "Preparing ClawXpert…",
         "OrganizationRequired": "Select an organization to use ClawXpert",
         "OrganizationRequiredDesc": "ClawXpert stores one assistant binding per user and per organization.",
@@ -280,6 +281,9 @@
         "OverviewEmptyDesc": "Bind one published Xpert first. Once ready, this panel becomes the overview and entry point for your ClawXpert workspace.",
         "OverviewReadyDesc": "Use the markdown workspace to maintain SOUL.md and USER.md for this ClawXpert binding.",
         "GoToChat": "Go to chat",
+        "CopilotModelDesc": "Switch the model used by the bound ClawXpert xpert without leaving this page.",
+        "CopilotModelSaving": "Saving model selection…",
+        "CopilotModelSelected": "Model: {{model}}",
         "BoundDays": "Companion days",
         "ConversationCount": "Conversations",
         "TaskCount": "Tasks",
@@ -395,6 +399,9 @@
         "ThreadNotesTitle": "Notes placeholder",
         "ThreadNotesDesc": "Thread summaries, operator notes, and extra context snippets are intentionally left as placeholders for now."
       }
+    },
+    "Copilot": {
+      "SelectModel": "Select model"
     },
     "Assistant": {
       "MenuTenantSubtitle": "Tenant defaults",

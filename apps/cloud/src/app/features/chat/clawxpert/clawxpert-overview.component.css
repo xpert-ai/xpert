@@ -1,0 +1,25 @@
+@reference "../../../../styles/tailwind-reference.css";
+:host {
+  @apply block relative h-full overflow-y-auto overflow-x-hidden;
+}
+
+.clawxpert-model-group {
+  @apply w-full overflow-hidden rounded-full border border-divider-regular bg-background-default-subtle p-0 shadow-none;
+}
+
+.clawxpert-model-group > *:not(:first-child) {
+  margin-left: 0;
+}
+
+.clawxpert-model-trigger,
+.clawxpert-model-menu-trigger {
+  @apply border-0 bg-transparent shadow-none;
+}
+
+.clawxpert-model-trigger {
+  @apply min-w-0 flex-1 justify-start px-4;
+}
+
+.clawxpert-model-menu-trigger {
+  @apply shrink-0 rounded-none border-l border-divider-regular px-3;
+}

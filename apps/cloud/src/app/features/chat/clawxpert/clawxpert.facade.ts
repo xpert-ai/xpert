@@ -14,6 +14,7 @@ import {
   IAssistantBinding,
   IAssistantBindingSkillPreference,
   IEnvironment,
+  ICopilotModel,
   IAssistantBindingToolPreferences,
   IAssistantBindingUserPreference,
   IAssistantBindingUserPreferenceUpsertInput,
@@ -128,6 +129,7 @@ export class ClawXpertFacade {
   readonly loadingTriggerDraft = signal(false)
   readonly savingTriggerDraft = signal(false)
   readonly publishingXpert = signal(false)
+  readonly savingCopilotModel = signal(false)
   readonly showWizard = signal(false)
   readonly pendingConversationStartId = signal(0)
   readonly taskRefreshTick = signal(0)
@@ -493,6 +495,80 @@ export class ClawXpertFacade {
       )
     } finally {
       this.clearing.set(false)
+    }
+  }
+
+  // Optimistically update the bound xpert model locally, then reconcile state with the persisted server result.
+  async updateCurrentXpertCopilotModel(copilotModel: Partial<ICopilotModel> | null) {
+    const currentXpert = this.currentXpert()
+    const xpertId = currentXpert?.id
+
+    if (!xpertId) {
+      return null
+    }
+
+    const previousAvailableXperts = this.availableXperts()
+    const previousTriggerDraftSource = this.triggerDraftSource()
+    const previousTriggerDraft = this.triggerDraft()
+    const nextCopilotModel = copilotModel ? { ...copilotModel } : null
+
+    this.savingCopilotModel.set(true)
+    this.availableXperts.update((items) =>
+      items.map((item) => (item.id === xpertId ? ({ ...item, copilotModel: nextCopilotModel } as IXpert) : item))
+    )
+    this.triggerDraftSource.update((state) =>
+      state?.id === xpertId ? ({ ...state, copilotModel: nextCopilotModel } as IXpert) : state
+    )
+    this.triggerDraft.update((state) =>
+      state?.team?.id === xpertId
+        ? {
+            ...state,
+            team: {
+              ...state.team,
+              copilotModel: nextCopilotModel
+            }
+          }
+        : state
+    )
+
+    try {
+      await firstValueFrom(
+        this.#xpertService.update(xpertId, {
+          copilotModelId: nextCopilotModel?.id ?? null,
+          copilotModel: nextCopilotModel
+        })
+      )
+
+      const refreshedXpert = (await firstValueFrom(
+        this.#xpertService.getTeam(xpertId, { relations: [...XPERT_TEAM_RELATIONS] }).pipe(catchError(() => of(null)))
+      )) as IXpert | null
+
+      const nextXpert = ({
+        ...(currentXpert ?? {}),
+        ...(refreshedXpert ?? {}),
+        copilotModel: refreshedXpert?.copilotModel ?? nextCopilotModel
+      } as IXpert)
+
+      this.mergeAvailableXpert(nextXpert)
+      this.triggerDraftErrorMessage.set(null)
+      this.triggerDraftSource.set(nextXpert)
+      this.triggerDraft.set(buildEditableXpertDraft(nextXpert))
+      this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+
+      return nextXpert
+    } catch (error) {
+      this.availableXperts.set(previousAvailableXperts)
+      this.triggerDraftSource.set(previousTriggerDraftSource)
+      this.triggerDraft.set(previousTriggerDraft)
+      this.#toastr.error(
+        getErrorMessage(error) ||
+          this.#translate.instant('PAC.Chat.ClawXpert.CopilotModelSaveFailed', {
+            Default: 'Failed to update the ClawXpert model.'
+          })
+      )
+      return null
+    } finally {
+      this.savingCopilotModel.set(false)
     }
   }
 

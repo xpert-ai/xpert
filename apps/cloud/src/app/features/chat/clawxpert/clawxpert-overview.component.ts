@@ -1,9 +1,18 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject } from '@angular/core'
+import { FormsModule } from '@angular/forms'
+import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { ZardButtonComponent, ZardCardImports, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-import { IXpert } from '../../../@core'
+import {
+  ZardButtonComponent,
+  ZardCardImports,
+  ZardDividerComponent,
+  ZardIconComponent,
+  ZardMenuImports
+} from '@xpert-ai/headless-ui'
+import { AiModelTypeEnum, ICopilotModel, IXpert } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
+import { CopilotModelSelectComponent } from '../../../@shared/copilot'
 import { ClawXpertFacade } from './clawxpert.facade'
 import { ClawXpertPreferencesEditorComponent } from './clawxpert-preferences-editor.component'
 import { ClawXpertScheduledTasksComponent } from './clawxpert-scheduled-tasks.component'
@@ -58,22 +67,23 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
   selector: 'pac-clawxpert-overview',
   imports: [
     CommonModule,
+    FormsModule,
     TranslateModule,
+    ButtonGroupDirective,
     ZardButtonComponent,
     ZardDividerComponent,
     ZardIconComponent,
+    CopilotModelSelectComponent,
     EmojiAvatarComponent,
     ClawXpertPreferencesEditorComponent,
     ClawXpertScheduledTasksComponent,
     ClawXpertTriggerConfigEditorComponent,
     ClawXpertToolPreferencesComponent,
     ClawXpertSetupWizardComponent,
+    ...ZardMenuImports,
     ...ZardCardImports
   ],
-  styles: [`
-    :host {
-      @apply block relative h-full overflow-y-auto overflow-x-hidden;
-    }`],
+  styleUrls: ['./clawxpert-overview.component.css'],
   template: `
     <div class="h-full min-h-0">
       @if (facade.loading()) {
@@ -141,29 +151,90 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
             </div>
 
             @if (facade.resolvedPreference() && facade.viewState() === 'ready') {
-              <div class="grid grid-cols-2 gap-2">
+              <div ngmButtonGroup class="clawxpert-model-group">
                 <button
                   z-button
-                  zType="outline"
+                  zType="ghost"
                   displayDensity="cosy"
                   type="button"
-                  class="w-full"
-                  (click)="openWizard()"
+                  class="clawxpert-model-trigger"
+                  z-menu
+                  [zMenuTriggerFor]="copilotModelMenu"
+                  [disabled]="facade.savingCopilotModel()"
                 >
-                  {{ 'PAC.Chat.ClawXpert.Change' | translate: { Default: 'Change ClawXpert' } }}
+                  <span class="flex min-w-0 items-center gap-2">
+                    <i class="ri-sparkling-2-line text-sm"></i>
+                    <span class="truncate">{{ modelSelectButtonLabel() }}</span>
+                  </span>
                 </button>
                 <button
                   z-button
-                  zType="outline"
+                  zType="ghost"
                   displayDensity="cosy"
                   type="button"
-                  class="w-full"
-                  [disabled]="facade.clearing()"
-                  (click)="clearPreference()"
+                  zSize="icon"
+                  class="clawxpert-model-menu-trigger"
+                  z-menu
+                  [zMenuTriggerFor]="actionMenu"
+                  [disabled]="facade.clearing() || facade.savingCopilotModel()"
+                  [attr.aria-label]="'PAC.Chat.ClawXpert.MoreActions' | translate: { Default: 'More actions' }"
                 >
-                  {{ 'PAC.Chat.ClawXpert.Clear' | translate: { Default: 'Clear ClawXpert' } }}
+                  <z-icon zType="more_vert"></z-icon>
                 </button>
               </div>
+
+              <ng-template #copilotModelMenu>
+                <div z-menu-content class="w-[26rem] max-w-[calc(100vw-4rem)] overflow-visible p-0">
+                  <div class="p-4">
+                    <div class="text-sm font-medium text-text-primary">
+                      {{ 'PAC.Copilot.SelectModel' | translate: { Default: 'Select model' } }}
+                    </div>
+                    <p class="mt-1 text-xs leading-5 text-text-secondary">
+                      {{
+                        'PAC.Chat.ClawXpert.CopilotModelDesc'
+                          | translate
+                            : {
+                                Default: 'Switch the model used by the bound ClawXpert xpert without leaving this page.'
+                              }
+                      }}
+                    </p>
+
+                    <z-divider zSpacing="sm" class="my-3"></z-divider>
+
+                    <copilot-model-select
+                      class="block w-full"
+                      hiddenLabel
+                      [readonly]="facade.savingCopilotModel()"
+                      [modelType]="eModelType.LLM"
+                      [ngModel]="selectedCopilotModel()"
+                      (ngModelChange)="updateCopilotModel($event)"
+                    />
+
+                    @if (facade.savingCopilotModel()) {
+                      <div class="mt-3 text-xs text-text-tertiary">
+                        {{
+                          'PAC.Chat.ClawXpert.CopilotModelSaving'
+                            | translate: { Default: 'Saving model selection…' }
+                        }}
+                      </div>
+                    }
+                  </div>
+                </div>
+              </ng-template>
+
+              <ng-template #actionMenu>
+                <div z-menu-content class="w-56">
+                  <button type="button" z-menu-item (click)="openWizard()">
+                    {{ 'PAC.Chat.ClawXpert.Change' | translate: { Default: 'Change ClawXpert' } }}
+                  </button>
+
+                  <z-divider zSpacing="sm"></z-divider>
+
+                  <button type="button" z-menu-item [disabled]="facade.clearing()" (click)="clearPreference()">
+                    {{ 'PAC.Chat.ClawXpert.Clear' | translate: { Default: 'Clear ClawXpert' } }}
+                  </button>
+                </div>
+              </ng-template>
             }
 
             <div class="flex flex-wrap items-center gap-2">
@@ -337,6 +408,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
   `
 })
 export class ClawXpertOverviewComponent {
+  readonly eModelType = AiModelTypeEnum
   readonly facade = inject(ClawXpertFacade)
   readonly #translate = inject(TranslateService)
   readonly #locale = normalizeLocale(this.#translate.currentLang || this.#translate.getDefaultLang())
@@ -364,6 +436,22 @@ export class ClawXpertOverviewComponent {
   readonly modelLabel = computed(() =>
     buildModelLabel(this.facade.currentXpert(), this.facade.resolvedPreference()?.assistantId)
   )
+  readonly selectedCopilotModel = computed<Partial<ICopilotModel> | null>(() => {
+    return this.facade.triggerDraft()?.team?.copilotModel ?? this.facade.currentXpert()?.copilotModel ?? null
+  })
+  readonly modelSelectButtonLabel = computed(() => {
+    const model = this.selectedCopilotModel()?.model?.trim()
+    if (model) {
+      return this.#translate.instant('PAC.Chat.ClawXpert.CopilotModelSelected', {
+        model,
+        Default: `Model: ${model}`
+      })
+    }
+
+    return this.#translate.instant('PAC.Copilot.SelectModel', {
+      Default: 'Select model'
+    })
+  })
   readonly metrics = computed<ClawXpertMetric[]>(() => [
     {
       labelKey: 'PAC.Chat.ClawXpert.BoundDays',
@@ -416,6 +504,10 @@ export class ClawXpertOverviewComponent {
 
   async clearPreference() {
     await this.facade.clearPreference()
+  }
+
+  updateCopilotModel(copilotModel: Partial<ICopilotModel> | null) {
+    void this.facade.updateCurrentXpertCopilotModel(copilotModel)
   }
 }
 

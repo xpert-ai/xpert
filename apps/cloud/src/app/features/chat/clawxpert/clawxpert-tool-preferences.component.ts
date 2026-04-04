@@ -884,12 +884,10 @@ function normalizeI18nCandidate(value: unknown): string | I18nObject | null {
         />
       </div>
 
-      <div class="mt-2 rounded-2xl border border-divider-regular bg-background-default-subtle p-3">
-        <xp-skill-indexes class="overflow-auto"
-          [selectedRepository]="selectedRepository()"
-          (installing)="install($event)"
-        />
-      </div>
+      <xp-skill-indexes class="mt-2"
+        [selectedRepository]="selectedRepository()"
+        (installing)="install($event)"
+      />
     </div>
 
     <div xpDialogActions>
