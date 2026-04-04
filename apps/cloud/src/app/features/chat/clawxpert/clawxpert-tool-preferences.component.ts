@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, HostBinding, inject, signal } from '@angular/core'
+import { Component, computed, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -7,8 +7,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardButtonComponent,
   ZardCardImports,
-  ZardDialogModule,
-  ZardDialogRef,
   ZardDialogService,
   ZardIconComponent,
   ZardSwitchComponent,
@@ -22,7 +20,6 @@ import {
   getToolLabel,
   I18nObject,
   ISkillPackage,
-  ISkillRepository,
   ISkillRepositoryIndex,
   isMiddlewareToolEnabled,
   IWFNMiddleware,
@@ -35,7 +32,7 @@ import {
   XpertAgentService,
   XpertToolsetService
 } from '../../../@core'
-import { XpertSkillIndexesComponent, XpertSkillRepositoriesComponent } from '../../../@shared/skills'
+import { XpertSkillInstallDialogComponent } from '../../../@shared/skills'
 import {
   ClawXpertFacade,
   ClawXpertToolPreferenceSourceMetadata,
@@ -180,7 +177,9 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                       </p>
                     </div>
 
-                    <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary">
+                    <span
+                      class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
+                    >
                       {{
                         'PAC.Chat.ClawXpert.SkillCount'
                           | translate
@@ -195,7 +194,9 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
 
                 <div class="min-h-0 flex-1 overflow-auto px-5 py-4">
                   @if (!skillWorkspaceId()) {
-                    <div class="flex min-h-[16rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-center">
+                    <div
+                      class="flex min-h-[16rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-center"
+                    >
                       <z-icon zType="work_history" class="text-3xl text-text-tertiary"></z-icon>
                       <div class="mt-4 text-lg font-semibold text-text-primary">
                         {{
@@ -216,7 +217,9 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                     </div>
                   } @else {
                     @if (skillState().loading) {
-                      <div class="flex min-h-[16rem] items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-sm text-text-secondary">
+                      <div
+                        class="flex min-h-[16rem] items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-sm text-text-secondary"
+                      >
                         {{
                           'PAC.Chat.ClawXpert.LoadingWorkspaceSkills'
                             | translate: { Default: 'Loading workspace skills…' }
@@ -241,7 +244,9 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                           </div>
                         </div>
                       } @else if (!skillItems().length) {
-                        <div class="flex min-h-[16rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-center">
+                        <div
+                          class="flex min-h-[16rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-center"
+                        >
                           <z-icon zType="work_history" class="text-3xl text-text-tertiary"></z-icon>
                           <div class="mt-4 text-lg font-semibold text-text-primary">
                             {{
@@ -263,7 +268,9 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                       } @else {
                         <div class="grid gap-3 md:grid-cols-2">
                           @for (item of skillItems(); track item.id) {
-                            <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4">
+                            <div
+                              class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4"
+                            >
                               <div class="flex items-start justify-between gap-3">
                                 <div class="min-w-0 flex-1">
                                   <div class="truncate text-base font-semibold text-text-primary">
@@ -275,7 +282,8 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                                         ('PAC.Chat.ClawXpert.SkillSummaryFallback'
                                           | translate
                                             : {
-                                                Default: 'This skill is installed in the current workspace and can be enabled for ClawXpert runtime use.'
+                                                Default:
+                                                  'This skill is installed in the current workspace and can be enabled for ClawXpert runtime use.'
                                               })
                                     }}
                                   </div>
@@ -292,12 +300,16 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                               <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
                                 <div class="flex flex-wrap items-center gap-2">
                                   @if (item.repositoryName) {
-                                    <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default px-3 py-1 text-xs text-text-secondary">
+                                    <span
+                                      class="inline-flex items-center rounded-full border border-divider-regular bg-background-default px-3 py-1 text-xs text-text-secondary"
+                                    >
                                       {{ item.repositoryName }}
                                     </span>
                                   }
                                   @if (item.provider) {
-                                    <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default px-3 py-1 text-xs text-text-secondary">
+                                    <span
+                                      class="inline-flex items-center rounded-full border border-divider-regular bg-background-default px-3 py-1 text-xs text-text-secondary"
+                                    >
                                       {{ item.provider }}
                                     </span>
                                   }
@@ -318,7 +330,10 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                         <div class="flex flex-wrap items-start justify-between gap-3">
                           <div>
                             <div class="text-sm font-medium text-text-primary">
-                              {{ 'PAC.Chat.ClawXpert.InstallWorkspaceSkillsTitle' | translate: { Default: 'Install skills into this workspace' } }}
+                              {{
+                                'PAC.Chat.ClawXpert.InstallWorkspaceSkillsTitle'
+                                  | translate: { Default: 'Install skills into this workspace' }
+                              }}
                             </div>
                             <p class="mt-1 max-w-2xl text-sm leading-6 text-text-secondary">
                               {{
@@ -333,7 +348,9 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                           </div>
 
                           @if (installingSkillPackage()) {
-                            <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary">
+                            <span
+                              class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
+                            >
                               {{ 'PAC.Chat.ClawXpert.InstallingSkill' | translate: { Default: 'Installing…' } }}
                             </span>
                           }
@@ -345,7 +362,10 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                             [disabled]="busy() || !skillWorkspaceId()"
                             (click)="openSkillInstallDialog()"
                           >
-                            {{ 'PAC.Chat.ClawXpert.BrowseWorkspaceSkills' | translate: { Default: 'Browse & install skills' } }}
+                            {{
+                              'PAC.Chat.ClawXpert.BrowseWorkspaceSkills'
+                                | translate: { Default: 'Browse & install skills' }
+                            }}
                           </button>
                         </div>
                       </div>
@@ -373,7 +393,9 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                       </p>
                     </div>
 
-                    <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary">
+                    <span
+                      class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs text-text-secondary"
+                    >
                       {{
                         'PAC.Chat.ClawXpert.ToolCount'
                           | translate
@@ -388,14 +410,23 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
 
                 <div class="min-h-0 flex-1 overflow-auto px-5 py-4">
                   @if (toolState().loading) {
-                    <div class="flex min-h-[16rem] items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-sm text-text-secondary">
-                      {{ 'PAC.Chat.ClawXpert.LoadingToolPreferences' | translate: { Default: 'Loading tool preferences…' } }}
+                    <div
+                      class="flex min-h-[16rem] items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-sm text-text-secondary"
+                    >
+                      {{
+                        'PAC.Chat.ClawXpert.LoadingToolPreferences'
+                          | translate: { Default: 'Loading tool preferences…' }
+                      }}
                     </div>
                   } @else if (!toolItems().length && !toolErrors().length) {
-                    <div class="flex min-h-[16rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-center">
+                    <div
+                      class="flex min-h-[16rem] flex-col items-center justify-center rounded-2xl border border-dashed border-divider-regular px-6 text-center"
+                    >
                       <z-icon zType="build" class="text-3xl text-text-tertiary"></z-icon>
                       <div class="mt-4 text-lg font-semibold text-text-primary">
-                        {{ 'PAC.Chat.ClawXpert.NoToolsAvailableTitle' | translate: { Default: 'No tools available yet' } }}
+                        {{
+                          'PAC.Chat.ClawXpert.NoToolsAvailableTitle' | translate: { Default: 'No tools available yet' }
+                        }}
                       </div>
                       <p class="mt-2 max-w-xl text-sm leading-6 text-text-secondary">
                         {{
@@ -444,7 +475,9 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                           </div>
 
                           <div class="mt-4 flex flex-wrap items-center justify-between gap-2">
-                            <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default px-3 py-1 text-xs text-text-secondary">
+                            <span
+                              class="inline-flex items-center rounded-full border border-divider-regular bg-background-default px-3 py-1 text-xs text-text-secondary"
+                            >
                               {{ item.sourceLabel | i18n }}
                             </span>
 
@@ -676,7 +709,7 @@ export class ClawXpertToolPreferencesComponent {
     }
 
     this.#dialog
-      .open(ClawXpertSkillInstallDialogComponent, {
+      .open(XpertSkillInstallDialogComponent, {
         width: 'min(96vw, 72rem)',
         maxWidth: '72rem'
       })
@@ -696,16 +729,19 @@ export class ClawXpertToolPreferencesComponent {
     }
 
     this.installingSkillPackage.set(true)
-    this.#skillPackageService.installPackage(workspaceId, item.id).pipe(take(1)).subscribe({
-      next: () => {
-        this.installingSkillPackage.set(false)
-        this.refreshSkills()
-      },
-      error: (error) => {
-        this.installingSkillPackage.set(false)
-        this.#toastr.error(getErrorMessage(error) || 'Failed to install the selected skill.')
-      }
-    })
+    this.#skillPackageService
+      .installPackage(workspaceId, item.id)
+      .pipe(take(1))
+      .subscribe({
+        next: () => {
+          this.installingSkillPackage.set(false)
+          this.refreshSkills()
+        },
+        error: (error) => {
+          this.installingSkillPackage.set(false)
+          this.#toastr.error(getErrorMessage(error) || 'Failed to install the selected skill.')
+        }
+      })
   }
 
   private refreshSkills() {
@@ -714,7 +750,9 @@ export class ClawXpertToolPreferencesComponent {
 }
 
 function collectToolsetNodes(draft: TXpertTeamDraft) {
-  return (draft.nodes ?? []).filter((node): node is TXpertTeamNode<'toolset'> => node.type === 'toolset' && !!node.entity?.id)
+  return (draft.nodes ?? []).filter(
+    (node): node is TXpertTeamNode<'toolset'> => node.type === 'toolset' && !!node.entity?.id
+  )
 }
 
 function collectMiddlewareNodes(draft: TXpertTeamDraft) {
@@ -724,20 +762,24 @@ function collectMiddlewareNodes(draft: TXpertTeamDraft) {
   )
 }
 
-function buildToolsetPreferenceState(node: TXpertTeamNode<'toolset'>, toolset: TXpertTeamNode<'toolset'>['entity']): ToolPreferenceState {
-  const tools = getEnabledTools(toolset)?.map((tool) => ({
-    id: buildToolPreferenceId('toolset', node.key, tool.name),
-    sourceType: 'toolset' as const,
-    nodeKey: node.key,
-    toolName: tool.name,
-    label: getToolLabel(tool),
-    description: tool.description,
-    sourceLabel: toolset.name,
-    metadata: {
-      toolsetId: toolset.id,
-      toolsetName: toolset.name
-    } satisfies ClawXpertToolPreferenceSourceMetadata
-  })) ?? []
+function buildToolsetPreferenceState(
+  node: TXpertTeamNode<'toolset'>,
+  toolset: TXpertTeamNode<'toolset'>['entity']
+): ToolPreferenceState {
+  const tools =
+    getEnabledTools(toolset)?.map((tool) => ({
+      id: buildToolPreferenceId('toolset', node.key, tool.name),
+      sourceType: 'toolset' as const,
+      nodeKey: node.key,
+      toolName: tool.name,
+      label: getToolLabel(tool),
+      description: tool.description,
+      sourceLabel: toolset.name,
+      metadata: {
+        toolsetId: toolset.id,
+        toolsetName: toolset.name
+      } satisfies ClawXpertToolPreferenceSourceMetadata
+    })) ?? []
 
   return {
     loading: false,
@@ -801,7 +843,8 @@ function buildSkillPreferenceState(workspaceId: string, skills: ISkillPackage[])
       id: buildSkillPreferenceId(workspaceId, skill.id),
       packageId: skill.id,
       workspaceId,
-      skillId: skill.skillIndex?.skillId ?? skill.metadata?.name ?? (typeof skill.name === 'string' ? skill.name : skill.id),
+      skillId:
+        skill.skillIndex?.skillId ?? skill.metadata?.name ?? (typeof skill.name === 'string' ? skill.name : skill.id),
       label:
         skill.metadata?.displayName ??
         normalizeI18nCandidate(skill.name) ??
@@ -836,76 +879,4 @@ function normalizeI18nCandidate(value: unknown): string | I18nObject | null {
   }
 
   return null
-}
-
-@Component({
-  standalone: true,
-  selector: 'pac-clawxpert-skill-install-dialog',
-  imports: [
-    CommonModule,
-    TranslateModule,
-    ZardButtonComponent,
-    ZardDialogModule,
-    ZardIconComponent,
-    XpertSkillRepositoriesComponent,
-    XpertSkillIndexesComponent
-  ],
-  styles: [`:host { display: flex; flex-direction: column; max-height: 90vh; }`],
-  template: `
-    <header xpDialogTitle>
-      <div class="flex items-start gap-3">
-        <div class="flex h-10 w-10 items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle">
-          <z-icon zType="work_history" class="text-lg text-text-primary"></z-icon>
-        </div>
-        <div class="min-w-0">
-          <h4 class="text-lg font-semibold text-text-primary">
-            {{ 'PAC.Chat.ClawXpert.InstallWorkspaceSkillsTitle' | translate: { Default: 'Install skills into this workspace' } }}
-          </h4>
-          <p class="mt-1 text-sm leading-6 text-text-secondary">
-            {{
-              'PAC.Chat.ClawXpert.InstallWorkspaceSkillsDialogDesc'
-                | translate
-                  : {
-                      Default:
-                        'Browse repositories, pick a skill, and it will be installed into the current workspace with the ClawXpert toggle enabled by default.'
-                    }
-            }}
-          </p>
-        </div>
-      </div>
-    </header>
-
-    <div xpDialogContent class="w-full relative overflow-auto">
-      <div class="mt-1 rounded-2xl border border-divider-regular bg-background p-3 sticky top-0 z-10">
-        <xp-skill-repositories
-          [readonly]="true"
-          [selectedRepository]="selectedRepository()"
-          (selectedRepositoryChange)="selectedRepository.set($event)"
-        />
-      </div>
-
-      <xp-skill-indexes class="mt-2"
-        [selectedRepository]="selectedRepository()"
-        (installing)="install($event)"
-      />
-    </div>
-
-    <div xpDialogActions>
-      <div class="flex w-full justify-end">
-        <button z-button zType="outline" type="button" xpDialogClose>
-          {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
-        </button>
-      </div>
-    </div>
-  `
-})
-export class ClawXpertSkillInstallDialogComponent {
-  @HostBinding('class.ngm-dialog-container') readonly isDialogContainer = true
-
-  readonly #dialogRef = inject(ZardDialogRef<ClawXpertSkillInstallDialogComponent, ISkillRepositoryIndex | undefined>)
-  readonly selectedRepository = signal<ISkillRepository | null>(null)
-
-  install(item: ISkillRepositoryIndex) {
-    this.#dialogRef.close(item)
-  }
 }

@@ -92,6 +92,7 @@ export type XpertBlankWizardSelections = {
   triggers?: BlankTriggerSelection[]
   triggerProviders?: string[]
   skills?: string[]
+  skillLabels?: Record<string, string>
   middlewares?: string[]
 }
 
@@ -125,10 +126,12 @@ export type BlankKnowledgeSelectionGraph = {
 export function normalizeBlankWizardSelections(
   selections?: XpertBlankWizardSelections
 ): Required<XpertBlankWizardSelections> {
+  const skills = uniqueStrings(selections?.skills)
   return {
     triggers: normalizeBlankTriggerSelections(selections?.triggers, selections?.triggerProviders),
     triggerProviders: uniqueStrings(selections?.triggerProviders),
-    skills: uniqueStrings(selections?.skills),
+    skills,
+    skillLabels: normalizeBlankSkillLabels(skills, selections?.skillLabels),
     middlewares: uniqueStrings(selections?.middlewares)
   }
 }
@@ -248,7 +251,7 @@ export function buildBlankXpertSelectionGraph(
 ): BlankXpertSelectionGraph {
   const normalized = normalizeBlankWizardSelections(selections)
   const triggerNodes = createTriggerNodes(agentNode, normalized.triggers)
-  const skillNodes = createSkillNodes(agentNode, normalized.skills)
+  const skillNodes = createSkillNodes(agentNode, normalized.skills, normalized.skillLabels)
   const middlewareNodes = createMiddlewareNodes(agentNode, normalized.middlewares)
   const nodes = [...triggerNodes, ...skillNodes, ...middlewareNodes]
   const connections = [
@@ -707,7 +710,11 @@ function createWorkflowAnswerNode(): TXpertTeamNode<'workflow'> {
   }
 }
 
-function createSkillNodes(agentNode: TXpertTeamNode<'agent'>, skills: string[]): TXpertTeamNode<'workflow'>[] {
+function createSkillNodes(
+  agentNode: TXpertTeamNode<'agent'>,
+  skills: string[],
+  skillLabels: Record<string, string>
+): TXpertTeamNode<'workflow'>[] {
   return skills.map((skill, index, items) => {
     const key = genXpertSkillKey()
     return {
@@ -720,7 +727,7 @@ function createSkillNodes(agentNode: TXpertTeamNode<'agent'>, skills: string[]):
       entity: {
         type: WorkflowNodeTypeEnum.SKILL,
         key,
-        title: skill,
+        title: skillLabels[skill]?.trim() || skill,
         skills: [skill]
       } as IWFNSkill
     }
@@ -757,6 +764,26 @@ function createConnection(type: TXpertTeamConnection['type'], from: string, to: 
     from,
     to
   }
+}
+
+function normalizeBlankSkillLabels(
+  skillIds: string[],
+  skillLabels?: Record<string, string> | null
+): Record<string, string> {
+  if (!skillLabels) {
+    return {}
+  }
+
+  return skillIds.reduce(
+    (labels, skillId) => {
+      const label = skillLabels[skillId]?.trim()
+      if (label) {
+        labels[skillId] = label
+      }
+      return labels
+    },
+    {} as Record<string, string>
+  )
 }
 
 function getCenteredY(anchorY: number, total: number, index: number) {

@@ -255,9 +255,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
 
             <div class="grid grid-cols-3 gap-3">
               @for (metric of metrics(); track metric.labelKey) {
-                <div
-                  class="rounded-2xl border border-divider-regular bg-background-default-subtle px-3 py-4 text-center"
-                >
+                <div class="px-3 py-4 text-center">
                   <div class="text-2xl font-semibold text-text-primary">{{ metric.value }}</div>
                   <div class="mt-2 text-xs text-text-tertiary">
                     {{ metric.labelKey | translate: { Default: metric.defaultLabel } }}
@@ -296,7 +294,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
               }
             </div>
 
-            <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4">
+            <div class="px-4 py-4">
               <div class="flex items-start justify-between gap-3">
                 <div class="min-w-0">
                   <div class="text-sm font-medium text-text-primary">

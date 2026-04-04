@@ -171,11 +171,15 @@
                 }
 
                 @if (templateLoadError()) {
-                  <div class="rounded-xl border border-components-panel-border px-4 py-3 mt-2 text-sm text-text-destructive">
+                  <div
+                    class="rounded-xl border border-components-panel-border px-4 py-3 mt-2 text-sm text-text-destructive"
+                  >
                     {{ templateLoadError() }}
                   </div>
                 } @else if (selectedTemplateDraft()) {
-                  <div class="rounded-xl border border-components-panel-border px-4 py-3 mt-2 text-sm text-text-secondary">
+                  <div
+                    class="rounded-xl border border-components-panel-border px-4 py-3 mt-2 text-sm text-text-secondary"
+                  >
                     {{
                       'PAC.Xpert.TemplateLoadedHelp'
                         | translate
@@ -310,45 +314,143 @@
         </z-step>
 
         <z-step [label]="'PAC.Workflow.Skill' | translate: { Default: 'Skill' }">
-          <div class="rounded-xl bg-background-default-subtle px-4 py-2 space-y-3">
-            <div class="text-sm leading-6 text-text-secondary">
-              {{
-                'PAC.Xpert.AddSkillsPlaceholder'
-                  | translate
-                    : {
-                        Default:
-                          'Add placeholder skills for this blank expert. The corresponding skill nodes will be created now, and you can refine them later in Studio.'
-                      }
-              }}
-            </div>
+          <div class="rounded-xl bg-background-default-subtle px-4 py-4 space-y-4">
+            <div class="flex flex-wrap items-start justify-between gap-3">
+              <div class="max-w-3xl text-sm leading-6 text-text-secondary">
+                {{
+                  'PAC.Xpert.AddWorkspaceSkillsHelp'
+                    | translate
+                      : {
+                          Default:
+                            'Select installed workspace skills for the primary agent. If you need more, open the install dialog and add them to this workspace first.'
+                        }
+                }}
+              </div>
 
-            <div class="flex items-start gap-2">
-              <textarea
-                z-input
-                class="min-h-24 grow"
-                [placeholder]="
-                  'PAC.Xpert.AddSkillNames' | translate: { Default: 'Enter a skill name, then press Enter or comma' }
-                "
-                [(ngModel)]="skillInput"
-                (keydown)="onSkillInputKeydown($event)"
-              ></textarea>
-              <button type="button" class="btn btn-secondary" (click)="addSkill()">
-                {{ 'PAC.ACTIONS.ADD' | translate: { Default: 'Add' } }}
-              </button>
-            </div>
-
-            @if (selectedSkills().length) {
-              <div class="flex flex-wrap gap-2">
-                @for (skill of selectedSkills(); track skill) {
-                  <button
-                    type="button"
-                    class="inline-flex items-center gap-2 rounded-full border border-components-panel-border bg-components-card-bg px-3 py-1.5 text-sm text-text-primary hover:bg-hover-bg"
-                    (click)="removeSkill(skill)"
+              <div class="flex items-center gap-2">
+                @if (installingSkillPackage()) {
+                  <span
+                    class="inline-flex items-center rounded-full border border-components-panel-border bg-components-card-bg px-3 py-1 text-xs text-text-secondary"
                   >
-                    <span>{{ skill }}</span>
-                    <i class="ri-close-line"></i>
-                  </button>
+                    {{ 'PAC.Xpert.InstallingSkill' | translate: { Default: 'Installing…' } }}
+                  </span>
                 }
+
+                <button
+                  type="button"
+                  class="btn btn-secondary flex items-center gap-2 disabled:btn-disabled"
+                  [disabled]="!workspaceId() || installingSkillPackage()"
+                  (click)="openSkillInstallDialog()"
+                >
+                  <i class="ri-download-cloud-2-line"></i>
+                  <span>{{
+                    'PAC.Xpert.BrowseWorkspaceSkills' | translate: { Default: 'Browse & install skills' }
+                  }}</span>
+                </button>
+              </div>
+            </div>
+
+            @if (!workspaceId()) {
+              <div
+                class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
+              >
+                {{
+                  'PAC.Xpert.WorkspaceRequiredForSkillInstall'
+                    | translate
+                      : {
+                          Default: 'Select a workspace first before installing or selecting skills for this Xpert.'
+                        }
+                }}
+              </div>
+            } @else if (skillState().loading) {
+              <div
+                class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm text-text-secondary"
+              >
+                {{ 'PAC.Xpert.LoadingWorkspaceSkills' | translate: { Default: 'Loading workspace skills…' } }}
+              </div>
+            } @else {
+              @if (skillState().errorMessage) {
+                <div class="rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-4">
+                  <div class="flex items-start gap-3">
+                    <i class="ri-error-warning-line mt-0.5 text-base text-text-warning"></i>
+                    <div class="min-w-0">
+                      <div class="text-sm font-semibold text-text-primary">
+                        {{
+                          'PAC.Xpert.WorkspaceSkillsLoadFailed'
+                            | translate: { Default: 'Failed to load workspace skills' }
+                        }}
+                      </div>
+                      <div class="mt-1 text-sm leading-6 text-text-secondary">
+                        {{ skillState().errorMessage }}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              } @else if (!skillState().skills.length) {
+                <div
+                  class="rounded-xl border border-dashed border-components-panel-border px-4 py-6 text-sm leading-6 text-text-secondary"
+                >
+                  {{
+                    'PAC.Xpert.NoWorkspaceSkillsAvailableDesc'
+                      | translate
+                        : {
+                            Default:
+                              'No workspace skills installed yet. Use the install dialog to add a skill, then select it here.'
+                          }
+                  }}
+                </div>
+              } @else {
+                <div class="grid gap-2 md:grid-cols-2">
+                  @for (skill of skillState().skills; track skill.id) {
+                    <label
+                      class="flex items-start gap-3 rounded-xl border border-components-panel-border bg-components-card-bg px-4 py-3 cursor-pointer transition-colors hover:bg-hover-bg"
+                    >
+                      <input
+                        type="checkbox"
+                        class="mt-1 h-4 w-4 shrink-0"
+                        [ngModel]="selectedSkills().includes(skill.id)"
+                        (ngModelChange)="toggleSkill(skill.id, $event)"
+                      />
+                      <div class="min-w-0 flex-1">
+                        <div class="font-medium text-text-primary">
+                          {{ skill.label | i18n }}
+                        </div>
+                        @if (skill.summary) {
+                          <div class="mt-1 text-sm leading-6 text-text-secondary">
+                            {{ skill.summary | i18n }}
+                          </div>
+                        }
+                        @if (skill.repositoryName) {
+                          <div
+                            class="mt-2 inline-flex items-center rounded-full border border-components-panel-border bg-background-default px-2.5 py-1 text-xs text-text-tertiary"
+                          >
+                            {{ skill.repositoryName }}
+                          </div>
+                        }
+                      </div>
+                    </label>
+                  }
+                </div>
+              }
+            }
+
+            @if (selectedSkillItems().length) {
+              <div class="space-y-2">
+                <div class="text-xs font-medium uppercase tracking-wide text-text-tertiary">
+                  {{ selectedSkillItems().length }} {{ 'PAC.KEY_WORDS.Selected' | translate: { Default: 'selected' } }}
+                </div>
+                <div class="flex flex-wrap gap-2">
+                  @for (skill of selectedSkillItems(); track skill.id) {
+                    <button
+                      type="button"
+                      class="inline-flex items-center gap-2 rounded-full border border-components-panel-border bg-components-card-bg px-3 py-1.5 text-sm text-text-primary hover:bg-hover-bg"
+                      (click)="removeSkill(skill.id)"
+                    >
+                      <span>{{ skill.label | i18n }}</span>
+                      <i class="ri-close-line"></i>
+                    </button>
+                  }
+                </div>
               </div>
             } @else {
               <div

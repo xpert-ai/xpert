@@ -2,12 +2,12 @@ import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
+import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { injectWorkspace } from '@metad/cloud/state'
 import { parseYAML } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
-import { ZardComboboxComponent, ZardInputDirective, ZardStepperImports } from '@xpert-ai/headless-ui'
+import { ZardComboboxComponent, ZardDialogService, ZardStepperImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   EnvironmentService,
@@ -15,12 +15,16 @@ import {
   IDocumentProcessorProvider,
   IDocumentSourceProvider,
   IDocumentUnderstandingProvider,
+  I18nObject,
   getErrorMessage,
   ICopilotModel,
+  ISkillPackage,
+  ISkillRepositoryIndex,
   IXpert,
   IXpertWorkspace,
   KnowledgebaseService,
   OrderTypeEnum,
+  SkillPackageService,
   TKnowledgePipelineTemplate,
   TAgentMiddlewareMeta,
   TAvatar,
@@ -47,7 +51,20 @@ import {
   hasJsonSchemaRequiredErrors
 } from 'apps/cloud/src/app/@shared/workflow'
 import { RouterModule } from '@angular/router'
-import { BehaviorSubject, catchError, from, map, Observable, of, switchMap, throwError } from 'rxjs'
+import { XpertSkillInstallDialogComponent } from 'apps/cloud/src/app/@shared/skills'
+import {
+  BehaviorSubject,
+  catchError,
+  firstValueFrom,
+  from,
+  map,
+  Observable,
+  of,
+  startWith,
+  switchMap,
+  take,
+  throwError
+} from 'rxjs'
 import {
   BlankTriggerSelection,
   BlankWorkflowStarterNodeKey,
@@ -89,6 +106,19 @@ type BlankTemplateCatalog = {
   items: Array<TXpertTemplate | TKnowledgePipelineTemplate>
 }
 
+type BlankWorkspaceSkillItem = {
+  id: string
+  label: string | I18nObject
+  summary?: string | I18nObject | null
+  repositoryName?: string | null
+}
+
+type BlankSkillState = {
+  loading: boolean
+  skills: BlankWorkspaceSkillItem[]
+  errorMessage: string | null
+}
+
 export type BlankXpertWizardStatus = 'created' | 'published'
 
 export type BlankXpertWizardResult = {
@@ -113,6 +143,11 @@ type DraftPreparationResult = {
 }
 
 const XPERT_AUTO_PUBLISH_RELEASE_NOTES = 'Initial Xpert bootstrap release.'
+const EMPTY_BLANK_SKILL_STATE: BlankSkillState = {
+  loading: false,
+  skills: [],
+  errorMessage: null
+}
 
 const WORKFLOW_ACTION_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
   {
@@ -175,7 +210,6 @@ const WORKFLOW_TRANSFORM_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
     TranslateModule,
     RouterModule,
     DragDropModule,
-    ZardInputDirective,
     ...ZardStepperImports,
     FormsModule,
     CdkListboxModule,
@@ -196,8 +230,10 @@ export class XpertNewBlankComponent {
   eWorkflowNodeTypeEnum = WorkflowNodeTypeEnum
   workflowMode = BLANK_XPERT_WORKFLOW_MODE
   readonly #dialogRef = inject(DialogRef<BlankXpertWizardResult>)
+  readonly #dialog = inject(ZardDialogService)
   readonly #dialogData = inject<BlankXpertDialogData>(DIALOG_DATA)
   readonly #selectedWorkspace = injectWorkspace()
+  readonly #skillPackageService = inject(SkillPackageService)
   readonly xpertService = inject(XpertAPIService)
   readonly xpertAgentService = inject(XpertAgentService)
   readonly templateService = inject(XpertTemplateService)
@@ -232,7 +268,9 @@ export class XpertNewBlankComponent {
   readonly #refreshWorkspaces$ = new BehaviorSubject<void>(undefined)
   readonly workspaces = toSignal(
     this.#refreshWorkspaces$.pipe(
-      switchMap(() => this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(map(({ items }) => items)))
+      switchMap(() =>
+        this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(map(({ items }) => items))
+      )
     ),
     { initialValue: [] as IXpertWorkspace[] }
   )
@@ -353,7 +391,40 @@ export class XpertNewBlankComponent {
       integration: { service: string }
     }>(this.understandingProviders(), (provider) => provider.meta.name)
   )
-  readonly skillInput = model<string>('')
+  readonly installingSkillPackage = signal(false)
+  readonly skillRefreshTick = signal(0)
+  readonly skillState = toSignal(
+    toObservable(
+      computed(() => ({
+        workspaceId: this.workspaceId(),
+        refreshTick: this.skillRefreshTick()
+      }))
+    ).pipe(
+      switchMap(({ workspaceId }) => {
+        if (!workspaceId) {
+          return of(EMPTY_BLANK_SKILL_STATE)
+        }
+
+        return this.#skillPackageService
+          .getAllByWorkspace(workspaceId, { relations: ['skillIndex', 'skillIndex.repository'] })
+          .pipe(
+            take(1),
+            map(({ items }) => buildBlankWorkspaceSkillState(items ?? [])),
+            catchError((error) =>
+              of({
+                ...EMPTY_BLANK_SKILL_STATE,
+                errorMessage: getErrorMessage(error) || 'Failed to load workspace skills.'
+              })
+            ),
+            startWith({
+              ...EMPTY_BLANK_SKILL_STATE,
+              loading: true
+            })
+          )
+      })
+    ),
+    { initialValue: EMPTY_BLANK_SKILL_STATE }
+  )
   readonly selectedTriggers = model<BlankTriggerSelection[]>([])
   readonly selectedSkills = model<string[]>([])
   readonly selectedMiddlewares = model<string[]>([])
@@ -368,6 +439,10 @@ export class XpertNewBlankComponent {
   readonly selectedMode = computed<BlankXpertMode>(
     () => this.types()[0] ?? getBlankWizardDefaultMode(this.requestedType(), this.allowedModes)
   )
+  readonly selectedSkillItems = computed<BlankWorkspaceSkillItem[]>(() => {
+    const itemMap = new Map(this.skillState().skills.map((skill) => [skill.id, skill]))
+    return this.selectedSkills().map((skillId) => itemMap.get(skillId) ?? { id: skillId, label: skillId })
+  })
   readonly selectedType = computed(() => getBlankWizardPersistedType(this.selectedMode()))
   readonly isAgentType = computed(() => this.selectedMode() === XpertTypeEnum.Agent)
   readonly isWorkflowType = computed(() => this.selectedMode() === BLANK_XPERT_WORKFLOW_MODE)
@@ -452,6 +527,7 @@ export class XpertNewBlankComponent {
 
   constructor() {
     let previousMode = this.selectedMode()
+    let previousSkillWorkspaceId = this.workspaceId()
 
     effect(() => {
       const availableModes = this.availableModes()
@@ -497,6 +573,17 @@ export class XpertNewBlankComponent {
       if (currentWorkspaceId && workspaces.length && !hasCurrentWorkspace) {
         this.workspaceId.set(null)
       }
+    })
+
+    effect(() => {
+      const workspaceId = this.workspaceId()
+      if (workspaceId === previousSkillWorkspaceId) {
+        return
+      }
+
+      previousSkillWorkspaceId = workspaceId
+      this.selectedSkills.set([])
+      this.skillRefreshTick.update((value) => value + 1)
     })
 
     effect(() => {
@@ -654,6 +741,10 @@ export class XpertNewBlankComponent {
     this.selectedMiddlewares.set(this.toggleValue(this.selectedMiddlewares(), provider, enabled))
   }
 
+  toggleSkill(skillId: string, enabled: boolean) {
+    this.selectedSkills.set(this.toggleValue(this.selectedSkills(), skillId, enabled))
+  }
+
   toggleDataSource(provider: string, enabled: boolean) {
     this.selectedDataSources.set(this.toggleValue(this.selectedDataSources(), provider, enabled))
   }
@@ -674,29 +765,57 @@ export class XpertNewBlankComponent {
     this.selectedWorkflowNodes.set(this.toggleValue(this.selectedWorkflowNodes(), node, enabled))
   }
 
-  addSkill(event?: Event) {
-    event?.preventDefault()
-    const nextSkills = this.parseSkillInput(this.skillInput())
-    if (!nextSkills.length) {
+  async openSkillInstallDialog() {
+    if (!this.workspaceId() || this.installingSkillPackage()) {
       return
     }
 
-    this.selectedSkills.set(Array.from(new Set([...this.selectedSkills(), ...nextSkills])))
-    this.skillInput.set('')
-  }
+    const skillIndex = await firstValueFrom(
+      this.#dialog
+        .open(XpertSkillInstallDialogComponent, {
+          width: 'min(96vw, 72rem)',
+          maxWidth: '72rem'
+        })
+        .afterClosed()
+        .pipe(take(1))
+    )
 
-  removeSkill(skill: string) {
-    this.selectedSkills.set(this.selectedSkills().filter((item) => item !== skill))
-  }
-
-  onSkillInputKeydown(event: KeyboardEvent) {
-    if (event.key === 'Enter' || event.key === ',') {
-      this.addSkill(event)
+    if (skillIndex) {
+      await this.installSkill(skillIndex)
     }
+  }
+
+  async installSkill(item: ISkillRepositoryIndex) {
+    const workspaceId = this.workspaceId()
+    if (!workspaceId || this.installingSkillPackage()) {
+      return
+    }
+
+    this.installingSkillPackage.set(true)
+
+    try {
+      const skillPackage = await firstValueFrom(
+        this.#skillPackageService.installPackage(workspaceId, item.id).pipe(take(1))
+      )
+      this.selectedSkills.set(Array.from(new Set([...this.selectedSkills(), skillPackage.id])))
+      this.refreshSkills()
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error) || 'Failed to install the selected skill.')
+    } finally {
+      this.installingSkillPackage.set(false)
+    }
+  }
+
+  removeSkill(skillId: string) {
+    this.selectedSkills.set(this.selectedSkills().filter((item) => item !== skillId))
   }
 
   close(value?: BlankXpertWizardResult) {
     this.#dialogRef.close(value)
+  }
+
+  private refreshSkills() {
+    this.skillRefreshTick.update((value) => value + 1)
   }
 
   private completeCreation(xpert: IXpert) {
@@ -838,7 +957,6 @@ export class XpertNewBlankComponent {
     this.avatar.set(undefined)
     this.title.set(undefined)
     this.copilotModel.set(undefined)
-    this.skillInput.set('')
     this.resetSelections()
   }
 
@@ -1029,6 +1147,9 @@ export class XpertNewBlankComponent {
     return {
       triggers: this.selectedTriggers(),
       skills: this.selectedSkills(),
+      skillLabels: Object.fromEntries(
+        this.selectedSkillItems().map((skill) => [skill.id, stringifyI18nLabel(skill.label, skill.id)])
+      ),
       middlewares: this.selectedMiddlewares()
     }
   }
@@ -1047,13 +1168,6 @@ export class XpertNewBlankComponent {
     return {
       nodes: this.selectedWorkflowNodes()
     }
-  }
-
-  private parseSkillInput(value: string) {
-    return value
-      .split(/[,\n]/)
-      .map((item) => item.trim())
-      .filter(Boolean)
   }
 
   private hasInvalidTriggerSelections(
@@ -1081,6 +1195,54 @@ export class XpertNewBlankComponent {
   isModeDisabled(mode: BlankXpertMode) {
     return isBlankWizardModeDisabled(mode, this.requestedType(), this.allowedModes)
   }
+}
+
+function buildBlankWorkspaceSkillState(skills: ISkillPackage[]): BlankSkillState {
+  return {
+    loading: false,
+    skills: skills.map((skill) => ({
+      id: skill.id,
+      label:
+        skill.metadata?.displayName ??
+        normalizeI18nCandidate(skill.name) ??
+        skill.metadata?.name ??
+        skill.skillIndex?.name ??
+        skill.skillIndex?.skillId ??
+        skill.id,
+      summary:
+        skill.metadata?.summary ??
+        skill.metadata?.description ??
+        normalizeI18nCandidate(skill.metadata?.description) ??
+        skill.skillIndex?.description ??
+        null,
+      repositoryName: skill.skillIndex?.repository?.name ?? null
+    })),
+    errorMessage: null
+  }
+}
+
+function normalizeI18nCandidate(value: unknown): string | I18nObject | null {
+  if (typeof value === 'string') {
+    return value
+  }
+
+  if (value && typeof value === 'object' && !Array.isArray(value)) {
+    return value as I18nObject
+  }
+
+  return null
+}
+
+function stringifyI18nLabel(value: string | I18nObject, fallback: string): string {
+  if (typeof value === 'string') {
+    return value.trim() || fallback
+  }
+
+  const candidates = [value.en_US, value.zh_Hans, ...Object.values(value)].filter(
+    (candidate): candidate is string => typeof candidate === 'string' && !!candidate.trim()
+  )
+
+  return candidates[0]?.trim() || fallback
 }
 
 function uniqueByName<T>(values: T[], getName: (value: T) => string) {

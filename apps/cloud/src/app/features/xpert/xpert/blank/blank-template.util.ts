@@ -85,6 +85,16 @@ export function extractAgentTemplateWizardState(draft: TXpertTeamDraft): BlankAg
     selections: normalizeBlankWizardSelections({
       triggers: triggerNodes.map((node) => toTriggerSelection(node.entity)),
       skills: skillNodes.map((node) => getSkillName(node.entity)).filter(Boolean),
+      skillLabels: skillNodes.reduce(
+        (labels, node) => {
+          const skillId = getSkillName(node.entity)
+          if (skillId) {
+            labels[skillId] = getSkillLabel(node.entity, skillId)
+          }
+          return labels
+        },
+        {} as Record<string, string>
+      ),
       middlewares: middlewareNodes.map((node) => node.entity.provider).filter(Boolean)
     })
   }
@@ -290,6 +300,10 @@ function getSkillName(skill: IWFNSkill) {
   }
 
   return skill.title?.trim() ?? ''
+}
+
+function getSkillLabel(skill: IWFNSkill, fallback: string) {
+  return skill.title?.trim() || fallback
 }
 
 function updateAgentMiddlewareOrder(

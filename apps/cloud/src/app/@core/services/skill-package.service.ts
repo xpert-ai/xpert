@@ -12,16 +12,13 @@ export class SkillPackageService extends XpertWorkspaceBaseCrudService<ISkillPac
   }
 
   installPackage(workspaceId: string, indexId: string) {
-    return this.httpClient.post(`${this.apiBaseUrl}/install`, { workspaceId, indexId })
+    return this.httpClient.post<ISkillPackage>(`${this.apiBaseUrl}/install`, { workspaceId, indexId })
   }
 
   uploadPackage(workspaceId: string, file: File) {
     const formData = new FormData()
     formData.append('file', file)
-    return this.httpClient.post<ISkillPackage[]>(
-      `${this.apiBaseUrl}/workspace/${workspaceId}/upload`,
-      formData
-    )
+    return this.httpClient.post<ISkillPackage[]>(`${this.apiBaseUrl}/workspace/${workspaceId}/upload`, formData)
   }
 
   uninstallPackages(ids: string[]) {
