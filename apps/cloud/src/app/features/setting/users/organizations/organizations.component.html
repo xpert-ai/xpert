@@ -20,6 +20,16 @@
         caption: 'PAC.KEY_WORDS.ORGANIZATION' | translate: {Default: 'Organization'}
       },
       {
+        name: 'isDefault',
+        caption: 'PAC.KEY_WORDS.Default' | translate: {Default: 'Default'},
+        cellTemplate: defaultTempl
+      },
+      {
+        name: 'isActive',
+        caption: 'PAC.KEY_WORDS.Active' | translate: {Default: 'Active'},
+        cellTemplate: activeTempl
+      },
+      {
         name: 'organization.short_description',
         caption: 'PAC.KEY_WORDS.Description' | translate: {Default: 'Description'}
       },
@@ -37,12 +47,39 @@
   <pac-user-profile-inline [user]="user"></pac-user-profile-inline>
 </ng-template>
 
+<ng-template #defaultTempl let-isDefault="isDefault" let-id="id">
+  @let membership = membershipById(id);
+  @if (membership) {
+    <z-switch
+      [ngModel]="isDefault"
+      [disabled]="membership.isDefault"
+      zSize="sm"
+      (ngModelChange)="updateDefaultMembership(membership, $event)"
+    />
+  }
+</ng-template>
+
+<ng-template #activeTempl let-isActive="isActive" let-id="id">
+  @let membership = membershipById(id);
+  @if (membership) {
+    <z-switch
+      [ngModel]="isActive"
+      [disabled]="canDeactivateMembership(membership)"
+      zSize="sm"
+      (ngModelChange)="updateMembershipActiveState(membership, $event)"
+    />
+  }
+</ng-template>
+
 <ng-template #actionTempl let-loading="loading" let-id="id" let-organization="organization">
-  <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-text-quaternary" [disabled]="loading" (click)="removeOrg(id, organization)">
-    <div class="flex justify-center items-center">
-      <z-icon zType="delete"></z-icon>
-    </div>
-  </button>
+  @let membership = membershipById(id);
+  @if (membership && canRemoveMembership(membership)) {
+    <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" displayDensity="cosy" class="text-text-quaternary" [disabled]="loading" (click)="removeOrg(id, organization)">
+      <div class="flex justify-center items-center">
+        <z-icon zType="delete"></z-icon>
+      </div>
+    </button>
+  }
 </ng-template>
 
 <ng-template #orgMenu >
@@ -60,4 +97,3 @@
     }
   </div>
 </ng-template>
-

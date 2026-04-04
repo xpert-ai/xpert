@@ -5,12 +5,12 @@
         class="pac-router-link w-full shrink-0 h-10 flex items-center rounded-lg cursor-pointer py-1 px-2"
         [class.justify-center]="isCollapsed"
         [class.justify-start]="!isCollapsed"
-        [class.has-submenu]="item.children"
+        [class.has-submenu]="item.children?.length"
         [routerLink]="item.children ? null : item.link"
         routerLinkActive
         #rla="routerLinkActive"
-        [class.active]="rla.isActive"
-        (click)="item.expanded = !isActive(item)"
+        [class.active]="rla.isActive || hasActiveChild(item)"
+        (click)="toggleMenu(item)"
       >
         @if (isCollapsed) {
           <button
@@ -96,7 +96,7 @@
             >
               <path
                 [attr.d]="
-                  item.expanded
+                  isExpanded(item)
                     ? 'M2 11L8.16086 5.31305C8.35239 5.13625 8.64761 5.13625 8.83914 5.31305L15 11'
                     : 'M2 5L8.16086 10.6869C8.35239 10.8637 8.64761 10.8637 8.83914 10.6869L15 5'
                 "
@@ -113,8 +113,8 @@
       @if (!isCollapsed && item.children) {
         <ul
           class="pac-sub-menu w-full flex flex-col ml-3 mt-1"
-          [class.expanded]="isActive(item)"
-          [class.gap-1]="isActive(item)"
+          [class.expanded]="isExpanded(item)"
+          [class.gap-1]="isExpanded(item)"
         >
           @for (child of item.children; track $index) {
             @if (!child.hidden) {

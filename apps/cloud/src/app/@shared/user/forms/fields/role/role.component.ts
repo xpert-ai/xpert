@@ -11,7 +11,7 @@ import {
 } from '@angular/core';
 import { ControlValueAccessor, FormControl, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms';
 import { filter, map } from 'rxjs';
-import { DEFAULT_SYSTEM_ROLES, IRole, IUser, RolesEnum } from '@metad/contracts';
+import { IRole, IUser, RolesEnum } from '@metad/contracts';
 import { RoleService, Store } from './../../../../../@core/services';
 
 import { TranslateModule } from '@ngx-translate/core';
@@ -209,9 +209,7 @@ export class RoleFormFieldComponent implements OnInit, OnDestroy, ControlValueAc
 	private updateRoleOptions() {
 		const nextOptions = this.roles
 			.filter(
-				(role: IRole) =>
-					!this.excludes.includes(role.name as RolesEnum) &&
-					(DEFAULT_SYSTEM_ROLES.includes(role.name as RolesEnum) || role.id === this.roleId)
+				(role: IRole) => !this.excludes.includes(role.name as RolesEnum)
 			)
 			.map((role) => ({
 				value: role.id,

@@ -24,8 +24,12 @@ export class UserGroupService extends OrganizationBaseCrudService<IUserGroup> {
     return this.httpClient.put<IUserGroup>(`${this.apiBaseUrl}/${id}`, entity)
   }
 
-  updateMembers(id: string, memberIds: string[]) {
-    return this.httpClient.put<IUserGroup>(`${this.apiBaseUrl}/${id}/members`, memberIds)
+  updateMembers(id: string, memberIds: string[], organizationId?: string) {
+    return this.httpClient.put<IUserGroup>(`${this.apiBaseUrl}/${id}/members`, memberIds, {
+      params: toParams({
+        organizationId
+      })
+    })
   }
 }
 

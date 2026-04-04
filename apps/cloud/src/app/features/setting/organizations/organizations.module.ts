@@ -1,8 +1,9 @@
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
+import { OrganizationMembersComponent } from './organization-members/organization-members.component'
 import { OrganizationsRoutingModule } from './organizations-routing.module'
 import { NgmTableComponent } from '@metad/ocap-angular/common'
-import { ZardStepperImports } from '@xpert-ai/headless-ui'
+import { ZardSelectImports, ZardStepperImports } from '@xpert-ai/headless-ui'
 import { OrgAvatarEditorComponent, OrgAvatarComponent } from '../../../@shared/organization'
 import { TagMaintainComponent } from '../../../@shared/tag'
 
@@ -10,8 +11,10 @@ import { TagMaintainComponent } from '../../../@shared/tag'
   imports: [
     FormsModule,
     ReactiveFormsModule,
+    ...ZardSelectImports,
     ...ZardStepperImports,
     OrganizationsRoutingModule,
+    OrganizationMembersComponent,
     OrgAvatarEditorComponent,
     OrgAvatarComponent,
     NgmTableComponent,

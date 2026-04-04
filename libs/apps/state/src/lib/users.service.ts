@@ -42,9 +42,17 @@ export class UsersService {
       }).pipe(map(({items}) => items))
   }
 
-  search(search: string) {
+  search(search: string, options?: { organizationId?: string; membership?: string }) {
+    const params: Record<string, string> = { search }
+    if (options?.organizationId) {
+      params.organizationId = options.organizationId
+    }
+    if (options?.membership) {
+      params.membership = options.membership
+    }
+
     return this.http.get<{ items: IUser[]; total: number }>(`${this.API_URL}/search`, {
-        params: { search }
+        params
       }).pipe(
         map(({items}) => items)
       )

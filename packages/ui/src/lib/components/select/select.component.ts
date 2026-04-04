@@ -40,6 +40,7 @@ import {
   selectVariants,
   type ZardSelectSizeVariants,
 } from '@/src/lib/components/select/select.variants';
+import { injectUiI18nService } from '@/src/lib/core/i18n/ui-i18n.service';
 import { mergeClasses } from '@/shared/utils/merge-classes';
 
 type OnTouchedType = () => void;
@@ -120,6 +121,7 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
   private readonly overlayPositionBuilder = inject(OverlayPositionBuilder);
   private readonly viewContainerRef = inject(ViewContainerRef);
   private readonly platformId = inject(PLATFORM_ID);
+  private readonly i18n = injectUiI18nService();
 
   readonly dropdownTemplate = viewChild.required<TemplateRef<void>>('dropdownTemplate');
   readonly selectItems = contentChildren(ZardSelectItemComponent);
@@ -309,7 +311,12 @@ export class ZardSelectComponent implements ControlValueAccessor, OnDestroy {
         index++;
       }
       if (labelsToShowCount && this.zMaxLabelCount() && index === this.zMaxLabelCount()) {
-        labels.push(`${labelsToShowCount} more item${labelsToShowCount > 1 ? 's' : ''} selected`);
+        labels.push(
+          this.i18n.t('xp-ui:select.moreItemsSelected', {
+            Default: labelsToShowCount > 1 ? '{{count}} more items selected' : '{{count}} more item selected',
+            count: labelsToShowCount,
+          }),
+        );
         break;
       }
     }

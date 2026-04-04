@@ -40,8 +40,24 @@ export class PacMenuGroupComponent {
   readonly menuOpen = signal<Record<string, boolean>>({})
   readonly delayClose = signal<Record<string, number>>({})
 
-  isActive(menu: PacMenuItem) {
-    return isNil(menu.expanded) ? menu.children?.some((item) => item.isActive) : menu.expanded
+  hasActiveChild(menu: PacMenuItem) {
+    return !!menu.children?.some((item) => item.isActive)
+  }
+
+  isExpanded(menu: PacMenuItem) {
+    if (!menu.children?.length) {
+      return false
+    }
+
+    return isNil(menu.expanded) ? this.hasActiveChild(menu) : menu.expanded
+  }
+
+  toggleMenu(menu: PacMenuItem) {
+    if (!menu.children?.length) {
+      return
+    }
+
+    menu.expanded = !this.isExpanded(menu)
   }
 
   openSubMenu(item: PacMenuItem) {

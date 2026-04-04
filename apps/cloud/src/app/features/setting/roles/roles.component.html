@@ -1,108 +1,239 @@
 <div class="pac-page-header">
-  <div class="pac-page-title">
-    {{ 'PAC.KEY_WORDS.Role&Permissions' | translate: { Default: 'Role & Permissions' } }}
-  </div>
+  <div class="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+    <div class="pac-page-title">
+      {{ 'PAC.KEY_WORDS.Role&Permissions' | translate: { Default: 'Role & Permissions' } }}
+    </div>
 
-  <div class="max-w-full flex items-center overflow-hidden">
-    <nav
-      z-tab-nav-bar
-      color="accent"
-      alignTabs="start"
-      stretchTabs="false"
-      disableRipple
-      class="pac-tab-nav-bar flex-1"
-      [tabPanel]="tabPanel"
+    <div class="flex justify-start xl:justify-end">
+      <button
+        z-button
+        zType="default"
+        color="primary"
+        displayDensity="cosy"
+        class="self-start"
+        (click)="create()"
       >
-      @for (option of roles$ | async; track option.id) {
-        <span z-tab-link [active]="role?.name === option.name" (click)="onSelectedRole(option)">
-          <span class="pac-nav-tab__label" zTooltipClass="pac-model-query__statement-tip">
-            {{ option.name }}
-          </span>
+        <z-icon zType="add"></z-icon>
+        {{ 'PAC.MODEL.AccessControl.NewRole' | translate: { Default: 'New Role' } }}
+      </button>
+    </div>
+  </div>
+</div>
 
-          @if (!option.isSystem) {
-            <button
-              z-button
-              zType="ghost"
-              zSize="icon"
-              zShape="circle"
-              displayDensity="compact"
-              class="pac-tab-close"
-              (click)="remove(option)"
+<div class="pac-page-body">
+  @if (roles$ | async; as roles) {
+    <div class="grid grid-cols-1 gap-4 p-4 xl:grid-cols-12">
+      <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none xl:col-span-3 2xl:col-span-3">
+        <z-card-header class="items-center border-b border-divider-regular py-5">
+          <div class="min-w-0">
+            <z-card-title>
+              {{ 'PAC.Role.RoleList' | translate: { Default: 'Role List' } }}
+            </z-card-title>
+          </div>
+        </z-card-header>
+
+        <z-card-content class="p-2">
+          <div class="flex flex-col gap-1">
+            @for (option of roles; track option.id) {
+              <button
+                type="button"
+                class="group flex w-full items-center justify-between rounded-2xl border px-3 py-3 text-left transition-colors"
+                [ngClass]="role?.id === option.id
+                  ? 'border-primary/30 bg-primary/5'
+                  : 'border-transparent hover:border-divider-regular hover:bg-components-panel-bg'"
+                (click)="onSelectedRole(option)"
               >
-              <z-icon zType="cancel"></z-icon>
-            </button>
-          }
-        </span>
-      }
-    </nav>
+                <div class="flex min-w-0 items-start gap-3">
+                  <span
+                    class="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full border"
+                    [ngClass]="role?.id === option.id ? 'border-primary bg-primary' : 'border-divider-regular bg-transparent'"
+                  ></span>
 
-    <button
-      z-button
-      zType="ghost"
-      zSize="icon"
-      zShape="circle"
-      displayDensity="cosy"
-      class="shrink-0"
-      (click)="create()"
-      >
-      <z-icon zType="add_circle_outline"></z-icon>
-    </button>
-  </div>
-</div>
-<div class="pac-page-body p-4">
-  <div class="grid grid-cols-1 md:grid-cols-2 md:gap-4">
-    <div class="flex flex-col items-stretch overflow-hidden rounded-2xl border border-solid border-divider-regular">
-      <h3 class="px-4 p-2 text-lg font-medium">
-        {{ 'PAC.MENU.Roles.General' | translate: { Default: 'General' } }}
-      </h3>
-      <ul role="list" class="ngm-list overflow-auto">
-        @for (permission of permissionGroups.GENERAL; track permission) {
-          <li role="listitem" class="rounded-md px-3 py-2">
-            <div class="flex items-center gap-4">
-              <span class="flex-1">
-                {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission } }}
-              </span>
+                  <div class="min-w-0 truncate text-sm font-semibold text-text-primary">
+                    {{ option.name }}
+                  </div>
+                </div>
 
-              <z-switch
-                [ngModel]="enabledPermissions[permission]"
-                (ngModelChange)="permissionChanged(permission, $event)"
-                >
-              </z-switch>
-            </div>
-          </li>
+                <div class="flex shrink-0 items-center gap-2">
+                  @if (!option.isSystem) {
+                    <button
+                      z-button
+                      zType="ghost"
+                      zSize="icon-sm"
+                      zShape="circle"
+                      displayDensity="compact"
+                      class="opacity-0 transition-opacity group-hover:opacity-100"
+                      [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+                      (click)="$event.stopPropagation(); remove(option)"
+                    >
+                      <z-icon zType="delete"></z-icon>
+                    </button>
+                  }
+
+                  @if (role?.id === option.id) {
+                    <z-icon zType="chevron_right" class="shrink-0 text-text-secondary"></z-icon>
+                  }
+                </div>
+              </button>
+            } @empty {
+              <div class="flex flex-col items-center justify-center gap-3 px-4 py-12 text-center">
+                <div class="flex h-12 w-12 items-center justify-center rounded-full bg-components-panel-bg text-text-tertiary">
+                  <z-icon zType="shield"></z-icon>
+                </div>
+                <div class="text-sm font-semibold text-text-primary">
+                  {{ 'PAC.Role.NoRoles' | translate: { Default: 'No roles yet' } }}
+                </div>
+                <div class="max-w-xs text-sm text-text-tertiary">
+                  {{ 'PAC.Role.NoRolesHint' | translate: { Default: 'Create a role to start configuring role-based access for your organization.' } }}
+                </div>
+                <button z-button zType="default" color="primary" displayDensity="cosy" (click)="create()">
+                  <z-icon zType="add"></z-icon>
+                  {{ 'PAC.MODEL.AccessControl.NewRole' | translate: { Default: 'New Role' } }}
+                </button>
+              </div>
+            }
+          </div>
+        </z-card-content>
+      </z-card>
+
+      <div class="min-w-0 space-y-4 xl:col-span-9 2xl:col-span-9" [class.opacity-70]="loading">
+        @if (role) {
+          <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+            <z-card-header class="items-center gap-4 py-5">
+              <div class="flex w-full flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+                <div class="min-w-0">
+                  <z-card-title class="truncate text-2xl font-semibold text-text-primary">
+                    {{ role.name }}
+                  </z-card-title>
+                  <z-card-subtitle class="mt-1 flex flex-wrap items-center gap-2 text-sm text-text-tertiary">
+                    <span>
+                      {{ enabledPermissionCount(allPermissions()) }} / {{ allPermissions().length }}
+                      {{ 'PAC.Role.EnabledPermissions' | translate: { Default: 'enabled permissions' } }}
+                    </span>
+                  </z-card-subtitle>
+                </div>
+
+                <div class="flex shrink-0 items-center gap-2 self-start lg:self-auto">
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    zShape="circle"
+                    displayDensity="cosy"
+                    [zTooltip]="'PAC.ACTIONS.Rename' | translate: { Default: 'Rename' }"
+                    [disabled]="role.isSystem"
+                    (click)="rename(role)"
+                  >
+                    <z-icon zType="edit"></z-icon>
+                  </button>
+
+                  <z-divider vertical style="height: 20px"></z-divider>
+
+                  <button
+                    z-button
+                    zType="ghost"
+                    zSize="icon"
+                    zShape="circle"
+                    displayDensity="cosy"
+                    ngmAppearance="danger"
+                    [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+                    [disabled]="role.isSystem"
+                    (click)="remove(role)"
+                  >
+                    <z-icon zType="delete"></z-icon>
+                  </button>
+                </div>
+              </div>
+            </z-card-header>
+          </z-card>
+
+          <div class="grid grid-cols-1 gap-4 xl:grid-cols-2">
+            <z-card class="min-w-0 overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+              <z-card-header class="items-center border-b border-divider-regular py-5">
+                <div class="flex w-full items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <z-card-title>
+                      {{ 'PAC.MENU.Roles.General' | translate: { Default: 'General' } }}
+                    </z-card-title>
+                  </div>
+
+                  <div class="text-sm text-text-tertiary">
+                    {{ enabledPermissionCount(permissionGroups.GENERAL) }} / {{ permissionGroups.GENERAL.length }}
+                  </div>
+                </div>
+              </z-card-header>
+
+              <z-card-content class="p-2">
+                <ul role="list" class="space-y-1">
+                  @for (permission of permissionGroups.GENERAL; track permission) {
+                    <li role="listitem" class="rounded-2xl px-3 py-2 hover:bg-hover-bg">
+                      <z-checkbox
+                        class="w-full items-start"
+                        displayDensity="cosy"
+                        labelClass="flex-1 text-sm leading-6 text-text-primary"
+                        [ngModel]="enabledPermissions[permission]"
+                        (checkChange)="permissionChanged(permission, $event)"
+                      >
+                        {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission } }}
+                      </z-checkbox>
+                    </li>
+                  }
+                </ul>
+              </z-card-content>
+            </z-card>
+
+            <z-card class="min-w-0 overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+              <z-card-header class="items-center border-b border-divider-regular py-5">
+                <div class="flex w-full items-center justify-between gap-3">
+                  <div class="min-w-0">
+                    <z-card-title>
+                      {{ 'PAC.MENU.Roles.Administration' | translate: { Default: 'Administration' } }}
+                    </z-card-title>
+                  </div>
+
+                  <div class="text-sm text-text-tertiary">
+                    {{ enabledPermissionCount(getAdministrationPermissions()) }} / {{ getAdministrationPermissions().length }}
+                  </div>
+                </div>
+              </z-card-header>
+
+              <z-card-content class="p-2">
+                <ul role="list" class="space-y-1">
+                  @for (permission of getAdministrationPermissions(); track permission) {
+                    <li
+                      role="listitem"
+                      class="rounded-2xl px-3 py-2 hover:bg-hover-bg"
+                      [class.opacity-60]="isDisabledAdministrationPermissions()"
+                    >
+                      <z-checkbox
+                        class="w-full items-start"
+                        displayDensity="cosy"
+                        labelClass="flex-1 text-sm leading-6 text-text-primary"
+                        [zDisabled]="isDisabledAdministrationPermissions()"
+                        [ngModel]="enabledPermissions[permission]"
+                        (checkChange)="permissionChanged(permission, $event)"
+                      >
+                        {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission } }}
+                      </z-checkbox>
+                    </li>
+                  }
+                </ul>
+              </z-card-content>
+            </z-card>
+          </div>
+        } @else {
+          <z-card class="overflow-hidden border border-divider-regular bg-components-card-bg shadow-none">
+            <z-card-content class="flex flex-col items-center justify-center gap-3 px-6 py-16 text-center">
+              <div class="text-lg font-semibold text-text-primary">
+                {{ 'PAC.Role.NoRoleSelected' | translate: { Default: 'Select a role' } }}
+              </div>
+              <div class="max-w-md text-sm text-text-tertiary">
+                {{ 'PAC.Role.NoRoleSelectedHint' | translate: { Default: 'Choose a role from the list to review permissions, rename it, or manage its access scope.' } }}
+              </div>
+            </z-card-content>
+          </z-card>
         }
-      </ul>
+      </div>
     </div>
-    <div class="flex flex-col items-stretch rounded-2xl border border-solid border-divider-regular">
-      <h3 class="px-4 p-2 text-lg font-medium">
-        {{ 'PAC.MENU.Roles.Administration' | translate: { Default: 'Administration' } }}
-      </h3>
-      <ul role="list" class="ngm-list">
-        @for (permission of getAdministrationPermissions(); track permission) {
-          <li
-            role="listitem"
-            class="rounded-md px-3 py-2"
-            [class.pointer-events-none]="isDisabledAdministrationPermissions()"
-            [class.opacity-60]="isDisabledAdministrationPermissions()"
-            >
-            <div class="flex items-center gap-4">
-              <span class="flex-1">
-                {{ 'PAC.ORGANIZATIONS_PAGE.PERMISSIONS.' + permission | translate: { Default: permission } }}
-              </span>
-              <z-switch
-                [disabled]="isDisabledAdministrationPermissions()"
-                [ngModel]="enabledPermissions[permission]"
-                (ngModelChange)="permissionChanged(permission, $event)"
-                >
-              </z-switch>
-            </div>
-          </li>
-        }
-      </ul>
-    </div>
-  </div>
+  }
 </div>
-
-<z-tab-nav-panel #tabPanel>
-  <router-outlet #o="outlet"></router-outlet>
-</z-tab-nav-panel>

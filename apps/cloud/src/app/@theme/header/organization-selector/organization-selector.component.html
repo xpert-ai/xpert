@@ -1,5 +1,8 @@
 <div
-  class="w-full mx-2 rounded-lg border border-divider-regular bg-components-card-bg/70 p-2 cursor-pointer transition-colors hover:bg-hover-bg"
+  #menuTrigger="cdkMenuTriggerFor"
+  class="w-full mx-2 rounded-lg border border-divider-regular bg-components-card-bg/70 p-2 transition-colors hover:bg-hover-bg"
+  [class.cursor-pointer]="canOpenMenu()"
+  [class.cursor-default]="!canOpenMenu()"
   [zTooltip]="
     ('PAC.Scope.Switch' | translate: { Default: 'Switch scope' }) +
     ': ' +
@@ -7,7 +10,8 @@
   "
   zPosition="right"
   [zDisabled]="!isCollapsed()"
-  [cdkMenuTriggerFor]="menu"
+  [cdkMenuTriggerFor]="canOpenMenu() ? menu : null"
+  (closed)="resetSearch()"
 >
   <div class="flex items-center gap-2">
     @if (isTenantScope()) {
@@ -41,7 +45,7 @@
       <ngm-search class="w-full mb-1 rounded-lg overflow-hidden" [(ngModel)]="searchTerm" />
     </div>
 
-    @if (canUseTenantScope()) {
+    @if (showTenantScopeItem()) {
       <div class="px-3 pb-1 pt-2 text-[10px] uppercase tracking-[0.24em] text-text-tertiary">
         {{ 'PAC.Scope.TenantSection' | translate: { Default: 'Tenant Console' } }}
       </div>
@@ -62,17 +66,23 @@
       </div>
     }
 
-    <div class="px-3 pb-1 pt-2 text-[10px] uppercase tracking-[0.24em] text-text-tertiary">
-      {{ 'PAC.Scope.OrganizationSection' | translate: { Default: 'Organizations' } }}
-    </div>
-    @for (org of organizations(); track org.id) {
-      <div cdkMenuItem [class.active]="isActiveOrganization(org)" (click)="selectOrganization(org)">
-        <div class="flex items-center overflow-hidden text-ellipsis">
-          <pac-org-avatar [organization]="org" class="mr-2 block h-6 w-6 shrink-0 overflow-hidden rounded-full" />
-          <span class="whitespace-nowrap" [title]="org.name" [ngmHighlight]="searchTerm()" [content]="org.name">{{
-            org.name
-          }}</span>
+    @if (hasVisibleOrganizations()) {
+      <div class="px-3 pb-1 pt-2 text-[10px] uppercase tracking-[0.24em] text-text-tertiary">
+        {{ 'PAC.Scope.OrganizationSection' | translate: { Default: 'Organizations' } }}
+      </div>
+      @for (org of organizations(); track org.id) {
+        <div cdkMenuItem [class.active]="isActiveOrganization(org)" (click)="selectOrganization(org)">
+          <div class="flex items-center overflow-hidden text-ellipsis">
+            <pac-org-avatar [organization]="org" class="mr-2 block h-6 w-6 shrink-0 overflow-hidden rounded-full" />
+            <span class="whitespace-nowrap" [title]="org.name" [ngmHighlight]="searchTerm()" [content]="org.name">{{
+              org.name
+            }}</span>
+          </div>
         </div>
+      }
+    } @else if (hasOrganizations()) {
+      <div class="px-3 py-2 text-sm text-text-secondary">
+        {{ 'PAC.Organization.EmptySearch' | translate: { Default: 'No matching organizations.' } }}
       </div>
     }
   </div>

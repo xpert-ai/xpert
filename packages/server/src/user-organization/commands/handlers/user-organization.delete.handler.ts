@@ -11,6 +11,7 @@ import { I18nService } from 'nestjs-i18n';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { EVENT_USER_ORGANIZATION_DELETED, UserOrganizationDeletedEvent } from '../../../user/events';
 
+
 /**
  * 1. Remove user from given organization if user belongs to multiple organizations
  * 2. Remove user record if the user belongs only to the given organization
@@ -55,6 +56,7 @@ export class UserOrganizationDeleteHandler
 			const result = await this._removeSuperAdmin(
 				input.requestingUser,
 				userId,
+				input.userOrganizationId,
 				input.language
 			);
 			this.emitUserOrganizationDeletedEvents(
@@ -68,7 +70,6 @@ export class UserOrganizationDeleteHandler
 		}
 
 		const result = await this._removeUserFromOrganization(
-			userId,
 			input.userOrganizationId
 		);
 		this.emitUserOrganizationDeletedEvents(
@@ -84,22 +85,15 @@ export class UserOrganizationDeleteHandler
 	}
 
 	private async _removeUserFromOrganization(
-		userId: string,
 		userOrganizationId: string
 	): Promise<UserOrganization | DeleteResult> {
-		// 1. get count of organizations the user belongs to
-		const { total } = await this.userOrganizationService.findAll({
-			where: { userId }
-		});
-
-		return total === 1
-			? this.userService.delete(userId)
-			: this.userOrganizationService.delete(userOrganizationId);
+		return this.userOrganizationService.delete(userOrganizationId);
 	}
 
 	private async _removeSuperAdmin(
 		requestingUser: IUser,
 		userId: string,
+		userOrganizationId: string,
 		language: LanguagesEnum
 	): Promise<UserOrganization | DeleteResult> {
 		// 1. Check if the requesting user has permission to delete Super Admin

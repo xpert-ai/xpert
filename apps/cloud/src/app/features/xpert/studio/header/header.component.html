@@ -28,6 +28,7 @@
     #mt1="cdkMenuTriggerFor"
     [cdkMenuTriggerFor]="diagramMenu"
     [cdkMenuTriggerData]="{ trigger: mt1 }"
+    (cdkMenuOpened)="onMenuOpened(mt1)"
   >
     <i class="ri-links-line text-lg"></i>
   </button>
@@ -38,6 +39,7 @@
     #mt2="cdkMenuTriggerFor"
     [cdkMenuTriggerFor]="agentMenu"
     [cdkMenuTriggerData]="{ trigger: mt2 }"
+    (cdkMenuOpened)="onMenuOpened(mt2)"
   >
     <i class="ri-chat-settings-line text-lg mr-1"></i>
     {{ 'PAC.Xpert.AgentSettings' | translate: { Default: 'Agent Settings' } }}
@@ -154,8 +156,10 @@
     <div class="mx-0.5 w-[1px] h-3.5 bg-divider-regular"></div>
     <div class="inline-block">
       <div
+        #conversationsTrigger="cdkMenuTriggerFor"
         class="studio-action-btn group flex items-center justify-center px-2 py-1 rounded-md cursor-pointer"
         [cdkMenuTriggerFor]="conversationsMenu"
+        (cdkMenuOpened)="onMenuOpened(conversationsTrigger)"
       >
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" class="w-5 h-5">
           <g id="Icon" clip-path="url(#clip0_635_10941)">
@@ -176,8 +180,10 @@
     </div>
     <div class="relative ml-0.5 flex items-center justify-center w-7 h-7 rounded-md">
       <div
+        #checklistTrigger="cdkMenuTriggerFor"
         class="studio-action-btn group flex items-center justify-center w-full h-full rounded-md cursor-pointer"
         [cdkMenuTriggerFor]="checklistMenu"
+        (cdkMenuOpened)="onMenuOpened(checklistTrigger)"
       >
         <i class="ri-list-check-3"></i>
         @if (checklist()?.length) {
@@ -211,8 +217,10 @@
   </button>
 
   <button
+    #publishTrigger="cdkMenuTriggerFor"
     class="no-underline group cursor-pointer relative shadow-2xl rounded-lg pl-4 pr-2 py-1 text-sm font-semibold leading-6 inline-block bg-primary-500 shadow-zinc-900 text-white"
     [cdkMenuTriggerFor]="publishMenu"
+    (cdkMenuOpened)="onMenuOpened(publishTrigger)"
   >
     <span>{{ 'PAC.Xpert.Publish' | translate: { Default: 'Publish' } }}</span>
     <svg
@@ -237,6 +245,7 @@
         {{ 'PAC.Xpert.LatestPublish' | translate: { Default: 'Latest Publish' } }}
       </div>
       <div
+        #versionTrigger="cdkMenuTriggerFor"
         cdkMenuItem
         class="flex justify-between items-center px-2 py-1"
         [cdkMenuTriggerFor]="versionMenu"
@@ -249,6 +258,7 @@
             offsetX: -12
           }
         ]"
+        (cdkMenuOpened)="onMenuOpened(versionTrigger)"
       >
         <div class="flex items-center mt-[3px] mb-[3px] font-medium text-sm">
           @if (version()) {

@@ -4,10 +4,10 @@ import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { injectOrganization } from '@metad/cloud/state'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardButtonComponent } from '@xpert-ai/headless-ui'
-import { combineLatest } from 'rxjs'
+import { ZardButtonComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { combineLatest, firstValueFrom } from 'rxjs'
 import { map, take } from 'rxjs/operators'
 import {
   getErrorMessage,
@@ -15,10 +15,13 @@ import {
   injectUserGroupAPI,
   IUser,
   IUserGroup,
+  IXpert,
   OrderTypeEnum,
   routeAnimations,
-  UsersOrganizationsService
+  UsersOrganizationsService,
+  injectXpertAPI
 } from '../../../@core'
+import { TranslationBaseComponent } from '../../../@shared/language'
 import { UserAvatarComponent } from '../../../@shared/user'
 
 @Component({
@@ -31,6 +34,7 @@ import { UserAvatarComponent } from '../../../@shared/user'
     TranslateModule,
     NgmSpinComponent,
     ZardButtonComponent,
+    ZardInputDirective,
     UserAvatarComponent
   ],
   templateUrl: './groups.component.html',
@@ -38,16 +42,19 @@ import { UserAvatarComponent } from '../../../@shared/user'
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class UserGroupsSettingsComponent {
+export class UserGroupsSettingsComponent extends TranslationBaseComponent {
   readonly #destroyRef = inject(DestroyRef)
   readonly #route = inject(ActivatedRoute)
   readonly #router = inject(Router)
   readonly #userGroupService = injectUserGroupAPI()
+  readonly #xpertService = injectXpertAPI()
   readonly #usersOrganizationsService = inject(UsersOrganizationsService)
   readonly #toastr = injectToastr()
+  readonly confirmDelete = injectConfirmDelete()
 
   readonly organization = injectOrganization()
   readonly loading = signal(false)
+  readonly xpertsLoading = signal(false)
   readonly saving = signal(false)
   readonly deleting = signal(false)
   readonly preferCreateMode = signal(false)
@@ -57,6 +64,9 @@ export class UserGroupsSettingsComponent {
   readonly organizationUsers = signal<IUser[]>([])
   readonly activeOrganizationUserIds = signal<string[]>([])
   readonly selectedMemberIds = signal<string[]>([])
+  readonly availableXperts = signal<IXpert[]>([])
+  readonly selectedXpertIds = signal<string[]>([])
+  readonly initialSelectedXpertIds = signal<string[]>([])
 
   readonly selectedGroupId = toSignal(this.#route.paramMap.pipe(map((params) => params.get('id'))), {
     initialValue: this.#route.snapshot.paramMap.get('id')
@@ -71,9 +81,23 @@ export class UserGroupsSettingsComponent {
   })
 
   readonly isNewGroup = computed(() => !this.selectedGroup())
-  readonly isBusy = computed(() => this.loading() || this.saving() || this.deleting())
+  readonly isBusy = computed(() => this.loading() || this.xpertsLoading() || this.saving() || this.deleting())
   readonly selectedMemberCount = computed(() => this.selectedMemberIds().length)
+  readonly selectedXpertCount = computed(() => this.selectedXpertIds().length)
   readonly hasOrganizationUsers = computed(() => this.organizationUsers().length > 0)
+  readonly selectedXperts = computed(() =>
+    this.availableXperts().filter((xpert) => this.selectedXpertIds().includes(xpert.id))
+  )
+  readonly hasXpertChanges = computed(() => {
+    const current = [...this.selectedXpertIds()].sort()
+    const initial = [...this.initialSelectedXpertIds()].sort()
+
+    if (current.length !== initial.length) {
+      return true
+    }
+
+    return current.some((id, index) => id !== initial[index])
+  })
 
   readonly filteredGroups = computed(() => {
     const query = this.normalizeSearch(this.groupQuery())
@@ -133,6 +157,8 @@ export class UserGroupsSettingsComponent {
   })
 
   constructor() {
+    super()
+
     effect(() => {
       const organizationId = this.organization()?.id
       if (!organizationId) {
@@ -159,6 +185,20 @@ export class UserGroupsSettingsComponent {
       this.name.setValue('')
       this.description.setValue('')
       this.selectedMemberIds.set([])
+    })
+
+    effect(() => {
+      const organizationId = this.organization()?.id
+      const groupId = this.selectedGroup()?.id ?? null
+
+      if (!organizationId) {
+        this.availableXperts.set([])
+        this.selectedXpertIds.set([])
+        this.initialSelectedXpertIds.set([])
+        return
+      }
+
+      void this.loadXpertAuthorizations(organizationId, groupId)
     })
   }
 
@@ -283,6 +323,20 @@ export class UserGroupsSettingsComponent {
     this.toggleMember(userId, false)
   }
 
+  isXpertSelected(xpertId: string) {
+    return this.selectedXpertIds().includes(xpertId)
+  }
+
+  toggleXpert(xpertId: string) {
+    this.selectedXpertIds.update((state) =>
+      state.includes(xpertId) ? state.filter((id) => id !== xpertId) : [...state, xpertId]
+    )
+  }
+
+  xpertLabel(xpert: IXpert) {
+    return xpert.title || xpert.name || xpert.id
+  }
+
   save() {
     const trimmedName = this.name.getRawValue().trim()
     if (!trimmedName) {
@@ -312,24 +366,20 @@ export class UserGroupsSettingsComponent {
       : this.#userGroupService.create(payload)
 
     save$.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe({
-      next: (group: IUserGroup) => {
-        this.#userGroupService
-          .updateMembers(group.id, this.selectedMemberIds())
-          .pipe(takeUntilDestroyed(this.#destroyRef))
-          .subscribe({
-            next: () => {
-              this.saving.set(false)
-              this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
-              if (this.organization()?.id) {
-                this.loadData()
-              }
-              this.#router.navigate(['/settings/groups', group.id])
-            },
-            error: (error) => {
-              this.saving.set(false)
-              this.#toastr.error(getErrorMessage(error))
-            }
-          })
+      next: async (group: IUserGroup) => {
+        try {
+          await firstValueFrom(this.#userGroupService.updateMembers(group.id, this.selectedMemberIds()))
+          await this.syncXpertAuthorizations(group.id)
+          this.saving.set(false)
+          this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
+          if (this.organization()?.id) {
+            this.loadData()
+          }
+          this.#router.navigate(['/settings/groups', group.id])
+        } catch (error) {
+          this.saving.set(false)
+          this.#toastr.error(getErrorMessage(error))
+        }
       },
       error: (error) => {
         this.saving.set(false)
@@ -344,24 +394,31 @@ export class UserGroupsSettingsComponent {
       return
     }
 
-    this.deleting.set(true)
-    this.#userGroupService
-      .delete(group.id)
-      .pipe(takeUntilDestroyed(this.#destroyRef))
-      .subscribe({
-        next: () => {
-          this.deleting.set(false)
-          this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
-          this.startCreate()
-          if (this.organization()?.id) {
-            this.loadData()
-          }
-        },
-        error: (error) => {
-          this.deleting.set(false)
-          this.#toastr.error(getErrorMessage(error))
+    this.confirmDelete(
+      {
+        value: group.name,
+        information: this.getTranslation('PAC.UserGroup.DeleteConfirmDetail', {
+          Default:
+            this.groupMemberCount(group) > 0
+              ? 'This group still contains members. Deleting it will also remove any XPERT access bound through this group.'
+              : 'Deleting this group will also remove any XPERT access bound through this group.'
+        })
+      },
+      this.#userGroupService.delete(group.id)
+    ).subscribe({
+      next: () => {
+        this.deleting.set(false)
+        this.#toastr.success('PAC.Messages.DeletedSuccessfully', { Default: 'Deleted successfully' })
+        this.startCreate()
+        if (this.organization()?.id) {
+          this.loadData()
         }
-      })
+      },
+      error: (error) => {
+        this.deleting.set(false)
+        this.#toastr.error(getErrorMessage(error))
+      }
+    })
   }
 
   userLabel(user: IUser) {
@@ -380,6 +437,10 @@ export class UserGroupsSettingsComponent {
 
   groupInitials(group: IUserGroup) {
     return this.initialsFromText(group.name)
+  }
+
+  xpertInitials(xpert: IXpert) {
+    return this.initialsFromText(this.xpertLabel(xpert))
   }
 
   private sortUsers(users: IUser[]) {
@@ -421,5 +482,74 @@ export class UserGroupsSettingsComponent {
       .slice(0, 2)
       .map((part) => part[0]?.toUpperCase() ?? '')
       .join('')
+  }
+
+  private async loadXpertAuthorizations(organizationId: string, groupId: string | null) {
+    this.xpertsLoading.set(true)
+    try {
+      const { items } = await firstValueFrom(
+        this.#xpertService.getAllInOrg({
+          where: {
+            latest: true
+          },
+          order: {
+            updatedAt: OrderTypeEnum.DESC
+          }
+        } as any)
+      )
+
+      const availableXperts = (items ?? []).filter((item) => !!item.publishAt)
+      this.availableXperts.set(availableXperts)
+
+      if (!groupId) {
+        this.selectedXpertIds.set([])
+        this.initialSelectedXpertIds.set([])
+        return
+      }
+
+      const results = await Promise.all(
+        availableXperts.map(async (xpert) => {
+          const groups = await firstValueFrom(this.#xpertService.getXpertUserGroups(xpert.id, organizationId))
+          return groups.some((group) => group.id === groupId) ? xpert.id : null
+        })
+      )
+
+      const selectedXpertIds = results.filter(Boolean) as string[]
+      this.selectedXpertIds.set(selectedXpertIds)
+      this.initialSelectedXpertIds.set(selectedXpertIds)
+    } catch (error) {
+      this.availableXperts.set([])
+      this.selectedXpertIds.set([])
+      this.initialSelectedXpertIds.set([])
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.xpertsLoading.set(false)
+    }
+  }
+
+  private async syncXpertAuthorizations(groupId: string) {
+    const organizationId = this.organization()?.id
+    if (!organizationId || !this.availableXperts().length || !this.hasXpertChanges()) {
+      this.initialSelectedXpertIds.set([...this.selectedXpertIds()])
+      return
+    }
+
+    const selectedIds = new Set(this.selectedXpertIds())
+    const initialIds = new Set(this.initialSelectedXpertIds())
+    const changedXperts = this.availableXperts().filter((xpert) => selectedIds.has(xpert.id) !== initialIds.has(xpert.id))
+
+    await Promise.all(
+      changedXperts.map(async (xpert) => {
+        const groups = await firstValueFrom(this.#xpertService.getXpertUserGroups(xpert.id, organizationId))
+        const currentGroupIds = groups.map((group) => group.id)
+        const nextGroupIds = selectedIds.has(xpert.id)
+          ? [...new Set([...currentGroupIds, groupId])]
+          : currentGroupIds.filter((id) => id !== groupId)
+
+        await firstValueFrom(this.#xpertService.updateXpertUserGroups(xpert.id, nextGroupIds, organizationId))
+      })
+    )
+
+    this.initialSelectedXpertIds.set([...this.selectedXpertIds()])
   }
 }

@@ -1,5 +1,5 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { CdkMenuModule } from '@angular/cdk/menu'
+import { CdkMenuModule, CdkMenuTrigger } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { Component, computed, HostListener, inject, model, signal, ViewContainerRef } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
@@ -237,5 +237,13 @@ export class XpertStudioHeaderComponent {
 
   private sliderValue(value: ZardSliderValue) {
     return typeof value === 'number' ? value : value[0]
+  }
+
+  onMenuOpened(trigger: CdkMenuTrigger) {
+    const updatePosition = () => (trigger as any).overlayRef?.updatePosition()
+
+    queueMicrotask(updatePosition)
+    requestAnimationFrame(updatePosition)
+    window.setTimeout(updatePosition, 220)
   }
 }

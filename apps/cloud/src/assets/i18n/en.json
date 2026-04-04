@@ -39,27 +39,42 @@
       "STORY": "Story",
       "USER": "User",
       "SUCCEED": "Succeed",
+      "Role&Permissions": "Role & Permissions",
       "Conversation": "Conversation",
       "SecretKey": "Key",
       "Middleware": "Middleware",
       "Skills": "Skills",
       "Active": "Active",
+      "All": "All",
       "CURRENCY": "Currency",
+      "Clear": "Clear",
       "Custom": "Custom",
+      "Default": "Default",
+      "Description": "Description",
       "Disabled": "Disabled",
+      "EDIT": "Edit",
+      "Email": "Email",
       "ID": "Identifier",
       "IsActive": "Enable organization",
       "IsDefault": "Default",
       "Loading": "Loading",
       "Logo": "Logo",
+      "Members": "Members",
+      "Name": "Name",
+      "NameRequired": "Name is required",
       "No": "No",
       "NotSet": "Not set",
+      "ORGANIZATION": "Organization",
+      "Role": "Role",
       "Saving": "Saving...",
       "Search": "Search",
+      "Selected": "Selected",
       "Status": "Status",
       "Tags": "Tags",
       "TimeZone": "Time Zone",
       "Uploading": "Uploading",
+      "User": "User",
+      "Users": "Users",
       "Yes": "Yes"
     },
     "Common": {
@@ -73,11 +88,22 @@
       "AGENT": "Agent",
       "ORGANIZATIONS": "Organizations",
       "LOCAL_AGENT_STATUS": "Local Agent Status",
+      "MANAGE_USERS": "Manage Users",
+      "ManageUsers": "Manage Users",
+      "Roles": {
+        "Administration": "Administration",
+        "General": "General"
+      },
       "USERS": "Users",
       "FEATURES": "Features",
       "MANAGE_ORGANIZATIONS": "Manage Organizations",
       "TENANT": {
         "TITLE": "Tenant"
+      }
+    },
+    "MODEL": {
+      "AccessControl": {
+        "NewRole": "New Role"
       }
     },
     "Scope": {
@@ -127,16 +153,84 @@
       "CustomSourceHelp": "Provide your own file URL.",
       "ReadonlyActionHint": "You need edit permission to run demo generation.",
       "SelectPromptTitle": "Choose an organization",
-      "SelectPromptDescription": "Select a row from the registry above to open the details workspace."
+      "SelectPromptDescription": "Select a row from the registry above to open the details workspace.",
+      "MembersHint": "Manage active membership, default organization, and organization-level access for users in this organization.",
+      "MemberAdded": "Member added successfully",
+      "NoMembers": "No members in this organization yet.",
+      "EmptySearch": "No organizations match your search."
+    },
+    "Role": {
+      "EnabledPermissions": "Enabled permissions",
+      "RoleList": "Role List",
+      "NoRoles": "No roles yet",
+      "NoRolesHint": "Create a role to start configuring role-based access for your organization.",
+      "NoRoleSelected": "Select a role",
+      "NoRoleSelectedHint": "Choose a role from the list to review permissions, rename it, or manage its access scope.",
+      "RenameTitle": "Rename role",
+      "RenameSuccess": "Role renamed successfully",
+      "SystemRole": "System Role",
+      "CustomRole": "Custom Role",
+      "SystemRoleHint": "System roles are managed by the platform and cannot be deleted.",
+      "CustomRoleHint": "Custom roles can be renamed and deleted when no assignments depend on them."
+    },
+    "Users": {
+      "GroupsHint": "Manage which groups the user belongs to in each active organization.",
+      "NoActiveOrganizations": "This user is not active in any organization.",
+      "DefaultOrganizationUpdated": "Default organization updated",
+      "OrganizationStatusUpdated": "Organization member status updated",
+      "NoMoreOrganizations": "No more organizations can be added",
+      "InviteOrganizationHint": "Invitations are sent in the current organization scope.",
+      "NoInviteOrganization": "Switch to an organization scope before sending invites."
+    },
+    "Invite": {
+      "PageSubtitle": "Review and manage organization-scoped invitations.",
+      "EmptyTitle": "No invites found",
+      "EmptyDescription": "Create an invitation from organization scope to get started.",
+      "ResendMissingData": "The selected invite is missing required resend data."
+    },
+    "INVITE_PAGE": {
+      "Email": "Email",
+      "Role": "Role",
+      "InvitedBy": "Invited By",
+      "CreatedAt": "Created At",
+      "Expires": "Expires",
+      "Action": "Action",
+      "Status": "Status",
+      "INVITATION_EXPIRATION_OPTIONS": {
+        "DAY": "1 day",
+        "WEEK": "1 week",
+        "TWO_WEEK": "2 weeks",
+        "MONTH": "1 month",
+        "NEVER": "Never"
+      },
+      "STATUS": {
+        "INVITED": "Invited",
+        "ACCEPTED": "Accepted",
+        "EXPIRED": "Expired"
+      }
     },
     "USERS_PAGE": {
-      "ADD_USER": "Add User"
+      "ADD_USER": "Add User",
+      "BatchImport": "Batch Import",
+      "ConfirmDeleteInvite": "Are you sure you want to cancel this invite?",
+      "NoRole": "No role",
+      "RemoveUserFromOrg": "Remove user from organization"
     },
     "ACTIONS": {
       "ADD": "Add",
+      "Add": "Add",
       "CANCEL": "Cancel",
+      "Delete": "Delete",
+      "INVITE": "Invite",
+      "ManageInvites": "Manage Invites",
+      "NEW": "New",
+      "Remove": "Remove",
+      "Rename": "Rename",
+      "Resend": "Resend",
       "SAVE": "Save",
+      "Save": "Save",
       "CLEAR": "Clear",
+      "Clear": "Clear",
       "CLEAR_CACHE": "Clear Cache",
       "DOWNLOAD_AGENT": "Download Agent",
       "CONFIRM_DELETE": "Confirm delete?"
@@ -149,7 +243,9 @@
         "AddNewOrganization": "Add New Organization"
       },
       "ROLES": {
-        "PERMISSION_UPDATED": "Role '{{name}}' Updated"
+        "PERMISSION_UPDATED": "Role '{{name}}' Updated",
+        "RoleCreate": "Role '{{name}}' Created",
+        "RoleDelete": "Role '{{name}}' Deleted"
       },
       "USERS": {
         "USER_DELETED": "User '{{name}}' Deleted",
@@ -166,7 +262,13 @@
       }
     },
     "MESSAGE": {
-      "MAIN_ORGANIZATION_UPDATED": "Organization updated successfully"
+      "MAIN_ORGANIZATION_UPDATED": "Organization updated successfully",
+      "USER_ORGANIZATION_ADDED": "User added to organization successfully",
+      "USER_ORGANIZATION_REMOVED": "User removed from organization successfully",
+      "UpdateSuccess": "Updated successfully"
+    },
+    "Messages": {
+      "DeletedSuccessfully": "Deleted successfully"
     },
     "TOASTR": {
       "TITLE": {
@@ -742,6 +844,12 @@
       "SelectVisible": "Select Visible",
       "NoActiveMembers": "No active organization members",
       "NoActiveMembersHint": "Invite or activate users in the current organization, then assign them here.",
+      "NoGroupsInOrganization": "No groups available in the current organization.",
+      "Joined": "Joined",
+      "DeleteConfirmDetail": "Deleting this group will remove member bindings and assistant authorization assignments. Continue?",
+      "XpertAuthorizationHint": "Choose which published xperts this group can access.",
+      "NoPublishedXperts": "No published xperts available for authorization.",
+      "NoAuthorizedXperts": "No authorized xperts yet.",
       "SelectOrganizationFirst": "Select an organization to continue.",
       "SelectOrganizationFirstHint": "Select an organization first to configure which groups can access this xpert.",
       "NoOrganizationsAvailable": "No organizations available for authorization.",

@@ -21,12 +21,13 @@ import {
 } from '../../../@core'
 import { timezones } from '../../../@core/constants/timezone'
 import { OrganizationMutationComponent } from './organization-mutation/organization-mutation.component'
-import { ZardInputDirective, ZardStepperImports, ZardInputGroupComponent, ZardIconComponent, ZardTabsImports, ZardRadioComponent, ZardRadioGroupComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { ZardInputDirective, ZardStepperImports, ZardInputGroupComponent, ZardIconComponent, ZardTabsImports, ZardRadioComponent, ZardRadioGroupComponent, ZardButtonComponent, ZardSelectImports, ZardSwitchComponent } from '@xpert-ai/headless-ui'
 import { OrgAvatarComponent, OrgAvatarEditorComponent } from '@cloud/app/@shared/organization'
 import { TagMaintainComponent } from '@cloud/app/@shared/tag'
 import { CommonModule } from '@angular/common'
+import { OrganizationMembersComponent } from './organization-members/organization-members.component'
 
-type OrganizationDetailsTab = 'general' | 'controls' | 'tags' | 'demo'
+type OrganizationDetailsTab = 'general' | 'members' | 'controls' | 'tags' | 'demo'
 
 @Component({
   imports: [
@@ -36,16 +37,19 @@ type OrganizationDetailsTab = 'general' | 'controls' | 'tags' | 'demo'
     TranslateModule,
     ...ZardStepperImports,
     ...ZardTabsImports,
+    ...ZardSelectImports,
     ZardInputGroupComponent,
     ZardInputDirective,
     ZardIconComponent,
     ZardRadioComponent,
     ZardRadioGroupComponent,
     ZardButtonComponent,
+    ZardSwitchComponent,
     OrgAvatarEditorComponent,
     OrgAvatarComponent,
     NgmTableComponent,
-    TagMaintainComponent
+    TagMaintainComponent,
+    OrganizationMembersComponent
   ],
   selector: 'pac-organizations',
   templateUrl: './organizations.component.html',
@@ -70,6 +74,7 @@ export class OrganizationsComponent {
   readonly requestScopeLevel = RequestScopeLevel
   readonly organizationDemoNetworkEnum = OrganizationDemoNetworkEnum
   readonly timezones = timezones
+  readonly noTimeZoneValue = '__none__'
 
   readonly activeScope = toSignal(this.#store.selectActiveScope(), {
     initialValue: this.#store.activeScope
@@ -135,6 +140,13 @@ export class OrganizationsComponent {
   )
   readonly canEditSelectedOrganization = computed(
     () => !!this.selectedOrganization() && this.#store.hasPermission(PermissionsEnum.ALL_ORG_EDIT)
+  )
+  readonly canManageSelectedMembers = computed(
+    () =>
+      !!this.selectedOrganization() &&
+      [PermissionsEnum.ALL_ORG_EDIT, PermissionsEnum.ORG_USERS_EDIT].some((permission) =>
+        this.#store.hasPermission(permission)
+      )
   )
   readonly canEditGovernanceFields = computed(
     () => this.canEditSelectedOrganization() && this.isTenantScope()
@@ -278,7 +290,8 @@ export class OrganizationsComponent {
     }
 
     const information = this.#translate.instant('PAC.NOTES.ORGANIZATIONS.DELETE_CONFIRM', {
-      Default: 'Confirm to delete the org from server?'
+      Default:
+        'Delete this organization only when it has no members, pending invites, or user groups.'
     })
 
     this.confirmDelete(
@@ -322,8 +335,12 @@ export class OrganizationsComponent {
     this.saving.set(true)
     try {
       const payload = this.form.getRawValue() as any
+      const timeZone = payload.timeZone === this.noTimeZoneValue ? '' : payload.timeZone
       await firstValueFrom(
-        this.#organizationsService.update(organization.id, payload)
+        this.#organizationsService.update(organization.id, {
+          ...payload,
+          timeZone
+        })
       )
 
       this.#toastrService.success('PAC.MESSAGE.MAIN_ORGANIZATION_UPDATED', {
@@ -541,7 +558,7 @@ export class OrganizationsComponent {
         website: organization.website ?? '',
         short_description: organization.short_description ?? '',
         currency: organization.currency ?? 'USD',
-        timeZone: organization.timeZone ?? '',
+        timeZone: organization.timeZone || this.noTimeZoneValue,
         defaultValueDateType: organization.defaultValueDateType ?? 'TODAY',
         invitesAllowed: organization.invitesAllowed ?? true,
         inviteExpiryPeriod: organization.inviteExpiryPeriod ?? 7,
