@@ -171,11 +171,11 @@
                 }
 
                 @if (templateLoadError()) {
-                  <div class="rounded-xl border border-components-panel-border px-4 py-3 text-sm text-text-destructive">
+                  <div class="rounded-xl border border-components-panel-border px-4 py-3 mt-2 text-sm text-text-destructive">
                     {{ templateLoadError() }}
                   </div>
                 } @else if (selectedTemplateDraft()) {
-                  <div class="rounded-xl border border-components-panel-border px-4 py-3 text-sm text-text-secondary">
+                  <div class="rounded-xl border border-components-panel-border px-4 py-3 mt-2 text-sm text-text-secondary">
                     {{
                       'PAC.Xpert.TemplateLoadedHelp'
                         | translate
@@ -199,11 +199,22 @@
                   <span class="text-text-destructive">*</span>
                   {{ 'PAC.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
                 </div>
-                <ngm-select
-                  [selectOptions]="workspaceOptions()"
-                  [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
-                  [(ngModel)]="workspaceId"
-                />
+                <div class="flex items-center gap-2">
+                  <z-combobox
+                    class="flex-1"
+                    [options]="workspaceOptions()"
+                    [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                    [(ngModel)]="workspaceId"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-secondary flex shrink-0 items-center justify-center"
+                    [title]="'PAC.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
+                    (click)="refreshWorkspaces()"
+                  >
+                    <i class="ri-refresh-line"></i>
+                  </button>
+                </div>
 
                 @if (noAvailableWorkspaces()) {
                   <div
@@ -481,11 +492,22 @@
                   <span class="text-text-destructive">*</span>
                   {{ 'PAC.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
                 </div>
-                <ngm-select
-                  [selectOptions]="workspaceOptions()"
-                  [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
-                  [(ngModel)]="workspaceId"
-                />
+                <div class="flex items-center gap-2">
+                  <z-combobox
+                    class="flex-1"
+                    [options]="workspaceOptions()"
+                    [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                    [(ngModel)]="workspaceId"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-secondary flex shrink-0 items-center justify-center"
+                    [title]="'PAC.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
+                    (click)="refreshWorkspaces()"
+                  >
+                    <i class="ri-refresh-line"></i>
+                  </button>
+                </div>
 
                 @if (noAvailableWorkspaces()) {
                   <div
@@ -806,11 +828,22 @@
                   <span class="text-text-destructive">*</span>
                   {{ 'PAC.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
                 </div>
-                <ngm-select
-                  [selectOptions]="workspaceOptions()"
-                  [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
-                  [(ngModel)]="workspaceId"
-                />
+                <div class="flex items-center gap-2">
+                  <z-combobox
+                    class="flex-1"
+                    [options]="workspaceOptions()"
+                    [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                    [(ngModel)]="workspaceId"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-secondary flex shrink-0 items-center justify-center"
+                    [title]="'PAC.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
+                    (click)="refreshWorkspaces()"
+                  >
+                    <i class="ri-refresh-line"></i>
+                  </button>
+                </div>
 
                 @if (noAvailableWorkspaces()) {
                   <div
@@ -1170,11 +1203,22 @@
                   <span class="text-text-destructive">*</span>
                   {{ 'PAC.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
                 </div>
-                <ngm-select
-                  [selectOptions]="workspaceOptions()"
-                  [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
-                  [(ngModel)]="workspaceId"
-                />
+                <div class="flex items-center gap-2">
+                  <z-combobox
+                    class="flex-1"
+                    [options]="workspaceOptions()"
+                    [placeholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+                    [(ngModel)]="workspaceId"
+                  />
+                  <button
+                    type="button"
+                    class="btn btn-secondary flex shrink-0 items-center justify-center"
+                    [title]="'PAC.ACTIONS.REFRESH' | translate: { Default: 'Refresh' }"
+                    (click)="refreshWorkspaces()"
+                  >
+                    <i class="ri-refresh-line"></i>
+                  </button>
+                </div>
 
                 @if (noAvailableWorkspaces()) {
                   <div

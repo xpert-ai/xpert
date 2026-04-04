@@ -7,7 +7,7 @@ import { FormsModule } from '@angular/forms'
 import { injectWorkspace } from '@metad/cloud/state'
 import { parseYAML } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
-import { ZardInputDirective, ZardStepperImports } from '@xpert-ai/headless-ui'
+import { ZardComboboxComponent, ZardInputDirective, ZardStepperImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   EnvironmentService,
@@ -39,7 +39,7 @@ import { genAgentKey } from '../../utils'
 import { XpertBasicFormComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
+
 import {
   CHAT_WORKFLOW_TRIGGER_PROVIDER,
   WorkflowTriggerProviderOption,
@@ -47,7 +47,7 @@ import {
   hasJsonSchemaRequiredErrors
 } from 'apps/cloud/src/app/@shared/workflow'
 import { RouterModule } from '@angular/router'
-import { catchError, from, map, Observable, of, switchMap, throwError } from 'rxjs'
+import { BehaviorSubject, catchError, from, map, Observable, of, switchMap, throwError } from 'rxjs'
 import {
   BlankTriggerSelection,
   BlankWorkflowStarterNodeKey,
@@ -181,7 +181,7 @@ const WORKFLOW_TRANSFORM_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
     CdkListboxModule,
     NgmI18nPipe,
     NgmSpinComponent,
-    NgmSelectComponent,
+    ZardComboboxComponent,
     XpertBasicFormComponent,
     XpertWorkflowIconComponent,
     BlankTriggerSelectionComponent,
@@ -229,8 +229,11 @@ export class XpertNewBlankComponent {
   readonly agentTemplateCatalogError = signal<string | null>(null)
   readonly knowledgeTemplateCatalogLoading = signal(true)
   readonly knowledgeTemplateCatalogError = signal<string | null>(null)
+  readonly #refreshWorkspaces$ = new BehaviorSubject<void>(undefined)
   readonly workspaces = toSignal(
-    this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(map(({ items }) => items)),
+    this.#refreshWorkspaces$.pipe(
+      switchMap(() => this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(map(({ items }) => items)))
+    ),
     { initialValue: [] as IXpertWorkspace[] }
   )
   readonly agentTemplateCatalog = toSignal(
@@ -442,6 +445,10 @@ export class XpertNewBlankComponent {
   )
 
   readonly loading = signal(false)
+
+  refreshWorkspaces() {
+    this.#refreshWorkspaces$.next()
+  }
 
   constructor() {
     let previousMode = this.selectedMode()
