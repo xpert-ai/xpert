@@ -1,0 +1,26 @@
+{
+  "datePicker": {
+    "chooseDate": "選擇日期",
+    "chooseMonth": "選擇月份",
+    "chooseQuarter": "選擇季度",
+    "chooseYear": "選擇年份",
+    "previousMonth": "上個月",
+    "nextMonth": "下個月",
+    "today": "今天",
+    "selected": "已選擇",
+    "rangeStart": "範圍開始",
+    "rangeEnd": "範圍結束",
+    "inRange": "範圍內",
+    "outsideMonth": "非當前月份",
+    "disabled": "不可用",
+    "quarter": "第{{quarter}}季度"
+  },
+  "confirm": {
+    "delete": "確認刪除",
+    "confirm": "確認",
+    "cancel": "取消"
+  },
+  "select": {
+    "moreItemsSelected_other": "還有 {{count}} 項已選擇"
+  }
+}

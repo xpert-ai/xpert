@@ -35,6 +35,7 @@
       "NEW": "New",
       "NAME": "Name",
       "NOTIFICATION_DESTINATION": "Notification Destination",
+      "Role&Permissions": "Role & Permissions",
       "SEMANTIC_MODEL": "Semantic Model",
       "STORY": "Story",
       "USER": "User",
@@ -52,16 +53,37 @@
       "AGENT": "Agent",
       "ORGANIZATIONS": "Organizations",
       "LOCAL_AGENT_STATUS": "Local Agent Status",
+      "Roles": {
+        "Administration": "Administration",
+        "General": "General"
+      },
       "USERS": "Users",
       "FEATURES": "Features",
       "TENANT": {
         "TITLE": "Tenant"
       }
     },
+    "MODEL": {
+      "AccessControl": {
+        "NewRole": "New Role"
+      }
+    },
+    "Role": {
+      "EnabledPermissions": "Enabled permissions",
+      "RoleList": "Role List",
+      "NoRoles": "No roles yet",
+      "NoRolesHint": "Create a role to start configuring role-based access for your organization.",
+      "NoRoleSelected": "Select a role",
+      "NoRoleSelectedHint": "Choose a role from the list to review permissions, rename it, or manage its access scope.",
+      "RenameTitle": "Rename role",
+      "RenameSuccess": "Role renamed successfully"
+    },
     "USERS_PAGE": {
       "ADD_USER": "Add User"
     },
     "ACTIONS": {
+      "Delete": "Delete",
+      "Rename": "Rename",
       "CLEAR": "Clear",
       "CLEAR_CACHE": "Clear Cache",
       "DOWNLOAD_AGENT": "Download Agent",
@@ -72,7 +94,9 @@
         "DELETE_ORGANIZATION": "Organization '{{name}}' Deleted"
       },
       "ROLES": {
-        "PERMISSION_UPDATED": "Role '{{name}}' Updated"
+        "PERMISSION_UPDATED": "Role '{{name}}' Updated",
+        "RoleCreate": "Role '{{name}}' Created",
+        "RoleDelete": "Role '{{name}}' Deleted"
       },
       "USERS": {
         "USER_DELETED": "User '{{name}}' Deleted",

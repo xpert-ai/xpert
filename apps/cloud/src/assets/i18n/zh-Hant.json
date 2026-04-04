@@ -125,6 +125,7 @@
       "SAVE": "保存",
       "Refresh": "刷新",
       "Management": "管理",
+      "Selected": "已選",
       "User": "用戶",
       "Users": "用戶",
       "Action": "操作",
@@ -142,6 +143,7 @@
       "CalculatedMembers": "計算成員",
       "Caption": "標簽",
       "Description": "描述",
+      "Email": "郵箱",
       "Role": "角色",
       "Model": "模型",
       "CreateBy": "創建人",
@@ -562,6 +564,7 @@
       "My Indicator": "我的指標",
       "Indicator App": "指標應用",
       "Settings": "設置",
+      "ManageUsers": "管理用戶",
       "General": "通用",
       "Account": "賬號",
       "User": "用戶",
@@ -811,6 +814,7 @@
       "Generate": "生成",
       "GenerateDemoData": "生成演示數據",
       "ManageInvites": "管理邀請",
+      "Resend": "重新發送",
       "Save": "保存",
       "Validate": "驗證",
       "Connect": "連接",
@@ -832,6 +836,7 @@
       "MAIN_ORGANIZATION_UPDATED": "組織更新成功",
       "USER_ORGANIZATION_ADDED": "用戶組織添加成功",
       "USER_ORGANIZATION_REMOVED": "用戶組織刪除成功",
+      "UpdateSuccess": "更新成功",
       "LocalAgentOffline": "本地代理離線",
       "NameAlreadyExist": "名稱已存在",
       "Required": "必輸",
@@ -1662,7 +1667,6 @@
       }
     },
     "INVITE_PAGE": {
-      "ForOrganization": "為組織",
       "INVITATION_EXPIRATION_OPTIONS": {
         "DAY": "一日",
         "WEEK": "一周",
@@ -1682,6 +1686,12 @@
         "ACCEPTED": "已接受",
         "EXPIRED": "過期"
       }
+    },
+    "Invite": {
+      "PageSubtitle": "查看並管理當前組織範圍下的邀請。",
+      "EmptyTitle": "暫無邀請",
+      "EmptyDescription": "請先在當前組織範圍內發起一條邀請。",
+      "ResendMissingData": "當前邀請缺少重新發送所需的數據。"
     },
     "Header": {
       "Organization": {
@@ -1774,7 +1784,27 @@
       "CustomSourceHelp": "提供你自己的文件 URL。",
       "ReadonlyActionHint": "你需要編輯權限才能執行演示數據生成。",
       "SelectPromptTitle": "請選擇一個組織",
-      "SelectPromptDescription": "請從上方列表選擇一行以打開下方詳情工作區。"
+      "SelectPromptDescription": "請從上方列表選擇一行以打開下方詳情工作區。",
+      "MembersHint": "管理目前組織內用戶的成員狀態、默認組織與組織級訪問關係。",
+      "MemberAdded": "成員新增成功",
+      "NoMembers": "目前組織暫無成員。",
+      "EmptySearch": "沒有匹配的組織。"
+    },
+    "Role": {
+      "EnabledPermissions": "已啟用權限",
+      "RoleList": "角色列表",
+      "RoleListHint": "選擇一個角色以查看其權限配置與可執行操作。",
+      "SystemDefault": "系統默認",
+      "NoRoles": "暫無角色",
+      "NoRolesHint": "建立一個角色後，即可開始為組織配置基於角色的訪問控制。",
+      "NoRoleSelected": "請選擇一個角色",
+      "NoRoleSelectedHint": "從左側列表選擇角色後，即可查看權限、重命名角色或管理其訪問範圍。",
+      "RenameTitle": "重命名角色",
+      "RenameSuccess": "角色重命名成功",
+      "SystemRole": "系統角色",
+      "CustomRole": "自定義角色",
+      "SystemRoleHint": "系統角色由平台維護，不允許刪除。",
+      "CustomRoleHint": "自定義角色在沒有綁定關係時可以重命名或刪除。"
     },
     "Story": {
       "StoryToolbar": "故事工具欄",
@@ -2339,7 +2369,13 @@
       "zh-Hant": "繁體中文"
     },
     "Users": {
-      "NoMoreOrganizations": "沒有更多的組織可添加"
+      "NoMoreOrganizations": "沒有更多的組織可添加",
+      "GroupsHint": "管理用戶在各個有效組織下所屬的用戶群組。",
+      "NoActiveOrganizations": "該用戶目前不在任何有效組織中。",
+      "DefaultOrganizationUpdated": "默認組織設置成功",
+      "OrganizationStatusUpdated": "組織成員狀態更新成功",
+      "InviteOrganizationHint": "邀請在當前組織範圍內發起。",
+      "NoInviteOrganization": "請先切換到組織範圍再發起邀請。"
     },
     "Feature": {
       "Features": {
@@ -3464,7 +3500,13 @@
       "NoOrganizationsAvailable": "目前沒有可用於授權的組織。",
       "NoOrganizationsAvailableHint": "至少需要能訪問一個組織，才能為這個 tenant 級 xpert 綁定組織群組。",
       "NoMatchingMembers": "沒有匹配的成員。",
-      "NoMatchingMembersHint": "請嘗試其他搜尋關鍵字。"
+      "NoMatchingMembersHint": "請嘗試其他搜尋關鍵字。",
+      "Joined": "加入時間",
+      "DeleteConfirmDetail": "刪除該用戶群組後，會同時移除成員綁定和 XPERT 授權關係，是否繼續？",
+      "XpertAuthorizationHint": "選擇該用戶群組可訪問的已發布 XPERT。",
+      "NoPublishedXperts": "暫無可授權的已發布 XPERT。",
+      "NoAuthorizedXperts": "暫無已授權的 XPERT。",
+      "NoGroupsInOrganization": "目前組織下暫無用戶群組。"
     },
     "MCP": {
       "Logs": "日誌",

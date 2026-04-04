@@ -19,5 +19,9 @@
     "delete": "Confirm Delete",
     "confirm": "Confirm",
     "cancel": "Cancel"
+  },
+  "select": {
+    "moreItemsSelected_one": "{{count}} more item selected",
+    "moreItemsSelected_other": "{{count}} more items selected"
   }
 }

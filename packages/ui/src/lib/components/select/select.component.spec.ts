@@ -1,9 +1,10 @@
 import { OverlayContainer } from '@angular/cdk/overlay';
 import { CommonModule } from '@angular/common';
-import { Component } from '@angular/core';
+import { Component, signal, type WritableSignal } from '@angular/core';
 import { TestBed } from '@angular/core/testing';
 import { FormControl, ReactiveFormsModule } from '@angular/forms';
 
+import { provideUiI18nAdapter } from '@/src/lib/core/i18n/ui-i18n.service';
 import { ZardSelectItemComponent } from './select-item.component';
 import { ZardSelectComponent } from './select.component';
 
@@ -50,6 +51,41 @@ class TestHostComponent {
 class AsyncOptionsHostComponent {
   readonly control = new FormControl<string | null>(null);
   options: Array<{ value: string; label: string }> = [];
+}
+
+@Component({
+  standalone: true,
+  imports: [ReactiveFormsModule, ZardSelectComponent, ZardSelectItemComponent],
+  template: `
+    <z-select [formControl]="control" [zMultiple]="true" [zMaxLabelCount]="1" zPlaceholder="Select roles">
+      <z-select-item zValue="SUPER_ADMIN">SUPER_ADMIN</z-select-item>
+      <z-select-item zValue="ADMIN">ADMIN</z-select-item>
+      <z-select-item zValue="VIEWER">VIEWER</z-select-item>
+    </z-select>
+  `,
+})
+class MultiSelectHostComponent {
+  readonly control = new FormControl<Array<string>>(['SUPER_ADMIN', 'ADMIN'], { nonNullable: true });
+}
+
+function createI18nProvider(language: WritableSignal<string>) {
+  return provideUiI18nAdapter({
+    language,
+    translate: (key, options) => {
+      const count = Number(options?.count ?? 0);
+      const locale = options?.lng ?? language();
+
+      if (key === 'xp-ui:select.moreItemsSelected') {
+        if (locale.startsWith('zh')) {
+          return `还有 ${count} 项已选择`;
+        }
+
+        return `${count} more item${count === 1 ? '' : 's'} selected`;
+      }
+
+      return String(options?.defaultValue ?? options?.Default ?? key);
+    },
+  });
 }
 
 describe('ZardSelectComponent', () => {
@@ -115,5 +151,27 @@ describe('ZardSelectComponent', () => {
     expect(mouseDownEvent.defaultPrevented).toBe(true);
     expect(fixture.componentInstance.control.value).toBe('ADMIN');
     expect(trigger.textContent).toContain('ADMIN');
+  });
+
+  it('localizes the multiselect overflow summary', async () => {
+    const language = signal('en-US');
+    const fixture = TestBed.configureTestingModule({
+      imports: [MultiSelectHostComponent],
+      providers: [createI18nProvider(language)],
+    }).createComponent(MultiSelectHostComponent);
+
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    let trigger = fixture.nativeElement.querySelector('z-select button[role="combobox"]') as HTMLButtonElement;
+    expect(trigger.textContent).toContain('SUPER_ADMIN');
+    expect(trigger.textContent).toContain('1 more item selected');
+
+    language.set('zh-Hans');
+    fixture.detectChanges();
+    await fixture.whenStable();
+
+    trigger = fixture.nativeElement.querySelector('z-select button[role="combobox"]') as HTMLButtonElement;
+    expect(trigger.textContent).toContain('还有 1 项已选择');
   });
 });
