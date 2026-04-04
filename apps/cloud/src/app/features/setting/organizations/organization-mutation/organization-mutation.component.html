@@ -1,23 +1,20 @@
-<header xpDialogTitle cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
+<header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="text-xl font-semibold p-2">
   <h4 class="pointer-events-none">
     {{ 'PAC.ACTIONS.NEW' | translate: {Default: 'New'} }} 
     {{ 'PAC.KEY_WORDS.ORGANIZATION' | translate: {Default: 'Organization'} }}
   </h4>
 </header>
 
-<div xpDialogContent>
+<div class="p-2">
   <pac-organization-step-form #stepForm [(ngModel)]="organization"></pac-organization-step-form>
 </div>
 
-<div xpDialogActions align="end">
-  <div ngmButtonGroup>
-    <button z-button zType="ghost" xpDialogClose cdkFocusInitial>
-      {{ 'PAC.ACTIONS.CANCEL' | translate: {Default: 'Cancel'} }}
-    </button>
-    
-    <button z-button zType="default" color="accent" [xpDialogClose]="organization">
-      {{ 'PAC.ACTIONS.APPLY' | translate: {Default: 'Apply'} }} 
-    </button>
-  </div>
+<div class="space-x-2 flex justify-end p-2">
+  <button z-button zType="ghost" cdkFocusInitial (click)="onCancel()">
+    {{ 'PAC.ACTIONS.CANCEL' | translate: {Default: 'Cancel'} }}
+  </button>
   
+  <button z-button zType="default" color="accent" (click)="onApply()">
+    {{ 'PAC.ACTIONS.APPLY' | translate: {Default: 'Apply'} }} 
+  </button>
 </div>

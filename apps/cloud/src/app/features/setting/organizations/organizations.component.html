@@ -2,13 +2,13 @@
   <div class="flex flex-col gap-6 px-8 py-6">
     @if (showRegistrySection()) {
       <section
-        [ngClass]="isTenantScope() ? 'bg-transparent' : 'overflow-hidden rounded-[28px] bg-components-card-bg'"
+        [ngClass]="isTenantScope() ? 'bg-transparent' : 'overflow-hidden bg-components-card-bg'"
       >
       <div
         [ngClass]="
           isTenantScope()
-            ? 'flex flex-col gap-3 px-6 py-4 lg:flex-row lg:items-center lg:justify-between'
-            : 'flex flex-col gap-3 px-6 py-5 lg:flex-row lg:items-end lg:justify-between'
+            ? 'flex flex-col gap-3 pb-4 lg:flex-row lg:items-center lg:justify-between'
+            : 'flex flex-col gap-3 pb-5 lg:flex-row lg:items-end lg:justify-between'
         "
         [class.border-b]="isTenantScope()"
         [class.border-divider-regular]="isTenantScope()"
@@ -25,24 +25,18 @@
 
         @if (isTenantScope()) {
           <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
-            <label
-              class="flex min-w-[220px] items-center gap-2 rounded-xl border border-divider-regular bg-components-input-bg-normal px-3 py-2 text-sm text-text-secondary shadow-xs"
-            >
-              <i class="ri-search-line text-text-tertiary"></i>
-              <input
-                class="w-full border-0 bg-transparent p-0 text-sm text-text-primary outline-none placeholder:text-components-input-text-placeholder"
+            <z-input-group [zAddonBefore]="search">
+              <input z-input type="text" 
                 [ngModel]="searchText()"
                 (ngModelChange)="searchText.set($event)"
-                [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search organizations' }"
-              />
-            </label>
+                [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: 'Search organizations' }"/>
+            </z-input-group>
+            <ng-template #search><i class="ri-search-line text-text-tertiary"></i></ng-template>
 
             @if (canCreateOrganizations()) {
-              <div ngmButtonGroup displayDensity="cosy">
-                <button z-button zType="default" color="primary" displayDensity="cosy" (click)="addOrganization()">
-                  <z-icon nxDensity="cosy" zType="add"></z-icon>{{ 'PAC.ACTIONS.ADD' | translate: { Default: 'Add' } }}
-                </button>
-              </div>
+              <button z-button zType="default" color="primary" displayDensity="cosy" (click)="addOrganization()">
+                <z-icon nxDensity="cosy" zType="add"></z-icon>{{ 'PAC.ACTIONS.ADD' | translate: { Default: 'Add' } }}
+              </button>
             }
           </div>
         }
@@ -130,13 +124,13 @@
                         class="block h-10 w-10 overflow-hidden rounded-2xl border border-divider-regular bg-components-input-bg-normal"
                       />
                     </td>
-                    <td class="px-4 py-4 align-middle">
-                      <div class="space-y-1">
+                    <td class="px-4 py-4 align-middle truncate">
+                      <div class="space-y-1 whitespace-nowrap">
                         <div class="font-medium text-text-primary">{{ organizationIdentifier(organization) }}</div>
-                        <div class="text-xs text-text-tertiary">{{ organization.id }}</div>
+                        <!-- <div class="text-xs text-text-tertiary">{{ organization.id }}</div> -->
                       </div>
                     </td>
-                    <td class="px-4 py-4 align-middle">
+                    <td class="px-4 py-4 align-middle truncate">
                       <div class="space-y-1">
                         <div class="font-medium text-text-primary">{{ organization.name }}</div>
                         @if (organization.officialName) {

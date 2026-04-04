@@ -1,10 +1,21 @@
+import { CommonModule } from '@angular/common'
 import { Component, DestroyRef, forwardRef, inject, OnInit } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { ControlValueAccessor, FormBuilder, NG_VALUE_ACCESSOR, Validators, FormGroup } from '@angular/forms'
+import { ControlValueAccessor, FormBuilder, NG_VALUE_ACCESSOR, Validators, FormGroup, ReactiveFormsModule } from '@angular/forms'
+import { TranslateModule } from '@ngx-translate/core'
+import { ZardCheckboxComponent, ZardFormImports, ZardInputDirective, ZardStepperImports } from '@xpert-ai/headless-ui'
 import { combineLatest } from 'rxjs'
 
 @Component({
-  standalone: false,
+  imports: [
+    CommonModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ...ZardStepperImports,
+    ...ZardFormImports,
+    ZardCheckboxComponent,
+    ZardInputDirective,
+  ],
   selector: 'pac-organization-step-form',
   templateUrl: './organization-step-form.component.html',
   styleUrls: ['./organization-step-form.component.scss'],
@@ -18,6 +29,7 @@ import { combineLatest } from 'rxjs'
 })
 export class OrganizationStepFormComponent implements OnInit, ControlValueAccessor {
   readonly destroyRef = inject(DestroyRef)
+  private fb = inject(FormBuilder)
 
   basic = this.fb.group({
     name: ['', Validators.required],
@@ -28,8 +40,6 @@ export class OrganizationStepFormComponent implements OnInit, ControlValueAccess
   orgSettingsForm: FormGroup
 
   onChange: (value: any) => any
-  constructor(private fb: FormBuilder) {
-  }
 
   writeValue(obj: any): void {
     if (obj) {

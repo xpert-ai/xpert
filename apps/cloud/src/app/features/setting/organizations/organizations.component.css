@@ -5,7 +5,7 @@
 }
 
 .organization-row {
-  @apply cursor-pointer transition-colors duration-150 ease-out hover:bg-hover-bg;
+  @apply transition-colors duration-150 ease-out hover:bg-hover-bg;
 }
 
 .organization-row.active {

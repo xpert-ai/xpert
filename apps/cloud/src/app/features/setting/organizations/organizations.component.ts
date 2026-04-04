@@ -1,10 +1,11 @@
+import { Dialog } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, DestroyRef, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { FormBuilder, FormControl, Validators } from '@angular/forms'
+import { FormBuilder, FormControl, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { OrganizationDemoNetworkEnum } from '@metad/contracts'
-import { injectConfirmDelete } from '@metad/ocap-angular/common'
-import { TranslateService } from '@ngx-translate/core'
+import { IOrganizationCreateInput, OrganizationDemoNetworkEnum } from '@metad/contracts'
+import { injectConfirmDelete, NgmTableComponent } from '@metad/ocap-angular/common'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { distinctUntilChanged, map } from 'rxjs/operators'
 import {
@@ -20,15 +21,35 @@ import {
 } from '../../../@core'
 import { timezones } from '../../../@core/constants/timezone'
 import { OrganizationMutationComponent } from './organization-mutation/organization-mutation.component'
-import { ZardDialogService } from '@xpert-ai/headless-ui'
+import { ZardInputDirective, ZardStepperImports, ZardInputGroupComponent, ZardIconComponent, ZardTabsImports, ZardRadioComponent, ZardRadioGroupComponent, ZardButtonComponent } from '@xpert-ai/headless-ui'
+import { OrgAvatarComponent, OrgAvatarEditorComponent } from '@cloud/app/@shared/organization'
+import { TagMaintainComponent } from '@cloud/app/@shared/tag'
+import { CommonModule } from '@angular/common'
 
 type OrganizationDetailsTab = 'general' | 'controls' | 'tags' | 'demo'
 
 @Component({
-  standalone: false,
+  imports: [
+    CommonModule,
+    FormsModule,
+    ReactiveFormsModule,
+    TranslateModule,
+    ...ZardStepperImports,
+    ...ZardTabsImports,
+    ZardInputGroupComponent,
+    ZardInputDirective,
+    ZardIconComponent,
+    ZardRadioComponent,
+    ZardRadioGroupComponent,
+    ZardButtonComponent,
+    OrgAvatarEditorComponent,
+    OrgAvatarComponent,
+    NgmTableComponent,
+    TagMaintainComponent
+  ],
   selector: 'pac-organizations',
   templateUrl: './organizations.component.html',
-  styleUrls: ['./organizations.component.scss'],
+  styleUrls: ['./organizations.component.css'],
   animations: [routeAnimations],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -39,7 +60,7 @@ export class OrganizationsComponent {
   readonly #store = inject(Store)
   readonly #fb = inject(FormBuilder)
   readonly #organizationsService = inject(OrganizationsService)
-  readonly #dialog = inject(ZardDialogService)
+  readonly #dialog = inject(Dialog)
   readonly #toastrService = inject(ToastrService)
   readonly #translate = inject(TranslateService)
   readonly #screenshotService = inject(ScreenshotService)
@@ -194,7 +215,12 @@ export class OrganizationsComponent {
   }
 
   async addOrganization() {
-    const organization = await firstValueFrom(this.#dialog.open(OrganizationMutationComponent).afterClosed())
+    const organization = await firstValueFrom(
+      this.#dialog.open<IOrganizationCreateInput>(OrganizationMutationComponent, {
+        backdropClass: 'xp-overlay-share-sheet',
+        panelClass: 'xp-overlay-pane-share-sheet'
+      }).closed
+    )
     if (!organization) {
       return
     }
