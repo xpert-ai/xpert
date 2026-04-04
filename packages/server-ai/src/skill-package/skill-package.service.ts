@@ -48,12 +48,12 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 				name: index.name ?? index.skillPath.split('/').pop(),
 				skillIndexId: index.id,
 				packagePath,
-				// version: index.version,
 				metadata: {
 					description: {
 						en_US: index.description || ''
 					},
-					tags: index.tags ?? []
+					tags: index.tags ?? [],
+					version: index.version
 				}
 			})
 

@@ -97,7 +97,7 @@ export class SimpleSkillIndexDto implements ISkillRepositoryIndex {
 	@IsString()
 	status?: string
 
-    @Expose()
+	@Expose()
 	@ApiProperty({
 		description: 'Index type',
 		required: false
@@ -106,14 +106,23 @@ export class SimpleSkillIndexDto implements ISkillRepositoryIndex {
 	@IsString()
 	type?: string
 
-    @Expose()
+	@Expose()
 	@ApiProperty({
 		description: 'License information',
 		required: false
 	})
 	@IsOptional()
 	@IsString()
-    license?: string
+	license?: string
+
+	@Expose()
+	@ApiProperty({
+		description: 'Latest published skill version',
+		required: false
+	})
+	@IsOptional()
+	@IsString()
+	version?: string
 
 	@Expose()
 	@ApiProperty({

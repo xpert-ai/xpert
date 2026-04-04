@@ -115,19 +115,22 @@ describe('SkillRepositoryIndexService', () => {
 				repositoryId: 'repo-1',
 				skillId: 'weather',
 				skillPath: 'weather',
-				name: 'Weather draft'
+				name: 'Weather draft',
+				version: '0.9.0'
 			},
 			{
 				repositoryId: 'repo-1',
 				skillId: 'weather',
 				skillPath: 'weather',
-				name: 'Weather latest'
+				name: 'Weather latest',
+				version: '1.0.0'
 			},
 			{
 				repositoryId: 'repo-1',
 				skillId: 'calendar',
 				skillPath: 'calendar',
-				name: 'Calendar latest'
+				name: 'Calendar latest',
+				version: '2.0.0'
 			}
 		])
 
@@ -140,7 +143,8 @@ describe('SkillRepositoryIndexService', () => {
 				id: 'weather-newer',
 				repositoryId: 'repo-1',
 				skillId: 'weather',
-				name: 'Weather latest'
+				name: 'Weather latest',
+				version: '1.0.0'
 			})
 		)
 		expect(createSpy).toHaveBeenNthCalledWith(
@@ -149,7 +153,8 @@ describe('SkillRepositoryIndexService', () => {
 				id: 'calendar-id',
 				repositoryId: 'repo-1',
 				skillId: 'calendar',
-				name: 'Calendar latest'
+				name: 'Calendar latest',
+				version: '2.0.0'
 			})
 		)
 		expect(repository.softDelete).toHaveBeenCalledTimes(1)
@@ -163,12 +168,14 @@ describe('SkillRepositoryIndexService', () => {
 			expect.objectContaining({
 				id: 'weather-newer',
 				skillId: 'weather',
-				name: 'Weather latest'
+				name: 'Weather latest',
+				version: '1.0.0'
 			}),
 			expect.objectContaining({
 				id: 'calendar-id',
 				skillId: 'calendar',
-				name: 'Calendar latest'
+				name: 'Calendar latest',
+				version: '2.0.0'
 			})
 		])
 		expect(skillRepositoryService.updateLastSyncAt).toHaveBeenCalledWith('repo-1')
