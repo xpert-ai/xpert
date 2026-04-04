@@ -1,6 +1,6 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
-import { Repository } from 'typeorm';
+import { IsNull, Repository } from 'typeorm';
 import { IFeature, IFeatureOrganization, IFeatureOrganizationUpdateInput, ITenant } from '@metad/contracts';
 import { isNotEmpty } from '@metad/server-common';
 import { TenantAwareCrudService } from './../core/crud';
@@ -32,13 +32,16 @@ export class FeatureOrganizationService extends TenantAwareCrudService<FeatureOr
 
 		const tenantId = RequestContext.currentTenantId();
 		const { featureId, organizationId } = entity;
+		const organizationScope = isNotEmpty(organizationId)
+			? { organizationId }
+			: { organizationId: IsNull() };
 		
 		// find all feature organization by feature id
 		const { items : featureOrganizations, total } = await this.findAll({
 			where: {
 				tenantId,
 				featureId,
-				...(isNotEmpty(organizationId) ? { organizationId } : {}),
+				...organizationScope,
 			}
 		});
 
