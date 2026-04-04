@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable, signal } from '@angular/core'
+import { computed, effect, inject, Injectable, Signal, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router } from '@angular/router'
 import { environment } from '@cloud/environments/environment'
@@ -18,7 +18,6 @@ import {
   IAssistantBindingToolPreferences,
   IAssistantBindingUserPreference,
   IAssistantBindingUserPreferenceUpsertInput,
-  IWFNTrigger,
   IXpert,
   IXpertTask,
   OrderTypeEnum,
@@ -26,19 +25,21 @@ import {
   Store,
   TWorkflowTriggerMeta,
   TXpertTeamDraft,
-  TXpertTeamNode,
-  WorkflowNodeTypeEnum,
   ToastrService,
   XpertAPIService,
   XpertTaskService,
   getErrorMessage
 } from '../../../@core'
 import { CHAT_WORKFLOW_TRIGGER_PROVIDER, WorkflowTriggerProviderOption } from '../../../@shared/workflow'
-import {
-  sanitizeAssistantFrameUrl
-} from '../../assistant/assistant-chatkit.runtime'
+import { sanitizeAssistantFrameUrl } from '../../assistant/assistant-chatkit.runtime'
 import { getAssistantRegistryItem } from '../../assistant/assistant.registry'
-import { buildEditableXpertDraft } from '../../xpert/editable-draft.util'
+import {
+  buildEditableXpertDraft,
+  readTriggerEditorItemsFromDraft,
+  upsertTriggerEditorItemsIntoDraft,
+  XPERT_DRAFT_PRIMARY_AGENT_NODE_MISSING,
+  XpertDraftTriggerEditorItem
+} from '../../xpert/draft/index'
 
 export type ClawXpertViewState = 'organization-required' | 'wizard' | 'ready' | 'error'
 
@@ -52,11 +53,7 @@ type ClawXpertTaskSummary = {
   total: number
 }
 
-export type ClawXpertTriggerEditorItem = {
-  nodeKey: string
-  provider: WorkflowTriggerProviderOption
-  config?: Record<string, unknown> | null
-}
+export type ClawXpertTriggerEditorItem = XpertDraftTriggerEditorItem
 
 export type ClawXpertToolPreferenceSourceType = 'toolset' | 'middleware'
 
@@ -143,7 +140,7 @@ export class ClawXpertFacade {
   readonly triggerProviders = toSignal(
     this.#xpertService.getTriggerProviders().pipe(catchError(() => of([] as TWorkflowTriggerMeta[]))),
     { initialValue: [] as TWorkflowTriggerMeta[] }
-  )
+  ) as Signal<TWorkflowTriggerMeta[]>
   readonly resolvedPreference = computed(() => {
     const preference = this.preference()
     if (!preference) {
@@ -160,7 +157,7 @@ export class ClawXpertFacade {
   })
   readonly currentXpert = computed(() => {
     const assistantId = this.resolvedPreference()?.assistantId
-    return assistantId ? this.availableXperts().find((item) => item.id === assistantId) ?? null : null
+    return assistantId ? (this.availableXperts().find((item) => item.id === assistantId) ?? null) : null
   })
   readonly xpertId = computed(() => this.currentXpert()?.id ?? this.resolvedPreference()?.assistantId ?? null)
   readonly currentWorkspaceId = computed(() => {
@@ -293,41 +290,7 @@ export class ClawXpertFacade {
     return Array.from(deduped.values())
   })
   readonly triggerEditorItems = computed<ClawXpertTriggerEditorItem[]>(() => {
-    const providerMap = new Map(this.triggerProviderOptions().map((provider) => [provider.name, provider]))
-
-    return (this.triggerDraft()?.nodes ?? [])
-      .filter(
-        (node): node is TXpertTeamNode<'workflow'> =>
-          node.type === 'workflow' && node.entity.type === WorkflowNodeTypeEnum.TRIGGER
-      )
-      .map((node) => {
-        const trigger = node.entity as IWFNTrigger
-        const providerName = `${trigger.from ?? 'chat'}`.trim() || 'chat'
-
-        return {
-          node,
-          providerName,
-          trigger
-        }
-      })
-      .filter(({ providerName }) => providerName !== 'chat')
-      .map(({ node, providerName, trigger }) => {
-        const provider =
-          providerMap.get(providerName) ??
-          ({
-            name: providerName,
-            label: {
-              en_US: providerName,
-              zh_Hans: providerName
-            }
-          } satisfies WorkflowTriggerProviderOption)
-
-        return {
-          nodeKey: node.key,
-          provider,
-          config: cloneTriggerConfig(trigger.config)
-        }
-      })
+    return readTriggerEditorItemsFromDraft(this.triggerDraft(), this.triggerProviderOptions())
   })
   readonly hasPersistedDraft = computed(() => !!this.triggerDraftSource()?.draft)
 
@@ -543,11 +506,11 @@ export class ClawXpertFacade {
         this.#xpertService.getTeam(xpertId, { relations: [...XPERT_TEAM_RELATIONS] }).pipe(catchError(() => of(null)))
       )) as IXpert | null
 
-      const nextXpert = ({
+      const nextXpert = {
         ...(currentXpert ?? {}),
         ...(refreshedXpert ?? {}),
         copilotModel: refreshedXpert?.copilotModel ?? nextCopilotModel
-      } as IXpert)
+      } as IXpert
 
       this.mergeAvailableXpert(nextXpert)
       this.triggerDraftErrorMessage.set(null)
@@ -622,7 +585,14 @@ export class ClawXpertFacade {
 
     this.invalidateUserPreferenceLoads()
     const previousPreference = this.userPreference()
-    const nextToolPreferences = updateToolPreferences(this.toolPreferences(), sourceType, nodeKey, metadata, toolName, enabled)
+    const nextToolPreferences = updateToolPreferences(
+      this.toolPreferences(),
+      sourceType,
+      nodeKey,
+      metadata,
+      toolName,
+      enabled
+    )
     const nextPreference = {
       ...(previousPreference ?? {}),
       toolPreferences: isToolPreferencesEmpty(nextToolPreferences) ? null : nextToolPreferences
@@ -697,26 +667,20 @@ export class ClawXpertFacade {
       return null
     }
 
-    const configByNodeKey = new Map(items.map((item) => [item.nodeKey, cloneTriggerConfig(item.config)]))
-    const nextDraft: TXpertTeamDraft = {
-      ...draft,
-      team: {
-        ...draft.team
-      },
-      nodes: draft.nodes.map((node) => {
-        if (node.type !== 'workflow' || node.entity.type !== WorkflowNodeTypeEnum.TRIGGER || !configByNodeKey.has(node.key)) {
-          return node
-        }
+    let nextDraft: TXpertTeamDraft
+    try {
+      nextDraft = upsertTriggerEditorItemsIntoDraft(draft, items)
+    } catch (error) {
+      if (error instanceof Error && error.message === XPERT_DRAFT_PRIMARY_AGENT_NODE_MISSING) {
+        this.#toastr.error(
+          this.#translate.instant('PAC.Chat.ClawXpert.TriggerDraftAgentMissing', {
+            Default: 'Unable to save the trigger draft because the primary agent node could not be resolved.'
+          })
+        )
+        return null
+      }
 
-        return {
-          ...node,
-          entity: {
-            ...node.entity,
-            config: cloneTriggerConfig(configByNodeKey.get(node.key))
-          }
-        }
-      }),
-      connections: [...(draft.connections ?? [])]
+      throw error
     }
 
     this.savingTriggerDraft.set(true)
@@ -908,10 +872,7 @@ export class ClawXpertFacade {
       return false
     }
 
-    return (
-      this.#nullThreadChangeGuard.threadId === activeThreadId &&
-      this.#nullThreadChangeGuard.expiresAt > Date.now()
-    )
+    return this.#nullThreadChangeGuard.threadId === activeThreadId && this.#nullThreadChangeGuard.expiresAt > Date.now()
   }
 
   private async loadState() {
@@ -922,9 +883,9 @@ export class ClawXpertFacade {
 
     try {
       const [preference, xperts] = await Promise.all([
-        firstValueFrom(this.#assistantBindingService.get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)) as Promise<
-          IAssistantBinding | null
-        >,
+        firstValueFrom(
+          this.#assistantBindingService.get(AssistantCode.CLAWXPERT, AssistantBindingScope.USER)
+        ) as Promise<IAssistantBinding | null>,
         firstValueFrom(
           this.#assistantBindingService.getAvailableXperts(AssistantBindingScope.USER, AssistantCode.CLAWXPERT)
         ) as Promise<XpertCollection>
@@ -1020,8 +981,11 @@ export class ClawXpertFacade {
       ...(persistedPreference ?? {}),
       toolPreferences:
         persistedPreference && Object.prototype.hasOwnProperty.call(persistedPreference, 'toolPreferences')
-          ? mergePersistedToolPreferences(persistedPreference.toolPreferences, currentPreference?.toolPreferences ?? null)
-          : currentPreference?.toolPreferences ?? null
+          ? mergePersistedToolPreferences(
+              persistedPreference.toolPreferences,
+              currentPreference?.toolPreferences ?? null
+            )
+          : (currentPreference?.toolPreferences ?? null)
     } as IAssistantBindingUserPreference
   }
 
@@ -1078,23 +1042,22 @@ function normalizeToolPreferences(value?: IAssistantBindingToolPreferences | nul
     }
   }
 
-  const toolsets = Object.entries(value.toolsets ?? {}).reduce<NonNullable<IAssistantBindingToolPreferences['toolsets']>>(
-    (acc, [key, item]) => {
-      const nodeKey = key?.trim()
-      const toolsetName = item?.toolsetName?.trim()
-      if (!nodeKey || !toolsetName) {
-        return acc
-      }
-
-      acc[nodeKey] = {
-        toolsetId: item.toolsetId?.trim() || null,
-        toolsetName,
-        disabledTools: normalizeDisabledTools(item.disabledTools)
-      }
+  const toolsets = Object.entries(value.toolsets ?? {}).reduce<
+    NonNullable<IAssistantBindingToolPreferences['toolsets']>
+  >((acc, [key, item]) => {
+    const nodeKey = key?.trim()
+    const toolsetName = item?.toolsetName?.trim()
+    if (!nodeKey || !toolsetName) {
       return acc
-    },
-    {}
-  )
+    }
+
+    acc[nodeKey] = {
+      toolsetId: item.toolsetId?.trim() || null,
+      toolsetName,
+      disabledTools: normalizeDisabledTools(item.disabledTools)
+    }
+    return acc
+  }, {})
 
   const middlewares = Object.entries(value.middlewares ?? {}).reduce<
     NonNullable<IAssistantBindingToolPreferences['middlewares']>
@@ -1138,13 +1101,7 @@ function normalizeToolPreferences(value?: IAssistantBindingToolPreferences | nul
 }
 
 function normalizeDisabledTools(value?: string[] | null) {
-  return Array.from(
-    new Set(
-      (value ?? [])
-        .map((item) => item?.trim())
-        .filter((item): item is string => !!item)
-    )
-  )
+  return Array.from(new Set((value ?? []).map((item) => item?.trim()).filter((item): item is string => !!item)))
 }
 
 function mergePersistedToolPreferences(

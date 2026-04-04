@@ -28,7 +28,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
   ],
   template: `
     <z-card
-      class="flex h-full min-h-[32rem] flex-col overflow-hidden rounded-3xl border border-divider-regular shadow-sm"
+      class="flex h-full min-h-[32rem] flex-col overflow-hidden rounded-3xl border border-border shadow-none"
     >
       <z-card-content class="flex min-h-0 flex-1 flex-col p-5">
         <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">

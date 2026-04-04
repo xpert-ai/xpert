@@ -59,7 +59,7 @@ const PREFERENCE_TABS: PreferenceTab[] = [
     ...ZardTabsImports
   ],
   template: `
-    <z-card class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-divider-regular">
+    <z-card class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-border shadow-none">
       <z-card-content class="flex min-h-0 flex-1 flex-col p-0">
         @if (isBlocked()) {
           <div class="flex min-h-[24rem] flex-1 flex-col items-center justify-center px-6 text-center">

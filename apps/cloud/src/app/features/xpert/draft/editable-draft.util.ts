@@ -1,7 +1,7 @@
 import { omit } from 'lodash-es'
-import { IXpert, TXpertTeamDraft } from '../../@core'
-import { ToConnectionViewModelHandler } from './studio/domain/connection'
-import { ToNodeViewModelHandler } from './studio/domain/node'
+import { IXpert, TXpertTeamDraft } from '../../../@core'
+import { ToConnectionViewModelHandler } from '../studio/domain/connection'
+import { ToNodeViewModelHandler } from '../studio/domain/node'
 
 export function buildEditableXpertDraft(xpert: IXpert): TXpertTeamDraft {
   const baseTeam = {

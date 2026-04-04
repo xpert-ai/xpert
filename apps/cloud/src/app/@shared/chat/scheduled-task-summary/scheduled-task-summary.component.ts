@@ -9,7 +9,7 @@ import { DateRelativePipe, IXpertTask } from '../../../@core'
   selector: 'xpert-scheduled-task-summary-card',
   imports: [CommonModule, TranslateModule, DateRelativePipe, ZardButtonComponent, ...ZardCardImports],
   template: `
-    <z-card class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-divider-regular">
+    <z-card class="flex min-h-0 flex-col overflow-hidden rounded-3xl border border-border shadow-none">
       <z-card-content class="flex min-h-0 flex-1 flex-col p-0">
         <div class="flex items-center justify-between gap-3 border-b border-divider-regular px-5 py-4">
           <div class="text-lg font-semibold text-text-primary">

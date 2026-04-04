@@ -10,11 +10,13 @@ import {
   Store,
   TXpertTeamDraft,
   ToastrService,
+  WorkflowNodeTypeEnum,
   XpertAPIService,
   XpertTaskService,
   XpertTypeEnum
 } from '../../../@core'
-import { ClawXpertFacade } from './clawxpert.facade'
+import { WorkflowTriggerProviderOption } from '../../../@shared/workflow'
+import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
 
 async function flushPromises() {
   await Promise.resolve()
@@ -69,6 +71,52 @@ function createToolPreferences() {
         disabledTools: ['tavily_search']
       }
     }
+  }
+}
+
+function createAgentNode(key = 'agent-1') {
+  return {
+    key,
+    type: 'agent',
+    position: { x: 320, y: 160 },
+    entity: {
+      id: key,
+      key
+    }
+  } as TXpertTeamDraft['nodes'][number]
+}
+
+function createTriggerNode(key = 'trigger-existing', provider = 'scheduler', config?: Record<string, unknown>) {
+  return {
+    key,
+    type: 'workflow',
+    position: { x: 40, y: 160 },
+    entity: {
+      id: key,
+      key,
+      type: WorkflowNodeTypeEnum.TRIGGER,
+      title: provider,
+      from: provider,
+      config
+    }
+  } as TXpertTeamDraft['nodes'][number]
+}
+
+function createTriggerItem(
+  nodeKey = 'trigger-new',
+  provider = 'webhook',
+  config?: Record<string, unknown>
+): ClawXpertTriggerEditorItem {
+  return {
+    nodeKey,
+    provider: {
+      name: provider,
+      label: {
+        en_US: provider,
+        zh_Hans: provider
+      }
+    } as WorkflowTriggerProviderOption,
+    config
   }
 }
 
@@ -307,6 +355,110 @@ describe('ClawXpertFacade', () => {
     expect(result).toEqual(savedDraft)
     expect(facade.triggerDraft()).toEqual(savedDraft)
     expect(toastr.success).toHaveBeenCalled()
+  })
+
+  it('appends new trigger nodes and edge connections when saving trigger draft updates', async () => {
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-save')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-save', 'Draft Xpert')]))
+
+    const initialDraft = createDraft('xpert-save', {
+      team: {
+        id: 'xpert-save',
+        agent: {
+          key: 'agent-1'
+        }
+      } as TXpertTeamDraft['team'],
+      nodes: [createAgentNode('agent-1'), createTriggerNode('trigger-existing', 'scheduler', { cron: '0 0 * * *' })],
+      connections: [
+        {
+          type: 'edge',
+          key: 'trigger-existing/agent-1',
+          from: 'trigger-existing',
+          to: 'agent-1'
+        }
+      ]
+    })
+    xpertService.getTeam.mockReturnValue(
+      of({
+        ...createTeam('xpert-save', 'Draft Xpert'),
+        agent: {
+          key: 'agent-1'
+        },
+        draft: initialDraft
+      })
+    )
+    xpertService.saveDraft.mockImplementation((_id: string, draft: TXpertTeamDraft) => of(draft))
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    const result = await facade.saveTriggerDraft([
+      createTriggerItem('trigger-existing', 'scheduler', { cron: '0 15 * * *' }),
+      createTriggerItem('trigger-new', 'webhook', { url: 'https://example.com/hook' })
+    ])
+
+    const savedDraft = xpertService.saveDraft.mock.calls.at(-1)?.[1] as TXpertTeamDraft
+    const existingTrigger = savedDraft.nodes.find((node) => node.key === 'trigger-existing')
+    const newTrigger = savedDraft.nodes.find((node) => node.key === 'trigger-new')
+
+    expect(existingTrigger?.entity).toEqual(
+      expect.objectContaining({
+        config: { cron: '0 15 * * *' }
+      })
+    )
+    expect(newTrigger?.entity).toEqual(
+      expect.objectContaining({
+        type: WorkflowNodeTypeEnum.TRIGGER,
+        from: 'webhook',
+        title: 'webhook',
+        config: { url: 'https://example.com/hook' }
+      })
+    )
+    expect(newTrigger?.position).toEqual({ x: 40, y: 280 })
+    expect(savedDraft.connections).toContainEqual({
+      type: 'edge',
+      key: 'trigger-new/agent-1',
+      from: 'trigger-new',
+      to: 'agent-1'
+    })
+    expect(result).toEqual(savedDraft)
+  })
+
+  it('refuses to save a new trigger when the primary agent node cannot be resolved', async () => {
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-save')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-save', 'Draft Xpert')]))
+
+    xpertService.getTeam.mockReturnValue(
+      of({
+        ...createTeam('xpert-save', 'Draft Xpert'),
+        agent: {
+          key: 'agent-missing'
+        },
+        draft: createDraft('xpert-save', {
+          team: {
+            id: 'xpert-save',
+            agent: {
+              key: 'agent-missing'
+            }
+          } as TXpertTeamDraft['team'],
+          nodes: [],
+          connections: []
+        })
+      })
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    const result = await facade.saveTriggerDraft([
+      createTriggerItem('trigger-new', 'webhook', { url: 'https://example.com/hook' })
+    ])
+
+    expect(result).toBeNull()
+    expect(xpertService.saveDraft).not.toHaveBeenCalled()
+    expect(toastr.error).toHaveBeenCalledWith(
+      'Unable to save the trigger draft because the primary agent node could not be resolved.'
+    )
   })
 
   it('publishes the bound xpert when a persisted draft exists', async () => {

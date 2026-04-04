@@ -63,7 +63,7 @@ import { CreateTeamHandler, CreateTeamRequest, ExpandTeamRequest, ExpandTeamHand
 import { genAgentKey, genWorkflowKey, injectGetXpertsByWorkspace, injectGetXpertTeam } from '../../utils'
 import { CreateWorkflowNodeRequest, CreateWorkflowNodeHandler, UpdateWorkflowNodeHandler, UpdateWorkflowNodeRequest } from './workflow'
 import { XpertService } from '../../xpert/xpert.service'
-import { buildEditableXpertDraft } from '../../editable-draft.util'
+import { buildEditableXpertDraft } from '../../draft/index'
 
 const SaveDraftDebounceTime = 1 // s
 
