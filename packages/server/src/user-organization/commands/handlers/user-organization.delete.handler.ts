@@ -10,11 +10,9 @@ import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
 
 /**
- * 1. Remove user from given organization if user belongs to multiple organizations
- * 2. Remove user record if the user belongs only to the given organization
- * 3. Allow the deletion of Admin and Super Admin Users only if there are more than 1 users of that Role.
- * 4. When a Super Admins are deleted, they must be removed from all existing organizations.
- * 5. Super Admin user can be deleted only by a Super Admin user.
+ * Removes a user-organization membership after validating membership invariants.
+ * Super Admin memberships can only be removed by another Super Admin, and only
+ * when another Super Admin still remains in the tenant.
  */
 @CommandHandler(UserOrganizationDeleteCommand)
 export class UserOrganizationDeleteHandler
@@ -47,32 +45,25 @@ export class UserOrganizationDeleteHandler
 			return this._removeSuperAdmin(
 				input.requestingUser,
 				userId,
+				input.userOrganizationId,
 				input.language
 			);
 
 		return this._removeUserFromOrganization(
-			userId,
 			input.userOrganizationId
 		);
 	}
 
 	private async _removeUserFromOrganization(
-		userId: string,
 		userOrganizationId: string
 	): Promise<UserOrganization | DeleteResult> {
-		// 1. get count of organizations the user belongs to
-		const { total } = await this.userOrganizationService.findAll({
-			where: { userId }
-		});
-
-		return total === 1
-			? this.userService.delete(userId)
-			: this.userOrganizationService.delete(userOrganizationId);
+		return this.userOrganizationService.delete(userOrganizationId);
 	}
 
 	private async _removeSuperAdmin(
 		requestingUser: IUser,
 		userId: string,
+		userOrganizationId: string,
 		language: LanguagesEnum
 	): Promise<UserOrganization | DeleteResult> {
 		// 1. Check if the requesting user has permission to delete Super Admin
@@ -105,7 +96,6 @@ export class UserOrganizationDeleteHandler
 				)
 			);
 
-		// 3. Delete Super Admin user from all organizations
-		return this.userService.delete(userId);
+		return this._removeUserFromOrganization(userOrganizationId)
 	}
 }

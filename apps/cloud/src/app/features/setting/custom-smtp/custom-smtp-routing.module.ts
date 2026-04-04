@@ -18,14 +18,10 @@ const routes: Routes = [
     },
     children: [
       {
-        path: '',
-        redirectTo: 'tenant',
-        pathMatch: 'full'
-      },
-      {
         path: 'tenant',
         component: SMTPComponent,
         data: {
+          scopeContext: 'tenant-only',
           isOrganization: false,
           selectors: {
             project: false,
@@ -39,6 +35,7 @@ const routes: Routes = [
         path: 'organization',
         component: SMTPComponent,
         data: {
+          scopeContext: 'organization-only',
           isOrganization: true,
           selectors: {
             project: false,

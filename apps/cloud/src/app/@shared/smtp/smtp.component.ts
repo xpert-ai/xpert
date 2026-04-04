@@ -6,7 +6,8 @@ import { ICustomSmtp, IOrganization, IUser, SMTPSecureEnum } from '@metad/contra
 import { ButtonGroupDirective, OcapCoreModule } from '@metad/ocap-angular/core'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { filter, pairwise, tap } from 'rxjs/operators'
+import { combineLatest } from 'rxjs'
+import { distinctUntilChanged, filter, map, pairwise, startWith } from 'rxjs/operators'
 import { CustomSmtpService, Store, ToastrService } from '../../@core/services'
 import { patterns } from '../regex/regex-patterns.const'
 import { TranslationBaseComponent } from '../language/translation-base.component'
@@ -78,21 +79,29 @@ export class SMTPComponent extends TranslationBaseComponent implements OnInit, O
   | Subscriptions (effect)
   |--------------------------------------------------------------------------
   */
-  private _activatedRouteSub = this._activatedRoute.data.pipe(takeUntilDestroyed()).subscribe(({ isOrganization }) => {
-    this.isOrganization = isOrganization
-  })
-
-  private _userSub = this.store.user$.pipe(filter(Boolean), takeUntilDestroyed()).subscribe((user) => {
-    this.user = user
-  })
-  private _selectedOrganizationSub = this.store.selectedOrganization$
-    .pipe(
-      filter((organization) => !!organization),
-      tap((organization) => (this.organization = organization)),
-      tap(() => this.getTenantSmtpSetting()),
-      takeUntilDestroyed()
+  private _smtpScopeSub = combineLatest([
+    this._activatedRoute.data.pipe(
+      map(({ isOrganization }) => !!isOrganization),
+      distinctUntilChanged()
+    ),
+    this.store.user$.pipe(filter(Boolean)),
+    this.store.selectedOrganization$.pipe(
+      startWith(this.store.selectedOrganization ?? null),
+      distinctUntilChanged((prev, curr) => prev?.id === curr?.id)
     )
-    .subscribe()
+  ])
+    .pipe(takeUntilDestroyed())
+    .subscribe(([isOrganization, user, organization]) => {
+      this.isOrganization = isOrganization
+      this.user = user
+      this.organization = organization ?? undefined
+
+      if (isOrganization && !organization?.id) {
+        return
+      }
+
+      void this.getTenantSmtpSetting()
+    })
 
   ngOnInit(): void {
     this.translateService

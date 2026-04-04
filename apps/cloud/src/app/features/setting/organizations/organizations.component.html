@@ -1,8 +1,8 @@
 <div class="flex min-h-full w-full flex-col bg-components-panel-bg">
-  <div class="flex flex-col gap-6 px-8 py-6">
+  <div class="flex w-full flex-col gap-6 px-8 py-6">
     @if (showRegistrySection()) {
       <section
-        [ngClass]="isTenantScope() ? 'bg-transparent' : 'overflow-hidden rounded-[28px] bg-components-card-bg'"
+        [ngClass]="isTenantScope() ? 'w-full bg-transparent' : 'w-full overflow-hidden rounded-[28px] bg-components-card-bg'"
       >
       <div
         [ngClass]="
@@ -17,14 +17,14 @@
           @if (!isTenantScope() && selectedOrganization(); as organization) {
             <div class="pac-page-title text-text-primary">{{ organization.name }}</div>
           } @else if (isTenantScope()) {
-            <div class="pac-page-title text-text-primary">{{ registrySectionTitle() }}</div>
+            <div class="pac-page-title relative -left-6 -top-8 text-text-primary">{{ registrySectionTitle() }}</div>
           } @else {
             <div class="text-lg font-semibold text-text-primary">{{ registrySectionTitle() }}</div>
           }
         </div>
 
         @if (isTenantScope()) {
-          <div class="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div class="flex flex-col gap-3 sm:flex-row sm:items-center lg:relative lg:-top-8">
             <label
               class="flex min-w-[220px] items-center gap-2 rounded-xl border border-divider-regular bg-components-input-bg-normal px-3 py-2 text-sm text-text-secondary shadow-xs"
             >
@@ -79,7 +79,7 @@
         </div>
       } @else {
         @if (isTenantScope()) {
-          <div class="overflow-x-auto">
+          <div class="overflow-x-auto lg:-mt-8">
             <table class="w-full min-w-[900px] table-fixed text-left text-sm">
               <thead class="bg-background-default-subtle text-text-secondary">
                 <tr>
@@ -188,8 +188,8 @@
           </div>
         } @else {
           @if (selectedOrganization(); as organization) {
-            <div class="px-6 pb-5 pt-1">
-              <dl class="flex flex-wrap items-center gap-x-8 gap-y-5 xl:flex-nowrap xl:gap-x-10">
+            <div class="w-full px-6 pb-5 pt-1">
+              <dl class="flex w-full flex-wrap items-center gap-x-8 gap-y-5 xl:flex-nowrap xl:gap-x-10">
                 <div class="flex min-w-0 basis-full items-center gap-3 md:basis-[calc(50%-1rem)] xl:basis-0 xl:flex-1">
                   <dt class="shrink-0 text-sm text-text-tertiary">
                     {{ 'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Default' } }}:
@@ -258,9 +258,9 @@
     }
 
     @if (showDetailsSection()) {
-      <section class="bg-transparent">
+      <section class="w-full bg-transparent">
       @if (selectedOrganization()) {
-        <div [ngClass]="isTenantDetailView() ? 'pac-page-header px-0 pt-0' : ''">
+        <div class="w-full" [ngClass]="isTenantDetailView() ? 'pac-page-header px-0 pt-0' : ''">
           @if (isTenantDetailView()) {
             <div class="min-w-0 flex flex-col gap-4">
               <div class="min-w-0 flex flex-col">
@@ -284,7 +284,7 @@
 
           <nav
             z-tab-nav-bar
-            class="pac-tab-nav-bar max-w-full"
+            class="pac-tab-nav-bar w-full max-w-full"
             color="accent"
             alignTabs="start"
             stretchTabs="false"
@@ -294,6 +294,9 @@
           >
             <button z-tab-link type="button" [active]="selectedTab() === 'general'" (click)="selectedTab.set('general')">
               {{ 'PAC.Organization.TabGeneral' | translate: { Default: 'General' } }}
+            </button>
+            <button z-tab-link type="button" [active]="selectedTab() === 'members'" (click)="selectedTab.set('members')">
+              {{ 'PAC.KEY_WORDS.Members' | translate: { Default: 'Members' } }}
             </button>
             <button z-tab-link type="button" [active]="selectedTab() === 'controls'" (click)="selectedTab.set('controls')">
               {{ 'PAC.Organization.TabControls' | translate: { Default: 'Controls' } }}
@@ -310,44 +313,48 @@
         </div>
 
 
-        <z-tab-nav-panel #detailTabPanel class="pac-page-body">
-          <div [ngClass]="isTenantDetailView() ? 'px-0 pb-0 pt-6' : 'p-6'">
+        <z-tab-nav-panel #detailTabPanel class="pac-page-body flex w-full flex-col">
+          <div class="w-full min-w-0" [ngClass]="isTenantDetailView() ? 'px-0 pb-0 pt-6' : 'p-6'">
             @switch (selectedTab()) {
             @case ('general') {
-              <form [formGroup]="form" class="grid gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
-                <div class="grid gap-4 md:grid-cols-2">
-                  <label class="field-shell md:col-span-2">
-                    <span class="field-label">{{ 'PAC.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}</span>
-                    <input class="field-input" formControlName="name" />
+              <form [formGroup]="form" class="grid w-full min-w-0 gap-6 xl:grid-cols-[minmax(0,1.4fr)_minmax(320px,0.8fr)]">
+                <div class="grid gap-x-6 gap-y-7 md:grid-cols-2">
+                  <label class="form-field md:col-span-2">
+                    <span class="form-label">{{ 'PAC.KEY_WORDS.NAME' | translate: { Default: 'Name' } }}</span>
+                    <input z-input formControlName="name" />
                   </label>
 
-                  <label class="field-shell">
-                    <span class="field-label">{{ 'PAC.ORGANIZATIONS_PAGE.Organization.OfficialName' | translate: { Default: 'Official Name' } }}</span>
-                    <input class="field-input" formControlName="officialName" />
+                  <label class="form-field">
+                    <span class="form-label">{{ 'PAC.ORGANIZATIONS_PAGE.Organization.OfficialName' | translate: { Default: 'Official Name' } }}</span>
+                    <input z-input formControlName="officialName" />
                   </label>
 
-                  <label class="field-shell">
-                    <span class="field-label">{{ 'PAC.ORGANIZATIONS_PAGE.Organization.ProfileLink' | translate: { Default: 'Profile Link' } }}</span>
-                    <input class="field-input" formControlName="profile_link" />
+                  <label class="form-field">
+                    <span class="form-label">{{ 'PAC.ORGANIZATIONS_PAGE.Organization.ProfileLink' | translate: { Default: 'Profile Link' } }}</span>
+                    <input z-input formControlName="profile_link" />
                   </label>
 
-                  <label class="field-shell md:col-span-2">
-                    <span class="field-label">{{ 'PAC.ORGANIZATIONS_PAGE.Organization.Website' | translate: { Default: 'Website' } }}</span>
-                    <input class="field-input" formControlName="website" />
+                  <label class="form-field md:col-span-2">
+                    <span class="form-label">{{ 'PAC.ORGANIZATIONS_PAGE.Organization.Website' | translate: { Default: 'Website' } }}</span>
+                    <input z-input formControlName="website" />
                   </label>
 
-                  <label class="field-shell md:col-span-2">
-                    <span class="field-label">{{ 'PAC.ORGANIZATIONS_PAGE.Organization.ShortDescription' | translate: { Default: 'Short Description' } }}</span>
-                    <textarea class="field-textarea" formControlName="short_description"></textarea>
+                  <label class="form-field md:col-span-2">
+                    <span class="form-label">{{ 'PAC.ORGANIZATIONS_PAGE.Organization.ShortDescription' | translate: { Default: 'Short Description' } }}</span>
+                    <textarea z-input class="form-textarea" formControlName="short_description"></textarea>
                   </label>
                 </div>
 
                 <div class="flex flex-col gap-4">
-                  <div class="field-shell">
+                  <div class="info-panel">
                     <input #avatarInput type="file" class="hidden" accept="image/*" (change)="onAvatarSelected($event)" />
-                    <div class="field-label">{{ 'PAC.Organization.LogoLabel' | translate: { Default: 'Logo' } }}</div>
-                    <div class="flex items-center gap-4">
-                      <div class="group relative">
+                    <div class="info-title">{{ 'PAC.Organization.LogoLabel' | translate: { Default: 'Logo' } }}</div>
+                    @if (canEditSelectedOrganization()) {
+                      <button
+                        type="button"
+                        class="group relative block rounded-2xl border-0 bg-transparent p-0"
+                        (click)="avatarInput.click()"
+                      >
                         <pac-org-avatar
                           [organization]="selectedOrganization()!"
                           class="block h-20 w-20 overflow-hidden rounded-2xl border border-divider-regular bg-components-input-bg-normal"
@@ -357,26 +364,24 @@
                           <div class="absolute inset-0 flex items-center justify-center rounded-2xl bg-components-panel-bg/80 text-xs font-medium text-text-primary">
                             {{ 'PAC.KEY_WORDS.Uploading' | translate: { Default: 'Uploading' } }}
                           </div>
-                        } @else if (canEditSelectedOrganization()) {
-                          <button
-                            type="button"
-                            class="logo-edit-overlay"
-                            (click)="avatarInput.click()"
-                          >
+                        } @else {
+                          <div class="logo-edit-overlay" aria-hidden="true">
                             <i class="ri-image-edit-line text-base"></i>
-                            <span>{{ 'PAC.KEY_WORDS.EDIT' | translate: { Default: 'Edit' } }}</span>
-                          </button>
+                          </div>
                         }
+                      </button>
+                    } @else {
+                      <div class="relative">
+                        <pac-org-avatar
+                          [organization]="selectedOrganization()!"
+                          class="block h-20 w-20 overflow-hidden rounded-2xl border border-divider-regular bg-components-input-bg-normal"
+                        />
                       </div>
-
-                      <div class="min-w-0 text-sm text-text-tertiary">
-                        {{ 'PAC.Organization.LogoPreviewHint' | translate: { Default: 'Preview and maintain the current organization avatar.' } }}
-                      </div>
-                    </div>
+                    }
                   </div>
 
-                  <div class="field-shell">
-                    <div class="field-label">{{ 'PAC.Organization.RecordSummary' | translate: { Default: 'Record summary' } }}</div>
+                  <div class="info-panel">
+                    <div class="info-title">{{ 'PAC.Organization.RecordSummary' | translate: { Default: 'Record summary' } }}</div>
                     <dl class="space-y-3 text-sm">
                       <div class="flex items-center justify-between gap-4">
                         <dt class="text-text-tertiary">{{ 'PAC.KEY_WORDS.Status' | translate: { Default: 'Status' } }}</dt>
@@ -395,8 +400,8 @@
                     </dl>
                   </div>
 
-                  <div class="field-shell">
-                    <div class="field-label">{{ 'PAC.Organization.ScopeRules' | translate: { Default: 'Scope rules' } }}</div>
+                  <div class="info-panel">
+                    <div class="info-title">{{ 'PAC.Organization.ScopeRules' | translate: { Default: 'Scope rules' } }}</div>
                     <p class="text-sm text-text-tertiary">
                       @if (isTenantScope()) {
                         {{
@@ -449,115 +454,141 @@
               </form>
             }
 
+            @case ('members') {
+              <pac-organization-members
+                class="w-full"
+                [organizationId]="selectedOrganizationId()"
+                [canEdit]="canManageSelectedMembers()"
+              />
+            }
+
             @case ('controls') {
-              <form [formGroup]="form" class="grid gap-6 xl:grid-cols-2">
-                <div class="grid gap-4">
-                  <label class="field-shell">
-                    <span class="field-label">{{ 'PAC.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' } }}</span>
-                    <input class="field-input" formControlName="currency" />
+              <form [formGroup]="form" class="grid w-full min-w-0 gap-6 xl:grid-cols-2">
+                <div class="grid gap-7">
+                  <label class="form-field">
+                    <span class="form-label">{{ 'PAC.KEY_WORDS.CURRENCY' | translate: { Default: 'Currency' } }}</span>
+                    <input z-input formControlName="currency" />
                   </label>
 
-                  <label class="field-shell">
-                    <span class="field-label">{{ 'PAC.KEY_WORDS.TimeZone' | translate: { Default: 'Time Zone' } }}</span>
-                    <select class="field-input" formControlName="timeZone">
-                      <option value="">
-                        {{ 'PAC.ORGANIZATIONS_PAGE.Organization.SelectTimeZone' | translate: { Default: 'Select a time zone' } }}
-                      </option>
+                  <div class="form-field">
+                    <span class="form-label">{{ 'PAC.KEY_WORDS.TimeZone' | translate: { Default: 'Time Zone' } }}</span>
+                    <z-select
+                      formControlName="timeZone"
+                      class="w-full"
+                      [zPlaceholder]="'PAC.ORGANIZATIONS_PAGE.Organization.SelectTimeZone' | translate: { Default: 'Select a time zone' }"
+                    >
+                      <z-select-item [zValue]="noTimeZoneValue">
+                        {{ 'PAC.KEY_WORDS.NotSet' | translate: { Default: 'Not set' } }}
+                      </z-select-item>
                       @for (timezone of timezones; track timezone.value) {
-                        <option [value]="timezone.value">{{ timezone.name }}</option>
+                        <z-select-item [zValue]="timezone.value">{{ timezone.name }}</z-select-item>
                       }
-                    </select>
-                  </label>
+                    </z-select>
+                  </div>
 
-                  <label class="field-shell">
-                    <span class="field-label">
+                  <div class="form-field">
+                    <span class="form-label">
                       {{
                         'PAC.ORGANIZATIONS_PAGE.Organization.DefaultValueDateType'
                           | translate: { Default: 'Default Value Date Type' }
                       }}
                     </span>
-                    <select class="field-input" formControlName="defaultValueDateType">
-                      <option value="TODAY">{{ 'PAC.Organization.Today' | translate: { Default: 'Today' } }}</option>
-                      <option value="START_OF_MONTH">
+                    <z-select formControlName="defaultValueDateType" class="w-full">
+                      <z-select-item zValue="TODAY">
+                        {{ 'PAC.Organization.Today' | translate: { Default: 'Today' } }}
+                      </z-select-item>
+                      <z-select-item zValue="START_OF_MONTH">
                         {{ 'PAC.Organization.StartOfMonth' | translate: { Default: 'Start of month' } }}
-                      </option>
-                      <option value="END_OF_MONTH">
+                      </z-select-item>
+                      <z-select-item zValue="END_OF_MONTH">
                         {{ 'PAC.Organization.EndOfMonth' | translate: { Default: 'End of month' } }}
-                      </option>
-                    </select>
-                  </label>
+                      </z-select-item>
+                    </z-select>
+                  </div>
 
-                  <label class="field-shell">
-                    <span class="field-label">
+                  <label class="form-field">
+                    <span class="form-label">
                       {{
                         'PAC.ORGANIZATIONS_PAGE.Organization.InviteExpiryPeriod'
                           | translate: { Default: 'Invite Expiry Period (in Days)' }
                       }}
                     </span>
-                    <input class="field-input" type="number" min="1" formControlName="inviteExpiryPeriod" />
+                    <input z-input type="number" min="1" formControlName="inviteExpiryPeriod" />
                   </label>
                 </div>
 
-                <div class="grid gap-4">
-                  <div class="field-shell space-y-4">
-                    <div class="field-label">{{ 'PAC.Organization.Collaboration' | translate: { Default: 'Collaboration' } }}</div>
-
-                    <label class="toggle-row">
-                      <div>
-                        <div class="font-medium text-text-primary">
-                          {{ 'PAC.ORGANIZATIONS_PAGE.Organization.InvitesAllowed' | translate: { Default: 'Invites Allowed' } }}
+                <div class="grid gap-7">
+                  <div class="toggle-group">
+                    <div class="info-title">{{ 'PAC.Organization.Collaboration' | translate: { Default: 'Collaboration' } }}</div>
+                    <div class="toggle-group-panel">
+                      <div class="toggle-setting">
+                        <div class="min-w-0">
+                          <div class="text-base font-semibold text-text-primary">
+                            {{ 'PAC.ORGANIZATIONS_PAGE.Organization.InvitesAllowed' | translate: { Default: 'Invites Allowed' } }}
+                          </div>
+                          <div class="mt-1 text-sm text-text-tertiary">
+                            {{
+                              'PAC.Organization.InvitesAllowedHelp'
+                                | translate
+                                  : { Default: 'Allow this organization to accept and manage invitation links.' }
+                            }}
+                          </div>
                         </div>
-                        <div class="text-sm text-text-tertiary">
-                          {{
-                            'PAC.Organization.InvitesAllowedHelp'
-                              | translate
-                                : { Default: 'Allow this organization to accept and manage invitation links.' }
-                          }}
-                        </div>
+                        <z-switch formControlName="invitesAllowed" class="shrink-0" zSize="sm">
+                          <span class="sr-only">
+                            {{ 'PAC.ORGANIZATIONS_PAGE.Organization.InvitesAllowed' | translate: { Default: 'Invites Allowed' } }}
+                          </span>
+                        </z-switch>
                       </div>
-                      <input type="checkbox" formControlName="invitesAllowed" />
-                    </label>
+                    </div>
                   </div>
 
                   @if (isTenantScope()) {
-                    <div class="field-shell space-y-4">
-                      <div class="flex items-center justify-between gap-4">
-                        <div class="field-label !mb-0">{{ 'PAC.Organization.Governance' | translate: { Default: 'Governance' } }}</div>
+                    <div class="toggle-group">
+                      <div class="info-title">{{ 'PAC.Organization.Governance' | translate: { Default: 'Governance' } }}</div>
+                      <div class="toggle-group-panel">
+                        <div class="toggle-setting">
+                          <div class="min-w-0">
+                            <div class="text-base font-semibold text-text-primary">
+                              {{ 'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Set as default organization' } }}
+                            </div>
+                            <div class="mt-1 text-sm text-text-tertiary">
+                              {{
+                                'PAC.Organization.DefaultHelp'
+                                  | translate
+                                    : {
+                                        Default: 'Tenant scope decides which organization becomes the default entry point for new sessions.'
+                                      }
+                              }}
+                            </div>
+                          </div>
+                          <z-switch formControlName="isDefault" class="shrink-0" zSize="sm">
+                            <span class="sr-only">
+                              {{ 'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Set as default organization' } }}
+                            </span>
+                          </z-switch>
+                        </div>
+
+                        <div class="toggle-setting">
+                          <div class="min-w-0">
+                            <div class="text-base font-semibold text-text-primary">
+                              {{ 'PAC.KEY_WORDS.IsActive' | translate: { Default: 'Enable organization' } }}
+                            </div>
+                            <div class="mt-1 text-sm text-text-tertiary">
+                              {{
+                                'PAC.Organization.ActiveHelp'
+                                  | translate
+                                    : { Default: 'Disable access to freeze the organization without deleting its record.' }
+                              }}
+                            </div>
+                          </div>
+                          <z-switch formControlName="isActive" class="shrink-0" zSize="sm">
+                            <span class="sr-only">
+                              {{ 'PAC.KEY_WORDS.IsActive' | translate: { Default: 'Enable organization' } }}
+                            </span>
+                          </z-switch>
+                        </div>
                       </div>
-
-                      <label class="toggle-row">
-                        <div>
-                          <div class="font-medium text-text-primary">
-                            {{ 'PAC.KEY_WORDS.IsDefault' | translate: { Default: 'Set as default organization' } }}
-                          </div>
-                          <div class="text-sm text-text-tertiary">
-                            {{
-                              'PAC.Organization.DefaultHelp'
-                                | translate
-                                  : {
-                                      Default: 'Tenant scope decides which organization becomes the default entry point for new sessions.'
-                                    }
-                            }}
-                          </div>
-                        </div>
-                        <input type="checkbox" formControlName="isDefault" />
-                      </label>
-
-                      <label class="toggle-row">
-                        <div>
-                          <div class="font-medium text-text-primary">
-                            {{ 'PAC.KEY_WORDS.IsActive' | translate: { Default: 'Enable organization' } }}
-                          </div>
-                          <div class="text-sm text-text-tertiary">
-                            {{
-                              'PAC.Organization.ActiveHelp'
-                                | translate
-                                  : { Default: 'Disable access to freeze the organization without deleting its record.' }
-                            }}
-                          </div>
-                        </div>
-                        <input type="checkbox" formControlName="isActive" />
-                      </label>
                     </div>
                   }
                 </div>
@@ -592,21 +623,18 @@
 
             @case ('tags') {
               @if (!isTenantScope()) {
-                <div class="grid gap-6">
-                  <div class="field-shell">
-                    <div class="field-label">{{ 'PAC.KEY_WORDS.Tags' | translate: { Default: 'Tags' } }}</div>
-                    <tag-maintain class="w-full" [readonly]="true"></tag-maintain>
-                  </div>
+                <div class="grid w-full min-w-0 gap-6">
+                  <tag-maintain class="w-full min-w-0" [readonly]="true"></tag-maintain>
                 </div>
               }
             }
 
             @case ('demo') {
               @if (!isTenantScope()) {
-                <div class="grid gap-6">
-                  <div class="field-shell space-y-5">
-                    <div>
-                      <div class="field-label">{{ 'PAC.ORGANIZATIONS_PAGE.Organization.DEMO' | translate: { Default: 'Demo' } }}</div>
+                <div class="grid w-full min-w-0 gap-6">
+                  <div class="space-y-5">
+                    <div class="space-y-2">
+                      <div class="info-title !mb-0">{{ 'PAC.ORGANIZATIONS_PAGE.Organization.DEMO' | translate: { Default: 'Demo' } }}</div>
                       <p class="text-sm text-text-tertiary">
                         {{
                           'PAC.ORGANIZATIONS_PAGE.Organization.DataNetworkDescription'
@@ -619,46 +647,41 @@
                       </p>
                     </div>
 
-                    <z-radio-group [formControl]="source">
-                      <div class="grid gap-3 md:grid-cols-3">
-                        <label class="option-card">
-                          <z-radio [value]="organizationDemoNetworkEnum.github"></z-radio>
-                          <div>
-                            <div class="font-medium text-text-primary">GitHub</div>
-                            <div class="text-sm text-text-tertiary">
-                              {{ 'PAC.Organization.GitHubSourceHelp' | translate: { Default: 'Use the maintained GitHub demo source.' } }}
-                            </div>
-                          </div>
-                        </label>
+                    <z-radio-group [formControl]="source" class="grid w-full gap-3 xl:grid-cols-3">
+                      <z-radio class="demo-source-option" [value]="organizationDemoNetworkEnum.github">
+                        <span class="demo-source-copy">
+                          <span class="demo-source-title">GitHub</span>
+                          <span class="demo-source-description">
+                            {{ 'PAC.Organization.GitHubSourceHelp' | translate: { Default: 'Use the maintained GitHub demo source.' } }}
+                          </span>
+                        </span>
+                      </z-radio>
 
-                        <label class="option-card">
-                          <z-radio [value]="organizationDemoNetworkEnum.aliyun"></z-radio>
-                          <div>
-                            <div class="font-medium text-text-primary">Aliyun OSS</div>
-                            <div class="text-sm text-text-tertiary">
-                              {{ 'PAC.Organization.AliyunSourceHelp' | translate: { Default: 'Use the mirrored Aliyun OSS source.' } }}
-                            </div>
-                          </div>
-                        </label>
+                      <z-radio class="demo-source-option" [value]="organizationDemoNetworkEnum.aliyun">
+                        <span class="demo-source-copy">
+                          <span class="demo-source-title">Aliyun OSS</span>
+                          <span class="demo-source-description">
+                            {{ 'PAC.Organization.AliyunSourceHelp' | translate: { Default: 'Use the mirrored Aliyun OSS source.' } }}
+                          </span>
+                        </span>
+                      </z-radio>
 
-                        <label class="option-card">
-                          <z-radio [value]="null"></z-radio>
-                          <div>
-                            <div class="font-medium text-text-primary">
-                              {{ 'PAC.KEY_WORDS.Custom' | translate: { Default: 'Custom' } }}
-                            </div>
-                            <div class="text-sm text-text-tertiary">
-                              {{ 'PAC.Organization.CustomSourceHelp' | translate: { Default: 'Provide your own file URL.' } }}
-                            </div>
-                          </div>
-                        </label>
-                      </div>
+                      <z-radio class="demo-source-option" [value]="null">
+                        <span class="demo-source-copy">
+                          <span class="demo-source-title">
+                            {{ 'PAC.KEY_WORDS.Custom' | translate: { Default: 'Custom' } }}
+                          </span>
+                          <span class="demo-source-description">
+                            {{ 'PAC.Organization.CustomSourceHelp' | translate: { Default: 'Provide your own file URL.' } }}
+                          </span>
+                        </span>
+                      </z-radio>
                     </z-radio-group>
 
                     @if (source.value === null) {
-                      <label class="field-shell !p-0 border-0 bg-transparent">
-                        <span class="field-label">{{ 'PAC.ORGANIZATIONS_PAGE.Organization.FileUrl' | translate: { Default: 'File URL' } }}</span>
-                        <input class="field-input" [formControl]="fileUrl" />
+                      <label class="form-field max-w-2xl">
+                        <span class="form-label">{{ 'PAC.ORGANIZATIONS_PAGE.Organization.FileUrl' | translate: { Default: 'File URL' } }}</span>
+                        <input z-input class="form-input" [formControl]="fileUrl" />
                       </label>
                     }
 

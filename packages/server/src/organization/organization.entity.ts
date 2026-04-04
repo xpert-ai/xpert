@@ -383,7 +383,11 @@ export class Organization extends TenantBaseEntity implements IOrganization {
 
 	@ApiProperty({ type: () => String, enum: LanguagesEnum })
 	@IsEnum(LanguagesEnum)
-	@Column({ nullable: true })
+	@Column({
+		type: 'enum',
+		enum: LanguagesEnum,
+		nullable: true
+	})
 	preferredLanguage?: LanguagesEnum
 
 	/*

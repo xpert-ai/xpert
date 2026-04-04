@@ -8,11 +8,6 @@ export default [
     component: PACFeaturesComponent,
     children: [
       {
-        path: '',
-        redirectTo: 'tenant',
-        pathMatch: 'full'
-      },
-      {
         path: 'tenant',
         component: FeatureToggleComponent,
         data: {

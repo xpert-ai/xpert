@@ -122,9 +122,14 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       path: 'users',
       label: 'User',
       icon: 'people',
-      scopeContext: 'tenant-only',
+      scopeContext: 'dual-scope',
       data: {
-        permissionKeys: [PermissionsEnum.ORG_USERS_EDIT],
+        permissionKeys: [
+          PermissionsEnum.ALL_ORG_VIEW,
+          PermissionsEnum.ALL_ORG_EDIT,
+          PermissionsEnum.ORG_USERS_VIEW,
+          PermissionsEnum.ORG_USERS_EDIT
+        ],
         featureKey: FeatureEnum.FEATURE_USER
       }
     },
@@ -134,7 +139,7 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       icon: 'group',
       scopeContext: 'organization-only',
       data: {
-        permissionKeys: [PermissionsEnum.ORG_USERS_EDIT],
+        permissionKeys: [PermissionsEnum.ORG_USERS_VIEW, PermissionsEnum.ORG_USERS_EDIT],
         featureKey: FeatureEnum.FEATURE_USER
       }
     },
@@ -185,7 +190,12 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       subtitleKey: isTenantScope ? 'PAC.Organization.MenuTenantSubtitle' : 'PAC.Organization.MenuOrganizationSubtitle',
       subtitleDefault: isTenantScope ? 'Manage all organizations' : 'Review the current organization',
       data: {
-        permissionKeys: [PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.CHANGE_SELECTED_ORGANIZATION]
+        permissionKeys: [
+          PermissionsEnum.ALL_ORG_VIEW,
+          PermissionsEnum.ALL_ORG_EDIT,
+          PermissionsEnum.ORG_USERS_VIEW,
+          PermissionsEnum.ORG_USERS_EDIT
+        ]
       }
     },
     {

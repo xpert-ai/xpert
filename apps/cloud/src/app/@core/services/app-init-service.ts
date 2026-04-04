@@ -9,6 +9,7 @@ import { firstValueFrom } from 'rxjs'
 import { AuthStrategy } from '../../@core/auth/auth-strategy.service'
 import { Store } from '../../@core/services/store.service'
 import { AbilityActions, RolesEnum } from '../types'
+import { ScopeService } from './scope.service'
 import { TenantService } from './tenant.service'
 
 @Injectable({ providedIn: 'root' })
@@ -21,6 +22,7 @@ export class AppInitService {
     private readonly authStrategy: AuthStrategy,
     private readonly router: Router,
     private readonly store: Store,
+    private readonly scopeService: ScopeService,
     private readonly ngxPermissionsService: NgxPermissionsService,
     @Inject(Ability) private readonly ability: Ability,
   ) {}
@@ -32,6 +34,10 @@ export class AppInitService {
 
         this.user = await this.usersService.getMe([
           'employee',
+          'organizations',
+          'organizations.organization',
+          'organizations.organization.featureOrganizations',
+          'organizations.organization.featureOrganizations.feature',
           'role',
           'role.rolePermissions',
           'tenant',
@@ -47,6 +53,18 @@ export class AppInitService {
         }
 
         this.store.user = this.user
+
+        const memberships = (this.user.organizations ?? []).filter(
+          (membership) =>
+            membership.isActive !== false &&
+            !!membership.organization?.id &&
+            membership.organization.isActive !== false
+        )
+        const organizations = memberships.map(({ organization }) => organization)
+        const preferredOrganizationId =
+          memberships.find((membership) => membership.isDefault)?.organizationId ?? null
+
+        this.scopeService.initializeEntryScope(organizations, preferredOrganizationId)
 
         //tenant enabled/disabled features for relatives organizations
         const { tenant } = this.user

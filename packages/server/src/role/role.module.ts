@@ -8,11 +8,12 @@ import { CommandHandlers } from './commands/handlers'
 import { RoleController } from './role.controller'
 import { Role } from './role.entity'
 import { RoleService } from './role.service'
+import { Invite, User } from '../core/entities/internal'
 
 @Module({
 	imports: [
 		RouterModule.register([{ path: '/roles', module: RoleModule }]),
-		TypeOrmModule.forFeature([Role]),
+		TypeOrmModule.forFeature([Role, User, Invite]),
 		forwardRef(() => TenantModule),
 		forwardRef(() => UserModule),
 		CqrsModule,

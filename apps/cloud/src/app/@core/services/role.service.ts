@@ -27,6 +27,10 @@ export class RoleService {
     })
   }
 
+  update(id: string, role: Partial<IRole>): Observable<IRole> {
+    return this.http.put<IRole>(`${API_PREFIX}/roles/${id}`, role)
+  }
+
   delete(role: IRole): Observable<IRole> {
     return this.http.delete<IRole>(`${API_PREFIX}/roles/${role.id}`)
   }

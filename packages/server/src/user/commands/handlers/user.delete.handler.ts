@@ -1,22 +1,14 @@
-import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ConfigService } from '@metad/server-config';
-import { UserDeleteCommand } from './../user.delete.command';
-import { UserService } from './../../user.service';
+import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
+import { UserDeleteCommand } from './../user.delete.command'
+import { UserService } from './../../user.service'
 
 @CommandHandler(UserDeleteCommand)
 export class UserDeleteHandler
 	implements ICommandHandler<UserDeleteCommand> {
-
-	constructor(
-		private readonly userService: UserService,
-		private readonly configService: ConfigService
-	) {}
+	constructor(private readonly userService: UserService) {}
 
 	public async execute(command: UserDeleteCommand): Promise<any> {
-		const { userId } = command;
-		// if (this.configService.get('demo') === true) {
-        //     throw new ForbiddenException();
-        // }
-		return await this.userService.softDelete(userId)
+		const { userId } = command
+		return this.userService.deleteWithGuards(userId)
 	}
 }

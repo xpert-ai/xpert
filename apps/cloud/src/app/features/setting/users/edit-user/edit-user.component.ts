@@ -13,6 +13,7 @@ import { of } from 'rxjs'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
 import { getErrorMessage, injectToastr, RolesEnum, routeAnimations } from '../../../../@core'
 import { PACUserOrganizationsComponent } from '../organizations/organizations.component'
+import { PACUserGroupsComponent } from '../user-groups/user-groups.component'
 import { UserBasicComponent } from '../user-basic/user-basic.component'
 import { PACUsersComponent } from '../users.component'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
@@ -30,8 +31,9 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     UserBasicComponent,
     UserChangePasswordFormComponent,
-    PACUserOrganizationsComponent
-]
+    PACUserOrganizationsComponent,
+    PACUserGroupsComponent
+  ]
 })
 export class PACEditUserComponent implements OnDestroy {
   RolesEnum = RolesEnum

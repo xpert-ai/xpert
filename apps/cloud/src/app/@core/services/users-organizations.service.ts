@@ -60,6 +60,10 @@ export class UsersOrganizationsService {
     return this.http.delete<IUserOrganization>(`${API_PREFIX}/user-organization/${id}`)
   }
 
+  update(id: string, updateInput: Partial<IUserOrganization>) {
+    return this.http.put<IUserOrganization>(`${API_PREFIX}/user-organization/${id}`, updateInput)
+  }
+
   create(createInput: IUserOrganizationCreateInput): Observable<IUserOrganization> {
     return this.http.post<IUserOrganization>(`${API_PREFIX}/user-organization`, createInput)
   }

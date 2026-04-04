@@ -1,0 +1,133 @@
+<div class="grid gap-4">
+  <div class="flex flex-wrap items-center justify-between gap-3">
+    <div>
+      <div class="text-base font-semibold text-text-primary">
+        {{ 'PAC.KEY_WORDS.Members' | translate: { Default: 'Members' } }}
+      </div>
+      <div class="text-sm text-text-tertiary">
+        {{
+          'PAC.Organization.MembersHint'
+            | translate
+              : {
+                  Default:
+                    'Review current members, update organization relationship flags, and add existing tenant users to this organization.'
+                }
+        }}
+      </div>
+    </div>
+
+    @if (canEdit) {
+      <div ngmButtonGroup>
+        <button z-button zType="default" color="primary" displayDensity="cosy" (click)="openMemberSelect()">
+          <z-icon zType="add"></z-icon>
+          {{ 'PAC.ACTIONS.ADD' | translate: { Default: 'Add' } }}
+        </button>
+      </div>
+    }
+  </div>
+
+  <ngm-table
+    class="overflow-hidden rounded-lg border border-divider-deep"
+    paging
+    [data]="memberships()"
+    [columns]="[
+      {
+        name: 'user',
+        caption: 'PAC.KEY_WORDS.User' | translate: { Default: 'User' },
+        cellTemplate: userTempl
+      },
+      {
+        name: 'user.email',
+        caption: 'PAC.KEY_WORDS.Email' | translate: { Default: 'Email' }
+      },
+      {
+        name: 'user.role.name',
+        caption: 'PAC.KEY_WORDS.Role' | translate: { Default: 'Role' },
+        cellTemplate: roleTempl
+      },
+      {
+        name: 'isDefault',
+        caption: 'PAC.KEY_WORDS.Default' | translate: { Default: 'Default' },
+        cellTemplate: defaultTempl
+      },
+      {
+        name: 'isActive',
+        caption: 'PAC.KEY_WORDS.Active' | translate: { Default: 'Active' },
+        cellTemplate: activeTempl
+      },
+      {
+        name: 'action',
+        caption: 'PAC.KEY_WORDS.ACTION' | translate: { Default: 'Action' },
+        cellTemplate: actionTempl,
+        stickyEnd: true
+      }
+    ]"
+  />
+
+  @if (!memberships().length) {
+    <div class="rounded-lg border border-dashed border-divider-deep px-4 py-8 text-center text-sm text-text-tertiary">
+      {{
+        'PAC.Organization.NoMembers'
+          | translate
+            : {
+                Default:
+                  'No members have been added to this organization yet. Use Add to attach an existing tenant user.'
+              }
+      }}
+    </div>
+  }
+</div>
+
+<ng-template #userTempl let-user="user">
+  <pac-user-profile-inline [user]="user"></pac-user-profile-inline>
+</ng-template>
+
+<ng-template #roleTempl let-id="id">
+  @if (membershipById(id); as membership) {
+    {{ membership.user?.role?.name || ('PAC.USERS_PAGE.NoRole' | translate: { Default: 'No Role' }) }}
+  }
+</ng-template>
+
+<ng-template #defaultTempl let-isDefault="isDefault" let-id="id">
+  @let membership = membershipById(id);
+  @if (membership) {
+    <z-switch
+      [ngModel]="isDefault"
+      [disabled]="!canEdit || membership.isDefault"
+      zSize="sm"
+      (ngModelChange)="updateDefaultMembership(membership, $event)"
+    />
+  }
+</ng-template>
+
+<ng-template #activeTempl let-isActive="isActive" let-id="id">
+  @let membership = membershipById(id);
+  @if (membership) {
+    <z-switch
+      [ngModel]="isActive"
+      [disabled]="!canEdit || canDeactivateMembership(membership)"
+      zSize="sm"
+      (ngModelChange)="updateMembershipActiveState(membership, $event)"
+    />
+  }
+</ng-template>
+
+<ng-template #actionTempl let-id="id">
+  @let membership = membershipById(id);
+  @if (membership && canEdit && canRemoveMembership(membership)) {
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      ngmAppearance="danger"
+      displayDensity="cosy"
+      class="text-text-quaternary"
+      (click)="removeMember(membership)"
+    >
+      <div class="flex items-center justify-center">
+        <z-icon zType="delete"></z-icon>
+      </div>
+    </button>
+  }
+</ng-template>

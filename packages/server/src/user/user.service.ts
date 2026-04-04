@@ -1,4 +1,4 @@
-import { ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions } from 'typeorm'
 import bcrypt from 'bcryptjs'
@@ -13,6 +13,14 @@ import { UserPublicDTO } from './dto'
 
 const REQUEST_CONTEXT_USER_RELATIONS = ['role', 'role.rolePermissions', 'employee'] as const
 
+function normalizeEmail(email?: string | null) {
+	return email?.trim().toLowerCase() || null
+}
+
+function normalizeUsername(username?: string | null) {
+	return username?.trim().toLowerCase() || null
+}
+
 @Injectable()
 export class UserService extends TenantAwareCrudService<User> {
 	constructor(
@@ -25,7 +33,11 @@ export class UserService extends TenantAwareCrudService<User> {
 	}
 
 	async getUserByEmail(email: string): Promise<User> {
-		const user = await this.repository.createQueryBuilder('user').where('user.email = :email', { email }).getOne()
+		const normalizedEmail = normalizeEmail(email)
+		const user = await this.repository
+			.createQueryBuilder('user')
+			.where('user.email = :email', { email: normalizedEmail })
+			.getOne()
 		return user
 	}
 
@@ -37,8 +49,11 @@ export class UserService extends TenantAwareCrudService<User> {
 
 	async getIfExistsUser(user: IUser): Promise<IUser> {
 		let _user: IUser = null
-		if (user.email) {
-			const userExists = await this.findOneOrFailByOptions({ where: { email: user.email } })
+		const normalizedEmail = normalizeEmail(user.email)
+		const normalizedUsername = normalizeUsername(user.username)
+
+		if (normalizedEmail) {
+			const userExists = await this.findOneOrFailByOptions({ where: { email: normalizedEmail } })
 			if (userExists.success) {
 				_user = userExists.record
 			}
@@ -56,8 +71,8 @@ export class UserService extends TenantAwareCrudService<User> {
 				_user = userExists.record
 			}
 		}
-		if (!_user && user.username) {
-			const userExists = await this.findOneOrFailByOptions({ where: { username: user.username } })
+		if (!_user && normalizedUsername) {
+			const userExists = await this.findOneOrFailByOptions({ where: { username: normalizedUsername } })
 			if (userExists.success) {
 				_user = userExists.record
 			}
@@ -67,9 +82,10 @@ export class UserService extends TenantAwareCrudService<User> {
 	}
 
 	async checkIfExistsEmail(email: string): Promise<boolean> {
+		const normalizedEmail = normalizeEmail(email)
 		const count = await this.repository
 			.createQueryBuilder('user')
-			.where('user.email = :email', { email })
+			.where('user.email = :email', { email: normalizedEmail })
 			.getCount()
 		return count > 0
 	}
@@ -192,22 +208,51 @@ export class UserService extends TenantAwareCrudService<User> {
 	}
 
 	async resetPassword(id: string, hash: string, password: string) {
-		if (RequestContext.currentUserId() !== id) {
-			throw new ForbiddenException()
-		}
-
 		const user = await this.findOne(id, { relations: ['role'] })
 		if (!user) {
 			throw new NotFoundException(`The user was not found`)
 		}
 
-		if (user.hash && !(await bcrypt.compare(hash, user.hash))) {
-			throw new ForbiddenException(`Current password not match`)
+		const isSelf = RequestContext.currentUserId() === id
+		const canManageUsers = RequestContext.hasAnyPermission([
+			PermissionsEnum.ALL_ORG_EDIT,
+			PermissionsEnum.SUPER_ADMIN_EDIT
+		])
+
+		if (!isSelf && !canManageUsers) {
+			throw new ForbiddenException()
+		}
+
+		if (isSelf) {
+			if (!hash || (user.hash && !(await bcrypt.compare(hash, user.hash)))) {
+				throw new ForbiddenException(`Current password not match`)
+			}
 		}
 
 		user.hash = await this.getPasswordHash(password)
 
 		return await this.repository.save(user)
+	}
+
+	async isActiveMemberOfOrganization(userId: string, organizationId: string) {
+		const tenantId = RequestContext.currentTenantId()
+
+		const total = await this.repository
+			.createQueryBuilder('user')
+			.innerJoin(
+				'user.organizations',
+				'userOrganization',
+				'userOrganization.organizationId = :organizationId AND userOrganization.isActive = :isActive',
+				{
+					organizationId,
+					isActive: true
+				}
+			)
+			.where('user.id = :userId', { userId })
+			.andWhere('user.tenantId = :tenantId', { tenantId })
+			.getCount()
+
+		return total > 0
 	}
 
 	/**
@@ -220,67 +265,89 @@ export class UserService extends TenantAwareCrudService<User> {
 	 * @throws ForbiddenException if the user lacks the required permissions or attempts unauthorized updates.
 	 */
 	async updateProfile(id: ID | number, entity: User): Promise<IUser> {
-		// Retrieve the current user's role ID from the RequestContext
 		const currentRoleId = RequestContext.currentRoleId()
 		const currentUserId = RequestContext.currentUserId()
+		const isSelf = currentUserId === id
+		const canManageUsers = RequestContext.hasAnyPermission([
+			PermissionsEnum.ALL_ORG_EDIT,
+			PermissionsEnum.SUPER_ADMIN_EDIT
+		])
 
-		// Ensure the user has the appropriate permissions
-		if (
-			RequestContext.hasPermission(PermissionsEnum.PROFILE_EDIT) &&
-			!RequestContext.hasPermission(PermissionsEnum.ORG_USERS_EDIT)
-		) {
-			// Users can only edit their own profile
-			if (currentUserId !== id) {
+		if (!isSelf && !canManageUsers) {
+			throw new ForbiddenException()
+		}
+
+		let user: IUser | null = null
+
+		if (typeof id == 'string') {
+			user = await this.findOneByIdString(id, { relations: { role: true } })
+		}
+
+		if (!user) {
+			throw new NotFoundException(`The user '${id}' was not found`)
+		}
+
+		if (user.role?.name === RolesEnum.SUPER_ADMIN) {
+			if (!RequestContext.hasPermission(PermissionsEnum.SUPER_ADMIN_EDIT)) {
 				throw new ForbiddenException()
 			}
 		}
 
-		let user: IUser
-
-		try {
-			// Fetch the user by ID if the ID is a string
-			if (typeof id == 'string') {
-				user = await this.findOneByIdString(id, { relations: { role: true } })
-			}
-
-			// Restrict updates to Super Admin role without appropriate permission
-			if (user.role.name === RolesEnum.SUPER_ADMIN) {
-				if (!RequestContext.hasPermission(PermissionsEnum.SUPER_ADMIN_EDIT)) {
-					throw new ForbiddenException()
-				}
-			}
-
-			// Restrict updates to Super Admin role without appropriate permission
-			if (user.role.name === RolesEnum.SUPER_ADMIN) {
-				if (!RequestContext.hasPermission(PermissionsEnum.SUPER_ADMIN_EDIT)) {
-					throw new ForbiddenException()
-				}
-			}
-
-			// Restrict users from updating their own role
-
-			if (currentUserId === id) {
-				if (entity.role && entity.role.id !== currentRoleId) {
-					throw new ForbiddenException()
-				}
-			}
-
-			// Update password hash if provided
-			if (entity['hash']) {
-				entity['hash'] = await this.getPasswordHash(entity['hash'])
-			}
-
-			// Save the updated user entity
-			await this.save(entity)
-
-			// Return the updated user
-			return await this.findOneByWhereOptions({
-				id: id as string,
-				tenantId: RequestContext.currentTenantId()
-			})
-		} catch (error) {
+		if (isSelf && entity.role && entity.role.id !== currentRoleId) {
 			throw new ForbiddenException()
 		}
+
+		if (entity['hash']) {
+			entity['hash'] = await this.getPasswordHash(entity['hash'])
+		}
+
+		await this.save(entity)
+
+		return await this.findOneByWhereOptions({
+			id: id as string,
+			tenantId: RequestContext.currentTenantId()
+		})
+	}
+
+	async deleteWithGuards(id: string) {
+		const currentUserId = RequestContext.currentUserId()
+		if (currentUserId === id) {
+			throw new BadRequestException('You cannot delete your own user account.')
+		}
+
+		const tenantId = RequestContext.currentTenantId()
+		const user = await this.findOneByIdWithinTenant(id, tenantId, {
+			relations: ['role']
+		})
+
+		if (!user.role?.name) {
+			throw new BadRequestException('The user role is required before deleting the user.')
+		}
+
+		if (
+			user.role.name === RolesEnum.SUPER_ADMIN &&
+			!RequestContext.hasPermission(PermissionsEnum.SUPER_ADMIN_EDIT)
+		) {
+			throw new ForbiddenException()
+		}
+
+		if ([RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN].includes(user.role.name as RolesEnum)) {
+			const remainingAdministrators = await this.repository
+				.createQueryBuilder('user')
+				.innerJoin('user.role', 'role')
+				.where('user.tenantId = :tenantId', { tenantId })
+				.andWhere('user.id != :userId', { userId: user.id })
+				.andWhere('role.name IN (:...roleNames)', {
+					roleNames: [RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN]
+				})
+				.getCount()
+
+			if (!remainingAdministrators) {
+				throw new BadRequestException('Cannot delete the last tenant administrator.')
+			}
+		}
+
+		return this.softDelete(id)
 	}
 
 	async getAdminUsers(tenantId: string): Promise<User[]> {
@@ -334,15 +401,44 @@ export class UserService extends TenantAwareCrudService<User> {
 		this.emailVerificationRepository.delete(id)
 	}
 
-	async search(text: string, organizationId: string) {
+	async search(text: string, organizationId?: string, membership?: string) {
 		const tenantId = RequestContext.currentTenantId()
 		const userId = RequestContext.currentUserId()
-		const condition = Like(`%${text.split('%').join('')}%`)
+		const sanitizedText = text?.trim().split('%').join('') ?? ''
+		const condition = Like(`%${sanitizedText}%`)
 
 		if (RequestContext.hasRole(RolesEnum.TRIAL)) {
 			return this.findAll({ where: { id: userId } }).then((result) => ({
 				...result,
 				items: result.items.map((item) => new UserPublicDTO(item))
+			}))
+		} else if (organizationId && membership === 'non-members') {
+			const query = this.repository
+				.createQueryBuilder('user')
+				.leftJoin(
+					'user.organizations',
+					'organizationMembership',
+					'organizationMembership.organizationId = :organizationId',
+					{
+						organizationId
+					}
+				)
+				.where(
+					new Brackets((qb: WhereExpressionBuilder) => {
+						qb.orWhere('user.email LIKE :searchText')
+						qb.orWhere('user.username LIKE :searchText')
+						qb.orWhere('user.firstName LIKE :searchText')
+						qb.orWhere('user.lastName LIKE :searchText')
+					}),
+					{ searchText: `%${sanitizedText}%` }
+				)
+				.andWhere('user.tenantId = :tenantId', { tenantId })
+				.andWhere('organizationMembership.id IS NULL')
+				.take(20)
+
+			return query.getManyAndCount().then(([items, total]) => ({
+				total,
+				items: items.map((item) => new UserPublicDTO(item))
 			}))
 		} else if (organizationId) {
 			const query = this.repository

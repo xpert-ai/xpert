@@ -73,7 +73,7 @@ export class BusinessAreaUser
 	businessAreaId: string
 
 	@IsNotEmpty()
-	@Column()
+	@Column({ type: 'int', default: BusinessAreaRole.Viewer })
 	role: BusinessAreaRole
 
 	@Column({type: 'json', array: true, nullable: true })

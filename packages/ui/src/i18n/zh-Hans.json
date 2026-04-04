@@ -19,5 +19,8 @@
     "delete": "确认删除",
     "confirm": "确认",
     "cancel": "取消"
+  },
+  "select": {
+    "moreItemsSelected_other": "还有 {{count}} 项已选择"
   }
 }

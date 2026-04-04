@@ -189,6 +189,10 @@ export class ZardComboboxPanelTemplateDirective {
             z-input
             role="combobox"
             class="w-full pr-10"
+            autocomplete="off"
+            autocapitalize="none"
+            autocorrect="off"
+            spellcheck="false"
             [disabled]="isDisabled()"
             [placeholder]="placeholder()"
             [value]="inputValue()"

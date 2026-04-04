@@ -9,8 +9,7 @@ import { NgmSearchComponent, NgmHighlightDirective } from '@metad/ocap-angular/c
 import { debouncedSignal } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqBy } from 'lodash-es'
-import { filter, map, switchMap, tap } from 'rxjs'
-import { IOrganization, RequestScopeLevel, ScopeService, Store, UsersOrganizationsService } from '../../../@core'
+import { IOrganization, RequestScopeLevel, ScopeService, Store } from '../../../@core'
 import { OrgAvatarComponent } from '../../../@shared/organization'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
@@ -34,7 +33,6 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 })
 export class OrganizationSelectorComponent {
   private readonly store = inject(Store)
-  private readonly userOrganizationService = inject(UsersOrganizationsService)
   private readonly scopeService = inject(ScopeService)
   readonly i18nService = injectI18nService()
 
@@ -44,35 +42,19 @@ export class OrganizationSelectorComponent {
   readonly search = debouncedSignal(this.searchTerm, 300)
   readonly activeScope = this.scopeService.activeScope
   readonly canUseTenantScope = this.scopeService.canUseTenantScope
+  readonly currentUser = toSignal(this.store.user$, {
+    initialValue: this.store.user
+  })
 
-  readonly #organizations = toSignal(
-    this.store.user$
-      .pipe(
-        filter(nonNullable),
-        switchMap(({ id }) =>
-          this.userOrganizationService.getAll(
-            [
-              'organization',
-              // 'organization.contact',
-              'organization.featureOrganizations',
-              'organization.featureOrganizations.feature'
-            ],
-            { userId: id }
-          )
-        )
-      )
-      .pipe(
-        map(({ items }) =>
-          uniqBy(
-            items.map(({ organization }) => organization),
-            (item) => item.id
-          ).sort((a, b) => a.name.localeCompare(b.name))
-        ),
-        tap((organizations) => {
-          this.scopeService.ensureValidScope(organizations)
-        })
-      ),
-    { initialValue: [] }
+  readonly #organizations = computed(
+    () =>
+      uniqBy(
+        (this.currentUser()?.organizations ?? [])
+          .filter((membership) => membership?.isActive !== false && membership?.organization?.isActive !== false)
+          .map((membership) => membership.organization)
+          .filter(nonNullable),
+        (item) => item.id
+      ).sort((a, b) => a.name.localeCompare(b.name))
   )
 
   readonly organizations = computed(() => {
@@ -117,13 +99,22 @@ export class OrganizationSelectorComponent {
         })
   )
 
-  readonly canSelectOrg = computed(
-    () => this.canUseTenantScope() || this.#organizations().length > 0
-  )
+  readonly showTenantScopeItem = computed(() => this.canUseTenantScope() || this.isTenantScope())
+  readonly hasOrganizations = computed(() => this.#organizations().length > 0)
+  readonly hasVisibleOrganizations = computed(() => this.organizations().length > 0)
+  readonly canOpenMenu = computed(() => this.showTenantScopeItem() || this.hasOrganizations())
 
   constructor() {
     effect(() => {
       this.store.featureOrganizations = this.currentOrganization()?.featureOrganizations ?? []
+    })
+
+    effect(() => {
+      if (!this.currentUser()) {
+        return
+      }
+
+      this.scopeService.ensureValidScope(this.#organizations())
     })
   }
 
@@ -153,5 +144,13 @@ export class OrganizationSelectorComponent {
     }
 
     void this.scopeService.switchToOrganization(organization)
+  }
+
+  resetSearch() {
+    if (!this.searchTerm()) {
+      return
+    }
+
+    this.searchTerm.set('')
   }
 }

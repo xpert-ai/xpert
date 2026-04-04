@@ -77,8 +77,12 @@ export class UserGroupController extends CrudController<UserGroup> {
 	@UseGuards(PermissionGuard)
 	@Permissions(PermissionsEnum.ORG_USERS_EDIT)
 	@Put(':id/members')
-	async updateMembers(@Param('id', UUIDValidationPipe) id: string, @Body() memberIds: string[]) {
-		return this.service.updateMembers(id, memberIds)
+	async updateMembers(
+		@Param('id', UUIDValidationPipe) id: string,
+		@Body() memberIds: string[],
+		@Query('organizationId') organizationId?: string
+	) {
+		return this.service.updateMembers(id, memberIds, organizationId)
 	}
 
 	@UseGuards(PermissionGuard)
