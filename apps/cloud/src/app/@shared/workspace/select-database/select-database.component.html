@@ -11,7 +11,7 @@
           <input
             type="search"
             class="w-full rounded-xl border border-transparent bg-components-input-bg-normal py-2 pl-9 pr-3 text-sm text-text-secondary shadow-inner outline-none transition focus:border-primary-200 focus:bg-components-input-bg-active focus:ring-2 focus:ring-primary-100"
-            placeholder="搜索"
+            placeholder="{{ 'PAC.Workspace.SelectDB.Search' | translate: {Default: 'Search'} }}"
             [value]="searchTerm()"
             (input)="updateSearch($any($event.target).value)"
           />
@@ -21,13 +21,13 @@
           class="mt-3 inline-flex w-full items-center justify-between rounded-xl bg-primary-600 px-3 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-primary-500"
           (click)="requestCreate()"
         >
-          <span>新建数据表</span>
+          <span>{{ 'PAC.Workspace.SelectDB.NewTable' | translate: {Default: 'New Table'} }}</span>
           <i class="ri-add-line text-base"></i>
         </button>
       </div>
 
       <div class="flex-1 space-y-1 overflow-y-auto px-3 py-4">
-        <p class="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-text-quaternary">数据库资源</p>
+        <p class="px-2 pb-1 text-xs font-semibold uppercase tracking-wide text-text-quaternary">{{ 'PAC.Workspace.SelectDB.DatabaseResources' | translate: {Default: 'Database Resources'} }}</p>
         @for (item of navItems(); track item.value) {
           <button
             type="button"
@@ -59,8 +59,8 @@
     <section class="flex flex-1 flex-col bg-components-panel-bg">
       <header class="flex items-center justify-between border-b border-divider-regular px-6 py-4">
         <div>
-          <p class="text-base font-semibold">数据库列表</p>
-          <p class="text-xs text-text-quaternary">当前筛选：{{ selectedCollectionLabel() }} · {{ selectedOwnerLabel() }} · {{ selectedOrderLabel() }}</p>
+          <p class="text-base font-semibold">{{ 'PAC.Workspace.SelectDB.DatabaseList' | translate: {Default: 'Database List'} }}</p>
+          <p class="text-xs text-text-quaternary">{{ 'PAC.Workspace.SelectDB.CurrentFilters' | translate: {Default: 'Current filters'} }}: {{ selectedCollectionLabel() }} · {{ selectedOwnerLabel() }} · {{ selectedOrderLabel() }}</p>
         </div>
 
         <div class="flex items-center gap-2">
@@ -145,7 +145,7 @@
         @if (loading()) {
           <div class="flex h-full flex-col items-center justify-center gap-3 text-sm text-text-quaternary">
             <span class="h-10 w-10 animate-spin rounded-full border-2 border-divider-deep border-t-primary-500"></span>
-            <span>正在加载数据库...</span>
+            <span>{{ 'PAC.Workspace.SelectDB.LoadingDatabases' | translate: {Default: 'Loading databases...'} }}</span>
           </div>
         } @else {
           @if (filteredDatabases().length) {
@@ -159,21 +159,21 @@
                     <div class="min-w-0">
                       <p class="font-medium text-text-primary">{{ table.name }}</p>
                       <p class="text-sm text-text-tertiary dark:text-text-quaternary">
-                        {{ table.description || '暂无简介' }}
+                        {{ table.description || ('PAC.Workspace.SelectDB.NoDescription' | translate: {Default: 'No description'}) }}
                       </p>
                     </div>
                   </div>
                   <div class="flex items-center gap-3 text-right">
                     <div class="text-xs text-text-quaternary">
-                      <p>{{ table.database || '默认数据库' }}</p>
-                      <p>{{ table.schema || '默认 Schema' }}</p>
+                      <p>{{ table.database || ('PAC.Workspace.SelectDB.DefaultDatabase' | translate: {Default: 'Default database'}) }}</p>
+                      <p>{{ table.schema || ('PAC.Workspace.SelectDB.DefaultSchema' | translate: {Default: 'Default Schema'}) }}</p>
                     </div>
                     <button
                       type="button"
                       class="rounded-full border border-primary-200 px-4 py-1.5 text-sm font-semibold text-primary-600 transition hover:bg-primary-50 dark:border-primary-500/40 dark:text-primary-300"
                       (click)="selectDatabase(table)"
                     >
-                      添加
+                      {{ 'PAC.Workspace.SelectDB.Add' | translate: {Default: 'Add'} }}
                     </button>
                   </div>
                 </li>
@@ -182,7 +182,7 @@
           } @else {
             <div class="flex h-full flex-col items-center justify-center text-sm text-text-quaternary">
               <i class="ri-inbox-archive-line mb-3 text-4xl"></i>
-              <p>没有匹配的数据库</p>
+              <p>{{ 'PAC.Workspace.SelectDB.NoMatchingDatabases' | translate: {Default: 'No matching databases'} }}</p>
               <p class="text-xs">{{ emptyHint() }}</p>
             </div>
           }
@@ -197,7 +197,7 @@
             (click)="requestLoadMore()"
           >
             <i class="ri-arrow-down-circle-line text-lg"></i>
-            加载更多
+            {{ 'PAC.Workspace.SelectDB.LoadMore' | translate: {Default: 'Load More'} }}
           </button>
         </div>
       }

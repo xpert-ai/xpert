@@ -882,7 +882,21 @@
       "EnumValuesRequired": "字段 \"{{fieldName}}\" 选择了 ENUM 类型，必须填写枚举值",
       "SetValues": "集合值",
       "SetValuesPlaceholder": "例如: value1, value2, value3",
-      "SetValuesRequired": "字段 \"{{fieldName}}\" 选择了 SET 类型，必须填写集合值"
+      "SetValuesRequired": "字段 \"{{fieldName}}\" 选择了 SET 类型，必须填写集合值",
+      "SelectDB": {
+        "Search": "搜索",
+        "NewTable": "新建数据表",
+        "DatabaseResources": "数据库资源",
+        "DatabaseList": "数据库列表",
+        "CurrentFilters": "当前筛选",
+        "LoadingDatabases": "正在加载数据库...",
+        "NoDescription": "暂无简介",
+        "DefaultDatabase": "默认数据库",
+        "DefaultSchema": "默认 Schema",
+        "Add": "添加",
+        "NoMatchingDatabases": "没有匹配的数据库",
+        "LoadMore": "加载更多"
+      }
     },
     "MENU": {
       "Plugins": "插件",
@@ -2466,6 +2480,7 @@
       }
     },
     "Chat": {
+      "SearchChats": "搜索聊天...",
       "Input": "输入",
       "Output": "输出",
       "Terminal": "终端",
