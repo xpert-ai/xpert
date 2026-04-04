@@ -70,12 +70,22 @@ const routes: Routes = [
         canActivate: [NgxPermissionsGuard],
         data: {
           title: 'settings/users',
-          scopeContext: 'tenant-only',
+          scopeContext: 'dual-scope',
           permissions: {
-            only: [PermissionsEnum.ORG_USERS_VIEW],
+            only: [
+              PermissionsEnum.ALL_ORG_VIEW,
+              PermissionsEnum.ALL_ORG_EDIT,
+              PermissionsEnum.ORG_USERS_VIEW,
+              PermissionsEnum.ORG_USERS_EDIT
+            ],
             redirectTo
           }
         }
+      },
+      {
+        path: 'invites',
+        redirectTo: 'users',
+        pathMatch: 'full'
       },
       {
         path: 'groups',
@@ -171,9 +181,19 @@ const routes: Routes = [
       {
         path: 'organizations',
         loadChildren: () => import('./organizations/organizations.module').then((m) => m.OrganizationsModule),
+        canActivate: [NgxPermissionsGuard],
         data: {
           title: 'settings/organizations',
-          scopeContext: 'dual-scope'
+          scopeContext: 'dual-scope',
+          permissions: {
+            only: [
+              PermissionsEnum.ALL_ORG_VIEW,
+              PermissionsEnum.ALL_ORG_EDIT,
+              PermissionsEnum.ORG_USERS_VIEW,
+              PermissionsEnum.ORG_USERS_EDIT
+            ],
+            redirectTo
+          }
         }
       },
       {

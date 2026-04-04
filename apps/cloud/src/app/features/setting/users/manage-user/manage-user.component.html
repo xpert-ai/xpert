@@ -1,25 +1,36 @@
 <div class="pac-page-body-toolbar">
   <ngm-search [(ngModel)]="search" />
 
-  <div class="flex justify-start items-center gap-4">
+  <div class="flex flex-wrap items-center gap-4">
     <label class="shrink-0 whitespace-nowrap">{{ 'PAC.KEY_WORDS.Role' | translate: {Default: 'Role'} }}:</label>
-    <div class="flex flex-wrap items-center gap-4">
-      @for (role of ROLES; track role) {
-        <z-checkbox
-          [ngModel]="roles.includes(role)"
-          (ngModelChange)="onRoleChange(role, $event)"
-        >
-          {{ role }}
-        </z-checkbox>
-      }
-    </div>
+
+    @if (availableRoles$ | async; as availableRoles) {
+      <z-select
+        class="w-full max-w-full sm:min-w-80 sm:w-auto"
+        [zMultiple]="true"
+        [zValue]="roles"
+        [zMaxLabelCount]="2"
+        [zPlaceholder]="'FORM.PLACEHOLDERS.ROLE' | translate: { Default: 'Select roles' }"
+        (zSelectionChange)="onRolesSelectionChange($event)"
+      >
+        @for (role of availableRoles; track role) {
+          <z-select-item [zValue]="role">
+            {{ role }}
+          </z-select-item>
+        }
+      </z-select>
+    }
   </div>
 </div>
 
 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
   @for (user of users$ | async; track user.id) {
     <div class="group flex flex-col px-2 py-3 border-[0.5px] border-solid border-divider-deep rounded-xl shadow-sm bg-background-default-subtle hover:bg-hover-bg hover:shadow-lg">
-      <pac-user-profile-inline [user]="user" [routerLink]="['/settings/users/', user.id]" class="cursor-pointer"/>
+        <pac-user-profile-inline
+        [user]="user"
+        [class.cursor-pointer]="isTenantScope()"
+        (click)="openUser(user)"
+      />
       <div class="p-2 flex justify-start items-center">
         @if (user.role; as role) {
           <span class="mr-2 text-text-secondary">{{'PAC.KEY_WORDS.Role' | translate: {Default: 'Role'} }}:</span>
@@ -34,14 +45,16 @@
         }
       </div>
 
-      <div class="flex justify-end items-end">
-        <button type="button" class="w-6 h-6 flex justify-center items-center rounded-full opacity-0 group-hover:opacity-100 hover:bg-hover-bg"
-          [cdkMenuTriggerFor]="menu"
-          [cdkMenuTriggerData]="{user: user}"
-        >
-          <i class="ri-more-line"></i>
-        </button>
-      </div>
+      @if (isTenantScope()) {
+        <div class="flex justify-end items-end">
+          <button type="button" class="w-6 h-6 flex justify-center items-center rounded-full opacity-0 group-hover:opacity-100 hover:bg-hover-bg"
+            [cdkMenuTriggerFor]="menu"
+            [cdkMenuTriggerData]="{user: user}"
+          >
+            <i class="ri-more-line"></i>
+          </button>
+        </div>
+      }
     </div>
   }
 </div>

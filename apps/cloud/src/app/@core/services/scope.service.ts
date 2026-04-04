@@ -1,6 +1,6 @@
 import { computed, effect, inject, Injectable } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { ActivatedRouteSnapshot, NavigationEnd, Router } from '@angular/router'
+import { ActivatedRouteSnapshot, NavigationEnd, Route, Router } from '@angular/router'
 import { IOrganization, RequestScopeLevel, RolesEnum, Store } from '@metad/cloud/state'
 import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
 
@@ -77,9 +77,7 @@ export class ScopeService {
       }
 
       const fallback =
-        scope.level === RequestScopeLevel.TENANT
-          ? this.resolveTenantFallback()
-          : this.resolveOrganizationFallback()
+        this.resolveScopeTransitionTarget(scope.level)
 
       if (!fallback || fallback === currentUrl) {
         return
@@ -91,11 +89,51 @@ export class ScopeService {
     })
   }
 
+  initializeEntryScope(organizations: IOrganization[], preferredOrganizationId?: string | null) {
+    const validOrganizations = this.resolveValidOrganizations(organizations)
+    const scope = this.activeScope()
+    const persistedOrganization =
+      scope.level === RequestScopeLevel.ORGANIZATION
+        ? validOrganizations.find((organization) => organization.id === scope.organizationId) ?? null
+        : null
+    const defaultOrganization = this.resolveDefaultOrganization(
+      validOrganizations,
+      preferredOrganizationId
+    )
+
+    if (!validOrganizations.length) {
+      if (
+        scope.level !== RequestScopeLevel.TENANT ||
+        this.#store.selectedOrganization
+      ) {
+        this.#store.setTenantScope()
+      }
+      return
+    }
+
+    if (scope.level === RequestScopeLevel.TENANT && this.canUseTenantScope()) {
+      if (this.#store.selectedOrganization) {
+        this.#store.setTenantScope()
+      }
+      return
+    }
+
+    const targetOrganization = persistedOrganization ?? defaultOrganization
+    if (!targetOrganization) {
+      return
+    }
+
+    if (
+      scope.level !== RequestScopeLevel.ORGANIZATION ||
+      scope.organizationId !== targetOrganization.id ||
+      this.#store.selectedOrganization?.id !== targetOrganization.id
+    ) {
+      this.#store.setOrganizationScope(targetOrganization)
+    }
+  }
+
   ensureValidScope(organizations: IOrganization[]) {
-    const defaultOrganization =
-      organizations.find((organization) => organization.isDefault) ||
-      organizations[0] ||
-      null
+    const defaultOrganization = this.resolveDefaultOrganization(organizations)
 
     if (!defaultOrganization) {
       this.#store.setTenantScope()
@@ -135,7 +173,7 @@ export class ScopeService {
     this.#store.clearScopedSelections()
     this.#store.setTenantScope()
 
-    const target = this.resolveTenantFallback()
+    const target = this.resolveScopeTransitionTarget(RequestScopeLevel.TENANT)
     if (target && target !== this.currentUrl()) {
       return this.#router.navigateByUrl(target)
     }
@@ -159,7 +197,7 @@ export class ScopeService {
       return true
     }
 
-    const target = this.resolveOrganizationFallback()
+    const target = this.resolveScopeTransitionTarget(RequestScopeLevel.ORGANIZATION)
     if (target && target !== this.currentUrl()) {
       return this.#router.navigateByUrl(target)
     }
@@ -178,6 +216,33 @@ export class ScopeService {
     return (
       this.#store.getLastCompatibleRoute(RequestScopeLevel.ORGANIZATION) ||
       DEFAULT_ORGANIZATION_ROUTE
+    )
+  }
+
+  private resolveScopeTransitionTarget(level: RequestScopeLevel) {
+    return (
+      resolveCurrentSectionScopeUrl(this.#router.routerState.snapshot.root, level) ||
+      (level === RequestScopeLevel.TENANT
+        ? this.resolveTenantFallback()
+        : this.resolveOrganizationFallback())
+    )
+  }
+
+  private resolveDefaultOrganization(
+    organizations: IOrganization[],
+    preferredOrganizationId?: string | null
+  ) {
+    return (
+      organizations.find((organization) => organization.id === preferredOrganizationId) ||
+      organizations.find((organization) => organization.isDefault) ||
+      organizations[0] ||
+      null
+    )
+  }
+
+  private resolveValidOrganizations(organizations: IOrganization[]) {
+    return organizations.filter(
+      (organization) => !!organization?.id && organization.isActive !== false
     )
   }
 }
@@ -211,4 +276,75 @@ export function getRouteScopeFromSnapshot(
   }
 
   return scope
+}
+
+function resolveCurrentSectionScopeUrl(
+  root: ActivatedRouteSnapshot | null,
+  level: RequestScopeLevel
+) {
+  const snapshots: ActivatedRouteSnapshot[] = []
+  let current = root
+
+  while (current) {
+    snapshots.push(current)
+    current = current.firstChild ?? null
+  }
+
+  const targetPath = level === RequestScopeLevel.TENANT ? 'tenant' : 'organization'
+
+  for (let index = snapshots.length - 1; index >= 0; index--) {
+    const snapshot = snapshots[index]
+    const routeScope = (snapshot.data?.['scopeContext'] as RouteScopeContext | undefined) ?? 'dual-scope'
+
+    if (isRouteCompatible(routeScope, level)) {
+      continue
+    }
+
+    const parent = snapshot.parent
+    const children = parent?.routeConfig?.children ?? []
+    const candidate =
+      pickScopeSibling(children, targetPath, level) ??
+      pickDefaultCompatibleChild(children, level)
+
+    if (!candidate) {
+      continue
+    }
+
+    return buildUrlFromSnapshot(parent, candidate.path)
+  }
+
+  return null
+}
+
+function pickScopeSibling(
+  children: Route[],
+  targetPath: string,
+  level: RequestScopeLevel
+) {
+  return children.find(
+    (route) =>
+      !route.redirectTo &&
+      route.path === targetPath &&
+      isRouteCompatible((route.data?.['scopeContext'] as RouteScopeContext | undefined) ?? 'dual-scope', level)
+  )
+}
+
+function pickDefaultCompatibleChild(children: Route[], level: RequestScopeLevel) {
+  return children.find(
+    (route) =>
+      !route.redirectTo &&
+      route.path === '' &&
+      isRouteCompatible((route.data?.['scopeContext'] as RouteScopeContext | undefined) ?? 'dual-scope', level)
+  )
+}
+
+function buildUrlFromSnapshot(snapshot: ActivatedRouteSnapshot | null, childPath?: string) {
+  const segments = snapshot?.pathFromRoot.flatMap((item) => item.url.map((segment) => segment.path)) ?? []
+  const parts = [...segments.filter(Boolean)]
+
+  if (childPath) {
+    parts.push(childPath)
+  }
+
+  return '/' + parts.join('/')
 }

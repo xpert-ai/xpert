@@ -116,8 +116,8 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 		}
 	}
 
-	private async validateMemberIds(memberIds: string[]) {
-		const organizationId = this.requireOrganizationScope()
+	private async validateMemberIds(memberIds: string[], organizationId?: string) {
+		const resolvedOrganizationId = await this.resolveAccessibleOrganizationId(organizationId)
 		const tenantId = this.currentTenantId()
 		const ids = [...new Set((memberIds ?? []).filter(Boolean))]
 
@@ -141,7 +141,7 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 			select: ['userId'],
 			where: {
 				tenantId,
-				organizationId,
+				organizationId: resolvedOrganizationId,
 				isActive: true,
 				userId: In(ids)
 			}
@@ -155,12 +155,25 @@ export class UserGroupService extends TenantOrganizationAwareCrudService<UserGro
 		return ids.map((id) => ({ id }) as User)
 	}
 
-	async updateMembers(id: string, memberIds: string[]) {
-		const group = await this.findOne(id, {
+	async updateMembers(id: string, memberIds: string[], organizationId?: string) {
+		const group = await this.repository.findOne({
+			where: {
+				id,
+				tenantId: this.currentTenantId()
+			},
 			relations: ['members']
 		})
 
-		group.members = await this.validateMemberIds(memberIds)
+		if (!group) {
+			throw new NotFoundException('The requested user group was not found in the current tenant.')
+		}
+
+		const resolvedOrganizationId = await this.resolveAccessibleOrganizationId(organizationId ?? group.organizationId)
+		if (group.organizationId !== resolvedOrganizationId) {
+			throw new ForbiddenException('Cross-organization access requires tenant scope.')
+		}
+
+		group.members = await this.validateMemberIds(memberIds, resolvedOrganizationId)
 
 		return this.repository.save(group)
 	}

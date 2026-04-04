@@ -97,6 +97,8 @@ export class UserController extends CrudController<User> {
 		description: 'Record not found'
 	})
 	@Get('/email/:email')
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT)
 	async findByEmail(@Param('email') email: string): Promise<User> {
 		return this.userService.getUserByEmail(email)
 	}
@@ -138,6 +140,8 @@ export class UserController extends CrudController<User> {
 	 * @returns
 	 */
 	@Get('count')
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT)
 	async getCount(@Query('data', ParseJsonPipe) data: any): Promise<any> {
 		const { relations, findInput } = data
 		return this.userService.count({
@@ -152,8 +156,8 @@ export class UserController extends CrudController<User> {
 	 * @param filter
 	 * @returns
 	 */
-	@UseGuards(PermissionGuard)
-	@Permissions(PermissionsEnum.ORG_USERS_VIEW)
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT)
 	@Get('pagination')
 	@UsePipes(new ValidationPipe({ transform: true }))
 	async pagination(@Query() filter: PaginationParams<User>): Promise<IPagination<User>> {
@@ -176,8 +180,8 @@ export class UserController extends CrudController<User> {
 		status: HttpStatus.NOT_FOUND,
 		description: 'Record not found'
 	})
-	@UseGuards(PermissionGuard)
-	@Permissions(PermissionsEnum.ORG_USERS_VIEW)
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.ALL_ORG_EDIT)
 	@Get()
 	async findAll(@Query('data', ParseJsonPipe) data: any): Promise<IPagination<User>> {
 		const { relations, search } = data
@@ -198,9 +202,46 @@ export class UserController extends CrudController<User> {
 
 	@UseInterceptors(ClassSerializerInterceptor)
 	@Get('search')
-	async search(@Query('search') search: string) {
-		const organizationId = RequestContext.getOrganizationId()
-		return this.userService.search(search, organizationId)
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(
+		PermissionsEnum.ORG_USERS_VIEW,
+		PermissionsEnum.ORG_USERS_EDIT,
+		PermissionsEnum.ALL_ORG_VIEW,
+		PermissionsEnum.ALL_ORG_EDIT
+	)
+	async search(
+		@Query('search') search: string,
+		@Query('organizationId') organizationId?: string,
+		@Query('membership') membership?: string
+	) {
+		const canViewAllOrganizations = RequestContext.hasAnyPermission([
+			PermissionsEnum.ALL_ORG_VIEW,
+			PermissionsEnum.ALL_ORG_EDIT
+		])
+		const currentOrganizationId = RequestContext.getOrganizationId()
+		const isCandidateSearch = membership === 'non-members'
+
+		if (isCandidateSearch) {
+			const accessibleOrganizationId = canViewAllOrganizations
+				? organizationId
+				: RequestContext.requireOrganizationScope()
+
+			if (!accessibleOrganizationId) {
+				throw new BadRequestException('Organization scope is required for membership candidate search.')
+			}
+
+			if (!canViewAllOrganizations && organizationId && organizationId !== accessibleOrganizationId) {
+				throw new ForbiddenException('Cross-organization candidate search requires tenant-level permissions.')
+			}
+
+			return this.userService.search(search, accessibleOrganizationId, membership)
+		}
+
+		if (!currentOrganizationId && !canViewAllOrganizations) {
+			throw new BadRequestException('Organization scope is required for organization user search.')
+		}
+
+		return this.userService.search(search, currentOrganizationId)
 	}
 
 	@HttpCode(HttpStatus.ACCEPTED)
@@ -231,10 +272,39 @@ export class UserController extends CrudController<User> {
 		description: 'Record not found'
 	})
 	@Get(':id')
+	@UseGuards(TenantPermissionGuard, PermissionGuard)
+	@Permissions(
+		PermissionsEnum.PROFILE_EDIT,
+		PermissionsEnum.ORG_USERS_VIEW,
+		PermissionsEnum.ORG_USERS_EDIT,
+		PermissionsEnum.ALL_ORG_VIEW,
+		PermissionsEnum.ALL_ORG_EDIT
+	)
 	async findById(
 		@Param('id', UUIDValidationPipe) id: string,
 		@Query('data', ParseJsonPipe) data?: any
 	): Promise<User> {
+		const isSelf = RequestContext.currentUserId() === id
+		const canManageUsers = RequestContext.hasAnyPermission([
+			PermissionsEnum.ALL_ORG_VIEW,
+			PermissionsEnum.ALL_ORG_EDIT
+		])
+		const currentOrganizationId = RequestContext.getOrganizationId()
+		const canViewOrganizationUsers = RequestContext.hasAnyPermission([
+			PermissionsEnum.ORG_USERS_VIEW,
+			PermissionsEnum.ORG_USERS_EDIT
+		])
+		const canAccessThroughOrganization =
+			!isSelf &&
+			!canManageUsers &&
+			canViewOrganizationUsers &&
+			!!currentOrganizationId &&
+			(await this.userService.isActiveMemberOfOrganization(id, currentOrganizationId))
+
+		if (!isSelf && !canManageUsers && !canAccessThroughOrganization) {
+			throw new ForbiddenException()
+		}
+
 		const { relations } = data
 		return this.userService.findOne(id, { relations })
 	}
@@ -255,9 +325,8 @@ export class UserController extends CrudController<User> {
 		status: HttpStatus.BAD_REQUEST,
 		description: 'Invalid input, The response body may contain clues as to what went wrong'
 	})
-	@UseGuards(PermissionGuard)
 	@UseGuards(TenantPermissionGuard, PermissionGuard)
-	@Permissions(PermissionsEnum.ORG_USERS_EDIT)
+	@Permissions(PermissionsEnum.ALL_ORG_EDIT)
 	@HttpCode(HttpStatus.CREATED)
 	@Post()
 	async create(@Body() entity: IUserCreateInput): Promise<User> {
@@ -274,9 +343,19 @@ export class UserController extends CrudController<User> {
 	 */
 	@HttpCode(HttpStatus.ACCEPTED)
 	@UseGuards(TenantPermissionGuard, PermissionGuard)
-	@Permissions(PermissionsEnum.ORG_USERS_EDIT, PermissionsEnum.PROFILE_EDIT)
+	@Permissions(PermissionsEnum.ALL_ORG_EDIT, PermissionsEnum.PROFILE_EDIT)
 	@Put(':id')
 	async update(@Param('id', UUIDValidationPipe) id: string, @Body() entity: IUserUpdateInput): Promise<any> {
+		const isSelf = RequestContext.currentUserId() === id
+		const canManageUsers = RequestContext.hasAnyPermission([
+			PermissionsEnum.ALL_ORG_EDIT,
+			PermissionsEnum.SUPER_ADMIN_EDIT
+		])
+
+		if (!isSelf && !canManageUsers) {
+			throw new ForbiddenException()
+		}
+
 		return await this.userService.updateProfile(id, {
 			id,
 			...entity
@@ -301,7 +380,7 @@ export class UserController extends CrudController<User> {
 		description: 'Record not found'
 	})
 	@UseGuards(TenantPermissionGuard, PermissionGuard)
-	@Permissions(PermissionsEnum.ACCESS_DELETE_ACCOUNT)
+	@Permissions(PermissionsEnum.ALL_ORG_EDIT)
 	@Delete(':id')
 	async delete(@Param('id', UUIDValidationPipe) userId: string): Promise<any> {
 		return await this.commandBus.execute(new UserDeleteCommand(userId))
@@ -309,7 +388,7 @@ export class UserController extends CrudController<User> {
 
 	@HttpCode(HttpStatus.ACCEPTED)
 	@UseGuards(TenantPermissionGuard, PermissionGuard)
-	@Permissions(PermissionsEnum.ORG_USERS_EDIT, PermissionsEnum.PROFILE_EDIT)
+	@Permissions(PermissionsEnum.ALL_ORG_EDIT, PermissionsEnum.PROFILE_EDIT)
 	@Post(':id/password')
 	async resetPassword(@Param('id', UUIDValidationPipe) userId: string, @Body() userPassword: UserPasswordDTO) {
 		return await this.userService.resetPassword(userId, userPassword.hash, userPassword.password)
@@ -342,6 +421,10 @@ export class UserController extends CrudController<User> {
 	@Roles(RolesEnum.SUPER_ADMIN, RolesEnum.ADMIN)
 	@Post('bulk')
 	async createBulk(@Body() users: IUserCreateInput[]) {
+		if (!RequestContext.isTenantScope()) {
+			throw new BadRequestException('Tenant scope is required for bulk user import')
+		}
+
 		return await this.commandBus.execute(new UserBulkCreateCommand(users))
 	}
 
@@ -362,6 +445,10 @@ export class UserController extends CrudController<User> {
 		description: 'Users parsed from CSV file'
 	})
 	async uploadAndParseCsv(@UploadedFileStorage() file: UploadedFile): Promise<IUserCreateInput[]> {
+		if (!RequestContext.isTenantScope()) {
+			throw new BadRequestException('Tenant scope is required for bulk user import')
+		}
+
 		if (!file) {
 			throw new BadRequestException('No file uploaded')
 		}

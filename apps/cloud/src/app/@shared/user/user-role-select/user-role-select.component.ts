@@ -16,7 +16,7 @@ import { UsersService } from '@metad/cloud/state'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { catchError, debounceTime, EMPTY, filter, map, of, switchMap, tap } from 'rxjs'
+import { catchError, debounce, distinctUntilChanged, map, of, startWith, switchMap, tap, timer } from 'rxjs'
 import { IUser } from '../../../@core'
 import { userLabel, UserPipe } from '../../pipes'
 
@@ -47,7 +47,15 @@ export class UserRoleSelectComponent {
   userLabel = userLabel
 
   private userService = inject(UsersService)
-  public data: { role: string; roles: ISelectOption[]; single?: boolean } = inject(DIALOG_DATA)
+  public data: {
+    role?: string
+    roles?: ISelectOption[]
+    single?: boolean
+    searchOptions?: {
+      organizationId?: string
+      membership?: string
+    }
+  } = inject(DIALOG_DATA)
   private _dialogRef = inject(DialogRef)
 
   @Input() single: boolean
@@ -56,17 +64,20 @@ export class UserRoleSelectComponent {
   users: IUser[] = []
   loading = false
   searchControl = new FormControl<string>('')
+  readonly loadOnEmptySearch = this.data?.searchOptions?.membership === 'non-members'
 
   public readonly users$ = this.searchControl.valueChanges.pipe(
-    debounceTime(500),
-    filter((value) => typeof value === 'string'),
+    startWith(this.searchControl.value ?? ''),
+    map((value) => (typeof value === 'string' ? value : '')),
+    distinctUntilChanged(),
+    debounce((text) => timer(!text.trim() && this.loadOnEmptySearch ? 0 : 500)),
     switchMap((text) => {
-      if (text.trim()) {
+      if (text.trim() || this.loadOnEmptySearch) {
         this.loading = true
-        return this.userService.search(text).pipe(
+        return this.userService.search(text, this.data?.searchOptions).pipe(
           catchError((err) => {
             this.loading = false
-            return EMPTY
+            return of([])
           })
         )
       }

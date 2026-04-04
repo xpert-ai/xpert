@@ -10,7 +10,12 @@ export function redirectTo() {
 
 const routeData = {
   permissions: {
-    only: [PermissionsEnum.ALL_ORG_VIEW, PermissionsEnum.CHANGE_SELECTED_ORGANIZATION],
+    only: [
+      PermissionsEnum.ALL_ORG_VIEW,
+      PermissionsEnum.ALL_ORG_EDIT,
+      PermissionsEnum.ORG_USERS_VIEW,
+      PermissionsEnum.ORG_USERS_EDIT
+    ],
     redirectTo
   },
   selectors: {

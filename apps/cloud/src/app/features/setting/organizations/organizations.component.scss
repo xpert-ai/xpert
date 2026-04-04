@@ -12,6 +12,63 @@
   @apply bg-background-default-subtle;
 }
 
+.form-field {
+  @apply flex flex-col gap-3;
+}
+
+.form-label {
+  @apply text-base font-semibold text-text-primary;
+}
+
+
+.form-textarea {
+  @apply min-h-[168px] rounded-2xl border-divider-regular bg-components-input-bg-normal px-4 py-3 text-base text-text-primary placeholder:text-components-input-text-placeholder hover:bg-components-input-bg-hover focus-visible:border-components-input-border-active focus-visible:ring-components-input-border-active/20 disabled:bg-background-default-subtle disabled:text-text-tertiary;
+}
+
+.info-panel {
+  @apply rounded-2xl border border-divider-regular bg-background-default-subtle/60 p-5;
+}
+
+.info-title {
+  @apply mb-4 text-sm font-semibold uppercase tracking-[0.14em] text-text-tertiary;
+}
+
+.toggle-group {
+  @apply flex flex-col gap-4;
+}
+
+.toggle-group-panel {
+  @apply rounded-2xl border border-divider-regular bg-background-default-subtle/60;
+}
+
+.toggle-setting {
+  @apply flex items-start justify-between gap-4 px-5 py-4;
+}
+
+.toggle-setting + .toggle-setting {
+  @apply border-t border-divider-regular;
+}
+
+.demo-source-option {
+  @apply w-full rounded-2xl border border-divider-regular px-5 py-4 transition-colors duration-150 ease-out hover:border-components-input-border-hover hover:bg-background-default-subtle/40;
+}
+
+.z-radio[data-checked] .demo-source-option {
+  @apply border-components-input-border-active bg-background-default-subtle/60;
+}
+
+.demo-source-copy {
+  @apply flex min-w-0 flex-col gap-1.5;
+}
+
+.demo-source-title {
+  @apply text-base font-semibold text-text-primary;
+}
+
+.demo-source-description {
+  @apply text-sm text-text-tertiary;
+}
+
 .field-shell {
   @apply rounded-2xl border border-divider-regular bg-background-default-subtle p-4;
 }
@@ -30,10 +87,6 @@
 
 .toggle-row {
   @apply flex items-start justify-between gap-4 rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-3;
-}
-
-.option-card {
-  @apply flex cursor-pointer items-start gap-3 rounded-2xl border border-divider-regular bg-components-card-bg px-4 py-4;
 }
 
 .logo-edit-overlay {

@@ -11,13 +11,14 @@ import { Organization } from './organization.entity';
 import { OrganizationService } from './organization.service';
 import { RolePermissionModule } from '../role-permission';
 import { UserModule } from '../user';
+import { Invite, UserGroup, UserOrganization } from '../core/entities/internal';
 
 @Module({
 	imports: [
 		RouterModule.register([
 			{ path: '/organization', module: OrganizationModule }
 		]),
-		TypeOrmModule.forFeature([ Organization ]),
+		TypeOrmModule.forFeature([ Organization, UserOrganization, Invite, UserGroup ]),
 		forwardRef(() => TenantModule),
 		forwardRef(() => UserOrganizationModule),
 		forwardRef(() => RolePermissionModule),

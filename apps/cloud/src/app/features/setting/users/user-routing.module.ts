@@ -1,7 +1,5 @@
 import { NgModule } from '@angular/core'
 import { RouterModule, Routes } from '@angular/router'
-import { PermissionsEnum } from '@metad/contracts'
-import { inviteGuard } from '../../../@core/guards'
 import { PACEditUserComponent } from './edit-user/edit-user.component'
 import { ManageUserInviteComponent } from './manage-user-invite/manage-user-invite.component'
 import { PACUserOrganizationsComponent } from './organizations/organizations.component'
@@ -14,19 +12,24 @@ const routes: Routes = [
     path: 'edit/:id',
     component: PACEditUserComponent,
     data: {
-      title: 'Settings/User/Edit'
+      title: 'Settings/User/Edit',
+      scopeContext: 'tenant-only'
     },
     children: [
       {
         path: '',
         component: UserBasicComponent,
         data: {
-          allowRoleChange: true
+          allowRoleChange: true,
+          scopeContext: 'tenant-only'
         }
       },
       {
         path: 'organizations',
-        component: PACUserOrganizationsComponent
+        component: PACUserOrganizationsComponent,
+        data: {
+          scopeContext: 'tenant-only'
+        }
       }
     ]
   },
@@ -35,29 +38,30 @@ const routes: Routes = [
     component: PACUsersComponent,
     data: {
       title: 'Settings/User',
+      scopeContext: 'dual-scope'
     },
     children: [
       {
         path: '',
-        component: ManageUserComponent
+        component: ManageUserComponent,
+        data: {
+          scopeContext: 'dual-scope'
+        }
       },
       {
         path: 'invites',
         component: ManageUserInviteComponent,
-        canActivate: [inviteGuard],
         data: {
           title: 'Settings/User/Invites',
-          expectedPermissions: [
-            PermissionsEnum.ORG_INVITE_EDIT,
-            PermissionsEnum.ORG_INVITE_VIEW
-          ]
+          scopeContext: 'organization-only'
         }
       },
       {
         path: ':id',
         component: PACEditUserComponent,
         data: {
-          title: 'Settings/User/Edit'
+          title: 'Settings/User/Edit',
+          scopeContext: 'tenant-only'
         },
       }
     ]

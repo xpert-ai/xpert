@@ -1,15 +1,11 @@
-import { Location } from '@angular/common'
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
-  HostListener,
   OnInit,
   Renderer2,
-  effect,
   inject,
-  model,
   signal,
   viewChild
 } from '@angular/core'
@@ -37,6 +33,7 @@ import {
   EmployeesService,
   IOrganization,
   IRolePermission,
+  ScopeService,
   IUser,
   MenuCatalog,
   Store,
@@ -74,6 +71,7 @@ export class FeaturesComponent implements OnInit {
   readonly #appService = inject(AppService)
   readonly #employeeService = inject(EmployeesService)
   readonly #store = inject(Store)
+  readonly #scopeService = inject(ScopeService)
   readonly appService = this.#appService
 
   // States
@@ -187,7 +185,7 @@ export class FeaturesComponent implements OnInit {
         ),
         takeUntilDestroyed(this.#destroyRef)
       )
-      .subscribe(([permissions, lang, org, scope]) => {
+      .subscribe(([, , org, scope]) => {
         this.organization = org
         this.menus.set(getFeatureMenus(scope.level, org))
         this.loadItems()
@@ -200,15 +198,27 @@ export class FeaturesComponent implements OnInit {
   private async _createEntryPoint() {
     const id = this.#store.userId
     if (!id) return
+    const cachedUser = this.#store.user
+    const hasHydratedUser =
+      !!cachedUser &&
+      !!cachedUser.tenant &&
+      Array.isArray(cachedUser.organizations)
 
-    this.user = await this.#usersService.getMe([
-      'employee',
-      'role',
-      'role.rolePermissions',
-      'tenant',
-      'tenant.featureOrganizations',
-      'tenant.featureOrganizations.feature'
-    ])
+    this.user =
+      hasHydratedUser
+        ? cachedUser
+        : await this.#usersService.getMe([
+            'employee',
+            'organizations',
+            'organizations.organization',
+            'organizations.organization.featureOrganizations',
+            'organizations.organization.featureOrganizations.feature',
+            'role',
+            'role.rolePermissions',
+            'tenant',
+            'tenant.featureOrganizations',
+            'tenant.featureOrganizations.feature'
+          ])
 
     //When a new user registers & logs in for the first time, he/she does not have tenantId.
     //In this case, we have to redirect the user to the onboarding page to create their first organization, tenant, role.
@@ -218,6 +228,18 @@ export class FeaturesComponent implements OnInit {
     }
 
     this.#store.user = this.user
+
+    const memberships = (this.user.organizations ?? []).filter(
+      (membership) =>
+        membership.isActive !== false &&
+        !!membership.organization?.id &&
+        membership.organization.isActive !== false
+    )
+    const organizations = memberships.map(({ organization }) => organization)
+    const preferredOrganizationId =
+      memberships.find((membership) => membership.isDefault)?.organizationId ?? null
+
+    this.#scopeService.initializeEntryScope(organizations, preferredOrganizationId)
 
     //tenant enabled/disabled features for relatives organizations
     const { tenant, role } = this.user
@@ -259,7 +281,7 @@ export class FeaturesComponent implements OnInit {
     }
 
     // enabled/disabled features from here
-    if (item.data.hasOwnProperty('featureKey') && item.hidden !== true) {
+    if (Object.prototype.hasOwnProperty.call(item.data, 'featureKey') && item.hidden !== true) {
       const { featureKey } = item.data
       const disabled = Array.isArray(featureKey) ? !featureKey.every((key) => this.#store.hasFeatureEnabled(key)) : !this.#store.hasFeatureEnabled(featureKey)
       item.hidden = disabled || (item.data.hide && item.data.hide())
