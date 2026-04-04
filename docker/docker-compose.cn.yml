@@ -65,6 +65,7 @@ services:
       - ./volumes/api/public:/srv/pangolin/public
       - ./volumes/api/ms-playwright:/ms-playwright
       - ./volumes/api/sandbox/:/sandbox/
+      - ./volumes/api/data/:/var/lib/xpert/data/
     networks:
       - overlay
 

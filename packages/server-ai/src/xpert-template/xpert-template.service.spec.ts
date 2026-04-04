@@ -1,0 +1,308 @@
+import { mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { dirname, join } from 'node:path'
+import { LanguagesEnum } from '@metad/contracts'
+import { XpertTemplateService } from './xpert-template.service'
+
+describe('XpertTemplateService', () => {
+	const cleanupPaths = new Set<string>()
+
+	afterEach(() => {
+		for (const targetPath of cleanupPaths) {
+			rmSync(targetPath, { recursive: true, force: true })
+		}
+		cleanupPaths.clear()
+		jest.restoreAllMocks()
+	})
+
+	it('uses /var/lib/xpert/data/xpert-template when env is not configured', () => {
+		const workspaceRoot = createTempDir()
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: '/var/lib/xpert/data/'
+		})
+
+		expect((service as any).getExternalTemplateRoot()).toBe('/var/lib/xpert/data/xpert-template')
+	})
+
+	it('prefers XPERT_TEMPLATE_DIR when it is configured', () => {
+		const workspaceRoot = createTempDir()
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: '/var/lib/xpert/data/',
+			env: {
+				XPERT_TEMPLATE_DIR: '/tmp/custom-xpert-template'
+			}
+		})
+
+		expect((service as any).getExternalTemplateRoot()).toBe('/tmp/custom-xpert-template')
+	})
+
+	it('initializes the external template directory without overwriting existing files', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'custom-template-root')
+		const builtinRoot = seedBuiltinTemplates(workspaceRoot)
+
+		mkdirSync(join(externalRoot, 'templates'), { recursive: true })
+		writeJson(join(externalRoot, 'templates.json'), {
+			templates: {
+				'en-US': {
+					categories: ['custom'],
+					recommendedApps: [{ id: 'template-1', name: 'External Template' }]
+				}
+			},
+			details: {}
+		})
+		writeFileSync(join(externalRoot, 'templates', 'template-1.yaml'), 'source: external-template\n', 'utf8')
+
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		await service.onModuleInit()
+
+		expect(readJson(join(externalRoot, 'templates.json'))).toEqual({
+			templates: {
+				'en-US': {
+					categories: ['custom'],
+					recommendedApps: [{ id: 'template-1', name: 'External Template' }]
+				}
+			},
+			details: {}
+		})
+		expect(readFileSync(join(externalRoot, 'templates', 'template-1.yaml'), 'utf8')).toBe(
+			'source: external-template\n'
+		)
+		expect(readJson(join(externalRoot, 'mcp-templates.json'))).toEqual(
+			readJson(join(builtinRoot, 'mcp-templates.json'))
+		)
+		expect(readJson(join(externalRoot, 'knowledge-pipelines.json'))).toEqual(
+			readJson(join(builtinRoot, 'knowledge-pipelines.json'))
+		)
+		expect(readFileSync(join(externalRoot, 'pipelines', 'pipeline-1.yaml'), 'utf8')).toBe(
+			readFileSync(join(builtinRoot, 'pipelines', 'pipeline-1.yaml'), 'utf8')
+		)
+	})
+
+	it('reads templates and yaml assets only from the external directory after initialization', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'external-templates')
+
+		seedBuiltinTemplates(workspaceRoot, {
+			templatesJson: {
+				templates: {
+					'en-US': {
+						categories: ['builtin'],
+						recommendedApps: [{ id: 'template-1', name: 'Built-in Template' }]
+					}
+				},
+				details: {}
+			},
+			mcpTemplatesJson: {
+				'en-US': {
+					categories: ['builtin'],
+					templates: [{ id: 'mcp-1', name: 'Built-in MCP' }]
+				}
+			},
+			knowledgePipelinesJson: {
+				'en-US': {
+					categories: ['builtin'],
+					templates: [{ id: 'pipeline-1', name: 'Built-in Pipeline' }]
+				}
+			},
+			templateYaml: 'source: builtin-template\n',
+			pipelineYaml: 'source: builtin-pipeline\n'
+		})
+
+		mkdirSync(join(externalRoot, 'templates'), { recursive: true })
+		mkdirSync(join(externalRoot, 'pipelines'), { recursive: true })
+		writeJson(join(externalRoot, 'templates.json'), {
+			templates: {
+				'en-US': {
+					categories: ['external'],
+					recommendedApps: [{ id: 'template-1', name: 'External Template' }]
+				}
+			},
+			details: {}
+		})
+		writeJson(join(externalRoot, 'mcp-templates.json'), {
+			'en-US': {
+				categories: ['external'],
+				templates: [{ id: 'mcp-1', name: 'External MCP' }]
+			}
+		})
+		writeJson(join(externalRoot, 'knowledge-pipelines.json'), {
+			'en-US': {
+				categories: ['external'],
+				templates: [{ id: 'pipeline-1', name: 'External Pipeline' }]
+			}
+		})
+		writeFileSync(join(externalRoot, 'templates', 'template-1.yaml'), 'source: external-template\n', 'utf8')
+		writeFileSync(join(externalRoot, 'pipelines', 'pipeline-1.yaml'), 'source: external-pipeline\n', 'utf8')
+
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		await service.onModuleInit()
+
+		const templatesFile = await service.readTemplatesFile()
+		const mcpTemplates = await service.readMCPTemplates()
+		const templateDetail = await service.getTemplateDetail('template-1', LanguagesEnum.English)
+		const knowledgePipeline = await service.getKnowledgePipeline(LanguagesEnum.English, 'pipeline-1')
+
+		expect(templatesFile.templates['en-US'].categories).toEqual(['external'])
+		expect(mcpTemplates['en-US'].templates[0].name).toBe('External MCP')
+		expect(templateDetail.name).toBe('External Template')
+		expect(templateDetail.export_data).toBe('source: external-template\n')
+		expect(knowledgePipeline.name).toBe('External Pipeline')
+		expect(knowledgePipeline.export_data).toBe('source: external-pipeline\n')
+	})
+
+	it('throws a clear error when an external template file is missing after initialization', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'external-templates')
+
+		seedBuiltinTemplates(workspaceRoot)
+
+		const { service } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		await service.onModuleInit()
+		unlinkSync(join(externalRoot, 'templates.json'))
+
+		await expect(service.readTemplatesFile()).rejects.toThrow(externalRoot)
+		await expect(service.readTemplatesFile()).rejects.toThrow('templates.json')
+	})
+
+	function createService({
+		serverRoot,
+		dataPath,
+		env = {}
+	}: {
+		serverRoot: string
+		dataPath: string
+		env?: Record<string, string>
+	}) {
+		const cache = new Map<string, unknown>()
+		const cacheManager = {
+			get: jest.fn(async (key: string) => cache.get(key)),
+			set: jest.fn(async (key: string, value: unknown) => {
+				cache.set(key, value)
+			})
+		}
+		const service = new XpertTemplateService({} as any)
+
+		;(service as any).configService = {
+			assetOptions: {
+				serverRoot,
+				dataPath
+			},
+			environment: {
+				env
+			}
+		}
+		;(service as any).cacheManager = cacheManager
+
+		jest.spyOn(service as any, 'findOneOrFailByWhereOptions').mockResolvedValue({
+			record: {
+				id: 'record-1',
+				visitCount: 1
+			}
+		})
+		jest.spyOn(service as any, 'update').mockResolvedValue(undefined)
+		jest.spyOn(service as any, 'create').mockResolvedValue(undefined)
+		jest.spyOn(service as any, 'findAll').mockResolvedValue({ items: [] })
+
+		return { service, cacheManager }
+	}
+
+	function createTempDir() {
+		const directory = mkdtempSync(join(tmpdir(), 'xpert-template-service-'))
+		cleanupPaths.add(directory)
+		return directory
+	}
+
+	function seedBuiltinTemplates(
+		serverRoot: string,
+		overrides: {
+			templatesJson?: Record<string, unknown>
+			mcpTemplatesJson?: Record<string, unknown>
+			knowledgePipelinesJson?: Record<string, unknown>
+			templateYaml?: string
+			pipelineYaml?: string
+		} = {}
+	) {
+		const builtinRoot = join(serverRoot, 'packages', 'server-ai', 'src', 'xpert-template')
+		mkdirSync(join(builtinRoot, 'templates'), { recursive: true })
+		mkdirSync(join(builtinRoot, 'pipelines'), { recursive: true })
+
+		writeJson(
+			join(builtinRoot, 'templates.json'),
+			overrides.templatesJson ?? {
+				templates: {
+					'en-US': {
+						categories: ['builtin'],
+						recommendedApps: [{ id: 'template-1', name: 'Built-in Template' }]
+					}
+				},
+				details: {}
+			}
+		)
+		writeJson(
+			join(builtinRoot, 'mcp-templates.json'),
+			overrides.mcpTemplatesJson ?? {
+				'en-US': {
+					categories: ['builtin'],
+					templates: [{ id: 'mcp-1', name: 'Built-in MCP' }]
+				}
+			}
+		)
+		writeJson(
+			join(builtinRoot, 'knowledge-pipelines.json'),
+			overrides.knowledgePipelinesJson ?? {
+				'en-US': {
+					categories: ['builtin'],
+					templates: [{ id: 'pipeline-1', name: 'Built-in Pipeline' }]
+				}
+			}
+		)
+		writeFileSync(
+			join(builtinRoot, 'templates', 'template-1.yaml'),
+			overrides.templateYaml ?? 'source: builtin-template\n',
+			'utf8'
+		)
+		writeFileSync(
+			join(builtinRoot, 'pipelines', 'pipeline-1.yaml'),
+			overrides.pipelineYaml ?? 'source: builtin-pipeline\n',
+			'utf8'
+		)
+
+		return builtinRoot
+	}
+
+	function writeJson(filePath: string, value: Record<string, unknown>) {
+		mkdirSync(dirname(filePath), { recursive: true })
+		writeFileSync(filePath, JSON.stringify(value, null, 2), 'utf8')
+	}
+
+	function readJson(filePath: string) {
+		return JSON.parse(readFileSync(filePath, 'utf8')) as Record<string, unknown>
+	}
+})
