@@ -71,6 +71,8 @@ export interface ICreateEmailInvitesOutput {
 export interface IInviteFindInput
 	extends IBasePerTenantAndOrganizationEntityModel {
 	invitationType?: InvitationTypeEnum;
+	email?: string;
+	status?: InviteStatusEnum;
 }
 
 export interface IPublicInviteFindInput {

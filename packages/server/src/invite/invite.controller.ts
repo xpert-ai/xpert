@@ -34,6 +34,7 @@ import {
 	ApiExcludeEndpoint
 } from '@nestjs/swagger';
 import { UpdateResult } from 'typeorm';
+import { Like } from 'typeorm';
 import { Request } from 'express';
 import { I18nLang } from 'nestjs-i18n';
 import { Invite } from './invite.entity';
@@ -110,7 +111,7 @@ export class InviteController {
 		if (!email && !token) {
 			throw new BadRequestException('Email & Token Mandatory');
 		}
-		return await this.inviteService.validateByToken(data);
+		return await this.inviteService.validateByToken({ email, token }, relations);
 	}
 
 	@ApiOperation({ summary: 'Find all invites.' })
@@ -132,9 +133,15 @@ export class InviteController {
 	async findAll(
 		@Query('data', ParseJsonPipe) data: any
 	): Promise<IPagination<Invite>> {
-		const { relations, findInput } = data;
+		const { relations, findInput = {} } = data ?? {};
+		const { email, status, ...restFindInput } = findInput;
+
 		return this.inviteService.findAll({
-			where: findInput,
+			where: {
+				...restFindInput,
+				...(status ? { status } : {}),
+				...(email?.trim() ? { email: Like(`%${email.trim()}%`) } : {})
+			},
 			relations
 		});
 	}

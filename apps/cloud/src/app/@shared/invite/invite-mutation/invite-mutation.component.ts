@@ -1,6 +1,6 @@
 import { DialogRef } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { ChangeDetectionStrategy, Component, Input, ViewChild, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, HostBinding, Input, ViewChild, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { ButtonGroupDirective } from '@metad/ocap-angular/core'
@@ -30,6 +30,8 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class InviteMutationComponent extends TranslationBaseComponent {
+  @HostBinding('class.ngm-dialog-container') isDialogContainer = true
+
   private readonly toastrService = inject(ToastrService)
   private readonly _dialogRef = inject(DialogRef<ICreateEmailInvitesOutput>)
 

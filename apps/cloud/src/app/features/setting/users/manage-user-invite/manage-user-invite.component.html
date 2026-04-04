@@ -1,12 +1,3 @@
-<div class="pac-page-body-toolbar">
-  <div>
-    <span>{{ 'PAC.INVITE_PAGE.ForOrganization' | translate: {Default: 'For Organization'} }}</span>: 
-    <span class="italic">
-      {{ organizationName$ | async }}
-    </span>
-  </div>
-</div>
-
 <div class="flex-1 overflow-y-auto">
   <ngm-table class="rounded-xl border border-divider-deep overflow-hidden"
     [columns]="[
@@ -50,27 +41,53 @@
   <pac-user-profile-inline class="m-1" [user]="invitedBy" />
 </ng-template>
 
-<ng-template #actionTempl let-id="id" let-email="email">
-  <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" ngmAppearance="danger" (click)="deleteInvite(id, email)">
-    <div class="flex justify-center items-center">
-      <z-icon zType="close"></z-icon>
-    </div>
-  </button>
+<ng-template
+  #actionTempl
+  let-id="id"
+  let-email="email"
+  let-role="role"
+  let-organization="organization"
+  let-displayStatus="displayStatus"
+>
+  <div class="flex items-center gap-1">
+    @if (canResend(displayStatus)) {
+      <button
+        z-button
+        zType="ghost"
+        zSize="icon"
+        zShape="circle"
+        displayDensity="cosy"
+        [zTooltip]="'PAC.ACTIONS.Resend' | translate: { Default: 'Resend' }"
+        zPosition="top"
+        (click)="resendInvite(id, email, role, organization, displayStatus)"
+      >
+        <div class="flex justify-center items-center">
+          <z-icon zType="refresh"></z-icon>
+        </div>
+      </button>
+    }
+
+    <button
+      z-button
+      zType="ghost"
+      zSize="icon"
+      zShape="circle"
+      displayDensity="cosy"
+      ngmAppearance="danger"
+      [zTooltip]="'PAC.ACTIONS.Delete' | translate: { Default: 'Delete' }"
+      zPosition="top"
+      (click)="deleteInvite(id, email)"
+    >
+      <div class="flex justify-center items-center">
+        <z-icon zType="delete"></z-icon>
+      </div>
+    </button>
+  </div>
 </ng-template>
 
-<ng-template #statusTempl let-status="status" let-statusText="statusText">
-  <span class="bg-components-input-bg-normal text-text-primary text-xs font-medium px-2.5 py-1.5 rounded-lg dark:bg-gray-700 dark:text-gray-300">
-    @switch (status) {
-      @case ('INVITED') {
-        <span class="inline-block w-2 h-2 bg-blue-400 rounded-full"></span>
-      }
-      @case ('ACCEPTED') {
-        <span class="inline-block w-2 h-2 bg-green-400 rounded-full"></span>
-      }
-      @case ('EXPIRED') {
-        <span class="inline-block w-2 h-2 bg-yellow-400 rounded-full"></span>
-      }
-    }
+<ng-template #statusTempl let-displayStatus="displayStatus" let-statusText="statusText">
+  <span class="inline-flex items-center gap-2 rounded-lg border border-divider-regular bg-components-input-bg-normal px-2.5 py-1.5 text-xs font-medium text-text-primary">
+    <span class="inline-block h-2 w-2 rounded-full" [ngClass]="statusTone(displayStatus)"></span>
     {{ statusText }}
   </span>
 </ng-template>

@@ -30,6 +30,7 @@ export interface PluginInstallValidationOptions {
 
 let cachedHostPluginSdkVersion: string | undefined
 let cachedHostPluginSdkDir: string | undefined
+let cachedHostPluginSdkPackageJsonPath: string | undefined
 
 function getRequire(basedir?: string) {
 	if (!basedir) {
@@ -79,6 +80,52 @@ function findWorkspacePluginManifestPath(pluginName: string) {
 	return undefined
 }
 
+function resolveHostPluginSdkPackageJsonPath() {
+	if (cachedHostPluginSdkPackageJsonPath) {
+		return cachedHostPluginSdkPackageJsonPath
+	}
+
+	try {
+		cachedHostPluginSdkPackageJsonPath = getRequire(process.cwd()).resolve(
+			`${HOSTED_PLUGIN_SDK_PACKAGE}/package.json`
+		)
+		return cachedHostPluginSdkPackageJsonPath
+	} catch {
+		// Fall through to workspace-aware resolution.
+	}
+
+	const candidates = new Set<string>()
+	const nxMappings = process.env.NX_MAPPINGS
+
+	if (nxMappings) {
+		try {
+			const mappings = JSON.parse(nxMappings) as Record<string, string>
+			const mappedPath = mappings[HOSTED_PLUGIN_SDK_PACKAGE]
+			if (mappedPath) {
+				candidates.add(resolve(mappedPath, 'package.json'))
+			}
+		} catch {
+			// Ignore malformed mapping payloads and continue with local fallbacks.
+		}
+	}
+
+	candidates.add(resolve(process.cwd(), 'packages', 'plugin-sdk', 'dist', 'package.json'))
+	candidates.add(resolve(process.cwd(), 'packages', 'plugin-sdk', 'package.json'))
+	candidates.add(resolve(process.cwd(), 'node_modules', ...HOSTED_PLUGIN_SDK_PACKAGE.split('/'), 'package.json'))
+
+	for (const candidate of candidates) {
+		if (existsSync(candidate)) {
+			cachedHostPluginSdkPackageJsonPath = candidate
+			return candidate
+		}
+	}
+
+	throw new PluginSdkValidationError(
+		HOSTED_PLUGIN_SDK_PACKAGE,
+		`Unable to resolve ${HOSTED_PLUGIN_SDK_PACKAGE}/package.json from runtime or workspace fallbacks`
+	)
+}
+
 function normalizePeerRange(range?: string) {
 	return range?.replace(/^workspace:/, '').trim() ?? ''
 }
@@ -104,7 +151,7 @@ export function getHostPluginSdkVersion() {
 		return cachedHostPluginSdkVersion
 	}
 
-	const packageJsonPath = require.resolve(`${HOSTED_PLUGIN_SDK_PACKAGE}/package.json`)
+	const packageJsonPath = resolveHostPluginSdkPackageJsonPath()
 	const packageJson = readJsonFile<{ version?: string }>(packageJsonPath, HOSTED_PLUGIN_SDK_PACKAGE)
 	if (!packageJson.version) {
 		throw new PluginSdkValidationError(
@@ -122,7 +169,7 @@ function getHostPluginSdkDir() {
 		return cachedHostPluginSdkDir
 	}
 
-	cachedHostPluginSdkDir = dirname(require.resolve(`${HOSTED_PLUGIN_SDK_PACKAGE}/package.json`))
+	cachedHostPluginSdkDir = dirname(resolveHostPluginSdkPackageJsonPath())
 	return cachedHostPluginSdkDir
 }
 

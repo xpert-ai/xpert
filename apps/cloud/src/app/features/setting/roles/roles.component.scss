@@ -4,11 +4,5 @@
   flex-direction: column;
   flex: 1;
   max-width: 100%;
-  
-}
-
-:host::ng-deep {
-  .ngm-list > li:not(.pointer-events-none) {
-    @apply hover:bg-hover-bg dark:hover:bg-hover-bg/20;
-  }
+  min-height: 0;
 }
