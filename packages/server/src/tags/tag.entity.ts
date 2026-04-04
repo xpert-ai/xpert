@@ -25,7 +25,11 @@ export class Tag extends TenantOrganizationBaseEntity implements ITag {
 
 	@ApiProperty({ type: () => String, enum: TagCategoryEnum })
 	@IsEnum(TagCategoryEnum)
-	@Column({ nullable: true })
+	@Column({
+		type: 'enum',
+		enum: TagCategoryEnum,
+		nullable: true
+	})
 	category?: TagCategoryEnum;
 
 	@ApiPropertyOptional({ type: () => Object })
