@@ -6,6 +6,7 @@ import {
 	runWithRequestContext,
 	TenantCreatedEvent,
 	UserOrganizationCreatedEvent,
+	UserOrganizationDeletedEvent,
 	UserOrganizationService,
 	UserService
 } from '@metad/server-core'
@@ -141,6 +142,14 @@ export class ServerAIBootstrapService {
 				await this.workspaceService.ensureMember(organizationWorkspace.id, user.id)
 			}
 		})
+	}
+
+	async cleanupUserInOrganization(event: UserOrganizationDeletedEvent) {
+		await this.workspaceService.removeMemberFromOrganizationWorkspaces(
+			event.tenantId,
+			event.organizationId,
+			event.userId
+		)
 	}
 
 	async syncOrganizationSkillRepository(event: {

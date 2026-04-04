@@ -96,6 +96,7 @@ describe('ServerAIBootstrapService', () => {
       findOne: jest.fn(),
       findOrganizationDefaultWorkspace: jest.fn().mockResolvedValue(null),
       findUserDefaultWorkspace: jest.fn(),
+      removeMemberFromOrganizationWorkspaces: jest.fn().mockResolvedValue(0),
       update: jest.fn()
     }
     const environmentService = {
@@ -438,5 +439,21 @@ describe('ServerAIBootstrapService', () => {
     expect(workspaceService.create).not.toHaveBeenCalled()
     expect(environmentService.getDefaultByWorkspace).not.toHaveBeenCalled()
     expect(workspaceService.ensureMember).toHaveBeenCalledWith('org-workspace-1', 'owner-1')
+  })
+
+  it('removes the user from non-personal org workspaces on membership deletion', async () => {
+    const { service, workspaceService } = createService()
+
+    await service.cleanupUserInOrganization({
+      tenantId: 'tenant-1',
+      organizationId: 'org-1',
+      userId: 'user-1'
+    } as any)
+
+    expect(workspaceService.removeMemberFromOrganizationWorkspaces).toHaveBeenCalledWith(
+      'tenant-1',
+      'org-1',
+      'user-1'
+    )
   })
 })

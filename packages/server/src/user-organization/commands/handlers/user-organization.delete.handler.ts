@@ -8,6 +8,8 @@ import { RoleService } from '../../../role/role.service';
 import { RolesEnum, LanguagesEnum, IUser } from '@metad/contracts';
 import { UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { I18nService } from 'nestjs-i18n';
+import { EventEmitter2 } from '@nestjs/event-emitter';
+import { EVENT_USER_ORGANIZATION_DELETED, UserOrganizationDeletedEvent } from '../../../user/events';
 
 /**
  * 1. Remove user from given organization if user belongs to multiple organizations
@@ -23,7 +25,8 @@ export class UserOrganizationDeleteHandler
 		private readonly userOrganizationService: UserOrganizationService,
 		private readonly userService: UserService,
 		private readonly roleService: RoleService,
-		private readonly i18n: I18nService
+		private readonly i18n: I18nService,
+		private readonly eventEmitter: EventEmitter2
 	) {}
 
 	public async execute(
@@ -33,6 +36,8 @@ export class UserOrganizationDeleteHandler
 
 		// 1. find user to delete
 		const {
+			tenantId,
+			organizationId,
 			user: {
 				role: { name: roleName }
 			},
@@ -43,17 +48,39 @@ export class UserOrganizationDeleteHandler
 		);
 
 		// 2. Handle Super Admin Deletion if applicable
-		if (roleName === RolesEnum.SUPER_ADMIN)
-			return this._removeSuperAdmin(
+		if (roleName === RolesEnum.SUPER_ADMIN) {
+			const memberships = await this.userOrganizationService.findAll({
+				where: { userId }
+			});
+			const result = await this._removeSuperAdmin(
 				input.requestingUser,
 				userId,
 				input.language
 			);
+			this.emitUserOrganizationDeletedEvents(
+				memberships.items.map(({ tenantId, organizationId }) => ({
+					tenantId,
+					organizationId
+				})),
+				userId
+			);
+			return result;
+		}
 
-		return this._removeUserFromOrganization(
+		const result = await this._removeUserFromOrganization(
 			userId,
 			input.userOrganizationId
 		);
+		this.emitUserOrganizationDeletedEvents(
+			[
+				{
+					tenantId,
+					organizationId
+				}
+			],
+			userId
+		);
+		return result;
 	}
 
 	private async _removeUserFromOrganization(
@@ -107,5 +134,17 @@ export class UserOrganizationDeleteHandler
 
 		// 3. Delete Super Admin user from all organizations
 		return this.userService.delete(userId);
+	}
+
+	private emitUserOrganizationDeletedEvents(
+		memberships: Array<{ tenantId: string; organizationId: string }>,
+		userId: string
+	) {
+		for (const membership of memberships) {
+			this.eventEmitter.emit(
+				EVENT_USER_ORGANIZATION_DELETED,
+				new UserOrganizationDeletedEvent(membership.tenantId, membership.organizationId, userId)
+			);
+		}
 	}
 }

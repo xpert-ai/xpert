@@ -123,4 +123,28 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
 
 		return workspace
 	}
+
+	async removeMemberFromOrganizationWorkspaces(tenantId: string, organizationId: string, userId: string) {
+		const workspaceIds = await this.workspaceRepository
+			.createQueryBuilder('workspace')
+			.leftJoin('workspace.members', 'member')
+			.select('workspace.id', 'id')
+			.where('workspace.tenantId = :tenantId', { tenantId })
+			.andWhere('workspace.organizationId = :organizationId', { organizationId })
+			.andWhere('member.id = :userId', { userId })
+			.andWhere(`COALESCE((workspace.settings)::jsonb -> 'system' ->> 'kind', '') <> :kind`, {
+				kind: 'user-default'
+			})
+			.getRawMany<{ id: string }>()
+
+		for (const { id } of workspaceIds) {
+			await this.workspaceRepository
+				.createQueryBuilder()
+				.relation(XpertWorkspace, 'members')
+				.of(id)
+				.remove(userId)
+		}
+
+		return workspaceIds.length
+	}
 }

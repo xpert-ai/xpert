@@ -4,12 +4,14 @@ import { OnEvent } from '@nestjs/event-emitter'
 import { Job, Queue } from 'bull'
 import { EVENT_ORGANIZATION_CREATED, EVENT_TENANT_CREATED, OrganizationCreatedEvent, TenantCreatedEvent } from '@metad/server-core'
 import { EVENT_USER_ORGANIZATION_CREATED, UserOrganizationCreatedEvent } from '@metad/server-core'
+import { EVENT_USER_ORGANIZATION_DELETED, UserOrganizationDeletedEvent } from '@metad/server-core'
 import {
 	AI_BOOTSTRAP_QUEUE,
 	AI_ORGANIZATION_BOOTSTRAP_JOB,
 	AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB,
 	AI_TENANT_SKILL_REPOSITORY_BOOTSTRAP_JOB,
-	AI_USER_ORGANIZATION_BOOTSTRAP_JOB
+	AI_USER_ORGANIZATION_BOOTSTRAP_JOB,
+	AI_USER_ORGANIZATION_CLEANUP_JOB
 } from './constants'
 import { ServerAIBootstrapService } from './bootstrap.service'
 
@@ -54,6 +56,16 @@ export class ServerAIBootstrapProcessor {
 	async enqueueUserOrganizationBootstrap(event: UserOrganizationCreatedEvent) {
 		await this.bootstrapQueue.add(AI_USER_ORGANIZATION_BOOTSTRAP_JOB, event, {
 			jobId: `user-org-bootstrap:${event.organizationId}:${event.userId}`,
+			attempts: 3,
+			backoff: 10_000,
+			removeOnComplete: true
+		})
+	}
+
+	@OnEvent(EVENT_USER_ORGANIZATION_DELETED)
+	async enqueueUserOrganizationCleanup(event: UserOrganizationDeletedEvent) {
+		await this.bootstrapQueue.add(AI_USER_ORGANIZATION_CLEANUP_JOB, event, {
+			jobId: `user-org-cleanup:${event.organizationId}:${event.userId}`,
 			attempts: 3,
 			backoff: 10_000,
 			removeOnComplete: true
@@ -109,6 +121,20 @@ export class ServerAIBootstrapProcessor {
 		} catch (error) {
 			this.logger.error(
 				`Failed user organization bootstrap for '${job.data.organizationId}:${job.data.userId}': ${
+					error instanceof Error ? error.stack : error
+				}`
+			)
+			throw error
+		}
+	}
+
+	@Process(AI_USER_ORGANIZATION_CLEANUP_JOB)
+	async handleUserOrganizationCleanup(job: Job<UserOrganizationDeletedEvent>) {
+		try {
+			await this.bootstrapService.cleanupUserInOrganization(job.data)
+		} catch (error) {
+			this.logger.error(
+				`Failed user organization cleanup for '${job.data.organizationId}:${job.data.userId}': ${
 					error instanceof Error ? error.stack : error
 				}`
 			)
