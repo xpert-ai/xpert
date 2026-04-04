@@ -292,6 +292,9 @@ export class ClawHubSkillSourceProvider implements ISkillSourceProvider {
 					description: {
 						en_US: 'Optional Bearer token for authenticated requests and higher rate limits.',
 						zh_Hans: '可选 Bearer Token，用于认证请求和更高的速率限制。'
+					},
+					'x-ui': {
+						component: 'password'
 					}
 				}
 			}

@@ -1,5 +1,5 @@
 <section class="xp-ui-shell rounded-2xl p-5">
-  <div class="text-lg font-semibold text-foreground">
+  <div class="text-xl font-semibold text-foreground" cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle>
     @if (repository()) {
       {{ 'Pro.UpdateSkillRepositoryTitle' | translate: {Default: 'Update skill repository'} }}
     } @else {
@@ -16,12 +16,17 @@
       <span class="text-sm font-semibold text-foreground">
         {{ 'Pro.SourceStrategy' | translate: {Default: 'Source Strategy'} }}
       </span>
-      <ngm-select
+      <z-select
         class="w-full"
-        [selectOptions]="sourceStrategyOptions()"
         formControlName="provider"
-        [placeholder]="'Pro.SelectRepositorySource' | translate: {Default: 'Select repository source'}"
-      />
+        [zPlaceholder]="'Pro.SelectRepositorySource' | translate: {Default: 'Select repository source'}"
+      >
+        @for (strategy of sourceStrategies(); track strategy.name) {
+          <z-select-item [zValue]="strategy.name">
+            {{ strategy.label?.zh_Hans || strategy.label?.en_US || strategy.name }}
+          </z-select-item>
+        }
+      </z-select>
       @if (activeSourceStrategy(); as strategy) {
         <span class="text-xs text-muted-foreground">{{ strategy.description?.zh_Hans || strategy.description?.en_US }}</span>
       }
@@ -31,9 +36,10 @@
         {{ 'Pro.RepositoryName' | translate: {Default: 'Name'} }}
       </span>
       <input
+        z-input
         type="text"
         formControlName="name"
-        class="w-full rounded-lg border border-input bg-background px-3 py-2 text-foreground shadow-sm outline-none transition placeholder:text-muted-foreground focus:border-ring focus:ring-2 focus:ring-ring/20"
+        class="w-full"
         placeholder="anthropics/skills"
       />
     </label>
