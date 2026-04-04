@@ -15,11 +15,3 @@
 .clawxpert-model-menu-trigger {
   @apply border-0 bg-transparent shadow-none;
 }
-
-.clawxpert-model-trigger {
-  @apply min-w-0 flex-1 justify-start px-4;
-}
-
-.clawxpert-model-menu-trigger {
-  @apply shrink-0 rounded-none border-l border-divider-regular px-3;
-}

@@ -151,13 +151,13 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
             </div>
 
             @if (facade.resolvedPreference() && facade.viewState() === 'ready') {
-              <div ngmButtonGroup class="clawxpert-model-group">
+              <div class="flex rounded-xl border border-border">
                 <button
                   z-button
                   zType="ghost"
                   displayDensity="cosy"
                   type="button"
-                  class="clawxpert-model-trigger"
+                  class="flex-1"
                   z-menu
                   [zMenuTriggerFor]="copilotModelMenu"
                   [disabled]="facade.savingCopilotModel()"
@@ -173,7 +173,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
                   displayDensity="cosy"
                   type="button"
                   zSize="icon"
-                  class="clawxpert-model-menu-trigger"
+                  class="shrink-0 rounded-none rounded-r-xl border-0 border-l border-border px-3"
                   z-menu
                   [zMenuTriggerFor]="actionMenu"
                   [disabled]="facade.clearing() || facade.savingCopilotModel()"
