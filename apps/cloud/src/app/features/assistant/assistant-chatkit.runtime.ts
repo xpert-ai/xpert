@@ -43,6 +43,7 @@ type AssistantRuntimeInput = {
   initialThread?: Signal<string | null>
   titleKey: string
   titleDefault: string
+  onReady?: NonNullable<ChatKitEventHandlers['onReady']>
   onEffect?: NonNullable<ChatKitEventHandlers['onEffect']>
   onLog?: NonNullable<ChatKitEventHandlers['onLog']>
   onResponseStart?: NonNullable<ChatKitEventHandlers['onResponseStart']>
@@ -61,6 +62,7 @@ type AssistantHostedRuntimeInput = {
   initialThread?: Signal<string | null>
   titleKey: string
   titleDefault: string
+  onReady?: NonNullable<ChatKitEventHandlers['onReady']>
   onEffect?: NonNullable<ChatKitEventHandlers['onEffect']>
   onLog?: NonNullable<ChatKitEventHandlers['onLog']>
   onResponseStart?: NonNullable<ChatKitEventHandlers['onResponseStart']>
@@ -163,6 +165,7 @@ export function injectAssistantChatkitRuntime(input: AssistantRuntimeInput) {
     initialThread: input.initialThread,
     titleKey: input.titleKey,
     titleDefault: input.titleDefault,
+    onReady: input.onReady,
     onEffect: input.onEffect,
     onLog: input.onLog,
     onResponseStart: input.onResponseStart,
@@ -259,6 +262,7 @@ export function injectHostedAssistantChatkitControl(input: AssistantHostedRuntim
       request: {
         context: requestContext ?? {}
       },
+      onReady: input.onReady,
       onEffect: input.onEffect,
       onLog: input.onLog,
       onResponseStart: input.onResponseStart,

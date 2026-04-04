@@ -5,6 +5,7 @@ import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { getErrorMessage, ISkillRepository, ISkillRepositoryIndex } from '@cloud/app/@core'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardSegmentedComponent, ZardSegmentedItemComponent } from '@xpert-ai/headless-ui'
 import { SkillRepositoryIndexService, SkillRepositoryService, ToastrService } from '../../../@core/services'
 import { XpertSkillIndexesComponent } from '../indexes/indexes.component'
 
@@ -13,7 +14,7 @@ import { XpertSkillIndexesComponent } from '../indexes/indexes.component'
   selector: 'xp-skill-repository',
   templateUrl: './skill-repository.component.html',
   styleUrls: ['./skill-repository.component.css'],
-  imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, TranslateModule, XpertSkillIndexesComponent]
+  imports: [CommonModule, RouterModule, FormsModule, ReactiveFormsModule, TranslateModule, ZardSegmentedComponent, ZardSegmentedItemComponent, XpertSkillIndexesComponent]
 })
 export class XpertSkillRepositoryComponent {
   readonly repositoryService = inject(SkillRepositoryService)

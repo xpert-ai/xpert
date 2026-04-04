@@ -9,6 +9,7 @@ import {
     CopilotChatMessage,
     createMessageAppendContextTracker,
     figureOutXpert,
+    IAssistantBindingToolPreferences,
     IChatConversation,
     IChatMessage,
     IStorageFile,
@@ -41,6 +42,7 @@ import { XpertAgentChatCommand } from '../../../xpert-agent/commands/chat.comman
 import { XpertService } from '../../xpert.service'
 import { XpertChatCommand } from '../chat.command'
 import { CreateMemoryStoreCommand } from '../../../shared/commands/create-memory-store.command'
+import { getDisabledSkillIds } from '../../../shared/agent/tool-preference'
 import { normalizeChatState } from '../../../shared/agent/utils'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
@@ -303,6 +305,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         }
         state ??= normalizeChatState(undefined, input)
         state = withPreferenceSystemState(state, userPreference)
+        state = withPreferenceSkillState(state, latestXpert?.workspaceId ?? xpert.workspaceId, userPreference?.toolPreferences)
 
         return new Observable<MessageEvent>((subscriber) => {
             // New conversation
@@ -645,6 +648,20 @@ function withPreferenceSystemState(
             soul: preference?.soul ?? null,
             profile: preference?.profile ?? null
         }
+    }
+}
+
+function withPreferenceSkillState(
+    state: Record<string, any>,
+    workspaceId?: string | null,
+    toolPreferences?: IAssistantBindingToolPreferences | null
+) {
+    const normalizedWorkspaceId = workspaceId?.trim() || undefined
+
+    return {
+        ...state,
+        selectedSkillWorkspaceId: normalizedWorkspaceId,
+        disabledSkillIds: normalizedWorkspaceId ? getDisabledSkillIds(normalizedWorkspaceId, toolPreferences) : undefined
     }
 }
 

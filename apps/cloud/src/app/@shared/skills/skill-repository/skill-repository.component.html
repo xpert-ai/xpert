@@ -17,40 +17,22 @@
     </button>
   </header>
 
-  <div class="space-y-4 px-5 py-4">
-    <div class="xp-ui-code-card rounded-xl bg-components-panel-bg px-4 py-3 font-mono text-text-primary">
-      <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
-        <div class="flex items-center gap-2 rounded-full border border-divider-regular bg-background-default-subtle p-1">
-          <button
-            type="button"
-            class="rounded-full px-3 py-1 text-sm font-semibold text-text-secondary transition hover:bg-hover-bg hover:text-text-primary"
-            [class.bg-components-card-bg]="mode() === 'incremental'"
-            [class.text-text-primary]="mode() === 'incremental'"
-            (click)="mode.set('incremental')"
-          >
-            {{ 'Pro.IndexModeIncremental' | translate: {Default: 'Incremental'} }}
-          </button>
-          <button
-            type="button"
-            class="rounded-full px-3 py-1 text-sm font-semibold text-text-secondary transition hover:bg-hover-bg hover:text-text-primary"
-            [class.bg-components-card-bg]="mode() === 'full'"
-            [class.text-text-primary]="mode() === 'full'"
-            (click)="mode.set('full')"
-          >
-            {{ 'Pro.IndexModeFull' | translate: {Default: 'Full'} }}
-          </button>
-        </div>
-        <button
-          type="button"
-          class="ml-auto inline-flex items-center gap-2 rounded-full border border-divider-regular bg-components-card-bg px-4 py-1 text-sm font-semibold text-text-primary transition hover:bg-hover-bg"
-          (click)="reloadIndexes()"
-        >
-          @if (loading()) {
-            <span class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-divider-regular border-t-text-primary"></span>
-          }
-          {{ 'Pro.RefreshIndex' | translate: {Default: 'Refresh index'} }}
-        </button>
-      </div>
+  <div class="space-y-4 px-5">
+    <div class="mt-4 flex flex-wrap items-center gap-3 text-sm">
+      <z-segmented [(ngModel)]="mode">
+        <z-segmented-item value="incremental" [label]="'Pro.IndexModeIncremental' | translate: {Default: 'Incremental'}" />
+        <z-segmented-item value="full" [label]="'Pro.IndexModeFull' | translate: {Default: 'Full'}" />
+      </z-segmented>
+      <button
+        type="button"
+        class="ml-auto inline-flex items-center gap-2 rounded-full border border-divider-regular bg-components-card-bg px-4 py-1 text-sm font-semibold text-text-primary transition hover:bg-hover-bg"
+        (click)="reloadIndexes()"
+      >
+        @if (loading()) {
+          <span class="inline-block h-3 w-3 animate-spin rounded-full border-2 border-divider-regular border-t-text-primary"></span>
+        }
+        {{ 'Pro.RefreshIndex' | translate: {Default: 'Refresh index'} }}
+      </button>
     </div>
   </div>
 </section>

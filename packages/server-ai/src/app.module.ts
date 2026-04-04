@@ -38,6 +38,7 @@ import { HandoffQueueModule } from './handoff/message-queue.module'
 import { SkillRepositoryIndexModule, SkillRepositoryModule } from './skill-repository'
 import { SkillPackageModule } from './skill-package'
 import { FileUploadTargetsModule } from './shared'
+import { InitializationModule } from './initialization/initialization.module'
 
 @Module({
     imports: [
@@ -74,6 +75,7 @@ import { FileUploadTargetsModule } from './shared'
         SkillRepositoryModule,
 		SkillRepositoryIndexModule,
 		SkillPackageModule,
+        InitializationModule,
         KnowledgebaseModule,
         KnowledgeDocumentModule,
         RagVStoreModule,

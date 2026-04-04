@@ -22,6 +22,10 @@ import { TranslateModule } from '@ngx-translate/core'
 export class XpertSkillIndexesComponent {
   readonly indexService = inject(SkillRepositoryIndexService)
   readonly #toastr = injectToastr()
+  readonly #compactNumber = new Intl.NumberFormat('en', {
+    notation: 'compact',
+    maximumFractionDigits: 1
+  })
 
   // Inputs
   readonly selectedRepository = input<ISkillRepository | null>(null)
@@ -46,7 +50,16 @@ export class XpertSkillIndexesComponent {
 
     if (term) {
       items = items.filter((item) => {
-        const haystack = [item.name, item.skillId, item.skillPath, item.description, ...(item.tags ?? [])]
+        const haystack = [
+          item.name,
+          item.skillId,
+          item.skillPath,
+          item.description,
+          item.publisher?.handle,
+          item.publisher?.displayName,
+          item.publisher?.name,
+          ...(item.tags ?? [])
+        ]
           .filter(Boolean)
           .join(' ')
           .toLowerCase()
@@ -64,7 +77,7 @@ export class XpertSkillIndexesComponent {
           new Date(b.updatedAt ?? b.createdAt ?? '').getTime() - new Date(a.updatedAt ?? a.createdAt ?? '').getTime()
         )
       }
-      return (b.tags?.length ?? 0) - (a.tags?.length ?? 0)
+      return (b.stats?.stars ?? 0) - (a.stats?.stars ?? 0)
     })
 
     return items
@@ -81,6 +94,26 @@ export class XpertSkillIndexesComponent {
 
   install(item: ISkillRepositoryIndex) {
     this.installing.emit(item)
+  }
+
+  publisherDisplayName(item: ISkillRepositoryIndex): string {
+    return item.publisher?.displayName || item.publisher?.name || item.name || 'skill'
+  }
+
+  publisherHandle(item: ISkillRepositoryIndex): string {
+    if (item.publisher?.handle) {
+      return `@${item.publisher.handle}`
+    }
+
+    return this.publisherDisplayName(item)
+  }
+
+  publisherAvatarFallback(item: ISkillRepositoryIndex): string {
+    return this.publisherDisplayName(item).charAt(0).toUpperCase() || 'S'
+  }
+
+  formatStat(value?: number | null): string {
+    return typeof value === 'number' && Number.isFinite(value) ? this.#compactNumber.format(value) : '--'
   }
 
   loadIndexes(repositoryId: string) {

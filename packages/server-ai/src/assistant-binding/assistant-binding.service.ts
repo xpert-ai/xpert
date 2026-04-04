@@ -3,6 +3,7 @@ import {
   AssistantBindingSourceScope,
   AssistantCode,
   IAssistantBinding,
+  IAssistantBindingSkillPreference,
   IAssistantBindingMiddlewarePreference,
   IAssistantBindingToolPreferences,
   IAssistantBindingToolsetPreference,
@@ -824,14 +825,29 @@ function normalizeToolPreferencesValue(value?: IAssistantBindingToolPreferences 
     return acc
   }, {})
 
-  if (!Object.keys(toolsets).length && !Object.keys(middlewares).length) {
+  const skills = Object.entries(value.skills ?? {}).reduce<Record<string, IAssistantBindingSkillPreference>>((acc, [key, item]) => {
+    const workspaceId = key?.trim()
+    const normalizedWorkspaceId = item?.workspaceId?.trim() || workspaceId
+    if (!workspaceId || !normalizedWorkspaceId) {
+      return acc
+    }
+
+    acc[workspaceId] = {
+      workspaceId: normalizedWorkspaceId,
+      disabledSkillIds: normalizeDisabledTools(item.disabledSkillIds)
+    }
+    return acc
+  }, {})
+
+  if (!Object.keys(toolsets).length && !Object.keys(middlewares).length && !Object.keys(skills).length) {
     return null
   }
 
   return {
     version: 1,
     ...(Object.keys(toolsets).length ? { toolsets } : {}),
-    ...(Object.keys(middlewares).length ? { middlewares } : {})
+    ...(Object.keys(middlewares).length ? { middlewares } : {}),
+    ...(Object.keys(skills).length ? { skills } : {})
   }
 }
 

@@ -1,4 +1,10 @@
-import { ISkillRepository, ISkillRepositoryIndex, TSkillSourceMeta } from '@metad/contracts'
+import {
+	ISkillRepository,
+	ISkillRepositoryIndex,
+	ISkillRepositoryIndexPublisher,
+	ISkillRepositoryIndexStats,
+	TSkillSourceMeta
+} from '@metad/contracts'
 import { InjectQueue } from '@nestjs/bull'
 import { Injectable } from '@nestjs/common'
 import { ISkillSourceProvider, SkillSourceProviderStrategy } from '@xpert-ai/plugin-sdk'
@@ -12,6 +18,47 @@ import { GithubRequestInit, GithubRequestJob, GithubResponse } from './github-re
 import { IGitHubSkillRepositoryOptions } from './types'
 
 const GITHUB_SKILL_SOURCE_PROVIDER = 'github'
+
+type GithubRepositoryOwnerResponse = {
+	login?: string | null
+	avatar_url?: string | null
+	type?: string | null
+}
+
+type GithubRepositoryResponseData = {
+	default_branch?: string | null
+	stargazers_count?: number | null
+	html_url?: string | null
+	owner?: GithubRepositoryOwnerResponse | null
+}
+
+type GithubUserResponseData = {
+	login?: string | null
+	name?: string | null
+	avatar_url?: string | null
+	type?: string | null
+}
+
+type GithubRepositoryMetadata = {
+	defaultBranch?: string
+	publisher?: ISkillRepositoryIndexPublisher
+	stats?: ISkillRepositoryIndexStats
+}
+
+type GithubRepositoryIdentity = {
+	owner: string
+	repo: string
+	normalizedRepoUrl: string
+}
+
+type GithubSkillContext = {
+	repositoryId: string
+	repoUrl: string
+	repositoryPath: string
+	branch: string
+	publisher?: ISkillRepositoryIndexPublisher
+	stats?: ISkillRepositoryIndexStats
+}
 
 const buildGithubHeaders = (token?: string): Record<string, string> => {
 	const headers: Record<string, string> = {
@@ -39,14 +86,62 @@ const normalizeRepositoryPath = (repositoryPath?: string) => {
 
 	return trimmed.replace(/^\/+/, '').replace(/\/+$/, '')
 }
-const buildTarballUrl = (repoUrl: string, branch?: string) => {
+
+const parseGithubRepositoryUrl = (repoUrl: string): GithubRepositoryIdentity => {
 	const url = new URL(repoUrl)
+	if (url.hostname !== 'github.com') {
+		throw new Error('Only GitHub repositories are supported.')
+	}
+
 	const [owner, repo] = url.pathname.replace(/^\/+/, '').split('/')
+	if (!owner || !repo) {
+		throw new Error('Invalid GitHub repository URL.')
+	}
+
+	return {
+		owner,
+		repo,
+		normalizedRepoUrl: `https://github.com/${owner}/${repo}`
+	}
+}
+
+const buildTarballUrl = (repoUrl: string, branch?: string) => {
+	const { owner, repo } = parseGithubRepositoryUrl(repoUrl)
 	return {
 		owner,
 		repo,
 		url: `https://api.github.com/repos/${owner}/${repo}/tarball/${branch || 'main'}`
 	}
+}
+
+const normalizePublisherKind = (type?: string | null) => {
+	if (typeof type !== 'string' || !type.trim()) {
+		return undefined
+	}
+
+	return type.trim().toLowerCase()
+}
+
+const buildGithubPublisherFallback = (owner: string): ISkillRepositoryIndexPublisher => ({
+	handle: owner,
+	displayName: owner,
+	name: owner
+})
+
+const encodeGithubPath = (...paths: string[]) =>
+	paths
+		.flatMap((path) => normalizeRepositoryPath(path).split('/'))
+		.filter(Boolean)
+		.map((segment) => encodeURIComponent(segment))
+		.join('/')
+
+const buildGithubSkillLink = (repoUrl: string, branch: string, repositoryPath: string, skillPath: string) => {
+	const { normalizedRepoUrl } = parseGithubRepositoryUrl(repoUrl)
+	const skillFilePath = encodeGithubPath(repositoryPath, skillPath, 'SKILL.md')
+
+	return skillFilePath
+		? `${normalizedRepoUrl}/blob/${branch}/${skillFilePath}`
+		: `${normalizedRepoUrl}/blob/${branch}/SKILL.md`
 }
 
 const downloadTarballToTemp = async (
@@ -111,6 +206,53 @@ async function ensureGithubOk(res: GithubResponse<any>) {
 	throw new Error(`GitHub API error: ${res.status} ${res.statusText}${detail ? ` - ${detail}` : ''}`)
 }
 
+async function fetchGithubRepositoryMetadata(
+	queue: Queue<GithubRequestJob>,
+	repoUrl: string,
+	headers: Record<string, string>
+): Promise<GithubRepositoryMetadata> {
+	const { owner, repo } = parseGithubRepositoryUrl(repoUrl)
+	const repoResponse = await throttledFetch<GithubRepositoryResponseData>(queue, `https://api.github.com/repos/${owner}/${repo}`, {
+		headers
+	})
+	await ensureGithubOk(repoResponse)
+
+	const repoData = (repoResponse.data ?? {}) as GithubRepositoryResponseData
+	const repoOwner = repoData.owner ?? {}
+	const ownerLogin = repoOwner.login?.trim() || owner
+
+	let userData: GithubUserResponseData | undefined
+	try {
+		const userResponse = await throttledFetch<GithubUserResponseData>(queue, `https://api.github.com/users/${ownerLogin}`, {
+			headers
+		})
+		await ensureGithubOk(userResponse)
+		userData = (userResponse.data ?? {}) as GithubUserResponseData
+	} catch {
+		userData = undefined
+	}
+
+	const displayName = userData?.name?.trim() || userData?.login?.trim() || ownerLogin
+	const publisher: ISkillRepositoryIndexPublisher = {
+		handle: ownerLogin,
+		displayName,
+		name: displayName,
+		image: userData?.avatar_url?.trim() || repoOwner.avatar_url?.trim() || undefined,
+		kind: normalizePublisherKind(userData?.type) || normalizePublisherKind(repoOwner.type)
+	}
+
+	const stars =
+		typeof repoData.stargazers_count === 'number' && Number.isFinite(repoData.stargazers_count)
+			? Math.trunc(repoData.stargazers_count)
+			: undefined
+
+	return {
+		defaultBranch: repoData.default_branch?.trim() || undefined,
+		publisher,
+		stats: typeof stars === 'number' ? { stars } : undefined
+	}
+}
+
 @Injectable()
 @SkillSourceProviderStrategy(GITHUB_SKILL_SOURCE_PROVIDER)
 export class GitHubSkillSourceProvider implements ISkillSourceProvider {
@@ -173,6 +315,9 @@ export class GitHubSkillSourceProvider implements ISkillSourceProvider {
 					description: {
 						en_US: 'Personal Access Token for accessing private repositories',
 						zh_Hans: '用于访问私有仓库的个人访问令牌'
+					},
+					'x-ui': {
+						component: 'password'
 					}
 				}
 			},
@@ -202,12 +347,17 @@ export class GitHubSkillSourceProvider implements ISkillSourceProvider {
 		}
 		const options = index.repository.options as unknown as IGitHubSkillRepositoryOptions
 		const repoUrl = options.url
-		const branch = options.branch || 'main'
 		const token = resolveGithubToken(index.repository)
 		const headers = buildGithubHeaders(token)
+		let repositoryMetadata: GithubRepositoryMetadata | undefined
+		try {
+			repositoryMetadata = await fetchGithubRepositoryMetadata(this.githubQueue, repoUrl, headers)
+		} catch {
+			repositoryMetadata = undefined
+		}
+		const branch = options.branch || repositoryMetadata?.defaultBranch || 'main'
 
-		const url = new URL(repoUrl)
-		const [owner, repo] = url.pathname.replace(/^\/+/, '').split('/')
+		const { owner, repo } = parseGithubRepositoryUrl(repoUrl)
 		
 		const skillRoot = join(installDir, owner, repo, index.skillPath)
 
@@ -246,16 +396,14 @@ export async function scanGithubSkills(
 	const headers = buildGithubHeaders(token)
 	const repositoryOptions = repository?.options as unknown as IGitHubSkillRepositoryOptions
 	const repositoryPath = normalizeRepositoryPath(repositoryOptions?.path)
-	const branch = repositoryOptions?.branch || 'main'
-	const url = new URL(repoUrl)
-	if (url.hostname !== 'github.com') {
-		throw new Error('Only GitHub repositories are supported.')
+	const { owner } = parseGithubRepositoryUrl(repoUrl)
+	let repositoryMetadata: GithubRepositoryMetadata | undefined
+	try {
+		repositoryMetadata = await fetchGithubRepositoryMetadata(queue as Queue<GithubRequestJob>, repoUrl, headers)
+	} catch {
+		repositoryMetadata = undefined
 	}
-
-	const [owner, repo] = url.pathname.replace(/^\/+/, '').split('/')
-	if (!owner || !repo) {
-		throw new Error('Invalid GitHub repository URL.')
-	}
+	const branch = repositoryOptions?.branch || repositoryMetadata?.defaultBranch || 'main'
 
 	// 遍历整个仓库，记录每个目录是否含 SKILL.md
 	const skills: ISkillRepositoryIndex[] = []
@@ -268,7 +416,14 @@ export async function scanGithubSkills(
 			await ensureSkillsRoot(repoRoot, skillsRoot, repositoryOptions?.path)
 		}
 
-		await scanDirectory(skills, repoRoot, skillsRoot, '', {repositoryId})
+		await scanDirectory(skills, skillsRoot, '', {
+			repositoryId,
+			repoUrl,
+			repositoryPath,
+			branch,
+			publisher: repositoryMetadata?.publisher ?? buildGithubPublisherFallback(owner),
+			stats: repositoryMetadata?.stats
+		})
 		return skills
 	} finally {
 		await rm(tempDir, { recursive: true, force: true })
@@ -345,7 +500,12 @@ async function collectResourcesFromFs(skillsRoot: string, absDir: string, list: 
 	return list
 }
 
-async function scanDirectory(skills: ISkillRepositoryIndex[], repoRoot: string, skillsRoot: string, name: string, baseEntity: Partial<ISkillRepositoryIndex>) {
+async function scanDirectory(
+	skills: ISkillRepositoryIndex[],
+	skillsRoot: string,
+	name: string,
+	context: GithubSkillContext
+) {
 	const absDir = join(skillsRoot, name ? name : '')
 	const entries = await readdir(absDir, { withFileTypes: true })
 	const hasSkillMd = entries.some((entry) => entry.isFile() && entry.name.toLowerCase() === 'skill.md')
@@ -356,14 +516,17 @@ async function scanDirectory(skills: ISkillRepositoryIndex[], repoRoot: string, 
 		const resources = await collectResourcesFromFs(skillsRoot, absDir, [])
 
 		skills.push({
-			...(baseEntity ?? {}) as ISkillRepositoryIndex,
+			repositoryId: context.repositoryId,
 			skillPath: relDir,
 			skillId: relDir || '/',
 			name: metadata?.name || relDir.split('/').pop() || relDir,
+			link: buildGithubSkillLink(context.repoUrl, context.branch, context.repositoryPath, relDir),
+			publisher: context.publisher,
 			description: metadata?.description,
 			license: metadata?.license,
 			tags: [],
 			version: metadata?.version,
+			stats: context.stats,
 			resources
 		})
 
@@ -372,7 +535,7 @@ async function scanDirectory(skills: ISkillRepositoryIndex[], repoRoot: string, 
 
 	for (const entry of entries) {
 		if (entry.isDirectory()) {
-			await scanDirectory(skills, repoRoot, skillsRoot, join(name, entry.name), baseEntity)
+			await scanDirectory(skills, skillsRoot, join(name, entry.name), context)
 		}
 	}
 }

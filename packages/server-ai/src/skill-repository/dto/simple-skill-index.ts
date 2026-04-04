@@ -1,7 +1,7 @@
-import { ISkillRepository, ISkillRepositoryIndex } from '@metad/contracts'
+import { ISkillRepository, ISkillRepositoryIndex, ISkillRepositoryIndexPublisher, ISkillRepositoryIndexStats } from '@metad/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { Exclude, Expose, Transform } from 'class-transformer'
-import { IsDateString, IsOptional, IsString, IsUUID } from 'class-validator'
+import { IsDateString, IsObject, IsOptional, IsString, IsUUID } from 'class-validator'
 import { SimpleSkillRepositoryDTO } from './simple-skill-repository.dto'
 
 @Exclude()
@@ -60,6 +60,25 @@ export class SimpleSkillIndexDto implements ISkillRepositoryIndex {
 	@IsString()
 	name: string
 
+	@Expose()
+	@ApiProperty({
+		description: 'Original skill details URL',
+		required: false
+	})
+	@IsOptional()
+	@IsString()
+	link?: string
+
+	@Expose()
+	@ApiProperty({
+		description: 'Skill publisher from repository source',
+		required: false,
+		type: Object
+	})
+	@IsOptional()
+	@IsObject()
+	publisher?: ISkillRepositoryIndexPublisher
+
     @Expose()
 	@ApiProperty({
 		description: 'Index description',
@@ -95,6 +114,16 @@ export class SimpleSkillIndexDto implements ISkillRepositoryIndex {
 	@IsOptional()
 	@IsString()
     license?: string
+
+	@Expose()
+	@ApiProperty({
+		description: 'Skill stats from repository source',
+		required: false,
+		type: Object
+	})
+	@IsOptional()
+	@IsObject()
+	stats?: ISkillRepositoryIndexStats
 
 	@Expose()
 	@IsOptional()

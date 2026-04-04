@@ -33,10 +33,16 @@ export interface IAssistantBindingMiddlewarePreference {
   disabledTools: string[]
 }
 
+export interface IAssistantBindingSkillPreference {
+  workspaceId: string
+  disabledSkillIds: string[]
+}
+
 export interface IAssistantBindingToolPreferences {
   version: 1
   toolsets?: Record<string, IAssistantBindingToolsetPreference>
   middlewares?: Record<string, IAssistantBindingMiddlewarePreference>
+  skills?: Record<string, IAssistantBindingSkillPreference>
 }
 
 export interface IAssistantBinding extends IBasePerTenantAndOrganizationEntityModel {

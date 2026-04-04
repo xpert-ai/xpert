@@ -10,12 +10,12 @@ import { CapitalizePipe, DisappearAnimations } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardAccordionImports, type ZardAccordionItemLike, ZardButtonComponent, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { getErrorMessage, injectCopilots, injectCopilotServer, injectToastr } from 'apps/cloud/src/app/@core'
 import { CopilotAiProvidersComponent, CopilotProviderComponent } from 'apps/cloud/src/app/@shared/copilot'
 import { capitalize } from 'lodash-es'
 import { map, Observable, switchMap } from 'rxjs'
 import { CopilotFormComponent } from '../copilot-form/copilot-form.component'
-import { ZardAccordionImports, type ZardAccordionItemLike, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
   standalone: true,
   selector: 'pac-settings-copilot-basic',
@@ -29,6 +29,7 @@ import { ZardAccordionImports, type ZardAccordionItemLike, ZardSwitchComponent, 
     CdkMenuModule,
     ...ZardAccordionImports,
     ...ZardTooltipImports,
+    ZardButtonComponent,
     NgmDensityDirective,
     NgmSpinComponent,
     NgmI18nPipe,

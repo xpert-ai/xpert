@@ -96,6 +96,7 @@ describe('ChatCommonAssistantComponent', () => {
 
     router = TestBed.inject(Router)
     navigate = jest.spyOn(router, 'navigate').mockResolvedValue(true)
+    jest.spyOn(router, 'getCurrentNavigation').mockReturnValue(null)
     Object.defineProperty(router, 'url', {
       configurable: true,
       get: () => '/chat/x/common'
@@ -119,7 +120,10 @@ describe('ChatCommonAssistantComponent', () => {
   it('renders the embedded chatkit when ready', () => {
     runtimeState.status.set('ready')
     runtimeState.control.set({
+      element: {},
       setThreadId: jest.fn(),
+      sendUserMessage: jest.fn(),
+      focusComposer: jest.fn(),
       subscribe: jest.fn(() => jest.fn()),
       setInstance: jest.fn(),
       getOptions: jest.fn(() => ({ frameUrl: 'https://frame.example.com' })),
@@ -132,11 +136,15 @@ describe('ChatCommonAssistantComponent', () => {
     expect(fixture.nativeElement.querySelector('xpert-chatkit')).not.toBeNull()
   })
 
-  it('starts a new assistant thread without leaving the common route', () => {
+  it('starts a new assistant thread without leaving the common route', async () => {
     const setThreadId = jest.fn().mockResolvedValue(undefined)
+    const focusComposer = jest.fn().mockResolvedValue(undefined)
     runtimeState.status.set('ready')
     runtimeState.control.set({
+      element: {},
       setThreadId,
+      sendUserMessage: jest.fn(),
+      focusComposer,
       subscribe: jest.fn(() => jest.fn()),
       setInstance: jest.fn(),
       getOptions: jest.fn(() => ({ frameUrl: 'https://frame.example.com' })),
@@ -146,9 +154,44 @@ describe('ChatCommonAssistantComponent', () => {
     const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
     fixture.detectChanges()
 
-    fixture.componentInstance.newConv()
+    await fixture.componentInstance.newConv()
 
     expect(setThreadId).toHaveBeenCalledWith(null)
+    expect(focusComposer).toHaveBeenCalled()
     expect(navigate).not.toHaveBeenCalled()
+  })
+
+  it('starts a new common conversation from router state input', async () => {
+    const setThreadId = jest.fn().mockResolvedValue(undefined)
+    const sendUserMessage = jest.fn().mockResolvedValue(undefined)
+    runtimeState.status.set('ready')
+    runtimeState.control.set({
+      element: {},
+      setThreadId,
+      sendUserMessage,
+      focusComposer: jest.fn().mockResolvedValue(undefined),
+      subscribe: jest.fn(() => jest.fn()),
+      setInstance: jest.fn(),
+      getOptions: jest.fn(() => ({ frameUrl: 'https://frame.example.com' })),
+      getHandlers: jest.fn(() => ({}))
+    })
+    jest.spyOn(router, 'getCurrentNavigation').mockReturnValue({
+      extras: {
+        state: {
+          input: 'Help me summarize this quarter'
+        }
+      }
+    } as any)
+
+    const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
+    fixture.detectChanges()
+
+    await new Promise((resolve) => setTimeout(resolve, 25))
+
+    expect(setThreadId).toHaveBeenCalledWith(null)
+    expect(sendUserMessage).toHaveBeenCalledWith({
+      text: 'Help me summarize this quarter',
+      newThread: true
+    })
   })
 })

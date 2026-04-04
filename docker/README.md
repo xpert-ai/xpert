@@ -27,6 +27,22 @@ f you need to enable multidimensional modeling capabilities for data analysis, p
 
 `docker compose --profile bi up -d`
 
+#### Organization bootstrap
+
+You can configure automatic organization initialization in `.env`:
+
+```bash
+ORG_DEFAULT_XPERT_TEMPLATE_KEYS=af7133cb-32b3-47ff-90c1-b144c4d4887e,af7133cb-32b3-47ff-90c1-b144c4d48872
+ORG_ANALYTICS_BOOTSTRAP_MODE=semantic-only
+```
+
+`ORG_DEFAULT_XPERT_TEMPLATE_KEYS` is a comma-separated list of template ids that will be imported into each new organization's default workspace.
+
+`ORG_ANALYTICS_BOOTSTRAP_MODE` supports:
+
+- `semantic-only` to create semantic-model prerequisites only
+- `full-demo` to also import demo indicators and stories
+
 ### For Chinese users
 
 遇到网络问题的中国用户可以使用以下命令部署：

@@ -208,6 +208,15 @@ export function getSettingsMenuItems(scopeLevel: RequestScopeLevel): SettingsMen
       }
     },
     {
+      path: 'skill-repository',
+      label: 'Skills Repository',
+      icon: 'hammer',
+      scopeContext: 'tenant-only',
+      data: {
+        permissionKeys: [RolesEnum.SUPER_ADMIN]
+      }
+    },
+    {
       path: 'tenant',
       label: 'Tenant',
       icon: 'storage',

@@ -36,7 +36,6 @@ import {
 	createDefaultOrganizations,
 	DEFAULT_ORGANIZATIONS,
 	getTenantDefaultOrganization,
-	OrganizationDemoCommand
 } from '../../organization';
 import {
 	createDefaultUsersOrganizations,

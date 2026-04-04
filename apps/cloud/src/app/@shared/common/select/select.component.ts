@@ -17,7 +17,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 
 /**
- *
+ * @deprecated use z-select instead
  */
 @Component({
   standalone: true,

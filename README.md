@@ -82,6 +82,18 @@ cp .env.example .env
 docker compose up -d
 ```
 
+If you want new organizations to import default xperts or control analytics bootstrap behavior, add these settings to `docker/.env`:
+
+```bash
+# Optional: import template xperts into each new organization's default workspace
+ORG_DEFAULT_XPERT_TEMPLATE_KEYS=af7133cb-32b3-47ff-90c1-b144c4d4887e,af7133cb-32b3-47ff-90c1-b144c4d48872
+
+# Optional: create only semantic-model essentials, or import the full analytics demo
+ORG_ANALYTICS_BOOTSTRAP_MODE=semantic-only
+```
+
+The suggested template ids above map to `ChatBI with Sales Analysis Expert` and `Text2SQL-ChatDB`, which are a good default pair for analytics-heavy organizations.
+
 After running, you can access the Xpert dashboard in your browser at [http://localhost/onboarding](http://localhost/onboarding) and start the initialization process.
 
 Please check our [Wiki - Development](https://github.com/xpert-ai/xpert/wiki/Development) to get started quickly.

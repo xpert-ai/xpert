@@ -66,6 +66,7 @@ export interface ISkillsMiddlewareOptions {
  */
 type RuntimeSkillSelectionState = {
 	selectedSkillIds?: string[]
+	disabledSkillIds?: string[]
 	selectedSkillWorkspaceId?: string
 }
 
@@ -218,6 +219,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 
 	readonly stateSchema = z.object({
 		selectedSkillIds: z.array(z.string()).optional(),
+		disabledSkillIds: z.array(z.string()).optional(),
 		selectedSkillWorkspaceId: z.string().optional()
 	})
 
@@ -247,6 +249,21 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 		return Array.from(deduped)
 	}
 
+	private resolveDisabledSkillIds(state: Record<string, unknown>): string[] {
+		const rootState = state as RuntimeSkillSelectionState
+		const startState = this.asRecord(state[START_STATE_KEY]) as RuntimeSkillSelectionState
+		const rootDisabledSkillIdsRaw = rootState.disabledSkillIds
+		const startDisabledSkillIdsRaw = startState.disabledSkillIds
+		const rootDisabledSkillIds = this.sanitizeSkillIds(rootDisabledSkillIdsRaw)
+		const startDisabledSkillIds = this.sanitizeSkillIds(startDisabledSkillIdsRaw)
+
+		if (Array.isArray(rootDisabledSkillIdsRaw)) {
+			return rootDisabledSkillIds
+		}
+
+		return startDisabledSkillIds
+	}
+
 	private sanitizeWorkspaceId(value: unknown): string {
 		return typeof value === 'string' ? value.trim() : ''
 	}
@@ -272,6 +289,15 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 			this.sanitizeWorkspaceId(startState.selectedSkillWorkspaceId)
 
 		return { skillIds, workspaceId, hasRuntimeSelection }
+	}
+
+	private filterSkillIds(skillIds: string[], disabledSkillIds: string[]) {
+		if (!disabledSkillIds.length) {
+			return skillIds
+		}
+
+		const disabledSkillIdSet = new Set(disabledSkillIds)
+		return skillIds.filter((skillId) => !disabledSkillIdSet.has(skillId))
 	}
 
 	private escapeForShell(value: string): string {
@@ -431,6 +457,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 			wrapModelCall: async (request, handler) => {
 				runtimeSandbox = request.runtime?.configurable?.sandbox ?? null
 				const state = (request.state ?? {}) as Record<string, unknown>
+				const disabledSkillIds = this.resolveDisabledSkillIds(state)
 				const configuredSkillIds = this.sanitizeSkillIds(options?.skills)
 				const {
 					skillIds: runtimeSkillIds,
@@ -445,9 +472,22 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 				)
 
 				const workspaceSkillSelections = new Map<string, Set<string>>()
-				this.appendWorkspaceSkills(workspaceSkillSelections, normalizedContextWorkspaceId, configuredSkillIds)
+				const preferenceWorkspaceId = stateWorkspaceId || normalizedContextWorkspaceId
+				this.appendWorkspaceSkills(
+					workspaceSkillSelections,
+					normalizedContextWorkspaceId,
+					preferenceWorkspaceId === normalizedContextWorkspaceId
+						? this.filterSkillIds(configuredSkillIds, disabledSkillIds)
+						: configuredSkillIds
+				)
 				if (hasRuntimeSelection && runtimeSkillIds.length > 0) {
-					this.appendWorkspaceSkills(workspaceSkillSelections, runtimeWorkspaceId, runtimeSkillIds)
+					this.appendWorkspaceSkills(
+						workspaceSkillSelections,
+						runtimeWorkspaceId,
+						preferenceWorkspaceId === runtimeWorkspaceId
+							? this.filterSkillIds(runtimeSkillIds, disabledSkillIds)
+							: runtimeSkillIds
+					)
 				}
 
 				const skills: SkillPromptMetadata[] = []

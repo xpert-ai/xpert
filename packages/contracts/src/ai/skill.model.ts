@@ -8,6 +8,23 @@ import { IBasePerWorkspaceEntityModel } from "./xpert-workspace.model";
 
 export type SkillId = string;
 
+export interface ISkillRepositoryIndexStats {
+  comments?: number;
+  downloads?: number;
+  installsAllTime?: number;
+  installsCurrent?: number;
+  stars?: number;
+  versions?: number;
+}
+
+export interface ISkillRepositoryIndexPublisher {
+  handle?: string;
+  displayName?: string;
+  name?: string;
+  image?: string;
+  kind?: string;
+}
+
 export interface SkillMetadata {
   name: string;               // Unique name ({namespace}/{name})
   displayName?: I18nObject;   // Display name
@@ -82,10 +99,13 @@ export interface ISkillRepositoryIndex extends IBasePerTenantAndOrganizationEnti
   skillPath: string;
   skillId: string;
   name?: string;
+  link?: string;
+  publisher?: ISkillRepositoryIndexPublisher;
   description?: string;
   license?: string;
   tags?: string[];
   version?: string;
+  stats?: ISkillRepositoryIndexStats;
   resources?: Array<Record<string, unknown>>;
   deletedAt?: Date;
 }

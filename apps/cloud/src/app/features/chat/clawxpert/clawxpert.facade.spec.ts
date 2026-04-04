@@ -21,12 +21,13 @@ async function flushPromises() {
   await Promise.resolve()
 }
 
-function createXpert(id: string, name = id): IXpert {
+function createXpert(id: string, name = id, overrides?: Partial<IXpert>): IXpert {
   return {
     id,
     name,
     latest: true,
-    type: XpertTypeEnum.Agent
+    type: XpertTypeEnum.Agent,
+    ...overrides
   } as IXpert
 }
 
@@ -51,9 +52,9 @@ function createDraft(id: string, overrides?: Partial<TXpertTeamDraft>): TXpertTe
   }
 }
 
-function createTeam(id: string, name = id): IXpert {
+function createTeam(id: string, name = id, overrides?: Partial<IXpert>): IXpert {
   return {
-    ...createXpert(id, name),
+    ...createXpert(id, name, overrides),
     draft: createDraft(id)
   } as IXpert
 }
@@ -68,6 +69,25 @@ function createToolPreferences() {
         disabledTools: ['tavily_search']
       }
     }
+  }
+}
+
+function createSkillPreferences() {
+  return {
+    version: 1 as const,
+    skills: {
+      'workspace-1': {
+        workspaceId: 'workspace-1',
+        disabledSkillIds: ['skill-1']
+      }
+    }
+  }
+}
+
+function createToolAndSkillPreferences() {
+  return {
+    ...createToolPreferences(),
+    skills: createSkillPreferences().skills
   }
 }
 
@@ -333,6 +353,49 @@ describe('ClawXpertFacade', () => {
     expect(facade.isToolEnabled('toolset', 'toolset-node', 'tavily_search')).toBe(false)
   })
 
+  it('prefers the loaded draft workspace and normalizes saved skill preferences', async () => {
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-tools')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(
+      of([createXpert('xpert-tools', 'Tool Xpert', { workspaceId: 'workspace-public' })])
+    )
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        toolPreferences: {
+          version: 1,
+          skills: {
+            'workspace-draft': {
+              workspaceId: 'workspace-draft',
+              disabledSkillIds: ['skill-1', 'skill-1', ' ']
+            },
+            ' ': {
+              workspaceId: ' ',
+              disabledSkillIds: ['should-be-dropped']
+            }
+          }
+        }
+      })
+    )
+    xpertService.getTeam.mockReturnValue(
+      of(createTeam('xpert-tools', 'Tool Xpert', { workspaceId: 'workspace-draft' }))
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    expect(facade.currentWorkspaceId()).toBe('workspace-draft')
+    expect(facade.toolPreferences()).toEqual({
+      version: 1,
+      skills: {
+        'workspace-draft': {
+          workspaceId: 'workspace-draft',
+          disabledSkillIds: ['skill-1']
+        }
+      }
+    })
+    expect(facade.isSkillEnabled('workspace-draft', 'skill-1')).toBe(false)
+    expect(facade.isSkillEnabled('workspace-draft', 'skill-2')).toBe(true)
+  })
+
   it('loads user preferences even when the binding payload does not include an id', async () => {
     assistantBindingService.get.mockReturnValue(
       of({
@@ -442,6 +505,72 @@ describe('ClawXpertFacade', () => {
     expect(result).toBe(true)
     expect(facade.isToolEnabled('toolset', 'toolset-node', 'tavily_search')).toBe(false)
     expect(facade.userPreference()?.toolPreferences).toEqual(createToolPreferences())
+  })
+
+  it('saves skill preference updates without clearing markdown fields or existing tool preferences', async () => {
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-tools')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-tools', 'Tool Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: createToolPreferences()
+      })
+    )
+    assistantBindingService.upsertPreference.mockReturnValue(
+      of({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: createToolAndSkillPreferences()
+      })
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    const result = await facade.setSkillEnabled('workspace-1', 'skill-1', false)
+
+    expect(result).toBe(true)
+    expect(assistantBindingService.upsertPreference).toHaveBeenCalledWith('clawxpert', {
+      scope: 'user',
+      toolPreferences: createToolAndSkillPreferences()
+    })
+    expect(facade.userPreference()).toEqual(
+      expect.objectContaining({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: createToolAndSkillPreferences()
+      })
+    )
+    expect(facade.isSkillEnabled('workspace-1', 'skill-1')).toBe(false)
+  })
+
+  it('keeps the optimistic skill preference when the save response omits the skills field', async () => {
+    assistantBindingService.get.mockReturnValue(of(createBinding('xpert-tools')))
+    assistantBindingService.getAvailableXperts.mockReturnValue(of([createXpert('xpert-tools', 'Tool Xpert')]))
+    assistantBindingService.getPreference.mockReturnValue(
+      of({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: createToolPreferences()
+      })
+    )
+    assistantBindingService.upsertPreference.mockReturnValue(
+      of({
+        soul: '# Rules',
+        profile: '# Profile',
+        toolPreferences: createToolPreferences()
+      })
+    )
+
+    const facade = TestBed.inject(ClawXpertFacade)
+    await flushPromises()
+
+    const result = await facade.setSkillEnabled('workspace-1', 'skill-1', false)
+
+    expect(result).toBe(true)
+    expect(facade.userPreference()?.toolPreferences).toEqual(createToolAndSkillPreferences())
+    expect(facade.isSkillEnabled('workspace-1', 'skill-1')).toBe(false)
   })
 
   it('ignores stale in-flight preference loads after a tool preference save', async () => {

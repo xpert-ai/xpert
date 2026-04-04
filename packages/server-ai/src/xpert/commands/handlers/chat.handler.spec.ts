@@ -39,6 +39,7 @@ describe('XpertChatHandler', () => {
 
     const xpert = {
         id: 'xpert-1',
+        workspaceId: 'workspace-1',
         agent: {
             key: 'agent-1'
         },
@@ -61,6 +62,12 @@ describe('XpertChatHandler', () => {
                         'toolset-1': {
                             toolsetName: 'Toolset 1',
                             disabledTools: ['search']
+                        }
+                    },
+                    skills: {
+                        'workspace-1': {
+                            workspaceId: 'workspace-1',
+                            disabledSkillIds: ['skill-2']
                         }
                     }
                 }
@@ -214,12 +221,20 @@ describe('XpertChatHandler', () => {
                 profile: '# Profile'
             })
         )
+        expect(agentCommand.state.selectedSkillWorkspaceId).toBe('workspace-1')
+        expect(agentCommand.state.disabledSkillIds).toEqual(['skill-2'])
         expect(agentCommand.options.toolPreferences).toEqual({
             version: 1,
             toolsets: {
                 'toolset-1': {
                     toolsetName: 'Toolset 1',
                     disabledTools: ['search']
+                }
+            },
+            skills: {
+                'workspace-1': {
+                    workspaceId: 'workspace-1',
+                    disabledSkillIds: ['skill-2']
                 }
             }
         })
@@ -322,6 +337,8 @@ describe('XpertChatHandler', () => {
             (command) => command instanceof XpertAgentChatCommand
         ) as XpertAgentChatCommand
         expect(agentCommand.options.toolPreferences).toBeNull()
+        expect(agentCommand.state.selectedSkillWorkspaceId).toBe('workspace-1')
+        expect(agentCommand.state.disabledSkillIds).toEqual([])
     })
 
     it('reuses the interrupted ai message and execution for resume', async () => {

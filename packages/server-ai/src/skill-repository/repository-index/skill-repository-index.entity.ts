@@ -1,7 +1,7 @@
-import { ISkillRepositoryIndex } from '@metad/contracts'
+import { ISkillRepositoryIndex, ISkillRepositoryIndexPublisher, ISkillRepositoryIndexStats } from '@metad/contracts'
 import { TenantOrganizationBaseEntity } from '@metad/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
-import { IsArray, IsDateString, IsJSON, IsOptional, IsString } from 'class-validator'
+import { IsArray, IsDateString, IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
 import { Column, DeleteDateColumn, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { SkillRepository } from '../skill-repository.entity'
 
@@ -31,8 +31,20 @@ export class SkillRepositoryIndex extends TenantOrganizationBaseEntity implement
 	@ApiPropertyOptional({ type: () => String })
 	@IsOptional()
 	@IsString()
-	@Column({ nullable: true, length: 150 })
+	@Column({ nullable: true })
 	name?: string
+
+	@ApiPropertyOptional({ type: () => String })
+	@IsOptional()
+	@IsString()
+	@Column({ nullable: true, length: 500 })
+	link?: string
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsOptional()
+	@IsObject()
+	@Column({ type: 'json', nullable: true, name: 'author' })
+	publisher?: ISkillRepositoryIndexPublisher
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsOptional()
@@ -43,7 +55,7 @@ export class SkillRepositoryIndex extends TenantOrganizationBaseEntity implement
 	@ApiPropertyOptional({ type: () => String })
 	@IsOptional()
 	@IsString()
-	@Column({ nullable: true, length: 150 })
+	@Column({ nullable: true })
 	license?: string
 
 	@ApiPropertyOptional({ type: () => [String] })
@@ -58,6 +70,12 @@ export class SkillRepositoryIndex extends TenantOrganizationBaseEntity implement
 	@IsString()
 	@Column({ nullable: true, length: 50 })
 	version?: string
+
+	@ApiPropertyOptional({ type: () => Object })
+	@IsOptional()
+	@IsObject()
+	@Column({ type: 'json', nullable: true })
+	stats?: ISkillRepositoryIndexStats
 
 	@ApiPropertyOptional({ type: () => Object })
 	@IsOptional()

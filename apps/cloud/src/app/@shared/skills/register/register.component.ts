@@ -1,4 +1,5 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
+import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -7,9 +8,9 @@ import { RouterModule } from '@angular/router'
 import { getErrorMessage, ISkillRepository } from '@cloud/app/@core'
 import { JsonSchemaObjectType } from '@metad/contracts'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { ZardInputDirective, ZardSelectImports } from '@xpert-ai/headless-ui'
 import { finalize, startWith } from 'rxjs'
 import { injectToastr, SkillRepositoryService } from '../../../@core/services'
-import { NgmSelectComponent } from '../../common'
 import { JSONSchemaFormComponent } from '../../forms'
 
 @Component({
@@ -23,7 +24,9 @@ import { JSONSchemaFormComponent } from '../../forms'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    NgmSelectComponent,
+    DragDropModule,
+    ZardInputDirective,
+    ...ZardSelectImports,
     JSONSchemaFormComponent
   ]
 })
@@ -47,12 +50,6 @@ export class XpertSkillRepositoryRegisterComponent {
 
   // Source Strategies
   readonly sourceStrategies = toSignal(this.repositoryService.sourceStrategies$, { initialValue: [] })
-  readonly sourceStrategyOptions = computed(() =>
-    (this.sourceStrategies() ?? []).map((strategy) => ({
-      label: strategy.label,
-      value: strategy.name
-    }))
-  )
   readonly selectedSourceStrategy = toSignal(
     this.repositoryForm.get('provider').valueChanges.pipe(startWith(this.repositoryForm.get('provider').value))
   )
