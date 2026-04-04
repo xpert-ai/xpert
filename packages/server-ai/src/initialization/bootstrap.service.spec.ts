@@ -25,20 +25,50 @@ jest.mock('../xpert-workspace/workspace.service', () => ({
 import { ServerAIBootstrapService } from './bootstrap.service'
 
 describe('ServerAIBootstrapService', () => {
+  const defaultRepositories = JSON.stringify({
+    repositories: [
+      {
+        name: 'anthropics/skills',
+        provider: 'github',
+        options: {
+          url: 'https://github.com/anthropics/skills',
+          branch: 'main'
+        }
+      }
+    ]
+  })
+
   function createService() {
     const commandBus = {
       execute: jest.fn()
     }
     const configService = {
-      get: jest.fn(() => '')
+      get: jest.fn((key: string) => (key === 'AI_DEFAULT_SKILL_REPOSITORIES' ? defaultRepositories : ''))
     }
     const organizationService = {
+      findAll: jest.fn().mockResolvedValue({
+        items: [
+          {
+            id: 'org-1',
+            tenantId: 'tenant-1',
+            name: 'Acme'
+          }
+        ]
+      }),
       findOne: jest.fn().mockResolvedValue({
         id: 'org-1',
         name: 'Acme'
       })
     }
     const userService = {
+      getAdminUsers: jest.fn().mockResolvedValue([
+        {
+          id: 'owner-1',
+          role: {
+            name: 'SUPER_ADMIN'
+          }
+        }
+      ]),
       findOne: jest.fn().mockResolvedValue({
         id: 'owner-1',
         preferredLanguage: 'en_US'
@@ -118,7 +148,7 @@ describe('ServerAIBootstrapService', () => {
     }
   }
 
-  it('registers default skill repositories from the fixed YAML file during organization bootstrap', async () => {
+  it('keeps organization bootstrap focused on workspace and membership setup', async () => {
     const { environmentService, service, skillRepositoryService, workspaceService } = createService()
 
     const result = await service.bootstrapOrganization({
@@ -127,6 +157,30 @@ describe('ServerAIBootstrapService', () => {
       tenantId: 'tenant-1'
     } as any)
 
+    expect(skillRepositoryService.findAll).not.toHaveBeenCalled()
+    expect(skillRepositoryService.register).not.toHaveBeenCalled()
+    expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-1')
+    expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-1', 'owner-1')
+    expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-1', 'member-2')
+    expect(result).toEqual({
+      repositoryIds: []
+    })
+  })
+
+  it('registers default skill repositories from env JSON during tenant bootstrap', async () => {
+    const { organizationService, service, skillRepositoryService, userService } = createService()
+
+    const result = await service.bootstrapTenantSkillRepositories({
+      tenantId: 'tenant-1',
+      tenantName: 'Acme Tenant'
+    } as any)
+
+    expect(userService.getAdminUsers).toHaveBeenCalledWith('tenant-1')
+    expect(organizationService.findAll).toHaveBeenCalledWith({
+      where: {
+        tenantId: 'tenant-1'
+      }
+    })
     expect(skillRepositoryService.findAll).toHaveBeenCalledWith({
       where: {
         name: 'anthropics/skills',
@@ -143,15 +197,17 @@ describe('ServerAIBootstrapService', () => {
       },
       credentials: null
     })
-    expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-1')
-    expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-1', 'owner-1')
-    expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-1', 'member-2')
     expect(result).toEqual({
-      repositoryIds: ['repo-1']
+      repositories: [
+        {
+          organizationId: 'org-1',
+          repositoryId: 'repo-1'
+        }
+      ]
     })
   })
 
-  it('updates an existing default skill repository instead of creating a duplicate', async () => {
+  it('updates an existing default skill repository instead of creating a duplicate during tenant bootstrap', async () => {
     const { service, skillRepositoryService } = createService()
     skillRepositoryService.findAll.mockResolvedValue({
       items: [
@@ -166,10 +222,9 @@ describe('ServerAIBootstrapService', () => {
       id: 'repo-1'
     })
 
-    const result = await service.bootstrapOrganization({
-      organizationId: 'org-1',
-      ownerUserId: 'owner-1',
-      tenantId: 'tenant-1'
+    const result = await service.bootstrapTenantSkillRepositories({
+      tenantId: 'tenant-1',
+      tenantName: 'Acme Tenant'
     } as any)
 
     expect(skillRepositoryService.register).toHaveBeenCalledWith({
@@ -182,6 +237,130 @@ describe('ServerAIBootstrapService', () => {
       },
       credentials: null
     })
-    expect(result.repositoryIds).toEqual(['repo-1'])
+    expect(result.repositories).toEqual([
+      {
+        organizationId: 'org-1',
+        repositoryId: 'repo-1'
+      }
+    ])
+  })
+
+  it('supports env JSON arrays for default repositories during tenant bootstrap', async () => {
+    const { configService, service, skillRepositoryService } = createService()
+    configService.get.mockImplementation((key: string) =>
+      key === 'AI_DEFAULT_SKILL_REPOSITORIES'
+        ? JSON.stringify([
+            {
+              name: 'clawhub/official',
+              provider: 'clawhub',
+              options: {
+                registryUrl: 'https://clawhub.ai'
+              }
+            }
+          ])
+        : ''
+    )
+
+    const result = await service.bootstrapTenantSkillRepositories({
+      tenantId: 'tenant-1',
+      tenantName: 'Acme Tenant'
+    } as any)
+
+    expect(skillRepositoryService.register).toHaveBeenCalledWith({
+      name: 'clawhub/official',
+      provider: 'clawhub',
+      options: {
+        registryUrl: 'https://clawhub.ai'
+      },
+      credentials: null
+    })
+    expect(result.repositories).toEqual([
+      {
+        organizationId: 'org-1',
+        repositoryId: 'repo-1'
+      }
+    ])
+  })
+
+  it('continues initializing later repositories when one default repository fails', async () => {
+    const { configService, service, skillRepositoryService } = createService()
+    configService.get.mockImplementation((key: string) =>
+      key === 'AI_DEFAULT_SKILL_REPOSITORIES'
+        ? JSON.stringify({
+            repositories: [
+              {
+                name: 'broken/source',
+                provider: 'github',
+                options: {
+                  url: 'https://github.com/example/broken',
+                  branch: 'main'
+                }
+              },
+              {
+                name: 'clawhub/official',
+                provider: 'clawhub',
+                options: {
+                  registryUrl: 'https://clawhub.ai'
+                }
+              }
+            ]
+          })
+        : ''
+    )
+    skillRepositoryService.findAll
+      .mockResolvedValueOnce({ items: [] })
+      .mockResolvedValueOnce({ items: [] })
+    skillRepositoryService.register
+      .mockRejectedValueOnce(new Error('Repository registration failed'))
+      .mockResolvedValueOnce({
+        id: 'repo-2'
+      })
+
+    const result = await service.bootstrapTenantSkillRepositories({
+      tenantId: 'tenant-1',
+      tenantName: 'Acme Tenant'
+    } as any)
+
+    expect(skillRepositoryService.register).toHaveBeenNthCalledWith(1, {
+      name: 'broken/source',
+      provider: 'github',
+      options: {
+        url: 'https://github.com/example/broken',
+        branch: 'main'
+      },
+      credentials: null
+    })
+    expect(skillRepositoryService.register).toHaveBeenNthCalledWith(2, {
+      name: 'clawhub/official',
+      provider: 'clawhub',
+      options: {
+        registryUrl: 'https://clawhub.ai'
+      },
+      credentials: null
+    })
+    expect(result.repositories).toEqual([
+      {
+        organizationId: 'org-1',
+        repositoryId: 'repo-2'
+      }
+    ])
+  })
+
+  it('ignores invalid env JSON and skips repository registration during tenant bootstrap', async () => {
+    const { configService, organizationService, service, skillRepositoryService, userService } = createService()
+    configService.get.mockImplementation((key: string) =>
+      key === 'AI_DEFAULT_SKILL_REPOSITORIES' ? '{invalid-json' : ''
+    )
+
+    const result = await service.bootstrapTenantSkillRepositories({
+      tenantId: 'tenant-1',
+      tenantName: 'Acme Tenant'
+    } as any)
+
+    expect(userService.getAdminUsers).not.toHaveBeenCalled()
+    expect(organizationService.findAll).not.toHaveBeenCalled()
+    expect(skillRepositoryService.findAll).not.toHaveBeenCalled()
+    expect(skillRepositoryService.register).not.toHaveBeenCalled()
+    expect(result.repositories).toEqual([])
   })
 })

@@ -2,18 +2,22 @@ import { InjectQueue, Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'
 import { Job, Queue } from 'bull'
-import { OrganizationCreatedEvent, EVENT_ORGANIZATION_CREATED } from '@metad/server-core'
+import { EVENT_ORGANIZATION_CREATED, EVENT_TENANT_CREATED, OrganizationCreatedEvent, TenantCreatedEvent } from '@metad/server-core'
 import { EVENT_USER_ORGANIZATION_CREATED, UserOrganizationCreatedEvent } from '@metad/server-core'
 import {
 	AI_BOOTSTRAP_QUEUE,
 	AI_ORGANIZATION_BOOTSTRAP_JOB,
 	AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB,
+	AI_TENANT_SKILL_REPOSITORY_BOOTSTRAP_JOB,
 	AI_USER_ORGANIZATION_BOOTSTRAP_JOB
 } from './constants'
 import { ServerAIBootstrapService } from './bootstrap.service'
 
-type OrganizationSkillRepositorySyncJob = OrganizationCreatedEvent & {
+type OrganizationSkillRepositorySyncJob = {
+	tenantId: string
+	organizationId: string
 	repositoryId: string
+	ownerUserId?: string | null
 }
 
 @Processor(AI_BOOTSTRAP_QUEUE)
@@ -36,6 +40,16 @@ export class ServerAIBootstrapProcessor {
 		})
 	}
 
+	@OnEvent(EVENT_TENANT_CREATED)
+	async enqueueTenantSkillRepositoryBootstrap(event: TenantCreatedEvent) {
+		await this.bootstrapQueue.add(AI_TENANT_SKILL_REPOSITORY_BOOTSTRAP_JOB, event, {
+			jobId: `tenant-skill-repository-bootstrap:${event.tenantId}`,
+			attempts: 3,
+			backoff: 10_000,
+			removeOnComplete: true
+		})
+	}
+
 	@OnEvent(EVENT_USER_ORGANIZATION_CREATED)
 	async enqueueUserOrganizationBootstrap(event: UserOrganizationCreatedEvent) {
 		await this.bootstrapQueue.add(AI_USER_ORGANIZATION_BOOTSTRAP_JOB, event, {
@@ -49,17 +63,30 @@ export class ServerAIBootstrapProcessor {
 	@Process(AI_ORGANIZATION_BOOTSTRAP_JOB)
 	async handleOrganizationBootstrap(job: Job<OrganizationCreatedEvent>) {
 		try {
-			const result = await this.bootstrapService.bootstrapOrganization(job.data)
+			await this.bootstrapService.bootstrapOrganization(job.data)
+		} catch (error) {
+			this.logger.error(
+				`Failed organization bootstrap for '${job.data.organizationId}': ${error instanceof Error ? error.stack : error}`
+			)
+			throw error
+		}
+	}
+
+	@Process(AI_TENANT_SKILL_REPOSITORY_BOOTSTRAP_JOB)
+	async handleTenantSkillRepositoryBootstrap(job: Job<TenantCreatedEvent>) {
+		try {
+			const result = await this.bootstrapService.bootstrapTenantSkillRepositories(job.data)
 			await Promise.all(
-				(result.repositoryIds ?? []).map((repositoryId) =>
+				(result.repositories ?? []).map(({ organizationId, repositoryId }) =>
 					this.bootstrapQueue.add(
 						AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB,
 						{
-							...job.data,
+							tenantId: job.data.tenantId,
+							organizationId,
 							repositoryId
 						},
 						{
-							jobId: `org-skill-repository-sync:${job.data.organizationId}:${repositoryId}`,
+							jobId: `org-skill-repository-sync:${organizationId}:${repositoryId}`,
 							attempts: 3,
 							backoff: 10_000,
 							removeOnComplete: true
@@ -69,7 +96,7 @@ export class ServerAIBootstrapProcessor {
 			)
 		} catch (error) {
 			this.logger.error(
-				`Failed organization bootstrap for '${job.data.organizationId}': ${error instanceof Error ? error.stack : error}`
+				`Failed tenant skill repository bootstrap for '${job.data.tenantId}': ${error instanceof Error ? error.stack : error}`
 			)
 			throw error
 		}

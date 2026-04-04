@@ -1,9 +1,10 @@
-import { ISkillRepository, LanguagesEnum, TXpertTeamDraft, IUser } from '@metad/contracts'
+import { ISkillRepository, LanguagesEnum, RolesEnum, TXpertTeamDraft, IUser } from '@metad/contracts'
 import { getErrorMessage, yaml } from '@metad/server-common'
 import {
 	OrganizationCreatedEvent,
 	OrganizationService,
 	runWithRequestContext,
+	TenantCreatedEvent,
 	UserOrganizationCreatedEvent,
 	UserOrganizationService,
 	UserService
@@ -11,8 +12,6 @@ import {
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ConfigService } from '@nestjs/config'
-import { readFileSync } from 'fs'
-import { join } from 'path'
 import { SkillRepositoryIndexService, SkillRepositoryService } from '../skill-repository'
 import { XpertImportCommand, XpertService } from '../xpert'
 import { EnvironmentService } from '../environment'
@@ -28,7 +27,23 @@ export type OrganizationBootstrapResult = {
 	repositoryIds: string[]
 }
 
-const DEFAULT_SKILL_REPOSITORIES_CONFIG_PATH = join(__dirname, 'default-skill-repositories.yaml')
+export type TenantSkillRepositoryBootstrapResult = {
+	repositories: Array<{
+		organizationId: string
+		repositoryId: string
+	}>
+}
+
+const DEFAULT_SKILL_REPOSITORIES_ENV = 'AI_DEFAULT_SKILL_REPOSITORIES'
+
+type DefaultSkillRepositoryEntry = Pick<ISkillRepository, 'name' | 'provider'> &
+	Partial<Pick<ISkillRepository, 'options' | 'credentials'>>
+
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+	typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const isDefaultSkillRepositoryEntry = (value: unknown): value is DefaultSkillRepositoryEntry =>
+	isRecord(value) && typeof value.name === 'string' && typeof value.provider === 'string'
 
 @Injectable()
 export class ServerAIBootstrapService {
@@ -52,12 +67,10 @@ export class ServerAIBootstrapService {
 		const owner = await this.resolveBootstrapUser(event.organizationId, event.ownerUserId)
 		const organization = await this.organizationService.findOne(event.organizationId)
 		const memberIds = await this.userOrganizationService.findUserIdsByOrganization(event.organizationId)
-		let repositoryIds: string[] = []
 
 		await this.runInOrganizationContext(owner, event.organizationId, async () => {
 			const workspace = await this.ensureOrganizationWorkspace(event.organizationId, owner.id)
 			await this.ensureDefaultEnvironment(workspace.id)
-			repositoryIds = await this.ensureOrganizationSkillRepositories()
 
 			for (const memberId of memberIds) {
 				await this.workspaceService.ensureMember(workspace.id, memberId)
@@ -72,8 +85,46 @@ export class ServerAIBootstrapService {
 		})
 
 		return {
-			repositoryIds
+			repositoryIds: []
 		}
+	}
+
+	async bootstrapTenantSkillRepositories(event: TenantCreatedEvent): Promise<TenantSkillRepositoryBootstrapResult> {
+		const configuredRepositories = this.loadDefaultSkillRepositories()
+		if (!configuredRepositories.length) {
+			return { repositories: [] }
+		}
+
+		const owner = await this.resolveTenantBootstrapUser(event.tenantId)
+		const { items: organizations } = await this.organizationService.findAll({
+			where: {
+				tenantId: event.tenantId
+			}
+		})
+		const repositories: TenantSkillRepositoryBootstrapResult['repositories'] = []
+
+		if (!organizations?.length) {
+			this.logger.warn(`No organizations found for tenant '${event.tenantId}' during skill repository bootstrap`)
+			return { repositories }
+		}
+
+		for (const organization of organizations) {
+			if (!organization?.id) {
+				continue
+			}
+
+			const repositoryIds = await this.runInOrganizationContext(owner, organization.id, async () =>
+				this.ensureOrganizationSkillRepositories(configuredRepositories, organization.id)
+			)
+			repositories.push(
+				...repositoryIds.map((repositoryId) => ({
+					organizationId: organization.id,
+					repositoryId
+				}))
+			)
+		}
+
+		return { repositories }
 	}
 
 	async bootstrapUserInOrganization(event: UserOrganizationCreatedEvent) {
@@ -92,16 +143,23 @@ export class ServerAIBootstrapService {
 		})
 	}
 
-	async syncOrganizationSkillRepository(event: OrganizationCreatedEvent & { repositoryId: string }) {
-		const owner = await this.resolveBootstrapUser(event.organizationId, event.ownerUserId)
+	async syncOrganizationSkillRepository(event: {
+		tenantId: string
+		organizationId: string
+		repositoryId: string
+		ownerUserId?: string | null
+	}) {
+		const owner = await this.resolveSyncBootstrapUser(event)
 
 		await this.runInOrganizationContext(owner, event.organizationId, async () => {
 			await this.skillRepositoryIndexService.sync(event.repositoryId, { mode: 'full' })
 		})
 	}
 
-	private async ensureOrganizationSkillRepositories() {
-		const repositories = this.loadDefaultSkillRepositories()
+	private async ensureOrganizationSkillRepositories(
+		repositories = this.loadDefaultSkillRepositories(),
+		organizationId?: string
+	) {
 		if (!repositories.length) {
 			return []
 		}
@@ -115,24 +173,33 @@ export class ServerAIBootstrapService {
 				continue
 			}
 
-			const { items } = await this.skillRepositoryService.findAll({
-				where: {
+			try {
+				const { items } = await this.skillRepositoryService.findAll({
+					where: {
+						name,
+						provider
+					} as any,
+					take: 1
+				})
+				const existing = items[0]
+				const saved = await this.skillRepositoryService.register({
+					...(existing ? { id: existing.id } : {}),
 					name,
-					provider
-				} as any,
-				take: 1
-			})
-			const existing = items[0]
-			const saved = await this.skillRepositoryService.register({
-				...(existing ? { id: existing.id } : {}),
-				name,
-				provider,
-				options: repository.options ?? null,
-				credentials: repository.credentials ?? null
-			} as any)
+					provider,
+					options: repository.options ?? null,
+					credentials: repository.credentials ?? null
+				} as any)
 
-			if (saved?.id) {
-				repositoryIds.push(saved.id)
+				if (saved?.id) {
+					repositoryIds.push(saved.id)
+				}
+			} catch (error) {
+				this.logger.error(
+					`Failed to initialize default skill repository '${name}' (${provider}) for organization '${
+						organizationId ?? 'unknown'
+					}': ${getErrorMessage(error)}`,
+					error as Error
+				)
 			}
 		}
 
@@ -141,12 +208,22 @@ export class ServerAIBootstrapService {
 
 	private loadDefaultSkillRepositories() {
 		try {
-			const content = readFileSync(DEFAULT_SKILL_REPOSITORIES_CONFIG_PATH, 'utf8')
-			const config = (yaml.parse(content) ?? {}) as DefaultSkillRepositoryConfig
-			return (config.repositories ?? []).filter(Boolean)
+			const content = this.configService.get<string>(DEFAULT_SKILL_REPOSITORIES_ENV)?.trim()
+			if (!content) {
+				return []
+			}
+
+			const parsed = JSON.parse(content) as DefaultSkillRepositoryConfig | DefaultSkillRepositoryEntry[]
+			const repositories = Array.isArray(parsed)
+				? parsed
+				: Array.isArray(parsed?.repositories)
+					? parsed.repositories
+					: []
+
+			return repositories.filter(isDefaultSkillRepositoryEntry)
 		} catch (error) {
 			this.logger.warn(
-				`Failed to load default skill repositories from '${DEFAULT_SKILL_REPOSITORIES_CONFIG_PATH}': ${getErrorMessage(error)}`
+				`Failed to load default skill repositories from env '${DEFAULT_SKILL_REPOSITORIES_ENV}': ${getErrorMessage(error)}`
 			)
 			return []
 		}
@@ -171,6 +248,36 @@ export class ServerAIBootstrapService {
 		}
 
 		return this.userService.findOne(userId, { relations: ['role'] })
+	}
+
+	private async resolveTenantBootstrapUser(tenantId: string) {
+		const adminUsers = await this.userService.getAdminUsers(tenantId)
+		const owner = adminUsers.find((user) => user.role?.name === RolesEnum.SUPER_ADMIN) ?? adminUsers[0]
+		if (!owner?.id) {
+			throw new Error(`No tenant bootstrap user found for tenant '${tenantId}'`)
+		}
+
+		return this.userService.findOne(owner.id, { relations: ['role'] })
+	}
+
+	private async resolveSyncBootstrapUser(event: {
+		tenantId: string
+		organizationId: string
+		ownerUserId?: string | null
+	}) {
+		if (event.ownerUserId) {
+			try {
+				return await this.userService.findOne(event.ownerUserId, { relations: ['role'] })
+			} catch (error) {
+				this.logger.warn(
+					`Failed to resolve preferred sync user '${event.ownerUserId}' for organization '${event.organizationId}': ${getErrorMessage(
+						error
+					)}`
+				)
+			}
+		}
+
+		return this.resolveBootstrapUser(event.organizationId).catch(() => this.resolveTenantBootstrapUser(event.tenantId))
 	}
 
 	private async ensureOrganizationWorkspace(organizationId: string, ownerId: string) {

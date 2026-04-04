@@ -1,7 +1,9 @@
-import { GitHubSkillSourceProvider } from "./github/index";
-import { ZipSkillSourceProvider } from "./zip";
+import { ClawHubSkillSourceProvider } from './clawhub'
+import { GitHubSkillSourceProvider } from './github/index'
+import { ZipSkillSourceProvider } from './zip'
 
 export const SkillSourceProviders = [
-    GitHubSkillSourceProvider,
-    ZipSkillSourceProvider
+	ClawHubSkillSourceProvider,
+	GitHubSkillSourceProvider,
+	ZipSkillSourceProvider
 ]
