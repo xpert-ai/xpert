@@ -70,6 +70,7 @@
     "NoRepositorySelected": "未选择仓库",
     "LoadingSkillsFromRepository": "正在从仓库加载技能...",
     "Install": "安装",
+    "ViewDetails": "详情",
     "Untagged": "未标记",
     "NoSkillsFound": "该仓库暂无技能。",
     "NoSkillsFoundHint": "添加或同步仓库以填充技能索引。",
