@@ -4,7 +4,6 @@ export class UserOrganizationCreatedEvent {
 	constructor(
 		public readonly tenantId: string,
 		public readonly organizationId: string,
-		public readonly userId: string,
-		public readonly bootstrapPersonalWorkspace = true
+		public readonly userId: string
 	) {}
 }

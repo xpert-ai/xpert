@@ -75,9 +75,7 @@ export class OrganizationCreateHandler
 				const userOrganization = await this.userOrganizationService.ensureMembership({
 					organizationId: createdOrganization.id,
 					tenantId,
-					userId: superAdmin.id,
-					bootstrapPersonalWorkspace: false,
-					emitBootstrapEvent: false
+					userId: superAdmin.id
 				});
 				if (isImporting && userOrganizationSourceId) {
 					await this.commandBus.execute(

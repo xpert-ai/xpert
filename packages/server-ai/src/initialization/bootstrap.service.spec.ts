@@ -2,6 +2,16 @@ jest.mock('../environment', () => ({
   EnvironmentService: class EnvironmentService {}
 }))
 
+jest.mock('@metad/server-core', () => ({
+  OrganizationCreatedEvent: class OrganizationCreatedEvent {},
+  OrganizationService: class OrganizationService {},
+  TenantCreatedEvent: class TenantCreatedEvent {},
+  UserOrganizationCreatedEvent: class UserOrganizationCreatedEvent {},
+  UserOrganizationService: class UserOrganizationService {},
+  UserService: class UserService {},
+  runWithRequestContext: (_context: unknown, callback: () => unknown) => callback()
+}))
+
 jest.mock('../skill-repository', () => ({
   SkillRepositoryIndexService: class SkillRepositoryIndexService {},
   SkillRepositoryService: class SkillRepositoryService {}
@@ -362,5 +372,71 @@ describe('ServerAIBootstrapService', () => {
     expect(skillRepositoryService.findAll).not.toHaveBeenCalled()
     expect(skillRepositoryService.register).not.toHaveBeenCalled()
     expect(result.repositories).toEqual([])
+  })
+
+  it('bootstraps a personal workspace for non-super-admin members', async () => {
+    const { environmentService, service, userService, workspaceService } = createService()
+    userService.findOne.mockResolvedValue({
+      id: 'member-1',
+      preferredLanguage: 'en_US',
+      role: {
+        name: 'ADMIN'
+      }
+    })
+    workspaceService.findUserDefaultWorkspace.mockResolvedValue(null)
+    workspaceService.findOrganizationDefaultWorkspace.mockResolvedValue({
+      id: 'org-workspace-1'
+    })
+    workspaceService.create.mockResolvedValue({
+      id: 'workspace-2',
+      ownerId: 'member-1'
+    })
+
+    await service.bootstrapUserInOrganization({
+      tenantId: 'tenant-1',
+      organizationId: 'org-1',
+      userId: 'member-1'
+    } as any)
+
+    expect(workspaceService.findUserDefaultWorkspace).toHaveBeenCalledWith('org-1', 'member-1')
+    expect(workspaceService.create).toHaveBeenCalledWith({
+      name: 'User Workspace',
+      status: 'active',
+      ownerId: 'member-1',
+      settings: {
+        system: {
+          kind: 'user-default',
+          userId: 'member-1'
+        }
+      }
+    })
+    expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-2')
+    expect(workspaceService.ensureMember).toHaveBeenCalledWith('workspace-2', 'member-1')
+    expect(workspaceService.ensureMember).toHaveBeenCalledWith('org-workspace-1', 'member-1')
+  })
+
+  it('skips personal workspace bootstrap for super admins while still joining the org workspace', async () => {
+    const { environmentService, service, userService, workspaceService } = createService()
+    userService.findOne.mockResolvedValue({
+      id: 'owner-1',
+      preferredLanguage: 'en_US',
+      role: {
+        name: 'SUPER_ADMIN'
+      }
+    })
+    workspaceService.findOrganizationDefaultWorkspace.mockResolvedValue({
+      id: 'org-workspace-1'
+    })
+
+    await service.bootstrapUserInOrganization({
+      tenantId: 'tenant-1',
+      organizationId: 'org-1',
+      userId: 'owner-1'
+    } as any)
+
+    expect(workspaceService.findUserDefaultWorkspace).not.toHaveBeenCalled()
+    expect(workspaceService.create).not.toHaveBeenCalled()
+    expect(environmentService.getDefaultByWorkspace).not.toHaveBeenCalled()
+    expect(workspaceService.ensureMember).toHaveBeenCalledWith('org-workspace-1', 'owner-1')
   })
 })

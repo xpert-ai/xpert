@@ -16,8 +16,8 @@ export class UserOrganizationCreateHandler implements ICommandHandler<UserOrgani
 	) {}
 
 	public async execute(command: UserOrganizationCreateCommand): Promise<IUserOrganization | IUserOrganization[]> {
-		const { user, organizationId, options } = command
+		const { user, organizationId } = command
 
-		return await this.userOrganizationService.addUserToOrganization(user, organizationId, options)
+		return await this.userOrganizationService.addUserToOrganization(user, organizationId)
 	}
 }

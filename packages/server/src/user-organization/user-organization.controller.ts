@@ -8,11 +8,14 @@ import {
 	Delete,
 	Param,
 	Req,
-	UseInterceptors
+	UseInterceptors,
+	Post,
+	Body,
+	BadRequestException
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CrudController } from './../core/crud';
-import { IUserOrganization, RolesEnum, LanguagesEnum, IPagination } from '@metad/contracts';
+import { IUserOrganization, IUserOrganizationCreateInput, RolesEnum, LanguagesEnum, IPagination } from '@metad/contracts';
 import { UserOrganizationService } from './user-organization.services';
 import { UserOrganization } from './user-organization.entity';
 import { Not } from 'typeorm';
@@ -22,6 +25,7 @@ import { I18nLang } from 'nestjs-i18n';
 import { ParseJsonPipe, UUIDValidationPipe } from './../shared/pipes';
 import { TenantPermissionGuard } from './../shared/guards';
 import { TransformInterceptor } from './../core/interceptors';
+import { UserService } from '../user/user.service';
 
 @ApiTags('UserOrganization')
 @UseGuards(TenantPermissionGuard)
@@ -30,9 +34,48 @@ import { TransformInterceptor } from './../core/interceptors';
 export class UserOrganizationController extends CrudController<UserOrganization> {
 	constructor(
 		private readonly userOrganizationService: UserOrganizationService,
-		private readonly commandBus: CommandBus
+		private readonly commandBus: CommandBus,
+		private readonly userService: UserService
 	) {
 		super(userOrganizationService);
+	}
+
+	@ApiOperation({ summary: 'Create a user organization membership' })
+	@ApiResponse({
+		status: HttpStatus.CREATED,
+		description: 'The membership has been successfully created.'
+	})
+	@Post()
+	@HttpCode(HttpStatus.CREATED)
+	override async create(@Body() entity: IUserOrganizationCreateInput): Promise<IUserOrganization> {
+		if (!entity?.userId || !entity?.organizationId) {
+			throw new BadRequestException('Both userId and organizationId are required')
+		}
+
+		const user = await this.userService.findOne(entity.userId, { relations: ['role'] })
+		const created = await this.userOrganizationService.addUserToOrganization(user, entity.organizationId)
+		const membership = Array.isArray(created)
+			? created.find(({ organizationId }) => organizationId === entity.organizationId)
+			: created
+
+		if (!membership) {
+			throw new BadRequestException(`Unable to resolve membership for organization '${entity.organizationId}'`)
+		}
+
+		const patch: Partial<IUserOrganization> = {}
+		if (typeof entity.isActive === 'boolean' && membership.isActive !== entity.isActive) {
+			patch.isActive = entity.isActive
+		}
+		if (typeof entity.isDefault === 'boolean' && membership.isDefault !== entity.isDefault) {
+			patch.isDefault = entity.isDefault
+		}
+
+		if (Object.keys(patch).length) {
+			await this.userOrganizationService.update(membership.id, patch)
+			return this.userOrganizationService.findOne(membership.id)
+		}
+
+		return membership
 	}
 
 	@ApiOperation({ summary: 'Find all UserOrganizations.' })

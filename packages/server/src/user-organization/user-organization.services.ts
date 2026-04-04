@@ -7,11 +7,6 @@ import { TenantAwareCrudService } from './../core/crud';
 import { UserOrganizationCreatedEvent, EVENT_USER_ORGANIZATION_CREATED } from '../user/events';
 import { Organization, UserOrganization } from './../core/entities/internal';
 
-type AddUserToOrganizationOptions = {
-	bootstrapPersonalWorkspace?: boolean
-	emitBootstrapEvent?: boolean
-}
-
 @Injectable()
 export class UserOrganizationService extends TenantAwareCrudService<UserOrganization> {
 	constructor(
@@ -27,45 +22,33 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 
 	async addUserToOrganization(
 		user: IUser,
-		organizationId: string,
-		options: AddUserToOrganizationOptions = {}
+		organizationId: string
 	): Promise<IUserOrganization | IUserOrganization[]> {
 		const roleName: string = user.role?.name;
-		const bootstrapPersonalWorkspace = options.bootstrapPersonalWorkspace ?? true;
-		const emitBootstrapEvent = options.emitBootstrapEvent ?? true;
+		const tenantId = user.tenant?.id ?? user.tenantId;
 
 		if (roleName === RolesEnum.SUPER_ADMIN) {
-			// Ensure tenant is available before accessing tenant.id
-			if (!user.tenant?.id) {
+			if (!tenantId) {
 				throw new Error('User tenant is required for SUPER_ADMIN role')
 			}
-			return this._addUserToAllOrganizations(user.id, user.tenant.id, {
-				bootstrapPersonalWorkspace,
-				emitBootstrapEvent
-			});
+			return this._addUserToAllOrganizations(user.id, tenantId);
 		}
 
 		return await this.ensureMembership({
 			organizationId,
 			tenantId: user.tenantId,
-			userId: user.id,
-			bootstrapPersonalWorkspace,
-			emitBootstrapEvent
+			userId: user.id
 		});
 	}
 
 	async ensureMembership({
 		organizationId,
 		tenantId,
-		userId,
-		bootstrapPersonalWorkspace = true,
-		emitBootstrapEvent = true
+		userId
 	}: {
 		organizationId: string
 		tenantId: string
 		userId: string
-		bootstrapPersonalWorkspace?: boolean
-		emitBootstrapEvent?: boolean
 	}): Promise<IUserOrganization> {
 		const existing = await this.userOrganizationRepository.findOne({
 			where: {
@@ -85,17 +68,14 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		entity.userId = userId;
 		const membership = await this.create(entity);
 
-		if (emitBootstrapEvent) {
-			this.eventEmitter.emit(
-				EVENT_USER_ORGANIZATION_CREATED,
-				new UserOrganizationCreatedEvent(
-					tenantId,
-					organizationId,
-					userId,
-					bootstrapPersonalWorkspace
-				)
-			);
-		}
+		this.eventEmitter.emit(
+			EVENT_USER_ORGANIZATION_CREATED,
+			new UserOrganizationCreatedEvent(
+				tenantId,
+				organizationId,
+				userId
+			)
+		);
 
 		return membership;
 	}
@@ -111,8 +91,7 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 
 	private async _addUserToAllOrganizations(
 		userId: string,
-		tenantId: string,
-		options: AddUserToOrganizationOptions
+		tenantId: string
 	): Promise<IUserOrganization[]> {
 		const organizations = await this.organizationRepository.find({
 			select: ['id'],
@@ -126,9 +105,7 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 				await this.ensureMembership({
 					organizationId: organization.id,
 					tenantId,
-					userId,
-					bootstrapPersonalWorkspace: options.bootstrapPersonalWorkspace,
-					emitBootstrapEvent: options.emitBootstrapEvent
+					userId
 				})
 			);
 		}

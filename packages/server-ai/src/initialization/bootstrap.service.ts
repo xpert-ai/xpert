@@ -131,7 +131,7 @@ export class ServerAIBootstrapService {
 		const user = await this.userService.findOne(event.userId, { relations: ['role'] })
 
 		await this.runInOrganizationContext(user, event.organizationId, async () => {
-			if (event.bootstrapPersonalWorkspace) {
+			if (this.shouldBootstrapPersonalWorkspace(user)) {
 				const workspace = await this.ensureUserWorkspace(event.organizationId, user)
 				await this.ensureDefaultEnvironment(workspace.id)
 			}
@@ -323,6 +323,10 @@ export class ServerAIBootstrapService {
 
 		await this.workspaceService.ensureMember(workspace.id, user.id)
 		return workspace
+	}
+
+	private shouldBootstrapPersonalWorkspace(user: IUser) {
+		return user.role?.name !== RolesEnum.SUPER_ADMIN
 	}
 
 	private async ensureDefaultEnvironment(workspaceId: string) {
