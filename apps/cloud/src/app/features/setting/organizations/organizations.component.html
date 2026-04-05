@@ -17,7 +17,7 @@
           @if (!isTenantScope() && selectedOrganization(); as organization) {
             <div class="pac-page-title text-text-primary">{{ organization.name }}</div>
           } @else if (isTenantScope()) {
-            <div class="pac-page-title relative -left-6 -top-8 text-text-primary">{{ registrySectionTitle() }}</div>
+            <div class="pac-page-title relative text-text-primary">{{ registrySectionTitle() }}</div>
           } @else {
             <div class="text-lg font-semibold text-text-primary">{{ registrySectionTitle() }}</div>
           }
@@ -73,7 +73,7 @@
         </div>
       } @else {
         @if (isTenantScope()) {
-          <div class="overflow-x-auto lg:-mt-8">
+          <div class="overflow-x-auto">
             <table class="w-full min-w-[900px] table-fixed text-left text-sm">
               <thead class="bg-background-default-subtle text-text-secondary">
                 <tr>
