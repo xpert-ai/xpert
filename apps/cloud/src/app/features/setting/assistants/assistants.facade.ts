@@ -4,7 +4,7 @@ import { FormBuilder, Validators } from '@angular/forms'
 import { environment } from '@cloud/environments/environment'
 import { TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, map, of, startWith, switchMap } from 'rxjs'
-import { type ZardComboboxOption } from '@xpert-ai/headless-ui'
+import { type ZardComboboxDeprecatedOption } from '@xpert-ai/headless-ui'
 import {
   AiFeatureEnum,
   AssistantBindingScope,
@@ -143,7 +143,7 @@ export class AssistantsSettingsFacade {
     return this.effectiveConfigs()[code] ?? null
   }
 
-  readonly displayAssistantXpert = (_option: ZardComboboxOption | null, value: unknown) => {
+  readonly displayAssistantXpert = (_option: ZardComboboxDeprecatedOption | null, value: unknown) => {
     if (value === null || value === undefined || value === '') {
       return ''
     }
@@ -193,7 +193,7 @@ export class AssistantsSettingsFacade {
       : this.organizationForm(code).controls.assistantId.value
   }
 
-  assistantXpertOptions(scope: AssistantBindingScope, code: AssistantCode): ZardComboboxOption[] {
+  assistantXpertOptions(scope: AssistantBindingScope, code: AssistantCode): ZardComboboxDeprecatedOption[] {
     const searchTerm = this.assistantSearchTerm(scope, code).trim().toLowerCase()
     const xperts =
       scope === AssistantBindingScope.TENANT
@@ -206,19 +206,28 @@ export class AssistantsSettingsFacade {
           return true
         }
 
-        return [xpert.id, xpert.slug, xpert.name, xpert.title, xpert.titleCN]
-          .filter(Boolean)
+        return [xpert.id, xpert.slug, xpert.name, xpert.title, xpert.titleCN, xpert.description]
+          .filter((value): value is string => !!value)
           .some((value) => value.toLowerCase().includes(searchTerm))
       })
-      .map((xpert) => ({
-        id: xpert.id,
-        label: this.getXpertLabel(xpert),
-        value: xpert.id,
-        data: {
+      .map((xpert) => {
+        const label = this.getXpertLabel(xpert)
+        const description = this.getXpertDescription(xpert)
+        const meta = this.getXpertMeta(xpert, label)
+
+        return {
           id: xpert.id,
-          label: this.getXpertLabel(xpert)
+          label,
+          value: xpert.id,
+          keywords: [label, description, meta].filter((value): value is string => !!value),
+          data: {
+            id: xpert.id,
+            label,
+            description,
+            meta
+          }
         }
-      }))
+      })
   }
 
   onAssistantSearchTermChange(scope: AssistantBindingScope, code: AssistantCode, value: string) {
@@ -377,6 +386,17 @@ export class AssistantsSettingsFacade {
 
   private getXpertLabel(xpert: Partial<IXpert> | null | undefined) {
     return xpert?.title || xpert?.titleCN || xpert?.name || xpert?.slug || xpert?.id || ''
+  }
+
+  private getXpertDescription(xpert: Partial<IXpert> | null | undefined) {
+    return xpert?.description?.trim() || ''
+  }
+
+  private getXpertMeta(xpert: Partial<IXpert> | null | undefined, label?: string) {
+    return [xpert?.slug, xpert?.id]
+      .filter((value): value is string => !!value && value !== label)
+      .filter((value, index, values) => values.indexOf(value) === index)
+      .join(' / ')
   }
 
   private normalizeXperts(items: IXpert[] | IPagination<IXpert> | null | undefined): IXpert[] {

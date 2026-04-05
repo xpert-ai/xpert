@@ -3,8 +3,8 @@ import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core
 import { ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  ZardComboboxComponent,
-  ZardComboboxOptionTemplateDirective,
+  ZardComboboxDeprecatedComponent,
+  ZardComboboxDeprecatedOptionTemplateDirective,
   ZardFormImports
 } from '@xpert-ai/headless-ui'
 import { AssistantBindingScope, AssistantCode } from '../../../@core'
@@ -17,8 +17,8 @@ import { AssistantsSettingsFacade } from './assistants.facade'
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
-    ZardComboboxComponent,
-    ZardComboboxOptionTemplateDirective,
+    ZardComboboxDeprecatedComponent,
+    ZardComboboxDeprecatedOptionTemplateDirective,
     ...ZardFormImports
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -115,7 +115,7 @@ import { AssistantsSettingsFacade } from './assistants.facade'
                   <span class="text-sm text-text-secondary">
                     {{ 'PAC.Assistant.AssistantId' | translate: { Default: 'Assistant ID / Xpert ID' } }}
                   </span>
-                  <z-combobox
+                  <z-combobox-deprecated
                     zTriggerMode="input"
                     class="w-full"
                     [value]="facade.assistantSelectionValue(scope(), assistant.code)"
@@ -130,13 +130,18 @@ import { AssistantsSettingsFacade } from './assistants.facade'
                     (zSearchTermChange)="facade.onAssistantSearchTermChange(scope(), assistant.code, $event)"
                     (zValueChange)="facade.selectAssistantXpert(scope(), assistant.code, $event)"
                   >
-                    <ng-template zComboboxOption let-option>
-                      <div class="flex flex-col py-1">
+                    <ng-template zComboboxDeprecatedOption let-option>
+                      <div class="flex flex-col gap-1 py-1">
                         <span class="text-sm font-medium text-text-primary">{{ option.data?.label }}</span>
-                        <span class="font-mono text-xs text-text-secondary">{{ option.data?.id }}</span>
+                        @if (option.data?.description) {
+                          <span class="text-xs text-text-secondary">{{ option.data?.description }}</span>
+                        }
+                        @if (option.data?.meta) {
+                          <span class="font-mono text-xs text-text-tertiary">{{ option.data?.meta }}</span>
+                        }
                       </div>
                     </ng-template>
-                  </z-combobox>
+                  </z-combobox-deprecated>
                 </label>
               </div>
 
