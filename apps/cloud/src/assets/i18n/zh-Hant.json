@@ -1820,8 +1820,66 @@
       }
     },
     "Assistant": {
+      "SettingsEyebrow": "統一助手配置",
+      "SettingsDesc": "管理聊天體驗中使用的助手的租戶默認配置和組織級覆蓋配置。",
       "MenuTenantSubtitle": "租戶默認配置",
-      "MenuOrganizationSubtitle": "組織覆蓋配置"
+      "MenuOrganizationSubtitle": "組織覆蓋配置",
+      "Code": "助手代碼",
+      "EffectiveSource": "生效來源",
+      "EffectiveStatus": "生效狀態",
+      "ActiveOrganization": "當前組織",
+      "ActiveAssistant": "當前助手",
+      "FloatingHint": "拖動啟動器可停靠到左側或右側。",
+      "NoOrganization": "未選擇組織",
+      "TenantScope": "租戶範圍",
+      "TenantDefault": "租戶默認配置",
+      "TenantDefaultDesc": "當不存在組織級覆蓋配置時生效。僅超級管理員可編輯此區域。",
+      "TenantPageDesc": "配置租戶級默認助手和 Xpert，組織默認會繼承這些配置。",
+      "TenantPermissionRequired": "僅超級管理員可以編輯租戶默認助手設置。",
+      "Enabled": "啟用",
+      "AssistantId": "助手 ID / Xpert ID",
+      "AssistantIdPlaceholder": "按名稱或 ID 搜索可訪問的 Xpert",
+      "RuntimeFrameUrl": "ChatKit Frame URL",
+      "FrameUrlMissing": "未配置部署變量",
+      "RuntimeFrameUrlDesc": "ChatKit frame 由部署配置提供，並在所有助手頁面間共享。",
+      "FrameUrl": "Frame URL",
+      "RuntimeApiUrl": "運行時 API URL",
+      "RuntimeJwtDesc": "認證會自動使用當前用戶的 JWT。",
+      "OrganizationScope": "組織範圍",
+      "OrganizationOverride": "組織覆蓋配置",
+      "OrganizationOverrideDesc": "覆蓋當前所選組織的租戶默認配置。使用重置可重新繼承租戶配置。",
+      "OrganizationPageDesc": "配置組織級助手路由覆蓋。未配置的助手將繼續繼承租戶默認配置。",
+      "UseTenantDefault": "使用租戶默認配置",
+      "OrganizationRequired": "請選擇一個組織以管理組織級覆蓋配置。",
+      "NotConfigured": "未配置",
+      "SavedInOrganizationScope": "已保存到組織級範圍",
+      "SavedInTenantScope": "已保存到租戶級範圍",
+      "NoSavedConfigInScope": "此範圍內沒有已保存配置",
+      "SaveFailed": "保存助手配置失敗。",
+      "ResetOrganizationFailed": "重置組織助手配置失敗。",
+      "LoadFailed": "加載助手配置失敗。",
+      "DisabledTitle": "助手已禁用",
+      "DisabledDesc": "此助手已完成配置，但當前組織已將其禁用。",
+      "MissingTitle": "助手未配置",
+      "MissingDesc": "請先在「設置 / 助手」中完成助手配置，然後再在這裡開始對話。",
+      "OpenSettings": "打開助手設置",
+      "ErrorDesc": "請檢查助手配置後，再從通用聊天頁面重試。",
+      "ChatCommon": {
+        "Label": "通用助手",
+        "Description": "用於通用聊天頁面的嵌入式助手。"
+      },
+      "XpertShared": {
+        "Label": "工作區助手",
+        "Description": "用於 Xpert 工作區和 Studio Shell 的共享助手。"
+      },
+      "ChatBI": {
+        "Label": "ChatBI 助手",
+        "Description": "用於 ChatBI 頁面的嵌入式助手。"
+      },
+      "ClawXpert": {
+        "Label": "ClawXpert",
+        "Description": "用於 ClawXpert 頁面的嵌入式助手體驗。"
+      }
     },
     "Scope": {
       "Current": "當前範圍",

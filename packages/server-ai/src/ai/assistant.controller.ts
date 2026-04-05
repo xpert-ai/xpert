@@ -5,6 +5,7 @@ import { Body, Controller, Get, Logger, Param, Post, UseGuards, UseInterceptors 
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { normalizeContextSize } from '@xpert-ai/plugin-sdk'
 import { isNil, omitBy, pick } from 'lodash-es'
+import { AssistantBindingService } from '../assistant-binding'
 import { PublishedXpertAccessService } from '../xpert'
 
 const ASSISTANT_RELATIONS = ['agent', 'agent.copilotModel', 'copilotModel']
@@ -18,7 +19,10 @@ const ASSISTANT_RELATIONS = ['agent', 'agent.copilotModel', 'copilotModel']
 export class AssistantsController {
     readonly #logger = new Logger(AssistantsController.name)
 
-    constructor(private readonly publishedXpertAccessService: PublishedXpertAccessService) {}
+    constructor(
+        private readonly publishedXpertAccessService: PublishedXpertAccessService,
+        private readonly assistantBindingService: AssistantBindingService
+    ) {}
 
     @Post('search')
     async search(@Body() query: { limit: number; offset: number; graph_id?: string; metadata?: any }) {
@@ -44,9 +48,13 @@ export class AssistantsController {
 
     @Get(':id')
     async getOne(@Param('id') id: string) {
-        const item = await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
-            relations: ASSISTANT_RELATIONS
-        })
+        const item = (await this.assistantBindingService.isEffectiveSystemAssistantId(id))
+            ? await this.publishedXpertAccessService.getPublishedXpertInTenant(id, {
+                  relations: ASSISTANT_RELATIONS
+              })
+            : await this.publishedXpertAccessService.getAccessiblePublishedXpert(id, {
+                  relations: ASSISTANT_RELATIONS
+              })
         return transformAssistant(item)
     }
 }

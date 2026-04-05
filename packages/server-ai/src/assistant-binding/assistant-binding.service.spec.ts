@@ -191,6 +191,42 @@ describe('AssistantBindingService', () => {
     )
   })
 
+  it('recognizes an organization effective system assistant id', async () => {
+    repository.findOne.mockResolvedValueOnce({
+      code: AssistantCode.CHAT_COMMON,
+      scope: AssistantBindingScope.ORGANIZATION,
+      assistantId: 'org-assistant',
+      enabled: true,
+      tenantId: 'tenant-1',
+      organizationId: 'org-1',
+      userId: null
+    })
+
+    await expect(service.isEffectiveSystemAssistantId('org-assistant')).resolves.toBe(true)
+  })
+
+  it('recognizes a tenant fallback system assistant id when no organization binding exists', async () => {
+    repository.findOne
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({
+        code: AssistantCode.CHAT_COMMON,
+        scope: AssistantBindingScope.TENANT,
+        assistantId: 'tenant-assistant',
+        enabled: true,
+        tenantId: 'tenant-1',
+        organizationId: null,
+        userId: null
+      })
+
+    await expect(service.isEffectiveSystemAssistantId('tenant-assistant')).resolves.toBe(true)
+  })
+
+  it('returns false when the assistant id is not an effective system assistant', async () => {
+    repository.findOne.mockResolvedValue(null)
+
+    await expect(service.isEffectiveSystemAssistantId('missing-assistant')).resolves.toBe(false)
+  })
+
   it('lists system bindings for an explicit organization scope', async () => {
     repository.find.mockResolvedValue([{ code: AssistantCode.CHATBI }])
 

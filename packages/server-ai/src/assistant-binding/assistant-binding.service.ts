@@ -228,6 +228,28 @@ export class AssistantBindingService
     }
   }
 
+  async isEffectiveSystemAssistantId(assistantId: string): Promise<boolean> {
+    const normalizedAssistantId = assistantId?.trim()
+
+    if (!normalizedAssistantId) {
+      return false
+    }
+
+    for (const code of SYSTEM_ASSISTANT_CODES) {
+      const binding = await this.getEffectiveBinding(code)
+
+      if (
+        binding.enabled &&
+        binding.sourceScope !== AssistantBindingSourceScope.NONE &&
+        binding.assistantId === normalizedAssistantId
+      ) {
+        return true
+      }
+    }
+
+    return false
+  }
+
   async getAvailableXperts(scope: AssistantBindingScope, code: AssistantCode) {
     if (scope === AssistantBindingScope.USER) {
       this.ensureUserManagedCode(code)

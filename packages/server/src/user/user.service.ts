@@ -1,6 +1,7 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions } from 'typeorm'
+import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions, DeleteResult } from 'typeorm'
 import bcrypt from 'bcryptjs'
 import { environment as env } from '@metad/server-config'
 import { nanoid } from 'nanoid'
@@ -10,6 +11,8 @@ import { ID, IUser, LanguagesEnum, PermissionsEnum, RolesEnum, UserType } from '
 import { RequestContext } from '../core/context'
 import { EmailVerification } from './email-verification/email-verification.entity'
 import { UserPublicDTO } from './dto'
+import { UserOrganizationService } from '../user-organization/user-organization.services'
+import { EVENT_USER_ORGANIZATION_DELETED, UserOrganizationDeletedEvent } from './events'
 
 const REQUEST_CONTEXT_USER_RELATIONS = ['role', 'role.rolePermissions', 'employee'] as const
 
@@ -27,7 +30,10 @@ export class UserService extends TenantAwareCrudService<User> {
 		@InjectRepository(User)
 		userRepository: Repository<User>,
 		@InjectRepository(EmailVerification)
-		public emailVerificationRepository: Repository<EmailVerification>
+		public emailVerificationRepository: Repository<EmailVerification>,
+		@Inject(forwardRef(() => UserOrganizationService))
+		private readonly userOrganizationService: UserOrganizationService,
+		private readonly eventEmitter: EventEmitter2
 	) {
 		super(userRepository)
 	}
@@ -309,7 +315,7 @@ export class UserService extends TenantAwareCrudService<User> {
 		})
 	}
 
-	async deleteWithGuards(id: string) {
+	private async ensureDeleteWithGuards(id: string) {
 		const currentUserId = RequestContext.currentUserId()
 		if (currentUserId === id) {
 			throw new BadRequestException('You cannot delete your own user account.')
@@ -347,7 +353,40 @@ export class UserService extends TenantAwareCrudService<User> {
 			}
 		}
 
+		return { tenantId, user }
+	}
+
+	private async deleteUserOrganizations(userId: string, tenantId: string) {
+		const { items: memberships } = await this.userOrganizationService.findAll({
+			where: {
+				userId,
+				tenantId
+			}
+		})
+
+		for (const membership of memberships) {
+			await this.userOrganizationService.delete(membership.id, {
+				allowDeletingLastMembership: true
+			})
+
+			this.eventEmitter.emit(
+				EVENT_USER_ORGANIZATION_DELETED,
+				new UserOrganizationDeletedEvent(membership.tenantId, membership.organizationId, membership.userId)
+			)
+		}
+	}
+
+	async deleteWithGuards(id: string) {
+		const { tenantId } = await this.ensureDeleteWithGuards(id)
+		await this.deleteUserOrganizations(id, tenantId)
+
 		return this.softDelete(id)
+	}
+
+	async deleteHardWithGuards(id: string): Promise<DeleteResult> {
+		await this.ensureDeleteWithGuards(id)
+
+		return this.delete(id)
 	}
 
 	async getAdminUsers(tenantId: string): Promise<User[]> {

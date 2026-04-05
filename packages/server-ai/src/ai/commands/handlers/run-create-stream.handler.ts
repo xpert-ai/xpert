@@ -17,6 +17,7 @@ import { finalize, map, tap } from 'rxjs/operators'
 import z from 'zod'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { GetChatConversationQuery } from '../../../chat-conversation/queries/conversation-get.query'
+import { AssistantBindingService } from '../../../assistant-binding'
 import { EnvironmentService, getContextEnvState, mergeEnvironmentWithEnvState } from '../../../environment'
 import { PublishedXpertAccessService } from '../../../xpert'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
@@ -258,7 +259,8 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
         private readonly queryBus: QueryBus,
         private readonly environmentService: EnvironmentService,
         private readonly redisSseStreamService: RedisSseStreamService,
-        private readonly publishedXpertAccessService: PublishedXpertAccessService
+        private readonly publishedXpertAccessService: PublishedXpertAccessService,
+        private readonly assistantBindingService: AssistantBindingService
     ) {}
 
     private applyAssistantScopeToCurrentRequest(organizationId?: string | null) {
@@ -308,9 +310,13 @@ export class RunCreateStreamHandler implements ICommandHandler<RunCreateStreamCo
             throw new ForbiddenException('API key is not allowed to access this assistant.')
         }
 
-        const xpert = await this.publishedXpertAccessService.getAccessiblePublishedXpert(assistantId, {
-            relations: ['user', 'createdBy']
-        })
+        const xpert = (await this.assistantBindingService.isEffectiveSystemAssistantId(assistantId))
+            ? await this.publishedXpertAccessService.getPublishedXpertInTenant(assistantId, {
+                  relations: ['user', 'createdBy']
+              })
+            : await this.publishedXpertAccessService.getAccessiblePublishedXpert(assistantId, {
+                  relations: ['user', 'createdBy']
+              })
 
         this.applyAssistantScopeToCurrentRequest(xpert.organizationId ?? null)
         this.applyAssistantPrincipalToCurrentRequest(apiKey, (xpert.user as IUser | null | undefined) ?? null)

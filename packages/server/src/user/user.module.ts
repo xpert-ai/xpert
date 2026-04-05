@@ -11,6 +11,7 @@ import { FactoryResetModule } from './factory-reset/factory-reset.module';
 import { EventHandlers } from './events/handlers';
 import { EmailVerification } from './email-verification/email-verification.entity';
 import { RoleModule } from '../role';
+import { UserOrganizationModule } from '../user-organization/user-organization.module';
 
 @Module({
 	imports: [
@@ -21,6 +22,7 @@ import { RoleModule } from '../role';
 		forwardRef(() => TenantModule),
 		CqrsModule,
 		RoleModule,
+		forwardRef(() => UserOrganizationModule),
 		FactoryResetModule,
 	],
 	controllers: [UserController],
