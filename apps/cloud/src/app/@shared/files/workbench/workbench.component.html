@@ -1,0 +1,76 @@
+<pac-file-tree
+  class="lg:block"
+  [class.hidden]="mobilePane() !== 'tree'"
+  [title]="'PAC.Files.FileTree' | translate: { Default: 'File Tree' }"
+  [zSize]="treeSize()"
+  [hasContext]="!!rootId()"
+  [subtitle]="rootLabel() || ('PAC.Files.SelectItemForTree' | translate: { Default: 'Select an item to inspect its files' })"
+  [items]="fileTree()"
+  [activePath]="activeFilePath()"
+  [loading]="treeLoading()"
+  [loadingPaths]="fileTreeLoadingPaths()"
+  [emptyTitle]="'PAC.Files.NoFilesFound' | translate: { Default: 'No files found yet.' }"
+  [emptyHint]="
+    'PAC.Files.NoFilesFoundHint'
+      | translate
+        : { Default: 'This item does not expose any files at the current root, or the tree is still loading.' }
+  "
+  [selectTitle]="'PAC.Files.SelectItem' | translate: { Default: 'Select an item' }"
+  [selectHint]="'PAC.Files.SelectItemTreeHint' | translate: { Default: 'Choose an item to load its file tree.' }"
+  (fileSelect)="openFile($event)"
+  (directoryToggle)="toggleDirectory($event)"
+/>
+
+<pac-file-viewer
+  class="lg:block"
+  [class.hidden]="mobilePane() !== 'file'"
+  [filePath]="activeFilePath()"
+  [content]="draftContent()"
+  [loading]="fileLoading()"
+  [saving]="saving()"
+  [readable]="fileReadable()"
+  [editable]="isActiveFileEditable()"
+  [markdown]="isMarkdownFile()"
+  [dirty]="dirty()"
+  [mode]="panelMode()"
+  [readOnlyHint]="
+    'PAC.Files.ReadOnlyFileHint'
+      | translate
+        : {
+            Default: 'This file is shown in read-only mode. Only markdown, code, and selected text formats can be edited.'
+          }
+  "
+  (modeChange)="switchPanelMode($event)"
+  (contentChange)="draftContent.set($event)"
+  (discard)="discardActiveFileChanges()"
+  (save)="saveActiveFile()"
+  (back)="mobilePane.set('tree')"
+/>
+
+<ng-template #unsavedChangesDialog>
+  <div class="w-[min(28rem,calc(100vw-2rem))] rounded-2xl bg-components-card-bg p-6 shadow-2xl">
+    <div class="text-lg font-semibold text-text-primary">
+      {{ 'PAC.Files.UnsavedChangesTitle' | translate: { Default: 'Unsaved changes' } }}
+    </div>
+    <div class="mt-2 text-sm leading-6 text-text-tertiary">
+      {{
+        'PAC.Files.UnsavedChangesInfo'
+          | translate
+            : {
+                Default: 'You have unsaved edits in the current file. Save them before switching, or discard the pending changes.'
+              }
+      }}
+    </div>
+    <div class="mt-6 flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
+      <button type="button" class="btn btn-secondary" (click)="resolveDirtyDialog('cancel')">
+        {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
+      </button>
+      <button type="button" class="btn btn-secondary" (click)="resolveDirtyDialog('discard')">
+        {{ 'PAC.Files.Discard' | translate: { Default: 'Discard' } }}
+      </button>
+      <button type="button" class="btn btn-primary" (click)="resolveDirtyDialog('save')">
+        {{ 'PAC.ACTIONS.Save' | translate: { Default: 'Save' } }}
+      </button>
+    </div>
+  </div>
+</ng-template>

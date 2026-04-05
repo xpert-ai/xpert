@@ -1,4 +1,5 @@
 import { TXpertTeamDraft, WorkflowNodeTypeEnum, XpertTypeEnum } from '@metad/contracts'
+import { BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER } from './blank-draft.util'
 import {
   applyAgentTemplateWizardState,
   applyKnowledgeTemplateWizardState,
@@ -29,7 +30,7 @@ describe('blank template util', () => {
           key: 'Agent_primary',
           options: {
             middlewares: {
-              order: ['Middleware_guard', 'Middleware_audit']
+              order: ['Middleware_guard', 'Middleware_skills', 'Middleware_audit']
             }
           }
         } as any
@@ -70,13 +71,16 @@ describe('blank template util', () => {
         },
         {
           type: 'workflow',
-          key: 'Skill_writer',
-          position: { x: 620, y: 180 },
+          key: 'Middleware_skills',
+          position: { x: 360, y: 500 },
           entity: {
-            key: 'Skill_writer',
-            type: WorkflowNodeTypeEnum.SKILL,
-            title: 'writer',
-            skills: ['writer']
+            key: 'Middleware_skills',
+            type: WorkflowNodeTypeEnum.MIDDLEWARE,
+            title: 'Skills Middleware',
+            provider: BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER,
+            options: {
+              skills: ['writer']
+            }
           } as any
         },
         {
@@ -126,10 +130,10 @@ describe('blank template util', () => {
           to: 'Agent_primary'
         },
         {
-          key: 'Agent_primary/Skill_writer',
+          key: 'Agent_primary/Middleware_skills',
           type: 'workflow',
           from: 'Agent_primary',
-          to: 'Skill_writer'
+          to: 'Middleware_skills'
         },
         {
           key: 'Agent_primary/Middleware_guard',
@@ -148,6 +152,50 @@ describe('blank template util', () => {
           type: 'edge',
           from: 'Agent_primary',
           to: 'Answer_keep'
+        }
+      ]
+    }
+  }
+
+  function createLegacySkillTemplateDraft(): TXpertTeamDraft {
+    return {
+      ...createAgentTemplateDraft(),
+      team: {
+        ...createAgentTemplateDraft().team,
+        agent: {
+          ...createAgentTemplateDraft().team.agent,
+          options: {
+            middlewares: {
+              order: ['Middleware_guard']
+            }
+          }
+        } as any
+      },
+      nodes: [
+        ...createAgentTemplateDraft().nodes.filter(
+          (node) => node.key !== 'Middleware_skills' && node.key !== 'Middleware_audit'
+        ),
+        {
+          type: 'workflow',
+          key: 'Skill_writer',
+          position: { x: 620, y: 180 },
+          entity: {
+            key: 'Skill_writer',
+            type: WorkflowNodeTypeEnum.SKILL,
+            title: 'writer',
+            skills: ['writer']
+          } as any
+        }
+      ],
+      connections: [
+        ...createAgentTemplateDraft().connections.filter(
+          (connection) => connection.to !== 'Middleware_skills' && connection.to !== 'Middleware_audit'
+        ),
+        {
+          key: 'Agent_primary/Skill_writer',
+          type: 'workflow',
+          from: 'Agent_primary',
+          to: 'Skill_writer'
         }
       ]
     }
@@ -312,7 +360,14 @@ describe('blank template util', () => {
       }
     ])
     expect(state.selections.skills).toEqual(['writer'])
-    expect(state.selections.middlewares).toEqual(['guard', 'audit'])
+    expect(state.selections.middlewares).toEqual(['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER, 'audit'])
+  })
+
+  it('ignores legacy skill nodes when extracting agent template wizard state', () => {
+    const state = extractAgentTemplateWizardState(createLegacySkillTemplateDraft())
+
+    expect(state.selections.skills).toEqual([])
+    expect(state.selections.middlewares).toEqual(['guard'])
   })
 
   it('extracts supported knowledge template nodes into blank wizard state', () => {
@@ -357,21 +412,26 @@ describe('blank template util', () => {
 
     const workflowNodes = result.nodes.filter((node) => node.type === 'workflow')
     const triggerNodes = workflowNodes.filter((node) => node.entity.type === WorkflowNodeTypeEnum.TRIGGER)
-    const skillNodes = workflowNodes.filter((node) => node.entity.type === WorkflowNodeTypeEnum.SKILL)
     const middlewareNodes = workflowNodes.filter((node) => node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE)
+    const skillsMiddlewareNode = middlewareNodes.find(
+      (node) => (node.entity as any).provider === BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
+    )
 
     expect(triggerNodes).toHaveLength(2)
     expect((triggerNodes.find((node) => (node.entity as any).from === 'schedule')?.entity as any)?.config).toEqual({
       cron: '0 0 * * *',
       timezone: 'UTC'
     })
-    expect(skillNodes).toHaveLength(1)
-    expect(skillNodes[0].entity.title).toBe('rewriter')
-    expect(middlewareNodes).toHaveLength(1)
+    expect(workflowNodes.filter((node) => node.entity.type === WorkflowNodeTypeEnum.SKILL)).toHaveLength(0)
+    expect(middlewareNodes).toHaveLength(2)
     expect((middlewareNodes[0].entity as any).provider).toBe('guard')
+    expect(skillsMiddlewareNode).toBeDefined()
+    expect((skillsMiddlewareNode!.entity as any).options).toEqual({
+      skills: ['rewriter']
+    })
     expect(result.nodes.some((node) => node.key === 'Answer_keep')).toBe(true)
     expect(result.nodes.some((node) => node.key === 'Middleware_audit')).toBe(false)
-    expect(result.team.agent?.options?.middlewares?.order).toEqual([middlewareNodes[0].key])
+    expect(result.team.agent?.options?.middlewares?.order).toEqual(middlewareNodes.map((node) => node.key))
   })
 
   it('applies knowledge wizard selections back onto the template while preserving unsupported nodes', () => {

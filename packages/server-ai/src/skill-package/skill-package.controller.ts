@@ -7,6 +7,7 @@ import {
 	Get,
 	Param,
 	Post,
+	Put,
 	Query,
 	UploadedFile,
 	UseGuards,
@@ -80,5 +81,36 @@ export class SkillPackageController {
 		} catch (error) {
 			throw new BadRequestException(`Failed to upload skill package: ${getErrorMessage(error)}`)
 		}
+	}
+
+	@UseGuards(WorkspaceGuard)
+	@Get('workspace/:workspaceId/:id/files')
+	async getSkillPackageFiles(
+		@Param('workspaceId') workspaceId: string,
+		@Param('id') id: string,
+		@Query('path') path?: string,
+		@Query('deepth') deepth?: string
+	) {
+		return this.service.getSkillPackageFiles(workspaceId, id, path, deepth ? Number(deepth) : undefined)
+	}
+
+	@UseGuards(WorkspaceGuard)
+	@Get('workspace/:workspaceId/:id/file')
+	async getSkillPackageFile(
+		@Param('workspaceId') workspaceId: string,
+		@Param('id') id: string,
+		@Query('path') path: string
+	) {
+		return this.service.readSkillPackageFile(workspaceId, id, path)
+	}
+
+	@UseGuards(WorkspaceGuard)
+	@Put('workspace/:workspaceId/:id/file')
+	async saveSkillPackageFile(
+		@Param('workspaceId') workspaceId: string,
+		@Param('id') id: string,
+		@Body() body: { path: string; content: string }
+	) {
+		return this.service.saveSkillPackageFile(workspaceId, id, body?.path, body?.content)
 	}
 }

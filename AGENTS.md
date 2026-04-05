@@ -5,6 +5,7 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 ## General
 
 - Prefer `rg` for search; keep edits ASCII; do not revert user changes.
+- Golden rule: prefer writing Tailwind utility classes directly on HTML elements. Only extract component CSS when inline utilities are impractical, such as `:host`, pseudo-elements, or other selector-driven cases.
 - Avoid Angular Material and Angular CDK (deprecated). Use Angular Aria + TailwindCSS v4 for UI components. Do not import `@angular/material` or `@angular/cdk` modules in new code.
 - Use standalone Angular components with signals, the new control flow like `@for/@if`, and reactive forms. Keep templates Tailwind-first.
 - Keep comments succinct; add only when clarifying non-obvious logic.
@@ -20,12 +21,19 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 
 - Services live in `apps/cloud/src/app/@core/services`; export them via the barrel.
 - New settings pages belong under `apps/cloud/src/app/features/setting/**`, use standalone components and lazy routing files exporting `routes`.
-- Use signals/models for state, prefer `getAllInOrg` patterns for org-scoped data.
 - RxJS: use `forkJoin` only with finite observables. Many repo services are wrapped by org/store streams (`selectOrganizationId`, `BehaviorSubject`, refresh streams) and may emit without completing; when combining them with `forkJoin`, always convert them to one-shot requests first with `take(1)`/`firstValueFrom`, otherwise loading states can hang forever. Use `combineLatest` instead when live updates are intended.
-- Styling: Tailwind utility classes in templates; Do not add any new SCSS stylesheets. For all new features, new components, and new pages, use CSS by default.
+- Styling: prefer Tailwind utility classes directly in templates; only keep component CSS for cases that cannot be expressed cleanly inline. Do not add any new SCSS stylesheets.
 - Use translate for text in html.
 - Support light/dark modes via Tailwind CSS classes, No hard-coded color classes or color literals introduced.
 - Prefer using JavaScript's async/await functionality over RxJS.
+
+### Class Binding Rule
+
+- For binary states (true/false), use inline `[class]` expressions to keep the template minimal.
+- For multi-state conditions (more than two variants), use `[ngClass]` with a state-to-class mapping.
+- Avoid stacking multiple `[class.xxx]` bindings for the same condition.
+
+Rationale: keep simple cases concise, and complex cases structured and maintainable.
 
 ## API Endpoints
 
@@ -39,5 +47,5 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 
 ## UX Notes
 
-- Follow the bold, terminal-inspired aesthetic used in the skill repository page: gradient shells, code-like cards, and clear CTAs.
+- Favor a modern enterprise aesthetic: structured layouts, restrained visual accents, clear information hierarchy, and confident CTAs.
 - Provide loading/empty states; support search/filter/sort when dealing with lists.

@@ -15,7 +15,7 @@ import { forkJoin } from 'rxjs'
     <div class="w-[420px] overflow-hidden rounded-2xl bg-components-card-bg text-text-primary shadow-2xl">
       <div class="flex items-center justify-between border-b border-divider-regular px-4 py-3">
         <div class="text-lg font-semibold">
-          {{ 'Pro.UploadSkills' | translate : { Default: 'Upload Skills' } }}
+          {{ 'PAC.Skill.UploadSkills' | translate : { Default: 'Upload Skills' } }}
         </div>
         <button type="button" class="text-text-tertiary transition-colors hover:text-text-primary" (click)="close()">
           <i class="ri-close-line text-xl"></i>
@@ -25,7 +25,7 @@ import { forkJoin } from 'rxjs'
       <div class="p-4 space-y-4">
         <div class="rounded-lg border-2 border-dashed border-divider-regular bg-background-default-subtle p-4">
           <p class="mb-2 text-sm text-text-secondary">
-            {{ 'Pro.UploadSkillsHint' | translate : { Default: 'Upload a zip containing one or more skill folders (each with SKILL.md).' } }}
+            {{ 'PAC.Skill.UploadSkillsHint' | translate : { Default: 'Upload a zip containing one or more skill folders (each with SKILL.md).' } }}
           </p>
           <button
             type="button"
@@ -36,7 +36,7 @@ import { forkJoin } from 'rxjs'
             <div class="flex items-center gap-2">
               <i class="ri-upload-2-line"></i>
               <span class="text-sm text-text-primary">
-                {{ 'Pro.ChooseFile' | translate : { Default: 'Choose file' } }}
+                {{ 'PAC.Skill.ChooseFile' | translate : { Default: 'Choose file' } }}
               </span>
             </div>
             <span class="text-xs text-text-tertiary">{{ files().length }}</span>
@@ -164,7 +164,7 @@ export class XpertSkillUploadDialogComponent implements AfterViewInit {
         this.loading.set(false)
         const packages = results.flatMap((items) => items ?? [])
         this.#toastr.success(
-          this.#translate.instant('Pro.SkillUploadSuccess', { Default: 'Skills uploaded successfully' })
+          this.#translate.instant('PAC.Skill.SkillUploadSuccess', { Default: 'Skills uploaded successfully' })
         )
         this.#dialogRef.close(packages ?? [])
       },

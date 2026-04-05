@@ -81,6 +81,12 @@ type SkillPromptMetadata = {
 	version: string
 }
 
+type SkillPackageInstallMetadata = Partial<SkillPackage['metadata']> & {
+	skillMdPath?: string
+	skillPath?: string
+	source?: string
+}
+
 const SkillsRootInContainer = '/root/skills/'
 const SKILL_FILE_NAME = 'SKILL.md'
 const MAX_SKILL_FILE_SIZE = 10 * 1024 * 1024
@@ -686,6 +692,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 		workspacePath: string,
 		skillPackage: SkillPackage
 	): Promise<SkillPromptMetadata | null> {
+		const metadata = this.getPackageMetadata(skillPackage)
 		const skillIndex = skillPackage.skillIndex
 		const localSkillMdPath = this.resolveLocalSkillPath(workspacePath, skillPackage)
 
@@ -707,7 +714,7 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 			name: parsed?.name ?? (skillPackage.name as string) ?? skillIndex?.name ?? skillIndex?.skillId ?? 'Skill',
 			description,
 			path: promptSkillPath ?? skillMdPath ?? parsed?.path ?? localSkillMdPath ?? undefined,
-			source: skillIndex?.repository?.provider ?? (skillPackage.metadata as any)?.source,
+			source: skillIndex?.repository?.provider ?? metadata?.source,
 			packagePath: packagePath || null,
 			workspaceId: skillPackage.workspaceId,
 			version: skillPackage.updatedAt?.toISOString() ?? ''
@@ -725,17 +732,17 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 	}
 
 	private resolveLocalSkillPath(workspacePath: string, skillPackage: SkillPackage) {
-		const metadata = skillPackage.metadata as Record<string, any> | undefined
+		const metadata = this.getPackageMetadata(skillPackage)
 		if (!metadata) {
 			return null
 		}
 
-		const skillMdPath = metadata.skillMdPath as string | undefined
+		const skillMdPath = metadata.skillMdPath
 		if (skillMdPath && this.isSafePath(skillMdPath, workspacePath)) {
 			return skillMdPath
 		}
 
-		const skillPath = metadata.skillPath as string | undefined
+		const skillPath = metadata.skillPath
 		if (skillPath) {
 			const resolved = isAbsolute(skillPath) ? skillPath : join(workspacePath, skillPath, SKILL_FILE_NAME)
 			if (this.isSafePath(resolved, workspacePath)) {
@@ -744,6 +751,10 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 		}
 
 		return null
+	}
+
+	private getPackageMetadata(skillPackage: SkillPackage): SkillPackageInstallMetadata | null {
+		return skillPackage.metadata as SkillPackageInstallMetadata | null
 	}
 
 	private resolveSkillPath(workspacePath: string, repoUrl: string, skillPath: string) {

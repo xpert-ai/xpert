@@ -66,12 +66,14 @@ import {
   throwError
 } from 'rxjs'
 import {
+  BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER,
   BlankTriggerSelection,
   BlankWorkflowStarterNodeKey,
   buildBlankKnowledgeDraft,
   buildBlankWorkflowDraft,
   buildBlankXpertDraft,
-  hasBlankWizardSelections
+  hasBlankWizardSelections,
+  normalizeBlankMiddlewareSelections
 } from './blank-draft.util'
 import {
   BLANK_XPERT_WORKFLOW_MODE,
@@ -367,7 +369,9 @@ export class XpertNewBlankComponent {
     )
   )
   readonly middlewareProviderOptions = computed(() =>
-    uniqueByName<{ meta: TAgentMiddlewareMeta }>(this.middlewareProviders(), (provider) => provider.meta.name)
+    uniqueByName<{ meta: TAgentMiddlewareMeta }>(this.middlewareProviders(), (provider) => provider.meta.name).filter(
+      (provider) => provider.meta.name !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
+    )
   )
   readonly dataSourceProviderOptions = computed(() =>
     uniqueByName<{ meta: IDocumentSourceProvider; integration: { service: string } }>(
@@ -582,7 +586,7 @@ export class XpertNewBlankComponent {
       }
 
       previousSkillWorkspaceId = workspaceId
-      this.selectedSkills.set([])
+      this.setAgentSkillSelections([])
       this.skillRefreshTick.update((value) => value + 1)
     })
 
@@ -738,11 +742,16 @@ export class XpertNewBlankComponent {
   }
 
   toggleMiddleware(provider: string, enabled: boolean) {
-    this.selectedMiddlewares.set(this.toggleValue(this.selectedMiddlewares(), provider, enabled))
+    this.selectedMiddlewares.set(
+      normalizeBlankMiddlewareSelections(
+        this.toggleValue(this.selectedMiddlewares(), provider, enabled),
+        this.selectedSkills()
+      )
+    )
   }
 
   toggleSkill(skillId: string, enabled: boolean) {
-    this.selectedSkills.set(this.toggleValue(this.selectedSkills(), skillId, enabled))
+    this.setAgentSkillSelections(this.toggleValue(this.selectedSkills(), skillId, enabled))
   }
 
   toggleDataSource(provider: string, enabled: boolean) {
@@ -797,7 +806,7 @@ export class XpertNewBlankComponent {
       const skillPackage = await firstValueFrom(
         this.#skillPackageService.installPackage(workspaceId, item.id).pipe(take(1))
       )
-      this.selectedSkills.set(Array.from(new Set([...this.selectedSkills(), skillPackage.id])))
+      this.setAgentSkillSelections(Array.from(new Set([...this.selectedSkills(), skillPackage.id])))
       this.refreshSkills()
     } catch (error) {
       this.#toastr.error(getErrorMessage(error) || 'Failed to install the selected skill.')
@@ -807,7 +816,7 @@ export class XpertNewBlankComponent {
   }
 
   removeSkill(skillId: string) {
-    this.selectedSkills.set(this.selectedSkills().filter((item) => item !== skillId))
+    this.setAgentSkillSelections(this.selectedSkills().filter((item) => item !== skillId))
   }
 
   close(value?: BlankXpertWizardResult) {
@@ -921,8 +930,7 @@ export class XpertNewBlankComponent {
       const state = extractAgentTemplateWizardState(draft)
       this.applyTemplateBasicInfo(state.basic)
       this.selectedTriggers.set(state.selections.triggers)
-      this.selectedSkills.set(state.selections.skills)
-      this.selectedMiddlewares.set(state.selections.middlewares)
+      this.applyAgentSkillSelections(state.selections.skills, state.selections.middlewares)
       return
     }
 
@@ -962,8 +970,7 @@ export class XpertNewBlankComponent {
 
   private resetSelections() {
     this.selectedTriggers.set([])
-    this.selectedSkills.set([])
-    this.selectedMiddlewares.set([])
+    this.applyAgentSkillSelections([], [])
     this.selectedKnowledgeTriggers.set([])
     this.selectedDataSources.set([])
     this.selectedProcessors.set([])
@@ -1147,9 +1154,6 @@ export class XpertNewBlankComponent {
     return {
       triggers: this.selectedTriggers(),
       skills: this.selectedSkills(),
-      skillLabels: Object.fromEntries(
-        this.selectedSkillItems().map((skill) => [skill.id, stringifyI18nLabel(skill.label, skill.id)])
-      ),
       middlewares: this.selectedMiddlewares()
     }
   }
@@ -1195,6 +1199,15 @@ export class XpertNewBlankComponent {
   isModeDisabled(mode: BlankXpertMode) {
     return isBlankWizardModeDisabled(mode, this.requestedType(), this.allowedModes)
   }
+
+  private setAgentSkillSelections(skills: string[]) {
+    this.applyAgentSkillSelections(skills, this.selectedMiddlewares())
+  }
+
+  private applyAgentSkillSelections(skills: string[], middlewares: string[]) {
+    this.selectedSkills.set(skills)
+    this.selectedMiddlewares.set(normalizeBlankMiddlewareSelections(middlewares, skills))
+  }
 }
 
 function buildBlankWorkspaceSkillState(skills: ISkillPackage[]): BlankSkillState {
@@ -1231,18 +1244,6 @@ function normalizeI18nCandidate(value: unknown): string | I18nObject | null {
   }
 
   return null
-}
-
-function stringifyI18nLabel(value: string | I18nObject, fallback: string): string {
-  if (typeof value === 'string') {
-    return value.trim() || fallback
-  }
-
-  const candidates = [value.en_US, value.zh_Hans, ...Object.values(value)].filter(
-    (candidate): candidate is string => typeof candidate === 'string' && !!candidate.trim()
-  )
-
-  return candidates[0]?.trim() || fallback
 }
 
 function uniqueByName<T>(values: T[], getName: (value: T) => string) {

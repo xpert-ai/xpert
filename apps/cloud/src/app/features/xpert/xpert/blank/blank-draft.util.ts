@@ -9,7 +9,6 @@ import {
   genPipelineSourceKey,
   genPipelineUnderstandingKey,
   genXpertMiddlewareKey,
-  genXpertSkillKey,
   genXpertTriggerKey,
   IWFNChunker,
   IWFNCode,
@@ -22,7 +21,6 @@ import {
   IWFNHttp,
   IWFNJSONParse,
   IWFNJSONStringify,
-  IWFNSkill,
   IWFNSource,
   IWFNTemplate,
   IWFNTrigger,
@@ -45,6 +43,8 @@ const KNOWLEDGE_STAGE_X_GAP = 320
 const KNOWLEDGE_STAGE_BASE_Y = 220
 const WORKFLOW_STAGE_X_GAP = 320
 const WORKFLOW_STAGE_BASE_Y = 0
+
+export const BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER = 'skillsMiddleware'
 
 function genWorkflowDraftKnowledgeKey() {
   return letterStartSUID('Knowledge_')
@@ -92,7 +92,6 @@ export type XpertBlankWizardSelections = {
   triggers?: BlankTriggerSelection[]
   triggerProviders?: string[]
   skills?: string[]
-  skillLabels?: Record<string, string>
   middlewares?: string[]
 }
 
@@ -111,7 +110,6 @@ export type WorkflowBlankWizardSelections = {
 
 export type BlankXpertSelectionGraph = {
   triggerNodes: TXpertTeamNode<'workflow'>[]
-  skillNodes: TXpertTeamNode<'workflow'>[]
   middlewareNodes: TXpertTeamNode<'workflow'>[]
   nodes: TXpertTeamNode<'workflow'>[]
   connections: TXpertTeamConnection[]
@@ -131,8 +129,7 @@ export function normalizeBlankWizardSelections(
     triggers: normalizeBlankTriggerSelections(selections?.triggers, selections?.triggerProviders),
     triggerProviders: uniqueStrings(selections?.triggerProviders),
     skills,
-    skillLabels: normalizeBlankSkillLabels(skills, selections?.skillLabels),
-    middlewares: uniqueStrings(selections?.middlewares)
+    middlewares: normalizeBlankMiddlewareSelections(selections?.middlewares, skills)
   }
 }
 
@@ -183,7 +180,6 @@ export async function buildBlankXpertDraft(
 
   const {
     triggerNodes,
-    skillNodes,
     middlewareNodes,
     nodes: selectionNodes,
     connections: selectionConnections
@@ -251,18 +247,15 @@ export function buildBlankXpertSelectionGraph(
 ): BlankXpertSelectionGraph {
   const normalized = normalizeBlankWizardSelections(selections)
   const triggerNodes = createTriggerNodes(agentNode, normalized.triggers)
-  const skillNodes = createSkillNodes(agentNode, normalized.skills, normalized.skillLabels)
-  const middlewareNodes = createMiddlewareNodes(agentNode, normalized.middlewares)
-  const nodes = [...triggerNodes, ...skillNodes, ...middlewareNodes]
+  const middlewareNodes = createMiddlewareNodes(agentNode, normalized.middlewares, normalized.skills)
+  const nodes = [...triggerNodes, ...middlewareNodes]
   const connections = [
     ...triggerNodes.map((node) => createConnection('edge', node.key, agentNode.key)),
-    ...skillNodes.map((node) => createConnection('workflow', agentNode.key, node.key)),
     ...middlewareNodes.map((node) => createConnection('workflow', agentNode.key, node.key))
   ]
 
   return {
     triggerNodes,
-    skillNodes,
     middlewareNodes,
     nodes,
     connections
@@ -710,36 +703,15 @@ function createWorkflowAnswerNode(): TXpertTeamNode<'workflow'> {
   }
 }
 
-function createSkillNodes(
-  agentNode: TXpertTeamNode<'agent'>,
-  skills: string[],
-  skillLabels: Record<string, string>
-): TXpertTeamNode<'workflow'>[] {
-  return skills.map((skill, index, items) => {
-    const key = genXpertSkillKey()
-    return {
-      type: 'workflow',
-      key,
-      position: {
-        x: agentNode.position.x + HORIZONTAL_OFFSET,
-        y: getCenteredY(agentNode.position.y, items.length, index)
-      },
-      entity: {
-        type: WorkflowNodeTypeEnum.SKILL,
-        key,
-        title: skillLabels[skill]?.trim() || skill,
-        skills: [skill]
-      } as IWFNSkill
-    }
-  })
-}
-
 function createMiddlewareNodes(
   agentNode: TXpertTeamNode<'agent'>,
-  middlewares: string[]
+  middlewares: string[],
+  skills: string[]
 ): TXpertTeamNode<'workflow'>[] {
   return middlewares.map((provider, index) => {
     const key = genXpertMiddlewareKey()
+    const options =
+      provider === BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER && skills.length ? { skills: [...skills] } : undefined
     return {
       type: 'workflow',
       key,
@@ -748,10 +720,12 @@ function createMiddlewareNodes(
         y: agentNode.position.y + MIDDLEWARE_VERTICAL_OFFSET + index * NODE_VERTICAL_GAP
       },
       entity: {
+        id: key,
         type: WorkflowNodeTypeEnum.MIDDLEWARE,
         key,
         title: provider,
-        provider
+        provider,
+        ...(options ? { options } : {})
       } as IWFNMiddleware
     }
   })
@@ -764,26 +738,6 @@ function createConnection(type: TXpertTeamConnection['type'], from: string, to: 
     from,
     to
   }
-}
-
-function normalizeBlankSkillLabels(
-  skillIds: string[],
-  skillLabels?: Record<string, string> | null
-): Record<string, string> {
-  if (!skillLabels) {
-    return {}
-  }
-
-  return skillIds.reduce(
-    (labels, skillId) => {
-      const label = skillLabels[skillId]?.trim()
-      if (label) {
-        labels[skillId] = label
-      }
-      return labels
-    },
-    {} as Record<string, string>
-  )
 }
 
 function getCenteredY(anchorY: number, total: number, index: number) {
@@ -817,6 +771,20 @@ export function normalizeBlankTriggerSelections(
   }
 
   return Array.from(deduped.values())
+}
+
+export function normalizeBlankMiddlewareSelections(middlewares?: string[] | null, skills?: string[] | null): string[] {
+  const normalized = uniqueStrings(middlewares)
+  const hasSkillsMiddleware = normalized.includes(BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER)
+  const visibleMiddlewares = normalized.filter((provider) => provider !== BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER)
+
+  return uniqueStrings(
+    skills?.length
+      ? hasSkillsMiddleware
+        ? normalized
+        : [...visibleMiddlewares, BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER]
+      : visibleMiddlewares
+  )
 }
 
 function uniqueStrings(values?: string[]) {

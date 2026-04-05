@@ -1,0 +1,6 @@
+@reference "../../../../styles/tailwind-reference.css";
+
+:host {
+  @apply h-full grid min-h-0 gap-4 lg:grid-cols-[minmax(0,280px)_minmax(0,1fr)];
+}
+

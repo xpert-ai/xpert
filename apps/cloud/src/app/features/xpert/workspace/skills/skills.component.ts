@@ -3,14 +3,19 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, TemplateRef, viewChild } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { RouterModule } from '@angular/router'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { IconComponent } from '@cloud/app/@shared/avatar'
+import {
+  FileWorkbenchComponent,
+  FileWorkbenchFileLoader,
+  FileWorkbenchFilesLoader,
+  FileWorkbenchFileSaver
+} from '@cloud/app/@shared/files'
 import { XpertSkillIndexesComponent, XpertSkillRepositoriesComponent } from '@cloud/app/@shared/skills'
 import { OverlayAnimation1 } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { firstValueFrom } from 'rxjs'
 import {
   getErrorMessage,
   IconDefinition,
@@ -18,12 +23,13 @@ import {
   injectToastr,
   ISkillPackage,
   ISkillRepository,
-  ISkillRepositoryIndex,
-  XpertTableStatus
+  ISkillRepositoryIndex
 } from '../../../../@core'
 import { XpertWorkspaceHomeComponent } from '../home/home.component'
 import { XpertSkillUploadDialogComponent } from './skill-upload-dialog.component'
+import { cx } from '@xpert-ai/headless-ui'
 
+type MobilePane = 'skills' | 'tree' | 'file'
 
 @Component({
   standalone: true,
@@ -32,12 +38,11 @@ import { XpertSkillUploadDialogComponent } from './skill-upload-dialog.component
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    RouterModule,
     CdkMenuModule,
     NgmI18nPipe,
     NgmSpinComponent,
-    NgmSelectComponent,
     IconComponent,
+    FileWorkbenchComponent,
     XpertSkillRepositoriesComponent,
     XpertSkillIndexesComponent
   ],
@@ -48,7 +53,8 @@ import { XpertSkillUploadDialogComponent } from './skill-upload-dialog.component
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertWorkspaceSkillsComponent {
-  eXpertTableStatus = XpertTableStatus
+  readonly cx = cx
+  
   readonly defaultSkillIcon: IconDefinition = {
     type: 'emoji',
     value: '🧩',
@@ -61,81 +67,187 @@ export class XpertWorkspaceSkillsComponent {
   readonly homeComponent = inject(XpertWorkspaceHomeComponent)
   readonly skillPackageAPI = injectSkillPackageAPI()
   readonly confirmDelete = injectConfirmDelete()
+  readonly #compactNumber = new Intl.NumberFormat('en', {
+    notation: 'compact',
+    maximumFractionDigits: 1
+  })
 
-  // Children
   readonly registerRepositoryDialog = viewChild<TemplateRef<unknown>>('registerRepositoryDialog')
+  readonly fileWorkbench = viewChild(FileWorkbenchComponent)
 
   readonly workspace = this.homeComponent.workspace
   readonly #skillsResource = myRxResource({
-    request: () => {
-      return {
-        workspaceId: this.workspace()?.id
-      }
-    },
-    loader: ({ request }) => {
-      return request.workspaceId
+    request: () => ({
+      workspaceId: this.workspace()?.id
+    }),
+    loader: ({ request }) =>
+      request.workspaceId
         ? this.skillPackageAPI.getAllByWorkspace(request.workspaceId, {
             relations: ['skillIndex', 'skillIndex.repository']
           })
         : null
-    }
   })
 
   readonly #loading = signal(false)
   readonly loading = computed(() => this.#skillsResource.status() === 'loading' || this.#loading())
-  readonly skills = computed(() => this.#skillsResource.value()?.items)
+  readonly skills = computed(() => this.#skillsResource.value()?.items ?? [])
   readonly search = model<string>('')
   readonly selectedRepository = model<ISkillRepository | null>(null)
-  // Selection
+  readonly mobilePane = model<MobilePane>('skills')
+  readonly workbenchPane = computed<'tree' | 'file'>(() => (this.mobilePane() === 'file' ? 'file' : 'tree'))
+
   readonly selectedSkillIds = signal<Set<string>>(new Set())
-  readonly hasSelection = computed(() => this.selectedSkillIds().size > 0)
-  readonly allSelected = computed(() => {
-    const skillList = this.skills() ?? []
-    return skillList.length > 0 && this.selectedSkillIds().size === skillList.length
+  readonly activeSkillId = signal<string | null>(null)
+  readonly activeSkill = computed(() => this.skills().find((skill) => skill.id && skill.id === this.activeSkillId()) ?? null)
+  readonly filteredSkills = computed(() => {
+    const term = this.search().trim().toLowerCase()
+    if (!term) {
+      return this.skills()
+    }
+
+    return this.skills().filter((skill) =>
+      [
+        this.displayName(skill),
+        this.skillSummary(skill),
+        this.repositoryLabel(skill),
+        this.providerLabel(skill),
+        this.publisherLabel(skill),
+        ...(skill.metadata?.tags ?? []),
+        skill.skillIndex?.skillId,
+        skill.packagePath
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(term)
+    )
   })
+  readonly hasSelection = computed(() => this.selectedSkillIds().size > 0)
+  readonly allSelected = computed(() => this.skills().length > 0 && this.selectedSkillIds().size === this.skills().length)
   readonly partialSelected = computed(() => {
+    const total = this.skills().length
     const selected = this.selectedSkillIds().size
-    const total = this.skills()?.length ?? 0
     return selected > 0 && selected < total
   })
 
   readonly registering = signal(false)
-  #registerDialogRef = null
+  #registerDialogRef: any = null
+
+  readonly loadActiveSkillFiles: FileWorkbenchFilesLoader = (path?: string) => {
+    const workspaceId = this.workspace()?.id
+    const skillId = this.activeSkillId()
+    if (!workspaceId || !skillId) {
+      return []
+    }
+    return this.skillPackageAPI.getFiles(workspaceId, skillId, path)
+  }
+
+  readonly loadActiveSkillFile: FileWorkbenchFileLoader = (path: string) => {
+    const workspaceId = this.workspace()?.id
+    const skillId = this.activeSkillId()
+    if (!workspaceId || !skillId) {
+      throw new Error('Active skill is required')
+    }
+    return this.skillPackageAPI.getFile(workspaceId, skillId, path)
+  }
+
+  readonly saveActiveSkillFile: FileWorkbenchFileSaver = (path: string, content: string) => {
+    const workspaceId = this.workspace()?.id
+    const skillId = this.activeSkillId()
+    if (!workspaceId || !skillId) {
+      throw new Error('Active skill is required')
+    }
+    return this.skillPackageAPI.saveFile(workspaceId, skillId, path, content)
+  }
+
+  readonly #syncSelectionWithData = effect(
+    () => {
+      const ids = new Set(this.skills().map((skill) => skill.id).filter((id): id is string => !!id))
+      this.selectedSkillIds.update((selected) => {
+        const next = new Set<string>()
+        selected.forEach((id) => {
+          if (ids.has(id)) {
+            next.add(id)
+          }
+        })
+        return next
+      })
+    },
+    { allowSignalWrites: true }
+  )
+
+  readonly #syncActiveSkillWithData = effect(
+    () => {
+      const skills = this.skills()
+      const activeId = this.activeSkillId()
+
+      if (!skills.length) {
+        this.activeSkillId.set(null)
+        return
+      }
+
+      if (!activeId || !skills.some((skill) => skill.id === activeId)) {
+        this.activeSkillId.set(skills[0]?.id ?? null)
+      }
+    },
+    { allowSignalWrites: true }
+  )
 
   getSkillIcon(skill: ISkillPackage | null | undefined): IconDefinition {
     return skill?.metadata?.icon ?? this.defaultSkillIcon
   }
 
-  readonly #syncSelectionWithData = effect(() => {
-    const ids = new Set((this.skills() ?? []).map((skill) => skill.id))
-    this.selectedSkillIds.update((selected) => {
-      const next = new Set<string>()
-      selected.forEach((id) => {
-        if (ids.has(id)) {
-          next.add(id)
-        }
-      })
-      return next
-    })
-  }, { allowSignalWrites: true })
+  displayName(skill: ISkillPackage | null | undefined): string {
+    return readI18nText(skill?.metadata?.displayName) || skill?.name || skill?.metadata?.name || '-'
+  }
 
-  onInstalling(skill: ISkillRepositoryIndex) {
+  skillSummary(skill: ISkillPackage | null | undefined): string {
+    return readI18nText(skill?.metadata?.summary) || readI18nText(skill?.metadata?.description) || '-'
+  }
+
+  repositoryLabel(skill: ISkillPackage | null | undefined): string {
+    return skill?.skillIndex?.repository?.name || this.translateDefault('PAC.Skill.DirectUpload', 'Direct Upload')
+  }
+
+  providerLabel(skill: ISkillPackage | null | undefined): string {
+    return skill?.skillIndex?.repository?.provider || this.translateDefault('PAC.Skill.LocalProvider', 'local')
+  }
+
+  publisherLabel(skill: ISkillPackage | null | undefined): string {
+    return (
+      skill?.skillIndex?.publisher?.displayName ||
+      skill?.skillIndex?.publisher?.name ||
+      skill?.skillIndex?.publisher?.handle ||
+      skill?.metadata?.author?.name ||
+      this.translateDefault('PAC.Skill.LocalAuthor', 'Local upload')
+    )
+  }
+
+  formatStat(value?: number | null): string {
+    return typeof value === 'number' && Number.isFinite(value) ? this.#compactNumber.format(value) : '--'
+  }
+
+  async onInstalling(skill: ISkillRepositoryIndex) {
+    const workspaceId = this.workspace()?.id
+    const indexId = skill.id
+    if (!workspaceId || !indexId) {
+      return
+    }
+
     this.registering.set(true)
-    this.skillPackageAPI.installPackage(this.workspace()?.id, skill.id).subscribe({
-      next: () => {
-        this.registering.set(false)
-        this.#toastr.success(
-          this.#translate.instant('Pro.SkillPackageInstalled', {
-            Default: 'Skill Package Installed'
-          })
-        )
-        this.#skillsResource.reload()
-      },
-      error: (err) => {
-        this.registering.set(false)
-        this.#toastr.danger(getErrorMessage(err))
-      }
-    })
+    try {
+      await firstValueFrom(this.skillPackageAPI.installPackage(workspaceId, indexId))
+      this.#toastr.success(
+        this.#translate.instant('PAC.Skill.SkillPackageInstalled', {
+          Default: 'Skill Package Installed'
+        })
+      )
+      this.#skillsResource.reload()
+    } catch (error) {
+      this.#toastr.danger(getErrorMessage(error))
+    } finally {
+      this.registering.set(false)
+    }
   }
 
   openUploadDialog() {
@@ -156,15 +268,20 @@ export class XpertWorkspaceSkillsComponent {
   }
 
   registerFromRepository() {
-    this.#registerDialogRef = this.#dialog.open(this.registerRepositoryDialog(), {
+    const dialogTemplate = this.registerRepositoryDialog()
+    if (!dialogTemplate) {
+      return
+    }
+
+    this.#registerDialogRef = this.#dialog.open(dialogTemplate, {
       maxWidth: '80vw',
       maxHeight: '80vh',
       disableClose: true,
       backdropClass: 'xp-overlay-share-sheet',
-      panelClass: 'xp-overlay-pane-share-sheet',
+      panelClass: 'xp-overlay-pane-share-sheet'
     })
-    
-    this.#registerDialogRef.closed.subscribe({
+
+    this.#registerDialogRef.closed?.subscribe({
       next: () => {
         this.selectedRepository.set(null)
       }
@@ -175,45 +292,79 @@ export class XpertWorkspaceSkillsComponent {
     this.#registerDialogRef?.close()
   }
 
+  async activateSkill(skill: ISkillPackage) {
+    const skillId = skill.id
+    if (!skillId) {
+      return
+    }
+
+    if (skillId === this.activeSkillId()) {
+      this.mobilePane.set('tree')
+      return
+    }
+
+    const run = async () => {
+      this.activeSkillId.set(skillId)
+      this.mobilePane.set('tree')
+    }
+
+    const fileWorkbench = this.fileWorkbench()
+    if (fileWorkbench) {
+      await fileWorkbench.guardDirtyBefore(run)
+    } else {
+      await run()
+    }
+  }
+
   deleteSkill(skill: ISkillPackage) {
-    this.confirmDelete({
-      title: this.#translate.instant('Pro.DeleteSkillPackageTitle', {
-        Default: 'Delete Skill Package'
-      }),
-      value: skill.name,
-      information: this.#translate.instant('Pro.DeleteSkillPackageInfo', {
-        Default: 'Are you sure you want to delete this skill package? This action cannot be undone.'
-      })
-    }, () => {
-      this.#loading.set(true)
-      return this.skillPackageAPI.delete(skill.id)
-    }).subscribe({
+    const skillId = skill.id
+    if (!skillId) {
+      return
+    }
+
+    this.confirmDelete(
+      {
+        title: this.#translate.instant('PAC.Skill.DeleteSkillPackageTitle', {
+          Default: 'Delete Skill Package'
+        }),
+        value: skill.name,
+        information: this.#translate.instant('PAC.Skill.DeleteSkillPackageInfo', {
+          Default: 'Are you sure you want to delete this skill package? This action cannot be undone.'
+        })
+      },
+      () => {
+        this.#loading.set(true)
+        return this.skillPackageAPI.delete(skillId)
+      }
+    ).subscribe({
       next: () => {
         this.#loading.set(false)
         this.#toastr.success(
-          this.#translate.instant('Pro.SkillPackageDeleted', {
+          this.#translate.instant('PAC.Skill.SkillPackageDeleted', {
             Default: 'Skill Package Deleted'
           })
         )
         this.#skillsResource.reload()
       },
-      error: (err) => {
+      error: (error) => {
         this.#loading.set(false)
-        this.#toastr.danger(getErrorMessage(err))
+        this.#toastr.danger(getErrorMessage(error))
       }
     })
   }
 
   toggleSelectAll(event: Event) {
     const checked = (event.target as HTMLInputElement).checked
-    if (checked) {
-      this.selectedSkillIds.set(new Set((this.skills() ?? []).map((skill) => skill.id)))
-    } else {
-      this.selectedSkillIds.set(new Set())
-    }
+    this.selectedSkillIds.set(
+      checked ? new Set(this.skills().map((skill) => skill.id).filter((id): id is string => !!id)) : new Set()
+    )
   }
 
-  toggleSkillSelection(skillId: string, event: Event) {
+  toggleSkillSelection(skillId: string | null | undefined, event: Event) {
+    if (!skillId) {
+      return
+    }
+
     const checked = (event.target as HTMLInputElement).checked
     this.selectedSkillIds.update((selected) => {
       const next = new Set(selected)
@@ -234,14 +385,14 @@ export class XpertWorkspaceSkillsComponent {
 
     this.confirmDelete(
       {
-        title: this.#translate.instant('Pro.DeleteSkillPackageTitle', {
+        title: this.#translate.instant('PAC.Skill.DeleteSkillPackageTitle', {
           Default: 'Delete Skill Package'
         }),
-        value: this.#translate.instant('Pro.SelectedSkillPackages', {
+        value: this.#translate.instant('PAC.Skill.SelectedSkillPackages', {
           Default: `${ids.length} selected`,
           count: ids.length
         }),
-        information: this.#translate.instant('Pro.DeleteSkillPackageInfo', {
+        information: this.#translate.instant('PAC.Skill.DeleteSkillPackageInfo', {
           Default: 'Are you sure you want to delete this skill package? This action cannot be undone.'
         })
       },
@@ -254,16 +405,39 @@ export class XpertWorkspaceSkillsComponent {
         this.#loading.set(false)
         this.selectedSkillIds.set(new Set())
         this.#toastr.success(
-          this.#translate.instant('Pro.SkillPackagesDeleted', {
+          this.#translate.instant('PAC.Skill.SkillPackagesDeleted', {
             Default: 'Selected Skill Packages Deleted'
           })
         )
         this.#skillsResource.reload()
       },
-      error: (err) => {
+      error: (error) => {
         this.#loading.set(false)
-        this.#toastr.danger(getErrorMessage(err))
+        this.#toastr.danger(getErrorMessage(error))
       }
     })
   }
+
+  private translateDefault(key: string, fallback: string) {
+    const result = this.#translate.instant(key, { Default: fallback })
+    return !result || result === key ? fallback : result
+  }
+
+  setWorkbenchPane(pane: 'tree' | 'file') {
+    this.mobilePane.set(pane)
+  }
+}
+
+function readI18nText(value: unknown) {
+  if (!value) {
+    return ''
+  }
+  if (typeof value === 'string') {
+    return value
+  }
+  if (typeof value === 'object') {
+    const text = value as { en_US?: string; zh_Hans?: string }
+    return text.zh_Hans || text.en_US || ''
+  }
+  return ''
 }

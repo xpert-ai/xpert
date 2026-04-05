@@ -3,7 +3,6 @@ import {
   IWFNChunker,
   IWFNMiddleware,
   IWFNProcessor,
-  IWFNSkill,
   IWFNSource,
   IWFNTrigger,
   IWFNUnderstanding,
@@ -14,6 +13,7 @@ import {
   WorkflowNodeTypeEnum
 } from '@metad/contracts'
 import {
+  BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER,
   BlankTriggerSelection,
   buildBlankKnowledgeSelectionGraph,
   buildBlankXpertSelectionGraph,
@@ -66,12 +66,6 @@ export function extractAgentTemplateWizardState(draft: TXpertTeamDraft): BlankAg
         node.entity.type === WorkflowNodeTypeEnum.TRIGGER
     )
   )
-  const skillNodes = sortNodesByPosition(
-    getWorkflowNodesByKeys(draft, outboundNodeKeys).filter(
-      (node): node is TXpertTeamNode<'workflow'> & { entity: IWFNSkill } =>
-        node.entity.type === WorkflowNodeTypeEnum.SKILL
-    )
-  )
   const middlewareNodes = sortMiddlewareNodes(
     getWorkflowNodesByKeys(draft, outboundNodeKeys).filter(
       (node): node is TXpertTeamNode<'workflow'> & { entity: IWFNMiddleware } =>
@@ -84,17 +78,7 @@ export function extractAgentTemplateWizardState(draft: TXpertTeamDraft): BlankAg
     basic: extractTemplateBasicInfo(draft),
     selections: normalizeBlankWizardSelections({
       triggers: triggerNodes.map((node) => toTriggerSelection(node.entity)),
-      skills: skillNodes.map((node) => getSkillName(node.entity)).filter(Boolean),
-      skillLabels: skillNodes.reduce(
-        (labels, node) => {
-          const skillId = getSkillName(node.entity)
-          if (skillId) {
-            labels[skillId] = getSkillLabel(node.entity, skillId)
-          }
-          return labels
-        },
-        {} as Record<string, string>
-      ),
+      skills: extractSkillsFromMiddlewares(middlewareNodes),
       middlewares: middlewareNodes.map((node) => node.entity.provider).filter(Boolean)
     })
   }
@@ -293,17 +277,21 @@ function toTriggerSelection(trigger: IWFNTrigger): BlankTriggerSelection {
   return config === undefined ? { provider } : { provider, config }
 }
 
-function getSkillName(skill: IWFNSkill) {
-  const firstSkill = uniqueStrings(skill.skills).at(0)
-  if (firstSkill) {
-    return firstSkill
-  }
-
-  return skill.title?.trim() ?? ''
+function extractSkillsFromMiddlewares(nodes: Array<TXpertTeamNode<'workflow'> & { entity: IWFNMiddleware }>) {
+  return uniqueStrings(
+    nodes.flatMap((node) =>
+      node.entity.provider === BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
+        ? readSkillsMiddlewareSelection(node.entity.options)
+        : []
+    )
+  )
 }
 
-function getSkillLabel(skill: IWFNSkill, fallback: string) {
-  return skill.title?.trim() || fallback
+function readSkillsMiddlewareSelection(options: unknown) {
+  const skills = (options as { skills?: unknown } | null)?.skills
+  return Array.isArray(skills)
+    ? uniqueStrings(skills.filter((skill): skill is string => typeof skill === 'string'))
+    : []
 }
 
 function updateAgentMiddlewareOrder(

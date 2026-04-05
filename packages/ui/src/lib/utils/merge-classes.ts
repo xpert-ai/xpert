@@ -20,3 +20,5 @@ export const isElementContentTruncated = (element: HTMLElement | undefined): boo
 
   return rangeWidth > elementWidth;
 };
+
+export const cx = mergeClasses;

@@ -5,6 +5,7 @@ import { of } from 'rxjs'
 import {
   EnvironmentService,
   KnowledgebaseService,
+  SkillPackageService,
   ToastrService,
   XpertAgentService,
   XpertAPIService,
@@ -12,6 +13,7 @@ import {
   XpertWorkspaceService,
   XpertTypeEnum
 } from '../../../../@core'
+import { BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER } from './blank-draft.util'
 import { BlankXpertDialogData, XpertNewBlankComponent } from './blank.component'
 
 type BlankSpecContext = {
@@ -27,6 +29,10 @@ type BlankSpecContext = {
     textSplitterStrategies$: any
     understandingStrategies$: any
     update: jest.Mock
+  }
+  skillPackageService: {
+    getAllByWorkspace: jest.Mock
+    installPackage: jest.Mock
   }
   templateService: {
     getAll: jest.Mock
@@ -96,6 +102,7 @@ team:
       middlewares:
         order:
           - Middleware_guard
+          - Middleware_skills
 nodes:
   - type: agent
     key: Agent_primary
@@ -126,16 +133,18 @@ nodes:
       provider: guard
       title: guard
   - type: workflow
-    key: Skill_writer
+    key: Middleware_skills
     position:
-      x: 620
-      y: 220
+      x: 360
+      y: 580
     entity:
-      key: Skill_writer
-      type: skill
-      title: writer
-      skills:
-        - writer
+      key: Middleware_skills
+      type: middleware
+      provider: ${BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER}
+      title: Skills Middleware
+      options:
+        skills:
+          - writer
 connections:
   - key: Trigger_schedule/Agent_primary
     type: edge
@@ -145,10 +154,10 @@ connections:
     type: workflow
     from: Agent_primary
     to: Middleware_guard
-  - key: Agent_primary/Skill_writer
+  - key: Agent_primary/Middleware_skills
     type: workflow
     from: Agent_primary
-    to: Skill_writer
+    to: Middleware_skills
 `
 }
 
@@ -159,10 +168,13 @@ async function createComponent(
     agentTemplates?: any[]
     createdXpert?: any
     importedXpert?: any
+    installedSkillPackage?: any
+    middlewareProviders?: any[]
     publishedXpert?: any
     selectedWorkspace?: any | null
     teamResponse?: any
     triggerProviders?: any[]
+    workspaceSkills?: any[]
     workspaces?: any[]
   }
 ): Promise<BlankSpecContext> {
@@ -172,7 +184,10 @@ async function createComponent(
   const createdXpert = options?.createdXpert ?? createAgentXpert()
   const importedXpert = options?.importedXpert ?? createdXpert
   const publishedXpert = options?.publishedXpert ?? { ...createdXpert, version: '1.0.0' }
+  const installedSkillPackage = options?.installedSkillPackage ?? { id: 'installed-skill' }
+  const middlewareProviders = options?.middlewareProviders ?? []
   const triggerProviders = options?.triggerProviders ?? []
+  const workspaceSkills = options?.workspaceSkills ?? []
   const workspaces = options?.workspaces ?? []
   const agentTemplates = options?.agentTemplates ?? []
   const agentTemplateDetail = options?.agentTemplateDetail ?? { export_data: createAgentTemplateYaml() }
@@ -188,7 +203,11 @@ async function createComponent(
     saveDraft: jest.fn(() => of({ checklist: [] }))
   }
   const xpertAgentService = {
-    agentMiddlewares$: of([])
+    agentMiddlewares$: of(middlewareProviders)
+  }
+  const skillPackageService = {
+    getAllByWorkspace: jest.fn(() => of({ items: workspaceSkills })),
+    installPackage: jest.fn(() => of(installedSkillPackage))
   }
   const templateService = {
     getAll: jest.fn(() => of({ categories: ['Agent'], recommendedApps: agentTemplates })),
@@ -251,6 +270,10 @@ async function createComponent(
         useValue: xpertAgentService
       },
       {
+        provide: SkillPackageService,
+        useValue: skillPackageService
+      },
+      {
         provide: XpertTemplateService,
         useValue: templateService
       },
@@ -293,6 +316,7 @@ async function createComponent(
     environmentService,
     fixture,
     knowledgebaseService,
+    skillPackageService,
     templateService,
     toastr,
     workspaceService,
@@ -446,8 +470,77 @@ describe('XpertNewBlankComponent', () => {
         }
       }
     ])
-    expect(component.selectedMiddlewares()).toEqual(['guard'])
     expect(component.selectedSkills()).toEqual(['writer'])
+    expect(component.selectedMiddlewares()).toEqual(['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
+  })
+
+  it('auto-adds and removes skills middleware when skills are toggled', async () => {
+    const { component } = await createComponent({
+      type: XpertTypeEnum.Agent
+    })
+
+    component.selectedMiddlewares.set(['guard'])
+
+    component.toggleSkill('writer', true)
+    expect(component.selectedSkills()).toEqual(['writer'])
+    expect(component.selectedMiddlewares()).toEqual(['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
+
+    component.toggleSkill('writer', false)
+    expect(component.selectedSkills()).toEqual([])
+    expect(component.selectedMiddlewares()).toEqual(['guard'])
+  })
+
+  it('auto-enables skills middleware after installing a skill', async () => {
+    const { component, skillPackageService } = await createComponent(
+      {
+        type: XpertTypeEnum.Agent,
+        workspace: {
+          id: 'workspace-1',
+          name: 'Workspace One'
+        } as any
+      },
+      {
+        installedSkillPackage: {
+          id: 'writer'
+        }
+      }
+    )
+
+    await component.installSkill({ id: 'index-writer' } as any)
+
+    expect(skillPackageService.installPackage).toHaveBeenCalledWith('workspace-1', 'index-writer')
+    expect(component.selectedSkills()).toEqual(['writer'])
+    expect(component.selectedMiddlewares()).toEqual([BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER])
+  })
+
+  it('hides skills middleware from the middleware picker options', async () => {
+    const { component } = await createComponent(
+      {
+        type: XpertTypeEnum.Agent
+      },
+      {
+        middlewareProviders: [
+          {
+            meta: {
+              name: 'guard',
+              label: {
+                en_US: 'Guard'
+              }
+            }
+          },
+          {
+            meta: {
+              name: BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER,
+              label: {
+                en_US: 'Skills Middleware'
+              }
+            }
+          }
+        ]
+      }
+    )
+
+    expect(component.middlewareProviderOptions().map((provider) => provider.meta.name)).toEqual(['guard'])
   })
 
   it('closes with published status after a successful publish flow', async () => {
