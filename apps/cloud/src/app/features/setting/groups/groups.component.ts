@@ -346,6 +346,7 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
     }
 
     const selectedGroup = this.selectedGroup()
+    const organizationId = this.organization()?.id
     const payload = {
       name: trimmedName,
       description: this.description.getRawValue().trim() || null
@@ -368,7 +369,7 @@ export class UserGroupsSettingsComponent extends TranslationBaseComponent {
     save$.pipe(takeUntilDestroyed(this.#destroyRef)).subscribe({
       next: async (group: IUserGroup) => {
         try {
-          await firstValueFrom(this.#userGroupService.updateMembers(group.id, this.selectedMemberIds()))
+          await firstValueFrom(this.#userGroupService.updateMembers(group.id, this.selectedMemberIds(), organizationId))
           await this.syncXpertAuthorizations(group.id)
           this.saving.set(false)
           this.#toastr.success('PAC.MESSAGE.UpdateSuccess', { Default: 'Saved successfully' })
