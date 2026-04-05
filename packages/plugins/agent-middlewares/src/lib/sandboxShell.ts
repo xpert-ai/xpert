@@ -4,13 +4,13 @@ import { Injectable } from '@nestjs/common'
 import {
   AgentMiddleware,
   AgentMiddlewareStrategy,
-  BaseSandbox,
   DEFAULT_SANDBOX_SHELL_TIMEOUT_SEC,
   SANDBOX_SHELL_TIMEOUT_LIMITS_SEC,
-  secondsToMilliseconds,
   IAgentMiddlewareContext,
   IAgentMiddlewareStrategy,
-  PromiseOrValue
+  PromiseOrValue,
+  resolveSandboxBackend,
+  secondsToMilliseconds
 } from '@xpert-ai/plugin-sdk'
 import { z } from 'zod/v3'
 import { getToolCallId, withStreamingToolMessage } from './toolMessageUtils'
@@ -64,9 +64,9 @@ export class SandboxShellMiddleware implements IAgentMiddlewareStrategy {
     const shellTool = tool(
       async ({ command, timeout_sec }, config) => {
         const configurable = config?.configurable as TAgentRunnableConfigurable | undefined
-        const backend = configurable?.sandbox?.backend as BaseSandbox | undefined
+        const backend = resolveSandboxBackend(configurable?.sandbox)
 
-        if (!backend || typeof backend.execute !== 'function') {
+        if (!backend) {
           throw new Error('Sandbox backend is not available for SandboxShell.')
         }
 

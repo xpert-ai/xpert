@@ -3,7 +3,7 @@ export const FILE_TREE_SIZE_PRESETS = {
     headerPadding: 'px-3 pt-3',
     bodyPadding: 'px-2 pb-2',
     listGap: 'gap-0.5',
-    rowSpacing: 'gap-1.5 px-1.5 py-1.5',
+    rowSpacing: 'gap-1.5 px-1.5 py-1',
     indentWidth: 'w-2.5',
     controlSize: 'h-5 w-5 text-sm',
     contentGap: 'gap-1.5',

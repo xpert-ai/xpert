@@ -26,14 +26,15 @@ import {
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
+import { resolveSandboxBackend } from '@xpert-ai/plugin-sdk'
 import { Response } from 'express'
 import fs from 'fs'
 import { I18nService } from 'nestjs-i18n'
 import { join } from 'path'
+import { Observable } from 'rxjs'
 import { ChatConversationService } from '../chat-conversation'
 import { VolumeClient, getMediaTypeWithCharset, getWorkspace } from '../shared'
-import { Sandbox } from './client'
-import { SandboxLoadCommand } from './commands'
+import { SandboxAcquireBackendCommand } from './commands'
 
 @ApiTags('Sandbox')
 @ApiBearerAuth()
@@ -163,32 +164,90 @@ export class SandboxController {
         @Query('conversationId') conversationId: string,
         @Res() res: Response
     ) {
+        if (!conversationId) {
+            throw new ForbiddenException('Conversation is required')
+        }
+
+        const tenantId = RequestContext.currentTenantId()
         const userId = RequestContext.currentUserId()
-        const { sandboxUrl } = await this.commandBus.execute<SandboxLoadCommand, { sandboxUrl: string }>(
-            new SandboxLoadCommand({ userId, projectId, isReadonly: true })
+        const conversation = await this.conversationService.findOne({
+            where: { id: conversationId },
+            relations: ['xpert']
+        })
+        const sandboxFeature = conversation?.xpert?.features?.sandbox
+        if (!sandboxFeature?.enabled) {
+            throw new ForbiddenException('Sandbox is not enabled for this conversation')
+        }
+        if (!sandboxFeature.provider?.trim()) {
+            throw new ForbiddenException('Sandbox provider is not configured for this conversation')
+        }
+
+        const effectiveProjectId = projectId ?? conversation?.projectId ?? null
+        const workspaceId = conversation?.threadId ?? conversationId
+        const workspacePath = await VolumeClient.getWorkspacePath(tenantId, effectiveProjectId, userId, workspaceId)
+        const sandboxContext = await this.commandBus.execute(
+            new SandboxAcquireBackendCommand({
+                tenantId,
+                provider: sandboxFeature.provider,
+                workingDirectory: workspacePath,
+                workFor: effectiveProjectId
+                    ? { type: 'project', id: effectiveProjectId }
+                    : { type: 'user', id: userId }
+            })
         )
-        if (!sandboxUrl) {
+        const backend = resolveSandboxBackend(sandboxContext)
+        if (!backend) {
             throw new ForbiddenException('Sandbox is not available')
         }
-        const sandbox = new Sandbox({
-            sandboxUrl,
-            commandBus: this.commandBus,
-            volume: Sandbox.sandboxVolume(projectId, userId),
-            tenantId: RequestContext.currentTenantId(),
-            userId,
-            projectId,
-            conversationId
-        })
 
-        return sandbox.shell
-            .stream({
-                command: body.cmd,
-                workspace_id: getWorkspace(projectId, conversationId)
-            })
+        return new Observable<string>((subscriber) => {
+            let active = true
+
+            void (async () => {
+                try {
+                    const streamExecute = typeof backend.streamExecute === 'function' ? backend.streamExecute.bind(backend) : null
+                    const result = streamExecute
+                        ? await streamExecute(body.cmd, (line) => {
+                              if (active) {
+                                  subscriber.next(line)
+                              }
+                          })
+                        : await backend.execute(body.cmd)
+
+                    if (!active) {
+                        return
+                    }
+
+                    if (!streamExecute && result.output) {
+                        subscriber.next(result.output)
+                    }
+
+                    if (result.exitCode === 0) {
+                        subscriber.complete()
+                        return
+                    }
+
+                    const workspaceLabel = getWorkspace(effectiveProjectId, workspaceId)
+                    const fallbackMessage = workspaceLabel
+                        ? `Command failed in workspace "${workspaceLabel}".`
+                        : 'Command failed.'
+                    subscriber.error(result.output || fallbackMessage)
+                } catch (error) {
+                    if (active) {
+                        subscriber.error(error instanceof Error ? error.message : String(error))
+                    }
+                }
+            })()
+
+            return () => {
+                active = false
+            }
+        })
             .pipe(
                 // Add an operator to send a comment event periodically (30s) to keep the connection alive
                 keepAlive(30000),
                 takeUntilClose(res)
             )
     }
+
 }

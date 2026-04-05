@@ -34,6 +34,10 @@ export type TMessageChannel = {
   error?: string | null
 }
 
+export interface IBackendProtocol {
+  workingDirectory: string
+}
+
 export type TSandboxConfigurable = {
   /**
    * Resolved sandbox provider type used for this backend acquisition.

@@ -4,7 +4,7 @@ import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import type { Cache } from 'cache-manager'
 import * as fs from 'fs'
 import * as path from 'path'
-import { isSandboxBackend } from '@xpert-ai/plugin-sdk'
+import { resolveSandboxBackend } from '@xpert-ai/plugin-sdk'
 import type { SandboxBackendProtocol } from '@xpert-ai/plugin-sdk'
 import { SandboxCopyFileCommand, SandboxCopyFileStatus } from '../sandbox.copy-file.command'
 
@@ -25,7 +25,7 @@ export class SandboxCopyFileHandler implements ICommandHandler<SandboxCopyFileCo
 			overwrite = true
 		} = command.copyFile
 
-		const backend = this.getSandboxBackend(command.sandbox?.backend)
+		const backend = this.getSandboxBackend(command.sandbox)
 
 		if (!version) {
 			throw new HttpException(`Version is required for SandboxCopyFileCommand`, 400)
@@ -87,11 +87,12 @@ export class SandboxCopyFileHandler implements ICommandHandler<SandboxCopyFileCo
 		}
 	}
 
-	private getSandboxBackend(backend: unknown): SandboxBackendProtocol {
-		if (!backend || !isSandboxBackend(backend as any)) {
+	private getSandboxBackend(sandbox: unknown): SandboxBackendProtocol {
+		const backend = resolveSandboxBackend(sandbox)
+		if (!backend) {
 			throw new HttpException(`Sandbox backend unavailable for file copy`, 500)
 		}
-		return backend as SandboxBackendProtocol
+		return backend
 	}
 
 	private getVersionCacheKey(sandboxId: string): string {

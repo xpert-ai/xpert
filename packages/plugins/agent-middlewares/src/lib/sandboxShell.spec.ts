@@ -1,3 +1,4 @@
+import { WorkflowNodeTypeEnum } from '@metad/contracts'
 import { DEFAULT_SANDBOX_SHELL_TIMEOUT_MS, ExecuteResponse } from '@xpert-ai/plugin-sdk'
 import { SandboxShellMiddleware } from './sandboxShell'
 
@@ -14,6 +15,17 @@ jest.mock('@xpert-ai/plugin-sdk', () => {
     SANDBOX_SHELL_TIMEOUT_LIMITS_SEC: {
       min: 1,
       max: 3600
+    },
+    isSandboxBackend: (backend: { execute?: unknown }) => typeof backend?.execute === 'function',
+    resolveSandboxBackend: (sandbox: unknown) => {
+      if (!sandbox || typeof sandbox !== 'object') {
+        return null
+      }
+
+      const backend = Reflect.has(sandbox, 'backend') ? Reflect.get(sandbox, 'backend') : sandbox
+      return backend && typeof backend === 'object' && typeof Reflect.get(backend, 'execute') === 'function'
+        ? backend
+        : null
     },
     secondsToMilliseconds: (seconds: number) => Math.trunc(seconds * 1000),
     AgentMiddlewareStrategy: () => (target: unknown) => target
@@ -38,7 +50,19 @@ jest.mock('./toolMessageUtils', () => ({
 describe('SandboxShellMiddleware', () => {
   const createTool = async () => {
     const middleware = new SandboxShellMiddleware()
-    const agentMiddleware = await Promise.resolve(middleware.createMiddleware({}, {} as any))
+    const agentMiddleware = await Promise.resolve(
+      middleware.createMiddleware({}, {
+        tenantId: 'tenant-1',
+        userId: 'user-1',
+        node: {
+          id: 'middleware-1',
+          key: 'middleware-1',
+          type: WorkflowNodeTypeEnum.MIDDLEWARE,
+          provider: 'sandbox-shell'
+        },
+        tools: new Map()
+      })
+    )
     return agentMiddleware.tools[0]
   }
 
@@ -129,5 +153,29 @@ describe('SandboxShellMiddleware', () => {
     )
 
     expect(result).toBe('Command timed out after 2s (2000ms)')
+  })
+
+  it('accepts direct sandbox backend values from the runtime config', async () => {
+    const tool = await createTool()
+    const backend = createBackend({
+      output: 'ok',
+      exitCode: 0,
+      truncated: false,
+      timedOut: false
+    })
+
+    const result = await tool.invoke(
+      { command: 'ls' },
+      {
+        configurable: {
+          sandbox: backend
+        }
+      }
+    )
+
+    expect(result).toBe('ok')
+    expect(backend.streamExecute).toHaveBeenCalledWith('ls', expect.any(Function), {
+      timeoutMs: DEFAULT_SANDBOX_SHELL_TIMEOUT_MS
+    })
   })
 })

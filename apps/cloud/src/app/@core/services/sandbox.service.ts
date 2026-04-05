@@ -26,7 +26,7 @@ export class SandboxService {
 
   terminal(
     data: { cmd: string },
-    params: { projectId: string; conversationId: string }
+    params: { projectId?: string | null; conversationId: string }
   ): Observable<EventSourceMessage> {
     return this.fetchEventSource(
       {

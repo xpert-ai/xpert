@@ -34,7 +34,7 @@ import {
 	IAgentMiddlewareContext,
 	IAgentMiddlewareStrategy,
 	SandboxBackendProtocol,
-	isSandboxBackend
+	resolveSandboxBackend
 } from '@xpert-ai/plugin-sdk'
 import { access, readFile, stat } from 'fs/promises'
 import { dirname, isAbsolute, join, relative, resolve } from 'path'
@@ -331,11 +331,11 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 					: { type: 'user', id: userId }
 			})
 		)
-		const candidate = this.asRecord(sandbox).backend
-		if (!candidate || !isSandboxBackend(candidate as any)) {
+		const candidate = resolveSandboxBackend(sandbox)
+		if (!candidate) {
 			throw new Error('Sandbox backend is not available.')
 		}
-		return candidate as SandboxBackendProtocol
+		return candidate
 	}
 
 	async createMiddleware(
@@ -358,9 +358,8 @@ export class SkillsMiddleware implements IAgentMiddlewareStrategy<ISkillsMiddlew
 				}
 
 				const sandbox = this.getSandboxFromToolConfig(config) ?? runtimeSandbox
-				const backend = this.asRecord(sandbox).backend
-				const sandboxBackend = backend as any
-				if (sandboxBackend && isSandboxBackend(sandboxBackend)) {
+				const sandboxBackend = resolveSandboxBackend(sandbox)
+				if (sandboxBackend) {
 					const result = await sandboxBackend.execute(`cat ${this.escapeForShell(fullPath)}`)
 					if (result.exitCode !== 0) {
 						throw new Error(result.output || `Failed to read file: ${fullPath}`)
