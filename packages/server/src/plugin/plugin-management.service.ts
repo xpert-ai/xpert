@@ -31,6 +31,8 @@ import {
 	PluginInstallResult,
 	normalizePluginName
 } from './types'
+import { DataSource } from 'typeorm'
+import { collectPluginOrmMetadata, registerPluginOrmMetadataInDataSource } from './plugin-orm-metadata'
 
 @Injectable()
 export class PluginManagementService {
@@ -42,7 +44,8 @@ export class PluginManagementService {
 		private readonly pluginInstanceService: PluginInstanceService,
 		private readonly strategyBus: StrategyBus,
 		private readonly lazyLoader: LazyModuleLoader,
-		private readonly moduleRef: ModuleRef
+		private readonly moduleRef: ModuleRef,
+		private readonly dataSource: DataSource
 	) {}
 
 	findLoadedPlugin(pluginName: string, organizationId: string, fallbackToGlobal = true) {
@@ -176,6 +179,13 @@ export class PluginManagementService {
 				this.logger.debug(
 					`Loading plugin module for ${packageNameWithVersion} into organization ${organizationId}`
 				)
+				const ormMetadata = collectPluginOrmMetadata([dynamicModule])
+				const metadataRegistration = await registerPluginOrmMetadataInDataSource(this.dataSource, ormMetadata)
+				if (metadataRegistration.changed) {
+					this.logger.debug(
+						`Registered ${ormMetadata.entities.length} plugin entities and ${ormMetadata.subscribers.length} plugin subscribers for ${packageNameWithVersion}`
+					)
+				}
 				const loadedModuleRef = await this.lazyLoader.load(() => dynamicModule)
 				const strategyProviders = collectProvidersWithMetadata(
 					loadedModuleRef,

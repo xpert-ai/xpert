@@ -30,6 +30,8 @@ jest.mock('i18next', () => ({
 jest.mock('./plugin.helper', () => ({
 	collectProvidersWithMetadata: jest.fn(() => []),
 	clearPluginLoadFailure: jest.fn(),
+	getEntitiesFromPlugins: jest.fn(() => []),
+	getSubscribersFromPlugins: jest.fn(() => []),
 	hasLifecycleMethod: jest.fn(() => false),
 	registerPluginsAsync: jest.fn(async () => ({ modules: [], errors: [] })),
 	upsertPluginLoadFailure: jest.fn()
@@ -69,10 +71,18 @@ const { RequestContext } = require('@xpert-ai/plugin-sdk')
 const { canManageGlobalPlugins, canManageSystemPlugins } = require('./plugin-update.utils')
 const { loadPlugin } = require('./plugin-loader')
 const { assertPluginSdkInstallCandidate } = require('./plugin-sdk-versioning')
-const { registerPluginsAsync } = require('./plugin.helper')
-const { upsertPluginLoadFailure } = require('./plugin.helper')
+const {
+	collectProvidersWithMetadata,
+	getEntitiesFromPlugins,
+	getSubscribersFromPlugins,
+	registerPluginsAsync,
+	upsertPluginLoadFailure
+} = require('./plugin.helper')
 const { stageWorkspacePlugin } = require('./organization-plugin.store')
 const { PluginManagementService } = require('./plugin-management.service')
+
+class ExistingEntity {}
+class ExistingSubscriber {}
 
 describe('PluginManagementService', () => {
 	const pluginInstanceService = {
@@ -93,6 +103,20 @@ describe('PluginManagementService', () => {
 	}
 
 	const moduleRef = {}
+	const dataSource = {
+		options: {
+			entities: [ExistingEntity],
+			subscribers: [ExistingSubscriber],
+			synchronize: false
+		},
+		isInitialized: true,
+		setOptions: jest.fn(function (options: Record<string, any>) {
+			this.options = { ...this.options, ...options }
+			return this
+		}),
+		synchronize: jest.fn(),
+		buildMetadatas: jest.fn()
+	}
 	const loadedPlugins: Array<any> = []
 
 	let service: InstanceType<typeof PluginManagementService>
@@ -101,6 +125,17 @@ describe('PluginManagementService', () => {
 		jest.resetAllMocks()
 		;(canManageGlobalPlugins as jest.Mock).mockReturnValue(false)
 		;(canManageSystemPlugins as jest.Mock).mockReturnValue(true)
+		dataSource.options = {
+			entities: [ExistingEntity],
+			subscribers: [ExistingSubscriber],
+			synchronize: false
+		}
+		dataSource.isInitialized = true
+		dataSource.setOptions.mockImplementation(function (options: Record<string, any>) {
+			this.options = { ...this.options, ...options }
+			return this
+		})
+		;(collectProvidersWithMetadata as jest.Mock).mockReturnValue([])
 		;(registerPluginsAsync as jest.Mock).mockResolvedValue({ modules: [], errors: [] })
 		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
 			hostVersion: '3.8.4',
@@ -111,7 +146,8 @@ describe('PluginManagementService', () => {
 			pluginInstanceService,
 			strategyBus as any,
 			lazyLoader as any,
-			moduleRef as any
+			moduleRef as any,
+			dataSource as any
 		)
 		RequestContext.getOrganizationId.mockReturnValue('org-1')
 		RequestContext.currentTenantId.mockReturnValue('tenant-1')
@@ -156,6 +192,53 @@ describe('PluginManagementService', () => {
 			source: 'marketplace',
 			sourceConfig: null
 		})
+	})
+
+	it('registers plugin orm metadata before lazy-loading plugin modules', async () => {
+		class RuntimeEntity {}
+		class RuntimeSubscriber {}
+
+		;(getEntitiesFromPlugins as jest.Mock).mockReturnValue([RuntimeEntity])
+		;(getSubscribersFromPlugins as jest.Mock).mockReturnValue([RuntimeSubscriber])
+		;(registerPluginsAsync as jest.Mock).mockResolvedValue({
+			modules: [
+				{
+					module: class RuntimePluginModule {}
+				}
+			],
+			errors: []
+		})
+		;(loadPlugin as jest.Mock).mockResolvedValue({
+			meta: {
+				name: '@xpert-ai/plugin-runtime-demo',
+				version: '1.0.0',
+				level: 'organization'
+			}
+		})
+		lazyLoader.load.mockResolvedValue({})
+
+		await expect(
+			service.installPlugin({
+				pluginName: '@xpert-ai/plugin-runtime-demo'
+			})
+		).resolves.toEqual(
+			expect.objectContaining({
+				success: true,
+				name: '@xpert-ai/plugin-runtime-demo'
+			})
+		)
+
+		expect(dataSource.setOptions).toHaveBeenCalledWith(
+			expect.objectContaining({
+				entities: [ExistingEntity, RuntimeEntity],
+				subscribers: [ExistingSubscriber, RuntimeSubscriber]
+			})
+		)
+		expect(dataSource.buildMetadatas).toHaveBeenCalledTimes(1)
+		expect(dataSource.buildMetadatas.mock.invocationCallOrder[0]).toBeLessThan(
+			lazyLoader.load.mock.invocationCallOrder[0]
+		)
+		expect(dataSource.synchronize).not.toHaveBeenCalled()
 	})
 
 	it('stages code plugins from local workspaces', async () => {

@@ -16,6 +16,7 @@ import { coreEntities } from '../core/entities'
 import { coreSubscribers } from './../core/entities/subscribers'
 import { AppService } from '../app.service'
 import { resolveNestLogLevels } from '../logger'
+import { collectPluginOrmMetadata, mergeEntityClasses, mergeSubscriberClasses } from '../plugin/plugin-orm-metadata'
 import { ServerAppModule } from '../server.module'
 import { AuthGuard } from './../shared/guards'
 
@@ -94,7 +95,7 @@ export async function bootstrap(pluginConfig?: Partial<any>): Promise<INestAppli
 /**
  * Setting the global config must be done prior to loading the Bootstrap Module.
  */
-export async function registerPluginConfig(pluginConfig: Partial<any>) {
+export async function registerPluginConfig(pluginConfig: Partial<any> = {}) {
 	if (Object.keys(pluginConfig).length > 0) {
 		setConfig(pluginConfig)
 	}
@@ -102,10 +103,11 @@ export async function registerPluginConfig(pluginConfig: Partial<any>) {
 	console.log(chalk.green(`DB Config: ${JSON.stringify(getConfig().dbConnectionOptions)}`))
 
 	const entities = await registerAllEntities(pluginConfig)
+	const subscribers = await registerAllSubscribers(pluginConfig)
 	setConfig({
 		dbConnectionOptions: {
 			entities,
-			subscribers: coreSubscribers as Array<Type<EntitySubscriberInterface>>
+			subscribers
 		}
 	})
 
@@ -116,20 +118,21 @@ export async function registerPluginConfig(pluginConfig: Partial<any>) {
 /**
  * Returns an array of core entities and any additional entities defined in plugins.
  */
-export async function registerAllEntities(pluginConfig: Partial<any>) {
-	const allEntities = coreEntities as Array<Type<any>>
-	// const pluginEntities = getEntitiesFromPlugins(pluginConfig.plugins);
+export async function registerAllEntities(pluginConfig: Partial<any> = {}) {
+	const plugins = pluginConfig.plugins ?? getConfig().plugins
+	const { entities: pluginEntities } = collectPluginOrmMetadata(plugins)
 
-	// for (const pluginEntity of pluginEntities) {
-	// 	if (allEntities.find((e) => e.name === pluginEntity.name)) {
-	// 		throw new ConflictException({
-	// 			message: `error.${pluginEntity.name} conflict by default entities`
-	// 		});
-	// 	} else {
-	// 		allEntities.push(pluginEntity);
-	// 	}
-	// }
-	return allEntities
+	return mergeEntityClasses(coreEntities as Array<Type<any>>, pluginEntities)
+}
+
+export async function registerAllSubscribers(pluginConfig: Partial<any> = {}) {
+	const plugins = pluginConfig.plugins ?? getConfig().plugins
+	const { subscribers: pluginSubscribers } = collectPluginOrmMetadata(plugins)
+
+	return mergeSubscriberClasses(
+		coreSubscribers as Array<Type<EntitySubscriberInterface>>,
+		pluginSubscribers
+	)
 }
 
 export * from './cache'
