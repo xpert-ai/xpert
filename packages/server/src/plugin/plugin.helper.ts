@@ -1,9 +1,15 @@
+/**
+ * Invariants:
+ * - Startup restore and runtime install must converge on the same staged plugin path semantics.
+ * - Local code plugins with a persisted workspace path should be restaged before load so restarts do not depend on stale copies.
+ * - Non-code plugins continue to install through the organization plugin store and keep load-failure tracking centralized here.
+ */
 import { isNotEmpty } from '@metad/server-common'
 import { getConfig } from '@metad/server-config'
 import { DynamicModule, Type, Logger } from '@nestjs/common'
 import { MODULE_METADATA } from '@nestjs/common/constants'
 import { ModuleRef, NestContainer } from '@nestjs/core'
-import { PluginLevel } from '@metad/contracts'
+import { PluginLevel, PluginSourceConfig } from '@metad/contracts'
 import {
 	GLOBAL_ORGANIZATION_SCOPE,
 	ORGANIZATION_METADATA_KEY,
@@ -16,7 +22,8 @@ import {
 	getOrganizationPluginPath,
 	getOrganizationPluginRoot,
 	installOrganizationPlugins,
-	OrganizationPluginStoreOptions
+	OrganizationPluginStoreOptions,
+	stageWorkspacePlugin
 } from './organization-plugin.store'
 import {
 	isClassProvider,
@@ -31,6 +38,7 @@ import { loadPlugin } from './plugin-loader'
 import { inspectConfig } from './config'
 import { createPluginContext } from './lifecycle'
 import { resolvePluginLevel } from './plugin-instance.entity'
+import { getCodeWorkspacePath } from './source-config'
 
 /**
  * Get plugin classes from an array of plugins by reflecting metadata.
@@ -268,7 +276,13 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
 	/** Override the plugin workspace root for the organization. Defaults to data/plugins/<orgId> when organizationId is set. */
 	baseDir?: string
 	/** Explicit list of plugin package names (takes precedence) */
-	plugins?: { name: string; version?: string; source?: LoadedPluginRecord['source']; level?: PluginLevel }[]
+	plugins?: {
+		name: string
+		version?: string
+		source?: LoadedPluginRecord['source']
+		level?: PluginLevel
+		sourceConfig?: PluginSourceConfig | null
+	}[]
 	/** Auto-discovery options (effective when plugins are not explicitly provided) */
 	discovery?: { prefix?: string; manifestPath?: string }
 	/** Configuration map injected by the main app (indexed by plugin name) */
@@ -300,15 +314,37 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 		version?: string
 		source?: LoadedPluginRecord['source']
 		level?: PluginLevel
+		sourceConfig?: PluginSourceConfig | null
 	}> = opts.plugins?.length
 		? opts.plugins
 		: opts.discovery || opts.organizationId
 			? discoverPlugins(baseDirRoot, discoveryOptions).map((plugin) => ({
 					...plugin,
 					source: plugin.source as LoadedPluginRecord['source'],
-					level: undefined
+					level: undefined,
+					sourceConfig: null
 				}))
 			: []
+
+	for (const plugin of pluginNames) {
+		if (plugin.source !== 'code') {
+			continue
+		}
+
+		const workspacePath = getCodeWorkspacePath(plugin.sourceConfig)
+		if (!workspacePath) {
+			continue
+		}
+
+		stageWorkspacePlugin({
+			organizationId,
+			pluginName: plugin.name,
+			expectedPackageName: normalizePluginName(plugin.name),
+			workspacePath,
+			rootDir: opts.rootDir,
+			manifestName: opts.manifestName
+		})
+	}
 
 	// 1) install into organization workspace (and update manifest)
 	installOrganizationPlugins(
