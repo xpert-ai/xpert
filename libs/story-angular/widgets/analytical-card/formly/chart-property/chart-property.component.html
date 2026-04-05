@@ -7,11 +7,11 @@
   [formControl]="formControl"
 >
   @if (removeable) {
-    <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="opacity-0 group-hover:opacity-100 transition-opacity duration-100" displayDensity="compact" ngmAppearance="danger" color="warn" (click)="$event.stopPropagation();$event.preventDefault();killMyself()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="opacity-0 group-hover:opacity-100 transition-opacity duration-100 text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive" displayDensity="compact" ngmAppearance="danger" (click)="$event.stopPropagation();$event.preventDefault();killMyself()">
       <z-icon zType="clear"></z-icon>
     </button>
   } @else {
-    <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="opacity-0 group-hover:opacity-100 transition-opacity duration-100" displayDensity="compact" ngmAppearance="danger" color="warn" (click)="$event.stopPropagation();$event.preventDefault();clear()">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="opacity-0 group-hover:opacity-100 transition-opacity duration-100 text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive" displayDensity="compact" ngmAppearance="danger" (click)="$event.stopPropagation();$event.preventDefault();clear()">
       <z-icon zType="clear"></z-icon>
     </button>
   }

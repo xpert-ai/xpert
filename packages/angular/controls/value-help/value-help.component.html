@@ -157,7 +157,7 @@
         </ul>
       </div>
 
-      <button z-button zType="ghost" color="accent" (click)="clearSelection()">
+      <button class="text-text-accent hover:text-text-accent" z-button zType="ghost" (click)="clearSelection()">
         {{ 'Ngm.Controls.ValueHelp.ClearSelection' | translate: { Default: 'Clear Selection' } }}
       </button>
     </div>
@@ -220,7 +220,7 @@
     <button z-button zType="ghost" (click)="close()">
       {{ 'Ngm.Common.Cancel' | translate: { Default: 'Cancel' } }}
     </button>
-    <button z-button zType="default" color="accent" (click)="close()">
+    <button z-button zType="default" (click)="close()">
       {{ 'Ngm.Common.Apply' | translate: { Default: 'Apply' } }}
     </button>
   </div>

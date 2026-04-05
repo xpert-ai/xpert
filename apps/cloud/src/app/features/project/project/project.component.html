@@ -481,7 +481,7 @@
           {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
 
-        <button type="button" z-button zType="default" color="accent" [disabled]="form.invalid" (click)="createCollection()">
+        <button type="button" z-button zType="default" [disabled]="form.invalid" (click)="createCollection()">
           {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
         </button>
       </div>
@@ -519,7 +519,7 @@
           {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
 
-        <button type="button" z-button zType="default" color="accent" [xpDialogClose]="moveToCollectionId">
+        <button type="button" z-button zType="default" [xpDialogClose]="moveToCollectionId">
           {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
         </button>
       </div>

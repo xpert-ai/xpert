@@ -21,7 +21,7 @@
 </xp-dialog-content>
 <xp-dialog-actions align="end">
   <div ngmButtonGroup>
-    <button z-button zType="ghost" color="accent" xpDialogClose>{{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}</button>
-    <button z-button zType="default" color="accent" (click)="continue()">{{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}</button>
+    <button class="text-text-accent hover:text-text-accent" z-button zType="ghost" xpDialogClose>{{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}</button>
+    <button z-button zType="default" (click)="continue()">{{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}</button>
   </div>
 </xp-dialog-actions>

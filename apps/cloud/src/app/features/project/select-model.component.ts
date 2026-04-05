@@ -42,7 +42,7 @@ import { SharedUiModule } from '../../@shared/ui.module'
           {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
         </button>
 
-        <button z-button zType="default" color="accent" [xpDialogClose]="models">
+        <button z-button zType="default" [xpDialogClose]="models">
           {{ 'PAC.ACTIONS.Add' | translate: { Default: 'Add' } }}
         </button>
       </div>

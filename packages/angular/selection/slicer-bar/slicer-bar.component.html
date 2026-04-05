@@ -18,7 +18,7 @@
 </xp-dialog-content>
 
 <xp-dialog-actions style="display: flex; justify-content: space-between; align-items: center;">
-  <button z-button zType="ghost" color="primary" ngmAppearance="dashed" z-menu [zMenuTriggerFor]="menu">
+  <button z-button zType="ghost" ngmAppearance="dashed" z-menu [zMenuTriggerFor]="menu">
     <z-icon zType="add"></z-icon>
     {{ 'Ngm.Common.ADD' | translate: {Default: "Add"} }}
   </button>
@@ -27,7 +27,7 @@
     <button z-button zType="ghost" xpDialogClose cdkFocusInitial>
       {{ 'Ngm.Common.Cancel' | translate: {Default: 'Cancel'} }}
     </button>
-    <button z-button zType="default" color="accent" cdkFocusInitial [xpDialogClose]="slicers">
+    <button z-button zType="default" cdkFocusInitial [xpDialogClose]="slicers">
       {{ 'Ngm.Common.Apply' | translate: {Default: 'Apply'} }}
     </button>
   </div>

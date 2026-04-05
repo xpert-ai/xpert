@@ -42,7 +42,7 @@
       <button
         z-button
         zType="default"
-        color="accent"
+
         [disabled]="loading() || formGroup.pristine || formGroup.invalid"
         (click)="ping()"
       >
@@ -57,7 +57,7 @@
       <button
         z-button
         zType="default"
-        color="accent"
+
         cdkFocusInitial
         [disabled]="formGroup.pristine || formGroup.invalid"
         (click)="onSave()"

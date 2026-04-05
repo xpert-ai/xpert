@@ -56,7 +56,7 @@ import { ModelQueryService, uuid } from '../../@core'
       </div>
 
       <div ngmButtonGroup>
-        <button z-button zType="default" color="accent" [disabled]="formGroup.invalid" (click)="create()">
+        <button z-button zType="default" [disabled]="formGroup.invalid" (click)="create()">
           {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
         </button>
       </div>

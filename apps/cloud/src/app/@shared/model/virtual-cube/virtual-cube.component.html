@@ -72,9 +72,9 @@
           zType="ghost"
           zSize="icon"
           zShape="circle"
-          color="warn"
+
           displayDensity="cosy"
-          class="pac-cdk-drop__recycle-bin"
+          class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
           cdkDropList
           [cdkDropListEnterPredicate]="cubeRemovePredicate"
           (cdkDropListDropped)="removeCube($event.item.data.name)"
@@ -122,7 +122,7 @@
           <button z-button zType="secondary" displayDensity="cosy" (click)="cancelVirtualCube()">
             {{ 'PAC.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
           </button>
-          <button z-button zType="default" displayDensity="cosy" color="primary" (click)="applyVirtualCube()">
+          <button z-button zType="default" displayDensity="cosy" (click)="applyVirtualCube()">
             {{ 'PAC.KEY_WORDS.Confirm' | translate: { Default: 'Confirm' } }}
           </button>
         </div>
@@ -393,7 +393,7 @@
                   z-button
                   zType="default"
                   displayDensity="cosy"
-                  color="primary"
+
                   [disabled]="calcMemberFormGroup.invalid"
                   (click)="applyCalculatedMember()"
                 >

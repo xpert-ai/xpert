@@ -118,18 +118,17 @@
                       <span>{{ column.caption || column.name }}</span>
                     }
 
-                    <button
+                    <button [class]="column.selections?.length ? 'text-text-accent hover:text-text-accent' : ''"
                       z-button
                       zType="ghost"
                       zSize="icon"
                       zShape="circle"
                       displayDensity="compact"
-                      [color]="column.selections?.length ? 'accent' : ''"
                       cdkOverlayOrigin
                       #trigger="cdkOverlayOrigin"
                       (click)="$event.stopPropagation(); $event.preventDefault(); column.isFilterOpen = !column.isFilterOpen"
                     >
-                      <z-icon [color]="column.selections?.length ? 'accent' : ''" zType="more_vert"></z-icon>
+                      <z-icon zType="more_vert"></z-icon>
                     </button>
 
                     <ng-template
@@ -147,21 +146,19 @@
                           <div class="flex flex-col justify-start items-stretch gap-1 px-2">
                             <div>{{ 'Ngm.AnalyticalGrid.SORT' | translate: { Default: 'SORT' } }}</div>
                             <div class="flex justify-between items-center">
-                              <button
+                              <button [class]="sortDirection(column.name) === 'asc' ? 'text-text-accent hover:text-text-accent' : ''"
                                 z-button
                                 zType="ghost"
                                 displayDensity="cosy"
-                                [color]="sortDirection(column.name) === 'asc' ? 'accent' : ''"
                                 (click)="setSort(column.name, 'asc')"
                               >
                                 <z-icon zType="arrow_upward"></z-icon>
                                 {{ 'Ngm.AnalyticalGrid.ASCENDING' | translate: { Default: 'ASCENDING' } }}
                               </button>
-                              <button
+                              <button [class]="sortDirection(column.name) === 'desc' ? 'text-text-accent hover:text-text-accent' : ''"
                                 z-button
                                 zType="ghost"
                                 displayDensity="cosy"
-                                [color]="sortDirection(column.name) === 'desc' ? 'accent' : ''"
                                 (click)="setSort(column.name, 'desc')"
                               >
                                 <z-icon zType="arrow_downward"></z-icon>
@@ -182,9 +179,8 @@
                             <button
                               z-button
                               zType="ghost"
-                              class="w-full"
+                              [class]="column.sticky ? 'w-full text-text-accent hover:text-text-accent' : 'w-full'"
                               displayDensity="cosy"
-                              [color]="column.sticky ? 'accent' : ''"
                               (click)="column.sticky = !column.sticky"
                             >
                               <z-icon zType="push_pin"></z-icon>{{ 'Ngm.AnalyticalGrid.Pin' | translate: { Default: 'Pin' } }}
@@ -250,7 +246,7 @@
                               <button
                                 z-button
                                 zType="default"
-                                color="accent"
+
                                 displayDensity="cosy"
                                 [zDisabled]="!column._selections?.length"
                                 (click)="column.isFilterOpen = false; onFilterApply(column, members)"

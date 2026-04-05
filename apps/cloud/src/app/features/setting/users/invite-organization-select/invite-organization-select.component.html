@@ -69,7 +69,7 @@
     <button z-button zType="ghost" cdkFocusInitial (click)="cancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
-    <button z-button zType="default" color="accent" [disabled]="!selectedOrganization()" (click)="apply()">
+    <button z-button zType="default" [disabled]="!selectedOrganization()" (click)="apply()">
       {{ 'COMPONENTS.COMMON.CONTINUE' | translate: { Default: 'Continue' } }}
     </button>
   </div>

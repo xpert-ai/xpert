@@ -153,47 +153,47 @@ export const Primary = {
   <div fxLayout="row wrap" fxLayoutAlign="space-between center" >
     <div ngmButtonGroup>
       <button z-button zType="ghost">Click me!</button>
-      <button z-button zType="default" color="primary">Click me!</button>
+      <button z-button zType="default">Click me!</button>
     </div>
   
     <div ngmButtonGroup>
       <button z-button zType="secondary">Click me!</button>
-      <button z-button zType="default" color="primary">Click me!</button>
-      <button z-button zType="default" color="accent">Click me!</button>
+      <button z-button zType="default">Click me!</button>
+      <button z-button zType="default">Click me!</button>
     </div>
   
     <div ngmButtonGroup displayDensity="cosy">
       <button z-button zType="secondary" displayDensity="cosy">Click me!</button>
-      <button z-button zType="default" color="primary" displayDensity="cosy">Click me!</button>
-      <button z-button zType="default" color="accent" displayDensity="cosy">Click me!</button>
+      <button z-button zType="default" displayDensity="cosy">Click me!</button>
+      <button z-button zType="default" displayDensity="cosy">Click me!</button>
     </div>
   
     <div ngmButtonGroup displayDensity="compact">
       <button z-button zType="secondary" displayDensity="compact">Click me!</button>
-      <button z-button zType="default" color="primary" displayDensity="compact">Click me!</button>
-      <button z-button zType="default" color="accent" displayDensity="compact">Click me!</button>
+      <button z-button zType="default" displayDensity="compact">Click me!</button>
+      <button z-button zType="default" displayDensity="compact">Click me!</button>
     </div>
   </div>
   
   <div fxLayout="row wrap" fxLayoutAlign="space-between center" >
-    <button z-button zType="ghost" color="accent" [zLoading]="true">Accent</button>
+    <button class="text-text-accent hover:text-text-accent" z-button zType="ghost" [zLoading]="true">Accent</button>
   
     <button z-button zType="secondary" [zLoading]="true">Confortable</button>
     <button z-button zType="secondary" displayDensity="cosy" [zLoading]="true">Cosy</button>
     <button z-button zType="secondary" displayDensity="compact" [zLoading]="true">Compact</button>
   
-    <button z-button zType="default" color="primary" [zLoading]="true">Primary</button>
-    <button z-button zType="default" color="accent" [zLoading]="true">Accent</button>
+    <button z-button zType="default" [zLoading]="true">Primary</button>
+    <button z-button zType="default" [zLoading]="true">Accent</button>
   
-    <button z-button zType="outline" color="accent" [zLoading]="true">Accent</button>
+    <button class="text-text-accent hover:text-text-accent" z-button zType="outline" [zLoading]="true">Accent</button>
   
-    <button z-button zType="ghost" zSize="icon" zShape="circle" [zLoading]="true" color="primary">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" [zLoading]="true">
       <z-icon zType="more_vert"></z-icon>
     </button>
-    <button z-button zType="default" zSize="icon-lg" zShape="circle" [zLoading]="true" color="primary">
+    <button z-button zType="default" zSize="icon-lg" zShape="circle" [zLoading]="true">
       <z-icon zType="delete"></z-icon>
     </button>
-    <button z-button zType="default" zSize="icon-sm" zShape="circle" [zLoading]="true" color="primary">
+    <button z-button zType="default" zSize="icon-sm" zShape="circle" [zLoading]="true">
       <z-icon zType="menu"></z-icon>
     </button>
   </div>
@@ -201,7 +201,7 @@ export const Primary = {
   <div fxLayout="row wrap" fxLayoutAlign="space-between center" >
     <div ngmButtonGroup>
       <button z-button zType="ghost">Click me!</button>
-      <button z-button zType="default" color="accent" [zLoading]="true">Click me!</button>
+      <button z-button zType="default" [zLoading]="true">Click me!</button>
     </div>
   </div>
   </div>

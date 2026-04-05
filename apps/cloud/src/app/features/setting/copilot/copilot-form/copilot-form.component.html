@@ -16,7 +16,7 @@
       <button z-button zType="secondary" type="button" class="rounded-lg" [disabled]="copilotForm.formGroup.pristine" (click)="copilotForm.reset()">
         {{ 'PAC.KEY_WORDS.Cancel' | translate: {Default: 'Cancel'} }}
       </button>
-      <button z-button zType="default" color="primary" type="button" class="rounded-lg"
+      <button z-button zType="default" type="button" class="rounded-lg"
         [disabled]="!copilotForm.canSubmit()"
         (click)="copilotForm.submit()"
       >

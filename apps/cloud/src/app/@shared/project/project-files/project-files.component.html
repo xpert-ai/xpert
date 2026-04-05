@@ -30,7 +30,7 @@
     <div class="flex justify-end items-center">
       @if (activedFile()) {
         <div ngmButtonGroup>
-            <button z-button zType="outline" ngmAppearance="dashed" displayDensity="cosy" color="accent" (click)="fileUpload.click()">
+            <button class="text-text-accent hover:text-text-accent" z-button zType="outline" ngmAppearance="dashed" displayDensity="cosy" (click)="fileUpload.click()">
                 <div class="flex justify-start items-center">
                   <z-icon zType="upload"></z-icon>
                   {{ 'Story.Common.Upload' | translate: {Default: "Upload"} }}
@@ -52,7 +52,7 @@
       }
     </div>
   } @else {
-    <button z-button zType="outline" ngmAppearance="dashed" color="accent" (click)="fileUpload.click()">
+    <button class="text-text-accent hover:text-text-accent" z-button zType="outline" ngmAppearance="dashed" (click)="fileUpload.click()">
         <div class="flex justify-start items-center">
           <z-icon zType="upload"></z-icon>
           {{ 'Story.Common.Upload' | translate: {Default: "Upload"} }}

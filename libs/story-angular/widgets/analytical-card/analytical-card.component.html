@@ -23,11 +23,13 @@
       zShape="circle"
       z-menu
       displayDensity="cosy"
-      class="ngm-menu-trigger opacity-20 group-hover:opacity-100 duration-200"
-      [color]="(hasSlicers$ | async) ? 'accent' : ''"
+      [class]="
+        ((hasSlicers$ | async) || mt.menuOpen)
+          ? 'ngm-menu-trigger opacity-20 group-hover:opacity-100 duration-200 text-text-accent hover:text-text-accent'
+          : 'ngm-menu-trigger opacity-20 group-hover:opacity-100 duration-200'
+      "
       [zMenuTriggerFor]="filtersMenu"
       #mt="zMenuTrigger"
-      [class.active]="mt.menuOpen"
       [zTooltip]="'Story.Common.Slicers' | translate: { Default: 'Slicers' }"
       zPosition="top"
       >

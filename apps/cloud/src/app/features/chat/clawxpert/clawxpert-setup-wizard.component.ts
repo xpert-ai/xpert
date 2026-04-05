@@ -52,7 +52,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
             <button
               z-button
               zType="default"
-              color="primary"
+
               displayDensity="cosy"
               type="button"
               [disabled]="creatingXpert()"
@@ -99,7 +99,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
               <button
                 z-button
                 zType="default"
-                color="primary"
+
                 displayDensity="cosy"
                 type="button"
                 [disabled]="creatingXpert()"
@@ -196,7 +196,7 @@ import { ClawXpertFacade } from './clawxpert.facade'
               <button
                 z-button
                 zType="default"
-                color="primary"
+
                 displayDensity="cosy"
                 type="button"
                 [disabled]="form.invalid || facade.saving()"

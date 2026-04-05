@@ -21,9 +21,9 @@
           zType="ghost"
           zSize="icon"
           zShape="circle"
-          color="warn"
+
           displayDensity="cosy"
-          class="pac-cdk-drop__recycle-bin"
+          class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
           cdkDropList
           [cdkDropListEnterPredicate]="entityDeletePredicate"
           (cdkDropListDropped)="deleteEntity($event)"
@@ -71,7 +71,7 @@
           <button
             z-button
             zType="default"
-            color="primary"
+
             displayDensity="compact"
             [disabled]="!statement"
             zTooltip=" {{ 'PAC.KEY_WORDS.ShortcutKey' | translate: { Default: 'Shortcut Key' } }}: F8"
@@ -91,13 +91,13 @@
             }
           </button>
 
-          <!-- <button z-button zType="ghost" color="primary" displayDensity="compact" [disabled]="!statement">
+          <!-- <button z-button zType="ghost" displayDensity="compact" [disabled]="!statement">
           <z-icon zType="agriculture"></z-icon>
         校验</button> -->
         <button
           z-button
           zType="ghost"
-          color="primary"
+
           displayDensity="compact"
           [disabled]="!dirty || !statement"
           (click)="save()"
@@ -110,7 +110,7 @@
           <button
             z-button
             zType="ghost"
-            color="primary"
+
             displayDensity="compact"
             [disabled]="!statement || dbInitialization === selectedStatement"
             (click)="saveAsDBScript()"

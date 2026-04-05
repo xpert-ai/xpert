@@ -12,9 +12,11 @@ import {
   booleanAttribute,
 } from '@angular/core';
 
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideLoaderCircle } from '@ng-icons/lucide';
 import type { ClassValue } from 'clsx';
 
-import { mergeClasses } from '../../utils/merge-classes';
+import { mergeClasses } from '@/shared/utils/merge-classes';
 
 import {
   buttonVariants,
@@ -22,29 +24,25 @@ import {
   type ZardButtonSizeVariants,
   type ZardButtonTypeVariants,
 } from './button.variants';
-import { ZardIconComponent } from '../icon/icon.component';
 
 @Component({
   selector: 'z-button, button[z-button], a[z-button]',
-  imports: [ZardIconComponent],
+  imports: [NgIcon],
   template: `
     @if (zLoading()) {
-      <z-icon zType="loader-circle" class="animate-spin duration-2000" />
+      <ng-icon name="lucideLoaderCircle" class="animate-spin duration-2000" />
     }
     <ng-content />
   `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
+  viewProviders: [provideIcons({ lucideLoaderCircle })],
   host: {
     '[class]': 'classes()',
-    '[attr.data-color]': 'legacyColor()',
     '[attr.data-icon-only]': 'iconOnly() || null',
-    '[attr.data-z-shape]': 'zShape()',
-    '[attr.data-z-size]': 'zSize()',
-    '[attr.data-z-type]': 'zType()',
-    '[attr.data-disabled]': 'isNotInsideOfButtonOrLink() && isDisabled() || null',
-    '[attr.aria-disabled]': 'isNotInsideOfButtonOrLink() && isDisabled() || null',
-    '[attr.disabled]': 'isNotInsideOfButtonOrLink() && isDisabled() ? "" : null',
+    '[attr.data-disabled]': 'isNotInsideOfButtonOrLink() && zDisabled() || null',
+    '[attr.aria-disabled]': 'isNotInsideOfButtonOrLink() && zDisabled() || null',
+    '[attr.disabled]': 'isNotInsideOfButtonOrLink() && zDisabled() ? "" : null',
     '[attr.role]': 'isNotInsideOfButtonOrLink() ? "button" : null',
     '[attr.tabindex]': 'isNotInsideOfButtonOrLink() ? "0" : null',
   },
@@ -56,12 +54,10 @@ export class ZardButtonComponent implements OnDestroy {
   readonly zType = input<ZardButtonTypeVariants>('default');
   readonly zSize = input<ZardButtonSizeVariants>('default');
   readonly zShape = input<ZardButtonShapeVariants>('default');
-  readonly color = input<string | null>(null);
   readonly class = input<ClassValue>('');
   readonly zFull = input(false, { transform: booleanAttribute });
   readonly zLoading = input(false, { transform: booleanAttribute });
   readonly zDisabled = input(false, { transform: booleanAttribute });
-  readonly disabled = input(false, { alias: 'disabled', transform: booleanAttribute });
 
   private readonly iconOnlyState = signal(false);
   readonly iconOnly = this.iconOnlyState.asReadonly();
@@ -76,7 +72,7 @@ export class ZardButtonComponent implements OnDestroy {
 
       const check = () => {
         const el = this.elementRef.nativeElement;
-        const hasIcon = el.querySelector('z-icon, [z-icon]') !== null;
+        const hasIcon = el.querySelector('ng-icon') !== null;
         const children = Array.from<Node>(el.childNodes);
         const hasText = children.some(node => {
           if (node.nodeType === 3) {
@@ -84,7 +80,7 @@ export class ZardButtonComponent implements OnDestroy {
           }
           if (node.nodeType === 1) {
             const element = node as HTMLElement;
-            if (element.matches('z-icon, [z-icon]')) {
+            if (element.matches('ng-icon')) {
               return false;
             }
             return element.textContent?.trim() !== '';
@@ -112,8 +108,6 @@ export class ZardButtonComponent implements OnDestroy {
     }
   }
 
-  protected readonly isDisabled = computed(() => this.zDisabled() || this.disabled());
-
   protected readonly classes = computed(() =>
     mergeClasses(
       buttonVariants({
@@ -122,20 +116,11 @@ export class ZardButtonComponent implements OnDestroy {
         zShape: this.zShape(),
         zFull: this.zFull(),
         zLoading: this.zLoading(),
-        zDisabled: this.isDisabled(),
+        zDisabled: this.zDisabled(),
       }),
       this.class(),
     ),
   );
-
-  protected readonly legacyColor = computed(() => {
-    const color = this.color()?.trim();
-    if (!color) {
-      return null;
-    }
-
-    return color;
-  });
 
   protected readonly isNotInsideOfButtonOrLink = computed(() => {
     // Evaluated once; assumes component parent doesn't change after mount

@@ -15,11 +15,11 @@
 <xp-dialog-content class="">
   @if (!rootGroup) {
     <div class="flex gap-2">
-      <button z-button zType="outline" #addRootAndGroupButton color="accent" ngmAppearance="dashed" (click)="addAndGroup()">
+      <button class="text-text-accent hover:text-text-accent" z-button zType="outline" #addRootAndGroupButton ngmAppearance="dashed" (click)="addAndGroup()">
         <z-icon zType="add"></z-icon>
         <span>"{{ 'Ngm.AdvancedFilter.AND' | translate: {Default: 'AND'} }}" {{ 'Ngm.AdvancedFilter.GROUP' | translate: {Default: 'GROUP'} }}</span>
       </button>
-      <button z-button zType="outline" color="accent" ngmAppearance="dashed" (click)="addOrGroup()">
+      <button class="text-text-accent hover:text-text-accent" z-button zType="outline" ngmAppearance="dashed" (click)="addOrGroup()">
         <z-icon zType="add"></z-icon>
         <span>"{{ 'Ngm.AdvancedFilter.OR' | translate: {Default: 'OR'} }}" {{ 'Ngm.AdvancedFilter.GROUP' | translate: {Default: 'GROUP'} }}</span>
       </button>
@@ -114,7 +114,7 @@
           </z-form-field>
         }
         <div class="pac-filter-tree__inputs-actions">
-          <button z-button zType="ghost" zSize="icon" zShape="circle" color="primary" [disabled]="!operandCanBeCommitted()" (click)="commitOperandEdit()">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" [disabled]="!operandCanBeCommitted()" (click)="commitOperandEdit()">
             <z-icon zType="check"></z-icon>
           </button>
           <button z-button zType="ghost" zSize="icon" zShape="circle" ngmAppearance="danger" (click)="cancelOperandEdit()">
@@ -126,17 +126,17 @@
   </ng-template>
 
   <ng-template #addExpressionsTemplate let-expressionItem let-afterExpression="afterExpression">
-    <button z-button zType="outline" #addConditionButton color="accent" ngmAppearance="dashed" [disabled]="!!editedExpression" (click)="addCondition(expressionItem, afterExpression)">
+    <button class="text-text-accent hover:text-text-accent" z-button zType="outline" #addConditionButton ngmAppearance="dashed" [disabled]="!!editedExpression" (click)="addCondition(expressionItem, afterExpression)">
       <z-icon zType="add"></z-icon>
       <span>{{ 'Ngm.AdvancedFilter.Condition' | translate: {Default: 'Condition'} }}</span>
     </button>
 
-    <button z-button zType="outline" color="accent" ngmAppearance="dashed" [disabled]="!!editedExpression" (click)="addAndGroup(expressionItem, afterExpression)">
+    <button class="text-text-accent hover:text-text-accent" z-button zType="outline" ngmAppearance="dashed" [disabled]="!!editedExpression" (click)="addAndGroup(expressionItem, afterExpression)">
       <z-icon zType="add"></z-icon>
       <span>{{ 'Ngm.AdvancedFilter.AddGroup' | translate: {Default: '"ADD" GROUP'} }}</span>
     </button>
 
-    <button z-button zType="outline" color="accent" ngmAppearance="dashed" [disabled]="!!editedExpression" (click)="addOrGroup(expressionItem, afterExpression)">
+    <button class="text-text-accent hover:text-text-accent" z-button zType="outline" ngmAppearance="dashed" [disabled]="!!editedExpression" (click)="addOrGroup(expressionItem, afterExpression)">
       <z-icon zType="add"></z-icon>
       <span>{{ 'Ngm.AdvancedFilter.OrGroup' | translate: {Default: '"OR" GROUP'} }}</span>
     </button>
@@ -165,14 +165,14 @@
             >
             <ng-container *ngTemplateOutlet="addExpressionsTemplate; context: context(expressionItem)"></ng-container>
             @if (expressionItem !== rootGroup) {
-              <button z-button zType="outline" color="accent"
+              <button class="text-text-accent hover:text-text-accent" z-button zType="outline"
                 [disabled]="!!editedExpression || expressionItem.children.length < 2"
                 (click)="endGroup(expressionItem)">
                 <span>{{ 'Ngm.AdvancedFilter.EndGroup' | translate: {Default: 'END GROUP'} }}</span>
               </button>
             }
             @if (expressionItem !== rootGroup) {
-              <button z-button zType="outline" color="accent" ngmAppearance="danger" [disabled]="!!editedExpression" (click)="onChipRemove(expressionItem)">
+              <button class="text-text-accent hover:text-text-accent" z-button zType="outline" ngmAppearance="danger" [disabled]="!!editedExpression" (click)="onChipRemove(expressionItem)">
                 <span>{{ 'Ngm.AdvancedFilter.DeleteGroup' | translate: {Default: 'DELETE GROUP'} }}</span>
               </button>
             }
@@ -194,6 +194,6 @@
   </button>
   <div ngmButtonGroup>
     <button z-button zType="ghost" xpDialogClose>{{ 'Ngm.Common.Cancel' | translate: {Default: 'Cancel'} }}</button>
-    <button z-button zType="default" color="accent" (click)="onApply()" cdkFocusInitial>{{ 'Ngm.Common.Apply' | translate: {Default: 'Apply'} }}</button>
+    <button z-button zType="default" (click)="onApply()" cdkFocusInitial>{{ 'Ngm.Common.Apply' | translate: {Default: 'Apply'} }}</button>
   </div>
 </xp-dialog-actions>

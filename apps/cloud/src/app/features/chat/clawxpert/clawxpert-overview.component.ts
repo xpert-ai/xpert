@@ -268,7 +268,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
               <button
                 z-button
                 zType="default"
-                color="primary"
+
                 type="button"
                 class="w-full"
                 [disabled]="facade.viewState() !== 'ready' || facade.publishingXpert()"
@@ -282,7 +282,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
                 <button
                   z-button
                   zType="outline"
-                  color="primary"
+
                   type="button"
                   class="w-full"
                   [disabled]="facade.viewState() !== 'ready' || facade.publishingXpert() || facade.loadingTriggerDraft()"

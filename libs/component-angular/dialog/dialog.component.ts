@@ -31,7 +31,7 @@ import { ZardButtonComponent, ZardDialogModule } from '@xpert-ai/headless-ui'
         <button z-button zType="ghost" xpDialogClose cdkFocusInitial (click)="cancel.emit()">
           {{ cancelLabel ?? ('COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'}) }}
         </button>
-        <button z-button zType="default" color="accent" [disabled]="form?.invalid" (click)="onApply()">
+        <button z-button zType="default" [disabled]="form?.invalid" (click)="onApply()">
           {{ applyLabel ?? ('COMPONENTS.COMMON.Apply' | translate: {Default: 'Apply'}) }}
         </button>
       </div>

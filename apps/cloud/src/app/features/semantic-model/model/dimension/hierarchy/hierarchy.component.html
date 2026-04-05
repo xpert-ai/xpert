@@ -13,9 +13,9 @@
             zType="ghost"
             zSize="icon"
             zShape="circle"
-            color="warn"
+
             displayDensity="cosy"
-            class="pac-cdk-drop__recycle-bin"
+            class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
             cdkDropList
             [cdkDropListEnterPredicate]="levelRemovePredicate"
             (cdkDropListDropped)="removeLevel($event)"
@@ -67,9 +67,9 @@
             zType="ghost"
             zSize="icon"
             zShape="circle"
-            color="warn"
+
             displayDensity="cosy"
-            class="pac-cdk-drop__recycle-bin"
+            class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
             cdkDropList
             [cdkDropListEnterPredicate]="tableRemovePredicate"
             (cdkDropListDropped)="removeTable($event)"

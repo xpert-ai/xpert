@@ -18,13 +18,13 @@
       class="absolute right-1 flex items-center rounded-2xl opacity-0 group-hover/item:opacity-100 bg-components-card-bg"
     >
       @if (node.role === 'dimension') {
-        <button
+        <button class="text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
           z-button
           zType="ghost"
           zSize="icon"
           zShape="circle"
           displayDensity="cosy"
-          color="warn"
+
           (click)="onDelete($event, node)"
         >
           <z-icon zType="delete"></z-icon>

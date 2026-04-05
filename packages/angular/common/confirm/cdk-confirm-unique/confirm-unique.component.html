@@ -32,7 +32,7 @@
     <button z-button zType="secondary" (click)="onCancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
-    <button z-button zType="default" color="accent" [disabled]="invalid" cdkFocusInitial (click)="onApply()">
+    <button z-button zType="default" [disabled]="invalid" cdkFocusInitial (click)="onApply()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
     </button>
   </div>

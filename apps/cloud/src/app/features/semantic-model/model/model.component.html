@@ -25,7 +25,7 @@
     }
     <div [routerLink]="['./access']" routerLinkActive #rla="routerLinkActive">
       @if (rla.isActive) {
-        <button z-button zType="ghost" [color]="'accent'">
+        <button class="text-text-accent hover:text-text-accent" z-button zType="ghost">
           <span class="font-notoColorEmoji">🔏</span
             >{{ 'PAC.MODEL.AccessControl.Title' | translate: { Default: 'Access Control' } }}
         </button>
@@ -33,7 +33,7 @@
     </div>
 
     <div [routerLink]="['./query']" routerLinkActive #rla2="routerLinkActive">
-      <button z-button zType="ghost" [color]="rla2.isActive ? 'accent' : ''">
+      <button [class]="rla2.isActive ? 'text-text-accent hover:text-text-accent' : ''" z-button zType="ghost">
         <i class="ri-microscope-line"></i>
         {{ 'PAC.MODEL.QUERY.TITLE' | translate: { Default: 'Query Lab' } }}
       </button>
@@ -287,9 +287,9 @@
                 zType="ghost"
                 zSize="icon"
                 zShape="circle"
-                color="warn"
+
                 displayDensity="cosy"
-                class="pac-cdk-drop__recycle-bin"
+                class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
                 cdkDropList
                 [cdkDropListEnterPredicate]="tableRemovePredicate"
                 (cdkDropListDropped)="dropTable($event)"

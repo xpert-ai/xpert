@@ -30,12 +30,12 @@
   <div class="flex-1">
     @if (activeLink === c_thumbnail) {
       <div class="flex-1 flex flex-col justify-start items-end gap-2 my-2">
-        <button
+        <button class="text-text-accent hover:text-text-accent"
           z-button
           zType="outline"
           ngmAppearance="dashed"
           displayDensity="cosy"
-          color="accent"
+
           (click)="fileUpload.click()"
           >
           <div class="flex justify-start items-center">
@@ -54,7 +54,7 @@
   </div>
   <div class="flex justify-between">
     <div ngmButtonGroup>
-      <button z-button zType="default" color="accent" cdkFocusInitial (click)="onApply()">
+      <button z-button zType="default" cdkFocusInitial (click)="onApply()">
         {{ 'Story.Common.Apply' | translate: { Default: 'Apply' } }}
       </button>
       <button z-button zType="ghost" (click)="reset()">

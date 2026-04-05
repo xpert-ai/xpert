@@ -169,7 +169,7 @@ export class AccessControlComponent extends TranslationBaseComponent {
     <div xpDialogActions align="end">
       <div ngmButtonGroup>
         <button z-button zType="ghost" xpDialogClose cdkFocusInitial>Cancel</button>
-        <button z-button zType="default" color="accent" (click)="onApply()">Apply</button>
+        <button z-button zType="default" (click)="onApply()">Apply</button>
       </div>
     </div>`,
   imports: [

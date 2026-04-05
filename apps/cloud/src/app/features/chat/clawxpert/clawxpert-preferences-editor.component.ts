@@ -131,7 +131,7 @@ const PREFERENCE_TABS: PreferenceTab[] = [
                     <button
                       z-button
                       zType="default"
-                      color="primary"
+
                       type="button"
                       displayDensity="cosy"
                       [disabled]="facade.savingUserPreference() || !form.dirty"
@@ -143,7 +143,7 @@ const PREFERENCE_TABS: PreferenceTab[] = [
                     <button
                       z-button
                       zType="outline"
-                      color="primary"
+
                       type="button"
                       displayDensity="cosy"
                       [disabled]="facade.savingUserPreference()"

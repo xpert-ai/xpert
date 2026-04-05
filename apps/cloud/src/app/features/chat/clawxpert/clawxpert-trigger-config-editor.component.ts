@@ -172,7 +172,7 @@ import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
               <button
                 z-button
                 zType="default"
-                color="primary"
+
                 type="button"
                 displayDensity="cosy"
                 [disabled]="facade.savingTriggerDraft() || !dirty() || invalid()"

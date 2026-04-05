@@ -32,7 +32,7 @@ import { FieldArrayType } from '@ngx-formly/core'
       [class.empty]="!field.fieldGroup?.length"
     >
       @if (!field.fieldGroup?.length) {
-        <button z-button zType="ghost" color="primary" type="button" (click)="add()">
+        <button z-button zType="ghost" type="button" (click)="add()">
           <div class="flex items-center">
             <z-icon zType="add"></z-icon>{{ 'FORMLY.COMMON.ADD' | translate: { Default: 'Add' } }} {{ to.label }}
           </div>
@@ -53,8 +53,8 @@ import { FieldArrayType } from '@ngx-formly/core'
               zType="ghost"
               zSize="icon"
               zShape="circle"
-              class="ngm-formly__remove"
-              color="warn"
+              class="ngm-formly__remove text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
+
               displayDensity="compact"
               (click)="remove(i)"
             >
@@ -68,7 +68,7 @@ import { FieldArrayType } from '@ngx-formly/core'
     </div>
 
     @if (field.fieldGroup?.length) {
-      <button z-button zType="ghost" color="primary" type="button" class="w-full" (click)="add()">
+      <button z-button zType="ghost" type="button" class="w-full" (click)="add()">
         <div class="flex items-center">
           <z-icon zType="add"></z-icon>
           <span>{{ 'FORMLY.COMMON.ADD' | translate: { Default: 'Add' } }} {{ to.label }}</span>

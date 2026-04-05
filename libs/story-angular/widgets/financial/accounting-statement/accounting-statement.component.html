@@ -10,12 +10,12 @@
       </span>
       <span style="flex: 1"></span>
       <div class="pac-widget__action-toolbar flex justify-between items-center">
-        <button
+        <button [class]="(hasSlicers$ | async) ? 'text-text-accent hover:text-text-accent' : ''"
           z-button
           zType="ghost"
           zSize="icon"
           zShape="circle"
-          [color]="(hasSlicers$ | async) ? 'accent' : ''"
+
           z-menu
           [zMenuTriggerFor]="filtersMenu"
           >
@@ -28,7 +28,7 @@
             zType="ghost"
             zSize="icon"
             zShape="circle"
-            color="error"
+
             [zTooltip]="error"
             >
             <z-icon zType="warning"></z-icon>

@@ -7,7 +7,7 @@
 }
 
 @if (props?.type !== 'inline') {
-  <button z-button zType="ghost" ngmAppearance="dashed" displayDensity="cosy" [color]="data.length ? 'accent' : null" (click)="open()">
+  <button [class]="data.length ? 'text-text-accent hover:text-text-accent' : ''" z-button zType="ghost" ngmAppearance="dashed" displayDensity="cosy" (click)="open()">
     <z-icon zType="edit"></z-icon>{{props?.title ?? ('FORMLY.TABLE.Open' | translate:
     {Default: 'Open'} ) }}
   </button>
@@ -104,7 +104,7 @@
 
     <div ngmButtonGroup>
       <button z-button zType="ghost" xpDialogClose>{{ 'FORMLY.COMMON.Cancel' | translate: {Default: 'Cancel'} }}</button>
-      <button z-button zType="default" color="accent" cdkFocusInitial [xpDialogClose]="true">
+      <button z-button zType="default" cdkFocusInitial [xpDialogClose]="true">
         {{ 'FORMLY.COMMON.Apply' | translate: {Default: 'Apply'} }}
       </button>
     </div>

@@ -42,7 +42,7 @@
     zSize="icon"
     zShape="circle"
     displayDensity="cosy"
-    [color]="isPanMode() ? 'accent' : ''"
+    [class]="isPanMode() ? 'text-text-accent hover:text-text-accent' : ''"
     [zTooltip]="'Story.Toolbar.PanMode' | translate: { Default: 'Pan mode (Space)' }"
     zPosition="right"
     (click)="togglePanTool()"

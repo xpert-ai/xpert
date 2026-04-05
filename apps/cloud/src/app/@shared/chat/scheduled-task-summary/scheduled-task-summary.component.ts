@@ -24,7 +24,7 @@ import { DateRelativePipe, IXpertTask } from '../../../@core'
           </div>
 
           <div class="flex flex-wrap items-center justify-end gap-2">
-            <button z-button zType="default" color="primary" displayDensity="cosy" type="button" (click)="create.emit()">
+            <button z-button zType="default" displayDensity="cosy" type="button" (click)="create.emit()">
               <i class="ri-add-line text-base"></i>
               {{ 'PAC.Xpert.NewTask' | translate: { Default: 'New Task' } }}
             </button>

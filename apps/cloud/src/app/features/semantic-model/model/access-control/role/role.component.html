@@ -7,7 +7,7 @@
 
             <pac-inline-search class="flex-1" displayDensity="compact" [formControl]="searchRoleControl"></pac-inline-search>
         <!--     
-            <button z-button zType="ghost" zSize="icon" zShape="circle" color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin" cdkDropList [cdkDropListEnterPredicate]="cubeRemovePredicate" (cdkDropListDropped)="removeCube($event)">
+            <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive" cdkDropList [cdkDropListEnterPredicate]="cubeRemovePredicate" (cdkDropListDropped)="removeCube($event)">
                 <z-icon color="warn" zType="delete"></z-icon>
             </button> -->
         </div>
@@ -27,7 +27,7 @@
 
           <span class="flex flex-1"></span>
 
-          <button z-button zType="ghost" zSize="icon" zShape="circle" color="warn" displayDensity="cosy" class="pac-cdk-drop__recycle-bin" cdkDropList [cdkDropListEnterPredicate]="cubeRemovePredicate" (cdkDropListDropped)="removeCube($event)">
+          <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" class="pac-cdk-drop__recycle-bin text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive" cdkDropList [cdkDropListEnterPredicate]="cubeRemovePredicate" (cdkDropListDropped)="removeCube($event)">
             <z-icon color="warn" zType="delete"></z-icon>
           </button>
         </div>

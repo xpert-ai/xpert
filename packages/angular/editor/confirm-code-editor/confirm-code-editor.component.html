@@ -26,10 +26,10 @@
     <button z-button zType="ghost" (click)="onCancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
-    <button z-button zType="ghost" color="accent" cdkFocusInitial (click)="onApply()">
+    <button class="text-text-accent hover:text-text-accent" z-button zType="ghost" cdkFocusInitial (click)="onApply()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
     </button>
-    <button z-button zType="default" color="accent" cdkFocusInitial (click)="onOk()">
+    <button z-button zType="default" cdkFocusInitial (click)="onOk()">
       {{ 'COMPONENTS.COMMON.CONFIRM' | translate: {Default: 'Confirm'} }}
     </button>
   </div>

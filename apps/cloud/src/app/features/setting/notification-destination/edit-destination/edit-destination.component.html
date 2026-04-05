@@ -16,7 +16,7 @@
       >
     </formly-form>
     <div fxLayout="row" fxLayoutAlign="space-between stretch">
-      <button z-button zType="default" color="primary" [disabled]="formGroup.pristine||formGroup.invalid" (click)="onSave()">Save</button>
+      <button z-button zType="default" [disabled]="formGroup.pristine||formGroup.invalid" (click)="onSave()">Save</button>
       <button z-button zType="default" [disabled]="formGroup.pristine" (click)="onCancel()">Cancel</button>
     </div>
   </div>

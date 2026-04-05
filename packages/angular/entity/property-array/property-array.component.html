@@ -2,7 +2,7 @@
 >
 
   @if (isEmpty) {
-    <button z-button zType="ghost" color="primary" ngmAppearance="dashed" (click)="add()">
+    <button z-button zType="ghost" ngmAppearance="dashed" (click)="add()">
       <z-icon zType="playlist_add"></z-icon>
       {{ 'Ngm.Property.ADD_DIMENSION' | translate: {Default: 'Add Dimension'} }}
     </button>
@@ -17,7 +17,7 @@
       [capacities]="capacities"
     >
       <i class="ri-draggable text-lg" ngmPrefix></i>
-      <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix color="warn" class="opacity-0 group-hover:opacity-100" displayDensity="compact" (click)="remove(i); $event.stopPropagation(); $event.preventDefault()">
+      <button z-button zType="ghost" zSize="icon" zShape="circle" ngmSuffix class="opacity-0 group-hover:opacity-100 text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive" displayDensity="compact" (click)="remove(i); $event.stopPropagation(); $event.preventDefault()">
         <z-icon zType="clear"></z-icon>
       </button>
     </ngm-property-select>
@@ -25,7 +25,7 @@
 </div>
 
 @if (!isEmpty) {
-  <button z-button zType="ghost" class="add" color="primary" ngmAppearance="dashed" (click)="add()">
+  <button z-button zType="ghost" class="add" ngmAppearance="dashed" (click)="add()">
     <z-icon zType="playlist_add"></z-icon>
     {{ 'Ngm.Property.ADD_DIMENSION' | translate: {Default: 'Add Dimension'} }}
   </button>

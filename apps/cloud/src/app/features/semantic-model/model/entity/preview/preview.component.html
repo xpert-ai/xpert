@@ -22,7 +22,7 @@
       zShape="circle"
       displayDensity="cosy"
       [zTooltip]="'PAC.MODEL.ENTITY.CALCULATION.Pivot' | translate: { Default: 'Pivot' }"
-      [color]="reverse ? 'accent' : ''"
+      [class]="reverse ? 'text-text-accent hover:text-text-accent' : ''"
       (click)="reverse = !reverse; refresh()"
     >
       <z-icon zType="pivot_table_chart"></z-icon>

@@ -12,7 +12,7 @@
 
   <div class="flex justify-end items-center">
     <div ngmButtonGroup>
-      <button z-button zType="outline" ngmAppearance="dashed" displayDensity="cosy" color="accent" (click)="upload()">
+      <button class="text-text-accent hover:text-text-accent" z-button zType="outline" ngmAppearance="dashed" displayDensity="cosy" (click)="upload()">
         <div class="flex justify-start items-center">
           <z-icon zType="upload"></z-icon>
           {{ 'Story.Common.Upload' | translate: {Default: "Upload"} }}

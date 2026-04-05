@@ -75,7 +75,7 @@
 
 		<div class="w-full flex justify-end">
 		  <div ngmButtonGroup displayDensity="cosy">
-			<button z-button zType="default" color="primary" class="shrink-0 w-24" [disabled]="form.invalid || form.pristine" (click)="submitForm()">
+			<button z-button zType="default" class="shrink-0 w-24" [disabled]="form.invalid || form.pristine" (click)="submitForm()">
 			  <div class="flex items-center">
 				<z-icon zType="save"></z-icon>
 				{{ 'PAC.ACTIONS.Save' | translate: {Default: "Save"} }}

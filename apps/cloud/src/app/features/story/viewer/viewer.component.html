@@ -118,7 +118,7 @@
     zSize="icon"
     zShape="circle"
     displayDensity="cosy"
-    [color]="(isPanMode$ | async) ? 'accent' : ''"
+    [class]="(isPanMode$ | async) ? 'text-text-accent hover:text-text-accent' : ''"
     [zTooltip]="'Story.Toolbar.PanMode' | translate: { Default: 'Pan mode (Space)' }"
     zPosition="right"
     (click)="togglePanTool()"

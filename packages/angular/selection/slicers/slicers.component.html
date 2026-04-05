@@ -12,7 +12,7 @@
 }
 
 @if (editable() && !inline()) {
-  <button z-button zType="ghost" [disabled]="isDisabled" color="primary" displayDensity="cosy" ngmAppearance="dashed" (click)="openSlicerBar($event)">
+  <button z-button zType="ghost" [disabled]="isDisabled" displayDensity="cosy" ngmAppearance="dashed" (click)="openSlicerBar($event)">
     <z-icon zType="edit"></z-icon>{{ 'Ngm.Common.Add' | translate: {Default: "Add"} }}
   </button>
 }

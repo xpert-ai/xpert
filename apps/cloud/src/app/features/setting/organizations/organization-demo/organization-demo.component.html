@@ -21,7 +21,7 @@
 </div>
 
 <div class="flex items-center gap-2">
-  <button z-button zType="default" color="primary" [disabled]="loading() || !source.value && !fileUrl.value" (click)="generate()">
+  <button z-button zType="default" [disabled]="loading() || !source.value && !fileUrl.value" (click)="generate()">
     <div class="flex justify-center items-center">
       @if (loading()) {
         <z-loader diameter="18" />

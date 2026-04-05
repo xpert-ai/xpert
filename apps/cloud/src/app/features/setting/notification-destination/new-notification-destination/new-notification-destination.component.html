@@ -62,7 +62,7 @@
   <div>
     <button z-button zType="ghost" xpDialogClose cdkFocusInitial>Cancel</button>
 
-    <button z-button zType="default" color="accent" [disabled]="configurationFormGroup.invalid || creating" (click)="onSave()">Save</button>
+    <button z-button zType="default" [disabled]="configurationFormGroup.invalid || creating" (click)="onSave()">Save</button>
   </div>
 
 </div>

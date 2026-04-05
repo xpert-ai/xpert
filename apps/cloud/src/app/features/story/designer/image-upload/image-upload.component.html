@@ -8,7 +8,7 @@ bg-background-default-subtle dark:bg-slate-800"
         (change)="onFileSelected($event)"
         (click)="fileUpload.value=null;"
     >
-    <button z-button zType="outline" ngmAppearance="dashed" displayDensity="cosy" color="accent" class="backdrop-blur-md" [disabled]="disabled" (click)="fileUpload.click()">
+    <button z-button zType="outline" ngmAppearance="dashed" displayDensity="cosy" class="backdrop-blur-md text-text-accent hover:text-text-accent" [disabled]="disabled" (click)="fileUpload.click()">
         <div class="flex justify-start items-center">
             <z-icon zType="upload"></z-icon>
             {{ 'Story.Common.Upload' | translate: {Default: "Upload"} }}

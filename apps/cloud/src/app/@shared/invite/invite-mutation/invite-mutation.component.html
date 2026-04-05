@@ -15,7 +15,7 @@
     <button z-button zType="outline" cdkFocusInitial (click)="cancel()">
       {{ 'COMPONENTS.COMMON.CANCEL' | translate: {Default: 'Cancel'} }}
     </button>
-    <button z-button zType="default" color="accent" [disabled]="emailInviteForm.form.invalid" (click)="onApply()">
+    <button z-button zType="default" [disabled]="emailInviteForm.form.invalid" (click)="onApply()">
       {{ 'COMPONENTS.COMMON.APPLY' | translate: {Default: 'Apply'} }}
     </button>
   </div>

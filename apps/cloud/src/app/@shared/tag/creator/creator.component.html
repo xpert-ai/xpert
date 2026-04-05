@@ -46,7 +46,7 @@
     <button z-button zType="secondary" xpDialogClose cdkFocusInitial>
       {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
-    <button z-button zType="default" color="accent" [disabled]="formGroup.invalid || formGroup.pristine" (click)="apply()">
+    <button z-button zType="default" [disabled]="formGroup.invalid || formGroup.pristine" (click)="apply()">
       <span>
         {{ 'PAC.ACTIONS.Create' | translate: { Default: 'Create' } }}
       </span>

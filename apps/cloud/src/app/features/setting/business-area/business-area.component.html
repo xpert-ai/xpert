@@ -1,7 +1,7 @@
 <div class="w-full flex justify-between items-center px-4 py-2">
   <div class="pac-page-title">{{ 'PAC.KEY_WORDS.BUSINESS_AREA' | translate: {Default: "Business Area"} }}</div>
   <div ngmButtonGroup >
-    <button z-button zType="default" color="primary" (click)="createBusinessArea(null)">
+    <button z-button zType="default" (click)="createBusinessArea(null)">
         <div class="flex items-center">
             <z-icon zType="add"></z-icon>
             {{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} {{ 'PAC.KEY_WORDS.BUSINESS_AREA' | translate: {Default: "Business Area"} }}

@@ -100,7 +100,7 @@
       <button
         z-button
         zType="default"
-        color="accent"
+
         cdkFocusInitial
         [zDisabled]="stepper.selectedStep?.stepControl?.invalid || error"
         (click)="onAppy()"
@@ -111,7 +111,7 @@
         <button
           z-button
           zType="default"
-          color="accent"
+
           [zDisabled]="stepper.selectedStep?.stepControl?.invalid"
           (click)="stepper.next()"
           >

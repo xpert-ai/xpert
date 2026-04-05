@@ -16,7 +16,7 @@
     [user]="semanticModel?.owner">
     @if (isOwner) {
       <div ngmButtonGroup>
-        <button z-button zType="outline" color="accent" displayDensity="cosy" (click)="transferOwner()">
+        <button class="text-text-accent hover:text-text-accent" z-button zType="outline" displayDensity="cosy" (click)="transferOwner()">
           <div class="flex items-center whitespace-nowrap text-ellipsis overflow-hidden">
             <z-icon zType="local_shipping"></z-icon>
             {{ 'PAC.MODEL.TransferOwnership' | translate: { Default: 'Transfer Ownership' } }}
@@ -35,7 +35,7 @@
     </div>
   
     <div ngmButtonGroup>
-      <button z-button zType="default" color="primary" displayDensity="cosy" (click)="openMemberSelect()">
+      <button z-button zType="default" displayDensity="cosy" (click)="openMemberSelect()">
         <z-icon zType="add"></z-icon>
         {{ 'PAC.KEY_WORDS.ADD' | translate: { Default: 'Add' } }}
       </button>

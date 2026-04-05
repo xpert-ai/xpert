@@ -95,7 +95,7 @@
         <button
           z-button
           zType="default"
-          color="accent"
+
           [zDisabled]="stepper.selectedStep?.stepControl?.invalid || !fileList.length"
           (click)="stepper.next()"
           >
@@ -105,11 +105,11 @@
 
       @if (stepper.selectedIndex === 2) {
         @if (done) {
-          <button z-button zType="default" color="accent" [zDisabled]="uploading()" xpDialogClose>
+          <button z-button zType="default" [zDisabled]="uploading()" xpDialogClose>
             {{ 'PAC.MODEL.UPLOAD.Done' | translate: { Default: 'Done' } }}
           </button>
         } @else {
-          <button z-button zType="default" color="accent" (click)="upload()">
+          <button z-button zType="default" (click)="upload()">
             {{ 'PAC.MODEL.UPLOAD.Import' | translate: { Default: 'Import' } }}
           </button>
         }

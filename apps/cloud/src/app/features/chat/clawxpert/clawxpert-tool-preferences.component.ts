@@ -357,7 +357,7 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
                           <button
                             z-button
                             zType="default"
-                            color="accent"
+
                             type="button"
                             [disabled]="busy() || !skillWorkspaceId()"
                             (click)="openSkillInstallDialog()"

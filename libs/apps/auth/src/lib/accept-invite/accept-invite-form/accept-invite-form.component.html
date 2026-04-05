@@ -33,7 +33,7 @@
   </div>
 
   <div class="mt-4">
-    <button z-button zType="default" color="primary" [zDisabled]="form.invalid" (click)="saveInvites()">
+    <button z-button zType="default" [zDisabled]="form.invalid" (click)="saveInvites()">
       {{
         'Auth.ACCEPT_INVITE.ACCEPT_INVITE_FORM.COMPLETE_REGISTRATION' | translate: { Default: 'Complete Registration' }
       }}

@@ -34,7 +34,6 @@
         <button
           z-button
           [zType]="selectedOrganizationId() === membership.organizationId ? 'default' : 'ghost'"
-          [color]="selectedOrganizationId() === membership.organizationId ? 'accent' : undefined"
           displayDensity="cosy"
           (click)="selectOrganization(membership.organizationId)"
         >

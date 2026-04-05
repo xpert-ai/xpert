@@ -94,7 +94,7 @@
       <button z-button zType="secondary" (click)="cancel()">
         {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
-      <button z-button zType="default" color="accent" [zDisabled]="formGroup.invalid" (click)="apply()">
+      <button z-button zType="default" [zDisabled]="formGroup.invalid" (click)="apply()">
         {{ 'PAC.ACTIONS.APPLY' | translate: { Default: 'Apply' } }}
       </button>
     </div>

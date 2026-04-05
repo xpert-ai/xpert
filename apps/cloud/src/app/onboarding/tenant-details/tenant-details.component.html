@@ -229,7 +229,7 @@
             {{ 'PAC.Onboarding.AddDataLater' | translate: {Default: 'I\'ll add my data later'} }}
           </button>
           @if (type) {
-            <button z-button zType="default" color="primary" [disabled]="dataSourceTypeFormGroup.invalid || loading()" (click)="connectDatabase()">{{ 'PAC.Onboarding.ConnectDatabase' | translate: {Default: 'Connect database'} }}</button>
+            <button z-button zType="default" [disabled]="dataSourceTypeFormGroup.invalid || loading()" (click)="connectDatabase()">{{ 'PAC.Onboarding.ConnectDatabase' | translate: {Default: 'Connect database'} }}</button>
           }
         </div>
       </div>
@@ -254,7 +254,7 @@
             <button
               z-button
               zType="default"
-              color="primary"
+
               type="button"
               [disabled]="loading() || !onboardingCopilotForm.canSubmit() || !onboardingCopilotForm.hasSelectedModel()"
               (click)="onboardingCopilotForm.submit()"

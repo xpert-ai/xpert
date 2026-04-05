@@ -7,7 +7,7 @@
     [user]="project?.owner">
     @if (isOwner) {
       <div ngmButtonGroup>
-        <button z-button zType="outline" color="accent" displayDensity="cosy" (click)="transferOwner()">
+        <button class="text-text-accent hover:text-text-accent" z-button zType="outline" displayDensity="cosy" (click)="transferOwner()">
           <div class="flex items-center whitespace-nowrap overflow-hidden text-ellipsis">
             <z-icon zType="local_shipping"></z-icon>
             {{ 'PAC.Project.TransferOwnership' | translate: { Default: 'Transfer Ownership' } }}
@@ -26,7 +26,7 @@
 
     @if (isOwner) {
       <div ngmButtonGroup>
-        <button z-button zType="default" color="primary" displayDensity="cosy" (click)="openMemberSelect()">
+        <button z-button zType="default" displayDensity="cosy" (click)="openMemberSelect()">
           <div class="flex justify-center items-center">
             <z-icon zType="add"></z-icon>
             {{ 'PAC.KEY_WORDS.ADD' | translate: { Default: 'Add' } }}
@@ -59,7 +59,7 @@
 <div class="flex justify-end items-center mb-0">
   @if (isOwner) {
     <div ngmButtonGroup>
-      <button z-button zType="default" color="primary" displayDensity="cosy" (click)="openCertificationSelect()">
+      <button z-button zType="default" displayDensity="cosy" (click)="openCertificationSelect()">
         <div class="flex justify-center items-center">
           <z-icon zType="add"></z-icon>
           {{ 'PAC.KEY_WORDS.ADD' | translate: { Default: 'Add' } }}
@@ -100,7 +100,7 @@
       </h5>
 
       <div ngmButtonGroup class="pac-confirm-card__delete-actions h-0 overflow-hidden group-hover:h-10 transition-all duration-300">
-        <button z-button zType="outline" color="warn" displayDensity="cosy" (click)="deleteProject()">
+        <button class="text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive" z-button zType="outline" displayDensity="cosy" (click)="deleteProject()">
           <div class="flex items-center">
             <z-icon zType="delete_outline"></z-icon>
             {{ 'PAC.Project.ConfirmDelete' | translate: { Default: 'Confirm delete' } }}

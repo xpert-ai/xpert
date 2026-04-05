@@ -108,7 +108,7 @@
           </div>
         </div>
 
-        <button type="button" z-button [zType]="imageUrl() ? 'secondary' : 'default'" color="accent" (click)="fileUpload.click()">
+        <button type="button" z-button [zType]="imageUrl() ? 'secondary' : 'default'" (click)="fileUpload.click()">
           {{ 'PAC.KEY_WORDS.Browse' | translate: { Default: 'browse' } }}
         </button>
 
@@ -130,7 +130,7 @@
     <button type="button" z-button zType="ghost" xpDialogClose>
       {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
-    <button type="button" z-button zType="default" color="accent" cdkFocusInitial (click)="apply()">
+    <button type="button" z-button zType="default" cdkFocusInitial (click)="apply()">
       {{ 'Story.Common.Save' | translate: { Default: 'Save' } }}
     </button>
   </div>

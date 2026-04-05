@@ -95,7 +95,7 @@ import { ZardDialogRef } from '@xpert-ai/headless-ui'
       {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
     </button>
 
-    <button z-button zType="default" color="accent" [disabled]="form.invalid || notAllPublic()" (click)="release()">
+    <button z-button zType="default" [disabled]="form.invalid || notAllPublic()" (click)="release()">
       {{ 'PAC.Project.Release' | translate: { Default: 'Release' } }}
     </button>
   </div>

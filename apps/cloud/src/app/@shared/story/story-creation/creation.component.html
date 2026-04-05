@@ -58,7 +58,7 @@
         {{ 'PAC.ACTIONS.CANCEL' | translate: { Default: 'Cancel' } }}
       </button>
 
-      <button type="button" z-button zType="default" color="accent" [disabled]="form.invalid" (click)="onApply()">
+      <button type="button" z-button zType="default" [disabled]="form.invalid" (click)="onApply()">
         {{ 'PAC.ACTIONS.CREATE' | translate: { Default: 'Create' } }}
       </button>
     </div>

@@ -8,7 +8,7 @@
       <button
         z-button
         zType="default"
-        color="primary"
+
         displayDensity="cosy"
         class="self-start"
         (click)="create()"
@@ -86,7 +86,7 @@
                 <div class="max-w-xs text-sm text-text-tertiary">
                   {{ 'PAC.Role.NoRolesHint' | translate: { Default: 'Create a role to start configuring role-based access for your organization.' } }}
                 </div>
-                <button z-button zType="default" color="primary" displayDensity="cosy" (click)="create()">
+                <button z-button zType="default" displayDensity="cosy" (click)="create()">
                   <z-icon zType="add"></z-icon>
                   {{ 'PAC.MODEL.AccessControl.NewRole' | translate: { Default: 'New Role' } }}
                 </button>

@@ -18,7 +18,7 @@
         <z-icon zType="push_pin"></z-icon>
       </button>
     }
-    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [color]="(hasSlicers$ | async) ? 'accent':''" z-menu [zMenuTriggerFor]="filtersMenu">
+    <button z-button zType="ghost" zSize="icon" zShape="circle" displayDensity="cosy" [class]="(hasSlicers$ | async) ? 'text-text-accent hover:text-text-accent' : ''" z-menu [zMenuTriggerFor]="filtersMenu">
       <z-icon zType="filter_alt"></z-icon>
     </button>
   </div>

@@ -78,13 +78,13 @@
 <ng-template #actionTempl let-indicator="indicator" let-approvalId="id" let-status="status" let-loading="loading">
   @if (status===PermissionApprovalStatus.REQUESTED) {
     <div ngmButtonGroup displayDensity="compact" class="inline-block">
-      <button z-button zType="default" displayDensity="compact" color="primary" [disabled]="loading" (click)="approval(approvalId)">
+      <button z-button zType="default" displayDensity="compact" [disabled]="loading" (click)="approval(approvalId)">
         <div class="flex items-center">
           <z-icon zType="task_alt"></z-icon>
           {{ 'PAC.KEY_WORDS.Approve' | translate: {Default: 'Approve'} }}
         </div>
       </button>
-      <button z-button zType="default" displayDensity="compact" color="warn" [disabled]="loading" (click)="refuse(approvalId)">
+      <button class="border-destructive/20 bg-destructive/10 text-text-destructive hover:bg-destructive/20 hover:text-text-destructive focus-visible:border-destructive/40" z-button zType="default" displayDensity="compact" [disabled]="loading" (click)="refuse(approvalId)">
         <div class="flex items-center">
           <z-icon zType="block"></z-icon>
           {{ 'PAC.KEY_WORDS.Refuse' | translate: {Default: 'Refuse'} }}

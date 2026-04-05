@@ -16,7 +16,7 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     (modelChange)="onModelChange($event)"
     [options]="options"
   ></formly-form>
-<button z-button zType="ghost" type="submit" color="primary" (click)="onSubmit()">Submit</button>
+<button z-button zType="ghost" type="submit" (click)="onSubmit()">Submit</button>
 <button z-button zType="ghost" type="button" (click)="options.resetModel()">Reset</button>
 <button z-button zType="ghost" type="button" (click)="options.updateInitialValue()">Update Intial Values</button>
 `,

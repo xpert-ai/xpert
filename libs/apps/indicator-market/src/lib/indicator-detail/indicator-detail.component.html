@@ -67,12 +67,12 @@
       }
 
       <div class="flex justify-end items-start gap-2">
-        <button
+        <button [class]="favour() ? 'text-text-accent hover:text-text-accent' : ''"
           z-button
           zType="ghost"
           zSize="icon"
           zShape="circle"
-          [color]="favour() ? 'accent' : ''"
+
           (click)="toggleFavorite(indicator)"
           >
           <z-icon zType="star"></z-icon>
@@ -265,14 +265,14 @@
                 <z-checkbox [(ngModel)]="relative">
                   {{ 'IndicatorApp.IsPeriodRelated' | translate: { Default: 'Period Related' } }}
                 </z-checkbox>
-                <!-- <button z-button zType="ghost" color="accent" class="ngm-accent" [zDisabled]="!copilotEnabled() || !prompt || answering" (click)="askCopilot()">
+                <!-- <button z-button zType="ghost" class="ngm-accent text-text-accent hover:text-text-accent" [zDisabled]="!copilotEnabled() || !prompt || answering" (click)="askCopilot()">
                 {{ 'IndicatorApp.AskCopilot' | translate: {Default: 'Ask Copilot'} }}
               </button> -->
               <button
                 z-button
                 zType="ghost"
-                color="accent"
-                class="ngm-accent"
+
+                class="ngm-accent text-text-accent hover:text-text-accent"
                 [disabled]="!prompt || answering"
                 (click)="saveAsComment(indicator.id, prompt, relative)"
                 >

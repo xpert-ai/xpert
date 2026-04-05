@@ -61,9 +61,9 @@
         zSize="icon"
         zShape="circle"
         zFormSuffix
-        class="ngm-formly__remove"
+        class="ngm-formly__remove text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
         displayDensity="compact"
-        color="warn"
+
         (click)="$event.stopPropagation(); $event.preventDefault(); killMyself()"
         >
         <z-icon zType="clear"></z-icon>
@@ -154,7 +154,7 @@
             <button
               z-button
               zType="default"
-              color="primary"
+
               [zDisabled]="mapFormGroup.invalid || mapFormGroup.pristine"
               (click)="confirmMap(true)"
               >

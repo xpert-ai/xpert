@@ -2,7 +2,7 @@
   <h2>
     {{ 'PAC.KEY_WORDS.NOTIFICATION_DESTINATION' | translate: {Default: "Notification Destinations"} }}
   </h2>
-  <button z-button zType="default" color="primary" (click)="openCreate()">
+  <button z-button zType="default" (click)="openCreate()">
     <z-icon zType="add"></z-icon>{{ 'PAC.ACTIONS.NEW' | translate: {Default: "New"} }} {{ 'PAC.KEY_WORDS.NOTIFICATION_DESTINATION' | translate: {Default: "Notification Destinations"} }}
   </button>
 </div>
@@ -24,7 +24,7 @@
             </z-card-subtitle>
           </div>
         </z-card-header>
-        <button z-button zType="ghost" zSize="icon" zShape="circle" color="warn" class="pac-sketch-card__remove" (click)="remove(destination)">
+        <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-sketch-card__remove text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive" (click)="remove(destination)">
           <z-icon zType="remove"></z-icon>
         </button>
       </z-card>

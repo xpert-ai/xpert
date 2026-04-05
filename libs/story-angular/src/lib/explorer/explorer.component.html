@@ -1,6 +1,6 @@
 <div class="relative w-full h-64 shrink-0 flex justify-start items-stretch p-1" ngmResizer [resizerHeight]="230">
   <!-- <div class="flex flex-col justify-start">
-  <button z-button zType="outline" color="primary" (click)="back()">{{ 'Story.Common.Back' | translate: {Default: 'Back'} }}</button>
+  <button z-button zType="outline" (click)="back()">{{ 'Story.Common.Back' | translate: {Default: 'Back'} }}</button>
 </div> -->
 <button
   type="button"
@@ -152,10 +152,10 @@
                       zSize="icon"
                       zShape="circle"
                       ngmSuffix
-                      class="opacity-0 group-hover:opacity-100 transition-opacity"
+                      class="opacity-0 group-hover:opacity-100 transition-opacity text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
                       displayDensity="compact"
                       ngmAppearance="danger"
-                      color="warn"
+
                       (click)="$event.stopPropagation(); $event.preventDefault(); removeRow(i)"
                       >
                       <z-icon zType="clear"></z-icon>
@@ -194,10 +194,10 @@
                       zSize="icon"
                       zShape="circle"
                       ngmSuffix
-                      class="opacity-0 group-hover:opacity-100 transition-opacity"
+                      class="opacity-0 group-hover:opacity-100 transition-opacity text-text-destructive hover:bg-state-destructive-hover hover:text-text-destructive"
                       displayDensity="compact"
                       ngmAppearance="danger"
-                      color="warn"
+
                       (click)="$event.stopPropagation(); $event.preventDefault(); removeColumn(i)"
                       >
                       <z-icon zType="clear"></z-icon>
@@ -323,7 +323,7 @@
         <z-icon zType="code"></z-icon>
         {{ 'Story.Widget.Explain' | translate: { Default: 'Explain' } }}
       </button>
-      <button z-button zType="default" color="primary" (click)="close()">
+      <button z-button zType="default" (click)="close()">
         {{ 'Story.Common.Apply' | translate: { Default: 'Apply' } }}
       </button>
     </div>
@@ -372,7 +372,7 @@
           {{ 'Story.Common.Cancel' | translate: { Default: 'Cancel' } }}
         </button>
 
-        <button z-button zType="default" color="accent" (click)="addDimensions()">
+        <button z-button zType="default" (click)="addDimensions()">
           {{ 'Story.Common.Confirm' | translate: { Default: 'Confirm' } }}
         </button>
       </div>
