@@ -24,9 +24,11 @@ import { TWorkflowVarGroup } from '../../../@core'
 import { JsonSchemaWidgetOutletComponent } from './json-schema-widget-outlet.component'
 import { JsonSchemaWidgetStrategyRegistry } from './json-schema-widget-registry.service'
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { CommonModule } from '@angular/common'
 @Component({
   standalone: true,
   imports: [
+    CommonModule,
     FormsModule,
     TranslateModule,
     ...ZardTooltipImports,
@@ -114,6 +116,7 @@ export class JSONSchemaPropertyComponent {
   readonly xUiRevealable = computed(() => this.xUi()?.revealable)
   readonly xUiHelp = computed(() => this.xUi()?.help)
   readonly xUiSpan = computed(() => this.xUi()?.span)
+  readonly xUiCols = computed(() => this.xUi()?.cols)
   readonly xUiStyles = computed(() => this.xUi()?.styles)
   readonly hasCustomWidget = computed(() => this.widgetRegistry?.has(this.xUiComponent()))
   readonly depends = computed(() =>

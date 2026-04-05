@@ -2,7 +2,7 @@ import { PLUGIN_LEVEL, PluginLevel, PluginSource, RolesEnum } from '@metad/contr
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
 import { LoadedPluginRecord } from './types'
 
-type PluginScopeRecord = Pick<LoadedPluginRecord, 'organizationId'> & {
+type PluginScopeRecord = Pick<LoadedPluginRecord, 'organizationId' | 'source'> & {
 	level?: PluginLevel
 	instance?: {
 		meta?: {
@@ -34,7 +34,7 @@ export function canUpdatePlugin(plugin: LoadedPluginRecord, organizationId: stri
 export function canUninstallPlugin(plugin: PluginScopeRecord, organizationId: string) {
 	const level = plugin.level ?? plugin.instance?.meta?.level ?? PLUGIN_LEVEL.ORGANIZATION
 	if (level === PLUGIN_LEVEL.SYSTEM) {
-		return false
+		return plugin.source === 'code'
 	}
 
 	if (plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE) {

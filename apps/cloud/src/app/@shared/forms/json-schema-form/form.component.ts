@@ -12,13 +12,17 @@ import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { JsonSchemaObjectType, TWorkflowVarGroup } from '@cloud/app/@core'
 import { JSONSchemaPropertyComponent } from '../json-schema-property/property.component'
+
 @Component({
   standalone: true,
   imports: [FormsModule, TranslateModule, JSONSchemaPropertyComponent],
   selector: 'json-schema-form',
   templateUrl: 'form.component.html',
   styleUrls: ['form.component.scss'],
-  hostDirectives: [NgxControlValueAccessor]
+  hostDirectives: [NgxControlValueAccessor],
+  host: {
+    '[class]': `xUiSpan() ? 'gap-4 grid grid-cols-' + xUiSpan() : ''`
+  }
 })
 export class JSONSchemaFormComponent {
 
@@ -44,6 +48,9 @@ export class JSONSchemaFormComponent {
     name,
   })) )
 
+  readonly xUi = computed(() => this.schema()?.['x-ui'] || {})
+  readonly xUiSpan = computed(() => this.xUi()?.cols)
+
   readonly value$ = this.cva.value$
   readonly propertyContext = computed(() => ({
     ...(this.context() ?? {}),
@@ -60,6 +67,12 @@ export class JSONSchemaFormComponent {
     }
     return false
   })
+
+  constructor() {
+    effect(() => {
+      console.log(this.schema())
+    })
+  }
 
   updateValue(name: string, value: unknown) {
     this.value$.update((state) => ({ ...(state ?? {}), [name]: value }))
