@@ -1,4 +1,9 @@
-
+/**
+ * Invariants:
+ * - Child properties need `context.model` to resolve sibling-driven `x-ui.depends`.
+ * - The injected model must be the current object value being edited, not a stale parent snapshot.
+ * - Keep this layer schema-driven; endpoint-specific select behavior belongs in property/field components.
+ */
 import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
 import { FormGroup, FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -7,10 +12,6 @@ import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { JsonSchemaObjectType, TWorkflowVarGroup } from '@cloud/app/@core'
 import { JSONSchemaPropertyComponent } from '../json-schema-property/property.component'
-
-/**
- * 
- */
 @Component({
   standalone: true,
   imports: [FormsModule, TranslateModule, JSONSchemaPropertyComponent],
@@ -44,6 +45,10 @@ export class JSONSchemaFormComponent {
   })) )
 
   readonly value$ = this.cva.value$
+  readonly propertyContext = computed(() => ({
+    ...(this.context() ?? {}),
+    model: this.value$()
+  }))
 
   readonly form = new FormGroup({})
   // optionsModel = {}

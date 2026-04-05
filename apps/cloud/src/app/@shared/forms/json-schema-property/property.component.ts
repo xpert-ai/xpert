@@ -1,4 +1,9 @@
-
+/**
+ * Invariants:
+ * - Shared schema property rendering stays endpoint-agnostic.
+ * - `depends` reads sibling values from `context.model` and emits flat key/value params for remote selects.
+ * - Do not add integration-specific widgets or query-shape exceptions in this layer.
+ */
 import { booleanAttribute, Component, computed, effect, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -19,9 +24,6 @@ import { TWorkflowVarGroup } from '../../../@core'
 import { JsonSchemaWidgetOutletComponent } from './json-schema-widget-outlet.component'
 import { JsonSchemaWidgetStrategyRegistry } from './json-schema-widget-registry.service'
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
-/**
- *
- */
 @Component({
   standalone: true,
   imports: [
@@ -115,13 +117,21 @@ export class JSONSchemaPropertyComponent {
   readonly xUiStyles = computed(() => this.xUi()?.styles)
   readonly hasCustomWidget = computed(() => this.widgetRegistry?.has(this.xUiComponent()))
   readonly depends = computed(() =>
-    (this.xUi()?.depends ?? []).map((_) => {
+    (this.xUi()?.depends ?? []).reduce((acc: Record<string, unknown>, _) => {
+      const model = (this.context()?.['model'] as Record<string, unknown> | undefined) ?? undefined
       if (typeof _ === 'string') {
-        return { name: _, value: this.value$()?.[_] }
+        const value = model?.[_] ?? this.value$()?.[_]
+        if (value != null) {
+          acc[_] = value
+        }
       } else if (typeof _ === 'object' && 'name' in _) {
-        return { name: _.alias || _.name, value: this.value$()?.[_.name] }
+        const value = model?.[_.name] ?? this.value$()?.[_.name]
+        if (value != null) {
+          acc[_.alias || _.name] = value
+        }
       }
-    })
+      return acc
+    }, {})
   )
 
   constructor() {

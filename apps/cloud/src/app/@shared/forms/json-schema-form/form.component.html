@@ -1,5 +1,6 @@
 @if (properties()?.length) {
   @for (param of properties(); track param.name) {
+    <!-- Child properties read sibling values from context.model when building remote-select params. -->
     <json-schema-property
       class="mb-1"
       [readonly]="readonly()"
@@ -7,7 +8,7 @@
       [name]="param.name"
       [required]="isRequired(param.name)"
       [variables]="variables()"
-      [context]="context()"
+      [context]="propertyContext()"
       [ngModelOptions]="{ standalone: true }"
       [ngModel]="value$()?.[param.name]"
       (ngModelChange)="updateValue(param.name, $event)"

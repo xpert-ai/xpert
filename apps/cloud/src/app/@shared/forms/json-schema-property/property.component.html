@@ -178,9 +178,11 @@
                   class="relative flex group/item border border-solid border-transparent rounded-lg"
                   [class.!border-text-destructive]="item?.__hover__"
                 >
+                  <!-- Preserve inherited context so nested item fields can still resolve outer depends metadata. -->
                   <json-schema-property
                     class="flex-1 overflow-hidden"
                     [schema]="arraySchema().items"
+                    [context]="context()"
                     [ngModel]="item"
                     [ngModelOptions]="{ standalone: true }"
                     (ngModelChange)="updateArray(i, $event)"
@@ -221,12 +223,14 @@
           @case ('object') {
             <div class="rounded-lg border border-divider-regular px-2">
               @for (param of properties(); track param.name) {
+                <!-- Nested object children need the current object as context.model for sibling-based depends. -->
                 <json-schema-property
                   class="mb-1"
                   [schema]="param"
                   [name]="param.name"
                   [required]="isRequired(param.name)"
                   [variables]="variables()"
+                  [context]="{ ...(context() ?? {}), model: value$() }"
                   [ngModel]="value$()?.[param.name]"
                   [ngModelOptions]="{ standalone: true }"
                   (ngModelChange)="updateValue(param.name, $event)"
