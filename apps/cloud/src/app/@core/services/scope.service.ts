@@ -1,7 +1,7 @@
 import { computed, effect, inject, Injectable } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRouteSnapshot, NavigationEnd, Route, Router } from '@angular/router'
-import { IOrganization, RequestScopeLevel, RolesEnum, Store } from '@metad/cloud/state'
+import { IOrganization, RequestScopeLevel, Store } from '@metad/cloud/state'
 import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
 
 export type RouteScopeContext = 'tenant-only' | 'organization-only' | 'dual-scope'
@@ -13,6 +13,9 @@ const DEFAULT_ORGANIZATION_ROUTE = '/chat'
 export class ScopeService {
   readonly #router = inject(Router)
   readonly #store = inject(Store)
+  readonly #currentUser = toSignal(this.#store.user$, {
+    initialValue: this.#store.user
+  })
 
   readonly activeScope = toSignal(this.#store.selectActiveScope(), {
     initialValue: this.#store.activeScope
@@ -39,7 +42,7 @@ export class ScopeService {
     }
   )
   readonly canUseTenantScope = computed(
-    () => this.#store.user?.role?.name === RolesEnum.SUPER_ADMIN
+    () => !!this.#currentUser()?.tenantId
   )
   readonly currentScopeName = computed(() => {
     const scope = this.activeScope()
@@ -47,7 +50,7 @@ export class ScopeService {
       return 'Tenant Console'
     }
 
-    return this.#store.selectedOrganization?.name || 'Organization'
+    return this.#store.selectedOrganization?.name || this.#currentUser()?.tenant?.name || 'Organization'
   })
 
   constructor() {
