@@ -29,6 +29,7 @@ export class XpertSkillIndexesComponent {
 
   // Inputs
   readonly selectedRepository = input<ISkillRepository | null>(null)
+  readonly showInstallAction = input(true)
   readonly indexes = model<ISkillRepositoryIndex[]>([])
 
   // Outputs
