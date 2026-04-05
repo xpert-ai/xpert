@@ -342,10 +342,6 @@ export class ChatHomeComponent {
   }
 
   openConversations() {
-    if (!this.showLegacyHistory()) {
-      return
-    }
-
     this.#dialog
       .open(ChatConversationsComponent, {
         viewContainerRef: this.#vcr,
@@ -454,7 +450,7 @@ export class ChatHomeComponent {
 
   @HostListener('window:keydown', ['$event'])
   handleKeyboardEvent(event: KeyboardEvent) {
-    if ((event.metaKey || event.ctrlKey) && event.key === 'k' && this.showLegacyHistory()) {
+    if ((event.metaKey || event.ctrlKey) && event.key === 'k') {
       event.preventDefault() // Prevent the default action
       this.openConversations() // Execute the openConversations method
     }
