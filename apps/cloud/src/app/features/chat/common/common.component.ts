@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
-import { AssistantCode, type IXpert } from '../../../@core'
+import { firstValueFrom } from 'rxjs'
+import { AiAssistantService, AssistantCode, type IXpert } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatKit, type ChatKitControl } from '@xpert-ai/chatkit-angular'
@@ -114,15 +115,15 @@ type PendingCommonConversation = {
       >
         @switch (status()) {
           @case ('ready') {
-            <xpert-chatkit class="h-full min-h-[32rem]" [control]="control()!" />
+            <xpert-chatkit class="block h-full min-h-0" [control]="control()!" />
           }
           @case ('loading') {
-            <div class="flex h-full min-h-[32rem] items-center justify-center px-6 text-sm text-text-secondary">
+            <div class="flex h-full min-h-0 items-center justify-center px-6 text-sm text-text-secondary">
               {{ 'PAC.Xpert.AssistantLoading' | translate: { Default: 'Preparing assistant…' } }}
             </div>
           }
           @case ('disabled') {
-            <div class="flex h-full min-h-[32rem] flex-col items-center justify-center px-6 text-center">
+            <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
               <i class="ri-pause-circle-line text-3xl text-text-tertiary"></i>
               <div class="mt-4 text-base font-medium text-text-primary">
                 {{ 'PAC.Assistant.DisabledTitle' | translate: { Default: 'Assistant disabled' } }}
@@ -137,7 +138,7 @@ type PendingCommonConversation = {
             </div>
           }
           @case ('error') {
-            <div class="flex h-full min-h-[32rem] flex-col items-center justify-center px-6 text-center">
+            <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
               <i class="ri-error-warning-line text-3xl text-text-tertiary"></i>
               <div class="mt-4 text-base font-medium text-text-primary">
                 {{ 'PAC.Assistant.LoadFailed' | translate: { Default: 'Failed to load assistant configuration.' } }}
@@ -152,7 +153,7 @@ type PendingCommonConversation = {
             </div>
           }
           @default {
-            <div class="flex h-full min-h-[32rem] flex-col items-center justify-center px-6 text-center">
+            <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
               <i class="ri-settings-3-line text-3xl text-text-tertiary"></i>
               <div class="mt-4 text-base font-medium text-text-primary">
                 {{ 'PAC.Assistant.MissingTitle' | translate: { Default: 'Assistant not configured' } }}
@@ -176,6 +177,8 @@ type PendingCommonConversation = {
 export class ChatCommonAssistantComponent {
   readonly #router = inject(Router)
   readonly #homeService = inject(ChatHomeService)
+  readonly #assistantService = inject(AiAssistantService)
+  #assistantRequestId = 0
 
   readonly definition = getAssistantRegistryItem(AssistantCode.CHAT_COMMON) ?? {
     code: AssistantCode.CHAT_COMMON,
@@ -207,9 +210,10 @@ export class ChatCommonAssistantComponent {
   readonly config = this.runtime.config
   readonly status = this.runtime.status
   readonly xperts = this.#homeService.sortedXperts
+  readonly assistant = signal<IXpert | null>(null)
   readonly activeAssistant = computed<IXpert | null>(() => {
     const assistantId = this.config()?.assistantId
-    return assistantId ? this.xperts()?.find((xpert) => xpert.id === assistantId) ?? null : null
+    return this.assistant() ?? (assistantId ? this.xperts()?.find((xpert) => xpert.id === assistantId) ?? null : null)
   })
   readonly displayTitle = computed(() => this.activeAssistant()?.title || this.activeAssistant()?.name || null)
   readonly displayDescription = computed(() => this.activeAssistant()?.description || null)
@@ -266,6 +270,10 @@ export class ChatCommonAssistantComponent {
   })
 
   constructor() {
+    effect(() => {
+      void this.loadAssistant(this.config()?.assistantId ?? null)
+    })
+
     effect((onCleanup) => {
       const pendingConversation = this.pendingConversation()
       const control = this.control()
@@ -305,6 +313,29 @@ export class ChatCommonAssistantComponent {
 
     await control.setThreadId(null)
     await control.focusComposer()
+  }
+
+  private async loadAssistant(assistantId: string | null) {
+    const requestId = ++this.#assistantRequestId
+
+    if (!assistantId) {
+      this.assistant.set(null)
+      return
+    }
+
+    const localAssistant = this.xperts()?.find((xpert) => xpert.id === assistantId) ?? null
+    this.assistant.set(localAssistant)
+
+    try {
+      const assistant = await firstValueFrom(this.#assistantService.getById(assistantId))
+      if (requestId === this.#assistantRequestId) {
+        this.assistant.set(assistant)
+      }
+    } catch {
+      if (requestId === this.#assistantRequestId) {
+        this.assistant.set(localAssistant)
+      }
+    }
   }
 
   private readPendingConversation(): PendingCommonConversation | null {

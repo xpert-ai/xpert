@@ -1,4 +1,5 @@
 export * from './app-init-service'
+export * from './ai-assistant.service'
 export * from './ai-thread.service'
 export * from './assistant-binding.service'
 export * from './certification.service'

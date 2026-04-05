@@ -24,6 +24,7 @@ import { ChatMessageModule } from '../chat-message'
 import { ChatMessageFeedbackModule } from '../chat-message-feedback'
 import { RedisSseStreamService } from './stream/redis-sse.service'
 import { EnvironmentModule } from '../environment'
+import { AssistantBindingModule } from '../assistant-binding'
 
 @Module({
 	imports: [
@@ -44,6 +45,7 @@ import { EnvironmentModule } from '../environment'
 		forwardRef(() => KnowledgeDocumentModule),
 		forwardRef(() => StorageFileModule),
 		forwardRef(() => XpertModule),
+		forwardRef(() => AssistantBindingModule),
 		forwardRef(() => EnvironmentModule),
 		forwardRef(() => ChatConversationModule),
 		forwardRef(() => ChatMessageModule),

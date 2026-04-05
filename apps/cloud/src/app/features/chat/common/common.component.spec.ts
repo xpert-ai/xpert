@@ -2,6 +2,7 @@ import { signal } from '@angular/core'
 import { TestBed } from '@angular/core/testing'
 import { provideRouter, Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
+import { of } from 'rxjs'
 import { ChatCommonAssistantComponent } from './common.component'
 import { ChatHomeService } from '../home.service'
 
@@ -30,6 +31,7 @@ jest.mock('apps/cloud/src/app/@core', () => {
       CHATBI: 'chatbi',
       CLAWXPERT: 'clawxpert'
     },
+    AiAssistantService: class AiAssistantService {},
     AiFeatureEnum: {
       FEATURE_XPERT: 'FEATURE_XPERT',
       FEATURE_XPERT_CHATBI: 'FEATURE_XPERT_CHATBI',
@@ -60,10 +62,14 @@ jest.mock('../home.service', () => ({
 }))
 
 const runtimeState = jest.requireMock('../../assistant/assistant-chatkit.runtime').__runtimeState as any
+const { AiAssistantService } = jest.requireMock('apps/cloud/src/app/@core') as {
+  AiAssistantService: new (...args: any[]) => unknown
+}
 
 describe('ChatCommonAssistantComponent', () => {
   let router: Router
   let navigate: jest.SpyInstance
+  let assistantService: { getById: jest.Mock }
 
   beforeEach(() => {
     runtimeState.control.set(null)
@@ -71,12 +77,27 @@ describe('ChatCommonAssistantComponent', () => {
     runtimeState.loading.set(false)
     runtimeState.status.set('missing')
     runtimeState.isConfigured.set(false)
+    assistantService = {
+      getById: jest.fn(() =>
+        of({
+          id: 'xpert-1',
+          slug: 'sales-analyst',
+          name: 'Sales Analyst',
+          title: 'Sales Analyst',
+          description: 'Sales assistant'
+        })
+      )
+    }
 
     TestBed.resetTestingModule()
     TestBed.configureTestingModule({
       imports: [TranslateModule.forRoot(), ChatCommonAssistantComponent],
       providers: [
         provideRouter([]),
+        {
+          provide: AiAssistantService,
+          useValue: assistantService
+        },
         {
           provide: ChatHomeService,
           useValue: {
@@ -119,6 +140,11 @@ describe('ChatCommonAssistantComponent', () => {
 
   it('renders the embedded chatkit when ready', () => {
     runtimeState.status.set('ready')
+    runtimeState.config.set({
+      assistantId: 'xpert-1',
+      sourceScope: 'tenant',
+      enabled: true
+    })
     runtimeState.control.set({
       element: {},
       setThreadId: jest.fn(),
@@ -136,10 +162,60 @@ describe('ChatCommonAssistantComponent', () => {
     expect(fixture.nativeElement.querySelector('xpert-chatkit')).not.toBeNull()
   })
 
+  it('loads assistant details by configured assistant id when the local list does not contain it', async () => {
+    runtimeState.status.set('ready')
+    runtimeState.config.set({
+      assistantId: 'tenant-assistant',
+      sourceScope: 'tenant',
+      enabled: true
+    })
+    assistantService.getById.mockReturnValue(
+      of({
+        id: 'tenant-assistant',
+        slug: 'tenant-assistant',
+        name: 'Tenant Assistant',
+        title: 'Tenant Assistant',
+        description: 'Tenant default assistant'
+      })
+    )
+
+    TestBed.resetTestingModule()
+    TestBed.configureTestingModule({
+      imports: [TranslateModule.forRoot(), ChatCommonAssistantComponent],
+      providers: [
+        provideRouter([]),
+        {
+          provide: AiAssistantService,
+          useValue: assistantService
+        },
+        {
+          provide: ChatHomeService,
+          useValue: {
+            sortedXperts: signal([])
+          }
+        }
+      ]
+    })
+
+    const fixture = TestBed.createComponent(ChatCommonAssistantComponent)
+    fixture.detectChanges()
+    await fixture.whenStable()
+    fixture.detectChanges()
+
+    expect(assistantService.getById).toHaveBeenCalledWith('tenant-assistant')
+    expect(fixture.nativeElement.textContent).toContain('Tenant Assistant')
+    expect(fixture.nativeElement.textContent).toContain('Tenant default assistant')
+  })
+
   it('starts a new assistant thread without leaving the common route', async () => {
     const setThreadId = jest.fn().mockResolvedValue(undefined)
     const focusComposer = jest.fn().mockResolvedValue(undefined)
     runtimeState.status.set('ready')
+    runtimeState.config.set({
+      assistantId: 'xpert-1',
+      sourceScope: 'tenant',
+      enabled: true
+    })
     runtimeState.control.set({
       element: {},
       setThreadId,
@@ -165,6 +241,11 @@ describe('ChatCommonAssistantComponent', () => {
     const setThreadId = jest.fn().mockResolvedValue(undefined)
     const sendUserMessage = jest.fn().mockResolvedValue(undefined)
     runtimeState.status.set('ready')
+    runtimeState.config.set({
+      assistantId: 'xpert-1',
+      sourceScope: 'tenant',
+      enabled: true
+    })
     runtimeState.control.set({
       element: {},
       setThreadId,
