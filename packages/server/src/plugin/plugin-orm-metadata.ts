@@ -1,3 +1,9 @@
+/**
+ * Why this exists:
+ * Runtime-installed plugins are not automatically part of the live TypeORM `DataSource`.
+ * Without merging and rebuilding metadata first, repository access can fail with `EntityMetadataNotFoundError`.
+ * Keep registration deterministic, reject entity name conflicts, and only call `synchronize()` when the DataSource is configured for it.
+ */
 import { ConflictException, DynamicModule, Type } from '@nestjs/common'
 import { DataSource, EntitySubscriberInterface, MixedList } from 'typeorm'
 import { getEntitiesFromPlugins, getSubscribersFromPlugins } from './plugin.helper'

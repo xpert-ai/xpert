@@ -1,5 +1,12 @@
+/**
+ * Invariants:
+ * - Merge plugin ORM metadata into the live `DataSource` before lazy-loading plugin modules.
+ * - Register HTTP routes and strategies only after the module is loaded into Nest.
+ * - Preserve tenant/organization scope and existing plugin lifecycle semantics during install and refresh.
+ */
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common'
 import { LazyModuleLoader, ModuleRef } from '@nestjs/core'
+import { ApplicationConfig } from '@nestjs/core'
 import { t } from 'i18next'
 import { PLUGIN_CONFIGURATION_STATUS, PLUGIN_LEVEL } from '@metad/contracts'
 import {
@@ -33,10 +40,12 @@ import {
 } from './types'
 import { DataSource } from 'typeorm'
 import { collectPluginOrmMetadata, registerPluginOrmMetadataInDataSource } from './plugin-orm-metadata'
+import { registerPluginControllerRoutes, snapshotHttpRouteStack, snapshotModuleIds } from './plugin-http-routes'
 
 @Injectable()
 export class PluginManagementService {
 	private readonly logger = new Logger(PluginManagementService.name)
+	private readonly registeredPluginRouteModuleIds = new Set<string>()
 
 	constructor(
 		@Inject(LOADED_PLUGINS)
@@ -45,7 +54,8 @@ export class PluginManagementService {
 		private readonly strategyBus: StrategyBus,
 		private readonly lazyLoader: LazyModuleLoader,
 		private readonly moduleRef: ModuleRef,
-		private readonly dataSource: DataSource
+		private readonly dataSource: DataSource,
+		private readonly applicationConfig: ApplicationConfig
 	) {}
 
 	findLoadedPlugin(pluginName: string, organizationId: string, fallbackToGlobal = true) {
@@ -186,7 +196,22 @@ export class PluginManagementService {
 						`Registered ${ormMetadata.entities.length} plugin entities and ${ormMetadata.subscribers.length} plugin subscribers for ${packageNameWithVersion}`
 					)
 				}
+				const beforeModuleIds = snapshotModuleIds(this.moduleRef)
+				const beforeHttpRouteSnapshot = snapshotHttpRouteStack(this.moduleRef)
 				const loadedModuleRef = await this.lazyLoader.load(() => dynamicModule)
+				const routeRegistration = registerPluginControllerRoutes({
+					moduleRef: this.moduleRef,
+					applicationConfig: this.applicationConfig,
+					beforeModuleIds,
+					beforeHttpRouteSnapshot,
+					rootModuleType: dynamicModule.module,
+					registeredModuleIds: this.registeredPluginRouteModuleIds
+				})
+				if (routeRegistration.controllerCount) {
+					this.logger.debug(
+						`Registered ${routeRegistration.controllerCount} plugin controller routes across ${routeRegistration.moduleCount} modules for ${packageNameWithVersion}`
+					)
+				}
 				const strategyProviders = collectProvidersWithMetadata(
 					loadedModuleRef,
 					organizationId,

@@ -41,6 +41,15 @@ jest.mock('./plugin-loader', () => ({
 	loadPlugin: jest.fn()
 }))
 
+jest.mock('./plugin-http-routes', () => ({
+	registerPluginControllerRoutes: jest.fn(() => ({
+		controllerCount: 0,
+		moduleCount: 0
+	})),
+	snapshotHttpRouteStack: jest.fn(() => null),
+	snapshotModuleIds: jest.fn(() => new Set())
+}))
+
 jest.mock('./plugin-sdk-versioning', () => ({
 	assertPluginSdkInstallCandidate: jest.fn(async () => ({
 		hostVersion: '3.8.4',
@@ -70,6 +79,7 @@ jest.mock('./plugin-instance.entity', () => ({
 const { RequestContext } = require('@xpert-ai/plugin-sdk')
 const { canManageGlobalPlugins, canManageSystemPlugins } = require('./plugin-update.utils')
 const { loadPlugin } = require('./plugin-loader')
+const { registerPluginControllerRoutes, snapshotHttpRouteStack, snapshotModuleIds } = require('./plugin-http-routes')
 const { assertPluginSdkInstallCandidate } = require('./plugin-sdk-versioning')
 const {
 	collectProvidersWithMetadata,
@@ -118,6 +128,9 @@ describe('PluginManagementService', () => {
 		buildMetadatas: jest.fn()
 	}
 	const loadedPlugins: Array<any> = []
+	const applicationConfig = {
+		getGlobalPrefix: jest.fn(() => 'api')
+	}
 
 	let service: InstanceType<typeof PluginManagementService>
 
@@ -135,6 +148,12 @@ describe('PluginManagementService', () => {
 			this.options = { ...this.options, ...options }
 			return this
 		})
+		;(snapshotHttpRouteStack as jest.Mock).mockReturnValue(null)
+		;(snapshotModuleIds as jest.Mock).mockReturnValue(new Set())
+		;(registerPluginControllerRoutes as jest.Mock).mockReturnValue({
+			controllerCount: 0,
+			moduleCount: 0
+		})
 		;(collectProvidersWithMetadata as jest.Mock).mockReturnValue([])
 		;(registerPluginsAsync as jest.Mock).mockResolvedValue({ modules: [], errors: [] })
 		;(assertPluginSdkInstallCandidate as jest.Mock).mockResolvedValue({
@@ -147,7 +166,8 @@ describe('PluginManagementService', () => {
 			strategyBus as any,
 			lazyLoader as any,
 			moduleRef as any,
-			dataSource as any
+			dataSource as any,
+			applicationConfig as any
 		)
 		RequestContext.getOrganizationId.mockReturnValue('org-1')
 		RequestContext.currentTenantId.mockReturnValue('tenant-1')
@@ -232,6 +252,14 @@ describe('PluginManagementService', () => {
 			expect.objectContaining({
 				entities: [ExistingEntity, RuntimeEntity],
 				subscribers: [ExistingSubscriber, RuntimeSubscriber]
+			})
+		)
+		expect(snapshotModuleIds).toHaveBeenCalledWith(moduleRef)
+		expect(registerPluginControllerRoutes).toHaveBeenCalledWith(
+			expect.objectContaining({
+				moduleRef,
+				applicationConfig,
+				rootModuleType: expect.any(Function)
 			})
 		)
 		expect(dataSource.buildMetadatas).toHaveBeenCalledTimes(1)

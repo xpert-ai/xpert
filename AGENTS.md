@@ -9,6 +9,7 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - Use Angular Aria + TailwindCSS v4 for UI components.
 - Use standalone Angular components with signals, the new control flow like `@for/@if`, and reactive forms. Keep templates Tailwind-first.
 - Keep comments succinct; add only when clarifying non-obvious logic.
+- For high-risk infrastructure or orchestration files, add a short top-of-file comment only when the file carries non-obvious constraints, historical failure modes, or compatibility invariants. Prefer `Why this exists:` or `Invariants:` over generic responsibility summaries. Keep it to 3-6 high-signal lines and keep it aligned with the code and tests.
 - Never use `as any`.
 - Never cast `unknown` or broad values to `Record<string, unknown>`, and never introduce generic `asRecord()`-style helpers to bypass type checking.
 - Narrow `unknown` values with explicit type guards and property-level structural checks; only cast to a specific interface after those checks.
