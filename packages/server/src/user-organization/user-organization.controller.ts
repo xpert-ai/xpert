@@ -17,10 +17,9 @@ import {
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger';
 import { CrudController } from './../core/crud';
-import { IUserOrganization, IUserOrganizationCreateInput, RolesEnum, LanguagesEnum, IPagination, PermissionsEnum } from '@metad/contracts';
+import { IUserOrganization, IUserOrganizationCreateInput, LanguagesEnum, IPagination, PermissionsEnum } from '@metad/contracts';
 import { UserOrganizationService } from './user-organization.services';
 import { UserOrganization } from './user-organization.entity';
-import { Not } from 'typeorm';
 import { CommandBus } from '@nestjs/cqrs';
 import { UserOrganizationDeleteCommand } from './commands';
 import { I18nLang } from 'nestjs-i18n';
@@ -181,10 +180,7 @@ export class UserOrganizationController extends CrudController<UserOrganization>
 		const { total } = await this.userOrganizationService.findAll({
 			where: {
 				userId,
-				isActive: true,
-				user: {
-					role: { name: Not(RolesEnum.EMPLOYEE) }
-				}
+				isActive: true
 			},
 			relations: ['user', 'user.role']
 		});

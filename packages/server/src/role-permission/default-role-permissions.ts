@@ -135,22 +135,6 @@ export const DEFAULT_ROLE_PERMISSIONS = [
 	{
 		role: RolesEnum.VIEWER,
 		defaultEnabledPermissions: [...VIEWER_PLATFORM_PERMISSIONS]
-	},
-	{
-		role: RolesEnum.DATA_ENTRY,
-		defaultEnabledPermissions: [...ADMIN_PLATFORM_PERMISSIONS]
-	},
-	{
-		role: RolesEnum.EMPLOYEE,
-		defaultEnabledPermissions: [...VIEWER_PLATFORM_PERMISSIONS]
-	},
-	{
-		role: RolesEnum.CANDIDATE,
-		defaultEnabledPermissions: [...VIEWER_PLATFORM_PERMISSIONS]
-	},
-	{
-		role: RolesEnum.MANAGER,
-		defaultEnabledPermissions: [...ANALYTICS_BUILDER_PLATFORM_PERMISSIONS]
 	}
 ]
 

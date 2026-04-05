@@ -17,22 +17,6 @@ export enum RolesEnum {
 	ADMIN = 'ADMIN',
 	AI_BUILDER = 'AI_BUILDER',
 	ANALYTICS_BUILDER = 'ANALYTICS_BUILDER',
-	/**
-	 * @deprecated
-	 */
-	DATA_ENTRY = 'DATA_ENTRY',
-	/**
-	 * @deprecated
-	 */
-	EMPLOYEE = 'EMPLOYEE',
-	/**
-	 * @deprecated
-	 */
-	CANDIDATE = 'CANDIDATE',
-	/**
-	 * @deprecated
-	 */
-	MANAGER = 'MANAGER',
 	VIEWER = 'VIEWER',
 	// Trial account
 	TRIAL = 'TRIAL'
@@ -45,13 +29,6 @@ export const DEFAULT_SYSTEM_ROLES: RolesEnum[] = [
 	RolesEnum.AI_BUILDER,
 	RolesEnum.ANALYTICS_BUILDER,
 	RolesEnum.VIEWER
-]
-
-export const LEGACY_DEFAULT_ROLES: RolesEnum[] = [
-	RolesEnum.DATA_ENTRY,
-	RolesEnum.EMPLOYEE,
-	RolesEnum.CANDIDATE,
-	RolesEnum.MANAGER
 ]
 
 export interface IRoleMigrateInput extends IBasePerTenantEntityModel {
