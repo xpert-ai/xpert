@@ -4,7 +4,7 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, XpertAPIService } from '@cloud/app/@core'
-import { LongTermMemoryTypeEnum, TMemoryQA, TMemoryUserProfile } from '@metad/contracts'
+import { LongTermMemoryTypeEnum, TMemoryAudience, TMemoryQA, TMemoryUserProfile } from '@metad/contracts'
 import { NgmDndDirective, OverlayAnimation1 } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
@@ -22,13 +22,14 @@ import { firstValueFrom } from 'rxjs'
 export class XpertMemoryBulkImportComponent {
   eLongTermMemoryTypeEnum = LongTermMemoryTypeEnum
 
-  readonly #data = inject<{ xpertId: string; type: LongTermMemoryTypeEnum }>(DIALOG_DATA)
+  readonly #data = inject<{ xpertId: string; type: LongTermMemoryTypeEnum; audience?: TMemoryAudience }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
   readonly #xpertAPI = inject(XpertAPIService)
   readonly #toastr = injectToastr()
 
   readonly xpertId = signal(this.#data.xpertId)
   readonly type = signal(this.#data.type)
+  readonly audience = signal<TMemoryAudience | null>(this.#data.audience ?? null)
   readonly file = signal<File>(null)
   readonly rows = signal<any[]>([])
 
@@ -70,9 +71,7 @@ export class XpertMemoryBulkImportComponent {
       this.loading.set(true)
       this.file.set(file)
       // Call backend API to parse CSV with proper encoding detection
-      const parsedMemories = await firstValueFrom(
-        this.#xpertAPI.uploadAndParseCsv(this.xpertId(), this.type(), file)
-      )
+      const parsedMemories = await firstValueFrom(this.#xpertAPI.uploadAndParseCsv(this.xpertId(), this.type(), file))
       this.rows.set(parsedMemories)
     } catch (err) {
       this.#toastr.error(getErrorMessage(err))
@@ -91,15 +90,21 @@ export class XpertMemoryBulkImportComponent {
 
   async upload() {
     this.loading.set(true)
-    this.#xpertAPI.bulkCreateMemories(this.xpertId(), { type: this.type(), memories: this.rows() }).subscribe({
-      next: (response) => {
-        this.loading.set(false)
-        this.#dialogRef.close(true)
-      },
-      error: (error) => {
-        this.loading.set(false)
-        this.#toastr.error(getErrorMessage(error))
-      }
-    })
+    this.#xpertAPI
+      .bulkCreateMemories(this.xpertId(), {
+        type: this.type(),
+        audience: this.audience() ?? undefined,
+        memories: this.rows()
+      })
+      .subscribe({
+        next: (response) => {
+          this.loading.set(false)
+          this.#dialogRef.close(true)
+        },
+        error: (error) => {
+          this.loading.set(false)
+          this.#toastr.error(getErrorMessage(error))
+        }
+      })
   }
 }

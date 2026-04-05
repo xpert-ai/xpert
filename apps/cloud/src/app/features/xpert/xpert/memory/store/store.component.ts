@@ -1,7 +1,7 @@
 import { A11yModule } from '@angular/cdk/a11y'
+import { Clipboard } from '@angular/cdk/clipboard'
 import { Dialog } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import {Clipboard} from '@angular/cdk/clipboard'
 import { CommonModule } from '@angular/common'
 import {
   ChangeDetectionStrategy,
@@ -18,26 +18,55 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { CdkConfirmDeleteComponent, NgmSearchComponent, NgmSpinComponent, NgmTableComponent, TableColumn } from '@metad/ocap-angular/common'
-import { myRxResource } from '@metad/ocap-angular/core'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { BehaviorSubject, EMPTY, of, Subscription } from 'rxjs'
-import { debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
-import { json2csv } from 'json-2-csv';
+import { CodeEditorComponent } from '../../../../../@shared/editors'
 import {
-  CopilotStoreService,
+  CdkConfirmDeleteComponent,
+  NgmSearchComponent,
+  NgmSpinComponent,
+  NgmTableComponent,
+  TableColumn
+} from '@metad/ocap-angular/common'
+import { myRxResource } from '@metad/ocap-angular/core'
+import { OverlayAnimation1 } from '@metad/core'
+import {
+  IXpertMemoryRecord,
+  LongTermMemoryTypeEnum,
   DateRelativePipe,
   getErrorMessage,
   injectToastr,
   injectTranslate,
-  LongTermMemoryTypeEnum,
   XpertAPIService
 } from '../../../../../@core'
+import {
+  MemoryAudienceEnum,
+  TMemoryAudience,
+  TMemoryFileEntry,
+  TMemoryFileLayer,
+  TMemoryGovernanceAction,
+  TMemoryQA,
+  TMemoryUserProfile
+} from '@metad/contracts'
+import { MarkdownModule } from 'ngx-markdown'
+import { NgxJsonViewerModule } from 'ngx-json-viewer'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
+import { BehaviorSubject, EMPTY, of, Subscription } from 'rxjs'
+import { debounceTime, map, startWith, switchMap, tap } from 'rxjs/operators'
+import { json2csv } from 'json-2-csv'
 import { UserProfileInlineComponent } from '../../../../../@shared/user'
 import { XpertComponent } from '../../xpert.component'
-import { OverlayAnimation1 } from '@metad/core'
-import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { XpertMemoryBulkImportComponent } from '../bulk-import/bulk-import.component'
+
+type MemoryViewMode = 'records' | 'files'
+type AudienceFilter = TMemoryAudience | 'all'
+type FileSelection = {
+  audience: TMemoryAudience
+  ownerUserId?: string
+  path: string
+}
+type EditableMemoryRecord = Partial<IXpertMemoryRecord> & {
+  id: string
+  kind: LongTermMemoryTypeEnum
+}
 
 @Component({
   standalone: true,
@@ -49,13 +78,15 @@ import { XpertMemoryBulkImportComponent } from '../bulk-import/bulk-import.compo
     RouterModule,
     A11yModule,
     CdkMenuModule,
+    MarkdownModule,
     NgxJsonViewerModule,
     NgmSelectComponent,
     NgmTableComponent,
     NgmSpinComponent,
     NgmSearchComponent,
     UserProfileInlineComponent,
-    DateRelativePipe
+    DateRelativePipe,
+    CodeEditorComponent
   ],
   selector: 'xp-xpert-memory-store',
   templateUrl: './store.component.html',
@@ -64,61 +95,85 @@ import { XpertMemoryBulkImportComponent } from '../bulk-import/bulk-import.compo
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertMemoryStoreComponent {
-  eLongTermMemoryTypeEnum = LongTermMemoryTypeEnum
+  readonly eLongTermMemoryTypeEnum = LongTermMemoryTypeEnum
+  readonly eMemoryAudienceEnum = MemoryAudienceEnum
 
   readonly #translate = inject(TranslateService)
   readonly colI18n = injectTranslate('PAC.Xpert.MemoryCols')
   readonly #dialog = inject(Dialog)
   readonly #toastr = injectToastr()
-  readonly storeService = inject(CopilotStoreService)
   readonly xpertService = inject(XpertAPIService)
   readonly xpertComponent = inject(XpertComponent)
   readonly #clipboard = inject(Clipboard)
 
   readonly xpertId = this.xpertComponent.paramId
+  readonly #loading = signal(false)
+  readonly #refresh$ = new BehaviorSubject<void>(null)
 
-  // Children
   readonly scoreTemplate = viewChild('scoreTemplate', { read: TemplateRef })
-  readonly actionTemplate = viewChild('actionTemplate', { read: TemplateRef })
+  readonly layerTemplate = viewChild('layerTemplate', { read: TemplateRef })
+  readonly statusTemplate = viewChild('statusTemplate', { read: TemplateRef })
+  readonly typeTemplate = viewChild('typeTemplate', { read: TemplateRef })
   readonly valueTemplate = viewChild('valueTemplate', { read: TemplateRef })
   readonly userTemplate = viewChild('userTemplate', { read: TemplateRef })
   readonly dateTemplate = viewChild('dateTemplate', { read: TemplateRef })
+  readonly actionTemplate = viewChild('actionTemplate', { read: TemplateRef })
 
-  readonly #loading = signal(false)
-  readonly #refresh$ = new BehaviorSubject<void>(null)
   readonly columns = computed(() => {
     const i18n = this.colI18n()
     return [
       {
         name: 'score',
         caption: i18n.Score || 'Score',
-        cellTemplate: this.scoreTemplate
+        width: '96px',
+        cellTemplate: this.scoreTemplate()
       },
       {
-        name: 'createdBy',
-        caption: i18n.CreatedBy || 'Created By',
-        cellTemplate: this.userTemplate
+        name: 'layerLabel',
+        caption: i18n.Layer || 'Layer',
+        width: '140px',
+        cellTemplate: this.layerTemplate()
       },
       {
-        name: 'createdAt',
-        caption: i18n.CreatedAt || 'Created At',
-        cellTemplate: this.dateTemplate
+        name: 'kind',
+        caption: i18n.Type || 'Type',
+        width: '96px',
+        cellTemplate: this.typeTemplate()
       },
       {
-        name: 'key',
-        caption: i18n.Key || 'Key',
-        width: '200px',
+        name: 'status',
+        caption: i18n.Status || 'Status',
+        width: '110px',
+        cellTemplate: this.statusTemplate()
+      },
+      {
+        name: 'title',
+        caption: i18n.Title || 'Title',
+        width: '220px'
       },
       {
         name: 'value',
         caption: i18n.Value || 'Value',
-        cellTemplate: this.valueTemplate
+        cellTemplate: this.valueTemplate()
+      },
+      {
+        name: 'createdBy',
+        caption: i18n.CreatedBy || 'Created By',
+        width: '180px',
+        cellTemplate: this.userTemplate()
+      },
+      {
+        name: 'updatedAt',
+        caption: i18n.UpdatedAt || 'Updated At',
+        width: '160px',
+        cellTemplate: this.dateTemplate()
       },
       {
         name: 'actions',
-        caption: i18n?.Actions || 'Actions',
+        caption: i18n.Actions || 'Actions',
         stickyEnd: true,
-        cellTemplate: this.actionTemplate
+        width: '180px',
+        cellTemplate: this.actionTemplate()
       }
     ] as TableColumn[]
   })
@@ -138,78 +193,280 @@ export class XpertMemoryStoreComponent {
     }
   ]
 
+  readonly audienceOptions = [
+    { value: 'all', label: 'All Layers' },
+    { value: MemoryAudienceEnum.USER, label: 'My Memory' },
+    { value: MemoryAudienceEnum.SHARED, label: 'Shared Memory' }
+  ]
+
+  readonly editorAudienceOptions = [
+    { value: MemoryAudienceEnum.USER, label: 'My Memory' },
+    { value: MemoryAudienceEnum.SHARED, label: 'Shared Memory' }
+  ]
+
+  readonly viewMode = signal<MemoryViewMode>('records')
   readonly searchControl = new FormControl('')
   readonly search = toSignal(this.searchControl.valueChanges.pipe(debounceTime(300), startWith('')))
-  readonly memoryType = model<LongTermMemoryTypeEnum>(LongTermMemoryTypeEnum.PROFILE)
-
-  readonly data = signal([])
-  readonly filterdData = computed(() => {
-    const search = this.search()?.toLowerCase()
-    if (search) {
-      return this.data().filter((item) => JSON.stringify(item.value).includes(search))
+  readonly memoryType = model<LongTermMemoryTypeEnum | null>(LongTermMemoryTypeEnum.PROFILE)
+  readonly audience = model<AudienceFilter>('all')
+  readonly showArchived = signal(false)
+  readonly data = signal<IXpertMemoryRecord[]>([])
+  readonly filteredData = computed(() => {
+    const keyword = this.search()?.toLowerCase()?.trim()
+    if (!keyword) {
+      return this.data()
     }
-    return this.data()
+    return this.data().filter((item) =>
+      [
+        item.title,
+        item.kind,
+        item.status,
+        item.layerLabel,
+        item.contentPreview,
+        JSON.stringify(item.value),
+        item.tags?.join(' ')
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(keyword)
+    )
   })
 
   readonly #memories = myRxResource({
-    request: () => ({ xpertId: this.xpertId(), type: this.memoryType() }),
-    loader: ({ request }) => {
-      return request.xpertId
+    request: () => ({
+      xpertId: this.xpertId(),
+      type: this.memoryType(),
+      includeArchived: this.showArchived(),
+      audience: this.audience()
+    }),
+    loader: ({ request }) =>
+      request.xpertId
         ? this.#refresh$.pipe(
-            switchMap(() => this.xpertService.getAllMemory(request.xpertId, [request.type || ''])),
-            map(({ items }) => items)
+            switchMap(() =>
+              this.xpertService.getAllMemory(request.xpertId, request.type ? [request.type] : [], {
+                includeArchived: request.includeArchived,
+                audience: request.audience
+              })
+            ),
+            map(({ items }) => items ?? [])
           )
-        : of(null)
-    }
+        : of([])
   })
-  readonly loading = computed(() => this.#memories.status() === 'loading' || this.#loading())
 
-  readonly input = model<string>()
+  readonly #files = myRxResource({
+    request: () => ({
+      xpertId: this.xpertId()
+    }),
+    loader: ({ request }) =>
+      request.xpertId
+        ? this.#refresh$.pipe(switchMap(() => this.xpertService.getMemoryFiles(request.xpertId)))
+        : of({
+            scopeType: 'xpert',
+            scopeId: '',
+            layers: []
+          } as any)
+  })
 
-  private searchSub: Subscription
+  readonly loading = computed(
+    () => this.#memories.status() === 'loading' || this.#files.status() === 'loading' || this.#loading()
+  )
+
+  readonly input = model<string>('')
+  private searchSub?: Subscription
+
+  readonly showEditor = signal(false)
+  readonly editing = signal<EditableMemoryRecord | null>(null)
+  readonly editorAudience = model<TMemoryAudience>(MemoryAudienceEnum.SHARED)
+  readonly question = model<string>('')
+  readonly answer = model<string>('')
+  readonly context = model<string>('')
+  readonly profile = model<string>('')
+  readonly tagsText = model<string>('')
+  readonly addMemoryDisabled = computed(() =>
+    this.memoryType() === LongTermMemoryTypeEnum.QA
+      ? !this.question()?.trim() || !this.answer()?.trim()
+      : !this.profile()?.trim()
+  )
+
+  readonly fileLayers = computed<TMemoryFileLayer[]>(() => this.#files.value()?.layers ?? [])
+  readonly selectedFileRef = signal<FileSelection | null>(null)
+  readonly selectedFile = computed<TMemoryFileEntry | null>(() => {
+    const selected = this.selectedFileRef()
+    if (!selected) {
+      return null
+    }
+    return (
+      this.fileLayers()
+        .flatMap((layer) => [layer.index, ...layer.files])
+        .find(
+          (file) =>
+            file.audience === selected.audience &&
+            file.path === selected.path &&
+            (file.ownerUserId ?? '') === (selected.ownerUserId ?? '')
+        ) ?? null
+    )
+  })
+  readonly fileContent = model<string>('')
+  readonly fileDirty = computed(
+    () => !!this.selectedFile() && this.fileContent() !== (this.selectedFile()?.content ?? '')
+  )
+
+  readonly memoryRow = (item: EditableMemoryRecord) => item
 
   constructor() {
     effect(
       () => {
-        if (this.#memories.value()) {
-          this.data.set(this.#memories.value())
+        this.data.set(this.#memories.value() ?? [])
+      },
+      { allowSignalWrites: true }
+    )
+
+    effect(
+      () => {
+        const file = this.selectedFile()
+        if (file) {
+          this.fileContent.set(file.content)
+        }
+      },
+      { allowSignalWrites: true }
+    )
+
+    effect(
+      () => {
+        const layers = this.fileLayers()
+        const selected = this.selectedFileRef()
+        if (!layers.length) {
+          this.selectedFileRef.set(null)
+          return
+        }
+
+        const exists = selected
+          ? layers
+              .flatMap((layer) => [layer.index, ...layer.files])
+              .some(
+                (file) =>
+                  file.audience === selected.audience &&
+                  file.path === selected.path &&
+                  (file.ownerUserId ?? '') === (selected.ownerUserId ?? '')
+              )
+          : false
+        if (!selected || !exists) {
+          const firstLayer = layers[0]
+          this.selectedFileRef.set({
+            audience: firstLayer.index.audience,
+            ownerUserId: firstLayer.index.ownerUserId,
+            path: firstLayer.index.path
+          })
         }
       },
       { allowSignalWrites: true }
     )
   }
 
-  // Adding memories
-  readonly showAddMemory = signal(false)
-  readonly question = model<string>()
-  readonly answer = model<string>()
-  readonly context = model<string>()
-  readonly profile = model<string>()
-  readonly addMemoryDisabled = computed(() => this.memoryType() === LongTermMemoryTypeEnum.QA 
-    ? !this.question() || !this.answer() : !this.profile() || !this.context())
-  addMemory() {
+  openCreate() {
+    this.resetEditor()
+    this.editorAudience.set(this.defaultEditorAudience())
+    this.showEditor.set(true)
+  }
+
+  openEdit(item: EditableMemoryRecord) {
+    this.resetEditor()
+    this.editing.set(item)
+    this.memoryType.set(item.kind)
+    this.editorAudience.set(item.audience ?? MemoryAudienceEnum.SHARED)
+    if (item.kind === LongTermMemoryTypeEnum.QA) {
+      const value = item.value as TMemoryQA | undefined
+      this.question.set(value?.question ?? item.title ?? '')
+      this.answer.set(value?.answer ?? '')
+      this.context.set(value?.context ?? '')
+    } else {
+      const value = item.value as TMemoryUserProfile | undefined
+      this.profile.set(value?.profile ?? '')
+      this.context.set(value?.context ?? '')
+    }
+    this.tagsText.set(item.tags?.join(', ') ?? '')
+    this.showEditor.set(true)
+  }
+
+  saveMemory() {
     this.#loading.set(true)
-    this.xpertService.addMemory(this.xpertId(), {
-      type: this.memoryType(),
-      value: this.memoryType() === LongTermMemoryTypeEnum.QA ? {question: this.question(), answer: this.answer()} : {
-        profile: this.profile(),
-        context: this.context()
-      }
-    }).subscribe({
-      next: (result) => {
+    const editing = this.editing()
+    const request$ = editing
+      ? this.xpertService.updateMemory(this.xpertId(), editing.id, {
+          type: this.memoryType(),
+          audience: this.editorAudience(),
+          ownerUserId: editing.ownerUserId,
+          value: this.currentValue(),
+          tags: this.currentTags()
+        })
+      : this.xpertService.addMemory(this.xpertId(), {
+          type: this.memoryType(),
+          audience: this.editorAudience(),
+          value: this.currentValue(),
+          tags: this.currentTags()
+        })
+
+    request$.subscribe({
+      next: () => {
         this.#loading.set(false)
-        this.showAddMemory.set(false)
+        this.closeEditor()
         this.#refresh$.next()
       },
       error: (err) => {
         this.#loading.set(false)
         this.#toastr.error(getErrorMessage(err))
-      },
+      }
     })
-    
   }
-  toggleAddMemory() {
-    this.showAddMemory.update((value) => !value)
+
+  saveFile() {
+    const selected = this.selectedFile()
+    if (!selected) {
+      return
+    }
+    this.#loading.set(true)
+    this.xpertService
+      .updateMemoryFile(this.xpertId(), {
+        audience: selected.audience,
+        ownerUserId: selected.ownerUserId,
+        path: selected.path,
+        content: this.fileContent()
+      })
+      .subscribe({
+        next: () => {
+          this.#loading.set(false)
+          this.#toastr.success('PAC.ACTIONS.Save', { Default: 'Saved' })
+          this.#refresh$.next()
+        },
+        error: (err) => {
+          this.#loading.set(false)
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
+  }
+
+  selectFile(file: TMemoryFileEntry) {
+    this.selectedFileRef.set({
+      audience: file.audience,
+      ownerUserId: file.ownerUserId,
+      path: file.path
+    })
+  }
+
+  isSelectedFile(file: TMemoryFileEntry) {
+    const selected = this.selectedFileRef()
+    return (
+      !!selected &&
+      selected.audience === file.audience &&
+      selected.path === file.path &&
+      (selected.ownerUserId ?? '') === (file.ownerUserId ?? '')
+    )
+  }
+
+  closeEditor() {
+    this.showEditor.set(false)
+    this.resetEditor()
   }
 
   clearMemory() {
@@ -217,74 +474,82 @@ export class XpertMemoryStoreComponent {
       .open(CdkConfirmDeleteComponent, {
         data: {
           information: this.#translate.instant('PAC.Xpert.ClearAllMemoryOfXpert', {
-            Default: 'Clear all memories related to this expert'
+            Default: 'Archive all memories visible in this xpert'
           })
         }
       })
       .closed.pipe(switchMap((confirm) => (confirm ? this.xpertService.clearMemory(this.xpertId()) : EMPTY)))
       .subscribe({
-        next: (result) => {
-          this.#refresh$.next()
-        },
-        error: (err) => {
-          this.#toastr.error(getErrorMessage(err))
-        }
+        next: () => this.#refresh$.next(),
+        error: (err) => this.#toastr.error(getErrorMessage(err))
       })
   }
 
-  delete(id: string, value: any) {
-    this.#dialog
-      .open(CdkConfirmDeleteComponent, {
-        data: {
-          value: id,
-          information:
-            this.#translate.instant('PAC.Xpert.DeleteTheMemory', { Default: 'Delete the memory' }) +
-            `:\n` +
-            JSON.stringify(value, null, 2) +
-            `\n` +
-            this.#translate.instant('PAC.Xpert.GainMemoryAgain', { Default: 'Can be retriggered to gain memory.' })
-        }
-      })
-      .closed.pipe(switchMap((confirm) => (confirm ? this._delete(id) : EMPTY)))
-      .subscribe({
-        next: (result) => {
-          this.#refresh$.next()
-        },
-        error: (err) => {
-          this.#toastr.error(getErrorMessage(err))
-        }
-      })
-  }
+  governance(item: EditableMemoryRecord, action: TMemoryGovernanceAction) {
+    const run = () =>
+      this.xpertService
+        .updateMemory(this.xpertId(), item.id, {
+          action,
+          audience: item.audience,
+          ownerUserId: item.ownerUserId
+        })
+        .subscribe({
+          next: () => this.#refresh$.next(),
+          error: (err) => this.#toastr.error(getErrorMessage(err))
+        })
 
-  private _delete(id: string) {
-    this.#loading.set(true)
-    return this.storeService.delete(id).pipe(
-      tap({
-        finalize: () => {
-          this.#loading.set(false)
-        }
-      })
-    )
+    if (action === 'archive') {
+      this.#dialog
+        .open(CdkConfirmDeleteComponent, {
+          data: {
+            value: item.title,
+            information: this.#translate.instant('PAC.Xpert.DeleteTheMemory', {
+              Default: 'Archive the memory'
+            })
+          }
+        })
+        .closed.pipe(tap((confirm) => confirm && run()))
+        .subscribe()
+      return
+    }
+
+    run()
   }
 
   onSearch() {
     this.#loading.set(true)
-    this.searchSub = this.xpertService.searchMemory(this.xpertId(), { type: this.memoryType(), text: this.input(), isDraft: true }).subscribe({
-      next: (results) => {
-        this.#loading.set(false)
-        this.data.set(results)
-      },
-      error: (err) => {
-        this.#loading.set(false)
-        this.#toastr.error(getErrorMessage(err))
-      }
-    })
+    this.searchSub = this.xpertService
+      .searchMemory(this.xpertId(), {
+        type: this.memoryType(),
+        audience: this.audience(),
+        text: this.input(),
+        isDraft: true,
+        includeArchived: this.showArchived(),
+        includeFrozen: true,
+        limit: 20
+      })
+      .subscribe({
+        next: (results) => {
+          this.#loading.set(false)
+          this.data.set(results)
+        },
+        error: (err) => {
+          this.#loading.set(false)
+          this.#toastr.error(getErrorMessage(err))
+        }
+      })
   }
 
   stop() {
     this.#loading.set(false)
     this.searchSub?.unsubscribe()
-    this.searchSub = null
+    this.searchSub = undefined
+  }
+
+  resetSearchResults() {
+    this.stop()
+    this.input.set('')
+    this.#refresh$.next()
   }
 
   onKeydown(event: KeyboardEvent) {
@@ -292,37 +557,51 @@ export class XpertMemoryStoreComponent {
       if (event.isComposing || event.shiftKey) {
         return
       }
-
       this.onSearch()
-      this.input.set('')
       event.preventDefault()
     }
   }
 
-  copyValue(id: string, value: any) {
-    this.#clipboard.copy(JSON.stringify(value))
-    this.#toastr.success('PAC.Messages.CopiedToClipboard', {Default: 'Copied to clipboard'})
+  copyValue(item: Partial<IXpertMemoryRecord>) {
+    this.#clipboard.copy(JSON.stringify(item.value, null, 2))
+    this.#toastr.success('PAC.Messages.CopiedToClipboard', { Default: 'Copied to clipboard' })
+  }
+
+  copyFile() {
+    this.#clipboard.copy(this.fileContent())
+    this.#toastr.success('PAC.Messages.CopiedToClipboard', { Default: 'Copied to clipboard' })
   }
 
   bulkImport() {
-    this.#dialog.open(XpertMemoryBulkImportComponent, {
-      data: {
-        xpertId: this.xpertId(),
-        type: this.memoryType() || LongTermMemoryTypeEnum.QA
-      }
-    }).closed.subscribe({
-      next: (upload) => {
-        if (upload) {
-          this.#toastr.success('PAC.Messages.UploadSuccessful', {Default: 'Upload successful'})
-          this.#refresh$.next()
+    this.#dialog
+      .open(XpertMemoryBulkImportComponent, {
+        data: {
+          xpertId: this.xpertId(),
+          type: this.memoryType() || LongTermMemoryTypeEnum.QA,
+          audience: this.audience() === 'all' ? this.defaultEditorAudience() : this.audience()
         }
-      }
-    })
+      })
+      .closed.subscribe({
+        next: (upload) => {
+          if (upload) {
+            this.#toastr.success('PAC.Messages.UploadSuccessful', { Default: 'Upload successful' })
+            this.#refresh$.next()
+          }
+        }
+      })
   }
 
   bulkExport() {
-    const csvContent = json2csv(this.filterdData().map(({value}) => value))
-
+    const csvContent = json2csv(
+      this.filteredData().map(({ value, title, status, tags, audience, layerLabel }) => ({
+        title,
+        status,
+        audience,
+        layerLabel,
+        tags: tags?.join(','),
+        ...value
+      }))
+    )
     const bom = '\uFEFF'
     const blob = new Blob([bom + csvContent], { type: 'text/csv;charset=utf-8;' })
     const url = URL.createObjectURL(blob)
@@ -331,5 +610,52 @@ export class XpertMemoryStoreComponent {
     a.download = (this.memoryType() || 'all') + '-memory-data.csv'
     a.click()
     URL.revokeObjectURL(url)
+  }
+
+  toggleArchived() {
+    this.showArchived.update((value) => !value)
+    this.#refresh$.next()
+  }
+
+  setViewMode(mode: MemoryViewMode) {
+    this.viewMode.set(mode)
+  }
+
+  private currentValue(): TMemoryQA | TMemoryUserProfile {
+    if (this.memoryType() === LongTermMemoryTypeEnum.QA) {
+      return {
+        question: this.question()?.trim(),
+        answer: this.answer()?.trim(),
+        ...(this.context()?.trim() ? { context: this.context().trim() } : {})
+      }
+    }
+    return {
+      profile: this.profile()?.trim(),
+      ...(this.context()?.trim() ? { context: this.context().trim() } : {})
+    }
+  }
+
+  private currentTags() {
+    return this.tagsText()
+      ?.split(',')
+      .map((tag) => tag.trim())
+      .filter(Boolean)
+  }
+
+  private defaultEditorAudience(): TMemoryAudience {
+    const audience = this.audience()
+    if (audience !== 'all') {
+      return audience
+    }
+    return this.memoryType() === LongTermMemoryTypeEnum.PROFILE ? MemoryAudienceEnum.USER : MemoryAudienceEnum.SHARED
+  }
+
+  private resetEditor() {
+    this.editing.set(null)
+    this.question.set('')
+    this.answer.set('')
+    this.context.set('')
+    this.profile.set('')
+    this.tagsText.set('')
   }
 }
