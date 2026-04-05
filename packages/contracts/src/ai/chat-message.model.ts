@@ -2,10 +2,18 @@ import { MessageType } from '@langchain/core/messages'
 import { IBasePerTenantAndOrganizationEntityModel } from '../base-entity.model'
 import { IChatConversation } from './chat.model'
 import { LongTermMemoryTypeEnum } from './xpert.model'
+import { TMemoryAudience } from './copilot-store.model'
 import { IXpertAgentExecution, XpertAgentExecutionStatusEnum } from './xpert-agent-execution.model'
 import { JSONValue } from '../core.model'
 import { IStorageFile } from '../storage-file.model'
 import { TChatMessageStep, TMessageContent, TMessageContentReasoning } from '@xpert-ai/chatkit-types'
+
+export type TSummaryMemoryRef = {
+  providerName?: string
+  memoryId: string
+  audience?: TMemoryAudience
+  ownerUserId?: string
+}
 
 export type TSummaryJob = Record<
   LongTermMemoryTypeEnum,
@@ -13,7 +21,7 @@ export type TSummaryJob = Record<
     jobId: number | string
     status: string
     progress?: number
-    memoryKey?: string
+    memoryKey?: string | TSummaryMemoryRef | Array<string | TSummaryMemoryRef>
   }
 >
 

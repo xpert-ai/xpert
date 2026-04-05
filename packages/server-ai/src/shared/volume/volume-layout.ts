@@ -9,7 +9,7 @@ function getLocalSandboxDataRoot() {
 }
 
 export function hasConfiguredSandboxVolume() {
-    return Boolean(environment.sandboxConfig.volume?.trim())
+    return Boolean(environment.sandboxConfig?.volume?.trim())
 }
 
 export function usesFlattenedSandboxVolumeLayout() {
@@ -22,7 +22,7 @@ export function getSandboxVolumeRootPath(tenantId?: string) {
     }
 
     if (environment.envName === 'dev') {
-        return path.join(environment.sandboxConfig.volume!, tenantId ?? '')
+        return path.join(environment.sandboxConfig?.volume || getLocalSandboxDataRoot(), tenantId ?? '')
     }
 
     return tenantId ? `/sandbox/${tenantId}` : '/sandbox'

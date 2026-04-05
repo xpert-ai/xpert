@@ -1,26 +1,33 @@
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { SchedulerRegistry } from '@nestjs/schedule'
+import { LongTermMemoryTypeEnum } from '@metad/contracts'
 import { ChatConversationService } from '../../conversation.service'
 import { CancelSummaryJobCommand } from '../cancel-summary.command'
 
 @CommandHandler(CancelSummaryJobCommand)
 export class CancelSummaryJobHandler implements ICommandHandler<CancelSummaryJobCommand> {
-	private readonly logger = new Logger(CancelSummaryJobHandler.name)
+    private readonly logger = new Logger(CancelSummaryJobHandler.name)
 
-	constructor(
-		private readonly service: ChatConversationService,
-		private readonly commandBus: CommandBus,
-		private readonly schedulerRegistry: SchedulerRegistry
-	) {}
+    constructor(
+        private readonly service: ChatConversationService,
+        private readonly commandBus: CommandBus,
+        private readonly schedulerRegistry: SchedulerRegistry
+    ) {}
 
-	public async execute(command: CancelSummaryJobCommand): Promise<void> {
-		const conversationId = command.id
-		try {
-			this.schedulerRegistry.deleteTimeout(conversationId)
-			this.logger.debug(`Successfully cancelled timeout ${conversationId}`)
-		} catch (error) {
-			// this.logger.warn(`Timeout ${conversationId} not found!`)
-		}
-	}
+    public async execute(command: CancelSummaryJobCommand): Promise<void> {
+        const conversationId = command.id
+        for (const key of [
+            conversationId,
+            `${conversationId}:${LongTermMemoryTypeEnum.PROFILE}`,
+            `${conversationId}:${LongTermMemoryTypeEnum.QA}`
+        ]) {
+            try {
+                this.schedulerRegistry.deleteTimeout(key)
+                this.logger.debug(`Successfully cancelled timeout ${key}`)
+            } catch (error) {
+                // ignore missing timeouts
+            }
+        }
+    }
 }

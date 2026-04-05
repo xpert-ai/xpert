@@ -71,11 +71,14 @@ export class XpertAgentService extends TenantOrganizationAwareCrudService<XpertA
     }
 
     getMiddlewareStrategies() {
-        return this.agentMiddlewareRegistry.list().map((strategy) => {
-            return {
-                meta: strategy.meta
-            }
-        })
+        return this.agentMiddlewareRegistry
+            .list()
+            .filter((strategy) => strategy?.meta?.hiddenInStudio !== true)
+            .map((strategy) => {
+                return {
+                    meta: strategy.meta
+                }
+            })
     }
 
     private createMiddlewareNode(provider: string, options: any): IWFNMiddleware {

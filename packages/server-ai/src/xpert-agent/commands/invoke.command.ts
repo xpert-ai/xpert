@@ -1,4 +1,4 @@
-import { BaseStore, SearchItem } from '@langchain/langgraph-checkpoint'
+import { BaseStore } from '@langchain/langgraph-checkpoint'
 import {
     IXpert,
     IXpertAgentExecution,
@@ -43,11 +43,6 @@ export class XpertAgentInvokeCommand implements ICommand {
                 decision: TXpertChatResumeDecision
                 patch?: TXpertChatInterruptPatch
             }
-
-            /**
-             * Memory
-             */
-            memories?: SearchItem[]
         }
     ) {}
 }

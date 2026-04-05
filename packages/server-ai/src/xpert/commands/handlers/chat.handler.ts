@@ -1,5 +1,4 @@
 import { RunnableLambda } from '@langchain/core/runnables'
-import { BaseStore } from '@langchain/langgraph'
 import {
     appendMessageContent,
     appendMessagePlainText,
@@ -11,8 +10,8 @@ import {
     IChatConversation,
     IChatMessage,
     IStorageFile,
+    IXpertAgent,
     IXpert,
-    LongTermMemoryTypeEnum,
     shortTitle,
     stringifyMessageContent,
     STATE_VARIABLE_HUMAN,
@@ -21,12 +20,13 @@ import {
     TSensitiveOperation,
     TXpertChatResumeRequest,
     TXpertChatRetryRequest,
-    XpertAgentExecutionStatusEnum
+    XpertAgentExecutionStatusEnum,
+    TLongTermMemory
 } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import { BadRequestException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
+import { AgentMiddlewareRegistry, RequestContext } from '@xpert-ai/plugin-sdk'
 import { catchError, concat, EMPTY, Observable, of, switchMap, tap } from 'rxjs'
 import { uniq } from 'lodash'
 import { CancelSummaryJobCommand } from '../../../chat-conversation/commands/cancel-summary.command'
@@ -37,10 +37,12 @@ import { appendMessageSteps, ChatMessageUpsertCommand } from '../../../chat-mess
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands'
 import { XpertAgentChatCommand } from '../../../xpert-agent/commands/chat.command'
 import { XpertService } from '../../xpert.service'
+import { GetXpertAgentQuery } from '../../queries'
 import { XpertChatCommand } from '../chat.command'
-import { CreateMemoryStoreCommand, normalizeChatState } from '../../../shared'
+import { normalizeChatState } from '../../../shared'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint'
+import { ActiveMemoryMiddleware, resolveActiveMemoryMiddleware } from '../../../xpert-memory'
 
 @CommandHandler(XpertChatCommand)
 export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
@@ -49,7 +51,8 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
     constructor(
         private readonly xpertService: XpertService,
         private readonly commandBus: CommandBus,
-        private readonly queryBus: QueryBus
+        private readonly queryBus: QueryBus,
+        private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry
     ) {}
 
     /**
@@ -124,21 +127,11 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
         const latestXpert = figureOutXpert(xpert, options?.isDraft)
         const abortController = new AbortController()
         const memory = latestXpert.memory
-        const memoryStore: BaseStore | null = await this.commandBus.execute<CreateMemoryStoreCommand, BaseStore | null>(
-            new CreateMemoryStoreCommand(
-                RequestContext.currentTenantId(),
-                RequestContext.getOrganizationId(),
-                latestXpert.memory?.copilotModel,
-                {
-                    abortController,
-                    tokenCallback: (tokens: number) => {
-                        //
-                    }
-                }
-            )
+        const activeMemoryMiddleware = resolveActiveMemoryMiddleware(
+            latestXpert.graph,
+            latestXpert.agent?.key ?? xpert.agent.key,
+            this.agentMiddlewareRegistry
         )
-
-        let memories = null
 
         let conversation: IChatConversation
         let aiMessage: CopilotChatMessage
@@ -166,7 +159,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
             state ??= normalizeChatState()
 
             // Cancel summary job
-            if (memory?.enabled && memory.profile?.enabled) {
+            if (hasAutoSummaryMemory(activeMemoryMiddleware, memory)) {
                 await this.commandBus.execute(new CancelSummaryJobCommand(conversation.id))
             }
         } else {
@@ -184,7 +177,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 )
 
                 // Cancel summary job
-                if (memory?.enabled && memory.profile?.enabled) {
+                if (hasAutoSummaryMemory(activeMemoryMiddleware, memory)) {
                     await this.commandBus.execute(new CancelSummaryJobCommand(conversation.id))
                 }
             } else {
@@ -208,11 +201,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                         ['messages']
                     )
                 )
-
-                // Remember
-                if (memory?.enabled && memory.profile?.enabled && memoryStore) {
-                    memories = await getLongTermMemory(memoryStore, xpertId, input.input)
-                }
             }
 
             let userMessage: IChatMessage = null
@@ -326,25 +314,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                 let result = ''
                 let agentObservable: Observable<MessageEvent> = null
 
-                // Memory Reply
-                const memoryReply = latestXpert.features?.memoryReply
-                if (memoryReply?.enabled && memoryStore) {
-                    const items = await memoryStore.search([xpertId, LongTermMemoryTypeEnum.QA], { query: input.input })
-                    const memoryReplies = items.filter((item) => item.score >= (memoryReply.scoreThreshold ?? 0.8))
-                    if (memoryReplies.length > 0) {
-                        // If a memory matched, simulate an AI text message with the answer
-                        agentObservable = new Observable<MessageEvent>((subscriber) => {
-                            subscriber.next({
-                                data: {
-                                    type: ChatMessageTypeEnum.MESSAGE,
-                                    data: memoryReplies[0].value?.answer
-                                }
-                            } as MessageEvent)
-                            subscriber.complete()
-                        })
-                    }
-                }
-
                 if (!agentObservable) {
                     // No memory reply then create agents graph
                     agentObservable = await this.commandBus.execute<
@@ -353,7 +322,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                     >(
                         new XpertAgentChatCommand(state, xpert.agent.key, xpert, {
                             ...(options ?? {}),
-                            store: memoryStore,
+                            store: null,
                             conversationId: conversation.id,
                             isDraft: options?.isDraft,
                             execution: { id: executionId, category: 'agent' },
@@ -364,7 +333,6 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                           ...(request.patch ? { patch: request.patch } : {})
                                       }
                                     : undefined,
-                            memories,
                             summarizeTitle: !latestXpert.agentConfig?.summarizeTitle?.disable,
                             checkpointId: checkpointId
                         })
@@ -487,7 +455,7 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
                                 )
 
                                 // Schedule summary job
-                                if (memory?.enabled && memory.profile?.enabled && convStatus === 'idle') {
+                                if (hasAutoSummaryMemory(activeMemoryMiddleware, memory) && convStatus === 'idle') {
                                     await this.commandBus.execute(
                                         new ScheduleSummaryJobCommand(conversation.id, userId, memory)
                                     )
@@ -604,8 +572,11 @@ export class XpertChatHandler implements ICommandHandler<XpertChatCommand> {
     }
 }
 
-async function getLongTermMemory(store: BaseStore, xpertId: string, input: string) {
-    return await store?.search([xpertId, LongTermMemoryTypeEnum.PROFILE], { query: input })
+function hasAutoSummaryMemory(
+    activeMemoryMiddleware: ActiveMemoryMiddleware | null,
+    memory: TLongTermMemory | null | undefined
+) {
+    return !!(activeMemoryMiddleware && (memory?.profile?.enabled || memory?.qa?.enabled))
 }
 
 function resolveRetryHumanInput(sourceInputs: unknown, fallbackInput: TChatRequestHuman): TChatRequestHuman {

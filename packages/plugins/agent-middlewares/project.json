@@ -25,6 +25,7 @@
         "compiler": "swc",
         "format": ["cjs", "esm"],
         "external": [
+          "@metad/server-ai/xpert-memory",
           "@nestjs/common",
           "@nestjs/core",
           "@nestjs/microservices",

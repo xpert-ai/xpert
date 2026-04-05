@@ -1,9 +1,9 @@
 import { of, lastValueFrom, toArray } from 'rxjs'
 import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, XpertAgentExecutionStatusEnum } from '@metad/contracts'
+import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { ChatConversationUpsertCommand } from '../../../chat-conversation/commands/upsert.command'
 import { ChatMessageUpsertCommand } from '../../../chat-message/commands/upsert.command'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint'
-import { CreateMemoryStoreCommand } from '../../../shared'
 import { XpertAgentChatCommand } from '../../../xpert-agent/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { XpertAgentExecutionOneQuery } from '../../../xpert-agent-execution/queries/get-one.query'
@@ -14,6 +14,7 @@ describe('XpertChatHandler', () => {
     let xpertService: { findOne: jest.Mock }
     let commandBus: { execute: jest.Mock }
     let queryBus: { execute: jest.Mock }
+    let agentMiddlewareRegistry: { get: jest.Mock }
     let handler: XpertChatHandler
 
     const xpert = {
@@ -23,7 +24,11 @@ describe('XpertChatHandler', () => {
         },
         memory: null,
         features: {},
-        agentConfig: {}
+        agentConfig: {},
+        graph: {
+            nodes: [],
+            connections: []
+        }
     } as any
 
     beforeEach(() => {
@@ -36,8 +41,16 @@ describe('XpertChatHandler', () => {
         queryBus = {
             execute: jest.fn()
         }
+        agentMiddlewareRegistry = {
+            get: jest.fn()
+        }
 
-        handler = new XpertChatHandler(xpertService as any, commandBus as any, queryBus as any)
+        handler = new XpertChatHandler(
+            xpertService as any,
+            commandBus as any,
+            queryBus as any,
+            agentMiddlewareRegistry as unknown as AgentMiddlewareRegistry
+        )
     })
 
     it('creates a new conversation, human message, ai placeholder and execution for send', async () => {
@@ -45,9 +58,6 @@ describe('XpertChatHandler', () => {
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
 
-            if (command instanceof CreateMemoryStoreCommand) {
-                return null
-            }
             if (command instanceof ChatConversationUpsertCommand) {
                 if (!command.entity.id) {
                     return {
@@ -193,9 +203,6 @@ describe('XpertChatHandler', () => {
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
 
-            if (command instanceof CreateMemoryStoreCommand) {
-                return null
-            }
             if (command instanceof XpertAgentChatCommand) {
                 return of({
                     data: {
@@ -286,9 +293,6 @@ describe('XpertChatHandler', () => {
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
 
-            if (command instanceof CreateMemoryStoreCommand) {
-                return null
-            }
             if (command instanceof ChatConversationUpsertCommand) {
                 return {
                     id: 'conversation-1',
@@ -417,9 +421,6 @@ describe('XpertChatHandler', () => {
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
 
-            if (command instanceof CreateMemoryStoreCommand) {
-                return null
-            }
             if (command instanceof ChatConversationUpsertCommand) {
                 return {
                     id: 'conversation-1',
@@ -574,9 +575,6 @@ describe('XpertChatHandler', () => {
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
 
-            if (command instanceof CreateMemoryStoreCommand) {
-                return null
-            }
             if (command instanceof ChatConversationUpsertCommand) {
                 return {
                     id: 'conversation-1',
@@ -696,9 +694,6 @@ describe('XpertChatHandler', () => {
         commandBus.execute.mockImplementation(async (command) => {
             commands.push(command)
 
-            if (command instanceof CreateMemoryStoreCommand) {
-                return null
-            }
             if (command instanceof ChatConversationUpsertCommand) {
                 return {
                     id: 'conversation-1',
@@ -818,9 +813,6 @@ describe('XpertChatHandler', () => {
 
     it('throws when retry checkpoint ancestry does not contain an input checkpoint', async () => {
         commandBus.execute.mockImplementation(async (command) => {
-            if (command instanceof CreateMemoryStoreCommand) {
-                return null
-            }
             if (command instanceof ChatConversationUpsertCommand) {
                 return {
                     id: 'conversation-1',

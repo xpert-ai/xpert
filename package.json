@@ -43,7 +43,7 @@
     "format:fix": "prettier --write --ignore-unknown",
     "prepare": "command -v git >/dev/null 2>&1 && git config core.hooksPath git-hooks || exit 0",
     "prebuild": "rimraf dist coverage",
-    "build:plugins": "yarn nx build agent-middlewares && yarn nx build integration-github && yarn nx build retriever-common && yarn nx build textsplitter-common && yarn nx build transformer-common && yarn nx build trigger-schedule && yarn nx build vlm-default && yarn nx build draft",
+    "build:plugins": "yarn nx build file-memory && yarn nx build agent-middlewares && yarn nx build integration-github && yarn nx build retriever-common && yarn nx build textsplitter-common && yarn nx build transformer-common && yarn nx build trigger-schedule && yarn nx build vlm-default && yarn nx build draft",
     "build": "yarn nx build store && yarn nx build core && yarn nx build echarts && yarn nx build sql && yarn nx build xmla && yarn --cwd ./packages/duckdb build:release && yarn nx build duckdb && yarn b:p:copilot && yarn b:p:angular",
     "b:p:duckdb": "yarn --cwd ./packages/duckdb build:release && yarn nx build duckdb",
     "b:p:contracts": "yarn nx build contracts",

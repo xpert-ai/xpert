@@ -6,10 +6,12 @@ jest.mock('isolated-vm', () => ({
 import { RequestContext } from '@metad/server-core'
 import { I18nService } from 'nestjs-i18n'
 import { Observable } from 'rxjs'
+import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { CompileGraphCommand } from '../compile-graph.command'
 import { XpertAgentInvokeCommand } from '../invoke.command'
 import { XpertAgentInvokeHandler } from './invoke.handler'
 import { VolumeClient, ExecutionCancelService } from '../../../shared'
+import { XpertMemoryAgentBridgeService } from '../../../xpert-memory'
 
 describe('XpertAgentInvokeHandler', () => {
     let commandBus: { execute: jest.Mock }
@@ -18,6 +20,8 @@ describe('XpertAgentInvokeHandler', () => {
     let envService: { findOne: jest.Mock }
     let i18nService: { t: jest.Mock }
     let executionCancelService: { register: jest.Mock; unregister: jest.Mock }
+    let agentMiddlewareRegistry: { get: jest.Mock }
+    let xpertMemoryAgentBridge: { createRuntimeBridge: jest.Mock }
     let handler: XpertAgentInvokeHandler
 
     beforeEach(() => {
@@ -43,6 +47,12 @@ describe('XpertAgentInvokeHandler', () => {
             register: jest.fn(),
             unregister: jest.fn()
         }
+        agentMiddlewareRegistry = {
+            get: jest.fn()
+        }
+        xpertMemoryAgentBridge = {
+            createRuntimeBridge: jest.fn()
+        }
 
         handler = new XpertAgentInvokeHandler(
             commandBus as any,
@@ -50,7 +60,9 @@ describe('XpertAgentInvokeHandler', () => {
             checkpointSaver as any,
             envService as any,
             i18nService as unknown as I18nService,
-            executionCancelService as unknown as ExecutionCancelService
+            executionCancelService as unknown as ExecutionCancelService,
+            agentMiddlewareRegistry as unknown as AgentMiddlewareRegistry,
+            xpertMemoryAgentBridge as unknown as XpertMemoryAgentBridgeService
         )
 
         jest.spyOn(RequestContext, 'currentTenantId').mockReturnValue('tenant-1')

@@ -170,6 +170,7 @@ export async function preBootstrapPlugins() {
 	const pluginsFromEnv = process.env.PLUGINS?.split(/[,;]/).filter(Boolean) || []
 	const defaultGlobalPlugins = [
 		'@xpert-ai/plugin-draft',
+		'@xpert-ai/plugin-file-memory',
 		'@xpert-ai/plugin-agent-middlewares',
 		'@xpert-ai/plugin-integration-github',
 		// '@xpert-ai/plugin-integration-lark',
