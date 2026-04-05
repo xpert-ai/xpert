@@ -1,0 +1,82 @@
+<section class="xp-file-pane">
+  <div [class]="headerClasses()">
+    <div class="min-w-0">
+      <div [class]="titleClasses()">
+        {{ title() }}
+      </div>
+      <div [class]="subtitleClasses()">
+        {{ subtitle() || '' }}
+      </div>
+    </div>
+  </div>
+
+  <div [class]="bodyClasses()">
+    @if (hasContext()) {
+      @if (flatItems().length) {
+        <div [class]="listClasses()">
+          @for (item of flatItems(); track item.fullPath ?? item.filePath) {
+            <div [class]="itemRowClasses(item) + ' hover:bg-hover-bg'">
+              @for (level of item.levels; track $index) {
+                <div [class]="indentClasses()">
+                  <div class="w-px bg-divider-regular"></div>
+                </div>
+              }
+
+              @if (item.hasChildren) {
+                <button
+                  type="button"
+                  [class]="toggleClasses()"
+                  (click)="directoryToggle.emit(item)"
+                >
+                  @if (isDirectoryLoading(item.fullPath || item.filePath)) {
+                    <i class="ri-loader-4-line animate-spin"></i>
+                  } @else if (item.expanded) {
+                    <i class="ri-arrow-down-s-line"></i>
+                  } @else {
+                    <i class="ri-arrow-right-s-line"></i>
+                  }
+                </button>
+              } @else {
+                <span [class]="togglePlaceholderClasses()"></span>
+              }
+
+              <button type="button" [class]="itemContentClasses()" (click)="fileSelect.emit(item)">
+                <i
+                  [class]="itemIconClasses()"
+                  [class.ri-folder-open-line]="item.hasChildren && item.expanded"
+                  [class.ri-folder-line]="item.hasChildren && !item.expanded"
+                  [class.ri-file-text-line]="!item.hasChildren"
+                ></i>
+                <span [class]="itemLabelClasses(item)">
+                  {{ item.filePath }}
+                </span>
+              </button>
+            </div>
+          }
+        </div>
+      } @else {
+        <div class="xp-empty-state">
+          <div [class]="emptyTitleClasses()">
+            {{ emptyTitle() }}
+          </div>
+          <div [class]="emptyHintClasses()">
+            {{ emptyHint() }}
+          </div>
+        </div>
+      }
+    } @else {
+      <div class="xp-empty-state">
+        <div [class]="emptyTitleClasses()">
+          {{ selectTitle() }}
+        </div>
+        <div [class]="emptyHintClasses()">
+          {{ selectHint() }}
+        </div>
+      </div>
+    }
+  </div>
+
+  @if (loading()) {
+    <ngm-spin class="absolute inset-0 z-10 flex items-center justify-center bg-components-card-bg/30 backdrop-blur-sm" />
+  }
+</section>

@@ -31,6 +31,10 @@ jest.mock('../xpert-workspace', () => ({
 		async create(entity: T) {
 			return entity
 		}
+
+		async findOne() {
+			return null
+		}
 	}
 }))
 
@@ -39,6 +43,9 @@ jest.mock('../xpert-workspace/workspace.entity', () => ({
 }))
 
 import { getWorkspaceSkillsRoot } from '../skill-repository'
+import { mkdtemp, mkdir, readFile, rm, writeFile } from 'fs/promises'
+import { tmpdir } from 'os'
+import { join } from 'path'
 import { SkillPackageService } from './skill-package.service'
 
 describe('SkillPackageService', () => {
@@ -50,6 +57,7 @@ describe('SkillPackageService', () => {
 		installSkillPackage: jest.Mock
 	}
 	let createSpy: jest.SpiedFunction<SkillPackageService['create']>
+	let tempRoot: string | null
 
 	beforeEach(() => {
 		skillIndexService = {
@@ -63,12 +71,18 @@ describe('SkillPackageService', () => {
 		;(service as any).skillSourceProviderRegistry = {
 			get: jest.fn().mockReturnValue(strategy)
 		}
+		tempRoot = null
 
 		jest.spyOn(service as any, 'assertWorkspaceAccess').mockResolvedValue(undefined)
 		createSpy = jest.spyOn(service, 'create').mockImplementation(async (item: any) => item)
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue('/tmp/workspace-skills')
 	})
 
-	afterEach(() => {
+	afterEach(async () => {
+		if (tempRoot) {
+			await rm(tempRoot, { recursive: true, force: true })
+			tempRoot = null
+		}
 		jest.clearAllMocks()
 	})
 
@@ -140,5 +154,115 @@ describe('SkillPackageService', () => {
 		)
 		expect(createArg.metadata.version).toBeUndefined()
 		expect(result.metadata.version).toBeUndefined()
+	})
+
+	it('lists workspace skill files from the installed package root', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-files-'))
+		const skillRoot = join(tempRoot, 'weather')
+		await mkdir(join(skillRoot, 'docs'), { recursive: true })
+		await writeFile(join(skillRoot, 'SKILL.md'), '# Weather\n', 'utf8')
+		await writeFile(join(skillRoot, 'docs', 'readme.md'), 'hello', 'utf8')
+
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+		;(service as any).findOne = jest.fn().mockResolvedValue({
+			id: 'skill-1',
+			tenantId: 'tenant-1',
+			workspaceId: 'workspace-1',
+			packagePath: 'weather'
+		})
+
+		const result = await service.getSkillPackageFiles('workspace-1', 'skill-1')
+
+		expect(result).toEqual(
+			expect.arrayContaining([
+				expect.objectContaining({
+					filePath: 'SKILL.md',
+					fullPath: 'SKILL.md'
+				}),
+				expect.objectContaining({
+					filePath: 'docs',
+					fullPath: 'docs',
+					hasChildren: true,
+					children: null
+				})
+			])
+		)
+	})
+
+	it('reads and saves editable skill files', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-read-save-'))
+		const skillRoot = join(tempRoot, 'weather')
+		await mkdir(skillRoot, { recursive: true })
+		await writeFile(join(skillRoot, 'SKILL.md'), '# Before\n', 'utf8')
+
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+		;(service as any).findOne = jest.fn().mockResolvedValue({
+			id: 'skill-1',
+			tenantId: 'tenant-1',
+			workspaceId: 'workspace-1',
+			packagePath: 'weather'
+		})
+
+		const readResult = await service.readSkillPackageFile('workspace-1', 'skill-1', 'SKILL.md')
+		expect(readResult.contents).toBe('# Before\n')
+
+		const saveResult = await service.saveSkillPackageFile('workspace-1', 'skill-1', 'SKILL.md', '# After\n')
+		expect(saveResult.contents).toBe('# After\n')
+		await expect(readFile(join(skillRoot, 'SKILL.md'), 'utf8')).resolves.toBe('# After\n')
+	})
+
+	it('allows editing .env files from the supported text whitelist', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-env-'))
+		const skillRoot = join(tempRoot, 'weather')
+		await mkdir(skillRoot, { recursive: true })
+		await writeFile(join(skillRoot, '.env'), 'TOKEN=before\n', 'utf8')
+
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+		;(service as any).findOne = jest.fn().mockResolvedValue({
+			id: 'skill-1',
+			tenantId: 'tenant-1',
+			workspaceId: 'workspace-1',
+			packagePath: 'weather'
+		})
+
+		const saveResult = await service.saveSkillPackageFile('workspace-1', 'skill-1', '.env', 'TOKEN=after\n')
+		expect(saveResult.contents).toBe('TOKEN=after\n')
+	})
+
+	it('rejects skill file path traversal attempts', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-path-'))
+		const skillRoot = join(tempRoot, 'weather')
+		await mkdir(skillRoot, { recursive: true })
+
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+		;(service as any).findOne = jest.fn().mockResolvedValue({
+			id: 'skill-1',
+			tenantId: 'tenant-1',
+			workspaceId: 'workspace-1',
+			packagePath: 'weather'
+		})
+
+		await expect(service.readSkillPackageFile('workspace-1', 'skill-1', '../secret.txt')).rejects.toThrow(
+			'Invalid skill file path'
+		)
+	})
+
+	it('rejects saving non-editable skill files', async () => {
+		tempRoot = await mkdtemp(join(tmpdir(), 'skill-package-binary-'))
+		const skillRoot = join(tempRoot, 'weather')
+		await mkdir(skillRoot, { recursive: true })
+		await writeFile(join(skillRoot, 'icon.png'), 'binary', 'utf8')
+
+		;(getWorkspaceSkillsRoot as jest.Mock).mockReturnValue(tempRoot)
+		;(service as any).findOne = jest.fn().mockResolvedValue({
+			id: 'skill-1',
+			tenantId: 'tenant-1',
+			workspaceId: 'workspace-1',
+			packagePath: 'weather'
+		})
+
+		await expect(service.saveSkillPackageFile('workspace-1', 'skill-1', 'icon.png', 'test')).rejects.toThrow(
+			'This file type cannot be edited'
+		)
 	})
 })

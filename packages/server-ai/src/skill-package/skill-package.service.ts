@@ -1,14 +1,43 @@
 import { getErrorMessage } from '@metad/server-common'
+import { SkillMetadata, TFile, TFileDirectory } from '@metad/contracts'
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext, SkillSourceProviderRegistry } from '@xpert-ai/plugin-sdk'
-import { dirname, isAbsolute, join, relative, resolve } from 'path'
+import fs from 'fs/promises'
+import { basename, dirname, isAbsolute, join, relative, resolve } from 'path'
 import { Repository } from 'typeorm'
 import { getWorkspaceSkillsRoot, SkillRepositoryIndexService } from '../skill-repository'
 import { FILE_SKILL_SOURCE_PROVIDER, IUploadedSkill, ZipSkillSourceProvider } from '../skill-repository/plugins/zip'
+import { getMediaTypeWithCharset, listFiles } from '../shared/utils'
 import { XpertWorkspaceBaseService } from '../xpert-workspace'
 import { XpertWorkspace } from '../xpert-workspace/workspace.entity'
 import { SkillPackage } from './skill-package.entity'
+
+const EditableSkillExtensions = new Set([
+	'md',
+	'mdx',
+	'txt',
+	'js',
+	'jsx',
+	'ts',
+	'tsx',
+	'json',
+	'yml',
+	'yaml',
+	'py',
+	'sh',
+	'html',
+	'css',
+	'xml',
+	'env'
+])
+
+type SkillPackageInstallMetadata = Partial<SkillMetadata> & {
+	skillMdPath?: string
+	skillPath?: string
+	source?: string
+	resources?: IUploadedSkill['resources']
+}
 
 @Injectable()
 export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage> {
@@ -82,8 +111,9 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 	}
 
 	private async uninstallResolvedSkillPackage(skillPackage: SkillPackage, expectedWorkspaceId?: string) {
+		const metadata = this.getInstallMetadata(skillPackage)
 		const provider =
-			skillPackage.skillIndex?.repository?.provider ?? (skillPackage.metadata as any)?.source ?? undefined
+			skillPackage.skillIndex?.repository?.provider ?? metadata?.source ?? undefined
 
 		const tenantId = skillPackage.tenantId
 		const workspaceId = skillPackage.workspaceId
@@ -163,7 +193,57 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		}
 	}
 
-	private buildMetadataForUpload(skill: IUploadedSkill) {
+	async getSkillPackageFiles(workspaceId: string, id: string, filePath?: string, deepth?: number): Promise<TFileDirectory[]> {
+		const { rootPath } = await this.resolveSkillPackageRoot(workspaceId, id)
+		const normalizedPath = validateSkillRelativePath(rootPath, filePath)
+		const directoryTree = await listFiles(normalizedPath, normalizeDepth(deepth), 0, {
+			root: rootPath,
+			baseUrl: ''
+		})
+
+		return directoryTree ?? []
+	}
+
+	async readSkillPackageFile(workspaceId: string, id: string, filePath: string): Promise<TFile> {
+		const { absolutePath, relativePath } = await this.resolveSkillPackageFilePath(workspaceId, id, filePath)
+		const stat = await fs.stat(absolutePath).catch(() => null)
+		if (!stat?.isFile()) {
+			throw new BadRequestException('Skill file not found')
+		}
+
+		const buffer = await fs.readFile(absolutePath)
+		const contents = isBinaryBuffer(buffer) ? undefined : buffer.toString('utf8')
+
+		return {
+			filePath: relativePath,
+			fileType: getSkillFileExtension(relativePath) || 'text',
+			mimeType: getMediaTypeWithCharset(relativePath),
+			contents,
+			size: stat.size,
+			createdAt: stat.mtime
+		}
+	}
+
+	async saveSkillPackageFile(workspaceId: string, id: string, filePath: string, content: string): Promise<TFile> {
+		const normalizedPath = normalizeSkillFilePath(filePath)
+		if (!normalizedPath) {
+			throw new BadRequestException('File path is required')
+		}
+		if (!isEditableSkillFile(normalizedPath)) {
+			throw new BadRequestException('This file type cannot be edited')
+		}
+
+		const { absolutePath } = await this.resolveSkillPackageFilePath(workspaceId, id, normalizedPath)
+		const stat = await fs.stat(absolutePath).catch(() => null)
+		if (!stat?.isFile()) {
+			throw new BadRequestException('Skill file not found')
+		}
+
+		await fs.writeFile(absolutePath, content ?? '', 'utf8')
+		return this.readSkillPackageFile(workspaceId, id, normalizedPath)
+	}
+
+	private buildMetadataForUpload(skill: IUploadedSkill): SkillPackageInstallMetadata {
 		const normalizedSkillPath = this.normalizeRelativePackagePath(skill.skillPath ?? '')
 		return {
 			description: {
@@ -188,6 +268,14 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			}
 		}
 
+		const skillMdPath = this.getInstallMetadata(skillPackage)?.skillMdPath
+		if (skillMdPath) {
+			const safePath = this.ensureWithinInstall(dirname(skillMdPath), installDir)
+			if (safePath) {
+				return safePath
+			}
+		}
+
 		return null
 		// throw new BadRequestException('Unable to resolve installed skill package path')
 	}
@@ -205,7 +293,7 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 		const root = resolve(installDir)
 		const resolvedPath = resolve(targetPath)
 		const relativePath = relative(root, resolvedPath)
-		if (relativePath.startsWith('..') || relativePath.startsWith('/')) {
+		if (relativePath.startsWith('..') || isAbsolute(relativePath)) {
 			return null
 		}
 		return resolvedPath
@@ -227,6 +315,57 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			.replace(/^\.\/+/, '')
 		const normalized = unixPath.replace(/^(skills\/)+/, '')
 		return normalized || null
+	}
+
+	private getInstallMetadata(skillPackage: SkillPackage): SkillPackageInstallMetadata | null {
+		return skillPackage.metadata as SkillPackageInstallMetadata | null
+	}
+
+	private async resolveSkillPackageRoot(workspaceId: string, id: string) {
+		if (!workspaceId) {
+			throw new BadRequestException('workspaceId is required')
+		}
+		await this.assertWorkspaceAccess(workspaceId)
+
+		const skillPackage = await this.findOne(id, {
+			where: { workspaceId },
+			relations: ['skillIndex', 'skillIndex.repository']
+		})
+		const tenantId = skillPackage?.tenantId
+		if (!tenantId) {
+			throw new BadRequestException('Missing tenant context for skill package')
+		}
+
+		const installDir = getWorkspaceSkillsRoot(tenantId, workspaceId)
+		const rootPath = this.resolveInstalledPath(skillPackage, installDir)
+		if (!rootPath) {
+			throw new BadRequestException('Unable to locate installed skill package path')
+		}
+
+		return {
+			skillPackage,
+			rootPath
+		}
+	}
+
+	private async resolveSkillPackageFilePath(workspaceId: string, id: string, filePath: string) {
+		const { rootPath } = await this.resolveSkillPackageRoot(workspaceId, id)
+		const relativePath = validateSkillRelativePath(rootPath, filePath)
+		if (!relativePath) {
+			throw new BadRequestException('File path is required')
+		}
+
+		const absolutePath = resolve(rootPath, relativePath)
+		const resolvedRelativePath = relative(rootPath, absolutePath)
+		if (resolvedRelativePath.startsWith('..') || isAbsolute(resolvedRelativePath)) {
+			throw new BadRequestException('Invalid skill file path')
+		}
+
+		return {
+			rootPath,
+			absolutePath,
+			relativePath: resolvedRelativePath.replace(/\\/g, '/')
+		}
 	}
 
 	private async assertWorkspaceAccess(workspaceId: string) {
@@ -255,4 +394,57 @@ export class SkillPackageService extends XpertWorkspaceBaseService<SkillPackage>
 			throw new ForbiddenException('Access denied to workspace')
 		}
 	}
+}
+
+function normalizeSkillFilePath(filePath?: string | null) {
+	return (filePath ?? '')
+		.replace(/\\/g, '/')
+		.replace(/^\/+/, '')
+		.replace(/^\.\//, '')
+}
+
+function normalizeDepth(deepth?: number | string) {
+	const value = typeof deepth === 'string' ? Number(deepth) : deepth
+	return typeof value === 'number' && Number.isFinite(value) ? value : 1
+}
+
+function isEditableSkillFile(filePath: string) {
+	const normalized = normalizeSkillFilePath(filePath)
+	const extension = getSkillFileExtension(normalized)
+	return EditableSkillExtensions.has(extension)
+}
+
+function isBinaryBuffer(buffer: Buffer) {
+	const sample = buffer.subarray(0, Math.min(buffer.length, 8000))
+	for (const value of sample) {
+		if (value === 0) {
+			return true
+		}
+	}
+	return false
+}
+
+function validateSkillRelativePath(rootPath: string, filePath?: string | null) {
+	const normalized = normalizeSkillFilePath(filePath)
+	if (!normalized) {
+		return ''
+	}
+
+	const absolutePath = resolve(rootPath, normalized)
+	const resolvedRelativePath = relative(rootPath, absolutePath)
+	if (resolvedRelativePath.startsWith('..') || isAbsolute(resolvedRelativePath)) {
+		throw new BadRequestException('Invalid skill file path')
+	}
+
+	return resolvedRelativePath.replace(/\\/g, '/')
+}
+
+function getSkillFileExtension(filePath: string) {
+	const fileName = basename(filePath).toLowerCase()
+	if (fileName.startsWith('.') && fileName.indexOf('.', 1) === -1) {
+		return fileName.slice(1)
+	}
+
+	const parts = fileName.split('.')
+	return parts.length > 1 ? parts.pop() ?? '' : ''
 }

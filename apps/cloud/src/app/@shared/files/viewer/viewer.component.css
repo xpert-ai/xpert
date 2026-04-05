@@ -1,0 +1,29 @@
+@reference "../../../../styles/tailwind-reference.css";
+
+:host {
+  @apply block min-h-0;
+}
+
+.xp-file-pane {
+  @apply relative min-h-[320px] flex h-full flex-col overflow-hidden rounded-3xl border border-divider-regular bg-gradient-to-br from-background-default-subtle via-components-panel-bg to-background-default-subtle;
+}
+
+.xp-pane-header {
+  @apply flex items-start justify-between gap-3;
+}
+
+.xp-pane-body {
+  @apply min-h-0 flex-1;
+}
+
+.xp-mode-button {
+  @apply rounded-lg px-3 py-1.5 text-sm text-text-secondary transition-colors disabled:cursor-not-allowed disabled:opacity-50;
+}
+
+.xp-mode-button--active {
+  @apply bg-components-card-bg text-text-primary shadow-sm;
+}
+
+.xp-empty-state {
+  @apply flex h-full min-h-[240px] flex-col items-center justify-center gap-2 rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle/60 px-6 py-8 text-center;
+}
