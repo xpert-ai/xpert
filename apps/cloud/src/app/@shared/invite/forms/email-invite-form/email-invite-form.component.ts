@@ -11,7 +11,6 @@ import {
   IUser,
   InvitationExpirationEnum,
   InvitationTypeEnum,
-  LEGACY_DEFAULT_ROLES,
   RolesEnum
 } from '../../../../@core/types'
 import { TranslateService } from '@ngx-translate/core'
@@ -133,10 +132,7 @@ export class EmailInviteFormComponent extends TranslationBaseComponent implement
    */
   async excludeRoles() {
     const hasSuperAdminRole = await firstValueFrom(this.authService.hasRole([RolesEnum.SUPER_ADMIN]))
-    this.excludes = [...LEGACY_DEFAULT_ROLES]
-    if (!hasSuperAdminRole) {
-      this.excludes.push(RolesEnum.SUPER_ADMIN)
-    }
+    this.excludes = hasSuperAdminRole ? [] : [RolesEnum.SUPER_ADMIN]
   }
 
   /**
@@ -209,16 +205,6 @@ export class EmailInviteFormComponent extends TranslationBaseComponent implement
 
     this.form.get('organizationContacts').setValue(organizationContacts)
     this.form.get('organizationContacts').updateValueAndValidity()
-  }
-
-  getRoleFromForm = () => {
-    if (this.isEmployeeInvitation()) {
-      return RolesEnum.EMPLOYEE
-    }
-    if (this.isCandidateInvitation()) {
-      return RolesEnum.CANDIDATE
-    }
-    return this.form.get('role').value.name || RolesEnum.VIEWER
   }
 
   async saveInvites(): Promise<ICreateEmailInvitesOutput> {
