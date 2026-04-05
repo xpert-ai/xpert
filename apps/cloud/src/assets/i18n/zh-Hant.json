@@ -1743,6 +1743,7 @@
       "EffectiveStatus": "生效狀態",
       "ActiveOrganization": "當前組織",
       "ActiveAssistant": "當前助手",
+      "FloatingHint": "拖動啟動器可停靠到左側或右側。",
       "NoOrganization": "未選擇組織",
       "TenantScope": "租戶範圍",
       "TenantDefault": "租戶默認配置",

@@ -517,6 +517,7 @@
       "EffectiveStatus": "Effective Status",
       "ActiveOrganization": "Active Organization",
       "ActiveAssistant": "Active Assistant",
+      "FloatingHint": "Drag the launcher to dock left or right.",
       "NoOrganization": "No organization selected",
       "TenantScope": "Tenant Scope",
       "TenantDefault": "Tenant Default",

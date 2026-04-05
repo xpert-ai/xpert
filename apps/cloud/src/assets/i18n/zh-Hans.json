@@ -514,6 +514,7 @@
       "EffectiveStatus": "生效状态",
       "ActiveOrganization": "当前组织",
       "ActiveAssistant": "当前助手",
+      "FloatingHint": "拖动启动器可停靠到左侧或右侧。",
       "NoOrganization": "未选择组织",
       "TenantScope": "租户范围",
       "TenantDefault": "租户默认配置",
