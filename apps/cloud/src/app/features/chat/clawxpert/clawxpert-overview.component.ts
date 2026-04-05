@@ -1,7 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ZardButtonComponent,
@@ -69,7 +68,6 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
     CommonModule,
     FormsModule,
     TranslateModule,
-    ButtonGroupDirective,
     ZardButtonComponent,
     ZardDividerComponent,
     ZardIconComponent,
@@ -152,12 +150,11 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
 
             @if (facade.resolvedPreference() && facade.viewState() === 'ready') {
               <div class="flex rounded-xl border border-border">
-                <button
+                <button class="flex-1 rounded-l-xl rounded-r-none"
                   z-button
                   zType="ghost"
                   displayDensity="cosy"
                   type="button"
-                  class="flex-1"
                   z-menu
                   [zMenuTriggerFor]="copilotModelMenu"
                   [disabled]="facade.savingCopilotModel()"

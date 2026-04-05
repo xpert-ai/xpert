@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, signal, untracked } from '@angular/core'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual } from 'lodash-es'
 import { ZardButtonComponent, ZardCardImports, ZardIconComponent, ZardMenuImports } from '@xpert-ai/headless-ui'
@@ -19,6 +20,7 @@ import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
   imports: [
     CommonModule,
     TranslateModule,
+    NgmI18nPipe,
     WorkflowTriggerConfigCardComponent,
     ZardButtonComponent,
     ZardIconComponent,
@@ -111,7 +113,14 @@ import { ClawXpertFacade, ClawXpertTriggerEditorItem } from './clawxpert.facade'
             <div z-menu-content class="w-64">
               @for (provider of addableTriggerProviders(); track provider.name) {
                 <button type="button" z-menu-item (click)="addTrigger(provider)">
-                  {{ provider.name }}
+                  <div class="flex flex-col items-start gap-0.5">
+                    <span class="text-sm font-medium text-text-primary">
+                      {{ provider.label ? (provider.label | i18n) : provider.name }}
+                    </span>
+                    @if (provider.label) {
+                      <span class="text-xs text-text-tertiary">{{ provider.name }}</span>
+                    }
+                  </div>
                 </button>
               }
             </div>

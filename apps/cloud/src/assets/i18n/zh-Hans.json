@@ -645,6 +645,9 @@
       "AssistantId": "助手 ID / Xpert ID",
       "AssistantIdPlaceholder": "按名称或 ID 搜索可访问的 Xpert",
       "FrameUrl": "Frame URL",
+      "RuntimeFrameUrl": "ChatKit 嵌入框架 URL",
+      "FrameUrlMissing": "部署变量未配置",
+      "RuntimeFrameUrlDesc": "ChatKit 嵌入框架由部署环境配置，所有助手页面共享。",
       "RuntimeApiUrl": "运行时 API URL",
       "RuntimeJwtDesc": "认证会自动使用当前用户的 JWT。",
       "OrganizationScope": "组织范围",
@@ -665,6 +668,10 @@
       "MissingTitle": "助手未配置",
       "MissingDesc": "请先在 设置 / 助手 中配置 ChatBI 助手，然后再在这里开始对话。",
       "OpenSettings": "打开助手设置",
+      "ChatCommon": {
+        "Label": "通用助手",
+        "Description": "用于通用聊天页面的嵌入式助手。"
+      },
       "XpertShared": {
         "Label": "工作空间助手",
         "Description": "用于 Xpert 工作空间和 Studio Shell 的共享助手。"

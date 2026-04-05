@@ -3,6 +3,7 @@ import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core
 import { ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import {
+  ZardButtonComponent,
   ZardComboboxComponent,
   ZardComboboxOptionTemplateDirective,
   ZardFormImports
@@ -17,6 +18,7 @@ import { AssistantsSettingsFacade } from './assistants.facade'
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
+    ZardButtonComponent,
     ZardComboboxComponent,
     ZardComboboxOptionTemplateDirective,
     ...ZardFormImports
@@ -25,7 +27,7 @@ import { AssistantsSettingsFacade } from './assistants.facade'
   template: `
     <div class="space-y-6">
       @for (assistant of facade.assistants(); track assistant.code) {
-        <section class="rounded-3xl border border-divider-regular bg-components-card-bg shadow-sm">
+        <section class="">
           <div class="flex flex-col gap-4 border-b border-divider-regular px-5 py-5 lg:flex-row lg:items-start lg:justify-between">
             <div class="min-w-0">
               <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
@@ -76,7 +78,7 @@ import { AssistantsSettingsFacade } from './assistants.facade'
             class="space-y-4 p-5"
             [formGroup]="form(assistant.code)"
           >
-            <div class="rounded-2xl border border-divider-regular bg-background-default-subtle p-4">
+            <div class="rounded-2xl border border-border bg-background-default-subtle p-4">
               <div class="flex items-start justify-between gap-3">
                 <div>
                   <div class="text-sm font-semibold text-text-primary">
@@ -116,7 +118,7 @@ import { AssistantsSettingsFacade } from './assistants.facade'
                     {{ 'PAC.Assistant.AssistantId' | translate: { Default: 'Assistant ID / Xpert ID' } }}
                   </span>
                   <z-combobox
-                    zWidth="full"
+                    zWidth="lg"
                     [value]="facade.assistantSelectionValue(scope(), assistant.code)"
                     [options]="facade.assistantXpertOptions(scope(), assistant.code)"
                     [zDisabled]="!canEdit()"
@@ -134,7 +136,7 @@ import { AssistantsSettingsFacade } from './assistants.facade'
                       <div class="flex min-w-0 flex-1 flex-col gap-1 py-1">
                         <span class="text-sm font-medium text-text-primary">{{ option.data?.label }}</span>
                         @if (option.data?.description) {
-                          <span class="text-xs text-text-secondary">{{ option.data?.description }}</span>
+                          <span class="text-xs text-text-secondary line-clamp-3">{{ option.data?.description }}</span>
                         }
                         @if (option.data?.meta) {
                           <span class="font-mono text-xs text-text-tertiary">{{ option.data?.meta }}</span>
@@ -145,49 +147,15 @@ import { AssistantsSettingsFacade } from './assistants.facade'
                 </label>
               </div>
 
-              <div class="mt-4 rounded-2xl border border-dashed border-divider-regular bg-components-card-bg px-4 py-3">
-                <div class="text-xs uppercase tracking-[0.18em] text-text-tertiary">
-                  {{ 'PAC.Assistant.RuntimeFrameUrl' | translate: { Default: 'ChatKit Frame URL' } }}
-                </div>
-                <div class="mt-2 break-all font-mono text-xs text-text-primary">
-                  {{
-                    facade.chatkitFrameUrl ||
-                      ('PAC.Assistant.FrameUrlMissing' | translate: { Default: 'Deployment variable not configured' })
-                  }}
-                </div>
-                <div class="mt-3 text-xs text-text-secondary">
-                  {{
-                    'PAC.Assistant.RuntimeFrameUrlDesc'
-                      | translate
-                        : { Default: 'ChatKit frame is deployment-configured and shared by all assistant pages.' }
-                  }}
-                </div>
-              </div>
-
-              <div class="mt-4 rounded-2xl border border-dashed border-divider-regular bg-components-card-bg px-4 py-3">
-                <div class="text-xs uppercase tracking-[0.18em] text-text-tertiary">
-                  {{ 'PAC.Assistant.RuntimeApiUrl' | translate: { Default: 'Runtime API URL' } }}
-                </div>
-                <div class="mt-2 break-all font-mono text-xs text-text-primary">{{ facade.fixedApiUrl }}</div>
-                <div class="mt-3 text-xs text-text-secondary">
-                  {{
-                    'PAC.Assistant.RuntimeJwtDesc'
-                      | translate
-                        : { Default: 'Authentication uses the current user JWT automatically.' }
-                  }}
-                </div>
-              </div>
-
               <div class="mt-4 flex items-center justify-between gap-3">
                 <div class="text-xs text-text-tertiary">
                   {{ facade.sourceStateLabel(config(assistant.code)) }}
                 </div>
                 <div class="flex items-center gap-2">
                   @if (isOrganizationScope()) {
-                    <button
+                    <button z-button zType="outline" zShape="circle"
                       type="button"
-                      class="rounded-full border border-divider-regular px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg disabled:cursor-not-allowed disabled:opacity-60"
-                      [disabled]="
+                      [zDisabled]="
                         !facade.organizationId() ||
                         !facade.organizationConfig(assistant.code) ||
                         facade.savingKey() === (assistant.code + ':organization:delete')
@@ -198,10 +166,9 @@ import { AssistantsSettingsFacade } from './assistants.facade'
                     </button>
                   }
 
-                  <button
+                  <button z-button zType="default" zShape="circle"
                     type="button"
-                    class="rounded-full border border-divider-regular px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg disabled:cursor-not-allowed disabled:opacity-60"
-                    [disabled]="
+                    [zDisabled]="
                       !canEdit() ||
                       form(assistant.code).invalid ||
                       facade.savingKey() === savingKey(assistant.code)
