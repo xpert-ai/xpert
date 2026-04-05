@@ -14,9 +14,9 @@ import {
 } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import {
-  ZardComboboxComponent,
-  ZardComboboxOptionTemplateDirective,
-  type ZardComboboxOption,
+  ZardComboboxDeprecatedComponent,
+  ZardComboboxDeprecatedOptionTemplateDirective,
+  type ZardComboboxDeprecatedOption,
   ZardFormImports,
   ZardInputDirective
 } from '@xpert-ai/headless-ui'
@@ -37,8 +37,8 @@ import { NgmHighlightDirective } from '../directives'
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    ZardComboboxComponent,
-    ZardComboboxOptionTemplateDirective,
+    ZardComboboxDeprecatedComponent,
+    ZardComboboxDeprecatedOptionTemplateDirective,
     ZardInputDirective,
     ...ZardFormImports,
     NgmHighlightDirective
@@ -109,7 +109,7 @@ export class NgmInputComponent implements ControlValueAccessor {
   private _onTouched: (value) => void
 
   readonly hasOptions = computed(() => !!this.options()?.length)
-  readonly comboboxOptions = computed<ZardComboboxOption[]>(() =>
+  readonly comboboxOptions = computed<ZardComboboxDeprecatedOption[]>(() =>
     (this.options() ?? []).map((option) => ({
       id: option.key ?? option[this.valueKey],
       label: option.caption || option.label || `${option[this.valueKey] ?? ''}`,
@@ -147,7 +147,7 @@ export class NgmInputComponent implements ControlValueAccessor {
     this.onChange(value)
   }
 
-  readonly filterOption = (option: ZardComboboxOption, searchTerm: string) => {
+  readonly filterOption = (option: ZardComboboxDeprecatedOption, searchTerm: string) => {
     const normalized = searchTerm?.trim().toLowerCase()
     if (!normalized) {
       return true
@@ -159,7 +159,7 @@ export class NgmInputComponent implements ControlValueAccessor {
     return terms.every((term) => haystack.includes(term))
   }
 
-  displayValue(_option: ZardComboboxOption | null, value: unknown) {
+  displayValue(_option: ZardComboboxDeprecatedOption | null, value: unknown) {
     return value == null ? '' : `${value}`
   }
 }

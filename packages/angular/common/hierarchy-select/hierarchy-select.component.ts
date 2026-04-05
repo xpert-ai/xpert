@@ -7,14 +7,14 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { distinctUntilChanged, startWith } from 'rxjs'
 import { NgmDisplayBehaviourComponent } from '../display-behaviour'
 import { NgmFieldAppearance } from "@metad/ocap-angular/core";
-import { ZardComboboxComponent, ZardComboboxGroup, ZardComboboxOption, ZardFormImports } from '@xpert-ai/headless-ui'
+import { ZardComboboxDeprecatedComponent, ZardComboboxDeprecatedGroup, ZardComboboxDeprecatedOption, ZardFormImports } from '@xpert-ai/headless-ui'
 
 /**
  * @deprecated use headless components instead
  */
 @Component({
   standalone: true,
-  imports: [...ZardFormImports, ZardComboboxComponent, ReactiveFormsModule, TranslateModule, NgmDisplayBehaviourComponent],
+  imports: [...ZardFormImports, ZardComboboxDeprecatedComponent, ReactiveFormsModule, TranslateModule, NgmDisplayBehaviourComponent],
   selector: 'ngm-hierarchy-select',
   templateUrl: './hierarchy-select.component.html',
   styles: [],
@@ -41,13 +41,13 @@ export class NgmHierarchySelectComponent implements ControlValueAccessor {
   onTouched: () => void
 
   readonly value = toSignal(this.formControl.valueChanges.pipe(startWith(this.formControl.value)))
-  readonly noneOption = computed<ZardComboboxOption[]>(() => [
+  readonly noneOption = computed<ZardComboboxDeprecatedOption[]>(() => [
     {
       value: '',
       label: `-- ${this.#translate.instant('Ngm.Common.None', { Default: 'None' })} --`
     }
   ])
-  readonly groups = computed<ZardComboboxGroup[]>(() =>
+  readonly groups = computed<ZardComboboxDeprecatedGroup[]>(() =>
     this.dimensions()?.map((dimension) => ({
       label: dimension.caption,
       options: dimension.hierarchies?.map((hierarchy) => ({

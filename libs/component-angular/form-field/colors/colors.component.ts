@@ -4,12 +4,12 @@ import { ChangeDetectionStrategy, Component, Input, computed, forwardRef, signal
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import {
   ZardButtonComponent,
-  ZardComboboxComponent,
-  ZardComboboxOptionTemplateDirective,
+  ZardComboboxDeprecatedComponent,
+  ZardComboboxDeprecatedOptionTemplateDirective,
   ZardFormImports,
   ZardIconComponent,
-  type ZardComboboxGroup,
-  type ZardComboboxOption
+  type ZardComboboxDeprecatedGroup,
+  type ZardComboboxDeprecatedOption
 } from '@xpert-ai/headless-ui'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
@@ -28,8 +28,8 @@ const listEnterAnimation = trigger('listEnterAnimation', [
     FormsModule,
     ReactiveFormsModule,
     TranslateModule,
-    ZardComboboxComponent,
-    ZardComboboxOptionTemplateDirective,
+    ZardComboboxDeprecatedComponent,
+    ZardComboboxDeprecatedOptionTemplateDirective,
     ...ZardFormImports,
     ZardIconComponent,
     ZardButtonComponent,
@@ -57,7 +57,7 @@ export class NgmColorsComponent implements ControlValueAccessor {
 
   value: string[] | null = null
   readonly searchTerm = signal('')
-  readonly colorGroups = computed<ZardComboboxGroup<string[]>[]>(() =>
+  readonly colorGroups = computed<ZardComboboxDeprecatedGroup<string[]>[]>(() =>
     (this.options ?? []).map((group) => ({
       label: group.label,
       options: group.colors.map((color) => ({
@@ -87,7 +87,7 @@ export class NgmColorsComponent implements ControlValueAccessor {
     this.disabled = isDisabled
   }
 
-  displayColors(_option: ZardComboboxOption | null, value: unknown) {
+  displayColors(_option: ZardComboboxDeprecatedOption | null, value: unknown) {
     return Array.isArray(value) ? value.join(', ') : `${value ?? ''}`
   }
 

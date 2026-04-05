@@ -22,8 +22,8 @@ import { CommonModule } from '@angular/common'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import {
   ZardButtonComponent,
-  ZardComboboxComponent,
-  type ZardComboboxOption,
+  ZardComboboxDeprecatedComponent,
+  type ZardComboboxDeprecatedOption,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
@@ -92,7 +92,7 @@ export type CreateEntityDialogRetType = {
     ReactiveFormsModule,
     ZardIconComponent,
     ZardButtonComponent,
-    ZardComboboxComponent,
+    ZardComboboxDeprecatedComponent,
     ...ZardFormImports,
     ZardInputDirective,
     ...ZardSelectImports,
@@ -155,14 +155,14 @@ export class ModelCreateEntityComponent {
   )
 
   readonly factFields = signal(this.data.factFields)
-  readonly tableComboboxOptions = computed<ZardComboboxOption[]>(() =>
+  readonly tableComboboxOptions = computed<ZardComboboxDeprecatedOption[]>(() =>
     (this.data.entitySets ?? []).map((item) => ({
       id: item.name,
       value: item.name,
       label: item.label || item.caption || item.name
     }))
   )
-  readonly factFieldComboboxOptions = computed<ZardComboboxOption[]>(() =>
+  readonly factFieldComboboxOptions = computed<ZardComboboxDeprecatedOption[]>(() =>
     (this.factFields() ?? []).map((item) => ({
       id: this.comboboxId(item.key ?? item.value),
       value: `${item.value ?? ''}`,

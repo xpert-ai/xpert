@@ -14,9 +14,9 @@ import { NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   ZardChipInputEvent,
-  ZardComboboxComponent,
-  ZardComboboxOptionTemplateDirective,
-  type ZardComboboxOption
+  ZardComboboxDeprecatedComponent,
+  ZardComboboxDeprecatedOptionTemplateDirective,
+  type ZardComboboxDeprecatedOption
 } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { ITag, Store, TagCategoryEnum, TagService } from '../../../@core'
@@ -30,8 +30,8 @@ import { NgmFieldColor } from '@metad/ocap-angular/core'
     SharedUiModule,
     TranslateModule,
     NgmHighlightDirective,
-    ZardComboboxComponent,
-    ZardComboboxOptionTemplateDirective
+    ZardComboboxDeprecatedComponent,
+    ZardComboboxDeprecatedOptionTemplateDirective
   ],
   selector: 'pac-tag-editor',
   templateUrl: './editor.component.html',
@@ -68,7 +68,7 @@ export class TagEditorComponent implements ControlValueAccessor {
   }
 
   readonly _tags = derivedAsync(() => this.tagService.getAllByCategory(this.category()), { initialValue: [] })
-  readonly comboboxOptions = computed<ZardComboboxOption[]>(() =>
+  readonly comboboxOptions = computed<ZardComboboxDeprecatedOption[]>(() =>
     this._tags().map((tag) => ({
       id: tag.id ?? tag.name,
       label: tag.name,
@@ -102,11 +102,11 @@ export class TagEditorComponent implements ControlValueAccessor {
     this.disabled = isDisabled
   }
 
-  displayTag(_option: ZardComboboxOption | null, value: unknown) {
+  displayTag(_option: ZardComboboxDeprecatedOption | null, value: unknown) {
     return (value as ITag | null)?.name ?? `${value ?? ''}`
   }
 
-  filterTagOption(option: ZardComboboxOption, searchTerm: string) {
+  filterTagOption(option: ZardComboboxDeprecatedOption, searchTerm: string) {
     const tag = option.data as ITag | undefined
     const normalized = searchTerm?.trim().toLowerCase()
     if (!normalized) {

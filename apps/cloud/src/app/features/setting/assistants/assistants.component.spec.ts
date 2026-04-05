@@ -9,6 +9,31 @@ jest.mock('@xpert-ai/headless-ui', () => {
   const angularCore = jest.requireActual('@angular/core')
 
   class ZardComboboxComponent {
+    value: string | null = null
+    options: unknown[] = []
+    zDisabled = false
+    placeholder = ''
+    searchPlaceholder = ''
+    zWidth = 'default'
+    zValueChange = new angularCore.EventEmitter()
+  }
+
+  angularCore.Component({
+    selector: 'z-combobox',
+    standalone: true,
+    template: '<ng-content />',
+    inputs: ['value', 'options', 'zDisabled', 'placeholder', 'searchPlaceholder', 'zWidth'],
+    outputs: ['zValueChange']
+  })(ZardComboboxComponent)
+
+  class ZardComboboxOptionTemplateDirective {}
+
+  angularCore.Directive({
+    selector: '[zComboboxOption]',
+    standalone: true
+  })(ZardComboboxOptionTemplateDirective)
+
+  class ZardComboboxDeprecatedComponent {
     value: unknown = null
     options: unknown[] = []
     disabled = false
@@ -21,23 +46,25 @@ jest.mock('@xpert-ai/headless-ui', () => {
   }
 
   angularCore.Component({
-    selector: 'z-combobox',
+    selector: 'z-combobox-deprecated',
     standalone: true,
     template: '<ng-content />',
     inputs: ['value', 'options', 'disabled', 'placeholder', 'zSearchTerm', 'zDisplayWith', 'zTriggerMode'],
     outputs: ['zSearchTermChange', 'zValueChange']
-  })(ZardComboboxComponent)
+  })(ZardComboboxDeprecatedComponent)
 
-  class ZardComboboxOptionTemplateDirective {}
+  class ZardComboboxDeprecatedOptionTemplateDirective {}
 
   angularCore.Directive({
-    selector: '[zComboboxOption]',
+    selector: '[zComboboxDeprecatedOption]',
     standalone: true
-  })(ZardComboboxOptionTemplateDirective)
+  })(ZardComboboxDeprecatedOptionTemplateDirective)
 
   return {
     ZardComboboxComponent,
     ZardComboboxOptionTemplateDirective,
+    ZardComboboxDeprecatedComponent,
+    ZardComboboxDeprecatedOptionTemplateDirective,
     ZardFormImports: []
   }
 })
@@ -347,7 +374,7 @@ describe('AssistantsSettingsComponent', () => {
     expect(toastr.success).toHaveBeenCalled()
   })
 
-  it('uses tenant-only xperts for tenant defaults and tenant-plus-org xperts for organization overrides', async () => {
+  it('preserves the saved selection while listing the accessible xperts for each scope', async () => {
     const fixture = TestBed.createComponent(AssistantsSettingsComponent)
     await fixture.whenStable()
     fixture.detectChanges()
@@ -364,8 +391,12 @@ describe('AssistantsSettingsComponent', () => {
       AssistantCode.CHATBI as any
     )
 
-    expect(tenantOptions.map((option) => option.value)).toEqual(['tenant-assistant'])
-    expect(organizationOptions.map((option) => option.value)).toEqual(['tenant-assistant', 'org-assistant'])
+    expect(tenantOptions.map((option) => option.value)).toEqual(['workspace-assistant', 'tenant-assistant'])
+    expect(organizationOptions.map((option) => option.value)).toEqual([
+      'chatbi-assistant',
+      'tenant-assistant',
+      'org-assistant'
+    ])
   })
 
   it('registers the common assistant in the settings registry', () => {

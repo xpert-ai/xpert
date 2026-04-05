@@ -15,7 +15,7 @@
   </z-form-label>
 
   @if (props?.searchable) {
-    <z-combobox
+    <z-combobox-deprecated
       zTriggerMode="input"
       class="w-full pac-formly-select__control"
       [class.pac-formly-select__control--error]="hasError()"
@@ -29,7 +29,7 @@
       (zSearchTermChange)="onSearchTermChange($event)"
       (zValueChange)="onOptionSelected($event)"
     >
-      <ng-template zComboboxPanel let-activeIndex="activeIndex" let-select="select" let-setActiveIndex="setActiveIndex">
+      <ng-template zComboboxDeprecatedPanel let-activeIndex="activeIndex" let-select="select" let-setActiveIndex="setActiveIndex">
         @if (props?.virtualScroll) {
           <cdk-virtual-scroll-viewport
             class="pac-formly-select__viewport p-1!"
@@ -85,7 +85,7 @@
           </div>
         }
       </ng-template>
-    </z-combobox>
+    </z-combobox-deprecated>
   } @else {
     <z-select
       class="w-full pac-formly-select__control"

@@ -25,9 +25,9 @@ import {
 import {
   ZardButtonComponent,
   ZardCheckboxComponent,
-  ZardComboboxComponent,
-  ZardComboboxPanelTemplateDirective,
-  type ZardComboboxOption,
+  ZardComboboxDeprecatedComponent,
+  ZardComboboxDeprecatedPanelTemplateDirective,
+  type ZardComboboxDeprecatedOption,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
@@ -71,8 +71,8 @@ import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
     ScrollingModule,
     ...ZardFormImports,
     ZardCheckboxComponent,
-    ZardComboboxComponent,
-    ZardComboboxPanelTemplateDirective,
+    ZardComboboxDeprecatedComponent,
+    ZardComboboxDeprecatedPanelTemplateDirective,
     ZardLoaderComponent,
     ZardIconComponent,
     ZardInputDirective,
@@ -128,7 +128,7 @@ export class NgmAdvancedSelectComponent implements OnChanges, ControlValueAccess
     this.multiple ? this.selectedValues().length : !!this.singleValue()
   )
 
-  readonly comboboxOptions = computed<ZardComboboxOption[]>(() =>
+  readonly comboboxOptions = computed<ZardComboboxDeprecatedOption[]>(() =>
     (this.selectOptions() ?? []).map((option) => ({
       id: this.optionId(option),
       label: option.caption || option.label || `${option.key ?? option.value ?? ''}`,
@@ -208,11 +208,11 @@ export class NgmAdvancedSelectComponent implements OnChanges, ControlValueAccess
     }
   }
 
-  trackBy(i: number, item: ZardComboboxOption | ISelectOption) {
-    return (item as ZardComboboxOption)?.id ?? (item as ISelectOption)?.key ?? i
+  trackBy(i: number, item: ZardComboboxDeprecatedOption | ISelectOption) {
+    return (item as ZardComboboxDeprecatedOption)?.id ?? (item as ISelectOption)?.key ?? i
   }
 
-  readonly displayWith = (option: ZardComboboxOption | null, value: unknown) => {
+  readonly displayWith = (option: ZardComboboxDeprecatedOption | null, value: unknown) => {
     if (Array.isArray(value)) {
       return value
         .map((item) => this.resolveOptionLabel(item as string))
@@ -228,7 +228,7 @@ export class NgmAdvancedSelectComponent implements OnChanges, ControlValueAccess
     return this.resolveOptionLabel(value as string)
   }
 
-  isSelect(option: ZardComboboxOption) {
+  isSelect(option: ZardComboboxDeprecatedOption) {
     return this.selectionSignal().includes(option.value as string)
   }
 
@@ -261,7 +261,7 @@ export class NgmAdvancedSelectComponent implements OnChanges, ControlValueAccess
     this.onChange?.(normalized)
   }
 
-  onSelect(event: boolean, option: ZardComboboxOption) {
+  onSelect(event: boolean, option: ZardComboboxDeprecatedOption) {
     if (!this.multiple) {
       return
     }

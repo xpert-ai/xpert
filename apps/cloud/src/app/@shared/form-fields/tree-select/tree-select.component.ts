@@ -3,10 +3,10 @@ import { CommonModule } from '@angular/common'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import {
   ZardButtonComponent,
-  ZardComboboxComponent,
-  ZardComboboxPanelTemplateDirective,
-  type ZardComboboxDisplayWith,
-  type ZardComboboxOption,
+  ZardComboboxDeprecatedComponent,
+  ZardComboboxDeprecatedPanelTemplateDirective,
+  type ZardComboboxDeprecatedDisplayWith,
+  type ZardComboboxDeprecatedOption,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
@@ -52,8 +52,8 @@ type TreeSelectFlatNode<T = unknown> = {
     ReactiveFormsModule,
     ...ZardFormImports,
     ZardButtonComponent,
-    ZardComboboxComponent,
-    ZardComboboxPanelTemplateDirective,
+    ZardComboboxDeprecatedComponent,
+    ZardComboboxDeprecatedPanelTemplateDirective,
     ZardIconComponent,
     ZardInputDirective,
     ...ZardTreeImports,
@@ -143,7 +143,7 @@ export class XpTreeSelectComponent<T = unknown> implements ControlValueAccessor 
     filterTreeSelectNodes(this.treeNodes() ?? [], this.searchTerm(), this.displayBehaviour())
   )
   readonly comboboxNodes = computed(() => this.treeFlattener.flattenNodes(this.filteredTreeNodes() ?? []))
-  readonly comboboxOptions = computed<ZardComboboxOption<string, TreeSelectFlatNode<T>>[]>(() =>
+  readonly comboboxOptions = computed<ZardComboboxDeprecatedOption<string, TreeSelectFlatNode<T>>[]>(() =>
     this.comboboxNodes().map((node) => this.asComboboxOption(node))
   )
   readonly selectedNode = computed(() => findTreeSelectNode(this.treeNodes(), this.value()))
@@ -188,7 +188,7 @@ export class XpTreeSelectComponent<T = unknown> implements ControlValueAccessor 
     this.disabled.set(isDisabled)
   }
 
-  readonly displayWith: ZardComboboxDisplayWith = (option, value) => {
+  readonly displayWith: ZardComboboxDeprecatedDisplayWith = (option, value) => {
     const key = normalizeTreeSelectValue(value)
     if (!key) {
       return ''
@@ -200,7 +200,7 @@ export class XpTreeSelectComponent<T = unknown> implements ControlValueAccessor 
 
   readonly hasChild = (_: number, node: TreeSelectFlatNode<T>) => node.expandable
 
-  asComboboxOption(node: TreeSelectFlatNode<T>): ZardComboboxOption<string, TreeSelectFlatNode<T>> {
+  asComboboxOption(node: TreeSelectFlatNode<T>): ZardComboboxDeprecatedOption<string, TreeSelectFlatNode<T>> {
     return {
       id: node.key,
       value: node.key,

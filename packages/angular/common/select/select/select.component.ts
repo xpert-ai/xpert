@@ -21,9 +21,9 @@ import {
   ReactiveFormsModule,
 } from '@angular/forms'
 import {
-  ZardComboboxComponent,
-  ZardComboboxPanelTemplateDirective,
-  type ZardComboboxOption,
+  ZardComboboxDeprecatedComponent,
+  ZardComboboxDeprecatedPanelTemplateDirective,
+  type ZardComboboxDeprecatedOption,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
@@ -70,8 +70,8 @@ import { NgmOptionContent } from '../../input/option-content'
     FormsModule,
     ReactiveFormsModule,
     ...ZardSelectImports,
-    ZardComboboxComponent,
-    ZardComboboxPanelTemplateDirective,
+    ZardComboboxDeprecatedComponent,
+    ZardComboboxDeprecatedPanelTemplateDirective,
     ZardInputDirective,
     ...ZardFormImports,
     ZardIconComponent,
@@ -121,7 +121,7 @@ export class NgmSelectComponent implements ControlValueAccessor
   readonly value = signal<string | number | Array<string | number>>(null)
   readonly searchTerm = signal('')
   readonly highlight = computed(() => this.searchTerm())
-  readonly comboboxOptions = computed<ZardComboboxOption[]>(() =>
+  readonly comboboxOptions = computed<ZardComboboxDeprecatedOption[]>(() =>
     (this.selectOptions() ?? []).map((option) => ({
       id: this.optionId(option),
       label: option.caption || option.label || `${option[this.valueKey()] ?? ''}`,
@@ -181,7 +181,7 @@ export class NgmSelectComponent implements ControlValueAccessor
     return item?.id ?? item?.value
   }
 
-  displayWith(option: ZardComboboxOption | null, value: unknown) {
+  displayWith(option: ZardComboboxDeprecatedOption | null, value: unknown) {
     if (option?.data) {
       const original = option.data as ISelectOption
       return original?.caption || original?.label || original?.key || `${value ?? ''}`

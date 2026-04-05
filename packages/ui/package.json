@@ -12,6 +12,8 @@
     "i18next": "^23.14.0"
   },
   "dependencies": {
+    "@ng-icons/core": "^33.2.0",
+    "@ng-icons/lucide": "^33.2.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
     "lucide-angular": "^0.544.0",

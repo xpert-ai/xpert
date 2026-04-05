@@ -4,7 +4,7 @@ import { FormBuilder, Validators } from '@angular/forms'
 import { environment } from '@cloud/environments/environment'
 import { TranslateService } from '@ngx-translate/core'
 import { firstValueFrom, map, of, startWith, switchMap } from 'rxjs'
-import { type ZardComboboxDeprecatedOption } from '@xpert-ai/headless-ui'
+import { type ZardComboboxOption } from '@xpert-ai/headless-ui'
 import {
   AiFeatureEnum,
   AssistantBindingScope,
@@ -31,7 +31,6 @@ export class AssistantsSettingsFacade {
   readonly #formBuilder = inject(FormBuilder)
   readonly #toastr = inject(ToastrService)
   readonly #translate = inject(TranslateService)
-  readonly #skipNextAssistantSearchSync = new Set<string>()
 
   readonly featureOrganizations = toSignal(this.#store.featureOrganizations$.pipe(startWith([])))
   readonly featureTenant = toSignal(this.#store.featureTenant$.pipe(startWith([])))
@@ -69,7 +68,6 @@ export class AssistantsSettingsFacade {
       {} as Record<string, IXpert>
     )
   )
-  readonly assistantSearchTerms = signal<Record<string, string>>({})
   readonly organizationName = computed(() => this.selectedOrganization()?.name ?? null)
   readonly canManageTenant = computed(() => this.user()?.role?.name === RolesEnum.SUPER_ADMIN)
   readonly assistants = computed(() => {
@@ -143,15 +141,6 @@ export class AssistantsSettingsFacade {
     return this.effectiveConfigs()[code] ?? null
   }
 
-  readonly displayAssistantXpert = (_option: ZardComboboxDeprecatedOption | null, value: unknown) => {
-    if (value === null || value === undefined || value === '') {
-      return ''
-    }
-
-    const xpert = this.xpertLookup()[`${value}`]
-    return xpert ? this.getXpertLabel(xpert) : `${value}`
-  }
-
   sourceLabel(sourceScope?: string | null) {
     switch (sourceScope) {
       case AssistantBindingSourceScope.ORGANIZATION:
@@ -183,63 +172,28 @@ export class AssistantsSettingsFacade {
     return this.t('PAC.Assistant.NoSavedConfigInScope', 'No saved config in this scope')
   }
 
-  assistantSearchTerm(scope: AssistantBindingScope, code: AssistantCode) {
-    return this.assistantSearchTerms()[this.assistantSearchKey(scope, code)] ?? ''
-  }
-
   assistantSelectionValue(scope: AssistantBindingScope, code: AssistantCode) {
     return scope === AssistantBindingScope.TENANT
       ? this.tenantForm(code).controls.assistantId.value
       : this.organizationForm(code).controls.assistantId.value
   }
 
-  assistantXpertOptions(scope: AssistantBindingScope, code: AssistantCode): ZardComboboxDeprecatedOption[] {
-    const searchTerm = this.assistantSearchTerm(scope, code).trim().toLowerCase()
+  assistantXpertOptions(scope: AssistantBindingScope, code: AssistantCode): ZardComboboxOption[] {
     const xperts =
       scope === AssistantBindingScope.TENANT
         ? this.tenantXperts()
         : this.organizationAvailableXperts()
+    const selectedValue = this.assistantSelectionValue(scope, code)
+    const options = xperts.map((xpert) => this.toAssistantXpertOption(xpert))
 
-    return xperts
-      .filter((xpert) => {
-        if (!searchTerm) {
-          return true
-        }
-
-        return [xpert.id, xpert.slug, xpert.name, xpert.title, xpert.titleCN, xpert.description]
-          .filter((value): value is string => !!value)
-          .some((value) => value.toLowerCase().includes(searchTerm))
-      })
-      .map((xpert) => {
-        const label = this.getXpertLabel(xpert)
-        const description = this.getXpertDescription(xpert)
-        const meta = this.getXpertMeta(xpert, label)
-
-        return {
-          id: xpert.id,
-          label,
-          value: xpert.id,
-          keywords: [label, description, meta].filter((value): value is string => !!value),
-          data: {
-            id: xpert.id,
-            label,
-            description,
-            meta
-          }
-        }
-      })
-  }
-
-  onAssistantSearchTermChange(scope: AssistantBindingScope, code: AssistantCode, value: string) {
-    const key = this.assistantSearchKey(scope, code)
-
-    if (this.#skipNextAssistantSearchSync.has(key)) {
-      this.#skipNextAssistantSearchSync.delete(key)
-      this.setAssistantSearchTerm(key, '')
-      return
+    if (!selectedValue || options.some((option) => option.value === selectedValue)) {
+      return options
     }
 
-    this.setAssistantSearchTerm(key, value)
+    return [
+      this.toAssistantXpertOption(this.xpertLookup()[selectedValue], selectedValue),
+      ...options
+    ]
   }
 
   selectAssistantXpert(scope: AssistantBindingScope, code: AssistantCode, value: unknown) {
@@ -249,7 +203,6 @@ export class AssistantsSettingsFacade {
     form.controls.assistantId.setValue(assistantId)
     form.controls.assistantId.markAsDirty()
     form.controls.assistantId.markAsTouched()
-    this.resetAssistantSearch(scope, code)
   }
 
   async saveConfig(assistant: AssistantRegistryItem, scope: AssistantBindingScope) {
@@ -341,8 +294,6 @@ export class AssistantsSettingsFacade {
       ASSISTANT_REGISTRY.forEach((assistant) => {
         this.patchForm(this.tenantForm(assistant.code), this.tenantConfig(assistant.code))
         this.patchForm(this.organizationForm(assistant.code), this.organizationConfig(assistant.code))
-        this.clearAssistantSearch(AssistantBindingScope.TENANT, assistant.code)
-        this.clearAssistantSearch(AssistantBindingScope.ORGANIZATION, assistant.code)
       })
 
       if (!this.canManageTenant()) {
@@ -388,6 +339,28 @@ export class AssistantsSettingsFacade {
     return xpert?.title || xpert?.titleCN || xpert?.name || xpert?.slug || xpert?.id || ''
   }
 
+  private toAssistantXpertOption(
+    xpert: Partial<IXpert> | null | undefined,
+    fallbackValue?: string
+  ): ZardComboboxOption {
+    const value = xpert?.id ?? fallbackValue ?? ''
+    const label = this.getXpertLabel(xpert) || fallbackValue || ''
+    const description = this.getXpertDescription(xpert)
+    const meta = this.getXpertMeta(xpert, label)
+
+    return {
+      value,
+      label,
+      command: [label, description, meta].filter((item): item is string => !!item).join(' '),
+      data: {
+        id: value,
+        label,
+        description,
+        meta
+      }
+    }
+  }
+
   private getXpertDescription(xpert: Partial<IXpert> | null | undefined) {
     return xpert?.description?.trim() || ''
   }
@@ -411,28 +384,6 @@ export class AssistantsSettingsFacade {
       seen.add(xpert.id)
       return true
     })
-  }
-
-  private assistantSearchKey(scope: AssistantBindingScope, code: AssistantCode) {
-    return `${scope}:${code}`
-  }
-
-  private setAssistantSearchTerm(key: string, value: string) {
-    this.assistantSearchTerms.update((state) => ({
-      ...state,
-      [key]: value
-    }))
-  }
-
-  private resetAssistantSearch(scope: AssistantBindingScope, code: AssistantCode) {
-    const key = this.assistantSearchKey(scope, code)
-    this.#skipNextAssistantSearchSync.add(key)
-    this.setAssistantSearchTerm(key, '')
-  }
-
-  private clearAssistantSearch(scope: AssistantBindingScope, code: AssistantCode) {
-    this.#skipNextAssistantSearchSync.delete(this.assistantSearchKey(scope, code))
-    this.setAssistantSearchTerm(this.assistantSearchKey(scope, code), '')
   }
 
   private t(key: string, Default: string) {

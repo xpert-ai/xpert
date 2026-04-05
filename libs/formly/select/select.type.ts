@@ -20,10 +20,10 @@ import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { isString } from 'lodash-es'
 import { EMPTY, Observable, catchError, isObservable, startWith } from 'rxjs'
 import {
-  ZardComboboxComponent,
-  ZardComboboxPanelTemplateDirective,
-  type ZardComboboxOption
-} from '@xpert-ai/headless-ui/components/combobox'
+  ZardComboboxDeprecatedComponent,
+  ZardComboboxDeprecatedPanelTemplateDirective,
+  type ZardComboboxDeprecatedOption
+} from '@xpert-ai/headless-ui/components/combobox-deprecated'
 import { ZardFormImports } from '@xpert-ai/headless-ui/components/form'
 import { ZardLoaderComponent } from '@xpert-ai/headless-ui/components/loader'
 import { ZardSelectImports } from '@xpert-ai/headless-ui/components/select'
@@ -53,8 +53,8 @@ const isNonNullable = <T>(value: T | null | undefined): value is T => value !== 
     ...ZardFormImports,
     ...ZardSelectImports,
     ...ZardTooltipImports,
-    ZardComboboxComponent,
-    ZardComboboxPanelTemplateDirective,
+    ZardComboboxDeprecatedComponent,
+    ZardComboboxDeprecatedPanelTemplateDirective,
     ZardLoaderComponent,
     NgmDisplayBehaviourComponent,
     FormlyModule,
@@ -76,7 +76,7 @@ export class PACFormlySelectComponent extends FieldType implements OnInit {
   readonly error = signal<string | null>(null)
   readonly searchTerm = signal('')
   readonly highlight = computed(() => this.searchTerm())
-  readonly comboboxOptions = computed<ZardComboboxOption[]>(() =>
+  readonly comboboxOptions = computed<ZardComboboxDeprecatedOption[]>(() =>
     (this.selectOptions() ?? []).map((option) => ({
       id: this.optionId(option),
       label: this.optionLabel(option),
@@ -152,11 +152,11 @@ export class PACFormlySelectComponent extends FieldType implements OnInit {
     }
   }
 
-  trackByValue(index: number, item: ZardComboboxOption) {
+  trackByValue(index: number, item: ZardComboboxDeprecatedOption) {
     return item?.id ?? item?.value ?? index
   }
 
-  readonly displayWith = (option: ZardComboboxOption | null, value: unknown) => {
+  readonly displayWith = (option: ZardComboboxDeprecatedOption | null, value: unknown) => {
     if (option?.data) {
       return this.optionLabel(option.data as ISelectOption) || (value == null ? '' : `${value}`)
     }

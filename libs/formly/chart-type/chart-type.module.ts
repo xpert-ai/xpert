@@ -7,7 +7,7 @@ import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core
 import { FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
-import { ZardButtonComponent, ZardCheckboxComponent, ZardComboboxComponent, ZardDialogModule, ZardIconComponent, ZardInputDirective, ZardToggleGroupComponent, ZardToggleGroupItemComponent, ZardTooltipImports, provideZardIconAssets } from '@xpert-ai/headless-ui'
+import { ZardButtonComponent, ZardCheckboxComponent, ZardComboboxDeprecatedComponent, ZardDialogModule, ZardIconComponent, ZardInputDirective, ZardToggleGroupComponent, ZardToggleGroupItemComponent, ZardTooltipImports, provideZardIconAssets } from '@xpert-ai/headless-ui'
 import { PACFormlyChartTypeComponent } from './chart-type.component'
 import { CHART_ICON_ASSETS } from './types'
 
@@ -20,7 +20,7 @@ import { CHART_ICON_ASSETS } from './types'
     DragDropModule,
     ZardIconComponent,
     ZardButtonComponent,
-    ZardComboboxComponent,
+    ZardComboboxDeprecatedComponent,
     ZardDialogModule,
     ZardInputDirective,
     ZardCheckboxComponent,

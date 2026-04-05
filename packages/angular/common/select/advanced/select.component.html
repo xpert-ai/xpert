@@ -1,7 +1,7 @@
 <z-form-field class="w-full flex-1 group" [appearance]="appearance" [displayDensity]="displayDensity">
   <z-form-label>{{ label }}</z-form-label>
 
-  <z-combobox
+  <z-combobox-deprecated
     zTriggerMode="input"
     class="w-full"
     [value]="comboboxValue()"
@@ -16,7 +16,7 @@
     (zValueChange)="onComboboxValueChange($event)"
     (zBlur)="onTouched?.()"
   >
-    <ng-template zComboboxPanel let-activeIndex="activeIndex" let-select="select" let-setActiveIndex="setActiveIndex">
+    <ng-template zComboboxDeprecatedPanel let-activeIndex="activeIndex" let-select="select" let-setActiveIndex="setActiveIndex">
       @if (virtualScroll) {
         <cdk-virtual-scroll-viewport
           [itemSize]="virtualScrollItemSize"
@@ -93,7 +93,7 @@
         }
       }
     </ng-template>
-  </z-combobox>
+  </z-combobox-deprecated>
 
   <div zFormSuffix class="flex items-center">
     @if (loading()) {

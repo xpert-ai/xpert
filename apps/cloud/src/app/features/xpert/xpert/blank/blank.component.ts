@@ -7,7 +7,7 @@ import { FormsModule } from '@angular/forms'
 import { injectWorkspace } from '@metad/cloud/state'
 import { parseYAML } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
-import { ZardComboboxComponent, ZardDialogService, ZardStepperImports } from '@xpert-ai/headless-ui'
+import { ZardComboboxDeprecatedComponent, ZardDialogService, ZardStepperImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   EnvironmentService,
@@ -217,7 +217,7 @@ const WORKFLOW_TRANSFORM_NODE_OPTIONS: BlankWorkflowNodeOption[] = [
     CdkListboxModule,
     NgmI18nPipe,
     NgmSpinComponent,
-    ZardComboboxComponent,
+    ZardComboboxDeprecatedComponent,
     XpertBasicFormComponent,
     XpertWorkflowIconComponent,
     BlankTriggerSelectionComponent,

@@ -23,7 +23,7 @@
         }
       </z-chip-grid>
 
-      <z-combobox
+      <z-combobox-deprecated
         zTriggerMode="input"
         class="w-full"
         [value]="null"
@@ -34,7 +34,7 @@
         (zSearchTermChange)="onSearchTermChange($event)"
         (zValueChange)="selected($event)"
       >
-        <ng-template zComboboxOption let-option let-searchTerm="searchTerm">
+        <ng-template zComboboxDeprecatedOption let-option let-searchTerm="searchTerm">
           <ngm-display-behaviour
             class="flex-1"
             [option]="{
@@ -44,7 +44,7 @@
             [highlight]="searchTerm"
           ></ngm-display-behaviour>
         </ng-template>
-      </z-combobox>
+      </z-combobox-deprecated>
       @if (loading) {
         <div zFormSuffix class="flex items-center pr-8">
           <z-loader diameter="20" />

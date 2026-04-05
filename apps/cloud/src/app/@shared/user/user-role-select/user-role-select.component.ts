@@ -4,13 +4,13 @@ import { Component, inject, Input } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import {
   ZardButtonComponent,
-  ZardComboboxComponent,
-  ZardComboboxOptionTemplateDirective,
+  ZardComboboxDeprecatedComponent,
+  ZardComboboxDeprecatedOptionTemplateDirective,
   ZardFormImports,
   ZardIconComponent,
   ZardLoaderComponent,
   ZardChipsImports,
-  type ZardComboboxOption
+  type ZardComboboxDeprecatedOption
 } from '@xpert-ai/headless-ui'
 import { UsersService } from '@metad/cloud/state'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
@@ -27,8 +27,8 @@ import { userLabel, UserPipe } from '../../pipes'
     FormsModule,
     ReactiveFormsModule,
     ZardButtonComponent,
-    ZardComboboxComponent,
-    ZardComboboxOptionTemplateDirective,
+    ZardComboboxDeprecatedComponent,
+    ZardComboboxDeprecatedOptionTemplateDirective,
     ...ZardFormImports,
     ...ZardChipsImports,
     ZardIconComponent,
@@ -101,7 +101,7 @@ export class UserRoleSelectComponent {
     this.single = this.data?.single
   }
 
-  displayWith(_option: ZardComboboxOption | null, value: unknown) {
+  displayWith(_option: ZardComboboxDeprecatedOption | null, value: unknown) {
     if (value === null) {
       return ''
     }

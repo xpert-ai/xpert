@@ -4,7 +4,7 @@ import { FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { throwError } from 'rxjs'
-import { ZardComboboxComponent } from '@xpert-ai/headless-ui/components/combobox'
+import { ZardComboboxDeprecatedComponent } from '@xpert-ai/headless-ui/components/combobox-deprecated'
 import { ZardSelectComponent } from '@xpert-ai/headless-ui/components/select'
 import { PACFormlySelectModule } from './select.module'
 
@@ -79,10 +79,10 @@ describe('formly: Select Type', () => {
     })
 
     expect(query('z-select')).not.toBeNull()
-    expect(query('z-combobox')).toBeNull()
+    expect(query('z-combobox-deprecated')).toBeNull()
   })
 
-  it('should render z-combobox for searchable fields', () => {
+  it('should render z-combobox-deprecated for searchable fields', () => {
     const { query } = renderComponent({
       key: 'name',
       type: 'select',
@@ -92,7 +92,7 @@ describe('formly: Select Type', () => {
       }
     })
 
-    expect(query('z-combobox')).not.toBeNull()
+    expect(query('z-combobox-deprecated')).not.toBeNull()
     expect(query('z-select')).toBeNull()
   })
 
@@ -178,7 +178,7 @@ describe('formly: Select Type', () => {
     expect(query('z-select')).not.toBeNull()
   })
 
-  it('should instantiate searchable alias with z-combobox', () => {
+  it('should instantiate searchable alias with z-combobox-deprecated', () => {
     const { fixture } = renderComponent({
       key: 'name',
       type: 'ngm-select',
@@ -188,7 +188,7 @@ describe('formly: Select Type', () => {
       }
     })
 
-    const combobox = fixture.debugElement.query(By.directive(ZardComboboxComponent))
+    const combobox = fixture.debugElement.query(By.directive(ZardComboboxDeprecatedComponent))
     expect(combobox).not.toBeNull()
   })
 })

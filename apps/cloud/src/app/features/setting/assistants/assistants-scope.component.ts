@@ -3,8 +3,8 @@ import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core
 import { ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  ZardComboboxDeprecatedComponent,
-  ZardComboboxDeprecatedOptionTemplateDirective,
+  ZardComboboxComponent,
+  ZardComboboxOptionTemplateDirective,
   ZardFormImports
 } from '@xpert-ai/headless-ui'
 import { AssistantBindingScope, AssistantCode } from '../../../@core'
@@ -17,8 +17,8 @@ import { AssistantsSettingsFacade } from './assistants.facade'
     CommonModule,
     ReactiveFormsModule,
     TranslateModule,
-    ZardComboboxDeprecatedComponent,
-    ZardComboboxDeprecatedOptionTemplateDirective,
+    ZardComboboxComponent,
+    ZardComboboxOptionTemplateDirective,
     ...ZardFormImports
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -115,23 +115,23 @@ import { AssistantsSettingsFacade } from './assistants.facade'
                   <span class="text-sm text-text-secondary">
                     {{ 'PAC.Assistant.AssistantId' | translate: { Default: 'Assistant ID / Xpert ID' } }}
                   </span>
-                  <z-combobox-deprecated
-                    zTriggerMode="input"
-                    class="w-full"
+                  <z-combobox
+                    zWidth="full"
                     [value]="facade.assistantSelectionValue(scope(), assistant.code)"
                     [options]="facade.assistantXpertOptions(scope(), assistant.code)"
-                    [disabled]="!canEdit()"
+                    [zDisabled]="!canEdit()"
                     [placeholder]="
                       'PAC.Assistant.AssistantIdPlaceholder'
                         | translate: { Default: 'Search accessible xperts by name or id' }
                     "
-                    [zSearchTerm]="facade.assistantSearchTerm(scope(), assistant.code)"
-                    [zDisplayWith]="facade.displayAssistantXpert"
-                    (zSearchTermChange)="facade.onAssistantSearchTermChange(scope(), assistant.code, $event)"
+                    [searchPlaceholder]="
+                      'PAC.Assistant.AssistantIdPlaceholder'
+                        | translate: { Default: 'Search accessible xperts by name or id' }
+                    "
                     (zValueChange)="facade.selectAssistantXpert(scope(), assistant.code, $event)"
                   >
-                    <ng-template zComboboxDeprecatedOption let-option>
-                      <div class="flex flex-col gap-1 py-1">
+                    <ng-template zComboboxOption let-option>
+                      <div class="flex min-w-0 flex-1 flex-col gap-1 py-1">
                         <span class="text-sm font-medium text-text-primary">{{ option.data?.label }}</span>
                         @if (option.data?.description) {
                           <span class="text-xs text-text-secondary">{{ option.data?.description }}</span>
@@ -141,7 +141,7 @@ import { AssistantsSettingsFacade } from './assistants.facade'
                         }
                       </div>
                     </ng-template>
-                  </z-combobox-deprecated>
+                  </z-combobox>
                 </label>
               </div>
 

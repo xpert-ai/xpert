@@ -39,13 +39,15 @@ import { mergeClasses } from '@/shared/utils/merge-classes';
         (keydown.{enter,space}.prevent)="onClick()"
         (mouseenter)="onMouseEnter()"
       >
-        @if (zIcon()) {
-          <div z-icon [zType]="zIcon()!" class="mr-2 flex shrink-0 items-center justify-center"></div>
-        }
-        <span class="flex-1">{{ zLabel() }}</span>
-        @if (zShortcut()) {
-          <span [class]="shortcutClasses()">{{ zShortcut() }}</span>
-        }
+        <ng-content>
+          @if (zIcon()) {
+            <div z-icon [zType]="zIcon()!" class="mr-2 flex shrink-0 items-center justify-center"></div>
+          }
+          <span class="flex-1">{{ zLabel() }}</span>
+          @if (zShortcut()) {
+            <span [class]="shortcutClasses()">{{ zShortcut() }}</span>
+          }
+        </ng-content>
       </div>
     }
   `,

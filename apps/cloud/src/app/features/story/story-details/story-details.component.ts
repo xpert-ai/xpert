@@ -5,15 +5,15 @@ import { toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import {
   ZardButtonComponent,
-  ZardComboboxComponent,
-  ZardComboboxOptionTemplateDirective,
+  ZardComboboxDeprecatedComponent,
+  ZardComboboxDeprecatedOptionTemplateDirective,
   ZardFormImports,
   ZardIconComponent,
   ZardInputDirective,
   ZardCheckboxComponent,
   ZardChipsImports,
   ZardDialogModule,
-  type ZardComboboxOption,
+  type ZardComboboxDeprecatedOption,
   Z_MODAL_DATA,
   ZardDialogRef
 } from '@xpert-ai/headless-ui'
@@ -38,8 +38,8 @@ import { NgmHighlightDirective, NgmSelectComponent } from '@metad/ocap-angular/c
     ZardInputDirective,
     ZardDialogModule,
     ZardCheckboxComponent,
-    ZardComboboxComponent,
-    ZardComboboxOptionTemplateDirective,
+    ZardComboboxDeprecatedComponent,
+    ZardComboboxDeprecatedOptionTemplateDirective,
     ...ZardChipsImports,
     DragDropModule,
     OcapCoreModule,
@@ -102,7 +102,7 @@ export class StoryDetailsComponent implements OnInit {
   }
 
   models = signal<ISemanticModel[]>([])
-  readonly modelOptions = computed<ZardComboboxOption[]>(() =>
+  readonly modelOptions = computed<ZardComboboxDeprecatedOption[]>(() =>
     this.models$().map((model) => ({
       id: model.id,
       label: model.name,
@@ -128,7 +128,7 @@ export class StoryDetailsComponent implements OnInit {
     this.reset()
   }
 
-  displayWithName(_option: ZardComboboxOption | null, value: unknown) {
+  displayWithName(_option: ZardComboboxDeprecatedOption | null, value: unknown) {
     return (value as ISemanticModel | null)?.name ?? ''
   }
 

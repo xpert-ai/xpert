@@ -55,7 +55,7 @@
     @if (!expression && !hiddenTable && type.value !== SemanticModelEntityType.VirtualCube) {
       <z-form-field appearance="fill" color="accent">
         <z-form-label>{{ 'PAC.MODEL.CREATE_ENTITY.TABLE' | translate: { Default: 'Table' } }}</z-form-label>
-        <z-combobox
+        <z-combobox-deprecated
           zTriggerMode="input"
           [value]="table.value"
           [options]="tableComboboxOptions()"
@@ -73,7 +73,7 @@
         <z-form-label>{{
           'PAC.MODEL.CREATE_ENTITY.ForeignKeyOfFact' | translate: { Default: 'Foreign key of fact table' }
         }}</z-form-label>
-        <z-combobox
+        <z-combobox-deprecated
           zTriggerMode="input"
           [value]="formGroup.get('foreignKey').value"
           [options]="factFieldComboboxOptions()"

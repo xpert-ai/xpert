@@ -3,13 +3,13 @@ import { Component, Inject } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import {
   ZardButtonComponent,
-  ZardComboboxComponent,
-  ZardComboboxOptionTemplateDirective,
+  ZardComboboxDeprecatedComponent,
+  ZardComboboxDeprecatedOptionTemplateDirective,
   ZardFormImports,
   ZardIconComponent,
   ZardLoaderComponent,
   ZardChipsImports,
-  type ZardComboboxOption,
+  type ZardComboboxDeprecatedOption,
   Z_MODAL_DATA,
   ZardDialogRef
 } from '@xpert-ai/headless-ui'
@@ -29,8 +29,8 @@ import { SharedModule } from '../../shared.module'
     FormsModule,
     ReactiveFormsModule,
     ZardButtonComponent,
-    ZardComboboxComponent,
-    ZardComboboxOptionTemplateDirective,
+    ZardComboboxDeprecatedComponent,
+    ZardComboboxDeprecatedOptionTemplateDirective,
     ...ZardFormImports,
     ...ZardChipsImports,
     ZardIconComponent,
@@ -114,7 +114,7 @@ export class EmployeeSelectComponent {
     this.resetSearch()
   }
 
-  displayUser(_option: ZardComboboxOption | null, value: unknown) {
+  displayUser(_option: ZardComboboxDeprecatedOption | null, value: unknown) {
     return value ? userLabel((value as IEmployee).user) : ''
   }
 

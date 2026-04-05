@@ -83,7 +83,7 @@ import { DisplayDensity, mergeSelectedValues, NgmDSCoreService, NgmOcapCoreServi
 import { ControlOptions, NgmValueHelpComponent } from '@metad/ocap-angular/controls'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { CommonModule } from '@angular/common'
-import { ZardBadgeComponent, ZardButtonComponent, ZardCheckboxComponent, ZardComboboxComponent, ZardComboboxGroup, ZardComboboxOption, ZardDialogService, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardBadgeComponent, ZardButtonComponent, ZardCheckboxComponent, ZardComboboxDeprecatedComponent, ZardComboboxDeprecatedGroup, ZardComboboxDeprecatedOption, ZardDialogService, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
@@ -115,7 +115,7 @@ import { ZardMenuImports, ZardLoaderComponent } from '@xpert-ai/headless-ui'
     ...ZardFormImports,
     ZardBadgeComponent,
     ZardInputDirective,
-    ZardComboboxComponent,
+    ZardComboboxDeprecatedComponent,
     ZardIconComponent,
     ZardButtonComponent,
     ...ZardMenuImports,
@@ -442,8 +442,8 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   readonly indicators = toSignal(this.indicators$, { initialValue: [] })
   readonly parameters = toSignal(this.parameters$, { initialValue: [] })
   readonly dimensions = toSignal(this.dimensions$, { initialValue: [] })
-  readonly propertyGroups = computed<ZardComboboxGroup[]>(() => {
-    const groups: ZardComboboxGroup[] = []
+  readonly propertyGroups = computed<ZardComboboxDeprecatedGroup[]>(() => {
+    const groups: ZardComboboxDeprecatedGroup[] = []
 
     if (this.showDimension()) {
       groups.push({
@@ -953,7 +953,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
     })
   }
 
-  private mapPropertyOption(property: Property): ZardComboboxOption {
+  private mapPropertyOption(property: Property): ZardComboboxDeprecatedOption {
     return {
       value: property.name,
       label: property.caption || property.name
@@ -1110,7 +1110,7 @@ export class NgmPropertySelectComponent implements ControlValueAccessor, AfterVi
   }
 
   focus(options?: FocusOptions): void {
-    // z-combobox currently doesn't expose a public focus method.
+    // z-combobox-deprecated currently doesn't expose a public focus method.
   }
 
   /**

@@ -75,7 +75,7 @@
       <z-form-label>{{ label() }}</z-form-label>
     }
 
-    <z-combobox
+    <z-combobox-deprecated
       class="w-full"
       [zTriggerMode]="triggerMode()"
       [value]="value()"
@@ -92,7 +92,7 @@
       (zValueChange)="onComboboxValueChange($event)"
       (zBlur)="markTouched()"
     >
-      <ng-template zComboboxPanel let-activeIndex="activeIndex" let-select="select" let-setActiveIndex="setActiveIndex">
+      <ng-template zComboboxDeprecatedPanel let-activeIndex="activeIndex" let-select="select" let-setActiveIndex="setActiveIndex">
         @if (comboboxOptions().length) {
           <div class="max-h-72 overflow-auto p-1">
             <z-tree class="ngm-tree-select__panel w-full" [dataSource]="dataSource" [treeControl]="treeControl">
@@ -154,6 +154,6 @@
           </div>
         }
       </ng-template>
-    </z-combobox>
+    </z-combobox-deprecated>
   </z-form-field>
 }

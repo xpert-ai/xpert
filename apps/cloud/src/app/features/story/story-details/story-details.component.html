@@ -99,7 +99,7 @@
             </z-chip-row>
           }
         </z-chip-grid>
-        <z-combobox
+        <z-combobox-deprecated
           zTriggerMode="input"
           class="w-full"
           [value]="null"
@@ -110,7 +110,7 @@
           (zSearchTermChange)="onModelSearchTermChange($event)"
           (zValueChange)="modelSelected($event)"
         >
-          <ng-template zComboboxOption let-option let-searchTerm="searchTerm">
+          <ng-template zComboboxDeprecatedOption let-option let-searchTerm="searchTerm">
             <div class="flex items-center">
               <button
                 z-button
@@ -131,7 +131,7 @@
               </span>
             </div>
           </ng-template>
-        </z-combobox>
+        </z-combobox-deprecated>
       </z-form-field>
       <z-form-field appearance="fill" class="col-span-1">
         <z-form-label>

@@ -6,7 +6,7 @@
 
   <z-form-control>
     @if (hasOptions()) {
-      <z-combobox
+      <z-combobox-deprecated
         zTriggerMode="input"
         class="ngm-input-element ngm-w-full"
         [value]="value"
@@ -22,7 +22,7 @@
         (zBlur)="blur.emit($event)"
         (zFocus)="focus.emit($event)"
       >
-        <ng-template zComboboxOption let-option let-searchTerm="searchTerm">
+        <ng-template zComboboxDeprecatedOption let-option let-searchTerm="searchTerm">
           @if (_explicitContent) {
             <ng-container
               *ngTemplateOutlet="
@@ -39,7 +39,7 @@
             <span [ngmHighlight]="searchTerm" [content]="option.label || option.value"></span>
           }
         </ng-template>
-      </z-combobox>
+      </z-combobox-deprecated>
     } @else {
       <input z-input class="ngm-input-element ngm-w-full"
         [type]="type() || 'text'"

@@ -34,7 +34,7 @@
   </div>
 } @else {
   <div class="relative">
-    <z-combobox
+    <z-combobox-deprecated
       zTriggerMode="input"
       class="ngm-input-element w-full relative"
       [value]="value()"
@@ -49,7 +49,7 @@
       (zSearchTermChange)="onSearchTermChange($event)"
       (zValueChange)="onOptionSelected($event)"
     >
-      <ng-template zComboboxPanel let-activeIndex="activeIndex" let-select="select" let-setActiveIndex="setActiveIndex">
+      <ng-template zComboboxDeprecatedPanel let-activeIndex="activeIndex" let-select="select" let-setActiveIndex="setActiveIndex">
         @if (virtualScroll()) {
           <cdk-virtual-scroll-viewport
             class="nx-formly__virtual-scroll-viewport"
@@ -95,7 +95,7 @@
           </div>
         }
       </ng-template>
-    </z-combobox>
+    </z-combobox-deprecated>
 
     <div class="absolute right-0 top-0 h-full flex items-center mr-1">
       <ng-container *ngTemplateOutlet="suffixTemplate"></ng-container>

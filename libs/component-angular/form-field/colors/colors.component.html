@@ -20,7 +20,7 @@
   </div>
 
   <div class="relative flex items-center mx-1">
-    <z-combobox
+    <z-combobox-deprecated
       zTriggerMode="input"
       class="ngm-input-element ngm-w-full"
       [value]="value"
@@ -34,14 +34,14 @@
       (zValueChange)="onComboboxValueChange($event)"
       (zBlur)="onTouched()"
     >
-      <ng-template zComboboxOption let-option>
+      <ng-template zComboboxDeprecatedOption let-option>
         <div class="flex justify-start items-center">
           @for (color of option.data?.colors; track color) {
             <div class="w-4 h-4" [style.background-color]="color"></div>
           }
         </div>
       </ng-template>
-    </z-combobox>
+    </z-combobox-deprecated>
 
     @if (value) {
       <button z-button zType="ghost" zSize="icon" zShape="circle" class="ngm-colors__clear right-0" displayDensity="compact" (click)="clear()">
