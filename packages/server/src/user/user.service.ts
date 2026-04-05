@@ -1,6 +1,6 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions } from 'typeorm'
+import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions, DeleteResult } from 'typeorm'
 import bcrypt from 'bcryptjs'
 import { environment as env } from '@metad/server-config'
 import { nanoid } from 'nanoid'
@@ -309,7 +309,7 @@ export class UserService extends TenantAwareCrudService<User> {
 		})
 	}
 
-	async deleteWithGuards(id: string) {
+	private async ensureDeleteWithGuards(id: string) {
 		const currentUserId = RequestContext.currentUserId()
 		if (currentUserId === id) {
 			throw new BadRequestException('You cannot delete your own user account.')
@@ -346,8 +346,18 @@ export class UserService extends TenantAwareCrudService<User> {
 				throw new BadRequestException('Cannot delete the last tenant administrator.')
 			}
 		}
+	}
+
+	async deleteWithGuards(id: string) {
+		await this.ensureDeleteWithGuards(id)
 
 		return this.softDelete(id)
+	}
+
+	async deleteHardWithGuards(id: string): Promise<DeleteResult> {
+		await this.ensureDeleteWithGuards(id)
+
+		return this.delete(id)
 	}
 
 	async getAdminUsers(tenantId: string): Promise<User[]> {

@@ -70,6 +70,7 @@ export class UserOrganizationDeleteHandler
 		}
 
 		const result = await this._removeUserFromOrganization(
+			userId,
 			input.userOrganizationId
 		);
 		this.emitUserOrganizationDeletedEvents(
@@ -85,9 +86,16 @@ export class UserOrganizationDeleteHandler
 	}
 
 	private async _removeUserFromOrganization(
+		userId: string,
 		userOrganizationId: string
 	): Promise<UserOrganization | DeleteResult> {
-		return this.userOrganizationService.delete(userOrganizationId);
+		const { total } = await this.userOrganizationService.findAll({
+			where: { userId }
+		});
+
+		return total === 1
+			? this.userService.deleteHardWithGuards(userId)
+			: this.userOrganizationService.delete(userOrganizationId);
 	}
 
 	private async _removeSuperAdmin(
@@ -127,7 +135,7 @@ export class UserOrganizationDeleteHandler
 			);
 
 		// 3. Delete Super Admin user from all organizations
-		return this.userService.delete(userId);
+		return this.userService.deleteHardWithGuards(userId);
 	}
 
 	private emitUserOrganizationDeletedEvents(
