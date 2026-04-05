@@ -3,6 +3,7 @@ import { booleanAttribute, Component, computed, input, model, signal } from '@an
 import { FormsModule } from '@angular/forms'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
+import { injectEditorTheme } from '../../../@core'
 
 @Component({
   standalone: true,
@@ -26,8 +27,9 @@ export class FileEditorComponent {
   })
 
   // States
+  readonly editorTheme = injectEditorTheme()
+
   readonly defaultOptions = {
-    theme: 'vs',
     automaticLayout: true,
     language: 'markdown',
     glyphMargin: 0,
@@ -39,6 +41,7 @@ export class FileEditorComponent {
   readonly editorOptions = computed(() => {
     return {
       ...this.defaultOptions,
+      theme: this.editorTheme(),
       lineNumbers: this.lineNumbers() ? 'on' : 'off',
       wordWrap: this.wordWrap(),
       language: this.fileName() ? this.mapFileLanguage(this.fileName()) : 'markdown',

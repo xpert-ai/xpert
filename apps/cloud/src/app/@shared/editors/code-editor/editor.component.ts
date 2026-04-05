@@ -13,7 +13,7 @@ import { NgmResizableDirective } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { AppService } from '../../../app.service'
+import { injectEditorTheme } from '../../../@core'
 
 @Component({
   standalone: true,
@@ -26,7 +26,6 @@ import { AppService } from '../../../app.service'
 export class CodeEditorComponent {
   protected cva = inject<NgxControlValueAccessor<string | null>>(NgxControlValueAccessor)
   readonly #cdr = inject(ChangeDetectorRef)
-  readonly #appService = inject(AppService)
 
   // Inputs
   readonly fileName = input<string>()
@@ -54,7 +53,7 @@ export class CodeEditorComponent {
     }
   }
 
-  readonly editorTheme = computed(() => (this.#appService.theme$().primary?.startsWith('dark') ? 'vs-dark' : 'vs'))
+  readonly editorTheme = injectEditorTheme()
 
   readonly editorOptions = computed(() => {
     return {

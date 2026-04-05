@@ -2,14 +2,14 @@ import { BreakpointObserver, Breakpoints, BreakpointState } from '@angular/cdk/l
 import { DOCUMENT } from '@angular/common'
 import { computed, inject, Injectable, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { normalizeTheme, prefersColorScheme, resolveTheme } from '@metad/ocap-angular/core'
+import { normalizeTheme } from '@metad/ocap-angular/core'
 import { nonNullable } from '@metad/ocap-core'
 import { ComponentStore } from '@metad/store'
 import { TranslateService } from '@ngx-translate/core'
 import { includes, some } from 'lodash-es'
 import { combineLatest } from 'rxjs'
 import { filter, map, shareReplay, startWith } from 'rxjs/operators'
-import { LanguagesEnum, MenuCatalog, navigatorLanguage, Store } from './@core'
+import { injectTheme, LanguagesEnum, MenuCatalog, navigatorLanguage, Store } from './@core'
 import { normalizeLanguageCode } from './@core/config'
 import { I18nService } from './@shared/i18n'
 
@@ -81,19 +81,7 @@ export class AppService extends ComponentStore<PACAppState> {
     map(() => this.store.hasFeatureEnabled('FEATURE_COPILOT' as any))
   )
 
-  readonly preferredTheme$ = toSignal(this.store.preferredTheme$)
-  readonly systemTheme$ = toSignal(prefersColorScheme(), { requireSync: true })
-
-  readonly theme$ = computed(() => {
-    const preferredTheme = normalizeTheme(this.preferredTheme$())
-    const systemTheme = this.systemTheme$()
-    const primary = resolveTheme(preferredTheme, systemTheme)
-
-    return {
-      preferredTheme,
-      primary
-    }
-  })
+  readonly theme$ = injectTheme()
 
   // In a data project
   readonly inProject = signal(false)
