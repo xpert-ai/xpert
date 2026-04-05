@@ -6,9 +6,12 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 
 - Prefer `rg` for search; keep edits ASCII; do not revert user changes.
 - Golden rule: prefer writing Tailwind utility classes directly on HTML elements. Only extract component CSS when inline utilities are impractical, such as `:host`, pseudo-elements, or other selector-driven cases.
-- Avoid Angular Material and Angular CDK (deprecated). Use Angular Aria + TailwindCSS v4 for UI components. Do not import `@angular/material` or `@angular/cdk` modules in new code.
+- Use Angular Aria + TailwindCSS v4 for UI components.
 - Use standalone Angular components with signals, the new control flow like `@for/@if`, and reactive forms. Keep templates Tailwind-first.
 - Keep comments succinct; add only when clarifying non-obvious logic.
+- Never use `as any`.
+- Never cast `unknown` or broad values to `Record<string, unknown>`, and never introduce generic `asRecord()`-style helpers to bypass type checking.
+- Narrow `unknown` values with explicit type guards and property-level structural checks; only cast to a specific interface after those checks.
 
 ## Backend (NestJS)
 
@@ -16,6 +19,7 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - Register modules in `packages/server-ai/src/index.ts` and wire into `app.module.ts` as needed.
 - Keep TypeORM entities aligned with contract interfaces in `packages/contracts`.
 - Complex, independent logic can be implemented using CQRS.
+- Ensure clearer boundaries of responsibilities.
 
 ## Frontend (Angular)
 
