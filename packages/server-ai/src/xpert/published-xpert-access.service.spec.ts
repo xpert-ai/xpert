@@ -125,6 +125,68 @@ describe('PublishedXpertAccessService', () => {
         })
     })
 
+    it('allows a tenant-level published xpert without organization context', async () => {
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(null)
+        ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue(null)
+
+        const repository = {
+            findOne: jest.fn().mockResolvedValue({
+                id: 'xpert-tenant',
+                tenantId: 'tenant-1',
+                organizationId: null,
+                createdById: 'user-admin',
+                publishAt: new Date()
+            }),
+            createQueryBuilder: jest.fn()
+        }
+        const service = new PublishedXpertAccessService(repository as any)
+
+        await expect(service.getAccessiblePublishedXpert('xpert-tenant')).resolves.toMatchObject({
+            id: 'xpert-tenant'
+        })
+        expect(repository.createQueryBuilder).not.toHaveBeenCalled()
+    })
+
+    it('allows a tenant-level published xpert when the current user is inside an organization', async () => {
+        const repository = {
+            findOne: jest.fn().mockResolvedValue({
+                id: 'xpert-tenant-org-user',
+                tenantId: 'tenant-1',
+                organizationId: null,
+                createdById: 'user-admin',
+                publishAt: new Date()
+            }),
+            createQueryBuilder: jest.fn()
+        }
+        const service = new PublishedXpertAccessService(repository as any)
+
+        await expect(service.getAccessiblePublishedXpert('xpert-tenant-org-user')).resolves.toMatchObject({
+            id: 'xpert-tenant-org-user'
+        })
+        expect(repository.createQueryBuilder).not.toHaveBeenCalled()
+    })
+
+    it('still requires organization context for an organization-level published xpert', async () => {
+        ;(RequestContext.currentApiPrincipal as jest.Mock).mockReturnValue(null)
+        ;(RequestContext.getOrganizationId as jest.Mock).mockReturnValue(null)
+
+        const repository = {
+            findOne: jest.fn().mockResolvedValue({
+                id: 'xpert-org',
+                tenantId: 'tenant-1',
+                organizationId: 'org-requested',
+                createdById: 'user-admin',
+                publishAt: new Date()
+            }),
+            createQueryBuilder: jest.fn()
+        }
+        const service = new PublishedXpertAccessService(repository as any)
+
+        await expect(service.getAccessiblePublishedXpert('xpert-org')).rejects.toThrow(
+            'Organization context is required to access published assistants.'
+        )
+    })
+
     it('includes creator-owned xperts in the accessible published xpert list', async () => {
         const qb = createQueryBuilderMock({
             rows: [{ id: 'xpert-1' }]

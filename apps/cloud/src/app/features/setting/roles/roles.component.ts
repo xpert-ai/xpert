@@ -262,13 +262,8 @@ export class RolesComponent extends TranslationBaseComponent implements OnInit {
 		if (!this.role) {
 			return true;
 		}
-		/**
-		 * Disabled all administration permissions except "SUPER_ADMIN"
-		 */
 		if (this.user?.role.name === RolesEnum.SUPER_ADMIN) {
-			if (this.role.name === RolesEnum.ADMIN || this.role.name === RolesEnum.TRIAL) {
-				return false;
-			}
+			return false;
 		}
 		return true;
 	}

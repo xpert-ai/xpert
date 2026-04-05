@@ -32,6 +32,8 @@ describe('UserOrganizationDeleteHandler', () => {
 		}
 		const userService = {
 			delete: jest.fn(),
+			deleteHardWithGuards: jest.fn(),
+			deleteWithGuards: jest.fn(),
 			findAll: jest.fn()
 		}
 		const roleService = {
@@ -63,7 +65,7 @@ describe('UserOrganizationDeleteHandler', () => {
 	}
 
 	it('emits a deleted event after removing a user from one organization', async () => {
-		const { eventEmitter, handler, userOrganizationService } = createHandler()
+		const { eventEmitter, handler, userOrganizationService, userService } = createHandler()
 		userOrganizationService.findOne.mockResolvedValue({
 			tenantId: 'tenant-1',
 			organizationId: 'org-1',
@@ -78,6 +80,9 @@ describe('UserOrganizationDeleteHandler', () => {
 			total: 2
 		})
 		userOrganizationService.delete.mockResolvedValue({
+			affected: 1
+		})
+		userService.deleteHardWithGuards.mockResolvedValue({
 			affected: 1
 		})
 
@@ -99,6 +104,38 @@ describe('UserOrganizationDeleteHandler', () => {
 				userId: 'user-1'
 			})
 		)
+	})
+
+	it('hard deletes the user when removing the last organization membership', async () => {
+		const { handler, userOrganizationService, userService } = createHandler()
+		userOrganizationService.findOne.mockResolvedValue({
+			tenantId: 'tenant-1',
+			organizationId: 'org-1',
+			userId: 'user-1',
+			user: {
+				role: {
+					name: 'ADMIN'
+				}
+			}
+		})
+		userOrganizationService.findAll.mockResolvedValue({
+			total: 1
+		})
+		userService.deleteHardWithGuards.mockResolvedValue({
+			affected: 1
+		})
+
+		await handler.execute({
+			input: {
+				userOrganizationId: 'membership-1',
+				requestingUser: {
+					id: 'requester-1'
+				}
+			}
+		} as any)
+
+		expect(userService.deleteHardWithGuards).toHaveBeenCalledWith('user-1')
+		expect(userOrganizationService.delete).not.toHaveBeenCalled()
 	})
 
 	it('emits one deleted event per organization when removing a super admin user', async () => {
@@ -131,7 +168,7 @@ describe('UserOrganizationDeleteHandler', () => {
 		userService.findAll.mockResolvedValue({
 			total: 2
 		})
-		userService.delete.mockResolvedValue({
+		userService.deleteHardWithGuards.mockResolvedValue({
 			affected: 1
 		})
 
@@ -146,7 +183,7 @@ describe('UserOrganizationDeleteHandler', () => {
 			}
 		} as any)
 
-		expect(userService.delete).toHaveBeenCalledWith('user-1')
+		expect(userService.deleteHardWithGuards).toHaveBeenCalledWith('user-1')
 		expect(eventEmitter.emit).toHaveBeenCalledTimes(2)
 		expect(eventEmitter.emit).toHaveBeenNthCalledWith(
 			1,

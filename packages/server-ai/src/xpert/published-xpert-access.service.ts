@@ -171,6 +171,25 @@ export class PublishedXpertAccessService {
         }
     }
 
+    async getPublishedXpertInTenant(id: string, options?: Omit<FindOneOptions<Xpert>, 'where'>) {
+        const tenantId = this.currentTenantId()
+        const xpert = await this.repository.findOne({
+            ...(options ?? {}),
+            where: {
+                id,
+                tenantId,
+                publishAt: Not(IsNull())
+            },
+            relations: this.normalizeRelations(options?.relations)
+        })
+
+        if (!xpert) {
+            throw new NotFoundException('The requested record was not found')
+        }
+
+        return xpert
+    }
+
     async countAccessiblePublishedXperts(where?: PublishedXpertQueryOptions['where']) {
         return this.buildAccessibleQuery({ where }).select('xpert.id').distinct(true).getCount()
     }
@@ -193,28 +212,14 @@ export class PublishedXpertAccessService {
     }
 
     async getAccessiblePublishedXpert(id: string, options?: Omit<FindOneOptions<Xpert>, 'where'>) {
-        const tenantId = this.currentTenantId()
         const userId = this.currentUserId()
-        const xpert = await this.repository.findOne({
-            ...(options ?? {}),
-            where: {
-                id,
-                tenantId,
-                publishAt: Not(IsNull())
-            },
-            relations: this.normalizeRelations(options?.relations)
-        })
+        const xpert = await this.getPublishedXpertInTenant(id, options)
 
-        if (!xpert) {
-            throw new NotFoundException('The requested record was not found')
-        }
-
-        if (!xpert.organizationId && xpert.createdById === userId) {
+        if (!xpert.organizationId) {
             return xpert
         }
 
-        const organizationId = this.currentOrganizationId()
-        if (xpert.organizationId && xpert.organizationId !== organizationId) {
+        if (xpert.organizationId && xpert.organizationId !== this.currentOrganizationId()) {
             throw new ForbiddenException('You do not have access to this assistant.')
         }
 

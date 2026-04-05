@@ -127,7 +127,9 @@ export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseC
     this.currentLink.set(link)
   }
 
-  removeOpenedLink(link: T) {
+  removeOpenedLink(event: Event, link: T) {
+    event.preventDefault()
+    event.stopPropagation()
     this.currentLink.set(null)
     this.openedLinks.set(this.openedLinks().filter((item) => item.id !== link.id))
     this.router.navigate(['.'], { relativeTo: this._route })

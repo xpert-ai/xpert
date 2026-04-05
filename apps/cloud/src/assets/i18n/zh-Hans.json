@@ -635,6 +635,8 @@
       "EffectiveSource": "生效来源",
       "EffectiveStatus": "生效状态",
       "ActiveOrganization": "当前组织",
+      "ActiveAssistant": "当前助手",
+      "FloatingHint": "拖动启动器可停靠到左侧或右侧。",
       "NoOrganization": "未选择组织",
       "TenantScope": "租户范围",
       "TenantDefault": "租户默认配置",
@@ -644,6 +646,9 @@
       "Enabled": "启用",
       "AssistantId": "助手 ID / Xpert ID",
       "AssistantIdPlaceholder": "按名称或 ID 搜索可访问的 Xpert",
+      "RuntimeFrameUrl": "ChatKit Frame URL",
+      "FrameUrlMissing": "未配置部署变量",
+      "RuntimeFrameUrlDesc": "ChatKit frame 由部署配置提供，并在所有助手页面间共享。",
       "FrameUrl": "Frame URL",
       "RuntimeApiUrl": "运行时 API URL",
       "RuntimeJwtDesc": "认证会自动使用当前用户的 JWT。",
@@ -663,8 +668,13 @@
       "DisabledTitle": "助手已禁用",
       "DisabledDesc": "此助手已完成配置，但当前组织已将其禁用。",
       "MissingTitle": "助手未配置",
-      "MissingDesc": "请先在 设置 / 助手 中配置 ChatBI 助手，然后再在这里开始对话。",
+      "MissingDesc": "请先在“设置 / 助手”中完成助手配置，然后再在这里开始对话。",
       "OpenSettings": "打开助手设置",
+      "ErrorDesc": "请检查助手配置后，再从通用聊天页面重试。",
+      "ChatCommon": {
+        "Label": "通用助手",
+        "Description": "用于通用聊天页面的嵌入式助手。"
+      },
       "XpertShared": {
         "Label": "工作空间助手",
         "Description": "用于 Xpert 工作空间和 Studio Shell 的共享助手。"

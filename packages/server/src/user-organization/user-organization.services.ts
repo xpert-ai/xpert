@@ -8,6 +8,10 @@ import { UserOrganizationCreatedEvent, EVENT_USER_ORGANIZATION_CREATED } from '.
 import { Organization, UserOrganization } from './../core/entities/internal';
 import { RequestContext } from '../core/context';
 
+type DeleteMembershipOptions = FindOneOptions<UserOrganization> & {
+	allowDeletingLastMembership?: boolean
+}
+
 
 @Injectable()
 export class UserOrganizationService extends TenantAwareCrudService<UserOrganization> {
@@ -103,7 +107,8 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 	}
 
 	private async resolveRemainingMemberships(
-		membership: UserOrganization
+		membership: UserOrganization,
+		allowDeletingLastMembership = false
 	): Promise<UserOrganization[]> {
 		const memberships = await this.repository.find({
 			where: {
@@ -115,6 +120,10 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		const remainingMemberships = memberships.filter((item) => item.id !== membership.id)
 
 		if (!remainingMemberships.length) {
+			if (allowDeletingLastMembership) {
+				return []
+			}
+
 			throw new BadRequestException(
 				'Cannot remove the last organization membership. Delete the user explicitly instead.'
 			)
@@ -273,10 +282,13 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 
 	override async delete(
 		criteria: string | FindOptionsWhere<UserOrganization>,
-		options?: FindOneOptions<UserOrganization>
+		options?: DeleteMembershipOptions
 	): Promise<DeleteResult> {
 		const membership = await this.resolveMembershipForDelete(criteria, options)
-		const remainingMemberships = await this.resolveRemainingMemberships(membership)
+		const remainingMemberships = await this.resolveRemainingMemberships(
+			membership,
+			options?.allowDeletingLastMembership ?? false
+		)
 		const shouldReassignDefault =
 			membership.isDefault || !remainingMemberships.some((item) => item.isDefault)
 
