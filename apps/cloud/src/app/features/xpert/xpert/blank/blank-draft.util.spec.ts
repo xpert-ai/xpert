@@ -1,5 +1,6 @@
 import { IXpert, WorkflowNodeTypeEnum, XpertTypeEnum } from '@metad/contracts'
 import {
+  BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER,
   BLANK_WORKFLOW_NODE_ORDER,
   buildBlankKnowledgeDraft,
   buildBlankWorkflowDraft,
@@ -72,11 +73,21 @@ describe('blank draft util', () => {
       ],
       triggerProviders: [],
       skills: ['Skill A'],
-      middlewares: ['guard']
+      middlewares: ['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER]
     })
 
     expect(hasBlankWizardSelections()).toBe(false)
     expect(hasBlankWizardSelections({ skills: ['Skill A'] })).toBe(true)
+    expect(
+      normalizeBlankWizardSelections({
+        middlewares: ['guard', BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER]
+      })
+    ).toEqual({
+      triggers: [],
+      triggerProviders: [],
+      skills: [],
+      middlewares: ['guard']
+    })
     expect(
       normalizeBlankTriggerSelections(
         [
@@ -122,7 +133,7 @@ describe('blank draft util', () => {
     expect(draft.team.agent.options?.middlewares).toBeUndefined()
   })
 
-  it('should append trigger, skill and middleware nodes with expected connections', async () => {
+  it('should append trigger and middleware nodes and enable skills through skills middleware', async () => {
     const draft = await buildBlankXpertDraft(createXpert(), {
       triggers: [{ provider: 'schedule', config: { enabled: true, cron: '0 * * * *', task: 'Ping' } }],
       skills: ['Skill A', 'Skill B'],
@@ -131,13 +142,19 @@ describe('blank draft util', () => {
 
     const workflowNodes = draft.nodes.filter((node) => node.type === 'workflow')
     const triggerNodes = workflowNodes.filter((node) => node.entity.type === WorkflowNodeTypeEnum.TRIGGER)
-    const skillNodes = workflowNodes.filter((node) => node.entity.type === WorkflowNodeTypeEnum.SKILL)
     const middlewareNodes = workflowNodes.filter((node) => node.entity.type === WorkflowNodeTypeEnum.MIDDLEWARE)
+    const skillsMiddlewareNode = middlewareNodes.find(
+      (node) => (node.entity as any).provider === BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER
+    )
 
     expect(triggerNodes).toHaveLength(1)
-    expect(skillNodes).toHaveLength(2)
-    expect(middlewareNodes).toHaveLength(2)
+    expect(workflowNodes.filter((node) => node.entity.type === WorkflowNodeTypeEnum.SKILL)).toHaveLength(0)
+    expect(middlewareNodes).toHaveLength(3)
+    expect(skillsMiddlewareNode).toBeDefined()
     expect((triggerNodes[0].entity as any).config).toEqual({ enabled: true, cron: '0 * * * *', task: 'Ping' })
+    expect((skillsMiddlewareNode!.entity as any).options).toEqual({
+      skills: ['Skill A', 'Skill B']
+    })
 
     expect(draft.connections).toEqual(
       expect.arrayContaining([
@@ -149,7 +166,7 @@ describe('blank draft util', () => {
         expect.objectContaining({
           type: 'workflow',
           from: 'Agent_primary',
-          to: skillNodes[0].key
+          to: skillsMiddlewareNode!.key
         }),
         expect.objectContaining({
           type: 'workflow',
@@ -159,20 +176,9 @@ describe('blank draft util', () => {
       ])
     )
 
-    expect(skillNodes.map((node) => node.entity.title)).toEqual(['Skill A', 'Skill B'])
-    expect(
-      skillNodes.map((node) => ({
-        title: node.entity.title,
-        skills: (node.entity as any).skills
-      }))
-    ).toEqual([
-      { title: 'Skill A', skills: ['Skill A'] },
-      { title: 'Skill B', skills: ['Skill B'] }
-    ])
-
     const primaryAgentNode = draft.nodes.find((node) => node.key === 'Agent_primary')!
     expect(triggerNodes[0].position.x).toBeLessThan(primaryAgentNode.position.x)
-    expect(skillNodes[0].position.y).toBeGreaterThan(primaryAgentNode.position.y)
+    expect(skillsMiddlewareNode!.position.y).toBeGreaterThan(primaryAgentNode.position.y)
     expect(middlewareNodes[0].position.y).toBeGreaterThan(primaryAgentNode.position.y)
     expect(draft.team.agent.options.middlewares.order).toEqual(middlewareNodes.map((node) => node.key))
   })
