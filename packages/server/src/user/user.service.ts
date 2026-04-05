@@ -1,4 +1,5 @@
-import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException } from '@nestjs/common'
+import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common'
+import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions, DeleteResult } from 'typeorm'
 import bcrypt from 'bcryptjs'
@@ -10,6 +11,8 @@ import { ID, IUser, LanguagesEnum, PermissionsEnum, RolesEnum, UserType } from '
 import { RequestContext } from '../core/context'
 import { EmailVerification } from './email-verification/email-verification.entity'
 import { UserPublicDTO } from './dto'
+import { UserOrganizationService } from '../user-organization/user-organization.services'
+import { EVENT_USER_ORGANIZATION_DELETED, UserOrganizationDeletedEvent } from './events'
 
 const REQUEST_CONTEXT_USER_RELATIONS = ['role', 'role.rolePermissions', 'employee'] as const
 
@@ -27,7 +30,10 @@ export class UserService extends TenantAwareCrudService<User> {
 		@InjectRepository(User)
 		userRepository: Repository<User>,
 		@InjectRepository(EmailVerification)
-		public emailVerificationRepository: Repository<EmailVerification>
+		public emailVerificationRepository: Repository<EmailVerification>,
+		@Inject(forwardRef(() => UserOrganizationService))
+		private readonly userOrganizationService: UserOrganizationService,
+		private readonly eventEmitter: EventEmitter2
 	) {
 		super(userRepository)
 	}
@@ -346,10 +352,33 @@ export class UserService extends TenantAwareCrudService<User> {
 				throw new BadRequestException('Cannot delete the last tenant administrator.')
 			}
 		}
+
+		return { tenantId, user }
+	}
+
+	private async deleteUserOrganizations(userId: string, tenantId: string) {
+		const { items: memberships } = await this.userOrganizationService.findAll({
+			where: {
+				userId,
+				tenantId
+			}
+		})
+
+		for (const membership of memberships) {
+			await this.userOrganizationService.delete(membership.id, {
+				allowDeletingLastMembership: true
+			})
+
+			this.eventEmitter.emit(
+				EVENT_USER_ORGANIZATION_DELETED,
+				new UserOrganizationDeletedEvent(membership.tenantId, membership.organizationId, membership.userId)
+			)
+		}
 	}
 
 	async deleteWithGuards(id: string) {
-		await this.ensureDeleteWithGuards(id)
+		const { tenantId } = await this.ensureDeleteWithGuards(id)
+		await this.deleteUserOrganizations(id, tenantId)
 
 		return this.softDelete(id)
 	}
