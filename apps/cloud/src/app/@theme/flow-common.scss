@@ -18,7 +18,7 @@
   --minimap-node-selected-color: #3451b2;
   --minimap-view-color: rgba(100, 108, 255, 0.14);
   --team-group-bg: rgba(142, 150, 170, .14);
-  .dark {
+  &[data-theme=dark] {
     --background-element-color: rgba(255, 255, 255, 0.1);
     --selection-area-color: rgba(100, 108, 255, 0.16);
     --node-background-color: #000000;
