@@ -4,6 +4,7 @@ import { KnowledgebaseComponent } from './knowledgebase.component'
 import { KnowledgeConfigurationComponent } from './configuration/configuration.component'
 import { KnowledgeTestComponent } from './test/test.component'
 import { KnowledgeDocumentChunkComponent } from './documents/chunk/chunk.component'
+import { ExtensionHostViewPageComponent } from 'apps/cloud/src/app/@shared/view-extension'
 
 export default [
   {
@@ -35,6 +36,14 @@ export default [
       {
         path: 'test',
         component: KnowledgeTestComponent
+      },
+      {
+        path: 'view/:viewKey',
+        component: ExtensionHostViewPageComponent,
+        data: {
+          hostType: 'knowledgebase',
+          slot: 'detail.main_tabs'
+        }
       }
     ]
   }

@@ -1,40 +1,26 @@
-import { TextFieldModule } from '@angular/cdk/text-field'
-import { Component, computed, effect, inject, signal, viewChild } from '@angular/core'
-import { toSignal } from '@angular/core/rxjs-interop'
-import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
-
-import { ZardButtonComponent, ZardIconComponent, ZardInputDirective, ZardTooltipImports } from '@xpert-ai/headless-ui'
-import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmSelectComponent } from '@cloud/app/@shared/common'
-import { environment } from '@cloud/environments/environment'
+import { ChangeDetectionStrategy, Component, computed, inject, viewChild } from '@angular/core'
+import { RouterModule } from '@angular/router'
 import { IsDirty } from '@metad/core'
-import { NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
-import { ContentLoaderModule } from '@ngneat/content-loader'
-import { FormlyModule } from '@ngx-formly/core'
-import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { EmojiAvatarComponent, IconComponent } from 'apps/cloud/src/app/@shared/avatar'
-import { CardProComponent } from 'apps/cloud/src/app/@shared/card'
-import { ParameterFormComponent } from 'apps/cloud/src/app/@shared/forms'
-import omit from 'lodash-es/omit'
-import { derivedFrom } from 'ngxtension/derived-from'
+import { I18nObject, IIntegration, XpertExtensionViewManifest } from '@metad/contracts'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { TranslateModule } from '@ngx-translate/core'
+import { ZardDividerComponent, ZardTabsImports } from '@xpert-ai/headless-ui'
+import { derivedAsync } from 'ngxtension/derived-async'
 import { injectParams } from 'ngxtension/inject-params'
-import { injectQueryParams } from 'ngxtension/inject-query-params'
-import { BehaviorSubject, distinctUntilChanged, EMPTY, map, pipe, startWith, switchMap } from 'rxjs'
-import {
-  getErrorMessage,
-  injectApiBaseUrl,
-  injectTranslate,
-  IntegrationService,
-  normalizeIntegrationTestResult,
-  pickIntegrationTestFormPatch,
-  routeAnimations,
-  Store,
-  type IntegrationTestProbe,
-  type IntegrationTestResult,
-  ToastrService
-} from '../../../../@core'
+import { of } from 'rxjs'
+import { IntegrationService, ViewExtensionApiService } from '../../../../@core'
+import { IntegrationConfigurationComponent } from './configuration.component'
+import { IntegrationExtensionViewComponent } from './integration-extension-view.component'
+
+interface IntegrationShellTab {
+  key: string
+  kind: 'config' | 'view'
+  title?: I18nObject
+  icon: string
+  routerLink: readonly string[]
+  badge?: string | number
+  active: boolean
+}
 
 @Component({
   standalone: true,
@@ -44,228 +30,95 @@ import {
   imports: [
     RouterModule,
     TranslateModule,
-    FormsModule,
-    ReactiveFormsModule,
-    FormlyModule,
-    TextFieldModule,
-    ...ZardTooltipImports,
-    ZardIconComponent,
-    ZardInputDirective,
-    ZardButtonComponent,
-    ContentLoaderModule,
-    ButtonGroupDirective,
-    NgmSelectComponent,
-    NgmInputComponent,
-    NgmSpinComponent,
-    EmojiAvatarComponent,
-    ParameterFormComponent,
-    CardProComponent,
     NgmI18nPipe,
-    IconComponent
+    ZardDividerComponent,
+    ...ZardTabsImports,
+    IntegrationConfigurationComponent,
+    IntegrationExtensionViewComponent
   ],
-  animations: [routeAnimations]
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class IntegrationComponent implements IsDirty {
-  DisplayBehaviour = DisplayBehaviour
-  pro = environment.pro
-
-  readonly integrationAPI = inject(IntegrationService)
-  readonly #toastr = inject(ToastrService)
-  readonly #store = inject(Store)
-  readonly #router = inject(Router)
-  readonly #route = inject(ActivatedRoute)
-  readonly #translate = inject(TranslateService)
-  readonly apiBaseUrl = injectApiBaseUrl()
-  readonly i18n = new NgmI18nPipe()
-  readonly integrationI18n = injectTranslate('PAC.Integration')
-  readonly _providerQuery = injectQueryParams('provider')
-
+  readonly #integrationAPI = inject(IntegrationService)
+  readonly #viewExtensionAPI = inject(ViewExtensionApiService)
+  readonly configurationComponent = viewChild(IntegrationConfigurationComponent)
   readonly paramId = injectParams('id')
-  readonly #providers = toSignal(this.integrationAPI.getProviders(), { initialValue: [] })
-
-  // Childs
-  readonly optionsForm = viewChild('optionsForm', { read: ParameterFormComponent })
-
-  // States
-  readonly organizationId$ = this.#store.selectOrganizationId()
-
-  readonly refresh$ = new BehaviorSubject<boolean>(true)
-
-  readonly providers = computed(() => {
-    return this.#providers()?.map((provider) => ({
-      value: provider.name,
-      label: provider.label,
-      description: provider.description,
-      avatar: provider.avatar,
-      _icon: provider.icon
-    }))
-  })
-
-  readonly formGroup = new FormGroup({
-    id: new FormControl(null),
-    name: new FormControl(null, [Validators.required]),
-    avatar: new FormControl(null),
-    description: new FormControl(null),
-    slug: new FormControl(null),
-    provider: new FormControl(null),
-    options: new FormControl(null),
-    features: new FormControl([])
-  })
-
-  get optionsControl() {
-    return this.formGroup.get('options') as FormControl
-  }
-
-  get optionsInvalid() {
-    return this.optionsForm()?.invalid
-  }
-
-  get name() {
-    return this.formGroup.value?.name
-  }
-
-  readonly provider = toSignal(
-    this.formGroup
-      .get('provider')
-      .valueChanges.pipe(startWith(this.formGroup.get('provider').value), distinctUntilChanged())
+  readonly viewKey = injectParams('viewKey')
+  readonly integration = derivedAsync<IIntegration | null>(
+    () => {
+      const integrationId = this.paramId()
+      return integrationId ? this.#integrationAPI.getById(integrationId) : of(null)
+    },
+    { initialValue: null }
   )
+  readonly extensionViews = derivedAsync<XpertExtensionViewManifest[]>(
+    () => {
+      const integrationId = this.paramId()
+      return integrationId ? this.#viewExtensionAPI.getSlotViews('integration', integrationId, 'detail.main_tabs') : of([])
+    },
+    { initialValue: [] }
+  )
+  readonly tabs = computed<IntegrationShellTab[]>(() => {
+    const integrationId = this.paramId()
+    const activeViewKey = this.viewKey()
+    const tabs: IntegrationShellTab[] = [
+      {
+        key: 'config',
+        kind: 'config',
+        icon: 'ri-settings-3-line',
+        routerLink: integrationId ? ['/settings/integration', integrationId] : ['/settings/integration/create'],
+        active: !activeViewKey
+      }
+    ]
 
-  readonly integrationProvider = computed(() => this.#providers().find((p) => p.name === this.provider()))
-
-  readonly schema = computed(() => this.integrationProvider()?.schema)
-
-  readonly integration = derivedFrom(
-    [this.paramId],
-    pipe(
-      distinctUntilChanged(),
-      switchMap(([id]) => (id ? this.integrationAPI.getById(id) : EMPTY))
-    ),
-    {
-      initialValue: null
+    if (!integrationId) {
+      return tabs
     }
-  )
 
-  readonly loading = signal(true)
-  readonly testResult = signal<IntegrationTestResult | null>(null)
-  readonly webhookUrl = computed(() => this.testResult()?.webhookUrl ?? '')
-  readonly longConnectionProbe = computed<IntegrationTestProbe | null>(() => this.testResult()?.probe ?? null)
-  readonly testWarnings = computed(() => this.testResult()?.warnings ?? [])
-  readonly connectionMode = toSignal(
-    this.optionsControl.valueChanges.pipe(
-      startWith(this.optionsControl.value),
-      map((value) => value?.connectionMode ?? null),
-      distinctUntilChanged()
-    ),
-    {
-      initialValue: this.optionsControl.value?.connectionMode ?? null
+    const extensionTabs = [...this.extensionViews()]
+      .sort((left, right) => (left.order ?? Number.MAX_SAFE_INTEGER) - (right.order ?? Number.MAX_SAFE_INTEGER))
+      .map(
+        (view): IntegrationShellTab => ({
+          key: view.key,
+          kind: 'view',
+          title: view.title,
+          icon: view.icon || 'ri-puzzle-2-line',
+          routerLink: ['/settings/integration', integrationId, 'view', view.key],
+          badge: view.badge?.value,
+          active: activeViewKey === view.key
+        })
+      )
+
+    return [...tabs, ...extensionTabs]
+  })
+  readonly hasExtensionTabs = computed(() => this.extensionViews().length > 0)
+  readonly activeHostId = computed(() => {
+    const integrationId = this.paramId()
+    const activeViewKey = this.viewKey()
+    return integrationId && activeViewKey ? integrationId : null
+  })
+  readonly activeViewDescription = computed(() => {
+    const activeViewKey = this.viewKey()
+    return activeViewKey ? this.extensionViews().find((view) => view.key === activeViewKey)?.description ?? null : null
+  })
+  readonly pageTitle = computed(() => {
+    if (!this.viewKey()) {
+      return null
     }
-  )
 
-  constructor() {
-    effect(
-      () => {
-        // Set provider from query when create new integration
-        if (this._providerQuery() && !this.paramId()) {
-          this.formGroup.get('provider').setValue(this._providerQuery())
-        }
-      }
-    )
+    const name = this.integration()?.name?.trim()
+    return name || null
+  })
+  readonly pageSubtitle = computed(() => {
+    if (!this.viewKey()) {
+      return null
+    }
 
-    effect(
-      () => {
-        if (this.integration()) {
-          this.formGroup.patchValue(this.integration())
-        } else {
-          // this.formGroup.reset()
-        }
-        this.formGroup.markAsPristine()
-        this.loading.set(false)
-      }
-    )
-
-    effect(
-      () => {
-        if (this.integrationProvider()) {
-          this.formGroup.get('features').setValue(this.integrationProvider().features || [])
-        }
-      }
-    )
-
-    effect(
-      () => {
-        this.provider()
-        this.connectionMode()
-        this.testResult.set(null)
-      },
-      { allowSignalWrites: true }
-    )
-  }
+    const description = this.integration()?.description?.trim()
+    return description || this.activeViewDescription()
+  })
 
   isDirty(): boolean {
-    return this.formGroup.dirty
-  }
-
-  refresh() {
-    this.refresh$.next(true)
-  }
-
-  test() {
-    this.loading.set(true)
-    this.testResult.set(null)
-    this.integrationAPI.test(this.formGroup.value).subscribe({
-      next: (result) => {
-        const testResult = normalizeIntegrationTestResult(result)
-        const formPatch = pickIntegrationTestFormPatch(result)
-
-        this.testResult.set(testResult)
-
-        if (Object.keys(formPatch).length) {
-          this.formGroup.patchValue(formPatch)
-        }
-
-        this.formGroup.markAsDirty()
-        this.loading.set(false)
-        this.#toastr.success('PAC.Messages.TestSuccessfully', { Default: 'Test successfully!' })
-      },
-      error: (error) => {
-        this.#toastr.danger(getErrorMessage(error))
-        this.loading.set(false)
-        this.testResult.set(null)
-      }
-    })
-  }
-
-  upsert() {
-    ;(this.formGroup.value.id
-      ? this.integrationAPI.update(this.formGroup.value.id, {
-          ...this.formGroup.value
-        })
-      : this.integrationAPI.create(omit(this.formGroup.value, 'id'))
-    ).subscribe({
-      next: () => {
-        this.formGroup.markAsPristine()
-        this.#toastr.success('PAC.Messages.CreatedSuccessfully', { Default: 'Created Successfully!' })
-        this.#router.navigate(['..'], { relativeTo: this.#route })
-      },
-      error: (error) => {
-        this.#toastr.error(getErrorMessage(error))
-      }
-    })
-  }
-
-  cancel() {
-    this.close()
-  }
-
-  close(refresh = false) {
-    this.#router.navigate(['../'], { relativeTo: this.#route })
-  }
-
-  formatCheckedAt(checkedAt?: number | null) {
-    if (!checkedAt) {
-      return ''
-    }
-
-    return new Date(checkedAt).toLocaleString()
+    return this.configurationComponent()?.isDirty() ?? false
   }
 }

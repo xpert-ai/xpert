@@ -365,14 +365,21 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 	const modules: DynamicModule[] = []
 	const errors: PluginLoadFailureRecord[] = []
 
-	for (const { name, runtimeName, level, source } of pluginNames) {
+	for (const { name, runtimeName, level, source, sourceConfig } of pluginNames) {
 		try {
 			const pluginPathName = runtimeName ?? name
 			const pluginBaseDir = opts.organizationId
 				? getOrganizationPluginPath(organizationId, pluginPathName, opts)
 				: baseDirRoot
+			const workspacePath = source === 'code'
+				? getCodeWorkspacePath(sourceConfig) ?? findWorkspacePluginDirectory(normalizePluginName(name), baseDirRoot)
+				: undefined
 			// 2) Load each plugin and merge its configuration defaults.
-			const plugin = await loadPlugin(name, { basedir: pluginBaseDir })
+			const plugin = await loadPlugin(name, {
+				basedir: pluginBaseDir,
+				source,
+				workspacePath
+			})
 			const cfgRaw = opts.configs?.[plugin.meta.name] ?? {}
 			const { config: cfg } = inspectConfig(plugin.meta.name, cfgRaw, plugin.config)
 

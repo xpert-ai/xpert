@@ -54,6 +54,19 @@
       <z-icon zType="manufacturing"></z-icon>
       {{ 'PAC.Knowledgebase.Configuration' | translate: { Default: 'Configuration' } }}
     </span>
+    @for (view of extensionViews(); track view.key) {
+      <span
+        z-tab-link
+        [routerLink]="['./view', view.key]"
+        routerLinkActive
+        #viewRla="routerLinkActive"
+        [routerLinkActiveOptions]="{ exact: true }"
+        [active]="viewRla.isActive"
+      >
+        <i [class]="view.icon || 'ri-layout-grid-line'"></i>
+        {{ view.title | i18n }}
+      </span>
+    }
   </nav>
 </div>
 

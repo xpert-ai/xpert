@@ -24,6 +24,7 @@ import { XpertAuthoringService } from './middlewares/xpert-authoring.service'
 import { XpertToolsetModule } from '../xpert-toolset'
 import { PublishedXpertAccessService } from './published-xpert-access.service'
 import { AssistantBindingModule } from '../assistant-binding/assistant-binding.module'
+import { AgentViewHostDefinition } from '../view-extension/hosts/agent-view-host.definition'
 
 @Module({
     imports: [
@@ -52,6 +53,7 @@ import { AssistantBindingModule } from '../assistant-binding/assistant-binding.m
         XpertTriggerBootstrapRecoveryService,
         AnonymousStrategy,
         WorkflowTriggerRegistry,
+        AgentViewHostDefinition,
         PublishedXpertAccessService,
         XpertAuthoringService,
         XpertAuthoringMiddleware,

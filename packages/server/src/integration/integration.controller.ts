@@ -1,4 +1,4 @@
-import { IIntegration, INTEGRATION_PROVIDERS, IntegrationEnum, IntegrationFeatureEnum } from '@metad/contracts'
+import { IIntegration, IntegrationEnum, IntegrationFeatureEnum } from '@metad/contracts'
 import {
 	Body,
 	Controller,
@@ -59,6 +59,7 @@ export class IntegrationController extends CrudController<Integration> {
 	async getSelectOptions(@Query('provider') provider: string | IntegrationEnum, @Query('features') features: string) {
 		const _features = features?.split(',') as IntegrationFeatureEnum[]
 		const where: FindOptionsWhere<Integration> = provider ? { provider } : {}
+		const providers = new Map(this.service.getProviders().map((item) => [item.name, item]))
 		// if (_features?.length) {
 		// 	where.features = Raw((alias) => `${alias} @> :features`, { features: _features })
 		// }
@@ -67,7 +68,8 @@ export class IntegrationController extends CrudController<Integration> {
 			value: item.id,
 			label: item.name,
 			description: item.description,
-			icon: INTEGRATION_PROVIDERS[item.provider]?.avatar
+			icon: providers.get(item.provider)?.icon,
+			avatar: providers.get(item.provider)?.avatar
 		}))
 	}
 
@@ -88,9 +90,10 @@ export class IntegrationController extends CrudController<Integration> {
 		@Param('id', UUIDValidationPipe) id: string,
 		@Body() entity: QueryDeepPartialEntity<Integration>
 	) {
+		const patch = normalizeIntegrationUpdatePayload(entity)
 		return this.commandBus.execute(
 			new IntegrationUpsertCommand({
-				...(entity as Record<string, unknown>),
+				...patch,
 				id
 			})
 		)
@@ -101,4 +104,12 @@ export class IntegrationController extends CrudController<Integration> {
 	async delete(@Param('id', UUIDValidationPipe) id: string) {
 		return this.commandBus.execute(new IntegrationDelCommand(id))
 	}
+}
+
+function normalizeIntegrationUpdatePayload(entity: QueryDeepPartialEntity<Integration>) {
+	if (!entity || typeof entity !== 'object' || Array.isArray(entity)) {
+		return {}
+	}
+
+	return entity as Partial<IIntegration>
 }

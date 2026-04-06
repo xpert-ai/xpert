@@ -92,7 +92,9 @@ describe('plugin helper registerPluginsAsync', () => {
 		})
 		expect(installOrganizationPlugins).toHaveBeenCalledWith('org-1', [], expect.any(Object))
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-code-demo', {
-			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-code-demo'
+			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-code-demo',
+			source: 'code',
+			workspacePath: '/tmp/workspaces/plugin-code-demo'
 		})
 		expect(loaded).toEqual([
 			expect.objectContaining({
@@ -134,7 +136,9 @@ describe('plugin helper registerPluginsAsync', () => {
 			manifestName: undefined
 		})
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-trigger-schedule', {
-			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-trigger-schedule'
+			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-trigger-schedule',
+			source: 'code',
+			workspacePath: expect.stringMatching(/packages\/plugins\/trigger-schedule$/)
 		})
 	})
 
@@ -172,7 +176,9 @@ describe('plugin helper registerPluginsAsync', () => {
 			manifestName: undefined
 		})
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-code-demo', {
-			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-code-demo@runtime__abc123'
+			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-code-demo@runtime__abc123',
+			source: 'code',
+			workspacePath: '/tmp/workspaces/plugin-code-demo'
 		})
 		expect(loaded).toEqual([
 			expect.objectContaining({

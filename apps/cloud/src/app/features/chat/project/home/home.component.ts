@@ -40,6 +40,7 @@ import { ChatProjectFilesComponent } from '../files/files.component'
 import { FileIconComponent } from '@cloud/app/@shared/files'
 import { ChatProjectVcsComponent } from '../vcs/vcs.component'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ExtensionHostOutletComponent } from '@cloud/app/@shared/view-extension'
 
 /**
  *
@@ -69,7 +70,8 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ChatProjectKnowledgesComponent,
     ChatProjectVcsComponent,
     ChatAttachmentsComponent,
-    FileIconComponent
+    FileIconComponent,
+    ExtensionHostOutletComponent
   ],
   selector: 'pac-chat-project-home',
   templateUrl: './home.component.html',

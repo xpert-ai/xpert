@@ -7,6 +7,7 @@ import { Environment } from './environment.entity'
 import { EnvironmentService } from './environment.service'
 import { XpertWorkspaceModule } from '../xpert-workspace'
 import { QueryHandlers } from './queries/handlers'
+import { SandboxViewHostDefinition } from '../view-extension/hosts/sandbox-view-host.definition'
 
 @Module({
 	imports: [
@@ -16,7 +17,7 @@ import { QueryHandlers } from './queries/handlers'
 		forwardRef(() => XpertWorkspaceModule),
 	],
 	controllers: [EnvironmentController],
-	providers: [EnvironmentService, ...QueryHandlers],
+	providers: [EnvironmentService, SandboxViewHostDefinition, ...QueryHandlers],
 	exports: [EnvironmentService]
 })
 export class EnvironmentModule {}

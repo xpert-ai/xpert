@@ -612,9 +612,11 @@
       "Custom": "自定义",
       "ID": "标识",
       "IsActive": "启用",
+      "LoadMore": "加载更多",
       "Loading": "加载中",
       "No": "否",
       "NotSet": "未设置",
+      "Previous": "上一步",
       "Saving": "保存中",
       "Uploading": "上传中",
       "Yes": "是"
@@ -3519,9 +3521,20 @@
       "Provider": "提供商",
       "SelectProvider": "选择一个提供商",
       "ConfirmDeleteIntegration": "确定删除此集成",
+      "ConfigurationWithTabsHint": "在此配置连接，然后切换到其他页签查看插件提供的数据。",
+      "ConfigurationOnlyHint": "在此配置当前集成的连接信息。",
       "WebhookUrl": "回调地址",
       "AddIntegrationHelp": "了解更多关于自定义集成的信息",
       "AllProviders": "所有提供商"
+    },
+    "ViewExtension": {
+      "DetailTabHint": "这里将通过平台声明式视图系统展示此集成的扩展信息。",
+      "Unsupported": "不支持的视图类型",
+      "NotFound": "未找到视图",
+      "Empty": "暂无扩展视图",
+      "Search": "搜索",
+      "NoData": "暂无数据",
+      "Total": "总数"
     },
     "Xpert": {
       "ActionToReview": "需要您审核的操作",

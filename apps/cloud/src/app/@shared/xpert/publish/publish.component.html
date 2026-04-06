@@ -41,7 +41,11 @@
         [class.enterprise-pro]="provider.pro"
         (click)="addIntegration(provider)"
       >
-        <img [src]="'/assets/images/destinations/' + provider.avatar" class="shrink-0 w-auto h-6" />
+        @if (provider.icon) {
+          <xp-icon [icon]="provider.icon" class="mr-2 shrink-0 w-6 h-6" />
+        } @else if (provider.avatar) {
+          <img [src]="'/assets/images/destinations/' + provider.avatar" class="mr-2 shrink-0 w-auto h-6" />
+        }
         {{ provider.label | i18n }}
 
         @if (provider.pro) {

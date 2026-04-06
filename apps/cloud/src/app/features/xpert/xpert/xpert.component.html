@@ -185,7 +185,15 @@
 </div>
 
 <div class="flex-1 relative flex overflow-hidden" >
-  <router-outlet #o="outlet"></router-outlet>
+  <div class="flex-1 overflow-auto">
+    <router-outlet #o="outlet"></router-outlet>
+  </div>
+
+  @if (showExtensionSidebar()) {
+    <aside class="hidden xl:block xl:w-[24rem] xl:shrink-0 border-l border-divider-subtle bg-components-panel-bg p-4 overflow-auto">
+      <xp-extension-host-outlet hostType="agent" [hostId]="xpertId()" slot="detail.sidebar" />
+    </aside>
+  }
 </div>
 
 @if (manageOpened()) {

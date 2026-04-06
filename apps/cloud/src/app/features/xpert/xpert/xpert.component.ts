@@ -9,6 +9,7 @@ import { TranslateModule } from '@ngx-translate/core'
 import { routeAnimations, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { AppService } from '../../../app.service'
+import { ExtensionHostOutletComponent } from '../../../@shared/view-extension'
 import { XpertBasicManageComponent } from './manage/manage.component'
 import { XpertService } from './xpert.service'
 import { XpertHeaderSwitcherComponent } from './switcher/switcher.component'
@@ -24,8 +25,9 @@ import { XpertHeaderSwitcherComponent } from './switcher/switcher.component'
     NgmCommonModule,
     EmojiAvatarComponent,
     XpertBasicManageComponent,
-    XpertHeaderSwitcherComponent
-],
+    XpertHeaderSwitcherComponent,
+    ExtensionHostOutletComponent
+  ],
   selector: 'xp-xpert',
   templateUrl: './xpert.component.html',
   styleUrl: 'xpert.component.scss',
@@ -49,6 +51,7 @@ export class XpertComponent {
 
   readonly avatar = computed(() => this.xpert()?.avatar)
   readonly xpertType = computed(() => this.xpert()?.type)
+  readonly showExtensionSidebar = computed(() => this.xpertType() === XpertTypeEnum.Agent && !!this.xpertId())
 
   toggleSideMenu() {
     this.sideMenuOpened.update((state) => !state)

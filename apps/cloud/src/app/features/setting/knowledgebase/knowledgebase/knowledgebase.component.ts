@@ -1,11 +1,14 @@
 import { Component, inject } from '@angular/core'
 import { RouterModule } from '@angular/router'
+import { XpertExtensionViewManifest } from '@metad/contracts'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { EmojiAvatarComponent } from 'apps/cloud/src/app/@shared/avatar'
+import { derivedAsync } from 'ngxtension/derived-async'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { injectParams } from 'ngxtension/inject-params'
 import { BehaviorSubject, of, pipe, switchMap } from 'rxjs'
-import { KnowledgebaseService, ToastrService, routeAnimations } from '../../../../@core'
+import { KnowledgebaseService, ToastrService, ViewExtensionApiService, routeAnimations } from '../../../../@core'
 import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 
@@ -17,13 +20,15 @@ import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
   selector: 'pac-settings-knowledgebase',
   templateUrl: './knowledgebase.component.html',
   styleUrls: ['./knowledgebase.component.scss'],
-  imports: [RouterModule, TranslateModule, SharedUiModule, EmojiAvatarComponent],
+  imports: [RouterModule, TranslateModule, SharedUiModule, EmojiAvatarComponent, NgmI18nPipe],
   animations: [routeAnimations]
 })
 export class KnowledgebaseComponent extends TranslationBaseComponent {
   readonly knowledgebaseService = inject(KnowledgebaseService)
+  readonly viewExtensionAPI = inject(ViewExtensionApiService)
   readonly _toastrService = inject(ToastrService)
   readonly paramId = injectParams('id')
+  readonly viewKey = injectParams('viewKey')
 
   readonly refresh$ = new BehaviorSubject<boolean>(true)
   readonly knowledgebase = derivedFrom(
@@ -40,6 +45,13 @@ export class KnowledgebaseComponent extends TranslationBaseComponent {
     {
       initialValue: null
     }
+  )
+  readonly extensionViews = derivedAsync<XpertExtensionViewManifest[]>(
+    () =>
+      this.paramId()
+        ? this.viewExtensionAPI.getSlotViews('knowledgebase', this.paramId(), 'detail.main_tabs')
+        : of([]),
+    { initialValue: [] }
   )
 
   refresh() {

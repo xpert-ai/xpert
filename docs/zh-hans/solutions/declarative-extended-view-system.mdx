@@ -1,0 +1,809 @@
+---
+title: "通用声明式扩展视图系统技术方案"
+description: ""
+---
+
+# 1. 方案定位
+
+当前平台已经实现了一套平台级的声明式扩展视图系统。
+
+它的目标不是让插件注入前端组件，而是让任意 host object 暴露标准 view slots，然后由系统 provider 或插件 provider 声明：
+
+* 某个 slot 下有哪些扩展视图
+* 每个视图使用什么标准 schema
+* 数据查询支持哪些能力
+* 用户可以触发哪些标准动作
+
+前端只使用平台内置 renderer 渲染，不执行插件自带前端代码。
+
+---
+
+# 2. 适用范围
+
+当前已接入的宿主对象：
+
+* `integration`
+* `knowledgebase`
+* `agent`
+* `project`
+* `sandbox`
+
+典型使用方式：
+
+* `integration` 在详情页主 tabs 中追加扩展 tabs
+* `knowledgebase` 在固定 tabs 之后追加扩展 tabs
+* `agent` 在右侧 sidebar 挂载扩展视图
+* `project` 在详情 sections 区域挂载扩展视图
+* `sandbox` 在详情 sections 区域挂载扩展视图
+
+---
+
+# 3. 核心原则
+
+## 3.1 扩展的是协议，不是组件代码
+
+插件只允许声明：
+
+* manifest
+* schema
+* dataSource 能力
+* action 定义
+
+插件不允许提供：
+
+* Angular 组件
+* HTML 模板
+* JS 脚本
+* 前端自定义 endpoint
+
+---
+
+## 3.2 平台只开放有限的 view type
+
+当前 v1 已实现并允许使用的 schema：
+
+* `stats`
+* `table`
+* `list`
+* `detail`
+* `raw_json`
+
+后续可以在平台版本中继续扩展：
+
+* `cards`
+* `kv`
+* `timeline`
+* `chat_messages`
+* `logs`
+* `tabs`
+* `split`
+* `master_detail`
+
+---
+
+## 3.3 数据、动作、权限都走平台网关
+
+前端所有读取和动作执行都只走平台标准 API：
+
+* `GET /api/view-hosts/:hostType/:hostId/slots/:slot/views`
+* `GET /api/view-hosts/:hostType/:hostId/views/:viewKey/data`
+* `POST /api/view-hosts/:hostType/:hostId/views/:viewKey/actions/:actionKey`
+
+---
+
+# 4. 核心抽象
+
+## 4.1 Host Context
+
+```ts
+export interface XpertViewHostContext {
+  tenantId: string
+  organizationId?: string | null
+  workspaceId?: string | null
+  userId: string
+  hostType: string
+  hostId: string
+  module?: string
+  route?: string
+  permissions?: string[]
+  locale?: string
+}
+
+export interface XpertResolvedViewHostContext extends XpertViewHostContext {
+  slots: XpertViewSlot[]
+  hostSnapshot?: unknown
+}
+```
+
+说明：
+
+* `XpertViewHostContext` 是基础上下文
+* `XpertResolvedViewHostContext` 是运行时解析后的上下文
+* `hostSnapshot` 由宿主解析器统一构建，provider 用它做 `supports()` 判断和轻量数据读取
+
+---
+
+## 4.2 View Slot
+
+```ts
+export interface XpertViewSlot {
+  key: string
+  title?: I18nObject
+  mode: 'tabs' | 'sections' | 'widgets' | 'sidebar'
+  order?: number
+}
+```
+
+典型 slot：
+
+* `detail.main_tabs`
+* `detail.sections`
+* `detail.sidebar`
+
+---
+
+## 4.3 Extension View Manifest
+
+当前所有文本字段都使用 `I18nObject`，而不是裸字符串。
+
+```ts
+export interface XpertExtensionViewManifest {
+  key: string
+  title: I18nObject
+  description?: I18nObject
+  icon?: string
+
+  hostType: string
+  slot: string
+
+  order?: number
+  visible?: boolean
+
+  source: {
+    provider: string
+    plugin?: string
+    version?: string
+  }
+
+  permissions?: string[]
+
+  badge?: {
+    type: 'count' | 'status' | 'text'
+    value?: string | number
+  }
+
+  refreshable?: boolean
+  polling?: {
+    enabled: boolean
+    intervalMs?: number
+  }
+
+  view: XpertViewSchema
+  dataSource: XpertViewDataSource
+  actions?: XpertViewActionDefinition[]
+}
+```
+
+平台对外暴露的 `viewKey` 规则为：
+
+```ts
+<providerKey>__<manifestKey>
+```
+
+其中：
+
+* provider 内部声明的 `manifest.key` 只需要在本 provider 内唯一
+* 平台公开 API 一律使用拼接后的公共 `viewKey`
+
+---
+
+## 4.4 View Schema
+
+当前 v1 的 schema 集合：
+
+```ts
+export type XpertViewSchema =
+  | XpertStatsViewSchema
+  | XpertTableViewSchema
+  | XpertListViewSchema
+  | XpertDetailViewSchema
+  | XpertRawJsonViewSchema
+```
+
+### Stats
+
+```ts
+export interface XpertStatsViewSchema {
+  type: 'stats'
+  items: Array<{
+    key: string
+    label: I18nObject
+    valueType?: 'text' | 'number' | 'status' | 'datetime'
+  }>
+}
+```
+
+### Table
+
+```ts
+export interface XpertTableViewSchema {
+  type: 'table'
+  columns: Array<{
+    key: string
+    label: I18nObject
+    dataType?: 'text' | 'number' | 'date' | 'datetime' | 'status' | 'tag' | 'avatar' | 'link'
+    width?: string
+    sortable?: boolean
+    searchable?: boolean
+  }>
+  pagination?: {
+    enabled: boolean
+    pageSize?: number
+  }
+  search?: {
+    enabled: boolean
+    placeholder?: I18nObject
+  }
+}
+```
+
+### List
+
+```ts
+export interface XpertListViewSchema {
+  type: 'list'
+  item: {
+    titleKey: string
+    subtitleKey?: string
+    descriptionKey?: string
+    metaKeys?: string[]
+  }
+  pagination?: {
+    enabled: boolean
+    pageSize?: number
+  }
+  search?: {
+    enabled: boolean
+    placeholder?: I18nObject
+  }
+}
+```
+
+### Detail
+
+```ts
+export interface XpertDetailViewSchema {
+  type: 'detail'
+  fields: Array<{
+    key: string
+    label: I18nObject
+    dataType?: 'text' | 'number' | 'status' | 'datetime' | 'json'
+  }>
+}
+```
+
+### Raw JSON
+
+```ts
+export interface XpertRawJsonViewSchema {
+  type: 'raw_json'
+}
+```
+
+---
+
+# 5. 数据源协议
+
+前端不读取插件自定义 endpoint，只读取平台数据。
+
+```ts
+export interface XpertViewDataSource {
+  mode: 'platform'
+  querySchema?: {
+    supportsPagination?: boolean
+    supportsSearch?: boolean
+    supportsSort?: boolean
+    supportsFilter?: boolean
+    supportsCursor?: boolean
+    supportsSelection?: boolean
+    defaultPageSize?: number
+  }
+  cache?: {
+    enabled?: boolean
+    ttlMs?: number
+  }
+  polling?: {
+    enabled: boolean
+    intervalMs?: number
+  }
+}
+```
+
+说明：
+
+* `mode` 在当前实现中固定为 `platform`
+* provider 只能声明查询能力、缓存和 polling
+* provider 不能把任意 URL 暴露给前端
+
+---
+
+## 5.1 Query 模型
+
+```ts
+export interface XpertViewQuery {
+  page?: number
+  pageSize?: number
+  cursor?: string
+  search?: string
+  sortBy?: string
+  sortDirection?: 'asc' | 'desc'
+  filters?: Array<{
+    key: string
+    operator?: 'eq' | 'neq' | 'contains' | 'starts_with' | 'ends_with' | 'in' | 'gt' | 'gte' | 'lt' | 'lte'
+    value: string | number | boolean | null | Array<string | number | boolean | null>
+  }>
+  selectionId?: string
+}
+```
+
+运行时约束：
+
+* 只有 `dataSource.querySchema` 声明支持的查询字段才允许透传给 provider
+* 不支持的 query 参数会直接返回 `400`
+
+---
+
+## 5.2 Data 返回结构
+
+```ts
+export interface XpertViewDataResult<TItem = unknown, TSummary = unknown> {
+  items?: TItem[]
+  item?: TItem
+  total?: number
+  nextCursor?: string
+  summary?: TSummary
+  meta?: unknown
+}
+```
+
+不同 renderer 的读取约定：
+
+* `table` / `list` 主要读取 `items`
+* `detail` 主要读取 `item`
+* `stats` 主要读取 `summary`
+* `raw_json` 读取 `item ?? items ?? summary ?? meta`
+
+---
+
+# 6. 动作协议
+
+当前 v1 的动作定义：
+
+```ts
+export interface XpertViewActionDefinition {
+  key: string
+  label: I18nObject
+  icon?: string
+  placement?: 'toolbar' | 'row'
+  actionType: 'invoke' | 'navigate' | 'open_detail' | 'refresh'
+  confirm?: {
+    title?: I18nObject
+    message?: I18nObject
+  }
+  permissions?: string[]
+}
+```
+
+动作请求和结果：
+
+```ts
+export interface XpertViewActionRequest {
+  targetId?: string
+}
+
+export interface XpertViewActionResult<TData = unknown> {
+  success: boolean
+  message?: I18nObject
+  data?: TData
+  refresh?: boolean
+}
+```
+
+说明：
+
+* v1 只支持 `toolbar` 和 `row` 两种 placement
+* v1 不支持 action input schema 和动态表单
+* 所有动作点击后都先调用平台 `POST /actions/:actionKey`
+
+---
+
+# 7. Provider 协议
+
+这是一个平台级能力，不是 Integration 的附属接口。
+
+```ts
+export interface IXpertViewExtensionProvider {
+  supports(context: XpertResolvedViewHostContext): Promise<boolean> | boolean
+
+  getViewManifests(
+    context: XpertResolvedViewHostContext,
+    slot: string
+  ): Promise<XpertExtensionViewManifest[]> | XpertExtensionViewManifest[]
+
+  getViewData(
+    context: XpertResolvedViewHostContext,
+    viewKey: string,
+    query: XpertViewQuery
+  ): Promise<XpertViewDataResult> | XpertViewDataResult
+
+  executeViewAction?(
+    context: XpertResolvedViewHostContext,
+    viewKey: string,
+    actionKey: string,
+    request: XpertViewActionRequest
+  ): Promise<XpertViewActionResult> | XpertViewActionResult
+}
+```
+
+SDK 装饰器：
+
+```ts
+@ViewExtensionProvider('slack_integration')
+```
+
+`supports()` 很重要，因为不是所有 provider 都适用于所有 host。
+
+例如：
+
+* Slack provider 只适用于 `hostType = integration` 且 provider 为 `slack`
+* 某些系统 provider 可能只适用于 `project`
+* 某些 provider 可能同时支持多个 hostType
+
+---
+
+# 8. 后端运行时结构
+
+当前实现包含：
+
+* `ViewExtensionModule`
+* provider registry
+* host definition registry
+* `ViewExtensionService`
+* `ViewExtensionController`
+* `ViewExtensionPermissionService`
+* `ViewExtensionCacheService`
+
+统一流程：
+
+1. 解析 host
+2. 校验宿主读权限
+3. 找到所有 `supports(context)` 为真的 provider
+4. 聚合目标 slot 下的 manifests
+5. 过滤 manifest/action 权限
+6. 规范化 `viewKey/source/dataSource/actions`
+7. 返回前端
+
+对于数据和动作：
+
+1. 重新解析 host
+2. 重新解析 provider + manifest
+3. 校验 manifest/action 权限
+4. 校验 query 是否被当前 `dataSource.querySchema` 允许
+5. 调用 provider
+6. 按需处理缓存失效
+
+---
+
+# 9. 统一 API
+
+## 9.1 获取某个 slot 下的扩展视图
+
+```http
+GET /api/view-hosts/:hostType/:hostId/slots/:slot/views
+```
+
+示例：
+
+```http
+GET /api/view-hosts/integration/123/slots/detail.main_tabs/views
+GET /api/view-hosts/knowledgebase/456/slots/detail.main_tabs/views
+GET /api/view-hosts/agent/789/slots/detail.sidebar/views
+GET /api/view-hosts/project/321/slots/detail.sections/views
+```
+
+---
+
+## 9.2 获取某个视图的数据
+
+```http
+GET /api/view-hosts/:hostType/:hostId/views/:viewKey/data
+```
+
+---
+
+## 9.3 执行某个视图动作
+
+```http
+POST /api/view-hosts/:hostType/:hostId/views/:viewKey/actions/:actionKey
+```
+
+请求体 v1：
+
+```ts
+{
+  targetId?: string
+}
+```
+
+---
+
+## 9.4 可选能力：获取 host 的 slot 元信息
+
+```http
+GET /api/view-hosts/:hostType/:hostId/slots
+```
+
+说明：
+
+* 这是文档层面的可选增强接口
+* 当前 v1 中尚未实现
+* 当前前端模式是宿主页面自己知道要挂载哪个 slot，然后直接请求该 slot 的 `views`
+
+---
+
+# 10. 宿主接入矩阵
+
+当前已接入的宿主定义：
+
+| hostType | hostId 来源 | v1 暴露 slot | 前端挂载位置 |
+| --- | --- | --- | --- |
+| `integration` | `integration.id` | `detail.main_tabs` | Integration 页面固定 config tab + 动态扩展 tabs |
+| `knowledgebase` | `knowledgebase.id` | `detail.main_tabs` | Knowledgebase 固定 tabs 后追加扩展 tabs |
+| `agent` | `xpert.id`，且仅 Agent 类型 | `detail.sidebar` | Agent 详情右侧 sidebar |
+| `project` | `project.id` | `detail.sections` | Project 详情 sections |
+| `sandbox` | `environmentId` | `detail.sections` | Sandbox details sections |
+
+宿主模块本身不需要知道每个 provider 的细节，只需要：
+
+* 声明自己有哪些 slot
+* 能根据 `hostId` 解析出 `hostSnapshot`
+* 能校验当前用户是否有读取该 host 的权限
+
+---
+
+# 11. 前端渲染架构
+
+当前前端通用层由两部分组成：
+
+## 11.1 `ExtensionHostOutlet`
+
+负责：
+
+* 根据 `hostType + hostId + slot` 拉取 manifests
+* 在 `slot` 模式下渲染一个 slot 的所有视图
+* 在 `single-view` 模式下渲染一个指定 `viewKey`
+
+## 11.2 `ViewRenderer`
+
+负责：
+
+* 根据 `schema.type` 分发到平台内置 renderer
+* 管理当前 view 的 loading / error / data
+* 处理分页、搜索、排序
+* 调用动作 API
+* 在可见视图上启用 polling
+
+当前内置 renderer：
+
+* `StatsRenderer`
+* `TableRenderer`
+* `ListRenderer`
+* `DetailRenderer`
+* `RawJsonRenderer`
+
+懒加载规则：
+
+* slot manifest 在 outlet 挂载时加载
+* tab 内容只在进入对应 `viewKey` 时拉数据
+* sections/sidebar 视图在首次进入可视区时拉数据
+* polling 只在当前可见 view 上启用
+
+---
+
+# 12. 权限、安全与缓存
+
+## 12.1 权限
+
+平台统一做三层校验：
+
+* 宿主读权限
+* manifest `permissions`
+* action `permissions`
+
+不可见的 view/action：
+
+* 在列表接口中直接隐藏
+* 显式访问其 data/action 时返回 `403`
+
+## 12.2 安全
+
+平台运行时会校验：
+
+* schema type 是否受支持
+* action placement/type 是否受支持
+* `viewKey` 是否合法
+* query 参数是否超出 `dataSource.querySchema`
+* `dataSource.mode` 是否为 `platform`
+
+## 12.3 缓存
+
+当前默认策略：
+
+* manifest cache TTL 60 秒
+* data cache TTL 30 秒
+* provider 可以下调 TTL，但不能放宽到无限缓存
+
+缓存失效来源：
+
+* 插件 reload
+* provider 变更
+* 宿主对象变更
+* action result 返回 `refresh = true`
+
+---
+
+# 13. Slack Integration 示例
+
+Slack 已作为独立 plugin package 接入，并提供完整的 view extensions。
+
+关键点：
+
+* providerKey 固定为 `slack_integration`
+* 仅在 `hostType === 'integration'` 且 integration provider/type 为 `slack` 时 `supports()` 返回 true
+* 当前提供两个扩展 tabs：
+  * `status`
+  * `users`
+
+示意代码：
+
+```ts
+const text = (en_US: string, zh_Hans: string): I18nObject => ({ en_US, zh_Hans })
+
+@ViewExtensionProvider('slack_integration')
+export class SlackIntegrationViewProvider implements IXpertViewExtensionProvider {
+  supports(context: XpertResolvedViewHostContext): boolean {
+    if (context.hostType !== 'integration') {
+      return false
+    }
+
+    return context.hostSnapshot?.provider === 'slack'
+  }
+
+  getViewManifests(context: XpertResolvedViewHostContext, slot: string): XpertExtensionViewManifest[] {
+    if (slot !== 'detail.main_tabs') {
+      return []
+    }
+
+    return [
+      {
+        key: 'status',
+        title: text('Status', '状态'),
+        hostType: context.hostType,
+        slot,
+        order: 10,
+        source: {
+          provider: 'slack_integration',
+          plugin: '@xpert-ai/plugin-integration-slack'
+        },
+        view: {
+          type: 'stats',
+          items: [
+            { key: 'status', label: text('Status', '状态'), valueType: 'status' },
+            { key: 'workspace', label: text('Workspace', '工作区'), valueType: 'text' },
+            { key: 'lastSyncAt', label: text('Last Sync', '最近同步'), valueType: 'datetime' }
+          ]
+        },
+        dataSource: {
+          mode: 'platform',
+          cache: { ttlMs: 15000 },
+          polling: { enabled: true, intervalMs: 15000 }
+        },
+        actions: [
+          {
+            key: 'refresh',
+            label: text('Refresh', '刷新'),
+            placement: 'toolbar',
+            actionType: 'refresh'
+          }
+        ]
+      },
+      {
+        key: 'users',
+        title: text('Users', '用户'),
+        hostType: context.hostType,
+        slot,
+        order: 20,
+        source: {
+          provider: 'slack_integration',
+          plugin: '@xpert-ai/plugin-integration-slack'
+        },
+        view: {
+          type: 'table',
+          columns: [
+            { key: 'displayName', label: text('Display Name', '显示名'), searchable: true, sortable: true },
+            { key: 'realName', label: text('Real Name', '真实姓名'), searchable: true, sortable: true },
+            { key: 'email', label: text('Email', '邮箱'), searchable: true, sortable: true },
+            { key: 'status', label: text('Status', '状态'), dataType: 'status', sortable: true }
+          ],
+          pagination: { enabled: true, pageSize: 10 },
+          search: {
+            enabled: true,
+            placeholder: text('Search users', '搜索用户')
+          }
+        },
+        dataSource: {
+          mode: 'platform',
+          querySchema: {
+            supportsPagination: true,
+            supportsSearch: true,
+            supportsSort: true,
+            defaultPageSize: 10
+          }
+        }
+      }
+    ]
+  }
+}
+```
+
+---
+
+# 14. 当前实现状态与后续路线
+
+## 14.1 已完成的 v1
+
+* 平台级 contracts / sdk / runtime / frontend renderer
+* `integration / knowledgebase / agent / project / sandbox` 宿主接入
+* 五种标准 renderer：
+  * `stats`
+  * `table`
+  * `list`
+  * `detail`
+  * `raw_json`
+* toolbar / row actions
+* 平台托管 dataSource
+* 懒加载、分页、搜索、排序
+* 权限过滤与缓存
+* Slack provider 示例
+* 文本字段统一使用 `I18nObject`
+
+## 14.2 建议的下一步
+
+优先级建议：
+
+1. 保持文档与 v1 契约一致
+2. 再决定是否实现 `GET /slots`
+3. 然后按产品优先级进入 Phase 2
+
+## 14.3 Phase 2 候选
+
+* `cards`
+* `kv`
+* `timeline`
+* `chat_messages`
+* `logs`
+* `master_detail`
+* 可选 `GET /slots`
+
+## 14.4 Phase 3 候选
+
+* `tabs`
+* `split`
+* 复合联动视图
+* 多视图共享 selection/context
+
+---
+
+# 15. 一句话结论
+
+**不要为 Integration 单独做一套动态页面机制，而应把它上升为平台级的声明式扩展视图系统：宿主对象暴露标准 slot，provider 声明 manifest/schema/dataSource/actions，前端只用平台 renderer 渲染，Integration 只是其中一个 host。**
