@@ -49,6 +49,7 @@ Thumbs.db
 /plugins
 /apps/**/.cache
 /apps/**/node_modules
+/legacies/**/node_modules
 /libs/**/.cache
 /libs/**/node_modules
 /packages/**/.cache
