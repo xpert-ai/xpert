@@ -1,5 +1,7 @@
 import { ICommand } from '@nestjs/cqrs'
 
+const COMMAND_METADATA = '__command__'
+
 export class CancelConversationCommand implements ICommand {
 	static readonly type = '[Chat Conversation] Cancel'
 
@@ -11,3 +13,5 @@ export class CancelConversationCommand implements ICommand {
 		}
 	) {}
 }
+
+Reflect.defineMetadata(COMMAND_METADATA, { id: CancelConversationCommand.type }, CancelConversationCommand)

@@ -2,12 +2,12 @@ import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { HumanMessage } from '@langchain/core/messages'
 import { RunnableConfig } from '@langchain/core/runnables'
 import {
+	createConversationTitleSummaryEvent,
 	ChatMessageEventTypeEnum,
 	GRAPH_NODE_TITLE_CONVERSATION,
 	mapTranslationLanguage,
 	STATE_VARIABLE_SYS,
 	STATE_VARIABLE_TITLE_CHANNEL,
-	TChatEventMessage,
 	TMessageChannel,
 	TXpertAgentExecution,
 	XpertAgentExecutionStatusEnum
@@ -78,13 +78,17 @@ export class CreateSummarizeTitleAgentHandler implements ICommandHandler<CreateS
 			state: typeof AgentStateAnnotation.State,
 			config: RunnableConfig
 		): Promise<Partial<typeof AgentStateAnnotation.State>> => {
+			const runId = typeof config.metadata?.run_id === 'string' ? config.metadata.run_id : undefined
 			// Starting event
-			await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
-				id: config.metadata.run_id,
-				title: t('server-ai:Xpert.SummaryTitleStarting'),
-				status: 'running',
-				created_date: new Date().toISOString(),
-			} as TChatEventMessage)
+			await dispatchCustomEvent(
+				ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+				createConversationTitleSummaryEvent({
+					id: runId,
+					title: t('server-ai:Xpert.SummaryTitleStarting'),
+					status: 'running',
+					created_date: new Date().toISOString(),
+				})
+			)
 			// Record start time
 			const timeStart = Date.now()
 			let status = XpertAgentExecutionStatusEnum.SUCCESS
@@ -157,12 +161,15 @@ export class CreateSummarizeTitleAgentHandler implements ICommandHandler<CreateS
 						}
 					})
 				)
-				await dispatchCustomEvent(ChatMessageEventTypeEnum.ON_CHAT_EVENT, {
-					id: config.metadata.run_id,
-					title: t('server-ai:Xpert.SummaryTitleEnd'),
-					status: 'success',
-					end_date: new Date().toISOString(),
-				} as TChatEventMessage)
+				await dispatchCustomEvent(
+					ChatMessageEventTypeEnum.ON_CHAT_EVENT,
+					createConversationTitleSummaryEvent({
+						id: runId,
+						title: t('server-ai:Xpert.SummaryTitleEnd'),
+						status: 'success',
+						end_date: new Date().toISOString(),
+					})
+				)
 			}
 		}
 	}

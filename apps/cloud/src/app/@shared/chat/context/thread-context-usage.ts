@@ -1,10 +1,10 @@
-import { TThreadContextUsageEvent } from '../../../@core'
+import { CHAT_EVENT_TYPE_THREAD_CONTEXT_USAGE, TThreadContextUsageEvent } from '../../../@core'
 
 export function isThreadContextUsageEvent(value: unknown): value is TThreadContextUsageEvent {
   return (
     !!value &&
     typeof value === 'object' &&
-    (value as TThreadContextUsageEvent).type === 'thread_context_usage' &&
+    (value as TThreadContextUsageEvent).type === CHAT_EVENT_TYPE_THREAD_CONTEXT_USAGE &&
     typeof (value as TThreadContextUsageEvent).agentKey === 'string'
   )
 }
