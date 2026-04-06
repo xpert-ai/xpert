@@ -9,7 +9,7 @@ function getLocalSandboxDataRoot() {
 }
 
 function getConfiguredDockerHostSandboxVolumeRootPath(tenantId?: string) {
-    const configuredRoot = environment.sandboxConfig.volume?.trim()
+    const configuredRoot = environment.sandboxConfig?.volume?.trim()
     if (!configuredRoot) {
         return null
     }
@@ -18,7 +18,7 @@ function getConfiguredDockerHostSandboxVolumeRootPath(tenantId?: string) {
 }
 
 export function hasConfiguredSandboxVolume() {
-    return Boolean(environment.sandboxConfig.volume?.trim())
+    return Boolean(environment.sandboxConfig?.volume?.trim())
 }
 
 export function usesFlattenedSandboxVolumeLayout() {
@@ -44,6 +44,8 @@ export function getDockerHostSandboxVolumeRootPath(tenantId?: string) {
 
     return getConfiguredDockerHostSandboxVolumeRootPath(tenantId) ?? getApiContainerSandboxVolumeRootPath(tenantId)
 }
+
+export const getSandboxVolumeRootPath = getApiContainerSandboxVolumeRootPath
 
 export function normalizeSandboxPublicVolumeSubpath(subpath: string) {
     if (!usesFlattenedSandboxVolumeLayout()) {
