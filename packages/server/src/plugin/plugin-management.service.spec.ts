@@ -326,7 +326,9 @@ describe('PluginManagementService', () => {
 		)
 		expect(getOrganizationPluginPath).toHaveBeenCalledWith('org-1', runtimeName)
 		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-code-demo', {
-			basedir: `/tmp/plugins/org-1/${runtimeName.replace(/[\/@]/g, '__')}`
+			basedir: `/tmp/plugins/org-1/${runtimeName.replace(/[\/@]/g, '__')}`,
+			source: 'code',
+			workspacePath: '/tmp/workspaces/plugin-code-demo'
 		})
 		expect(assertPluginSdkInstallCandidate).toHaveBeenCalledWith({
 			pluginName: '@xpert-ai/plugin-code-demo',

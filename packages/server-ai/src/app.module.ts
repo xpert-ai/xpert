@@ -39,6 +39,7 @@ import { SkillRepositoryIndexModule, SkillRepositoryModule } from './skill-repos
 import { SkillPackageModule } from './skill-package'
 import { FileUploadTargetsModule } from './shared'
 import { InitializationModule } from './initialization/initialization.module'
+import { ViewHostCacheSubscriber } from './view-extension/view-host-cache.subscriber'
 
 @Module({
     imports: [
@@ -83,6 +84,6 @@ import { InitializationModule } from './initialization/initialization.module'
         SandboxModule
     ],
     controllers: [],
-    providers: [...EventHandlers, ...CommandHandlers]
+    providers: [...EventHandlers, ...CommandHandlers, ViewHostCacheSubscriber]
 })
 export class ServerAIModule {}

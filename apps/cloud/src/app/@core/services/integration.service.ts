@@ -15,6 +15,8 @@ export interface IntegrationTestProbe {
 
 export interface IntegrationTestResult {
   webhookUrl?: string
+  callbackUrl?: string
+  authorizationUrl?: string
   mode?: string
   warnings?: string[]
   probe?: IntegrationTestProbe
@@ -37,6 +39,12 @@ export function normalizeIntegrationTestResult(
 
   if (result.webhookUrl !== undefined) {
     normalized.webhookUrl = result.webhookUrl
+  }
+  if (result.callbackUrl !== undefined) {
+    normalized.callbackUrl = result.callbackUrl
+  }
+  if (result.authorizationUrl !== undefined) {
+    normalized.authorizationUrl = result.authorizationUrl
   }
   if (result.mode !== undefined) {
     normalized.mode = result.mode

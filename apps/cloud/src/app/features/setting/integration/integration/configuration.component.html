@@ -1,0 +1,217 @@
+<div class="flex-1 overflow-auto">
+  <form class="flex max-w-full flex-col gap-2 p-4 lg:max-w-lg" [formGroup]="formGroup">
+    <emoji-avatar formControlName="avatar" large editable class="self-center overflow-hidden rounded-xl shadow-sm" />
+
+    <ngm-input class="flex-1" [label]="'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' }" formControlName="name">
+      @if (!name) {
+        <div ngmError>{{ 'PAC.KEY_WORDS.NameRequired' | translate: { Default: 'Name is required' } }}</div>
+      }
+    </ngm-input>
+
+    <div class="flex min-w-full flex-1 flex-col">
+      <label class="ngm-input-label shrink-0">{{
+        'PAC.KEY_WORDS.Description' | translate: { Default: 'Description' }
+      }}</label>
+      <textarea
+        class="ngm-input-element"
+        z-input
+        formControlName="description"
+        cdkTextareaAutosize
+        cdkAutosizeMinRows="1"
+        cdkAutosizeMaxRows="5"
+      ></textarea>
+    </div>
+
+    <div class="flex min-w-full flex-1 flex-col">
+      <label class="ngm-input-label flex shrink-0 items-center justify-between">
+        {{ 'PAC.Integration.Provider' | translate: { Default: 'Provider' } }}
+
+        @if (integrationProvider()?.helpUrl; as helpUrl) {
+          <a
+            [href]="helpUrl"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="group inline-flex items-center text-xs text-primary-400 hover:text-primary-600 hover:underline"
+          >
+            {{ 'PAC.KEY_WORDS.Help' | translate: { Default: 'Help' } }}
+            <i class="ri-book-open-line ml-1 flex items-center justify-center group-hover:hidden"></i>
+            <i class="ri-book-open-fill ml-1 hidden items-center justify-center group-hover:flex"></i>
+          </a>
+        }
+      </label>
+      <ngm-select
+        class="flex-1"
+        [placeholder]="'PAC.Integration.SelectProvider' | translate: { Default: 'Select a provider' }"
+        formControlName="provider"
+        [selectOptions]="providers()"
+      >
+        <div icon>
+          @if (integrationProvider(); as provider) {
+            @if (provider.icon) {
+              <xp-icon
+                [icon]="provider.icon"
+                class="mr-1 flex h-5 w-5 shrink-0 items-center justify-center rounded-lg bg-components-input-bg-normal"
+              />
+            } @else if (provider.avatar) {
+              <img class="mr-1 h-5 w-5 rounded-lg" [src]="'/assets/images/integrations/' + provider.avatar" />
+            }
+          }
+        </div>
+        <ng-template #option let-option>
+          <div class="relative flex gap-2">
+            @if (option.avatar) {
+              <img class="h-8 w-8 rounded-lg" [src]="'/assets/images/integrations/' + option.avatar" />
+            } @else if (option._icon) {
+              <xp-icon
+                [icon]="option._icon"
+                class="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-components-input-bg-normal"
+              />
+            }
+            <div class="flex flex-col">
+              <div class="text-sm leading-5 text-text-secondary">{{ option.label | i18n }}</div>
+              <div class="line-clamp-3 text-xs leading-3 text-text-tertiary" [title]="option.description | i18n">
+                {{ option.description | i18n }}
+              </div>
+            </div>
+          </div>
+        </ng-template>
+      </ngm-select>
+    </div>
+
+    @if (integrationProvider(); as provider) {
+      @if (provider.pro && !pro) {
+        <card-pro
+          helpUrl="/pricing/"
+          [description]="{
+            zh_Hans: '专业版集成场景',
+            en_US: 'Integration Scenarios of Professional Edition'
+          }"
+        />
+      } @else {
+        <parameter-form
+          #optionsForm
+          [schema]="schema()"
+          [ngModel]="optionsControl.value"
+          (ngModelChange)="optionsControl.setValue($event)"
+          [ngModelOptions]="{ standalone: true }"
+        />
+      }
+    }
+
+    @if (webhookUrl()) {
+      <div>
+        <p>{{ 'PAC.Integration.WebhookUrl' | translate: { Default: 'Webhook url' } }}:</p>
+        <pre class="whitespace-break-spaces rounded-md bg-background-default-subtle px-2 py-1 text-sm dark:bg-white/10">{{
+          webhookUrl()
+        }}</pre>
+      </div>
+    }
+
+    @if (callbackUrl()) {
+      <div class="flex flex-col gap-2">
+        <p>{{ 'PAC.KEY_WORDS.CallbackUrl' | translate: { Default: 'Callback URL' } }}:</p>
+        <pre class="whitespace-break-spaces rounded-md bg-background-default-subtle px-2 py-1 text-sm dark:bg-white/10">{{
+          callbackUrl()
+        }}</pre>
+      </div>
+    }
+
+    @if (authorizationUrl()) {
+      <div class="flex flex-col gap-2 rounded-lg border border-divider-subtle p-3">
+        <p>{{ 'PAC.KEY_WORDS.Authorization' | translate: { Default: 'Authorization' } }}</p>
+        <div class="text-sm text-text-secondary">
+          {{
+            (longConnectionProbe()?.connected ? 'PAC.Integration.ReconnectSlackHint' : 'PAC.Integration.ConnectSlackHint')
+              | translate: {
+                  Default: longConnectionProbe()?.connected
+                    ? 'Reconnect the Slack app if you need to refresh workspace authorization.'
+                    : 'Open Slack to install the app and grant the required workspace scopes.'
+                }
+          }}
+        </div>
+        <div>
+          <button z-button zType="secondary" type="button" (click)="openAuthorizationUrl()">
+            {{
+              (longConnectionProbe()?.connected ? 'PAC.Integration.ReconnectSlack' : 'PAC.Integration.ConnectSlack')
+                | translate: {
+                    Default: longConnectionProbe()?.connected ? 'Reconnect Slack' : 'Connect to Slack'
+                  }
+            }}
+          </button>
+        </div>
+      </div>
+    } @else if (isSlackProvider() && !paramId() && callbackUrl()) {
+      <div class="rounded-lg border border-divider-subtle p-3 text-sm text-text-secondary">
+        {{
+          'PAC.Integration.SaveSlackBeforeAuthorize'
+            | translate: {
+                Default: 'Save this Slack integration first, then the Connect to Slack button will appear here.'
+              }
+        }}
+      </div>
+    }
+
+    @if (longConnectionProbe(); as probe) {
+      <div class="flex flex-col gap-2">
+        <p>{{ 'PAC.Integration.LongConnectionStatus' | translate: { Default: 'Long connection status' } }}:</p>
+        <div class="flex flex-col gap-1 rounded-md bg-gray-50 px-3 py-2 text-sm dark:bg-white/10">
+          <div>
+            <span class="font-medium">{{ 'PAC.KEY_WORDS.Connected' | translate: { Default: 'Connected' } }}:</span>
+            {{ probe.connected === true ? 'Yes' : probe.connected === false ? 'No' : '-' }}
+          </div>
+          <div>
+            <span class="font-medium">{{ 'PAC.KEY_WORDS.State' | translate: { Default: 'State' } }}:</span>
+            {{ probe.state || '-' }}
+          </div>
+          <div>
+            <span class="font-medium">{{ 'PAC.KEY_WORDS.Error' | translate: { Default: 'Last error' } }}:</span>
+            <span class="whitespace-break-spaces">{{ probe.lastError || '-' }}</span>
+          </div>
+          <div>
+            <span class="font-medium">{{ 'PAC.KEY_WORDS.CheckedAt' | translate: { Default: 'Checked at' } }}:</span>
+            {{ formatCheckedAt(probe.checkedAt) || '-' }}
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (testWarnings().length) {
+      <div class="flex flex-col gap-2">
+        <p>{{ 'PAC.KEY_WORDS.Warnings' | translate: { Default: 'Warnings' } }}:</p>
+        <div class="rounded-md bg-amber-50 px-3 py-2 text-sm dark:bg-amber-500/10">
+          <ul class="flex list-disc flex-col gap-1 pl-5">
+            @for (warning of testWarnings(); track warning) {
+              <li class="whitespace-break-spaces">{{ warning }}</li>
+            }
+          </ul>
+        </div>
+      </div>
+    }
+
+    <div class="filter-bar flex w-full items-center justify-between gap-4 p-2">
+      <button z-button zType="secondary" type="button" [disabled]="!integrationProvider() || optionsInvalid" (click)="test()">
+        {{ 'PAC.KEY_WORDS.Test' | translate: { Default: 'Test' } }}
+      </button>
+      <div ngmButtonGroup class="flex items-center gap-2">
+        <button z-button zType="secondary" type="button" (click)="cancel()">
+          {{ 'PAC.KEY_WORDS.Cancel' | translate: { Default: 'Cancel' } }}
+        </button>
+        <button
+          z-button
+          zType="default"
+          [zTooltip]="'PAC.KEY_WORDS.Save' | translate: { Default: 'Save' }"
+          zPosition="top"
+          [disabled]="formGroup.invalid || formGroup.pristine || optionsInvalid"
+          (click)="upsert()"
+        >
+          <z-icon zType="save"></z-icon>
+          {{ 'PAC.KEY_WORDS.Save' | translate: { Default: 'Save' } }}
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+@if (loading()) {
+  <ngm-spin class="absolute left-0 top-0 h-full w-full"></ngm-spin>
+}

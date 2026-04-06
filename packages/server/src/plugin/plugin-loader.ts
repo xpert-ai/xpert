@@ -1,4 +1,4 @@
-import { PluginLevel } from '@metad/contracts'
+import { PluginLevel, PluginSource } from '@metad/contracts'
 import { getErrorMessage } from '@metad/server-common'
 import type { XpertPlugin } from '@xpert-ai/plugin-sdk'
 import { existsSync, readFileSync } from 'fs'
@@ -10,6 +10,8 @@ import { PluginLoadError } from './errors'
 export interface PluginLoadOptions {
 	/** Resolve modules relative to this base directory (expects a node_modules inside it) */
 	basedir?: string
+	source?: PluginSource | string
+	workspacePath?: string
 }
 
 const isProd = process.env.NODE_ENV === 'production'
@@ -77,6 +79,16 @@ async function loadModule(modName: string, opts: PluginLoadOptions = {}): Promis
 	}
 	const target = resolveFromBase(modName)
 	let errorMessage = ''
+	const preferredTsEntry = getPreferredWorkspaceTsEntry(opts)
+
+	if (!isProd && preferredTsEntry) {
+		try {
+			return loadTsEntry(cjsRequire, preferredTsEntry)
+		} catch (error) {
+			errorMessage += `Preferred TS source load failed for ${modName}: ${getErrorMessage(error)}\n`
+		}
+	}
+
 	// Try ESM import
 	try {
 		return await import(target)
@@ -88,35 +100,11 @@ async function loadModule(modName: string, opts: PluginLoadOptions = {}): Promis
 			return cjsRequire(target)
 		} catch (e2) {
 			errorMessage += `CJS require failed for ${target}: ${getErrorMessage(e2)}\n`
-			if (isProd) {
+			if (isProd || !preferredTsEntry) {
 				// Production mode: only ESM + CJS allowed
 				throw new PluginLoadError(modName, errorMessage, e2)
 			} else {
-				// Development mode: Try loading .ts files with ts-node
-				try {
-					// eslint-disable-next-line @typescript-eslint/no-var-requires
-					cjsRequire('ts-node').register({
-						transpileOnly: true,
-						compilerOptions: {
-							module: 'CommonJS',
-							target: 'ES2021',
-							experimentalDecorators: true,
-							emitDecoratorMetadata: true
-						}
-					})
-
-					// Try to resolve to plugin index.ts
-					const tsEntry = resolve(basedir ?? process.cwd(), 'node_modules', modName, 'src/index.ts')
-					if (!existsSync(tsEntry)) {
-						throw new Error(`No index.ts found for module ${modName}`)
-					}
-
-					return cjsRequire(tsEntry)
-				} catch (e3) {
-					console.error(e3)
-					errorMessage += `Failed to load module in dev (ESM/CJS/TS): ${getErrorMessage(e3)}`
-					throw new PluginLoadError(modName, errorMessage, e3)
-				}
+				throw new PluginLoadError(modName, errorMessage, e2)
 			}
 		}
 	}
@@ -146,4 +134,37 @@ export async function loadPlugin(modName: string, opts: PluginLoadOptions = {}):
 	}
 
 	return plugin
+}
+
+function getPreferredWorkspaceTsEntry(opts: PluginLoadOptions) {
+	const workspacePath = normalizeWorkspacePath(opts.workspacePath)
+	if (opts.source !== 'code' || !workspacePath) {
+		return null
+	}
+
+	const tsEntry = getWorkspaceTsEntryPath(workspacePath)
+	return existsSync(tsEntry) ? tsEntry : null
+}
+
+function normalizeWorkspacePath(workspacePath?: string) {
+	return typeof workspacePath === 'string' && workspacePath.trim().length > 0 ? workspacePath.trim() : null
+}
+
+function getWorkspaceTsEntryPath(workspacePath: string) {
+	return resolve(workspacePath, 'src/index.ts')
+}
+
+function loadTsEntry(cjsRequire: NodeRequire, tsEntry: string) {
+	// eslint-disable-next-line @typescript-eslint/no-var-requires
+	require('ts-node').register({
+		transpileOnly: true,
+		compilerOptions: {
+			module: 'CommonJS',
+			target: 'ES2021',
+			experimentalDecorators: true,
+			emitDecoratorMetadata: true
+		}
+	})
+
+	return cjsRequire(tsEntry)
 }

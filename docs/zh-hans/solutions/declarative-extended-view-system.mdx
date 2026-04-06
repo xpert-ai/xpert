@@ -1,0 +1,1430 @@
+---
+title: "通用声明式扩展视图系统技术方案"
+description: ""
+---
+
+# 1. 方案目标
+
+当前诉求表面上是 Integration 页面需要支持 plugin 自定义子 Tab 展示状态、消息列表、会话列表、用户列表等信息，但如果只为 Integration 单独做一套 Dynamic Container Renderer，会造成：
+
+* 能力只服务一个业务域，复用性差
+* 未来 Agent、Knowledgebase、Project、Workspace、Sandbox、Connector 等模块也会出现类似需求
+* 插件体系会逐步分裂成“配置扩展”“页面扩展”“详情扩展”多套机制
+* 前端会积累很多场景专属动态页面逻辑，后期难统一
+
+所以建议直接抽象成一个平台级能力：
+
+---
+
+## 平台级能力名称建议
+
+**Universal Declarative View Extension System**
+
+中文可以叫：
+
+**通用声明式扩展视图系统**
+
+它的目标不是“让插件插入前端组件”，而是让任何模块、任何插件、任何平台内对象，都可以通过统一协议声明：
+
+* 要展示哪些扩展页面 / tab / section
+* 每个页面展示什么类型的数据
+* 这些数据如何查询
+* 支持哪些交互动作
+* 前端如何统一渲染
+
+---
+
+# 2. 设计定位
+
+这个系统本质上是一个：
+
+## “平台级 UI 扩展协议 + 后端数据提供协议 + 前端通用渲染引擎”
+
+它位于 XpertAI 架构中的位置应该是：
+
+* 不是 Integration 子模块内部能力
+* 不是单纯前端组件库
+* 不是低级表单引擎
+* 而是 XpertAI Plugin System 和前端业务容器之间的一个标准桥梁层
+
+---
+
+# 3. 适用场景
+
+这个系统要服务的对象不止 Integration。
+
+## 3.1 第一批适用场景
+
+1. **Integration**
+
+   * 配置主页面 + 状态 / 会话 / 消息 / 用户 / 同步记录等扩展 tab
+
+2. **Knowledgebase**
+
+   * 文档列表 / 分段结果 / 索引状态 / 检索测试 / 同步记录
+
+3. **Project**
+
+   * 任务面板 / 智能体运行记录 / 外部资源 / 任务日志
+
+4. **Agent / Xpert**
+
+   * 工具调用记录 / 会话 / 记忆 / 中间件状态 / 观测信息
+
+5. **Sandbox**
+
+   * 容器状态 / 文件列表 / 运行历史 / 日志 / 网络信息
+
+6. **Workflow / Pipeline Node**
+
+   * 运行输入输出 / step trace / 中间产物 / 依赖资源
+
+---
+
+## 3.2 第二批适用场景
+
+1. Settings 扩展页
+2. Admin 资源详情页
+3. Marketplace 插件详情页
+4. 外部 Connector 资源浏览页
+5. AI Tool / Skill 结果查看页
+
+---
+
+# 4. 核心思想
+
+---
+
+## 核心原则 1：扩展的是“视图协议”，不是“组件代码”
+
+插件不直接交付 Angular Component。
+插件交付的是：
+
+* View Manifest
+* View Schema
+* Data Provider
+* Action Provider
+
+前端只负责按统一协议渲染。
+
+这保证：
+
+* 插件系统稳定
+* 前端体验统一
+* 安全边界清晰
+* 可审计、可权限控制、可缓存
+* 多租户环境下不需要动态前端代码执行
+
+---
+
+## 核心原则 2：平台统一定义有限的 View Type
+
+插件不能无限自定义 UI。
+插件只能在平台允许的标准 View Type 中组合：
+
+* stats
+* table
+* list
+* cards
+* detail
+* kv
+* timeline
+* chat_messages
+* logs
+* raw_json
+* form
+* split
+* tabs
+* master_detail
+
+这样既有扩展性，又不失控。
+
+---
+
+## 核心原则 3：内容、数据、动作分层
+
+一个扩展视图由三部分组成：
+
+### A. View Manifest
+
+定义有什么 tab / section / page
+
+### B. View Schema
+
+定义怎么显示
+
+### C. View Data
+
+定义显示什么数据
+
+### D. View Action
+
+定义用户在这个视图里可以触发什么动作
+
+---
+
+## 核心原则 4：挂载点由宿主模块决定
+
+不是所有对象都一定要用 tabs。
+宿主模块定义它支持的插槽 / 挂载点，例如：
+
+* detail.tabs
+* detail.sidepanels
+* detail.sections
+* dashboard.widgets
+* list.row_expansion
+* detail.header_actions
+
+插件只是往某个挂载点提供视图。
+
+这样系统就不被 Integration 的 tab 模式绑死。
+
+---
+
+# 5. 总体架构
+
+---
+
+## 5.1 逻辑分层
+
+### 第一层：Host Object
+
+即宿主对象，例如：
+
+* integration
+* knowledgebase
+* agent
+* project
+* sandbox
+* workflow_run
+
+---
+
+### 第二层：View Slot
+
+宿主暴露可扩展的视图挂载点，例如：
+
+* `detail.main_tabs`
+* `detail.secondary_tabs`
+* `detail.sections`
+* `detail.sidebar`
+* `dashboard.widgets`
+
+---
+
+### 第三层：Extension View Manifest
+
+插件或系统模块声明一个或多个扩展视图。
+
+---
+
+### 第四层：Universal View Renderer
+
+前端根据 schema 渲染。
+
+---
+
+### 第五层：Universal View Data API
+
+后端统一查询 schema、data、action。
+
+---
+
+# 6. 核心抽象模型
+
+下面这套模型建议直接作为平台 SDK 的标准定义。
+
+---
+
+## 6.1 宿主上下文 Host Context
+
+```ts
+export interface XpertViewHostContext {
+  tenantId: string
+  organizationId: string
+  workspaceId?: string
+  userId: string
+
+  hostType: string
+  hostId: string
+
+  module?: string
+  route?: string
+
+  permissions?: string[]
+  locale?: string
+}
+```
+
+说明：
+
+* `hostType`：integration / knowledgebase / agent / project
+* `hostId`：具体实例 ID
+* 用它来统一表达“当前这个扩展页面是挂在哪个对象上的”
+
+---
+
+## 6.2 视图挂载点 View Slot
+
+```ts
+export interface XpertViewSlot {
+  key: string
+  title?: string
+  mode: 'tabs' | 'sections' | 'widgets' | 'sidebar'
+  order?: number
+}
+```
+
+例如：
+
+* `detail.main_tabs`
+* `detail.sections`
+* `detail.sidebar`
+
+---
+
+## 6.3 扩展视图清单 View Manifest
+
+```ts
+export interface XpertExtensionViewManifest {
+  key: string
+  title: string
+  description?: string
+  icon?: string
+
+  hostType: string
+  slot: string
+
+  order?: number
+  visible?: boolean
+
+  source: {
+    provider: string
+    plugin?: string
+    version?: string
+  }
+
+  permissions?: string[]
+
+  badge?: {
+    type: 'count' | 'status' | 'text'
+    value?: string | number
+  }
+
+  refreshable?: boolean
+  polling?: {
+    enabled: boolean
+    intervalMs?: number
+  }
+
+  view: XpertViewSchema
+  dataSource: XpertViewDataSource
+  actions?: XpertViewActionDefinition[]
+}
+```
+
+---
+
+## 6.4 视图 schema 顶层定义
+
+```ts
+export type XpertViewSchema =
+  | XpertStatsViewSchema
+  | XpertTableViewSchema
+  | XpertListViewSchema
+  | XpertCardsViewSchema
+  | XpertDetailViewSchema
+  | XpertKvViewSchema
+  | XpertTimelineViewSchema
+  | XpertChatMessagesViewSchema
+  | XpertLogsViewSchema
+  | XpertRawJsonViewSchema
+  | XpertTabsViewSchema
+  | XpertSplitViewSchema
+  | XpertMasterDetailViewSchema
+```
+
+---
+
+# 7. 标准视图类型设计
+
+建议第一版不要做无限多，分三层推进。
+
+---
+
+## 7.1 第一阶段必须支持
+
+### 1. stats
+
+适合状态概览、连接情况、计数指标
+
+```ts
+export interface XpertStatsViewSchema {
+  type: 'stats'
+  items: Array<{
+    key: string
+    label: string
+    valueType?: 'text' | 'number' | 'status' | 'datetime'
+  }>
+}
+```
+
+---
+
+### 2. table
+
+最核心的通用视图
+
+```ts
+export interface XpertTableViewSchema {
+  type: 'table'
+  columns: Array<{
+    key: string
+    label: string
+    dataType?: 'text' | 'number' | 'date' | 'datetime' | 'status' | 'tag' | 'avatar' | 'link'
+    width?: string
+    sortable?: boolean
+    searchable?: boolean
+  }>
+  pagination?: {
+    enabled: boolean
+    pageSize?: number
+  }
+  filters?: XpertFilterSchema[]
+  rowActions?: XpertRowActionSchema[]
+}
+```
+
+---
+
+### 3. list
+
+适合简单条目流
+
+```ts
+export interface XpertListViewSchema {
+  type: 'list'
+  item: {
+    title: string
+    subtitle?: string
+    description?: string
+    meta?: string[]
+  }
+  actions?: XpertRowActionSchema[]
+}
+```
+
+---
+
+### 4. detail
+
+适合单对象详情
+
+```ts
+export interface XpertDetailViewSchema {
+  type: 'detail'
+  fields: Array<{
+    key: string
+    label: string
+    dataType?: 'text' | 'datetime' | 'status' | 'json'
+  }>
+}
+```
+
+---
+
+### 5. raw_json
+
+调试、开发期非常有用
+
+```ts
+export interface XpertRawJsonViewSchema {
+  type: 'raw_json'
+}
+```
+
+---
+
+## 7.2 第二阶段推荐支持
+
+### 6. cards
+
+适合用户、频道、资源卡片
+
+### 7. timeline
+
+适合事件流、运行轨迹、同步历史
+
+### 8. chat_messages
+
+适合消息列表、会话消息流
+
+### 9. logs
+
+适合运行日志、Webhook 日志、错误日志
+
+### 10. kv
+
+适合状态、配置摘要展示
+
+---
+
+## 7.3 第三阶段支持复合视图
+
+### 11. tabs
+
+一个扩展视图内部再嵌套 tabs
+
+### 12. split
+
+左右布局
+
+### 13. master_detail
+
+左侧列表 + 右侧详情 / 消息流
+
+这个对 Integration 的 conversation -> messages 特别有用。
+
+---
+
+# 8. 数据源协议设计
+
+前端必须只认平台统一 API，不直接认插件 API。
+
+---
+
+## 8.1 数据源定义
+
+```ts
+export interface XpertViewDataSource {
+  mode: 'remote'
+  endpoint: string
+  method?: 'GET' | 'POST'
+  querySchema?: {
+    supportsPagination?: boolean
+    supportsSearch?: boolean
+    supportsSort?: boolean
+    supportsFilter?: boolean
+    supportsCursor?: boolean
+  }
+}
+```
+
+---
+
+## 8.2 统一查询参数
+
+```ts
+export interface XpertViewQuery {
+  page?: number
+  pageSize?: number
+  cursor?: string
+  search?: string
+  sort?: string
+  filters?: Record<string, any>
+  selection?: string
+  scope?: Record<string, any>
+}
+```
+
+---
+
+## 8.3 统一返回结构
+
+```ts
+export interface XpertViewDataResult<T = any> {
+  items?: T[]
+  item?: T
+  total?: number
+  nextCursor?: string
+  summary?: Record<string, any>
+  meta?: Record<string, any>
+}
+```
+
+说明：
+
+* table / list / logs / chat_messages 主要用 `items`
+* detail / kv 主要用 `item`
+* stats 主要用 `summary`
+* 复合视图可以混合使用
+
+---
+
+# 9. 动作协议设计
+
+扩展视图不只是看，还要支持操作。
+
+---
+
+## 9.1 动作定义
+
+```ts
+export interface XpertViewActionDefinition {
+  key: string
+  label: string
+  icon?: string
+  placement?: 'toolbar' | 'row' | 'detail' | 'inline'
+  actionType: 'invoke' | 'navigate' | 'open_detail' | 'refresh'
+  confirm?: {
+    title?: string
+    message?: string
+  }
+  permissions?: string[]
+}
+```
+
+---
+
+## 9.2 动作执行请求
+
+```ts
+export interface XpertViewActionRequest {
+  actionKey: string
+  targetId?: string
+  payload?: any
+}
+```
+
+---
+
+## 9.3 动作执行结果
+
+```ts
+export interface XpertViewActionResult {
+  success: boolean
+  message?: string
+  data?: any
+  refresh?: boolean
+}
+```
+
+---
+
+# 10. 后端插件协议设计
+
+这里才是整个系统的关键。
+
+不要把它做成 Integration Provider 的附属接口，而是做成平台统一扩展能力。
+
+---
+
+## 10.1 新增平台级插件能力类型
+
+建议新增：
+
+* `view-extension-provider`
+
+它与 Integration 插件、Knowledge 插件、Tool 插件是平级能力。
+
+---
+
+## 10.2 Provider 接口
+
+```ts
+export interface IXpertViewExtensionProvider {
+  supports(context: XpertViewHostContext): Promise<boolean> | boolean
+
+  getViewManifests(
+    context: XpertViewHostContext,
+    slot: string
+  ): Promise<XpertExtensionViewManifest[]>
+
+  getViewData(
+    context: XpertViewHostContext,
+    viewKey: string,
+    query: XpertViewQuery
+  ): Promise<XpertViewDataResult>
+
+  executeViewAction?(
+    context: XpertViewHostContext,
+    viewKey: string,
+    request: XpertViewActionRequest
+  ): Promise<XpertViewActionResult>
+}
+```
+
+---
+
+## 10.3 为什么 supports 很重要
+
+因为不是所有 provider 都适用于所有 host。
+
+例如：
+
+* Slack 插件只支持 `hostType = integration` 且 integration.type = slack
+* GitHub 插件可能支持 integration，也支持 project
+* Knowledge 扩展 provider 只支持 knowledgebase
+
+---
+
+## 10.4 建议上下文里注入 hostSnapshot
+
+为了避免 provider 每次自己查 host 基础信息，可以在 service 层统一构建：
+
+```ts
+export interface XpertResolvedViewHostContext extends XpertViewHostContext {
+  hostSnapshot?: Record<string, any>
+}
+```
+
+例如 integration hostSnapshot 可包含：
+
+* integrationType
+* provider
+* config
+* credentialsRef
+* enabled
+* status
+
+---
+
+# 11. 后端模块划分建议
+
+建议新增一个独立模块：
+
+## `ViewExtensionModule`
+
+它是平台级公共模块。
+
+---
+
+## 11.1 模块组成
+
+### 1. `view-extension.interfaces.ts`
+
+定义标准接口
+
+### 2. `view-extension.registry.ts`
+
+注册并发现 provider
+
+### 3. `view-extension.service.ts`
+
+负责：
+
+* 解析 host
+* 找到适配 provider
+* 聚合 manifests
+* 查询 data
+* 执行动作
+
+### 4. `view-extension.controller.ts`
+
+提供统一 API
+
+### 5. `view-extension-permission.service.ts`
+
+统一权限判断
+
+### 6. `view-extension-cache.service.ts`
+
+schema / data 缓存
+
+---
+
+## 11.2 Registry 设计
+
+你现在已有 strategy registry 体系，很适合新增：
+
+```ts
+@XpertPluginStrategy({
+  type: 'view-extension-provider',
+  name: 'slack-integration-view'
+})
+```
+
+然后 registry 用：
+
+```ts
+Map<string, IXpertViewExtensionProvider>
+```
+
+或按组织隔离：
+
+```ts
+Map<organizationId, Map<string, IXpertViewExtensionProvider>>
+```
+
+---
+
+# 12. 统一 API 设计
+
+这里要做成平台级，不要写死成 `/integrations/:id/views`。
+
+---
+
+## 12.1 获取某宿主对象某挂载点的扩展视图
+
+```http
+GET /api/view-hosts/:hostType/:hostId/slots/:slot/views
+```
+
+示例：
+
+```http
+GET /api/view-hosts/integration/123/slots/detail.main_tabs/views
+GET /api/view-hosts/knowledgebase/456/slots/detail.sections/views
+GET /api/view-hosts/agent/789/slots/detail.sidebar/views
+```
+
+---
+
+## 12.2 获取某个视图的数据
+
+```http
+GET /api/view-hosts/:hostType/:hostId/views/:viewKey/data
+```
+
+---
+
+## 12.3 执行某个视图动作
+
+```http
+POST /api/view-hosts/:hostType/:hostId/views/:viewKey/actions/:actionKey
+```
+
+---
+
+## 12.4 可选：获取 slot 元信息
+
+```http
+GET /api/view-hosts/:hostType/:hostId/slots
+```
+
+让宿主前端知道有哪些挂载点可用。
+
+---
+
+# 13. 宿主模块接入方式
+
+这是通用化的关键。
+
+宿主模块不需要知道每个插件细节，只需要声明它有哪些扩展插槽。
+
+---
+
+## 13.1 Host Definition 建议
+
+新增 host 定义注册机制：
+
+```ts
+export interface XpertViewHostDefinition {
+  hostType: string
+  slots: XpertViewSlot[]
+}
+```
+
+例如 Integration 注册：
+
+```ts
+{
+  hostType: 'integration',
+  slots: [
+    { key: 'detail.main_tabs', mode: 'tabs' },
+    { key: 'detail.sidebar', mode: 'sidebar' }
+  ]
+}
+```
+
+Knowledgebase 注册：
+
+```ts
+{
+  hostType: 'knowledgebase',
+  slots: [
+    { key: 'detail.main_tabs', mode: 'tabs' },
+    { key: 'detail.sections', mode: 'sections' }
+  ]
+}
+```
+
+---
+
+## 13.2 宿主页面前端用法
+
+宿主页面只做两件事：
+
+### 1. 定义自身固定内容
+
+比如 Integration 的 Config Tab
+
+### 2. 拉取某个 slot 的扩展视图并渲染
+
+比如：
+
+* `detail.main_tabs`
+* 固定 config tab + 扩展 tabs 合并
+
+---
+
+# 14. 前端渲染架构
+
+建议把前端做成平台级渲染引擎，而不是某个业务页面内部工具。
+
+---
+
+## 14.1 核心组件层次
+
+```ts
+XpertExtensionHostOutletComponent
+ ├── receives hostType + hostId + slot
+ ├── loads extension view manifests
+ ├── renders by slot mode
+      ├── tabs renderer
+      ├── sections renderer
+      ├── sidebar renderer
+      └── widgets renderer
+           └── XpertViewRendererComponent
+                ├── StatsViewComponent
+                ├── TableViewComponent
+                ├── ListViewComponent
+                ├── DetailViewComponent
+                ├── RawJsonViewComponent
+                ├── TimelineViewComponent
+                ├── ChatMessagesViewComponent
+                ├── MasterDetailViewComponent
+                └── ...
+```
+
+---
+
+## 14.2 前端核心对象
+
+```ts
+export interface XpertExtensionViewVm {
+  key: string
+  title: string
+  icon?: string
+  slot: string
+  order?: number
+  schema: XpertViewSchema
+  actions?: XpertViewActionDefinition[]
+  dataSource: XpertViewDataSource
+
+  loaded?: boolean
+  loading?: boolean
+  data?: XpertViewDataResult
+  error?: string
+}
+```
+
+---
+
+## 14.3 前端服务层
+
+### `XpertViewExtensionApiService`
+
+负责：
+
+* list views
+* load data
+* execute action
+
+### `XpertViewRendererRegistry`
+
+负责：
+
+* view.type -> Angular renderer component 映射
+
+### `XpertExtensionHostStore`
+
+负责：
+
+* 某个 host 某个 slot 的状态管理
+
+---
+
+# 15. 渲染引擎设计原则
+
+---
+
+## 原则 1：Renderer 只关心标准 schema
+
+例如 TableRenderer 不知道 Slack、GitHub、Knowledgebase，只知道：
+
+* columns
+* items
+* actions
+* filters
+* pagination
+
+---
+
+## 原则 2：容器负责数据调度，Renderer 负责显示
+
+不要让 TableRenderer 自己知道 hostType。
+数据请求由上层 container 完成，renderer 只显示数据和抛出事件。
+
+---
+
+## 原则 3：支持 lazy load
+
+tab 模式下只在用户点击时加载对应数据。
+
+---
+
+## 原则 4：支持通用 action pipeline
+
+row action / toolbar action 统一从容器派发到平台 API。
+
+---
+
+# 16. Integration 如何接入
+
+现在回到你的原始场景。
+
+Integration 不再拥有自己专属的动态渲染机制，而只是一个 Host。
+
+---
+
+## Integration Host 定义
+
+```ts
+{
+  hostType: 'integration',
+  slots: [
+    { key: 'detail.main_tabs', mode: 'tabs' }
+  ]
+}
+```
+
+---
+
+## Integration 页面结构
+
+### 固定 tab
+
+* `config`
+
+### 扩展 tab
+
+* 通过 `detail.main_tabs` 拉取
+
+### 最终 tabs 合并
+
+```ts
+[
+  { key: 'config', title: 'Config', fixed: true },
+  ...extensionViews
+]
+```
+
+---
+
+## Slack 插件示例
+
+它注册一个 `view-extension-provider`，声明：
+
+* status
+* channels
+* users
+* conversations
+* messages
+
+这些都挂在：
+
+```ts
+slot: 'detail.main_tabs'
+hostType: 'integration'
+```
+
+这样 Integration 页面自然就能显示。
+
+---
+
+# 17. 其他场景如何接入
+
+---
+
+## 17.1 Knowledgebase
+
+可以有：
+
+* Documents
+* Chunks
+* Index Status
+* Retrieval Test
+* Sync Logs
+
+这些不是写死在 Knowledgebase 页面里，而是通过扩展视图系统提供。
+
+---
+
+## 17.2 Agent / Xpert
+
+可以有：
+
+* Sessions
+* Memory
+* Tool Calls
+* Middleware State
+* Event Logs
+
+---
+
+## 17.3 Sandbox
+
+可以有：
+
+* Container Status
+* File Browser Summary
+* Run Logs
+* Processes
+* Network Endpoints
+
+---
+
+# 18. 权限与安全设计
+
+通用能力必须先把安全边界设计清楚。
+
+---
+
+## 18.1 插件不能注入任意前端代码
+
+禁止：
+
+* HTML 字符串执行
+* Angular component runtime 注入
+* JS 脚本注入
+* 自定义模板表达式注入
+
+只允许声明式 schema。
+
+---
+
+## 18.2 所有 action 必须走平台网关
+
+流程必须是：
+
+前端 -> XpertAI API -> ViewExtensionService -> Plugin Provider -> External Service
+
+不能：
+前端 -> 插件私有 URL -> 外部服务
+
+---
+
+## 18.3 schema 受平台校验
+
+后端在返回 manifest 之前应做 schema validation。
+
+建议用 `zod` 或 `class-validator + class-transformer` 做标准校验。
+
+---
+
+## 18.4 字段级权限控制
+
+可在字段 schema 中增加：
+
+```ts
+permission?: string
+sensitive?: boolean
+mask?: 'email' | 'phone' | 'token'
+```
+
+平台统一处理。
+
+---
+
+# 19. 缓存与性能设计
+
+---
+
+## 19.1 Manifest 缓存
+
+`getViewManifests()` 通常变化较少，可做短时缓存。
+
+建议 key：
+
+```ts
+orgId + hostType + hostId + slot + userPermissionHash
+```
+
+---
+
+## 19.2 Data 懒加载
+
+只有打开对应 tab / section 才加载 data。
+
+---
+
+## 19.3 支持 polling
+
+例如：
+
+* status 每 30 秒刷新
+* logs 每 5 秒刷新
+* messages 每 10 秒刷新
+
+由 manifest 的 polling 控制。
+
+---
+
+## 19.4 分页与 cursor
+
+会话、消息、日志必须支持。
+
+---
+
+## 19.5 后端 provider 自己可加二级缓存
+
+比如 Slack users、channels 可以在 provider 内做临时缓存。
+
+---
+
+# 20. 落地实施建议
+
+建议分三期落地，不要一口气做成复杂低代码系统。
+
+---
+
+## Phase 1：最小可用版本
+
+目标：先把“平台级扩展 tab / section 机制”跑起来。
+
+支持：
+
+* host / slot 模型
+* view-extension-provider
+* manifests / data / action API
+* view types:
+
+  * stats
+  * table
+  * list
+  * detail
+  * raw_json
+* Integration 场景接入
+* 懒加载 + 分页 + 搜索
+
+这期就已经很有价值。
+
+---
+
+## Phase 2：增强交互
+
+支持：
+
+* toolbar actions
+* row actions
+* timeline
+* chat_messages
+* logs
+* sidebar / sections slot
+* master_detail
+
+---
+
+## Phase 3：复合容器
+
+支持：
+
+* nested tabs
+* split view
+* widget dashboard
+* schema 条件显示
+* 联动过滤
+* 多视图共享 selection / context
+
+---
+
+# 21. 推荐的代码结构
+
+---
+
+## 后端
+
+```ts
+packages/core/view-extension/
+  interfaces/
+    xpert-view-host.interface.ts
+    xpert-view-schema.interface.ts
+    xpert-view-data.interface.ts
+    xpert-view-action.interface.ts
+    xpert-view-provider.interface.ts
+
+  registry/
+    view-extension-provider.registry.ts
+    view-host-definition.registry.ts
+
+  services/
+    view-extension.service.ts
+    view-host-resolver.service.ts
+    view-extension-permission.service.ts
+    view-extension-cache.service.ts
+
+  controllers/
+    view-extension.controller.ts
+
+  dto/
+    get-view-data.dto.ts
+    execute-view-action.dto.ts
+
+plugins/slack/
+  providers/
+    slack-integration-view.provider.ts
+```
+
+---
+
+## 前端
+
+```ts
+libs/ui-extension/
+  models/
+    extension-view.model.ts
+    view-schema.model.ts
+
+  services/
+    extension-view-api.service.ts
+    extension-view-renderer-registry.service.ts
+
+  stores/
+    extension-host.store.ts
+
+  components/
+    extension-host-outlet/
+    extension-slot-tabs/
+    extension-slot-sections/
+    view-renderer/
+    renderers/
+      stats-view/
+      table-view/
+      list-view/
+      detail-view/
+      raw-json-view/
+      timeline-view/
+      chat-messages-view/
+      logs-view/
+      master-detail-view/
+```
+
+---
+
+# 22. 示例：Slack Integration Provider
+
+下面给你一版更接近真实落地的简化伪代码。
+
+```ts
+@XpertPluginStrategy({
+  type: 'view-extension-provider',
+  name: 'slack-integration-view'
+})
+export class SlackIntegrationViewProvider implements IXpertViewExtensionProvider {
+  async supports(context: XpertViewHostContext): Promise<boolean> {
+    if (context.hostType !== 'integration') return false
+    // resolve integration type from hostSnapshot or service
+    return true
+  }
+
+  async getViewManifests(
+    context: XpertViewHostContext,
+    slot: string
+  ): Promise<XpertExtensionViewManifest[]> {
+    if (slot !== 'detail.main_tabs') return []
+
+    return [
+      {
+        key: 'status',
+        title: 'Status',
+        hostType: 'integration',
+        slot: 'detail.main_tabs',
+        order: 10,
+        source: { provider: 'slack', plugin: 'xpert-plugin-slack' },
+        refreshable: true,
+        view: {
+          type: 'stats',
+          items: [
+            { key: 'connectionStatus', label: 'Connection Status', valueType: 'status' },
+            { key: 'workspaceName', label: 'Workspace', valueType: 'text' },
+            { key: 'lastSyncAt', label: 'Last Sync', valueType: 'datetime' }
+          ]
+        },
+        dataSource: {
+          mode: 'remote',
+          endpoint: `/api/view-hosts/integration/${context.hostId}/views/status/data`,
+          method: 'GET'
+        }
+      },
+      {
+        key: 'users',
+        title: 'Users',
+        hostType: 'integration',
+        slot: 'detail.main_tabs',
+        order: 20,
+        source: { provider: 'slack', plugin: 'xpert-plugin-slack' },
+        view: {
+          type: 'table',
+          columns: [
+            { key: 'displayName', label: 'Display Name', dataType: 'text', searchable: true },
+            { key: 'email', label: 'Email', dataType: 'text' },
+            { key: 'status', label: 'Status', dataType: 'status' }
+          ],
+          pagination: { enabled: true, pageSize: 20 }
+        },
+        dataSource: {
+          mode: 'remote',
+          endpoint: `/api/view-hosts/integration/${context.hostId}/views/users/data`,
+          method: 'GET',
+          querySchema: {
+            supportsPagination: true,
+            supportsSearch: true
+          }
+        }
+      }
+    ]
+  }
+
+  async getViewData(
+    context: XpertViewHostContext,
+    viewKey: string,
+    query: XpertViewQuery
+  ): Promise<XpertViewDataResult> {
+    switch (viewKey) {
+      case 'status':
+        return {
+          summary: {
+            connectionStatus: 'connected',
+            workspaceName: 'XpertAI Team',
+            lastSyncAt: new Date().toISOString()
+          }
+        }
+      case 'users':
+        return {
+          items: [],
+          total: 0
+        }
+      default:
+        return { items: [] }
+    }
+  }
+}
+```
+
+---
+
+# 23. 最终建议的产品级命名
+
+为了避免它看起来只是个“动态容器”，建议命名更上层一些：
+
+## 后端能力名称
+
+* `View Extension Framework`
+* `Declarative View Extension System`
+
+## 前端渲染引擎名称
+
+* `Universal View Renderer`
+* `Extension View Renderer`
+
+## 宿主接入组件名称
+
+* `ExtensionHostOutlet`
+* `ViewSlotOutlet`
+
+---
+
+# 24. 一句话架构结论
+
+**不要为 Integration 单独设计 Dynamic Container Renderer，而要把它上升为 XpertAI 平台级的“声明式扩展视图系统”：宿主对象暴露视图插槽，插件或模块声明扩展视图清单、数据源和动作，前端通过统一渲染引擎按标准 schema 渲染，Integration 只是其中一个 host。**

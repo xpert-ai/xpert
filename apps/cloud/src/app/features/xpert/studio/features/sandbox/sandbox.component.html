@@ -38,4 +38,10 @@
       }
     </div>
   }
+
+  @if (enabled() && environmentId()) {
+    <div class="mt-4">
+      <xp-extension-host-outlet hostType="sandbox" [hostId]="environmentId()" slot="detail.sections" />
+    </div>
+  }
 </div>

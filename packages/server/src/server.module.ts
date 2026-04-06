@@ -36,6 +36,7 @@ import { UserModule } from './user/index'
 import { IntegrationModule } from './integration/integration.module'
 import { ApiKeyModule } from './api-key/api-key.module'
 import { HealthModule } from './health'
+import { ViewExtensionModule } from './view-extension/view-extension.module'
 
 @Module({
 	imports: [
@@ -59,6 +60,7 @@ import { HealthModule } from './health'
 		FileStorageModule,
 		AuthModule,
 		ApiKeyModule,
+		ViewExtensionModule,
 		UserModule,
 		TenantModule,
 		EmployeeModule,

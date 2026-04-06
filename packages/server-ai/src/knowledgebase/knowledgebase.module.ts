@@ -23,6 +23,7 @@ import { KnowledgebaseTaskService } from './task/task.service'
 import { KnowledgebaseTask } from './task/task.entity'
 import { Validators, Strategies } from './plugins'
 import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs/'
+import { KnowledgebaseViewHostDefinition } from '../view-extension/hosts/knowledgebase-view-host.definition'
 
 @Module({
 	imports: [
@@ -49,6 +50,7 @@ import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs/'
 		TextSplitterRegistry,
 		DocumentTransformerRegistry,
 		ImageUnderstandingRegistry,
+		KnowledgebaseViewHostDefinition,
 		...QueryHandlers,
 		...CommandHandlers,
 		...Strategies,

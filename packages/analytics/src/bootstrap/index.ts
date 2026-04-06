@@ -172,7 +172,7 @@ export async function preBootstrapPlugins() {
 	const defaultGlobalPlugins = [
 		'@xpert-ai/plugin-draft',
 		'@xpert-ai/plugin-agent-middlewares',
-		'@xpert-ai/plugin-integration-github',
+		'@xpert-ai/plugin-integration-slack',
 		// '@xpert-ai/plugin-integration-lark',
 		// '@xpert-ai/plugin-ocr-paddle',
 		'@xpert-ai/plugin-trigger-schedule',

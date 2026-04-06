@@ -184,7 +184,11 @@ export class PluginManagementService {
 			}
 
 			const pluginBaseDir = getOrganizationPluginPath(organizationId, runtimePluginName)
-			const plugin = await loadPlugin(packageName, { basedir: pluginBaseDir })
+			const plugin = await loadPlugin(packageName, {
+				basedir: pluginBaseDir,
+				source,
+				workspacePath
+			})
 			const resolvedLevel = resolvePluginLevel(plugin.meta?.level)
 			if (resolvedLevel === PLUGIN_LEVEL.SYSTEM && !allowSystemPlugins) {
 				throw new BadRequestException(

@@ -42,7 +42,7 @@
     "format:fix": "prettier --write --ignore-unknown",
     "prepare": "command -v git >/dev/null 2>&1 && git config core.hooksPath git-hooks || exit 0",
     "prebuild": "rimraf dist coverage",
-    "build:plugins": "pnpm nx build agent-middlewares && pnpm nx build integration-github && pnpm nx build retriever-common && pnpm nx build textsplitter-common && pnpm nx build transformer-common && pnpm nx build trigger-schedule && pnpm nx build vlm-default && pnpm nx build draft",
+    "build:plugins": "pnpm nx build agent-middlewares && pnpm nx build integration-slack && pnpm nx build retriever-common && pnpm nx build textsplitter-common && pnpm nx build transformer-common && pnpm nx build trigger-schedule && pnpm nx build vlm-default && pnpm nx build draft",
     "build": "pnpm nx build store && pnpm nx build core && pnpm nx build echarts && pnpm nx build sql && pnpm nx build xmla && pnpm -C ./packages/duckdb build:release && pnpm nx build duckdb && pnpm b:p:copilot && pnpm b:p:angular",
     "b:p:duckdb": "pnpm -C ./packages/duckdb build:release && pnpm nx build duckdb",
     "b:p:contracts": "pnpm nx build contracts",

@@ -12,6 +12,7 @@ import { XpertProjectTaskLog } from './entities/project-task-log.entity'
 import { CommandHandlers } from './commands/handlers'
 import { XpertProjectTaskService } from './services'
 import { VcsService } from './services/vcs-service'
+import { ProjectViewHostDefinition } from '../view-extension/hosts/project-view-host.definition'
 
 @Module({
     imports: [
@@ -22,7 +23,7 @@ import { VcsService } from './services/vcs-service'
         IntegrationModule
     ],
     controllers: [XpertProjectController],
-    providers: [XpertProjectService, XpertProjectTaskService, VcsService, ...CommandHandlers],
+    providers: [XpertProjectService, XpertProjectTaskService, VcsService, ProjectViewHostDefinition, ...CommandHandlers],
     exports: [XpertProjectService]
 })
 export class XpertProjectModule {}

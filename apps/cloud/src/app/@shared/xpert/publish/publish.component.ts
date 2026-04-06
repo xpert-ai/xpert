@@ -4,6 +4,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { TextFieldModule } from '@angular/cdk/text-field'
 
 import { ChangeDetectionStrategy, Component, effect, inject, model, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
@@ -14,14 +15,12 @@ import {
   getErrorMessage,
   IIntegration,
   injectToastr,
-  INTEGRATION_PROVIDERS,
-  IntegrationEnum,
   IntegrationService,
   IXpert,
   TIntegrationProvider,
   XpertAPIService
 } from '../../../@core'
-import { EmojiAvatarComponent } from '../../avatar'
+import { EmojiAvatarComponent, IconComponent } from '../../avatar'
 import { IntegrationFormComponent } from '../../integration'
 import { environment } from '@cloud/environments/environment'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
@@ -44,13 +43,13 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     ...ZardTooltipImports,
     NgmSpinComponent,
     EmojiAvatarComponent,
+    IconComponent,
     IntegrationFormComponent,
     NgmI18nPipe
 ],
   changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class XpertPublishComponent {
-  eIntegrationEnum = IntegrationEnum
   readonly #dialogRef = inject(DialogRef)
   readonly #dialog = inject(Dialog)
   readonly #data = inject<{ xpert: IXpert }>(DIALOG_DATA)
@@ -61,13 +60,11 @@ export class XpertPublishComponent {
 
   readonly xpertId = signal(this.#data.xpert.id)
 
+  readonly #providers = toSignal(this.integrationService.getProviders(), { initialValue: [] })
+
   readonly loading = signal(false)
 
-  readonly providers = signal(
-    Object.keys(INTEGRATION_PROVIDERS)
-      .map((name) => INTEGRATION_PROVIDERS[name])
-      .filter((p) => p.webhook)
-  )
+  readonly providers = signal<TIntegrationProvider[]>([])
 
   readonly xpert = derivedAsync(() => {
     return this.xpertId() ? this.xpertService.getById(this.xpertId(), { relations: ['integrations'] }) : of(null)
@@ -84,6 +81,13 @@ export class XpertPublishComponent {
           this.integrations.set(this.xpert().integrations)
         }
       }
+    )
+
+    effect(
+      () => {
+        this.providers.set(this.#providers().filter((provider) => provider.webhook))
+      },
+      { allowSignalWrites: true }
     )
 
     effect(

@@ -1,4 +1,4 @@
 @reference "../../../../../styles/tailwind-reference.css";
 :host {
-  @apply relative w-full flex flex-col p-4;
+  @apply relative flex min-h-0 w-full flex-col overflow-hidden;
 }

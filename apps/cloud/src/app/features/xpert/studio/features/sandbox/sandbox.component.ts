@@ -9,11 +9,12 @@ import { IconComponent } from "@cloud/app/@shared/avatar";
 import { of, switchMap } from 'rxjs'
 import { XpertStudioApiService } from '../../domain'
 import { linkedXpertFeaturesModel } from '../types'
+import { ExtensionHostOutletComponent } from '@cloud/app/@shared/view-extension'
 
 @Component({
   selector: 'xp-studio-features-sandbox',
   standalone: true,
-  imports: [TranslateModule, NgmI18nPipe, IconComponent],
+  imports: [TranslateModule, NgmI18nPipe, IconComponent, ExtensionHostOutletComponent],
   templateUrl: './sandbox.component.html',
   styleUrl: './sandbox.component.scss'
 })
@@ -24,6 +25,7 @@ export class XpertStudioFeaturesSandboxComponent {
   readonly sandbox = attrModel(this.features, 'sandbox')
   readonly enabled = attrModel(this.sandbox, 'enabled')
   readonly provider = attrModel(this.sandbox, 'provider')
+  readonly environmentId = this.apiService.environmentId
 
   readonly providers = toSignal<TSandboxProvider[], TSandboxProvider[]>(
     toObservable(this.enabled).pipe(

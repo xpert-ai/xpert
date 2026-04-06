@@ -255,6 +255,10 @@
       />
     </div>
 
+    @if (id()) {
+      <xp-extension-host-outlet hostType="project" [hostId]="id()" slot="detail.sections" />
+    }
+
     <div dir="ltr" data-orientation="horizontal" class="flex-1 flex flex-col relative pt-1">
       <div class="flex justify-between items-center sticky top-11 bg-components-panel-bg z-20">
         <div
