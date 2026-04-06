@@ -951,6 +951,8 @@
       "LatestVersion": "最新版本",
       "LoadingPlugins": "正在加载插件...",
       "LoadingPluginsHelp": "正在加载已安装插件及其健康状态信息。",
+      "LoadingMarketplace": "正在为你准备插件市场...",
+      "LoadingMarketplaceHelp": "正在获取市场清单并补充插件下载信息，通常只需要几秒钟。",
       "LoadPluginsFailed": "加载插件失败",
       "NoPluginsFound": "未找到插件",
       "NoPluginsFoundHelp": "请尝试调整搜索条件、类别或关键词筛选。",

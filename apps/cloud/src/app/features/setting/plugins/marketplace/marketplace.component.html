@@ -30,7 +30,10 @@
   {{ 'PAC.Plugin.PluginsMarketplace' | translate: {Default: 'Plugins Marketplace'} }}
 </h2>
 
-<div class="w-full sticky top-0 z-[11] bg-components-panel-bg">
+<div
+  class="w-full sticky top-0 z-[11] bg-components-panel-bg"
+  [class]="loading() ? 'pointer-events-none opacity-80' : ''"
+>
   <div class="mb-4 h-px shrink-0 bg-transparent"></div>
   <div class="flex items-center mx-auto w-[640px] shrink-0 ">
     <div class="flex items-center rounded-xl border border-(--border) bg-components-panel-bg-blur p-1.5 shadow-sm w-full">
@@ -51,7 +54,9 @@
   </div>
 </div>
 
-<div class="flex shrink-0 items-center justify-center space-x-2 bg-components-panel-bg py-3 sticky z-10 top-[56px]"
+<div
+  class="flex shrink-0 items-center justify-center space-x-2 bg-components-panel-bg py-3 sticky z-10 top-[56px]"
+  [class]="loading() ? 'pointer-events-none opacity-80' : ''"
   cdkListbox
   [(ngModel)]="categories"
 >
@@ -112,80 +117,159 @@
 </div>
 
 <div class="relative flex grow flex-col px-12 py-2" style="scrollbar-gutter: stable">
-  <div class="py-3">
-    <div class="flex items-end justify-between">
-      <div>
-        <div class="text-xl font-semibold text-text-primary">
-          {{ 'PAC.Plugin.Partners' | translate: { Default: 'Partners' } }}
-        </div>
-        <div class="system-xs-regular text-text-tertiary">
-          {{ 'PAC.Plugin.PartnersDescription' | translate: { Default: 'Plugins verified by Xpert partners.' } }}
-        </div>
-      </div>
-    </div>
-    <div class="mt-2 grid grid-cols-4 gap-3">
-    @for (plugin of partnerPlugins(); track plugin.name) {
-      <xp-settings-plugin class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
-        [plugin]="plugin"
-      />
-    } @empty {
-      @if (error()) {
-        <div class="p-8 text-text-destructive">
-          {{ error() }}
-        </div>
-      }
-    }
-    </div>
-  </div>
+  @if (loading()) {
+    <div class="flex min-h-[420px] flex-col justify-center py-6">
+      <div class="overflow-hidden rounded-[28px] border border-divider-regular bg-components-card-bg shadow-sm">
+        <div class="relative border-b border-divider-regular bg-background-default-subtle/60 px-6 py-6">
+          <div class="absolute inset-x-0 top-0 h-24 bg-hero-gradient opacity-60"></div>
+          <div class="relative flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+            <div class="flex items-start gap-4">
+              <div
+                class="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl border border-divider-regular bg-components-panel-bg shadow-sm"
+              >
+                <ngm-spin />
+              </div>
+              <div>
+                <div class="text-lg font-semibold text-text-primary">
+                  {{
+                    'PAC.Plugin.LoadingMarketplace'
+                      | translate: { Default: 'Preparing the plugin marketplace for you...' }
+                  }}
+                </div>
+                <div class="mt-1 max-w-2xl text-sm text-text-tertiary">
+                  {{
+                    'PAC.Plugin.LoadingMarketplaceHelp'
+                      | translate
+                        : {
+                            Default:
+                              'Fetching the marketplace catalog and plugin download stats. This usually takes just a few seconds.'
+                          }
+                  }}
+                </div>
+              </div>
+            </div>
 
-  <div class="py-3">
-    <div class="flex items-end justify-between">
-      <div>
-        <div class="text-xl font-semibold text-text-primary">
-          {{ 'PAC.Plugin.Official' | translate: { Default: 'Official' } }}
+            <div class="grid grid-cols-3 gap-2">
+              <div class="animate-pulse rounded-full bg-background-default-subtle px-3 py-2 text-xs text-text-quaternary">
+                {{ 'PAC.Plugin.Partners' | translate: { Default: 'Partners' } }}
+              </div>
+              <div class="animate-pulse rounded-full bg-background-default-subtle px-3 py-2 text-xs text-text-quaternary">
+                {{ 'PAC.Plugin.Official' | translate: { Default: 'Official' } }}
+              </div>
+              <div class="animate-pulse rounded-full bg-background-default-subtle px-3 py-2 text-xs text-text-quaternary">
+                {{ 'PAC.Plugin.Community' | translate: { Default: 'Community' } }}
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="system-xs-regular text-text-tertiary">
-          {{ 'PAC.Plugin.OfficialDescription' | translate: { Default: 'Plugins created by Xpert team.' } }}
-        </div>
-      </div>
-    </div>
-    <div class="mt-2 grid grid-cols-4 gap-3">
-    @for (plugin of officialPlugins(); track plugin.name) {
-      <xp-settings-plugin class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
-        [plugin]="plugin"
-      />
-    } @empty {
-      @if (error()) {
-        <div class="p-8 text-text-destructive">
-          {{ error() }}
-        </div>
-      }
-    }
-    </div>
-  </div>
 
-   <div class="py-3">
-    <div class="flex items-end justify-between">
-      <div>
-        <div class="text-xl font-semibold text-text-primary">
-          {{ 'PAC.Plugin.Community' | translate: { Default: 'Community' } }}</div>
-        <div class="system-xs-regular text-text-tertiary">
-          {{ 'PAC.Plugin.CommunityDescription' | translate: { Default: 'Plugins maintained by the community.' } }}
+        <div class="grid grid-cols-1 gap-3 p-6 md:grid-cols-2 xl:grid-cols-4">
+          @for (card of loadingCards; track card) {
+            <div class="animate-pulse rounded-2xl border border-divider-regular bg-components-panel-bg p-4">
+              <div class="flex items-start gap-3">
+                <div class="h-12 w-12 shrink-0 rounded-2xl bg-background-default-subtle"></div>
+                <div class="min-w-0 grow">
+                  <div class="h-4 w-2/3 rounded-full bg-background-default-subtle"></div>
+                  <div class="mt-2 h-3 w-1/3 rounded-full bg-background-default-subtle"></div>
+                </div>
+              </div>
+              <div class="mt-4 h-3 w-full rounded-full bg-background-default-subtle"></div>
+              <div class="mt-2 h-3 w-5/6 rounded-full bg-background-default-subtle"></div>
+              <div class="mt-5 flex items-center justify-between">
+                <div class="h-8 w-24 rounded-xl bg-background-default-subtle"></div>
+                <div class="h-8 w-20 rounded-xl bg-background-default-subtle"></div>
+              </div>
+            </div>
+          }
         </div>
       </div>
     </div>
-    <div class="mt-2 grid grid-cols-4 gap-3">
-    @for (plugin of communityPlugins(); track plugin.name) {
-      <xp-settings-plugin class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
-        [plugin]="plugin"
-      />
-    } @empty {
-      @if (error()) {
-        <div class="p-8 text-text-destructive">
-          {{ error() }}
-        </div>
-      }
-    }
+  } @else if (error()) {
+    <div
+      class="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-2xl border border-divider-regular bg-components-card-bg px-6 py-10 text-center"
+    >
+      <i class="ri-error-warning-line text-2xl text-text-destructive"></i>
+      <div class="system-md-semibold text-text-primary">
+        {{ 'PAC.Plugin.LoadPluginsFailed' | translate: { Default: 'Failed to load plugins' } }}
+      </div>
+      <div class="max-w-2xl break-words text-sm text-text-tertiary max-h-16 overflow-auto">
+        {{ error() }}
+      </div>
     </div>
-  </div>
+  } @else if (!hasVisiblePlugins()) {
+    <div
+      class="flex min-h-[320px] flex-col items-center justify-center gap-3 rounded-2xl border border-divider-regular bg-components-card-bg px-6 py-10 text-center"
+    >
+      <i class="ri-inbox-line text-2xl text-text-tertiary"></i>
+      <div class="system-md-semibold text-text-primary">
+        {{ 'PAC.Plugin.NoPluginsFound' | translate: { Default: 'No plugins found' } }}
+      </div>
+      <div class="max-w-md text-sm text-text-tertiary">
+        {{
+          'PAC.Plugin.NoPluginsFoundHelp'
+            | translate: { Default: 'Try adjusting the search, category, or keyword filters.' }
+        }}
+      </div>
+    </div>
+  } @else {
+    <div class="py-3">
+      <div class="flex items-end justify-between">
+        <div>
+          <div class="text-xl font-semibold text-text-primary">
+            {{ 'PAC.Plugin.Partners' | translate: { Default: 'Partners' } }}
+          </div>
+          <div class="system-xs-regular text-text-tertiary">
+            {{ 'PAC.Plugin.PartnersDescription' | translate: { Default: 'Plugins verified by Xpert partners.' } }}
+          </div>
+        </div>
+      </div>
+      <div class="mt-2 grid grid-cols-4 gap-3">
+        @for (plugin of partnerPlugins(); track plugin.name) {
+          <xp-settings-plugin class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
+            [plugin]="plugin"
+          />
+        }
+      </div>
+    </div>
+
+    <div class="py-3">
+      <div class="flex items-end justify-between">
+        <div>
+          <div class="text-xl font-semibold text-text-primary">
+            {{ 'PAC.Plugin.Official' | translate: { Default: 'Official' } }}
+          </div>
+          <div class="system-xs-regular text-text-tertiary">
+            {{ 'PAC.Plugin.OfficialDescription' | translate: { Default: 'Plugins created by Xpert team.' } }}
+          </div>
+        </div>
+      </div>
+      <div class="mt-2 grid grid-cols-4 gap-3">
+        @for (plugin of officialPlugins(); track plugin.name) {
+          <xp-settings-plugin class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
+            [plugin]="plugin"
+          />
+        }
+      </div>
+    </div>
+
+    <div class="py-3">
+      <div class="flex items-end justify-between">
+        <div>
+          <div class="text-xl font-semibold text-text-primary">
+            {{ 'PAC.Plugin.Community' | translate: { Default: 'Community' } }}
+          </div>
+          <div class="system-xs-regular text-text-tertiary">
+            {{ 'PAC.Plugin.CommunityDescription' | translate: { Default: 'Plugins maintained by the community.' } }}
+          </div>
+        </div>
+      </div>
+      <div class="mt-2 grid grid-cols-4 gap-3">
+        @for (plugin of communityPlugins(); track plugin.name) {
+          <xp-settings-plugin class="group relative rounded-xl hover:bg-components-panel-on-panel-item-bg-hover"
+            [plugin]="plugin"
+          />
+        }
+      </div>
+    </div>
+  }
 </div>

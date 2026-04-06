@@ -1,5 +1,4 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
-
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import { Component, computed, effect, inject, model, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
@@ -7,6 +6,7 @@ import { routeAnimations } from '@cloud/app/@core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { PluginAPIService } from '@metad/cloud/state'
 import { OverlayAnimations } from '@metad/core'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { debouncedSignal, myResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { TPlugin } from '@cloud/app/@shared/plugins'
@@ -15,7 +15,15 @@ import { SettingsPluginComponent } from '../plugin/plugin.component'
 
 @Component({
   standalone: true,
-  imports: [CdkMenuModule, CdkListboxModule, TranslateModule, FormsModule, NgmSelectComponent, SettingsPluginComponent],
+  imports: [
+    CdkMenuModule,
+    CdkListboxModule,
+    TranslateModule,
+    FormsModule,
+    NgmSelectComponent,
+    NgmSpinComponent,
+    SettingsPluginComponent
+  ],
   selector: 'xp-plugins-marketplace',
   templateUrl: './marketplace.component.html',
   styleUrls: ['./marketplace.component.scss'],
@@ -42,18 +50,38 @@ export class PluginsMarketplaceComponent {
 
   readonly manifest = this.#plugins.value
   readonly error = this.#plugins.error
+  readonly manifestLoading = computed(() => this.#plugins.status() === 'loading')
 
   readonly pluginsWithDownloads = signal<TPluginWithDownloads[]>([])
+  readonly loadingDownloads = signal(false)
+  readonly loading = computed(
+    () => (!this.manifest() && !this.error()) || this.manifestLoading() || this.loadingDownloads()
+  )
+  readonly hasVisiblePlugins = computed(
+    () =>
+      !!(
+        (this.partnerPlugins()?.length ?? 0) ||
+        (this.officialPlugins()?.length ?? 0) ||
+        (this.communityPlugins()?.length ?? 0)
+      )
+  )
+  readonly loadingCards = Array.from({ length: 8 }, (_, index) => index)
 
   readonly keywords = model<string[]>([])
   readonly searchModel = model<string>('')
   readonly searchText = debouncedSignal(this.searchModel, 300)
-  readonly categories = model<Array<'model' | 'toolset' | 'integration' | 'vector-store' | 'doc-source' | 'middleware'>>([])
+  readonly categories = model<
+    Array<'model' | 'toolset' | 'integration' | 'vector-store' | 'doc-source' | 'middleware'>
+  >([])
 
   readonly plugins = computed(() => {
     const keywords = this.keywords()
-    const plugins = (keywords?.length ? this.pluginsWithDownloads()?.filter((plugin) => plugin.keywords?.some((keyword) => keywords.includes(keyword))) :
-      this.pluginsWithDownloads()) || []
+    const plugins =
+      (keywords?.length
+        ? this.pluginsWithDownloads()?.filter((plugin) =>
+            plugin.keywords?.some((keyword) => keywords.includes(keyword))
+          )
+        : this.pluginsWithDownloads()) || []
     const searchText = this.searchText().toLowerCase()
     if (searchText) {
       return plugins.filter(
@@ -75,7 +103,7 @@ export class PluginsMarketplaceComponent {
     if (!manifest) {
       return []
     }
-    return manifest.official
+    return (manifest.official ?? [])
       .map((name) => this.plugins().find((plugin) => plugin.name === name))
       .filter((plugin) => !!plugin)
   })
@@ -85,8 +113,8 @@ export class PluginsMarketplaceComponent {
     if (!manifest) {
       return []
     }
-    return manifest.partner
-      ?.map((name) => this.plugins().find((plugin) => plugin.name === name))
+    return (manifest.partner ?? [])
+      .map((name) => this.plugins().find((plugin) => plugin.name === name))
       .filter((plugin) => !!plugin)
   })
 
@@ -95,8 +123,8 @@ export class PluginsMarketplaceComponent {
     if (!manifest) {
       return []
     }
-    return manifest.community
-      ?.map((name) => this.plugins().find((plugin) => plugin.name === name))
+    return (manifest.community ?? [])
+      .map((name) => this.plugins().find((plugin) => plugin.name === name))
       .filter((plugin) => !!plugin)
   })
 
@@ -108,9 +136,14 @@ export class PluginsMarketplaceComponent {
   })
 
   constructor() {
-     effect(async () => {
+    effect(async () => {
       const manifest = this.manifest()
-      if (!manifest) return
+      if (!manifest) {
+        this.loadingDownloads.set(false)
+        return
+      }
+
+      this.loadingDownloads.set(true)
 
       const plugins = manifest.plugins
 
@@ -118,31 +151,36 @@ export class PluginsMarketplaceComponent {
       const npmPlugins = plugins.filter((p) => p.source?.type === 'npm')
       if (npmPlugins.length === 0) {
         this.pluginsWithDownloads.set(plugins)
+        this.loadingDownloads.set(false)
         return
       }
 
       // For each npm plugin, fetch its downloads individually
-      const updated = await Promise.all(
-        plugins.map(async (p) => {
-          if (p.source?.type !== 'npm') return p
+      try {
+        const updated = await Promise.all(
+          plugins.map(async (p) => {
+            if (p.source?.type !== 'npm') return p
 
-          const pkgName = p.source.url.replace(/^https?:\/\/www\.npmjs\.com\/package\//, '')
-          const encoded = encodeURIComponent(pkgName)
-          const url = `https://api.npmjs.org/downloads/point/last-month/${encoded}`
+            const pkgName = p.source.url.replace(/^https?:\/\/www\.npmjs\.com\/package\//, '')
+            const encoded = encodeURIComponent(pkgName)
+            const url = `https://api.npmjs.org/downloads/point/last-month/${encoded}`
 
-          try {
-            const res = await fetch(url)
-            if (!res.ok) throw new Error(`Failed to fetch ${pkgName}`)
-            const data = await res.json()
-            return { ...p, downloads: { lastMonth: data.downloads } }
-          } catch (err) {
-            console.warn(`Failed to load downloads for ${pkgName}`, err)
-            return { ...p }
-          }
-        })
-      )
+            try {
+              const res = await fetch(url)
+              if (!res.ok) throw new Error(`Failed to fetch ${pkgName}`)
+              const data = await res.json()
+              return { ...p, downloads: { lastMonth: data.downloads } }
+            } catch (err) {
+              console.warn(`Failed to load downloads for ${pkgName}`, err)
+              return { ...p }
+            }
+          })
+        )
 
-      this.pluginsWithDownloads.set(updated)
+        this.pluginsWithDownloads.set(updated)
+      } finally {
+        this.loadingDownloads.set(false)
+      }
     })
 
     // effect(() => {

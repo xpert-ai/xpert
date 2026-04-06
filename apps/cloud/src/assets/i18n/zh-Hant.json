@@ -626,7 +626,9 @@
       "AllKeywords": "所有標簽",
       "InstallPlugins": "安裝插件",
       "CurrentVersion": "當前版本",
-      "UpdatePlugin": "更新到最新版本"
+      "UpdatePlugin": "更新到最新版本",
+      "LoadingMarketplace": "正在為你準備插件市場...",
+      "LoadingMarketplaceHelp": "正在取得市場清單並補充插件下載資訊，通常只需要幾秒鐘。"
     },
     "MENU": {
       "Plugins": "插件",
