@@ -6,7 +6,7 @@ import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } 
 import { IsDirty } from '@metad/core'
 import { IIntegration } from '@metad/contracts'
 import { NgmInputComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { DisplayBehaviour } from '@metad/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { FormlyModule } from '@ngx-formly/core'
@@ -47,7 +47,6 @@ import {
     ZardInputDirective,
     ZardButtonComponent,
     ContentLoaderModule,
-    ButtonGroupDirective,
     NgmSelectComponent,
     NgmInputComponent,
     NgmSpinComponent,

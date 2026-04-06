@@ -279,8 +279,8 @@
   "pnpm": {
     "overrides": {
       "@a2ui/lit": "0.8.3",
-      "@xpert-ai/chatkit-types": "0.0.15",
-      "@xpert-ai/plugin-sdk": "^3.8.4",
+      "@xpert-ai/chatkit-types": "0.0.17",
+      "@xpert-ai/plugin-sdk": "^3.9.0-beta.0",
       "@langchain/core": "0.3.72",
       "langchain": "0.3.31",
       "@modelcontextprotocol/sdk": "1.12.1",

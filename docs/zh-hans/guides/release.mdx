@@ -3,17 +3,17 @@
 ## 升级版本号
 
 ```bash
-npx nx release patch
+pnpm nx release patch
 ```
 
 ## 构建包
 
 ```bash
-npx nx build plugin-sdk
+pnpm nx build plugin-sdk
 ```
 
 ## 发布包
 
 ```bash
-npx nx run plugin-sdk:nx-release-publish --access public --otp=<one-time-password-if-needed>
+pnpm nx run plugin-sdk:nx-release-publish --access public --otp=<one-time-password-if-needed>
 ```
