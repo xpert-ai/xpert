@@ -140,4 +140,26 @@ describe('plugin sdk versioning', () => {
 				})
 			})
 	})
+
+	it('finds monorepo plugin manifests even when the process cwd is inside a package app', () => {
+		const originalCwd = process.cwd()
+
+		try {
+			process.chdir(join(originalCwd, 'packages', 'analytics'))
+
+			expect(
+				readInstalledPluginManifest(
+					'@xpert-ai/plugin-trigger-schedule',
+					join(originalCwd, 'plugins/global/@xpert-ai/plugin-trigger-schedule')
+				)
+			).toMatchObject({
+				name: '@xpert-ai/plugin-trigger-schedule',
+				peerDependencies: expect.objectContaining({
+					'@xpert-ai/plugin-sdk': '^3.8.0'
+				})
+			})
+		} finally {
+			process.chdir(originalCwd)
+		}
+	})
 })

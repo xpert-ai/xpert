@@ -34,11 +34,11 @@ export function canUpdatePlugin(plugin: LoadedPluginRecord, organizationId: stri
 export function canUninstallPlugin(plugin: PluginScopeRecord, organizationId: string) {
 	const level = plugin.level ?? plugin.instance?.meta?.level ?? PLUGIN_LEVEL.ORGANIZATION
 	if (level === PLUGIN_LEVEL.SYSTEM) {
-		return plugin.source === 'code'
+		return canManageSystemPlugins(organizationId)
 	}
 
 	if (plugin.organizationId === GLOBAL_ORGANIZATION_SCOPE) {
-		return canManageGlobalPlugins()
+		return canManageSystemPlugins(organizationId)
 	}
 
 	return plugin.organizationId === organizationId

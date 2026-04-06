@@ -58,9 +58,11 @@ jest.mock('./plugin-sdk-versioning', () => ({
 }))
 
 jest.mock('./organization-plugin.store', () => ({
-	getOrganizationPluginPath: jest.fn(() => '/tmp/plugins/demo'),
+	getOrganizationPluginPath: jest.fn((organizationId: string, pluginName: string) => {
+		const sanitizedName = pluginName.replace(/[\/@]/g, '__')
+		return `/tmp/plugins/${organizationId}/${sanitizedName}`
+	}),
 	getOrganizationPluginRoot: jest.fn(() => '/tmp/plugins'),
-	stageWorkspacePlugin: jest.fn()
 }))
 
 jest.mock('./plugin-instance.service', () => ({
@@ -88,7 +90,7 @@ const {
 	registerPluginsAsync,
 	upsertPluginLoadFailure
 } = require('./plugin.helper')
-const { stageWorkspacePlugin } = require('./organization-plugin.store')
+const { getOrganizationPluginPath, getOrganizationPluginRoot } = require('./organization-plugin.store')
 const { PluginManagementService } = require('./plugin-management.service')
 
 class ExistingEntity {}
@@ -150,6 +152,11 @@ describe('PluginManagementService', () => {
 		})
 		;(snapshotHttpRouteStack as jest.Mock).mockReturnValue(null)
 		;(snapshotModuleIds as jest.Mock).mockReturnValue(new Set())
+		;(getOrganizationPluginPath as jest.Mock).mockImplementation((organizationId: string, pluginName: string) => {
+			const sanitizedName = pluginName.replace(/[\/@]/g, '__')
+			return `/tmp/plugins/${organizationId}/${sanitizedName}`
+		})
+		;(getOrganizationPluginRoot as jest.Mock).mockReturnValue('/tmp/plugins')
 		;(registerPluginControllerRoutes as jest.Mock).mockReturnValue({
 			controllerCount: 0,
 			moduleCount: 0
@@ -262,6 +269,13 @@ describe('PluginManagementService', () => {
 				rootModuleType: expect.any(Function)
 			})
 		)
+		expect(collectProvidersWithMetadata).toHaveBeenCalledWith(
+			{},
+			'org-1',
+			'@xpert-ai/plugin-runtime-demo',
+			expect.anything(),
+			expect.any(Set)
+		)
 		expect(dataSource.buildMetadatas).toHaveBeenCalledTimes(1)
 		expect(dataSource.buildMetadatas.mock.invocationCallOrder[0]).toBeLessThan(
 			lazyLoader.load.mock.invocationCallOrder[0]
@@ -269,7 +283,7 @@ describe('PluginManagementService', () => {
 		expect(dataSource.synchronize).not.toHaveBeenCalled()
 	})
 
-	it('stages code plugins from local workspaces', async () => {
+	it('uses isolated runtime directories for code plugins from local workspaces', async () => {
 		;(loadPlugin as jest.Mock).mockResolvedValue({
 			meta: {
 				name: '@xpert-ai/plugin-code-demo',
@@ -293,11 +307,26 @@ describe('PluginManagementService', () => {
 			})
 		)
 
-		expect(stageWorkspacePlugin).toHaveBeenCalledWith({
-			organizationId: 'org-1',
-			pluginName: '@xpert-ai/plugin-code-demo',
-			expectedPackageName: '@xpert-ai/plugin-code-demo',
-			workspacePath: '/tmp/workspaces/plugin-code-demo'
+		const runtimeName = (registerPluginsAsync as jest.Mock).mock.calls[0][0].plugins[0].runtimeName
+
+		expect(runtimeName).toMatch(/^@xpert-ai\/plugin-code-demo@runtime__/)
+		expect(registerPluginsAsync).toHaveBeenCalledWith(
+			expect.objectContaining({
+				plugins: [
+					expect.objectContaining({
+						name: '@xpert-ai/plugin-code-demo',
+						runtimeName,
+						source: 'code',
+						sourceConfig: {
+							workspacePath: '/tmp/workspaces/plugin-code-demo'
+						}
+					})
+				]
+			})
+		)
+		expect(getOrganizationPluginPath).toHaveBeenCalledWith('org-1', runtimeName)
+		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-code-demo', {
+			basedir: `/tmp/plugins/org-1/${runtimeName.replace(/[\/@]/g, '__')}`
 		})
 		expect(assertPluginSdkInstallCandidate).toHaveBeenCalledWith({
 			pluginName: '@xpert-ai/plugin-code-demo',

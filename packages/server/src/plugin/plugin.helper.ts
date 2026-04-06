@@ -39,6 +39,7 @@ import { inspectConfig } from './config'
 import { createPluginContext } from './lifecycle'
 import { resolvePluginLevel } from './plugin-instance.entity'
 import { getCodeWorkspacePath } from './source-config'
+import { findWorkspacePluginDirectory } from './plugin-sdk-versioning'
 
 /**
  * Get plugin classes from an array of plugins by reflecting metadata.
@@ -232,17 +233,21 @@ export function collectProvidersWithMetadata<TMeta = any>(
 	moduleRef: ModuleRef,
 	organizationId: string,
 	pluginName: string,
-	logger: Logger
+	logger: Logger,
+	beforeModuleIds?: Set<string>
 ) {
 	logger.debug(`Collecting providers for plugin '${pluginName}' under organization '${organizationId}'`)
 	const container = (moduleRef as unknown as { container?: NestContainer }).container
 	if (!container?.getModules) return []
 
+	const modules = Array.from(container.getModules().values()).filter(
+		(module) => !beforeModuleIds || !beforeModuleIds.has(module.id)
+	)
 	const providers: any[] = []
 	const seen = new Set<any>()
 
 	logger.debug(`Scanning modules in the NestJS container...`)
-	for (const module of container.getModules().values()) {
+	for (const module of modules) {
 		const target = module.metatype ?? module.constructor
 		const modPluginName = Reflect.getMetadata(PLUGIN_METADATA_KEY, target)
 		const modOrganization = Reflect.getMetadata(ORGANIZATION_METADATA_KEY, target)
@@ -278,6 +283,7 @@ export interface XpertPluginModuleOptions extends OrganizationPluginStoreOptions
 	/** Explicit list of plugin package names (takes precedence) */
 	plugins?: {
 		name: string
+		runtimeName?: string
 		version?: string
 		source?: LoadedPluginRecord['source']
 		level?: PluginLevel
@@ -311,6 +317,7 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 
 	const pluginNames: Array<{
 		name: string
+		runtimeName?: string
 		version?: string
 		source?: LoadedPluginRecord['source']
 		level?: PluginLevel
@@ -331,14 +338,16 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 			continue
 		}
 
-		const workspacePath = getCodeWorkspacePath(plugin.sourceConfig)
+		const workspacePath =
+			getCodeWorkspacePath(plugin.sourceConfig) ??
+			findWorkspacePluginDirectory(normalizePluginName(plugin.name), baseDirRoot)
 		if (!workspacePath) {
 			continue
 		}
 
 		stageWorkspacePlugin({
 			organizationId,
-			pluginName: plugin.name,
+			pluginName: plugin.runtimeName ?? plugin.name,
 			expectedPackageName: normalizePluginName(plugin.name),
 			workspacePath,
 			rootDir: opts.rootDir,
@@ -356,10 +365,11 @@ export async function registerPluginsAsync(opts: XpertPluginModuleOptions = {}) 
 	const modules: DynamicModule[] = []
 	const errors: PluginLoadFailureRecord[] = []
 
-	for (const { name, level, source } of pluginNames) {
+	for (const { name, runtimeName, level, source } of pluginNames) {
 		try {
+			const pluginPathName = runtimeName ?? name
 			const pluginBaseDir = opts.organizationId
-				? getOrganizationPluginPath(organizationId, name, opts)
+				? getOrganizationPluginPath(organizationId, pluginPathName, opts)
 				: baseDirRoot
 			// 2) Load each plugin and merge its configuration defaults.
 			const plugin = await loadPlugin(name, { basedir: pluginBaseDir })

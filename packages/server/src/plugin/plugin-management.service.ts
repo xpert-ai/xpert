@@ -27,7 +27,7 @@ import {
 import { resolvePluginLevel } from './plugin-instance.entity'
 import { PluginInstanceService } from './plugin-instance.service'
 import { loadPlugin } from './plugin-loader'
-import { getOrganizationPluginPath, getOrganizationPluginRoot, stageWorkspacePlugin } from './organization-plugin.store'
+import { getOrganizationPluginPath, getOrganizationPluginRoot } from './organization-plugin.store'
 import { canManageGlobalPlugins, canManageSystemPlugins } from './plugin-update.utils'
 import { assertPluginSdkInstallCandidate } from './plugin-sdk-versioning'
 import { getCodeWorkspacePath, normalizePluginSourceConfig } from './source-config'
@@ -75,6 +75,11 @@ export class PluginManagementService {
 					)
 				: undefined)
 		)
+	}
+
+	private createCodeRuntimePluginName(pluginName: string) {
+		const runtimeId = `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`
+		return `${normalizePluginName(pluginName)}@runtime__${runtimeId}`
 	}
 
 	async refreshCodePlugin(pluginName: string): Promise<PluginInstallResult> {
@@ -154,20 +159,22 @@ export class PluginManagementService {
 			await this.uninstallByPackageNameWithGuard(tenantId, organizationId, packageName, allowSystemPlugins)
 
 			const packageNameWithVersion = body.version ? `${packageName}@${body.version}` : packageName
+			const runtimePluginName =
+				source === 'code' ? this.createCodeRuntimePluginName(packageName) : packageNameWithVersion
 			const organizationBaseDir = getOrganizationPluginRoot(organizationId)
-			if (source === 'code' && workspacePath) {
-				stageWorkspacePlugin({
-					organizationId,
-					pluginName: packageNameWithVersion,
-					expectedPackageName: packageName,
-					workspacePath
-				})
-			}
 
 			const { modules, errors } = await registerPluginsAsync({
 				module: this.moduleRef,
 				organizationId,
-				plugins: [{ name: packageNameWithVersion, source, level }],
+				plugins: [
+					{
+						name: source === 'code' ? packageName : packageNameWithVersion,
+						runtimeName: source === 'code' ? runtimePluginName : undefined,
+						source,
+						level,
+						sourceConfig
+					}
+				],
 				configs: { [packageName]: body.config },
 				baseDir: organizationBaseDir
 			})
@@ -176,7 +183,7 @@ export class PluginManagementService {
 				throw new BadRequestException(errors[0].error)
 			}
 
-			const pluginBaseDir = getOrganizationPluginPath(organizationId, packageNameWithVersion)
+			const pluginBaseDir = getOrganizationPluginPath(organizationId, runtimePluginName)
 			const plugin = await loadPlugin(packageName, { basedir: pluginBaseDir })
 			const resolvedLevel = resolvePluginLevel(plugin.meta?.level)
 			if (resolvedLevel === PLUGIN_LEVEL.SYSTEM && !allowSystemPlugins) {
@@ -186,9 +193,7 @@ export class PluginManagementService {
 			}
 
 			for await (const dynamicModule of modules) {
-				this.logger.debug(
-					`Loading plugin module for ${packageNameWithVersion} into organization ${organizationId}`
-				)
+				this.logger.debug(`Loading plugin module for ${runtimePluginName} into organization ${organizationId}`)
 				const ormMetadata = collectPluginOrmMetadata([dynamicModule])
 				const metadataRegistration = await registerPluginOrmMetadataInDataSource(this.dataSource, ormMetadata)
 				if (metadataRegistration.changed) {
@@ -216,7 +221,8 @@ export class PluginManagementService {
 					loadedModuleRef,
 					organizationId,
 					body.pluginName,
-					this.logger
+					this.logger,
+					beforeModuleIds
 				)
 
 				for await (const instance of strategyProviders) {

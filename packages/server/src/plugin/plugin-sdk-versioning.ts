@@ -57,29 +57,63 @@ function readJsonFile<T>(filePath: string, pluginName: string) {
 	}
 }
 
-function findWorkspacePluginManifestPath(pluginName: string) {
-	const workspacePluginsDir = resolve(process.cwd(), 'packages', 'plugins')
-	if (!existsSync(workspacePluginsDir)) {
-		return undefined
+function collectAncestorDirs(startPath?: string) {
+	if (!startPath) {
+		return []
 	}
 
-	for (const entry of readdirSync(workspacePluginsDir)) {
-		const candidate = resolve(workspacePluginsDir, entry, 'package.json')
-		if (!existsSync(candidate)) {
-			continue
+	const dirs: string[] = []
+	let current = resolve(startPath)
+	while (true) {
+		dirs.push(current)
+		const parent = dirname(current)
+		if (parent === current) {
+			break
 		}
+		current = parent
+	}
 
-		try {
-			const manifest = JSON.parse(readFileSync(candidate, 'utf8')) as PluginPackageManifest
-			if (manifest.name === pluginName) {
-				return candidate
+	return dirs
+}
+
+function getWorkspacePluginSearchDirs(basedir?: string) {
+	const candidates = new Set<string>()
+
+	for (const startPath of [basedir, process.cwd(), __dirname]) {
+		for (const dir of collectAncestorDirs(startPath)) {
+			candidates.add(resolve(dir, 'packages', 'plugins'))
+			candidates.add(resolve(dir, 'dist', 'packages', 'plugins'))
+		}
+	}
+
+	return Array.from(candidates).filter((candidate) => existsSync(candidate))
+}
+
+export function findWorkspacePluginManifestPath(pluginName: string, basedir?: string) {
+	for (const workspacePluginsDir of getWorkspacePluginSearchDirs(basedir)) {
+		for (const entry of readdirSync(workspacePluginsDir)) {
+			const candidate = resolve(workspacePluginsDir, entry, 'package.json')
+			if (!existsSync(candidate)) {
+				continue
 			}
-		} catch {
-			// Ignore unrelated invalid manifests when searching for the requested plugin.
+
+			try {
+				const manifest = JSON.parse(readFileSync(candidate, 'utf8')) as PluginPackageManifest
+				if (manifest.name === pluginName) {
+					return candidate
+				}
+			} catch {
+				// Ignore unrelated invalid manifests when searching for the requested plugin.
+			}
 		}
 	}
 
 	return undefined
+}
+
+export function findWorkspacePluginDirectory(pluginName: string, basedir?: string) {
+	const manifestPath = findWorkspacePluginManifestPath(pluginName, basedir)
+	return manifestPath ? dirname(manifestPath) : undefined
 }
 
 function resolveHostPluginSdkPackageJsonPath() {
@@ -111,9 +145,16 @@ function resolveHostPluginSdkPackageJsonPath() {
 		}
 	}
 
-	candidates.add(resolve(process.cwd(), 'packages', 'plugin-sdk', 'dist', 'package.json'))
-	candidates.add(resolve(process.cwd(), 'packages', 'plugin-sdk', 'package.json'))
-	candidates.add(resolve(process.cwd(), 'node_modules', ...HOSTED_PLUGIN_SDK_PACKAGE.split('/'), 'package.json'))
+	for (const dir of collectAncestorDirs(process.cwd())) {
+		candidates.add(resolve(dir, 'packages', 'plugin-sdk', 'dist', 'package.json'))
+		candidates.add(resolve(dir, 'packages', 'plugin-sdk', 'package.json'))
+		candidates.add(resolve(dir, 'node_modules', ...HOSTED_PLUGIN_SDK_PACKAGE.split('/'), 'package.json'))
+	}
+
+	for (const dir of collectAncestorDirs(__dirname)) {
+		candidates.add(resolve(dir, 'packages', 'plugin-sdk', 'dist', 'package.json'))
+		candidates.add(resolve(dir, 'packages', 'plugin-sdk', 'package.json'))
+	}
 
 	for (const candidate of candidates) {
 		if (existsSync(candidate)) {
@@ -254,7 +295,7 @@ export function readInstalledPluginManifest(pluginName: string, basedir?: string
 			// Fall through to other workspace-aware lookups.
 		}
 
-		const workspacePackageJsonPath = findWorkspacePluginManifestPath(normalizedPluginName)
+		const workspacePackageJsonPath = findWorkspacePluginManifestPath(normalizedPluginName, basedir)
 		if (workspacePackageJsonPath) {
 			return readJsonFile<PluginPackageManifest>(workspacePackageJsonPath, normalizedPluginName)
 		}

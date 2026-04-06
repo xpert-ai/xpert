@@ -50,7 +50,7 @@ jest.mock('./plugin-instance.entity', () => ({
 
 const { installOrganizationPlugins, stageWorkspacePlugin } = require('./organization-plugin.store')
 const { loadPlugin } = require('./plugin-loader')
-const { loaded, registerPluginsAsync } = require('./plugin.helper')
+const { loaded, collectProvidersWithMetadata, registerPluginsAsync } = require('./plugin.helper')
 
 describe('plugin helper registerPluginsAsync', () => {
 	beforeEach(() => {
@@ -102,5 +102,137 @@ describe('plugin helper registerPluginsAsync', () => {
 				source: 'code'
 			})
 		])
+	})
+
+	it('restages monorepo code plugins even when no workspacePath is persisted', async () => {
+		await expect(
+			registerPluginsAsync({
+				organizationId: 'org-1',
+				plugins: [
+					{
+						name: '@xpert-ai/plugin-trigger-schedule',
+						source: 'code'
+					}
+				],
+				configs: {
+					'@xpert-ai/plugin-trigger-schedule': {}
+				}
+			})
+		).resolves.toEqual(
+			expect.objectContaining({
+				organizationId: 'org-1',
+				errors: []
+			})
+		)
+
+		expect(stageWorkspacePlugin).toHaveBeenCalledWith({
+			organizationId: 'org-1',
+			pluginName: '@xpert-ai/plugin-trigger-schedule',
+			expectedPackageName: '@xpert-ai/plugin-trigger-schedule',
+			workspacePath: expect.stringMatching(/packages\/plugins\/trigger-schedule$/),
+			rootDir: undefined,
+			manifestName: undefined
+		})
+		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-trigger-schedule', {
+			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-trigger-schedule'
+		})
+	})
+
+	it('loads code plugins from a runtime-specific staged directory without changing the logical package name', async () => {
+		await expect(
+			registerPluginsAsync({
+				organizationId: 'org-1',
+				plugins: [
+					{
+						name: '@xpert-ai/plugin-code-demo',
+						runtimeName: '@xpert-ai/plugin-code-demo@runtime__abc123',
+						source: 'code',
+						sourceConfig: {
+							workspacePath: '/tmp/workspaces/plugin-code-demo'
+						}
+					}
+				],
+				configs: {
+					'@xpert-ai/plugin-code-demo': {}
+				}
+			})
+		).resolves.toEqual(
+			expect.objectContaining({
+				organizationId: 'org-1',
+				errors: []
+			})
+		)
+
+		expect(stageWorkspacePlugin).toHaveBeenCalledWith({
+			organizationId: 'org-1',
+			pluginName: '@xpert-ai/plugin-code-demo@runtime__abc123',
+			expectedPackageName: '@xpert-ai/plugin-code-demo',
+			workspacePath: '/tmp/workspaces/plugin-code-demo',
+			rootDir: undefined,
+			manifestName: undefined
+		})
+		expect(loadPlugin).toHaveBeenCalledWith('@xpert-ai/plugin-code-demo', {
+			basedir: '/tmp/plugins/org-1/@xpert-ai__plugin-code-demo@runtime__abc123'
+		})
+		expect(loaded).toEqual([
+			expect.objectContaining({
+				organizationId: 'org-1',
+				name: '@xpert-ai/plugin-code-demo',
+				packageName: '@xpert-ai/plugin-code-demo',
+				baseDir: '/tmp/plugins/org-1/@xpert-ai__plugin-code-demo@runtime__abc123',
+				source: 'code'
+			})
+		])
+	})
+
+	it('collects providers only from modules added after the module snapshot', () => {
+		class ExistingPluginModule {}
+		class FreshPluginModule {}
+		class ExistingProvider {}
+		class FreshProvider {}
+
+		;(Reflect as any).defineMetadata('organization-metadata', 'org-1', ExistingPluginModule)
+		;(Reflect as any).defineMetadata('plugin-metadata', '@xpert-ai/plugin-code-demo', ExistingPluginModule)
+		;(Reflect as any).defineMetadata('organization-metadata', 'org-1', FreshPluginModule)
+		;(Reflect as any).defineMetadata('plugin-metadata', '@xpert-ai/plugin-code-demo', FreshPluginModule)
+
+		const existingProvider = new ExistingProvider()
+		const freshProvider = new FreshProvider()
+		const moduleRef = {
+			container: {
+				getModules: () =>
+					new Map<string, any>([
+						[
+							'existing',
+							{
+								id: 'existing-id',
+								metatype: ExistingPluginModule,
+								providers: new Map([['existing-provider', { instance: existingProvider }]])
+							}
+						],
+						[
+							'fresh',
+							{
+								id: 'fresh-id',
+								metatype: FreshPluginModule,
+								providers: new Map([['fresh-provider', { instance: freshProvider }]])
+							}
+						]
+					])
+			}
+		}
+		const logger = {
+			debug: jest.fn()
+		}
+
+		expect(
+			collectProvidersWithMetadata(
+				moduleRef as any,
+				'org-1',
+				'@xpert-ai/plugin-code-demo',
+				logger as any,
+				new Set(['existing-id'])
+			)
+		).toEqual([freshProvider])
 	})
 })
