@@ -19,6 +19,27 @@
       </button>
     </div>
 
+    <div class="view-tabs">
+      <button
+        type="button"
+        class="view-tab"
+        [class.view-tab--active]="memorySource() === 'live'"
+        (click)="setMemorySource('live')"
+      >
+        {{ liveMemoryLabel() }}
+      </button>
+      @if (hasDraftMemorySource()) {
+        <button
+          type="button"
+          class="view-tab"
+          [class.view-tab--active]="memorySource() === 'draft'"
+          (click)="setMemorySource('draft')"
+        >
+          {{ 'PAC.Xpert.Draft' | translate: { Default: 'Draft' } }}
+        </button>
+      }
+    </div>
+
     @if (viewMode() === 'records') {
       <ngm-search class="min-w-[240px]" [formControl]="searchControl" />
     }
@@ -61,6 +82,26 @@
       <i class="ri-more-line"></i>
     </button>
   </div>
+</div>
+
+<div class="memory-source-note px-4 pb-3">
+  @if (isDraft()) {
+    {{
+      'PAC.Xpert.DraftMemoryHint'
+        | translate
+          : {
+              Default: 'Draft memory follows the draft workflow middleware configuration.'
+            }
+    }}
+  } @else {
+    {{
+      'PAC.Xpert.LiveMemoryHint'
+        | translate
+          : {
+              Default: 'Live memory follows the current runtime workflow middleware configuration.'
+            }
+    }}
+  }
 </div>
 
 @if (viewMode() === 'records') {

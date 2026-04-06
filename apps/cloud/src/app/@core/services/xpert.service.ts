@@ -193,19 +193,33 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
   getAllMemory(
     id: string,
     types: string[],
-    options?: { includeArchived?: boolean; audience?: TMemoryAudience | 'all' }
+    options?: { includeArchived?: boolean; audience?: TMemoryAudience | 'all'; isDraft?: boolean }
   ) {
+    let params = new HttpParams()
+    if (types?.length) {
+      params = params.append('types', types.join(':'))
+    }
+    if (options?.includeArchived != null) {
+      params = params.append('includeArchived', options.includeArchived)
+    }
+    if (options?.audience) {
+      params = params.append('audience', options.audience)
+    }
+    if (options?.isDraft != null) {
+      params = params.append('isDraft', options.isDraft)
+    }
+
     return this.httpClient.get<{ items: IXpertMemoryRecord[] }>(this.apiBaseUrl + `/${id}/memory`, {
-      params: {
-        types: types?.join(':'),
-        includeArchived: options?.includeArchived,
-        audience: options?.audience
-      }
+      params
     })
   }
 
-  getMemoryFiles(id: string) {
-    return this.httpClient.get<TXpertMemoryFiles>(this.apiBaseUrl + `/${id}/memory/files`)
+  getMemoryFiles(id: string, options?: { isDraft?: boolean }) {
+    let params = new HttpParams()
+    if (options?.isDraft != null) {
+      params = params.append('isDraft', options.isDraft)
+    }
+    return this.httpClient.get<TXpertMemoryFiles>(this.apiBaseUrl + `/${id}/memory/files`, { params })
   }
 
   addMemory(
@@ -215,15 +229,25 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
       audience?: TMemoryAudience
       value: TMemoryQA | TMemoryUserProfile
       tags?: string[]
-    }
+    },
+    options?: { isDraft?: boolean }
   ) {
-    return this.httpClient.post<IXpertMemoryRecord>(this.apiBaseUrl + `/${id}/memory`, memory)
+    let params = new HttpParams()
+    if (options?.isDraft != null) {
+      params = params.append('isDraft', options.isDraft)
+    }
+    return this.httpClient.post<IXpertMemoryRecord>(this.apiBaseUrl + `/${id}/memory`, memory, { params })
   }
   bulkCreateMemories(
     id: string,
-    body: { type: LongTermMemoryTypeEnum; audience?: TMemoryAudience; memories: (TMemoryQA | TMemoryUserProfile)[] }
+    body: { type: LongTermMemoryTypeEnum; audience?: TMemoryAudience; memories: (TMemoryQA | TMemoryUserProfile)[] },
+    options?: { isDraft?: boolean }
   ) {
-    return this.httpClient.post<IXpertMemoryRecord[]>(this.apiBaseUrl + `/${id}/memory/bulk`, body)
+    let params = new HttpParams()
+    if (options?.isDraft != null) {
+      params = params.append('isDraft', options.isDraft)
+    }
+    return this.httpClient.post<IXpertMemoryRecord[]>(this.apiBaseUrl + `/${id}/memory/bulk`, body, { params })
   }
   uploadAndParseCsv(id: string, type: LongTermMemoryTypeEnum, file: File) {
     const formData = new FormData()
@@ -247,9 +271,14 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
       context?: string
       tags?: string[]
       action?: TMemoryGovernanceAction
-    }
+    },
+    options?: { isDraft?: boolean }
   ) {
-    return this.httpClient.patch<IXpertMemoryRecord>(this.apiBaseUrl + `/${id}/memory/${memoryId}`, body)
+    let params = new HttpParams()
+    if (options?.isDraft != null) {
+      params = params.append('isDraft', options.isDraft)
+    }
+    return this.httpClient.patch<IXpertMemoryRecord>(this.apiBaseUrl + `/${id}/memory/${memoryId}`, body, { params })
   }
   updateMemoryFile(
     id: string,
@@ -258,9 +287,14 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
       ownerUserId?: string
       path: string
       content: string
-    }
+    },
+    options?: { isDraft?: boolean }
   ) {
-    return this.httpClient.patch<TMemoryFileEntry>(this.apiBaseUrl + `/${id}/memory/files`, body)
+    let params = new HttpParams()
+    if (options?.isDraft != null) {
+      params = params.append('isDraft', options.isDraft)
+    }
+    return this.httpClient.patch<TMemoryFileEntry>(this.apiBaseUrl + `/${id}/memory/files`, body, { params })
   }
   searchMemory(
     id: string,
@@ -277,8 +311,14 @@ export class XpertAPIService extends XpertWorkspaceBaseCrudService<IXpert> {
     return this.httpClient.post<IXpertMemoryRecord[]>(this.apiBaseUrl + `/${id}/memory/search`, body)
   }
 
-  clearMemory(id: string) {
-    return this.httpClient.delete<{ items: IXpertMemoryRecord[]; total: number }>(this.apiBaseUrl + `/${id}/memory`)
+  clearMemory(id: string, options?: { isDraft?: boolean }) {
+    let params = new HttpParams()
+    if (options?.isDraft != null) {
+      params = params.append('isDraft', options.isDraft)
+    }
+    return this.httpClient.delete<{ items: IXpertMemoryRecord[]; total: number }>(this.apiBaseUrl + `/${id}/memory`, {
+      params
+    })
   }
 
   /**

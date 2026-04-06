@@ -58,7 +58,8 @@ export class XpertExportHandler implements ICommandHandler<XpertExportCommand> {
                 id,
                 [LongTermMemoryTypeEnum.QA, LongTermMemoryTypeEnum.PROFILE],
                 {
-                    includeArchived: true
+                    includeArchived: true,
+                    isDraft
                 }
             )
             dto.memories = result.items.map(

@@ -1,5 +1,7 @@
 import { XpertPublishCommand } from './commands'
 import { XpertService } from './xpert.service'
+import { DEFAULT_MEMORY_PROVIDER_NAME } from '../xpert-memory'
+import { WorkflowNodeTypeEnum } from '@metad/contracts'
 
 describe('XpertService command facade', () => {
     function createService() {
@@ -28,6 +30,7 @@ describe('XpertService command facade', () => {
         const eventEmitter = { emitAsync: jest.fn() }
         const triggerRegistry = { get: jest.fn(), list: jest.fn().mockReturnValue([]) }
         const sandboxService = { listProviders: jest.fn().mockReturnValue([]) }
+        const agentMiddlewareRegistry = { get: jest.fn() }
         const xpertMemoryProvider = {
             list: jest.fn(),
             search: jest.fn(),
@@ -50,13 +53,18 @@ describe('XpertService command facade', () => {
             eventEmitter as any,
             triggerRegistry as any,
             sandboxService as any,
-            memoryRegistry as any
+            memoryRegistry as any,
+            agentMiddlewareRegistry as any
         )
 
         return {
             service,
             commandBus,
-            triggerRegistry
+            triggerRegistry,
+            repository,
+            memoryRegistry,
+            agentMiddlewareRegistry,
+            xpertMemoryProvider
         }
     }
 
@@ -103,5 +111,80 @@ describe('XpertService command facade', () => {
                 name: 'schedule'
             }
         ])
+    })
+
+    it('resolves the active middleware provider for memory listing', async () => {
+        const { service, repository, memoryRegistry, agentMiddlewareRegistry, xpertMemoryProvider } = createService()
+        repository.findOne.mockResolvedValue({
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            graph: {
+                nodes: [
+                    {
+                        key: 'agent-1',
+                        type: 'agent'
+                    },
+                    {
+                        key: 'memory-1',
+                        type: 'middleware',
+                        entity: {
+                            type: WorkflowNodeTypeEnum.MIDDLEWARE,
+                            provider: 'FileMemorySystemMiddleware',
+                            options: {
+                                providerName: 'custom-memory'
+                            }
+                        }
+                    }
+                ],
+                connections: [
+                    {
+                        type: 'workflow',
+                        from: 'agent-1',
+                        to: 'memory-1'
+                    }
+                ]
+            },
+            agent: {
+                key: 'agent-1'
+            }
+        })
+        agentMiddlewareRegistry.get.mockReturnValue({
+            meta: {
+                exclusiveCategory: 'memory'
+            }
+        })
+        xpertMemoryProvider.list.mockResolvedValue([])
+        xpertMemoryProvider.resolveScope.mockReturnValue({
+            scopeType: 'xpert',
+            scopeId: 'xpert-1'
+        })
+
+        await service.findAllMemory('xpert-1', [])
+
+        expect(memoryRegistry.getProviderOrThrow).toHaveBeenCalledWith('custom-memory')
+    })
+
+    it('falls back to the default provider when no active memory middleware is configured', async () => {
+        const { service, repository, memoryRegistry, xpertMemoryProvider } = createService()
+        repository.findOne.mockResolvedValue({
+            id: 'xpert-1',
+            tenantId: 'tenant-1',
+            graph: {
+                nodes: [],
+                connections: []
+            },
+            agent: {
+                key: 'agent-1'
+            }
+        })
+        xpertMemoryProvider.list.mockResolvedValue([])
+        xpertMemoryProvider.resolveScope.mockReturnValue({
+            scopeType: 'xpert',
+            scopeId: 'xpert-1'
+        })
+
+        await service.findAllMemory('xpert-1', [])
+
+        expect(memoryRegistry.getProviderOrThrow).toHaveBeenCalledWith(DEFAULT_MEMORY_PROVIDER_NAME)
     })
 })

@@ -57,6 +57,7 @@ import { XpertComponent } from '../../xpert.component'
 import { XpertMemoryBulkImportComponent } from '../bulk-import/bulk-import.component'
 
 type MemoryViewMode = 'records' | 'files'
+type MemorySourceMode = 'live' | 'draft'
 type AudienceFilter = TMemoryAudience | 'all'
 type FileSelection = {
   audience: TMemoryAudience
@@ -107,8 +108,10 @@ export class XpertMemoryStoreComponent {
   readonly #clipboard = inject(Clipboard)
 
   readonly xpertId = this.xpertComponent.paramId
+  readonly latestXpert = this.xpertComponent.latestXpert
   readonly #loading = signal(false)
   readonly #refresh$ = new BehaviorSubject<void>(null)
+  readonly #initializedMemorySourceFor = signal<string | null>(null)
 
   readonly scoreTemplate = viewChild('scoreTemplate', { read: TemplateRef })
   readonly layerTemplate = viewChild('layerTemplate', { read: TemplateRef })
@@ -205,6 +208,14 @@ export class XpertMemoryStoreComponent {
   ]
 
   readonly viewMode = signal<MemoryViewMode>('records')
+  readonly memorySource = signal<MemorySourceMode>('live')
+  readonly hasDraftMemorySource = computed(() => !!this.latestXpert()?.draft)
+  readonly isDraft = computed(() => this.memorySource() === 'draft')
+  readonly liveMemoryLabel = computed(() =>
+    this.latestXpert()?.publishAt
+      ? this.#translate.instant('PAC.Xpert.LiveMemory', { Default: 'Live' })
+      : this.#translate.instant('PAC.Xpert.CurrentMemory', { Default: 'Current' })
+  )
   readonly searchControl = new FormControl('')
   readonly search = toSignal(this.searchControl.valueChanges.pipe(debounceTime(300), startWith('')))
   readonly memoryType = model<LongTermMemoryTypeEnum | null>(LongTermMemoryTypeEnum.PROFILE)
@@ -238,7 +249,8 @@ export class XpertMemoryStoreComponent {
       xpertId: this.xpertId(),
       type: this.memoryType(),
       includeArchived: this.showArchived(),
-      audience: this.audience()
+      audience: this.audience(),
+      isDraft: this.isDraft()
     }),
     loader: ({ request }) =>
       request.xpertId
@@ -246,7 +258,8 @@ export class XpertMemoryStoreComponent {
             switchMap(() =>
               this.xpertService.getAllMemory(request.xpertId, request.type ? [request.type] : [], {
                 includeArchived: request.includeArchived,
-                audience: request.audience
+                audience: request.audience,
+                isDraft: request.isDraft
               })
             ),
             map(({ items }) => items ?? [])
@@ -256,11 +269,14 @@ export class XpertMemoryStoreComponent {
 
   readonly #files = myRxResource({
     request: () => ({
-      xpertId: this.xpertId()
+      xpertId: this.xpertId(),
+      isDraft: this.isDraft()
     }),
     loader: ({ request }) =>
       request.xpertId
-        ? this.#refresh$.pipe(switchMap(() => this.xpertService.getMemoryFiles(request.xpertId)))
+        ? this.#refresh$.pipe(
+            switchMap(() => this.xpertService.getMemoryFiles(request.xpertId, { isDraft: request.isDraft }))
+          )
         : of({
             scopeType: 'xpert',
             scopeId: '',
@@ -315,6 +331,27 @@ export class XpertMemoryStoreComponent {
   readonly memoryRow = (item: EditableMemoryRecord) => item
 
   constructor() {
+    effect(
+      () => {
+        const xpertId = this.xpertId()
+        const xpert = this.latestXpert()
+        if (!xpertId || !xpert) {
+          return
+        }
+
+        if (this.#initializedMemorySourceFor() !== xpertId) {
+          this.memorySource.set(xpert.publishAt ? 'live' : this.hasDraftMemorySource() ? 'draft' : 'live')
+          this.#initializedMemorySourceFor.set(xpertId)
+          return
+        }
+
+        if (this.memorySource() === 'draft' && !this.hasDraftMemorySource()) {
+          this.memorySource.set('live')
+        }
+      },
+      { allowSignalWrites: true }
+    )
+
     effect(
       () => {
         this.data.set(this.#memories.value() ?? [])
@@ -393,19 +430,32 @@ export class XpertMemoryStoreComponent {
     this.#loading.set(true)
     const editing = this.editing()
     const request$ = editing
-      ? this.xpertService.updateMemory(this.xpertId(), editing.id, {
-          type: this.memoryType(),
-          audience: this.editorAudience(),
-          ownerUserId: editing.ownerUserId,
-          value: this.currentValue(),
-          tags: this.currentTags()
-        })
-      : this.xpertService.addMemory(this.xpertId(), {
-          type: this.memoryType(),
-          audience: this.editorAudience(),
-          value: this.currentValue(),
-          tags: this.currentTags()
-        })
+      ? this.xpertService.updateMemory(
+          this.xpertId(),
+          editing.id,
+          {
+            type: this.memoryType(),
+            audience: this.editorAudience(),
+            ownerUserId: editing.ownerUserId,
+            value: this.currentValue(),
+            tags: this.currentTags()
+          },
+          {
+            isDraft: this.isDraft()
+          }
+        )
+      : this.xpertService.addMemory(
+          this.xpertId(),
+          {
+            type: this.memoryType(),
+            audience: this.editorAudience(),
+            value: this.currentValue(),
+            tags: this.currentTags()
+          },
+          {
+            isDraft: this.isDraft()
+          }
+        )
 
     request$.subscribe({
       next: () => {
@@ -427,12 +477,18 @@ export class XpertMemoryStoreComponent {
     }
     this.#loading.set(true)
     this.xpertService
-      .updateMemoryFile(this.xpertId(), {
-        audience: selected.audience,
-        ownerUserId: selected.ownerUserId,
-        path: selected.path,
-        content: this.fileContent()
-      })
+      .updateMemoryFile(
+        this.xpertId(),
+        {
+          audience: selected.audience,
+          ownerUserId: selected.ownerUserId,
+          path: selected.path,
+          content: this.fileContent()
+        },
+        {
+          isDraft: this.isDraft()
+        }
+      )
       .subscribe({
         next: () => {
           this.#loading.set(false)
@@ -478,7 +534,11 @@ export class XpertMemoryStoreComponent {
           })
         }
       })
-      .closed.pipe(switchMap((confirm) => (confirm ? this.xpertService.clearMemory(this.xpertId()) : EMPTY)))
+      .closed.pipe(
+        switchMap((confirm) =>
+          confirm ? this.xpertService.clearMemory(this.xpertId(), { isDraft: this.isDraft() }) : EMPTY
+        )
+      )
       .subscribe({
         next: () => this.#refresh$.next(),
         error: (err) => this.#toastr.error(getErrorMessage(err))
@@ -488,11 +548,18 @@ export class XpertMemoryStoreComponent {
   governance(item: EditableMemoryRecord, action: TMemoryGovernanceAction) {
     const run = () =>
       this.xpertService
-        .updateMemory(this.xpertId(), item.id, {
-          action,
-          audience: item.audience,
-          ownerUserId: item.ownerUserId
-        })
+        .updateMemory(
+          this.xpertId(),
+          item.id,
+          {
+            action,
+            audience: item.audience,
+            ownerUserId: item.ownerUserId
+          },
+          {
+            isDraft: this.isDraft()
+          }
+        )
         .subscribe({
           next: () => this.#refresh$.next(),
           error: (err) => this.#toastr.error(getErrorMessage(err))
@@ -523,7 +590,7 @@ export class XpertMemoryStoreComponent {
         type: this.memoryType(),
         audience: this.audience(),
         text: this.input(),
-        isDraft: true,
+        isDraft: this.isDraft(),
         includeArchived: this.showArchived(),
         includeFrozen: true,
         limit: 20
@@ -578,7 +645,8 @@ export class XpertMemoryStoreComponent {
         data: {
           xpertId: this.xpertId(),
           type: this.memoryType() || LongTermMemoryTypeEnum.QA,
-          audience: this.audience() === 'all' ? this.defaultEditorAudience() : this.audience()
+          audience: this.audience() === 'all' ? this.defaultEditorAudience() : this.audience(),
+          isDraft: this.isDraft()
         }
       })
       .closed.subscribe({
@@ -619,6 +687,15 @@ export class XpertMemoryStoreComponent {
 
   setViewMode(mode: MemoryViewMode) {
     this.viewMode.set(mode)
+  }
+
+  setMemorySource(mode: MemorySourceMode) {
+    if (mode === this.memorySource()) {
+      return
+    }
+
+    this.stop()
+    this.memorySource.set(mode)
   }
 
   private currentValue(): TMemoryQA | TMemoryUserProfile {

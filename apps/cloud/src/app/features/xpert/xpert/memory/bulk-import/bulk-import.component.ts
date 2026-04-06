@@ -22,7 +22,12 @@ import { firstValueFrom } from 'rxjs'
 export class XpertMemoryBulkImportComponent {
   eLongTermMemoryTypeEnum = LongTermMemoryTypeEnum
 
-  readonly #data = inject<{ xpertId: string; type: LongTermMemoryTypeEnum; audience?: TMemoryAudience }>(DIALOG_DATA)
+  readonly #data = inject<{
+    xpertId: string
+    type: LongTermMemoryTypeEnum
+    audience?: TMemoryAudience
+    isDraft?: boolean
+  }>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
   readonly #xpertAPI = inject(XpertAPIService)
   readonly #toastr = injectToastr()
@@ -30,6 +35,7 @@ export class XpertMemoryBulkImportComponent {
   readonly xpertId = signal(this.#data.xpertId)
   readonly type = signal(this.#data.type)
   readonly audience = signal<TMemoryAudience | null>(this.#data.audience ?? null)
+  readonly isDraft = signal(!!this.#data.isDraft)
   readonly file = signal<File>(null)
   readonly rows = signal<any[]>([])
 
@@ -91,11 +97,17 @@ export class XpertMemoryBulkImportComponent {
   async upload() {
     this.loading.set(true)
     this.#xpertAPI
-      .bulkCreateMemories(this.xpertId(), {
-        type: this.type(),
-        audience: this.audience() ?? undefined,
-        memories: this.rows()
-      })
+      .bulkCreateMemories(
+        this.xpertId(),
+        {
+          type: this.type(),
+          audience: this.audience() ?? undefined,
+          memories: this.rows()
+        },
+        {
+          isDraft: this.isDraft()
+        }
+      )
       .subscribe({
         next: (response) => {
           this.loading.set(false)

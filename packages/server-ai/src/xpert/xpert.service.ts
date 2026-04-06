@@ -27,11 +27,11 @@ import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestj
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
-import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
+import { AgentMiddlewareRegistry, WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { assign, uniq, uniqBy } from 'lodash'
 import { FindOptionsWhere, In, IsNull, Not, Repository } from 'typeorm'
 import { SandboxService } from '../sandbox/sandbox.service'
-import { DEFAULT_MEMORY_PROVIDER_NAME, MemoryRegistry } from '../xpert-memory'
+import { DEFAULT_MEMORY_PROVIDER_NAME, MemoryRegistry, resolveActiveMemoryMiddleware } from '../xpert-memory'
 import { GetXpertWorkspaceQuery, MyXpertWorkspaceQuery } from '../xpert-workspace'
 import { XpertPublishCommand } from './commands'
 import { XpertIdentiDto } from './dto'
@@ -50,13 +50,10 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
         private readonly eventEmitter: EventEmitter2,
         private readonly triggerRegistry: WorkflowTriggerRegistry,
         private readonly sandboxService: SandboxService,
-        private readonly memoryRegistry: MemoryRegistry
+        private readonly memoryRegistry: MemoryRegistry,
+        private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry
     ) {
         super(repository)
-    }
-
-    private get memoryProvider() {
-        return this.memoryRegistry.getProviderOrThrow(DEFAULT_MEMORY_PROVIDER_NAME)
     }
 
     /**
@@ -394,11 +391,14 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
             source?: string
             sourceRef?: string
             tags?: string[]
+        },
+        options?: {
+            isDraft?: boolean
         }
     ) {
-        const xpert = await this.findOne(xpertId)
-        const record = await this.memoryProvider.upsert(xpert.tenantId, {
-            scope: this.memoryProvider.resolveScope(xpert),
+        const { xpert, memoryProvider, scope } = await this.resolveMemoryAccess(xpertId, options)
+        const record = await memoryProvider.upsert(xpert.tenantId, {
+            scope,
             audience: body.audience,
             kind: body.type,
             value: body.value,
@@ -408,7 +408,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
             createdBy: RequestContext.currentUserId()
         })
 
-        return (await this.attachMemoryUsers([this.memoryProvider.toApiRecord(record)]))[0]
+        return (await this.attachMemoryUsers([memoryProvider.toApiRecord(record)]))[0]
     }
 
     async updateMemory(
@@ -424,21 +424,23 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
             context?: string
             tags?: string[]
             action?: TMemoryGovernanceAction
+        },
+        options?: {
+            isDraft?: boolean
         }
     ) {
-        const xpert = await this.findOne(xpertId)
-        const scope = this.memoryProvider.resolveScope(xpert)
+        const { xpert, memoryProvider, scope } = await this.resolveMemoryAccess(xpertId, options)
         const userId = RequestContext.currentUserId()
 
         let record = null
         if (body.action) {
-            record = await this.memoryProvider.applyGovernance(xpert.tenantId, scope, memoryId, body.action, userId, {
+            record = await memoryProvider.applyGovernance(xpert.tenantId, scope, memoryId, body.action, userId, {
                 userId,
                 audience: body.audience ?? 'all',
                 ownerUserId: body.ownerUserId
             })
         } else {
-            const existing = await this.memoryProvider.get(xpert.tenantId, scope, memoryId, {
+            const existing = await memoryProvider.get(xpert.tenantId, scope, memoryId, {
                 userId,
                 audience: body.audience ?? 'all',
                 ownerUserId: body.ownerUserId
@@ -447,7 +449,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
                 throw new NotFoundException(`Memory with id ${memoryId} not found`)
             }
 
-            record = await this.memoryProvider.upsert(xpert.tenantId, {
+            record = await memoryProvider.upsert(xpert.tenantId, {
                 scope,
                 audience: body.audience ?? existing.audience,
                 ownerUserId: body.ownerUserId ?? existing.ownerUserId,
@@ -466,7 +468,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
             })
         }
 
-        return record ? (await this.attachMemoryUsers([this.memoryProvider.toApiRecord(record)]))[0] : null
+        return record ? (await this.attachMemoryUsers([memoryProvider.toApiRecord(record)]))[0] : null
     }
 
     async createBulkMemories(
@@ -477,11 +479,13 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
             audience?: TMemoryAudience
             source?: string
             sourceRef?: string
+        },
+        options?: {
+            isDraft?: boolean
         }
     ) {
-        const xpert = await this.findOne(xpertId)
-        const scope = this.memoryProvider.resolveScope(xpert)
-        const records = await this.memoryProvider.bulkUpsert(
+        const { xpert, memoryProvider, scope } = await this.resolveMemoryAccess(xpertId, options)
+        const records = await memoryProvider.bulkUpsert(
             xpert.tenantId,
             body.memories.map((value) => ({
                 scope,
@@ -494,7 +498,7 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
             }))
         )
 
-        return this.attachMemoryUsers(records.map((record) => this.memoryProvider.toApiRecord(record)))
+        return this.attachMemoryUsers(records.map((record) => memoryProvider.toApiRecord(record)))
     }
 
     async findAllMemory(
@@ -504,18 +508,19 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
             includeArchived?: boolean
             includeFrozen?: boolean
             audience?: TMemoryAudience | 'all'
+            isDraft?: boolean
         }
     ) {
         try {
-            const xpert = await this.findOne(id)
-            const items = await this.memoryProvider.list(xpert.tenantId, this.memoryProvider.resolveScope(xpert), {
+            const { xpert, memoryProvider, scope } = await this.resolveMemoryAccess(id, options)
+            const items = await memoryProvider.list(xpert.tenantId, scope, {
                 kinds: normalizeMemoryKinds(types),
                 includeArchived: options?.includeArchived,
                 includeFrozen: options?.includeFrozen,
                 audience: options?.audience ?? 'all',
                 userId: RequestContext.currentUserId()
             })
-            const records = await this.attachMemoryUsers(items.map((item) => this.memoryProvider.toApiRecord(item)))
+            const records = await this.attachMemoryUsers(items.map((item) => memoryProvider.toApiRecord(item)))
             return {
                 items: records,
                 total: records.length
@@ -534,10 +539,11 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
             includeArchived?: boolean
             includeFrozen?: boolean
             limit?: number
+            isDraft?: boolean
         }
     ) {
-        const xpert = await this.findOne(id)
-        const items = await this.memoryProvider.search(xpert.tenantId, this.memoryProvider.resolveScope(xpert), {
+        const { xpert, memoryProvider, scope } = await this.resolveMemoryAccess(id, body)
+        const items = await memoryProvider.search(xpert.tenantId, scope, {
             kinds: body.type ? [body.type] : undefined,
             audience: body.audience ?? 'all',
             userId: RequestContext.currentUserId(),
@@ -547,33 +553,34 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
             limit: body.limit
         })
 
-        return this.attachMemoryUsers(items.map((item) => this.memoryProvider.toApiRecord(item)))
+        return this.attachMemoryUsers(items.map((item) => memoryProvider.toApiRecord(item)))
     }
 
-    async archiveAllMemory(id: string) {
-        const xpert = await this.findOne(id)
-        const items = await this.memoryProvider.archiveAll(
-            xpert.tenantId,
-            this.memoryProvider.resolveScope(xpert),
-            RequestContext.currentUserId(),
-            {
-                userId: RequestContext.currentUserId(),
-                audience: 'all'
-            }
-        )
+    async archiveAllMemory(
+        id: string,
+        options?: {
+            isDraft?: boolean
+        }
+    ) {
+        const { xpert, memoryProvider, scope } = await this.resolveMemoryAccess(id, options)
+        const items = await memoryProvider.archiveAll(xpert.tenantId, scope, RequestContext.currentUserId(), {
+            userId: RequestContext.currentUserId(),
+            audience: 'all'
+        })
         return {
-            items: await this.attachMemoryUsers(items.map((item) => this.memoryProvider.toApiRecord(item))),
+            items: await this.attachMemoryUsers(items.map((item) => memoryProvider.toApiRecord(item))),
             total: items.length
         }
     }
 
-    async getMemoryFiles(id: string): Promise<TXpertMemoryFiles> {
-        const xpert = await this.findOne(id)
-        return this.memoryProvider.listFiles(
-            xpert.tenantId,
-            this.memoryProvider.resolveScope(xpert),
-            RequestContext.currentUserId()
-        )
+    async getMemoryFiles(
+        id: string,
+        options?: {
+            isDraft?: boolean
+        }
+    ): Promise<TXpertMemoryFiles> {
+        const { xpert, memoryProvider, scope } = await this.resolveMemoryAccess(id, options)
+        return memoryProvider.listFiles(xpert.tenantId, scope, RequestContext.currentUserId())
     }
 
     async updateMemoryFile(
@@ -583,11 +590,14 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
             ownerUserId?: string
             path: string
             content: string
+        },
+        options?: {
+            isDraft?: boolean
         }
     ): Promise<TMemoryFileEntry> {
-        const xpert = await this.findOne(id)
-        return this.memoryProvider.updateFileContent(xpert.tenantId, {
-            scope: this.memoryProvider.resolveScope(xpert),
+        const { xpert, memoryProvider, scope } = await this.resolveMemoryAccess(id, options)
+        return memoryProvider.updateFileContent(xpert.tenantId, {
+            scope,
             userId: RequestContext.currentUserId(),
             audience: body.audience ?? MemoryAudienceEnum.SHARED,
             ownerUserId: body.ownerUserId,
@@ -595,6 +605,31 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
             content: body.content,
             updatedBy: RequestContext.currentUserId()
         })
+    }
+
+    private async resolveMemoryAccess(
+        xpertId: string,
+        options?: {
+            isDraft?: boolean
+        }
+    ) {
+        const xpert = await this.findOne(xpertId, { relations: ['agent'] })
+        const providerName = this.resolveMemoryProviderName(xpert, options?.isDraft)
+        const memoryProvider = this.memoryRegistry.getProviderOrThrow(providerName)
+
+        return {
+            xpert,
+            memoryProvider,
+            scope: memoryProvider.resolveScope(xpert)
+        }
+    }
+
+    private resolveMemoryProviderName(xpert: Xpert, isDraft?: boolean): string {
+        const graph = isDraft ? xpert.draft : xpert.graph
+        const agentKey = (isDraft ? xpert.draft?.team?.agent?.key : null) ?? xpert.agent?.key
+        const activeMemoryMiddleware = resolveActiveMemoryMiddleware(graph, agentKey, this.agentMiddlewareRegistry)
+
+        return activeMemoryMiddleware?.providerName ?? DEFAULT_MEMORY_PROVIDER_NAME
     }
 
     private async attachMemoryUsers(items: IXpertMemoryRecord[]): Promise<IXpertMemoryRecord[]> {

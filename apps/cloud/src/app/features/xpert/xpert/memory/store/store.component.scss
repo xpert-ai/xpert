@@ -24,6 +24,10 @@
   @apply bg-white text-text-primary shadow-sm;
 }
 
+.memory-source-note {
+  @apply text-xs text-text-tertiary;
+}
+
 .empty-card {
   @apply box-border h-fit w-[560px] rounded-2xl bg-neutral-100 px-5 py-4;
 }
