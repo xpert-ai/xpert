@@ -1,270 +1,339 @@
-import { Embeddings } from '@langchain/core/embeddings'
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { HumanMessage } from '@langchain/core/messages'
+import { BaseMessage, HumanMessage } from '@langchain/core/messages'
 import { SystemMessagePromptTemplate } from '@langchain/core/prompts'
-import { BaseStore } from '@langchain/langgraph'
+import { SearchItem } from '@langchain/langgraph-checkpoint'
 import {
-	channelName,
-	IXpert,
-	IXpertAgent,
-	LongTermMemoryTypeEnum,
-	MEMORY_PROFILE_PROMPT,
-	MEMORY_QA_PROMPT,
-	TLongTermMemoryConfig,
-	TMemory,
-	TMessageChannel
+    channelName,
+    figureOutXpert,
+    IXpert,
+    IXpertAgent,
+    LongTermMemoryTypeEnum,
+    MemoryAudienceEnum,
+    MEMORY_PROFILE_PROMPT,
+    MEMORY_QA_PROMPT,
+    TSummaryMemoryRef,
+    TLongTermMemoryConfig,
+    TMessageChannel
 } from '@metad/contracts'
-import { omit } from '@metad/server-common'
 import { Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
-import { v4 as uuidv4 } from 'uuid'
+import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import z from 'zod'
-import { CreateCopilotStoreCommand, formatMemories } from '../../../copilot-store'
 import { assignExecutionUsage, XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution'
 import { XpertAgentExecutionStateQuery } from '../../../xpert-agent-execution/queries'
-import { GetXpertAgentQuery, GetXpertChatModelQuery, GetXpertMemoryEmbeddingsQuery } from '../../queries'
+import { ActiveMemoryMiddleware, MemoryRegistry, resolveActiveMemoryMiddleware } from '../../../xpert-memory'
+import { formatMemories } from '../../../copilot-store'
+import { GetXpertAgentQuery, GetXpertChatModelQuery } from '../../queries'
 import { XpertService } from '../../xpert.service'
 import { XpertSummarizeMemoryCommand } from '../summarize-memory.command'
-import { AgentStateAnnotation, ToolSchemaParser } from '../../../shared'
+import { AgentStateAnnotation } from '../../../shared'
+import { MemoryWriteDecision } from '../../../xpert-memory/types'
+
+const MEMORY_WRITE_DECISION_SCHEMA = z.object({
+    action: z.enum(['noop', 'upsert', 'archive']).default('noop'),
+    kind: z.nativeEnum(LongTermMemoryTypeEnum).optional(),
+    audience: z.nativeEnum(MemoryAudienceEnum).nullable().optional(),
+    memoryId: z.string().nullable().optional(),
+    title: z.string().nullable().optional(),
+    content: z.string().nullable().optional(),
+    context: z.string().nullable().optional(),
+    tags: z.array(z.string()).nullable().optional(),
+    reason: z.string().nullable().optional()
+})
 
 @CommandHandler(XpertSummarizeMemoryCommand)
 export class XpertSummarizeMemoryHandler implements ICommandHandler<XpertSummarizeMemoryCommand> {
-	readonly #logger = new Logger(XpertSummarizeMemoryHandler.name)
+    readonly #logger = new Logger(XpertSummarizeMemoryHandler.name)
 
-	constructor(
-		private readonly xpertService: XpertService,
-		private readonly commandBus: CommandBus,
-		private readonly queryBus: QueryBus
-	) {}
+    constructor(
+        private readonly xpertService: XpertService,
+        private readonly commandBus: CommandBus,
+        private readonly queryBus: QueryBus,
+        private readonly memoryRegistry: MemoryRegistry,
+        private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry
+    ) {}
 
-	public async execute(command: XpertSummarizeMemoryCommand) {
-		const { id, threadId, executionId } = command
-		const { types, userId } = command.options
-		const xpert = await this.xpertService.findOne(id, { relations: ['agent'] })
+    public async execute(command: XpertSummarizeMemoryCommand) {
+        const { id, threadId, executionId } = command
+        const { types, userId } = command.options
+        const xpert = await this.xpertService.findOne(id, { relations: ['agent'] })
 
-		const { tenantId, organizationId } = xpert
+        const primaryAgent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
+            new GetXpertAgentQuery(xpert.id, xpert.agent.key, command.options?.isDraft)
+        )
+        if (!primaryAgent) {
+            throw new NotFoundException(
+                `Xpert agent not found for '${xpert.name}' and key ${xpert.agent.key} draft is ${command.options?.isDraft}`
+            )
+        }
 
-		// Primary agent
-		const primaryAgent = await this.queryBus.execute<GetXpertAgentQuery, IXpertAgent>(
-			new GetXpertAgentQuery(xpert.id, xpert.agent.key, command.options?.isDraft)
-		)
-		if (!primaryAgent) {
-			throw new NotFoundException(
-				`Xpert agent not found for '${xpert.name}' and key ${xpert.agent.key} draft is ${command.options?.isDraft}`
-			)
-		}
+        const latestXpert = figureOutXpert(xpert, command.options?.isDraft)
+        const activeMemoryMiddleware = resolveActiveMemoryMiddleware(
+            latestXpert.graph,
+            primaryAgent.key,
+            this.agentMiddlewareRegistry
+        )
+        if (!activeMemoryMiddleware) {
+            return []
+        }
 
-		const memory = primaryAgent.team.memory
+        const memory = primaryAgent.team.memory
+        if (!hasEnabledSummaryMemory(memory)) {
+            return []
+        }
 
-		if (!memory?.enabled) {
-			return
-		}
+        const summarizedState = await this.queryBus.execute<
+            XpertAgentExecutionStateQuery,
+            typeof AgentStateAnnotation.State
+        >(new XpertAgentExecutionStateQuery(executionId))
+        if (!summarizedState) {
+            return []
+        }
 
-		const summarizedState = await this.queryBus.execute<
-			XpertAgentExecutionStateQuery,
-			typeof AgentStateAnnotation.State
-		>(new XpertAgentExecutionStateQuery(executionId))
+        const execution = await this.commandBus.execute(
+            new XpertAgentExecutionUpsertCommand({
+                xpertId: xpert.id
+            })
+        )
 
-		if (!summarizedState) {
-			return
-		}
+        const abortController = new AbortController()
+        const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
+            new GetXpertChatModelQuery(primaryAgent.team, primaryAgent, {
+                abortController,
+                usageCallback: assignExecutionUsage(execution),
+                threadId
+            })
+        )
 
-		// Create a new execution (Run) for this chat
-		const execution = await this.commandBus.execute(
-			new XpertAgentExecutionUpsertCommand({
-				xpertId: xpert.id
-			})
-		)
+        const memoryKeys: TSummaryMemoryRef[] = []
+        if (types.includes(LongTermMemoryTypeEnum.QA) && memory.qa?.enabled) {
+            const memoryKey = await this.summarizeType(xpert, primaryAgent, LongTermMemoryTypeEnum.QA, memory.qa, {
+                chatModel,
+                userId,
+                executionId,
+                summarizedState,
+                activeMemoryMiddleware
+            })
+            if (memoryKey) {
+                memoryKeys.push(memoryKey)
+            }
+        }
 
-		const abortController = new AbortController()
-		const chatModel = await this.queryBus.execute<GetXpertChatModelQuery, BaseChatModel>(
-			new GetXpertChatModelQuery(primaryAgent.team, primaryAgent, {
-				abortController,
-				usageCallback: assignExecutionUsage(execution),
-				threadId
-			})
-		)
+        if (types.includes(LongTermMemoryTypeEnum.PROFILE) && memory.profile?.enabled) {
+            const memoryKey = await this.summarizeType(
+                xpert,
+                primaryAgent,
+                LongTermMemoryTypeEnum.PROFILE,
+                memory.profile,
+                {
+                    chatModel,
+                    userId,
+                    executionId,
+                    summarizedState,
+                    activeMemoryMiddleware
+                }
+            )
+            if (memoryKey) {
+                memoryKeys.push(memoryKey)
+            }
+        }
 
-		const embeddings = await this.queryBus.execute(
-			new GetXpertMemoryEmbeddingsQuery(tenantId, organizationId, memory, {
-				tokenCallback: (token) => {
-					execution.embedTokens += token ?? 0
-				}
-			})
-		)
+        await this.commandBus.execute(new XpertAgentExecutionUpsertCommand(execution))
+        return memoryKeys
+    }
 
-		const memoryKey = []
-		if (types.includes(LongTermMemoryTypeEnum.QA) && memory.qa?.enabled) {
-			const keys = await this.summarize(xpert, LongTermMemoryTypeEnum.QA, memory.qa, {
-				chatModel,
-				embeddings,
-				userId,
-				summarizedState,
-				agent: primaryAgent
-			})
+    private async summarizeType(
+        xpert: IXpert,
+        agent: IXpertAgent,
+        type: LongTermMemoryTypeEnum,
+        memory: TLongTermMemoryConfig,
+        options: {
+            chatModel: BaseChatModel
+            userId: string
+            executionId: string
+            summarizedState: typeof AgentStateAnnotation.State
+            activeMemoryMiddleware: ActiveMemoryMiddleware
+        }
+    ) {
+        const { chatModel, userId, executionId, summarizedState, activeMemoryMiddleware } = options
+        const channel = channelName(agent.key)
+        const { summary, messages } = (summarizedState[channel] ?? summarizedState) as TMessageChannel
+        const providerName = activeMemoryMiddleware.providerName
+        const memoryProvider = this.memoryRegistry.getProvider(providerName)
+        if (!memoryProvider) {
+            this.#logger.warn(
+                `Memory provider "${providerName}" is unavailable while summarizing memory for xpert ${xpert.id}.`
+            )
+            return null
+        }
+        const scope = memoryProvider.resolveScope(xpert)
+        const conversationText = summarizeMessages(messages)
+        const candidates = await memoryProvider.search(xpert.tenantId, scope, {
+            kinds: [type],
+            userId,
+            audience: 'all',
+            text: conversationText,
+            includeArchived: false,
+            includeFrozen: false,
+            limit: 5
+        })
+        const candidateMemories = candidates.map((item) => memoryProvider.toSearchItem(item))
+        const systemTemplate = buildSystemTemplate(agent.prompt, summary)
+        const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
+            templateFormat: 'mustache'
+        }).format({ ...summarizedState })
+        const prompt = buildWriteDecisionPrompt(type, memory.prompt, candidateMemories)
 
-			memoryKey.push(...(Array.isArray(keys) ? keys : [keys]))
-		}
+        const rawDecision = await chatModel
+            .withStructuredOutput(MEMORY_WRITE_DECISION_SCHEMA)
+            .invoke([systemMessage, ...(messages ?? []), new HumanMessage(prompt)])
+        const decision = normalizeDecision(type, rawDecision)
 
-		if (types.includes(LongTermMemoryTypeEnum.PROFILE) && memory.profile?.enabled) {
-			const keys = await this.summarize(xpert, LongTermMemoryTypeEnum.PROFILE, memory.profile, {
-				chatModel,
-				embeddings,
-				userId,
-				summarizedState,
-				agent: primaryAgent
-			})
+        switch (decision.action) {
+            case 'archive': {
+                if (!decision.memoryId) {
+                    return null
+                }
+                await memoryProvider.applyGovernance(xpert.tenantId, scope, decision.memoryId, 'archive', userId, {
+                    userId,
+                    audience: 'all'
+                })
+                return null
+            }
+            case 'upsert': {
+                if (!decision.title || !decision.content) {
+                    return null
+                }
+                const record = await memoryProvider.upsert(xpert.tenantId, {
+                    scope,
+                    audience: decision.audience,
+                    ownerUserId: decision.audience === MemoryAudienceEnum.USER ? userId : undefined,
+                    kind: type,
+                    memoryId: decision.memoryId,
+                    title: decision.title,
+                    content: decision.content,
+                    context: decision.context,
+                    tags: decision.tags,
+                    source: 'summary',
+                    sourceRef: `execution:${executionId}`,
+                    createdBy: userId
+                })
+                return {
+                    providerName,
+                    memoryId: record.id,
+                    audience: record.audience,
+                    ownerUserId: record.ownerUserId ?? undefined
+                }
+            }
+            default:
+                return null
+        }
+    }
+}
 
-			memoryKey.push(...(Array.isArray(keys) ? keys : [keys]))
-		}
+function hasEnabledSummaryMemory(
+    memory?: {
+        profile?: { enabled?: boolean } | null
+        qa?: { enabled?: boolean } | null
+    } | null
+) {
+    return !!(memory?.profile?.enabled || memory?.qa?.enabled)
+}
 
-		await this.commandBus.execute(new XpertAgentExecutionUpsertCommand(execution))
+function buildSystemTemplate(agentPrompt: string, summary?: string) {
+    let systemTemplate = `${agentPrompt}`
+    if (summary) {
+        systemTemplate += `\nSummary of conversation earlier:\n${summary}`
+    }
+    return systemTemplate
+}
 
-		return memoryKey
-	}
+function buildWriteDecisionPrompt(
+    type: LongTermMemoryTypeEnum,
+    customPrompt: string | undefined,
+    candidateMemories: SearchItem[]
+) {
+    const basePrompt = customPrompt || (type === LongTermMemoryTypeEnum.QA ? MEMORY_QA_PROMPT : MEMORY_PROFILE_PROMPT)
+    const formatHint =
+        type === LongTermMemoryTypeEnum.QA
+            ? `For qa memories:
+- title must be the canonical user question
+- content must be the best answer or standard reply
+- context is optional`
+            : `For profile memories:
+- title should be a short label
+- content should be the durable preference, rule, or profile fact
+- context is optional`
 
-	async summarize(
-		xpert: IXpert,
-		type: LongTermMemoryTypeEnum,
-		memory: TLongTermMemoryConfig,
-		options: {
-			chatModel: BaseChatModel
-			embeddings: Embeddings
-			userId: string
-			summarizedState: typeof AgentStateAnnotation.State
-			agent: IXpertAgent
-		}
-	) {
-		const { tenantId, organizationId } = xpert
-		const { chatModel, embeddings, userId, summarizedState, agent } = options
-		const channel = channelName(agent.key)
+    return `${basePrompt}
 
-		let schema = null
-		const fields = []
-		if (type === LongTermMemoryTypeEnum.QA) {
-			fields.push('question')
-		} else if (type === LongTermMemoryTypeEnum.PROFILE) {
-			fields.push('profile')
-		} else {
-			// fields.push('customs')
-		}
+You are writing file-backed long-term memory for kind "${type}".
 
-		const store = await this.commandBus.execute<CreateCopilotStoreCommand, BaseStore>(
-			new CreateCopilotStoreCommand({
-				tenantId,
-				organizationId,
-				userId,
-				index: {
-					dims: null,
-					embeddings,
-					fields
-				}
-			})
-		)
+Return exactly one action object:
+- action="noop" when there is nothing worth saving
+- action="upsert" when there is a durable memory to create or update. Include audience="user" for personal preferences and audience="shared" for shared business rules or standard replies.
+- action="archive" when one existing memory is wrong, obsolete, or should be removed from normal use
 
-		const { summary, messages } = (summarizedState[channel] ?? summarizedState) as TMessageChannel
-		let systemTemplate = `${agent.prompt}`
-		if (summary) {
-			systemTemplate += `\nSummary of conversation earlier: \n${summary}`
-		}
-		const systemMessage = await SystemMessagePromptTemplate.fromTemplate(systemTemplate, {
-			templateFormat: 'mustache'
-		}).format({ ...summarizedState })
+${formatHint}
 
-		const items = await store.search([xpert.id, type])
+If you update an existing memory, reuse its memoryId.
+Choose audience="user" for personal habits, preferences, and user-specific context.
+Choose audience="shared" for project rules, standard talk tracks, reusable semantics, and team conventions.
+If there is no candidate memory worth changing, create a new one or return noop.
 
-		let prompt = memory.prompt
-		if (type === LongTermMemoryTypeEnum.QA) {
-			schema = z.object({
-				memoryId: z
-						.string()
-						.nullable()
-						.describe('The memory ID to overwrite. Only provide if updating an existing memory.'),
-				question: z
-					.string()
-					.describe("The user's question. For example: \
-					There's a problem with my order."),
-				answer: z
-					.string()
-					.describe("The ai's answer. For example: \
-					Please wait, I will check the order status for you!")
-			})
-			.describe(
-				'Upsert a memory in the database. If a memory conflicts with an existing one, \
-			update the existing one by passing in the memoryId instead of creating a duplicate. \
-			If the user corrects a memory, update it.'
-			)
+Existing candidate memories:
+<memories>
+${candidateMemories.length ? formatMemories(candidateMemories) : 'None'}
+</memories>`
+}
 
-			if (!prompt) {
-				prompt = MEMORY_QA_PROMPT
-			}
-		} else {
-			// Default profile LongTermMemoryTypeEnum.PROFILE
-			schema = z
-				.object({
-					memoryId: z
-						.string()
-						.nullable()
-						.describe('The memory ID to overwrite. Only provide if updating an existing memory.'),
-					profile: z
-						.string()
-						.nullable()
-						.describe(`The main content of the memory. For example: \
-          				'User expressed interest in learning about French.'`),
-					context: z
-						.string()
-						.nullable()
-						.describe("Additional context for the memory. For example: \
-					  'This was mentioned while discussing career options in Europe.'"
-					)
-				})
-				.describe(
-					'Upsert a memory in the database. If a memory conflicts with an existing one, \
-				update the existing one by passing in the memoryId instead of creating a duplicate. \
-				If the user corrects a memory, update it.'
-				)
+function normalizeDecision(
+    type: LongTermMemoryTypeEnum,
+    payload: z.infer<typeof MEMORY_WRITE_DECISION_SCHEMA>
+): MemoryWriteDecision {
+    const action = payload?.action ?? 'noop'
+    if (action === 'archive' && payload.memoryId) {
+        return {
+            action: 'archive',
+            memoryId: payload.memoryId,
+            reason: payload.reason
+        }
+    }
 
-			if (!prompt) {
-				prompt = MEMORY_PROFILE_PROMPT
-			}
-		}
+    if (action === 'upsert') {
+        const title = payload.title?.trim()
+        const content = payload.content?.trim()
+        if (!title || !content) {
+            return { action: 'noop' }
+        }
+        return {
+            action: 'upsert',
+            kind: payload.kind ?? type,
+            audience: payload.audience ?? undefined,
+            memoryId: payload.memoryId,
+            title,
+            content,
+            context: payload.context?.trim(),
+            tags: payload.tags?.filter(Boolean)
+        }
+    }
 
-		prompt += `\nThe following are existing memories:\n<memories>\n${formatMemories(items)}\n</memories>`
-		const jsonSchema = ToolSchemaParser.serializeJsonSchema(ToolSchemaParser.parseZodToJsonSchema(schema))
-		prompt += `\n\nYou can use the following JSON schema to format your response:\n\`\`\`json\n$${jsonSchema}\n\`\`\`\n\n`
-		const experiences = await chatModel
-			.withStructuredOutput(schema)
-			.invoke([systemMessage, ...messages, new HumanMessage(prompt)])
+    return { action: 'noop' }
+}
 
-		const namespace = [xpert.id, type]
-		let memoryKey = null
-		if (Array.isArray(experiences)) {
-			memoryKey = []
-			const operations = experiences.map((experience) => {
-				const key = uuidv4()
-				memoryKey.push(key)
-				return {
-					namespace,
-					key,
-					value: experience
-				}
-			})
-			await store.batch(operations)
-		} else if (experiences) {
-			const memoryId = (<TMemory>experiences).memoryId
-			if (memoryId) {
-				await store.delete(namespace, memoryId)
-				this.#logger.debug(`Removed top 1 similar memory: ${memoryId}`)
-			}
-			const query = experiences.profile || experiences.question
-			if (query) {
-				// Record new memeory
-				memoryKey = uuidv4()
-				await store.put(namespace, memoryKey, omit(experiences, 'memoryId'))
-				this.#logger.debug(`Add a memory: ${JSON.stringify(experiences, null, 2)}`)
-			}
-		}
-
-		return memoryKey
-	}
+function summarizeMessages(messages: BaseMessage[] = []) {
+    return messages
+        .map((message) => {
+            const type = message.getType()
+            const content = Array.isArray(message.content)
+                ? message.content
+                      .map((item) => (typeof item === 'string' ? item : 'text' in item ? item.text : ''))
+                      .join('\n')
+                : typeof message.content === 'string'
+                  ? message.content
+                  : ''
+            return `[${type}] ${content}`.trim()
+        })
+        .join('\n')
+        .slice(0, 4000)
 }

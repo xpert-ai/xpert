@@ -19,6 +19,7 @@ import { WorkflowTriggerRegistry } from '@xpert-ai/plugin-sdk'
 import { SandboxModule } from '../sandbox/sandbox.module'
 import { HandoffQueueModule } from '../handoff/message-queue.module'
 import { XpertTriggerBootstrapRecoveryService } from './jobs/trigger-bootstrap-recovery.service'
+import { XpertMemoryModule } from '../xpert-memory'
 
 @Module({
     imports: [
@@ -36,7 +37,8 @@ import { XpertTriggerBootstrapRecoveryService } from './jobs/trigger-bootstrap-r
         SandboxModule,
         CopilotCheckpointModule,
         CopilotStoreModule,
-        HandoffQueueModule
+        HandoffQueueModule,
+        XpertMemoryModule
     ],
     controllers: [XpertController],
     providers: [
@@ -49,4 +51,4 @@ import { XpertTriggerBootstrapRecoveryService } from './jobs/trigger-bootstrap-r
     ],
     exports: [XpertService]
 })
-export class XpertModule { }
+export class XpertModule {}

@@ -1,0 +1,53 @@
+{
+  "name": "file-memory",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "packages/plugins/file-memory/src",
+  "projectType": "library",
+  "release": {
+    "version": {
+      "generatorOptions": {
+        "packageRoot": "dist/{projectRoot}",
+        "currentVersionResolver": "git-tag"
+      }
+    }
+  },
+  "tags": [],
+  "targets": {
+    "build": {
+      "executor": "@nx/rollup:rollup",
+      "outputs": ["{options.outputPath}"],
+      "options": {
+        "outputPath": "dist/packages/plugins/file-memory",
+        "main": "packages/plugins/file-memory/src/index.ts",
+        "tsConfig": "packages/plugins/file-memory/tsconfig.lib.json",
+        "assets": [],
+        "project": "packages/plugins/file-memory/package.json",
+        "compiler": "tsc",
+        "format": ["cjs", "esm"],
+        "external": [
+          "@langchain/core",
+          "@langchain/langgraph-checkpoint",
+          "@metad/contracts",
+          "@metad/server-ai/xpert-memory",
+          "@metad/server-common",
+          "@nestjs/common",
+          "@nestjs/core",
+          "@nestjs/microservices",
+          "@xpert-ai/plugin-sdk",
+          "chalk",
+          "kafkajs",
+          "amqplib",
+          "mqtt",
+          "nats",
+          "uuid",
+          "zod"
+        ]
+      }
+    },
+    "nx-release-publish": {
+      "options": {
+        "packageRoot": "dist/{projectRoot}"
+      }
+    }
+  }
+}

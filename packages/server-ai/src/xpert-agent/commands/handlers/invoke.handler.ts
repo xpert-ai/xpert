@@ -26,6 +26,7 @@ import { RequestContext } from '@metad/server-core'
 import { getErrorMessage, omit } from '@metad/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
+import { AgentMiddlewareRegistry } from '@xpert-ai/plugin-sdk'
 import { format } from 'date-fns/format'
 import { pick } from 'lodash'
 import { I18nService } from 'nestjs-i18n'
@@ -41,6 +42,7 @@ import { getWorkspace, VolumeClient, ExecutionCancelService } from '../../../sha
 import { KnowledgebaseTaskService, KnowledgeTaskServiceQuery } from '../../../knowledgebase'
 import { validateXpertParameterValues } from '../../../shared/agent/parameter'
 import { SandboxAcquireBackendCommand } from '../../../sandbox/commands'
+import { resolveActiveMemoryMiddleware, XpertMemoryAgentBridgeService } from '../../../xpert-memory'
 
 @CommandHandler(XpertAgentInvokeCommand)
 export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvokeCommand> {
@@ -52,12 +54,14 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         private readonly checkpointSaver: CopilotCheckpointSaver,
         private readonly envService: EnvironmentService,
         private readonly i18nService: I18nService,
-        private readonly executionCancelService: ExecutionCancelService
+        private readonly executionCancelService: ExecutionCancelService,
+        private readonly agentMiddlewareRegistry: AgentMiddlewareRegistry,
+        private readonly xpertMemoryAgentBridge: XpertMemoryAgentBridgeService
     ) {}
 
     public async execute(command: XpertAgentInvokeCommand): Promise<Observable<MessageContent>> {
         const { state, agentKeyOrName, xpert, options } = command
-        const { execution, subscriber, memories } = options
+        const { execution, subscriber } = options
         const tenantId = RequestContext.currentTenantId()
         const organizationId = RequestContext.getOrganizationId()
         const userId = RequestContext.currentUserId()
@@ -153,6 +157,26 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
         })
 
         const thread_id = command.options.thread_id
+        const activeMemoryMiddleware = resolveActiveMemoryMiddleware(
+            xpertGraph,
+            agent.key,
+            this.agentMiddlewareRegistry
+        )
+        const fileMemoryBridge = activeMemoryMiddleware
+            ? this.xpertMemoryAgentBridge.createRuntimeBridge({
+                  tenantId,
+                  userId,
+                  xpert: {
+                      id: xpert.id,
+                      workspaceId: xpert.workspaceId,
+                      features: xpert.features
+                  },
+                  agent,
+                  providerName: activeMemoryMiddleware.providerName,
+                  threadId: thread_id,
+                  abortController
+              })
+            : null
         const config = {
             thread_id,
             checkpoint_ns: '',
@@ -254,8 +278,7 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     },
                     [STATE_VARIABLE_HUMAN]: {
                         ...state[STATE_VARIABLE_HUMAN]
-                    },
-                    memories
+                    }
                 }
             }
         }
@@ -275,6 +298,9 @@ export class XpertAgentInvokeHandler implements ICommandHandler<XpertAgentInvoke
                     agentKey: agent.key, // @todo In swarm mode, it needs to be taken from activeAgent
                     sandbox: sandboxContext,
                     copilotModel,
+                    internalCapabilities: {
+                        memory: fileMemoryBridge
+                    },
                     /**
                      * @deprecated use customEvents instead
                      */

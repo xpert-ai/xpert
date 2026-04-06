@@ -8,9 +8,13 @@ import {
     TChatApi,
     TChatApp,
     TChatOptions,
+    TMemoryAudience,
+    TMemoryFileEntry,
     TMemoryQA,
     TMemoryUserProfile,
     TChatRequest,
+    TMemoryGovernanceAction,
+    TXpertMemoryFiles,
     TXpertTeamDraft,
     UserType,
     xpertLabel
@@ -40,6 +44,7 @@ import {
     HttpCode,
     HttpStatus,
     Logger,
+    Patch,
     Param,
     Post,
     Put,
@@ -91,7 +96,6 @@ import {
     StatisticsXpertsQuery,
     StatisticsXpertTokensQuery
 } from './queries'
-import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { XpertAgentVariablesQuery } from '../xpert-agent/queries'
 import { AnonymousXpertAuthGuard } from './auth/anonymous-auth.guard'
 import {
@@ -125,7 +129,6 @@ export class XpertController extends CrudController<Xpert> {
     readonly #logger = new Logger(XpertController.name)
     constructor(
         private readonly service: XpertService,
-        private readonly storeService: CopilotStoreService,
         private readonly environmentService: EnvironmentService,
         private readonly i18n: I18nService,
         private readonly commandBus: CommandBus,
@@ -393,21 +396,42 @@ export class XpertController extends CrudController<Xpert> {
     }
 
     @Get(':id/memory')
-    async getAllMemory(@Param('id') id: string, @Query('types') types: string) {
+    async getAllMemory(
+        @Param('id') id: string,
+        @Query('types') types: string,
+        @Query('includeArchived') includeArchived?: string,
+        @Query('audience') audience?: TMemoryAudience | 'all',
+        @Query('isDraft') isDraft?: string
+    ) {
         const _types = types?.split(':').filter((_) => !!_)
-        return this.service.findAllMemory(id, _types)
+        return this.service.findAllMemory(id, _types, {
+            includeArchived: includeArchived === 'true',
+            audience: audience ?? 'all',
+            isDraft: isDraft === 'true'
+        })
+    }
+
+    @Get(':id/memory/files')
+    async getMemoryFiles(@Param('id') id: string, @Query('isDraft') isDraft?: string): Promise<TXpertMemoryFiles> {
+        return this.service.getMemoryFiles(id, {
+            isDraft: isDraft === 'true'
+        })
     }
 
     @Post(':id/memory/bulk')
     async createBulkMemory(
         @Param('id') id: string,
+        @Query('isDraft') isDraft: string | undefined,
         @Body()
         body: {
             type: LongTermMemoryTypeEnum
             memories: Array<TMemoryQA | TMemoryUserProfile>
+            audience?: TMemoryAudience
         }
     ) {
-        return this.service.createBulkMemories(id, body)
+        return this.service.createBulkMemories(id, body, {
+            isDraft: isDraft === 'true'
+        })
     }
 
     /**
@@ -577,15 +601,75 @@ export class XpertController extends CrudController<Xpert> {
     @Post(':id/memory')
     async createMemory(
         @Param('id') id: string,
-        @Body() body: { type: LongTermMemoryTypeEnum; value: TMemoryQA | TMemoryUserProfile }
+        @Query('isDraft') isDraft: string | undefined,
+        @Body()
+        body: {
+            type: LongTermMemoryTypeEnum
+            value: TMemoryQA | TMemoryUserProfile
+            audience?: TMemoryAudience
+            source?: string
+            sourceRef?: string
+            tags?: string[]
+        }
     ) {
-        return this.service.createMemory(id, body)
+        return this.service.createMemory(id, body, {
+            isDraft: isDraft === 'true'
+        })
+    }
+
+    @Patch(':id/memory/files')
+    async updateMemoryFile(
+        @Param('id') id: string,
+        @Query('isDraft') isDraft: string | undefined,
+        @Body()
+        body: {
+            audience: TMemoryAudience
+            ownerUserId?: string
+            path: string
+            content: string
+        }
+    ): Promise<TMemoryFileEntry> {
+        return this.service.updateMemoryFile(id, body, {
+            isDraft: isDraft === 'true'
+        })
+    }
+
+    @Patch(':id/memory/:memoryId')
+    async updateMemory(
+        @Param('id') id: string,
+        @Param('memoryId') memoryId: string,
+        @Query('isDraft') isDraft: string | undefined,
+        @Body()
+        body: {
+            type?: LongTermMemoryTypeEnum
+            audience?: TMemoryAudience
+            ownerUserId?: string
+            value?: TMemoryQA | TMemoryUserProfile
+            title?: string
+            content?: string
+            context?: string
+            tags?: string[]
+            action?: TMemoryGovernanceAction
+        }
+    ) {
+        return this.service.updateMemory(id, memoryId, body, {
+            isDraft: isDraft === 'true'
+        })
     }
 
     @Post(':id/memory/search')
     async searchMemory(
         @Param('id') id: string,
-        @Body() body: { type: LongTermMemoryTypeEnum; text: string; isDraft?: boolean }
+        @Body()
+        body: {
+            type?: LongTermMemoryTypeEnum
+            audience?: TMemoryAudience | 'all'
+            text: string
+            isDraft?: boolean
+            includeArchived?: boolean
+            includeFrozen?: boolean
+            limit?: number
+        }
     ) {
         try {
             return await this.queryBus.execute(new SearchXpertMemoryQuery(id, body))
@@ -595,9 +679,11 @@ export class XpertController extends CrudController<Xpert> {
     }
 
     @Delete(':id/memory')
-    async clearMemory(@Param('id') id: string) {
+    async clearMemory(@Param('id') id: string, @Query('isDraft') isDraft?: string) {
         try {
-            return await this.storeService.delete({ prefix: Like(`${id}%`) })
+            return await this.service.archiveAllMemory(id, {
+                isDraft: isDraft === 'true'
+            })
         } catch (err) {
             throw new HttpException(getErrorMessage(err), HttpStatus.INTERNAL_SERVER_ERROR)
         }

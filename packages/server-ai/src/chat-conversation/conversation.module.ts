@@ -12,23 +12,27 @@ import { QueryHandlers } from './queries/handlers'
 import { ConversationSummaryProcessor } from './summary.job'
 import { ChatMessageModule } from '../chat-message/chat-message.module'
 import { ExecutionCancelModule } from '../shared'
+import { XpertModule } from '../xpert'
+import { XpertMemoryModule } from '../xpert-memory'
 
 @Module({
-	imports: [
-		RouterModule.register([{ path: '/chat-conversation', module: ChatConversationModule }]),
-		TypeOrmModule.forFeature([ChatConversation]),
-		SharedModule,
-		CqrsModule,
+    imports: [
+        RouterModule.register([{ path: '/chat-conversation', module: ChatConversationModule }]),
+        TypeOrmModule.forFeature([ChatConversation]),
+        SharedModule,
+        CqrsModule,
 
-		BullModule.registerQueue({
-			name: 'conversation-summary'
-		}),
-		forwardRef(() => StorageFileModule),
-		forwardRef(() => ChatMessageModule),
-		ExecutionCancelModule,
-	],
-	controllers: [ChatConversationController],
-	providers: [ChatConversationService, ConversationSummaryProcessor, ...CommandHandlers, ...QueryHandlers],
-	exports: [ChatConversationService]
+        BullModule.registerQueue({
+            name: 'conversation-summary'
+        }),
+        forwardRef(() => StorageFileModule),
+        forwardRef(() => ChatMessageModule),
+        forwardRef(() => XpertModule),
+        XpertMemoryModule,
+        ExecutionCancelModule
+    ],
+    controllers: [ChatConversationController],
+    providers: [ChatConversationService, ConversationSummaryProcessor, ...CommandHandlers, ...QueryHandlers],
+    exports: [ChatConversationService]
 })
 export class ChatConversationModule {}

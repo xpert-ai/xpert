@@ -1,4 +1,161 @@
 :host {
-  @apply relative flex flex-col justify-start items-stretch h-full w-full pt-4 bg-components-panel-bg;
+  @apply relative flex h-full w-full flex-col items-stretch justify-start bg-components-panel-bg pt-4;
   --ngx-json-font-family: theme('fontFamily.mono');
+}
+
+.memory-toolbar {
+  @apply flex flex-wrap items-center justify-between gap-3 px-4 pb-4;
+}
+
+.memory-toolbar__left,
+.memory-toolbar__right {
+  @apply flex flex-wrap items-center gap-2;
+}
+
+.view-tabs {
+  @apply inline-flex rounded-xl bg-neutral-100 p-1;
+}
+
+.view-tab {
+  @apply rounded-lg px-3 py-2 text-sm font-medium text-text-secondary transition-colors;
+}
+
+.view-tab--active {
+  @apply bg-white text-text-primary shadow-sm;
+}
+
+.memory-source-note {
+  @apply text-xs text-text-tertiary;
+}
+
+.empty-card {
+  @apply box-border h-fit w-[560px] rounded-2xl bg-neutral-100 px-5 py-4;
+}
+
+.memory-search {
+  @apply sticky bottom-0 rounded-bl-2xl p-4;
+}
+
+.memory-input {
+  @apply min-h-[88px] w-full rounded-xl border border-gray-200 bg-white px-3 py-2 outline-none transition-colors;
+
+  &:focus {
+    @apply border-primary-500 ring-1 ring-primary-200;
+  }
+}
+
+.status-pill {
+  @apply inline-flex items-center rounded-full bg-emerald-50 px-2 py-1 text-xs font-medium text-emerald-700;
+}
+
+.status-pill--frozen {
+  @apply bg-sky-50 text-sky-700;
+}
+
+.status-pill--archived {
+  @apply bg-neutral-200 text-neutral-700;
+}
+
+.tag-chip {
+  @apply inline-flex items-center rounded-full bg-neutral-100 px-2 py-1 text-[11px] text-text-secondary;
+}
+
+.layer-badge {
+  @apply inline-flex items-center rounded-full bg-neutral-900 px-2 py-1 text-[11px] font-medium text-white;
+}
+
+.layer-badge--user {
+  @apply bg-primary-600;
+}
+
+.files-layout {
+  @apply flex min-h-0 flex-1 gap-4 overflow-hidden px-4 pb-4;
+}
+
+.file-sidebar {
+  @apply flex w-[320px] shrink-0 flex-col gap-3 overflow-auto pr-1;
+}
+
+.layer-card {
+  @apply rounded-2xl border border-divider-subtle bg-white p-3 shadow-sm;
+}
+
+.layer-card__header {
+  @apply mb-3 flex items-start justify-between;
+}
+
+.layer-card__path {
+  @apply mt-1 break-all text-[11px] text-text-tertiary;
+}
+
+.file-entry {
+  @apply mb-2 flex w-full flex-col rounded-xl border border-transparent bg-neutral-50 px-3 py-2 text-left transition-colors;
+}
+
+.file-entry:hover {
+  @apply border-divider-regular bg-white;
+}
+
+.file-entry--active {
+  @apply border-primary-300 bg-primary-50;
+}
+
+.file-entry__name {
+  @apply flex items-center gap-2 text-sm font-medium text-text-primary;
+}
+
+.file-entry__meta {
+  @apply mt-1 flex items-center justify-between gap-2 text-[11px] text-text-tertiary;
+}
+
+.status-inline {
+  @apply uppercase tracking-wide;
+}
+
+.file-editor {
+  @apply flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-divider-subtle bg-white shadow-sm;
+}
+
+.file-editor__header {
+  @apply flex items-start justify-between gap-4 border-b border-divider-subtle px-5 py-4;
+}
+
+.file-editor__title {
+  @apply flex flex-wrap items-center gap-2 text-base font-semibold text-text-primary;
+}
+
+.file-editor__path {
+  @apply mt-1 text-xs text-text-tertiary;
+}
+
+.file-editor__actions {
+  @apply flex items-center gap-2;
+}
+
+.file-editor__hint {
+  @apply border-b border-divider-subtle bg-neutral-50 px-5 py-3 text-xs text-text-secondary;
+}
+
+.file-editor__panes {
+  @apply grid min-h-0 flex-1 gap-0 lg:grid-cols-2;
+}
+
+.file-editor__pane {
+  @apply flex min-h-0 flex-col overflow-hidden;
+}
+
+.file-editor__pane + .file-editor__pane {
+  @apply border-l border-divider-subtle;
+}
+
+.file-editor__pane-title {
+  @apply border-b border-divider-subtle px-5 py-3 text-xs font-semibold uppercase tracking-wide text-text-secondary;
+}
+
+.file-editor__code {
+  @apply min-h-0 flex-1;
+}
+
+.file-editor__preview {
+  @apply min-h-0 flex-1 overflow-auto px-5 py-4;
 }

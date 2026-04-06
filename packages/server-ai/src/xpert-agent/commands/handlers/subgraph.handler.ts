@@ -90,7 +90,7 @@ import {
     TAgentSubgraphParams,
     TAgentSubgraphResult
 } from '../../agent'
-import { initializeMemoryTools, formatMemories } from '../../../copilot-store'
+import { formatMemories } from '../../../copilot-store'
 import { CreateWorkflowNodeCommand, createWorkflowTaskTools } from '../../workflow'
 import { toEnvState } from '../../../environment'
 import {
@@ -314,20 +314,6 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             additionalTools.forEach((tool) => {
                 tools.push({ toolset: { provider: '', title: '' }, caller: agent.key, tool })
             })
-        }
-
-        // Memory tools
-        if (team.memory?.enabled && team.memory?.qa?.enabled) {
-            tools.push(
-                ...initializeMemoryTools(options.store, xpert.id).map((tool) => ({
-                    toolset: {
-                        provider: 'memories',
-                        title: translate({ en_US: 'Memory', zh_Hans: '记忆' })
-                    },
-                    caller: agent.key,
-                    tool
-                }))
-            )
         }
 
         this.#logger.debug(
@@ -868,13 +854,9 @@ export class XpertAgentSubgraphHandler implements ICommandHandler<XpertAgentSubg
             isStart: boolean,
             jsonSchema: string
         ) => {
-            const { memories } = state
             const summary = getChannelState(state, agentChannel)?.summary
             const parameters = stateToParameters(state, environment)
             let systemTemplate = `Current date: ${state.sys.date}\nYour ID is '${agent.key}'. Your name is '${agent.name || xpert.name}'.\n${parseXmlString(agent.prompt) ?? ''}`
-            if (memories?.length) {
-                systemTemplate += `\n\n<memories>\n${formatMemories(memories)}\n</memories>`
-            }
             if (summary) {
                 systemTemplate += `\nSummary of conversation earlier: \n${summary}`
             }
