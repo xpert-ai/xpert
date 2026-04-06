@@ -107,9 +107,11 @@
             <div class="flex items-center justify-between text-xs text-muted-foreground">
               <span>{{ item.updatedAt || item.createdAt | date: 'yyyy-MM-dd' }}</span>
               <div class="flex flex-wrap justify-end gap-2">
-                <button type="button" class="btn btn-primary btn-small" (click)="install(item)">
-                  {{ 'Pro.Install' | translate: {Default: 'Install'} }}
-                </button>
+                @if (showInstallAction()) {
+                  <button type="button" class="btn btn-primary btn-small" (click)="install(item)">
+                    {{ 'Pro.Install' | translate: {Default: 'Install'} }}
+                  </button>
+                }
                 @if (item.link) {
                   <a z-button zType="link"
                     [href]="item.link"
