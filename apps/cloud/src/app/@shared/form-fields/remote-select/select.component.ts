@@ -21,6 +21,7 @@ import { TWorkflowVarGroup } from '../../../@core/types'
 import { expandVariablesWithItems } from '../../agent/types'
 import { toParams } from '@metad/core'
 import { ZardButtonComponent, ZardIconComponent, ZardLoaderComponent } from '@xpert-ai/headless-ui'
+import { buildRemoteSelectRequest, isSameRemoteSelectRequest } from './select.request'
 
 type TSelectOptionValue = string | { id: string }
 
@@ -78,20 +79,15 @@ export class XpertRemoteSelectComponent {
     }
     return this.cva.value$() ? [this.cva.value$() as TSelectOptionValue] : []
   })
+  readonly #remoteRequest = computed(() => buildRemoteSelectRequest(this.url(), this.params()), {
+    equal: isSameRemoteSelectRequest
+  })
 
   readonly #remoteOptionsResource = rxResource<
     TSelectOption<TSelectOptionValue>[],
     { url: string; params?: Record<string, unknown> } | undefined
   >({
-    params: () => {
-      const url = this.url()
-      return url
-        ? {
-            url,
-            params: this.params()
-          }
-        : undefined
-    },
+    params: () => this.#remoteRequest(),
     defaultValue: [],
     stream: ({ params }) => this.loadRemoteOptions(params.url, params.params)
   })
