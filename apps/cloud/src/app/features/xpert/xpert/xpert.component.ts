@@ -51,7 +51,7 @@ export class XpertComponent {
 
   readonly avatar = computed(() => this.xpert()?.avatar)
   readonly xpertType = computed(() => this.xpert()?.type)
-  readonly showExtensionSidebar = computed(() => this.xpertType() === XpertTypeEnum.Agent && !!this.xpertId())
+  readonly showExtensionSidebar = signal(false) // computed(() => this.xpertType() === XpertTypeEnum.Agent && !!this.xpertId())
 
   toggleSideMenu() {
     this.sideMenuOpened.update((state) => !state)

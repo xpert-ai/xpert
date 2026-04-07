@@ -1,5 +1,5 @@
 
-import { Component, effect, inject } from '@angular/core'
+import { Component, effect, inject, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { TSandboxProvider } from '@cloud/app/@core'
 import { attrModel } from '@metad/core'
@@ -26,6 +26,7 @@ export class XpertStudioFeaturesSandboxComponent {
   readonly enabled = attrModel(this.sandbox, 'enabled')
   readonly provider = attrModel(this.sandbox, 'provider')
   readonly environmentId = this.apiService.environmentId
+  readonly showExtensionSidebar = signal(false)
 
   readonly providers = toSignal<TSandboxProvider[], TSandboxProvider[]>(
     toObservable(this.enabled).pipe(

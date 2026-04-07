@@ -173,6 +173,8 @@ export class ChatProjectHomeComponent {
   // Attachments
   readonly attachments = this.projectService.attachments
 
+  readonly showExtensionSidebar = signal(false)
+
   constructor() {
     effect(() => {
       //

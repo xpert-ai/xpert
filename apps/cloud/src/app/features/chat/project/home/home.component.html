@@ -255,7 +255,7 @@
       />
     </div>
 
-    @if (id()) {
+    @if (id() && showExtensionSidebar()) {
       <xp-extension-host-outlet hostType="project" [hostId]="id()" slot="detail.sections" />
     }
 

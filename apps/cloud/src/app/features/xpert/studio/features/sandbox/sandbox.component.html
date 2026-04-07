@@ -39,7 +39,7 @@
     </div>
   }
 
-  @if (enabled() && environmentId()) {
+  @if (enabled() && environmentId() && showExtensionSidebar()) {
     <div class="mt-4">
       <xp-extension-host-outlet hostType="sandbox" [hostId]="environmentId()" slot="detail.sections" />
     </div>
