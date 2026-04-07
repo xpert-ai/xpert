@@ -1456,8 +1456,9 @@
       "zh-Hant": "繁体中文"
     },
     "Users": {
+      "BackToList": "返回用户列表",
       "NoMoreOrganizations": "没有更多的组织可添加",
-      "GroupsHint": "管理用户在各个有效组织下所属的用户组。",
+      "GroupsHint": "查看用户在各个有效组织下所属的用户组。",
       "NoActiveOrganizations": "该用户当前不在任何有效组织中。",
       "DefaultOrganizationUpdated": "默认组织设置成功",
       "OrganizationStatusUpdated": "组织成员状态更新成功",
@@ -3185,6 +3186,9 @@
       "INVITATION_EXPIRATION": "邀请过期"
     },
     "PLACEHOLDERS": {
+      "EMAILS_EMPTY_HINT": "点击右侧输入框以添加邮箱",
+      "MEMBERS_EMPTY_HINT": "使用右侧输入框搜索并添加成员",
+      "TAGS_EMPTY_HINT": "使用右侧输入框搜索或创建标签",
       "ROLE": "选择角色"
     }
   },

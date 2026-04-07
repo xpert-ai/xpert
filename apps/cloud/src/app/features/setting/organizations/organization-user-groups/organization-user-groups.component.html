@@ -1,0 +1,56 @@
+<div class="grid gap-4">
+  <div>
+    <div class="text-base font-semibold text-text-primary">
+      {{ 'PAC.UserGroup.Title' | translate: { Default: 'User Groups' } }}
+    </div>
+    <div class="text-sm text-text-tertiary">
+      {{
+        'PAC.UserGroup.Subtitle'
+          | translate
+            : {
+                Default: 'View which user groups are defined in the current organization. Manage user group details from the user group page.'
+              }
+      }}
+    </div>
+  </div>
+
+  @if (loading()) {
+    <div class="flex min-h-[160px] items-center justify-center">
+      <ngm-spin />
+    </div>
+  } @else if (!groups().length) {
+    <div class="rounded-lg border border-dashed border-divider-deep px-4 py-8 text-center text-sm text-text-tertiary">
+      {{
+        'PAC.UserGroup.NoGroupsInOrganization'
+          | translate
+            : {
+                Default: 'There are no user groups in this organization yet.'
+              }
+      }}
+    </div>
+  } @else {
+    <ngm-table
+      class="overflow-hidden rounded-lg border border-divider-deep"
+      [data]="groups()"
+      [columns]="[
+        {
+          name: 'name',
+          caption: 'PAC.KEY_WORDS.Name' | translate: { Default: 'Name' }
+        },
+        {
+          name: 'description',
+          caption: 'PAC.KEY_WORDS.Description' | translate: { Default: 'Description' }
+        },
+        {
+          name: 'members',
+          caption: 'PAC.UserGroup.Members' | translate: { Default: 'Members' },
+          cellTemplate: membersTempl
+        }
+      ]"
+    />
+  }
+</div>
+
+<ng-template #membersTempl let-members="members">
+  {{ members?.length ?? 0 }}
+</ng-template>

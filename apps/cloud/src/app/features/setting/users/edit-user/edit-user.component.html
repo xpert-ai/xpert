@@ -1,3 +1,20 @@
+<div class="pac-page-header px-8 py-4">
+  <div class="min-w-0 flex flex-col">
+    <button
+      type="button"
+      class="mb-3 inline-flex w-fit items-center gap-2 text-sm font-medium text-text-secondary transition-colors hover:text-text-primary"
+      (click)="backToList()"
+    >
+      <i class="ri-arrow-left-line text-base"></i>
+      <span>{{ 'PAC.Users.BackToList' | translate: { Default: 'Back to users' } }}</span>
+    </button>
+
+    <div class="pac-page-title">
+      {{ user() ? userLabel(user()) : ('PAC.MENU.USERS' | translate: { Default: 'Users' }) }}
+    </div>
+  </div>
+</div>
+
 <div class="px-8 py-4">
   <div class="text-xl font-semibold pb-2">
     {{ 'PAC.USERS_PAGE.BASIC' | translate: { Default: 'Basic' } }}
@@ -29,13 +46,6 @@
     {{ 'PAC.MENU.ORGANIZATIONS' | translate: {Default: "Organizations"} }}
   </div>
   <pac-user-organizations class="border border-solid border-divider-regular rounded-xl" />
-</div>
-
-<div class="px-8 py-4">
-  <div class="text-xl font-semibold pb-2">
-    {{ 'PAC.UserGroup.Title' | translate: { Default: 'User Groups' } }}
-  </div>
-  <pac-user-groups class="block border border-solid border-divider-regular rounded-xl p-4" />
 </div>
 
 <div class="px-8 py-4">

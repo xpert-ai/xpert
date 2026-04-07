@@ -1,15 +1,15 @@
-<header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="text-xl font-semibold p-2">
+<header cdkDrag cdkDragRootElement=".cdk-overlay-pane" cdkDragHandle class="px-5 pt-5 pb-2 text-xl font-semibold">
   <h4 class="pointer-events-none">
     {{ 'PAC.ACTIONS.NEW' | translate: {Default: 'New'} }} 
     {{ 'PAC.KEY_WORDS.ORGANIZATION' | translate: {Default: 'Organization'} }}
   </h4>
 </header>
 
-<div class="p-2">
+<div class="px-5 pb-4">
   <pac-organization-step-form #stepForm [(ngModel)]="organization"></pac-organization-step-form>
 </div>
 
-<div class="space-x-2 flex justify-end p-2">
+<div class="flex justify-end gap-2 px-5 pt-2 pb-5">
   <button z-button zType="ghost" cdkFocusInitial (click)="onCancel()">
     {{ 'PAC.ACTIONS.CANCEL' | translate: {Default: 'Cancel'} }}
   </button>

@@ -23,5 +23,8 @@
   "select": {
     "moreItemsSelected_one": "{{count}} more item selected",
     "moreItemsSelected_other": "{{count}} more items selected"
+  },
+  "chipGrid": {
+    "emptyPlaceholder": "Select or add items"
   }
 }

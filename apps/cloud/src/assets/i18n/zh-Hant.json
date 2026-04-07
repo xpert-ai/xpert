@@ -2515,6 +2515,7 @@
       "zh-Hant": "繁體中文"
     },
     "Users": {
+      "BackToList": "返回用戶列表",
       "NoMoreOrganizations": "沒有更多的組織可添加",
       "GroupsHint": "管理用戶在各個有效組織下所屬的用戶群組。",
       "NoActiveOrganizations": "該用戶目前不在任何有效組織中。",
@@ -5070,6 +5071,9 @@
       "INVITATION_EXPIRATION": "邀請過期"
     },
     "PLACEHOLDERS": {
+      "EMAILS_EMPTY_HINT": "點擊右側輸入框以添加郵箱",
+      "MEMBERS_EMPTY_HINT": "使用右側輸入框搜尋並添加成員",
+      "TAGS_EMPTY_HINT": "使用右側輸入框搜尋或創建標籤",
       "ROLE": "選擇角色"
     }
   },

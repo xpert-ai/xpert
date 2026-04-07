@@ -1,7 +1,19 @@
 <z-form-field class="w-full" [appearance]="appearance">
   <z-form-label>{{ label }}</z-form-label>
 
-  <z-chip-grid #chipGrid [attr.aria-label]="label" multiple>
+  <z-chip-grid
+    #chipGrid
+    [attr.aria-label]="label"
+    [showEmptyState]="true"
+    [emptyPlaceholder]="
+      'FORM.PLACEHOLDERS.EMAILS_EMPTY_HINT'
+        | translate
+          : {
+              Default: 'Click the input on the right to add emails'
+            }
+    "
+    multiple
+  >
     @for (keyword of keywords; track keyword) {
       <z-chip-row
         [value]="keyword"
