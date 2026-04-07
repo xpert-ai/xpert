@@ -113,7 +113,7 @@ export async function updateXmlaCatalogContent(queryBus: QueryBus, redisClient: 
     const jdbcConnectionString = query_runner.jdbcUrl(model.catalog)
     await redisClient.sAdd(XMLA_CONNECTION_KEY, name)
     await redisClient.hSet(XMLA_CONNECTION_KEY + ':' + name, {
-      _class: 'com.pangolin.olap.repository.XmlaConnection',
+      _class: 'com.xpert.olap.repository.XmlaConnection',
       id: name,
       jdbcDriver: query_runner.jdbcDriver,
       jdbcConnectionString,

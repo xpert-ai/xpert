@@ -33,7 +33,7 @@ import { ModelQueryLogService } from '../model-query-log'
 import { SemanticModelCacheService } from './cache/cache.service'
 import { SemanticModelPublicDTO, SemanticModelQueryDTO } from './dto'
 import { SemanticModelUpdatedEvent } from './events'
-import { updateXmlaCatalogContent } from './helper'
+import { XMLA_CONNECTION_KEY, updateXmlaCatalogContent } from './helper'
 import { SemanticModel } from './model.entity'
 import { NgmDSCoreService, registerSemanticModel } from './ocap'
 import { CubeValidator, DimensionValidator, RoleValidator, VirtualCubeValidator } from './validators'
@@ -103,6 +103,8 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 				relations: ['dataSource', 'dataSource.type', 'roles']
 			})
 
+			await this.clearXmlaCatalogContent()
+
 			let seeds = items.length
 			console.log(`Found ${seeds} active models in system`)
 			for await (const model of items) {
@@ -133,6 +135,17 @@ export class SemanticModelService extends BusinessAreaAwareCrudService<SemanticM
 				}
 			})
 		}, 1000)
+	}
+
+	private async clearXmlaCatalogContent() {
+		const keys = await this.redisClient.keys(`${XMLA_CONNECTION_KEY}:*`)
+		const staleKeys = [XMLA_CONNECTION_KEY, ...keys]
+		if (!staleKeys.length) {
+			return
+		}
+
+		await this.redisClient.del(staleKeys)
+		this.logger.log(`Cleared ${staleKeys.length} XMLA catalog entries from Redis`)
 	}
 
 	/**

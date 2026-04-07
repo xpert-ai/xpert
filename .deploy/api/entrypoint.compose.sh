@@ -10,7 +10,7 @@ export WAIT_HOSTS=$DB_HOST:$DB_PORT
 
 # ---------------------------------------
 # Fix ownership of the mounted volume
-folders="/srv/pangolin/public /sandbox /ms-playwright /srv/pangolin/plugins /var/lib/xpert/data"
+folders="/srv/xpert/public /sandbox /ms-playwright /srv/xpert/plugins /var/lib/xpert/data"
 
 for folder in $folders; do
   if [ -d "$folder" ]; then

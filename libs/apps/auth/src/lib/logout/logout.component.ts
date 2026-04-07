@@ -1,6 +1,6 @@
 /**
  * @license
- * Copyright Pangolin. All Rights Reserved.
+ * Copyright Xpert. All Rights Reserved.
  * Licensed under the MIT License. See License.txt in the project root for license information.
  */
 import { Component, Inject, OnInit } from '@angular/core';

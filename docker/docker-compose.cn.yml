@@ -62,7 +62,7 @@ services:
     ports:
       - '${API_PORT:-3000}:3000'
     volumes:
-      - ./volumes/api/public:/srv/pangolin/public
+      - ./volumes/api/public:/srv/xpert/public
       - ./volumes/api/ms-playwright:/ms-playwright
       - ./volumes/api/sandbox/:/sandbox/
       - ./volumes/api/data/:/var/lib/xpert/data/

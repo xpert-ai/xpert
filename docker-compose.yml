@@ -44,10 +44,10 @@ services:
     ports:
       - '${API_PORT:-3000}:3000'
     volumes:
-      - ./docker/volumes/api/public:/srv/pangolin/public
+      - ./docker/volumes/api/public:/srv/xpert/public
       - ./docker/volumes/api/ms-playwright:/ms-playwright
       - ./docker/volumes/api/sandbox/:/sandbox/
-      - ./docker/volumes/api/plugins:/srv/pangolin/plugins
+      - ./docker/volumes/api/plugins:/srv/xpert/plugins
       - ./docker/volumes/api/data/:/var/lib/xpert/data/
     networks:
       - overlay

@@ -21,22 +21,22 @@ mvn spring-boot:run -Dspring-boot.run.jvmArguments="-Xdebug -Xrunjdwp:transport=
 创建 Docker 镜像:
 解压 jar 文件到文件夹 *target/dependency*
 
-`docker build -t pangolin/olap .`
+`docker build -t xpert/olap .`
 
 测试运行镜像
 
-`docker run -d --rm --name pangolin-olap -p 8080:8080 pangolin/olap`
+`docker run -d --rm --name xpert-olap -p 8080:8080 xpert/olap`
 
 运行 ClickHouse Client Image 连接 Docker Compose 中的 ClickHouse 服务器:
 
-`docker run -it --rm --network pangolin_default --link pangolin_clickhouse_1:clickhouse-server -v /mnt/d/dev/gitlab/pangolin/olap/docker/:/clickhouse/data yandex/clickhouse-client --host clickhouse-server`
+`docker run -it --rm --network xpert_default --link xpert_clickhouse_1:clickhouse-server -v /mnt/d/dev/gitlab/xpert/olap/docker/:/clickhouse/data yandex/clickhouse-client --host clickhouse-server`
 
 ## Demo 数据
 
 导入 ClickHouse 初始化数据:
 
 ```bash
-$ docker exec -it pangolin_clickhouse_1 bash
+$ docker exec -it xpert_clickhouse_1 bash
 :/# clickhouse-client --multiquery < /clickhouse/data/createtable.sql
 :/# clickhouse-client --multiquery < /clickhouse/data/importdata.sql
 ```

@@ -24,7 +24,7 @@ if (environment.production) {
 }
 
 persistState({
-	key: '_pangolinStore'
+	key: '_xpertStore'
 });
 
 akitaConfig({

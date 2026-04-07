@@ -1960,7 +1960,7 @@ i0.ɵɵngDeclareClassMetadata({ minVersion: "12.0.0", version: "21.1.4", ngImpor
         }] });
 
 const NX_THEME_DEFAULT = 'default';
-const NX_THEME_OPTIONS = new InjectionToken('Pangolin Theme Options', {
+const NX_THEME_OPTIONS = new InjectionToken('Xpert Theme Options', {
     providedIn: 'root',
     factory: NX_THEME_OPTIONS_FACTORY
 });
@@ -5803,7 +5803,7 @@ function myRxResource(options) {
 
 /**
  * @license
- * Copyright Pangolin LLC All Rights Reserved.
+ * Copyright Xpert LLC All Rights Reserved.
  *
  * Use of this source code is governed by an MIT-style license that can be
  * found in the LICENSE file at https://angular.io/license

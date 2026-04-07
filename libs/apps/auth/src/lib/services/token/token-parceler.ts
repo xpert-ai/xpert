@@ -9,7 +9,7 @@ export interface NbTokenPack {
   value: string,
 }
 
-export const PAC_AUTH_FALLBACK_TOKEN = new InjectionToken<PacAuthTokenClass>('Pangolin Auth Options');
+export const PAC_AUTH_FALLBACK_TOKEN = new InjectionToken<PacAuthTokenClass>('Xpert Auth Options');
 
 /**
  * Creates a token parcel which could be stored/restored
