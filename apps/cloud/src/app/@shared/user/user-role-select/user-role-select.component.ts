@@ -51,6 +51,7 @@ export class UserRoleSelectComponent {
     role?: string
     roles?: ISelectOption[]
     single?: boolean
+    emptyHint?: string
     searchOptions?: {
       organizationId?: string
       membership?: string

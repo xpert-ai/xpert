@@ -6,6 +6,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
+  contentChildren,
   Directive,
   ElementRef,
   forwardRef,
@@ -21,6 +22,7 @@ import { NG_VALUE_ACCESSOR, type ControlValueAccessor } from '@angular/forms'
 
 import type { ClassValue } from 'clsx'
 
+import { injectUiI18nService } from '../../core/i18n/ui-i18n.service'
 import { mergeClasses, noopFn } from '../../utils/merge-classes'
 import {
   chipAvatarVariants,
@@ -136,7 +138,19 @@ export class ZardChipSetComponent extends ZardChipContainerBaseComponent {
 @Component({
   selector: 'z-chip-grid',
   standalone: true,
-  template: '<ng-content />',
+  template: `
+    @if (showEmptyStateContent()) {
+      <span
+        aria-hidden="true"
+        class="z-chip-grid__empty-state pointer-events-none inline-flex min-h-10 w-full items-center rounded-md bg-background-default-subtle px-3 py-2 text-sm italic leading-5 text-text-tertiary"
+      >
+        @if (showEmptyPlaceholder()) {
+          {{ resolvedEmptyPlaceholder() }}
+        }
+      </span>
+    }
+    <ng-content />
+  `,
   changeDetection: ChangeDetectionStrategy.OnPush,
   encapsulation: ViewEncapsulation.None,
   providers: [
@@ -156,12 +170,27 @@ export class ZardChipSetComponent extends ZardChipContainerBaseComponent {
   exportAs: 'zChipGrid'
 })
 export class ZardChipGridComponent extends ZardChipContainerBaseComponent {
+  private readonly i18n = injectUiI18nService()
+
   readonly ariaLabel = input<string>('', { alias: 'aria-label' })
   readonly multiple = input(false, { transform: booleanAttribute })
+  readonly showEmptyState = input(false, { transform: booleanAttribute })
+  readonly showEmptyPlaceholder = input(true, { transform: booleanAttribute })
+  readonly emptyPlaceholder = input<string | null>(null)
+  readonly projectedChipRows = contentChildren(ZardChipRowComponent, { descendants: true })
 
   protected readonly resolvedColor = computed(() => normalizeColor(this.color()))
   protected readonly classes = computed(() =>
     mergeClasses(chipContainerVariants({ orientation: 'horizontal' }), this.class())
+  )
+  protected readonly resolvedEmptyPlaceholder = computed(() =>
+    this.emptyPlaceholder() ||
+    this.i18n.t('chipGrid.emptyPlaceholder', {
+      Default: 'Select or add items'
+    })
+  )
+  protected readonly showEmptyStateContent = computed(
+    () => this.showEmptyState() && this.projectedChipRows().length === 0
   )
 }
 

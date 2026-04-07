@@ -2,7 +2,17 @@
   <z-form-label>
     {{ 'PAC.KEY_WORDS.Tags' | translate: {Default: 'Tags'} }}
   </z-form-label>
-  <z-chip-grid aria-label="Tag selection">
+  <z-chip-grid
+    aria-label="Tag selection"
+    [showEmptyState]="category() === tagCategoryEnum.INDICATOR"
+    [emptyPlaceholder]="
+      'FORM.PLACEHOLDERS.TAGS_EMPTY_HINT'
+        | translate
+          : {
+              Default: 'Use the input below to search or create tags'
+            }
+    "
+  >
     @for (tag of tags(); track tag.id ?? tag.name) {
       <z-chip-row [ngClass]="'bg-'+tag.color+'-100'" class="bg-blue-100" (removed)="remove(tag)">
         {{tag.name}}
@@ -55,4 +65,3 @@
     </ng-template>
   </z-combobox-deprecated>
 </z-form-field>
-

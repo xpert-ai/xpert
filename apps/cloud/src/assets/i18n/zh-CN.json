@@ -3185,6 +3185,9 @@
       "INVITATION_EXPIRATION": "邀请过期"
     },
     "PLACEHOLDERS": {
+      "EMAILS_EMPTY_HINT": "点击右侧输入框以添加邮箱",
+      "MEMBERS_EMPTY_HINT": "使用右侧输入框搜索并添加成员",
+      "TAGS_EMPTY_HINT": "使用右侧输入框搜索或创建标签",
       "ROLE": "选择角色"
     }
   },

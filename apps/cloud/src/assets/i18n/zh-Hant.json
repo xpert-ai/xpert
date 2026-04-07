@@ -5070,6 +5070,9 @@
       "INVITATION_EXPIRATION": "邀請過期"
     },
     "PLACEHOLDERS": {
+      "EMAILS_EMPTY_HINT": "點擊右側輸入框以添加郵箱",
+      "MEMBERS_EMPTY_HINT": "使用右側輸入框搜尋並添加成員",
+      "TAGS_EMPTY_HINT": "使用右側輸入框搜尋或創建標籤",
       "ROLE": "選擇角色"
     }
   },

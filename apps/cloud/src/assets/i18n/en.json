@@ -1172,5 +1172,12 @@
       "EMAIL": "Please enter a valid email address",
       "PATTERN": "Invalid format"
     }
+  },
+  "FORM": {
+    "PLACEHOLDERS": {
+      "EMAILS_EMPTY_HINT": "Click the input on the right to add emails",
+      "MEMBERS_EMPTY_HINT": "Use the input on the right to search and add members",
+      "TAGS_EMPTY_HINT": "Use the input on the right to search or create tags"
+    }
   }
 }
