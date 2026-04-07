@@ -2515,6 +2515,7 @@
       "zh-Hant": "繁體中文"
     },
     "Users": {
+      "BackToList": "返回用戶列表",
       "NoMoreOrganizations": "沒有更多的組織可添加",
       "GroupsHint": "管理用戶在各個有效組織下所屬的用戶群組。",
       "NoActiveOrganizations": "該用戶目前不在任何有效組織中。",

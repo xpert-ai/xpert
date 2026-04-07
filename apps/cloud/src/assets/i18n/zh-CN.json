@@ -1456,6 +1456,7 @@
       "zh-Hant": "繁体中文"
     },
     "Users": {
+      "BackToList": "返回用户列表",
       "NoMoreOrganizations": "没有更多的组织可添加",
       "GroupsHint": "查看用户在各个有效组织下所属的用户组。",
       "NoActiveOrganizations": "该用户当前不在任何有效组织中。",
