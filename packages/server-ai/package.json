@@ -42,6 +42,7 @@
         "pdf-parse": "^1.1.1",
         "playwright": "^1.50.1",
         "python-shell": "5.0.0",
+        "tar": "^7.5.13",
         "turndown": "7.2.0",
         "zod-to-json-schema": "^3.23.2"
     },

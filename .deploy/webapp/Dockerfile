@@ -28,24 +28,24 @@ RUN chmod +x /wait /entrypoint.compose.sh /entrypoint.prod.sh && dos2unix /entry
 
 WORKDIR /srv/pangolin
 
-COPY --chown=node:node packages/contracts/package.json ./packages/contracts/
-COPY --chown=node:node apps/cloud/package.json ./apps/cloud/
-
-COPY --chown=node:node .deploy/webapp/package.json ./package.json
+COPY --chown=node:node package.json ./package.json
 COPY --chown=node:node pnpm-lock.yaml ./pnpm-lock.yaml
 COPY --chown=node:node pnpm-workspace.yaml ./pnpm-workspace.yaml
 COPY --chown=node:node .npmrc ./.npmrc
 COPY --chown=node:node .eslintrc.json ./
-RUN pnpm install --no-frozen-lockfile
-
 COPY nx.json ./
 COPY tsconfig.base.json ./
-COPY packages ./packages
-COPY legacies ./legacies
-COPY libs ./libs
-COPY apps/cloud ./apps/cloud
+COPY --chown=node:node tailwind-workspace-reference.css ./tailwind-workspace-reference.css
+COPY --chown=node:node tailwind.workspace.config.js ./tailwind.workspace.config.js
+COPY --chown=node:node tailwind.theme.vars.js ./tailwind.theme.vars.js
+COPY --chown=node:node apps ./apps
+COPY --chown=node:node packages ./packages
+COPY --chown=node:node legacies ./legacies
+COPY --chown=node:node libs ./libs
 
-RUN pnpm build:cloud:prod
+RUN pnpm install --no-frozen-lockfile
+
+RUN pnpm nx build cloud --configuration=production
 
 # ==================================================== Stage ==========================================================#
 FROM nginx:alpine AS production

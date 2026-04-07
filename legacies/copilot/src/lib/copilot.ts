@@ -1,6 +1,6 @@
-import { ClientOptions } from '@langchain/openai'
+import type { ClientOptions } from '@langchain/openai'
 import { BehaviorSubject, map, Subject } from 'rxjs'
-import { BusinessRoleType, ICopilot } from './types'
+import type { BusinessRoleType, ICopilot } from './types'
 
 /**
  * Copilot Service

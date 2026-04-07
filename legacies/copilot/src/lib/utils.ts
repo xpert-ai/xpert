@@ -1,6 +1,6 @@
 import { AIMessage } from '@langchain/core/messages'
 import { ChatGenerationChunk, LLMResult } from '@langchain/core/outputs'
-import {
+import type {
   TMessageContent,
   TMessageContentComplex,
   TMessageContentComponent,
