@@ -79,20 +79,38 @@ docker pull ghcr.io/xpert-ai/xpert-olap:develop-candidate
 
 ## 发布 npm 包
 
-### 升级版本号
+仓库现在使用 Changesets 管理 npm 发版。
+
+当前自动化范围：
+
+- CI 目前只自动发布 `@metad/ocap-core`
+- 正式版本使用 `latest` dist-tag
+- 预发布版本如 `3.9.0-beta.0` 会自动使用预发布标识作为 npm dist-tag，例如 `beta`
+
+## 创建 changeset
 
 ```bash
-pnpm nx release patch
+pnpm changeset
 ```
 
-### 构建包
+在当前 CI 范围内，请只为 `@metad/ocap-core` 创建 changeset。
+
+## 将 changeset 合入 `main`
+
+changeset 文件进入 `main` 后，GitHub Actions 会创建或更新一个名为 `chore: version packages` 的 release PR。
+
+## 合并 release PR
+
+release PR 合并后会自动执行：
+
+- `pnpm changeset:version`，写入版本号和 changelog
+- 构建 `dist/packages/core`
+- 通过 trusted publishing 从构建产物发布到 npm
+
+## 本地校验命令
 
 ```bash
-pnpm nx build plugin-sdk
-```
-
-### 发布包
-
-```bash
-pnpm nx run plugin-sdk:nx-release-publish --access public --otp=<one-time-password-if-needed>
+pnpm release:verify
+pnpm changeset:version
+pnpm release:publish
 ```

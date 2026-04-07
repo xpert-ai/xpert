@@ -77,22 +77,41 @@ docker pull ghcr.io/xpert-ai/xpert-api:v3.6.0
 docker pull ghcr.io/xpert-ai/xpert-olap:develop-candidate
 ```
 
-## npm package release
 
-### Bump package version
+## Release npm Packages
+
+This repository now uses Changesets for npm releases.
+
+Current automation scope:
+
+- CI only publishes `@metad/ocap-core`
+- stable releases use the `latest` dist-tag
+- prerelease versions such as `3.9.0-beta.0` automatically use the prerelease identifier as the npm dist-tag, for example `beta`
+
+## Create a changeset
 
 ```bash
-npx nx release patch
+pnpm changeset
 ```
 
-### Build package
+Use `@metad/ocap-core` as the package while CI is still limited to the core release flow.
+
+## Push the changeset to `main`
+
+When a changeset reaches `main`, GitHub Actions opens or updates a release PR named `chore: version packages`.
+
+## Merge the release PR
+
+After the release PR is merged:
+
+- `pnpm changeset:version` updates the package version and changelog
+- the workflow builds `dist/packages/core`
+- npm publishing runs from the built output through trusted publishing
+
+## Local verification commands
 
 ```bash
-npx nx build plugin-sdk
-```
-
-### Publish package
-
-```bash
-npx nx run plugin-sdk:nx-release-publish --access public --otp=<one-time-password-if-needed>
+pnpm release:verify
+pnpm changeset:version
+pnpm release:publish
 ```

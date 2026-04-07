@@ -2,65 +2,29 @@ name: Publish npm packages
 
 on:
   push:
-    tags:
-      - '*'
-  workflow_run:
-    workflows: ["Build"]
-    types: [requested]
     branches:
-      - 'develop'
-      - 'main'
+      - main
+  workflow_dispatch:
+
+concurrency:
+  group: publish-npm-packages-${{ github.ref }}
+  cancel-in-progress: false
 
 jobs:
-  publish:
+  release:
     runs-on: ubuntu-latest
-    if: github.repository == 'xpert-ai/xpert' && github.event_name == 'push' && !contains(github.ref, 'beta')
+    if: github.repository == 'xpert-ai/xpert'
     environment: production
 
     permissions:
-      contents: read
-      id-token: write   # <- Key point: OIDC requires this: :contentReference[oaicite:4]{index=4}
-
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          ref: ${{ github.ref_name }}
-
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          registry-url: 'https://registry.npmjs.org'
-
-      # Recommendation: Ensure npm is up-to-date to avoid incomplete OIDC support :contentReference[oaicite:5]{index=5}
-      - name: Update npm
-        run: npm i -g npm@latest
-
-      - name: Enable pnpm
-        run: |
-          corepack enable
-          corepack prepare pnpm@10.24.0 --activate
-          pnpm --version
-
-      - run: pnpm bootstrap
-      - run: pnpm build
-
-      - run: npm publish --access public --tag latest
-        working-directory: ./dist/packages/core
-        # No need for NODE_AUTH_TOKEN (Trusted Publishing does not require a token) :contentReference[oaicite:6]{index=6}
-
-  publish-beta:
-    runs-on: ubuntu-latest
-    if: github.event_name == 'push' && contains(github.ref, 'beta')
-    environment: production
-
-    permissions:
-      contents: read
+      contents: write
+      pull-requests: write
       id-token: write
 
     steps:
       - uses: actions/checkout@v4
         with:
-          ref: ${{ github.ref_name }}
+          fetch-depth: 0
 
       - uses: actions/setup-node@v4
         with:
@@ -76,8 +40,24 @@ jobs:
           corepack prepare pnpm@10.24.0 --activate
           pnpm --version
 
-      - run: pnpm bootstrap
-      - run: pnpm build
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
-      - run: npm publish --access public --tag beta
-        working-directory: ./dist/packages/core
+      - name: Verify changeset scope
+        run: pnpm release:verify
+
+      - name: Create or update release PR
+        id: changesets
+        uses: changesets/action@v1
+        with:
+          version: pnpm changeset:version
+          commit: 'chore: version packages'
+          title: 'chore: version packages'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Publish npm packages
+        if: steps.changesets.outputs.hasChangesets == 'false'
+        env:
+          NPM_CONFIG_PROVENANCE: 'true'
+        run: pnpm release:publish
