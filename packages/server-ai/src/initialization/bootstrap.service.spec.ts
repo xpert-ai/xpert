@@ -33,6 +33,7 @@ jest.mock('../xpert-workspace/workspace.service', () => ({
 }))
 
 import { ServerAIBootstrapService } from './bootstrap.service'
+import { XpertImportCommand } from '../xpert'
 
 describe('ServerAIBootstrapService', () => {
   const defaultRepositories = JSON.stringify({
@@ -50,6 +51,9 @@ describe('ServerAIBootstrapService', () => {
 
   function createService() {
     const commandBus = {
+      execute: jest.fn()
+    }
+    const queryBus = {
       execute: jest.fn()
     }
     const configService = {
@@ -119,7 +123,8 @@ describe('ServerAIBootstrapService', () => {
     const xpertService = {
       repository: {
         createQueryBuilder: jest.fn()
-      }
+      },
+      validateName: jest.fn().mockResolvedValue(true)
     }
     const xpertTemplateService = {
       getTemplateDetail: jest.fn()
@@ -128,6 +133,7 @@ describe('ServerAIBootstrapService', () => {
     const service = new ServerAIBootstrapService(
       configService as any,
       commandBus as any,
+      queryBus as any,
       organizationService as any,
       userService as any,
       userOrganizationService as any,
@@ -148,6 +154,7 @@ describe('ServerAIBootstrapService', () => {
       configService,
       environmentService,
       organizationService,
+      queryBus,
       service,
       skillRepositoryIndexService,
       skillRepositoryService,
@@ -176,6 +183,188 @@ describe('ServerAIBootstrapService', () => {
     expect(result).toEqual({
       repositoryIds: []
     })
+  })
+
+  it('applies the available primary copilot default model to the default authoring assistant during org bootstrap', async () => {
+    const { commandBus, configService, queryBus, service, xpertService, xpertTemplateService } = createService()
+    configService.get.mockImplementation((key: string) =>
+      key === 'AI_DEFAULT_SKILL_REPOSITORIES'
+        ? defaultRepositories
+        : key === 'ORG_DEFAULT_XPERT_TEMPLATE_KEYS'
+          ? 'xpert-authoring-assistant'
+          : ''
+    )
+    xpertTemplateService.getTemplateDetail.mockResolvedValue({
+      id: 'xpert-authoring-assistant',
+      name: 'Authoring Assistant',
+      export_data: `team:
+  name: Authoring Assistant
+  type: agent
+  agent:
+    key: Agent_1
+  copilotModel:
+    modelType: llm
+    model: glm-5
+nodes:
+  - type: agent
+    key: Agent_1
+    position:
+      x: 0
+      y: 0
+    entity:
+      key: Agent_1
+      name: Authoring Assistant
+      copilotModel:
+        modelType: llm
+        model: glm-5
+  - type: workflow
+    key: Middleware_Summarization
+    position:
+      x: 240
+      y: 0
+    entity:
+      type: middleware
+      key: Middleware_Summarization
+      provider: SummarizationMiddleware
+      options:
+        model:
+          modelType: llm
+          model: deepseek-chat
+connections: []`
+    })
+    xpertService.repository.createQueryBuilder.mockReturnValue({
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(null)
+    })
+    queryBus.execute
+      .mockResolvedValueOnce({
+        id: 'copilot-primary',
+        copilotModel: {
+          modelType: 'llm',
+          model: 'gpt-4o',
+          options: {
+            context_size: 128000
+          }
+        }
+      })
+      .mockResolvedValueOnce([
+        {
+          id: 'copilot-primary',
+          providerWithModels: {
+            models: [
+              {
+                model: 'gpt-4o',
+                model_type: 'llm'
+              }
+            ]
+          }
+        }
+      ])
+
+    await service.bootstrapOrganization({
+      organizationId: 'org-1',
+      ownerUserId: 'owner-1',
+      tenantId: 'tenant-1'
+    } as any)
+
+    const importCommand = commandBus.execute.mock.calls.find(([command]) => command instanceof XpertImportCommand)?.[0]
+    expect(importCommand).toBeDefined()
+    expect(importCommand.draft.team.copilotModel).toEqual(
+      expect.objectContaining({
+        copilotId: 'copilot-primary',
+        modelType: 'llm',
+        model: 'gpt-4o'
+      })
+    )
+    expect(importCommand.draft.nodes[0].entity.copilotModel).toEqual(
+      expect.objectContaining({
+        copilotId: 'copilot-primary',
+        modelType: 'llm',
+        model: 'gpt-4o'
+      })
+    )
+    expect(importCommand.draft.nodes[1].entity.options.model).toEqual(
+      expect.objectContaining({
+        copilotId: 'copilot-primary',
+        modelType: 'llm',
+        model: 'gpt-4o'
+      })
+    )
+  })
+
+  it('skips primary model injection when the primary default model is not available', async () => {
+    const { commandBus, configService, queryBus, service, xpertService, xpertTemplateService } = createService()
+    configService.get.mockImplementation((key: string) =>
+      key === 'AI_DEFAULT_SKILL_REPOSITORIES'
+        ? defaultRepositories
+        : key === 'ORG_DEFAULT_XPERT_TEMPLATE_KEYS'
+          ? 'xpert-authoring-assistant'
+          : ''
+    )
+    xpertTemplateService.getTemplateDetail.mockResolvedValue({
+      id: 'xpert-authoring-assistant',
+      name: 'Authoring Assistant',
+      export_data: `team:
+  name: Authoring Assistant
+  type: agent
+  agent:
+    key: Agent_1
+  copilotModel:
+    modelType: llm
+    model: glm-5
+nodes:
+  - type: agent
+    key: Agent_1
+    position:
+      x: 0
+      y: 0
+    entity:
+      key: Agent_1
+      name: Authoring Assistant
+connections: []`
+    })
+    xpertService.repository.createQueryBuilder.mockReturnValue({
+      where: jest.fn().mockReturnThis(),
+      andWhere: jest.fn().mockReturnThis(),
+      getOne: jest.fn().mockResolvedValue(null)
+    })
+    queryBus.execute
+      .mockResolvedValueOnce({
+        id: 'copilot-primary',
+        copilotModel: {
+          modelType: 'llm',
+          model: 'gpt-4o'
+        }
+      })
+      .mockResolvedValueOnce([
+        {
+          id: 'copilot-primary',
+          providerWithModels: {
+            models: [
+              {
+                model: 'gpt-4.1',
+                model_type: 'llm'
+              }
+            ]
+          }
+        }
+      ])
+
+    await service.bootstrapOrganization({
+      organizationId: 'org-1',
+      ownerUserId: 'owner-1',
+      tenantId: 'tenant-1'
+    } as any)
+
+    const importCommand = commandBus.execute.mock.calls.find(([command]) => command instanceof XpertImportCommand)?.[0]
+    expect(importCommand.draft.team.copilotModel).toEqual(
+      expect.objectContaining({
+        modelType: 'llm',
+        model: 'glm-5'
+      })
+    )
+    expect(importCommand.draft.team.copilotModel.copilotId).toBeUndefined()
   })
 
   it('registers default skill repositories from env JSON during tenant bootstrap', async () => {

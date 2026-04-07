@@ -1,4 +1,14 @@
-import { ISkillRepository, LanguagesEnum, RolesEnum, TXpertTeamDraft, IUser } from '@metad/contracts'
+import {
+	AiModelTypeEnum,
+	AiProviderRole,
+	ISkillRepository,
+	LanguagesEnum,
+	RolesEnum,
+	TCopilotModel,
+	TXpertTeamDraft,
+	IUser,
+	WorkflowNodeTypeEnum
+} from '@metad/contracts'
 import { getErrorMessage, yaml } from '@metad/server-common'
 import {
 	OrganizationCreatedEvent,
@@ -11,8 +21,9 @@ import {
 	UserService
 } from '@metad/server-core'
 import { Injectable, Logger } from '@nestjs/common'
-import { CommandBus } from '@nestjs/cqrs'
+import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ConfigService } from '@nestjs/config'
+import { CopilotOneByRoleQuery, FindCopilotModelsQuery } from '../copilot/queries'
 import { SkillRepositoryIndexService, SkillRepositoryService } from '../skill-repository'
 import { XpertImportCommand, XpertService } from '../xpert'
 import { EnvironmentService } from '../environment'
@@ -36,9 +47,15 @@ export type TenantSkillRepositoryBootstrapResult = {
 }
 
 const DEFAULT_SKILL_REPOSITORIES_ENV = 'AI_DEFAULT_SKILL_REPOSITORIES'
+const DEFAULT_ORGANIZATION_ASSISTANT_TEMPLATE_KEY = 'xpert-authoring-assistant'
 
 type DefaultSkillRepositoryEntry = Pick<ISkillRepository, 'name' | 'provider'> &
 	Partial<Pick<ISkillRepository, 'options' | 'credentials'>>
+
+type BootstrapModelScanContext = {
+	nodeType?: string
+	workflowEntityType?: WorkflowNodeTypeEnum | string
+}
 
 const isRecord = (value: unknown): value is Record<string, unknown> =>
 	typeof value === 'object' && value !== null && !Array.isArray(value)
@@ -53,6 +70,7 @@ export class ServerAIBootstrapService {
 	constructor(
 		private readonly configService: ConfigService,
 		private readonly commandBus: CommandBus,
+		private readonly queryBus: QueryBus,
 		private readonly organizationService: OrganizationService,
 		private readonly userService: UserService,
 		private readonly userOrganizationService: UserOrganizationService,
@@ -81,6 +99,7 @@ export class ServerAIBootstrapService {
 				organizationId: event.organizationId,
 				organizationName: organization.name,
 				owner,
+				tenantId: event.tenantId,
 				workspaceId: workspace.id
 			})
 		})
@@ -356,11 +375,13 @@ export class ServerAIBootstrapService {
 		organizationId,
 		organizationName,
 		owner,
+		tenantId,
 		workspaceId
 	}: {
 		organizationId: string
 		organizationName: string
 		owner: IUser
+		tenantId: string
 		workspaceId: string
 	}) {
 		const templateKeys = this.getDefaultTemplateKeys()
@@ -378,6 +399,12 @@ export class ServerAIBootstrapService {
 				this.logger.warn(`Template '${templateKey}' has no team definition, skipping`)
 				continue
 			}
+			await this.applyDefaultAssistantPrimaryModel({
+				draft,
+				organizationId,
+				templateKey,
+				tenantId
+			})
 
 			const existing = await this.findBootstrapXpert(workspaceId, templateKey)
 			const name = existing
@@ -406,6 +433,170 @@ export class ServerAIBootstrapService {
 				new XpertImportCommand(draft, existing ? { targetXpertId: existing.id } : {})
 			)
 		}
+	}
+
+	private async applyDefaultAssistantPrimaryModel({
+		draft,
+		organizationId,
+		templateKey,
+		tenantId
+	}: {
+		draft: TXpertTeamDraft
+		organizationId: string
+		templateKey: string
+		tenantId: string | null
+	}) {
+		if (templateKey !== DEFAULT_ORGANIZATION_ASSISTANT_TEMPLATE_KEY || !tenantId) {
+			return
+		}
+
+		const primaryCopilot = await this.queryBus.execute(
+			new CopilotOneByRoleQuery(tenantId, organizationId, AiProviderRole.Primary)
+		)
+		const primaryModel = primaryCopilot?.copilotModel
+		if (
+			!primaryCopilot?.id ||
+			!primaryModel?.model?.trim() ||
+			(primaryModel.modelType && primaryModel.modelType !== AiModelTypeEnum.LLM)
+		) {
+			this.logger.warn(
+				`Skipping default primary model injection for template '${templateKey}' in organization '${organizationId}' because no enabled primary LLM copilot is configured`
+			)
+			return
+		}
+
+		const availableCopilots = await this.queryBus.execute(new FindCopilotModelsQuery(AiModelTypeEnum.LLM))
+		const primaryModelAvailable = (availableCopilots ?? []).some(
+			(copilot) =>
+				copilot?.id === primaryCopilot.id &&
+				(copilot.providerWithModels?.models ?? []).some(
+					(model) =>
+						model?.model === primaryModel.model &&
+						(model?.model_type ?? AiModelTypeEnum.LLM) === AiModelTypeEnum.LLM
+				)
+		)
+		if (!primaryModelAvailable) {
+			this.logger.warn(
+				`Skipping default primary model injection for template '${templateKey}' in organization '${organizationId}' because primary model '${primaryModel.model}' is not available`
+			)
+			return
+		}
+
+		const changed = this.injectPrimaryLlmSelectionForMissingCopilotIds(draft, {
+			copilotId: primaryCopilot.id,
+			model: primaryModel.model,
+			modelType: AiModelTypeEnum.LLM,
+			options: primaryModel.options ?? null
+		})
+		if (changed) {
+			this.logger.log(
+				`Applied primary default model '${primaryModel.model}' to bootstrap template '${templateKey}' in organization '${organizationId}'`
+			)
+		}
+	}
+
+	private injectPrimaryLlmSelectionForMissingCopilotIds(
+		draft: TXpertTeamDraft,
+		selection: Pick<TCopilotModel, 'copilotId' | 'model' | 'modelType' | 'options'>
+	) {
+		let changed = false
+
+		const visit = (value: unknown, context: BootstrapModelScanContext = {}) => {
+			if (Array.isArray(value)) {
+				value.forEach((item) => visit(item, context))
+				return
+			}
+
+			if (!isRecord(value)) {
+				return
+			}
+
+			for (const [key, child] of Object.entries(value)) {
+				const childRecord = isRecord(child) ? child : null
+				const nextContext = this.extendBootstrapModelScanContext(value, key, childRecord, context)
+
+				if (childRecord && this.shouldTreatAsBootstrapModelTarget(key, childRecord, nextContext)) {
+					const modelType = this.inferBootstrapTargetModelType(key, nextContext, childRecord)
+					const configuredCopilotId =
+						typeof childRecord['copilotId'] === 'string' ? childRecord['copilotId'].trim() : ''
+
+					if (!configuredCopilotId && modelType === AiModelTypeEnum.LLM) {
+						childRecord['copilotId'] = selection.copilotId
+						childRecord['model'] = selection.model
+						childRecord['modelType'] = selection.modelType
+						if (!isRecord(childRecord['options']) && selection.options) {
+							childRecord['options'] = structuredClone(selection.options)
+						}
+						changed = true
+					}
+				}
+
+				visit(child, nextContext)
+			}
+		}
+
+		visit(draft)
+		return changed
+	}
+
+	private extendBootstrapModelScanContext(
+		record: Record<string, unknown>,
+		key: string,
+		child: Record<string, unknown> | null,
+		context: BootstrapModelScanContext
+	): BootstrapModelScanContext {
+		if (key === 'entity' && child) {
+			return {
+				...context,
+				nodeType: typeof record['type'] === 'string' ? record['type'] : context.nodeType,
+				workflowEntityType:
+					typeof child['type'] === 'string' ? (child['type'] as WorkflowNodeTypeEnum) : context.workflowEntityType
+			}
+		}
+
+		return context
+	}
+
+	private shouldTreatAsBootstrapModelTarget(
+		key: string,
+		value: Record<string, unknown>,
+		context: BootstrapModelScanContext
+	) {
+		if (key === 'model') {
+			return this.isBootstrapCopilotModelConfig(value) || context.workflowEntityType === WorkflowNodeTypeEnum.MIDDLEWARE
+		}
+
+		return key.endsWith('Model')
+	}
+
+	private inferBootstrapTargetModelType(
+		key: string,
+		context: BootstrapModelScanContext,
+		value: Record<string, unknown>
+	): AiModelTypeEnum {
+		const explicitModelType =
+			typeof value['modelType'] === 'string' && value['modelType'].trim()
+				? (value['modelType'] as AiModelTypeEnum)
+				: null
+		if (explicitModelType) {
+			return explicitModelType
+		}
+
+		if (key === 'copilotModel' && context.nodeType === 'knowledge') {
+			return AiModelTypeEnum.TEXT_EMBEDDING
+		}
+
+		return AiModelTypeEnum.LLM
+	}
+
+	private isBootstrapCopilotModelConfig(value: Record<string, unknown>) {
+		return (
+			'model' in value ||
+			'copilotId' in value ||
+			'copilot' in value ||
+			'modelType' in value ||
+			'options' in value
+		)
 	}
 
 	private findBootstrapXpert(workspaceId: string, templateKey: string) {

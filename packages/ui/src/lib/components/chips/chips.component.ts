@@ -177,7 +177,7 @@ export class ZardChipGridComponent extends ZardChipContainerBaseComponent {
   readonly showEmptyState = input(false, { transform: booleanAttribute })
   readonly showEmptyPlaceholder = input(true, { transform: booleanAttribute })
   readonly emptyPlaceholder = input<string | null>(null)
-  readonly projectedChipRows = contentChildren(ZardChipRowComponent, { descendants: true })
+  readonly projectedChipRows = contentChildren(forwardRef(() => ZardChipRowComponent), { descendants: true })
 
   protected readonly resolvedColor = computed(() => normalizeColor(this.color()))
   protected readonly classes = computed(() =>

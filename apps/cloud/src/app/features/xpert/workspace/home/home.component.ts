@@ -182,6 +182,45 @@ export class XpertWorkspaceHomeComponent {
         this.searchControl.setValue(this.tags()[0].name)
       }
     })
+
+    effect(() => {
+      const workspaces = this.workspaces()
+      const selectedWorkspace = this.selectedWorkspace()
+      const routeWorkspaceId = this.paramId()
+
+      if (!workspaces?.length) {
+        return
+      }
+
+      const routedWorkspace = routeWorkspaceId
+        ? workspaces.find((workspace) => workspace.id === routeWorkspaceId) ?? null
+        : null
+      const matchedSelectedWorkspace = selectedWorkspace
+        ? workspaces.find((workspace) => workspace.id === selectedWorkspace.id) ?? null
+        : null
+
+      if (routedWorkspace) {
+        if (matchedSelectedWorkspace?.id !== routedWorkspace.id) {
+          this.store.setWorkspace(routedWorkspace)
+        }
+        return
+      }
+
+      if (matchedSelectedWorkspace) {
+        if (routeWorkspaceId !== matchedSelectedWorkspace.id) {
+          void this.syncWorkspaceRoute(matchedSelectedWorkspace)
+        }
+        return
+      }
+
+      const fallbackWorkspace = workspaces[0]
+      if (!fallbackWorkspace) {
+        return
+      }
+
+      this.store.setWorkspace(fallbackWorkspace)
+      void this.syncWorkspaceRoute(fallbackWorkspace)
+    })
   }
 
   selectWorkspace(ws: IXpertWorkspace) {
@@ -246,5 +285,24 @@ export class XpertWorkspaceHomeComponent {
           //
         }
       })
+  }
+
+  private async syncWorkspaceRoute(workspace: IXpertWorkspace) {
+    const urlTree = this.router.parseUrl(this.router.url)
+    const primarySegments = urlTree.root.children['primary']?.segments.map((segment) => segment.path) ?? []
+
+    if (primarySegments[0] !== 'xpert' || primarySegments[1] !== 'w') {
+      return
+    }
+
+    const nextSegments =
+      primarySegments.length >= 3
+        ? ['xpert', 'w', workspace.id, ...primarySegments.slice(3)]
+        : ['xpert', 'w', workspace.id]
+
+    await this.router.navigate(nextSegments, {
+      queryParams: urlTree.queryParams,
+      fragment: urlTree.fragment ?? undefined
+    })
   }
 }
