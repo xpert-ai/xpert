@@ -1,0 +1,61 @@
+<div
+  class="flex min-h-10 w-full flex-wrap items-center gap-2 rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background transition-colors focus-within:border-ring/50 focus-within:ring-2 focus-within:ring-ring/30"
+  [attr.data-disabled]="disabled() ? '' : null"
+  (mousedown)="onContainerMouseDown($event)"
+>
+  @for (item of items(); track item.key; let index = $index) {
+    <z-tag-select-chip
+      [label]="item.label"
+      [disabled]="disabled()"
+      [removable]="!disabled()"
+      (removed)="chipRemove.emit(index)"
+    />
+  }
+
+  @if (canInput()) {
+    <input
+      #inputElement
+      z-input
+      zBorderless
+      class="min-w-[8ch] flex-1 border-0 bg-transparent px-0 py-0 shadow-none focus-visible:ring-0"
+      [disabled]="disabled()"
+      [placeholder]="items().length ? '' : placeholder()"
+      [value]="inputValue()"
+      (input)="onInput($event)"
+      (keydown)="inputKeydown.emit($event)"
+      (paste)="inputPaste.emit($event)"
+      (focus)="inputFocus.emit()"
+      (blur)="inputBlur.emit()"
+    />
+  } @else if (!items().length) {
+    <span class="text-muted-foreground">{{ placeholder() }}</span>
+  }
+
+  @if ((clearable() && showClear()) || showSuggestionsIndicator()) {
+    <div class="ml-auto inline-flex shrink-0 items-center gap-2 text-muted-foreground">
+      @if (clearable() && showClear()) {
+        <button
+          type="button"
+          class="inline-flex h-4 w-4 items-center justify-center rounded-full transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring/50"
+          [disabled]="disabled()"
+          aria-label="Clear selected items"
+          (mousedown)="$event.preventDefault()"
+          (click)="onClear($event)"
+        >
+          <z-icon zType="cancel" />
+        </button>
+      }
+
+      @if (showSuggestionsIndicator()) {
+        <span
+          data-slot="tag-select-suggestions-indicator"
+          class="inline-flex h-4 w-4 items-center justify-center transition-transform"
+          [class.rotate-180]="suggestionsOpen()"
+          aria-hidden="true"
+        >
+          <z-icon zType="chevrons-up-down" />
+        </span>
+      }
+    </div>
+  }
+</div>

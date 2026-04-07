@@ -248,6 +248,22 @@
                     "category": "Agent",
                     "copyright": null,
                     "privacyPolicy": null
+                },
+                {
+                    "name": "Authoring Assistant",
+                    "type": "agent",
+                    "title": "Authoring Assistant",
+                    "description": "Execution-first authoring assistant profile for platform ChatKit workspace creation and Studio edits.",
+                    "avatar": {
+                        "emoji": {
+                            "id": "money_mouth_face"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "xpert-authoring-assistant",
+                    "category": "Assistant",
+                    "copyright": null,
+                    "privacyPolicy": null
                 }
             ]
         },
@@ -322,6 +338,22 @@
                         "modelType": "llm",
                         "model": "deepseek-chat"
                     }
+                },
+                {
+                    "name": "Authoring Assistant",
+                    "type": "agent",
+                    "title": "创作助理",
+                    "description": "面向平台 ChatKit 工作区创建与 Studio 编辑的执行优先创作助理。",
+                    "avatar": {
+                        "emoji": {
+                            "id": "money_mouth_face"
+                        },
+                        "background": "rgba(213, 245, 246, 0.8)"
+                    },
+                    "id": "xpert-authoring-assistant",
+                    "category": "Assistant",
+                    "copyright": null,
+                    "privacyPolicy": null
                 },
                 {
                     "name": "Demo - Workflow transform",

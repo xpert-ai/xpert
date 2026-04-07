@@ -4,21 +4,25 @@ import { Component, inject, Input } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import {
   ZardButtonComponent,
-  ZardComboboxDeprecatedComponent,
-  ZardComboboxDeprecatedOptionTemplateDirective,
   ZardFormImports,
-  ZardIconComponent,
   ZardLoaderComponent,
-  ZardChipsImports,
-  type ZardComboboxDeprecatedOption
+  ZardTagSelectComponent
 } from '@xpert-ai/headless-ui'
 import { UsersService } from '@metad/cloud/state'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { catchError, debounce, distinctUntilChanged, map, of, startWith, switchMap, tap, timer } from 'rxjs'
 import { IUser } from '../../../@core'
-import { userLabel, UserPipe } from '../../pipes'
+import { userLabel } from '../../pipes'
+
+function isUser(value: unknown): value is IUser {
+  return (
+    !!value &&
+    typeof value === 'object' &&
+    'id' in value &&
+    ('email' in value || 'username' in value || 'fullName' in value || 'firstName' in value || 'lastName' in value)
+  )
+}
 
 @Component({
   standalone: true,
@@ -27,25 +31,17 @@ import { userLabel, UserPipe } from '../../pipes'
     FormsModule,
     ReactiveFormsModule,
     ZardButtonComponent,
-    ZardComboboxDeprecatedComponent,
-    ZardComboboxDeprecatedOptionTemplateDirective,
+    ZardTagSelectComponent,
     ...ZardFormImports,
-    ...ZardChipsImports,
-    ZardIconComponent,
     ZardLoaderComponent,
     TranslateModule,
-    ButtonGroupDirective,
-    NgmCommonModule,
-    UserPipe
+    ButtonGroupDirective
   ],
   selector: 'pac-user-role-select',
   templateUrl: 'user-role-select.component.html',
   styleUrls: ['user-role-select.component.scss']
 })
 export class UserRoleSelectComponent {
-  private skipNextSearchTermSync = false
-  userLabel = userLabel
-
   private userService = inject(UsersService)
   public data: {
     role?: string
@@ -102,43 +98,21 @@ export class UserRoleSelectComponent {
     this.single = this.data?.single
   }
 
-  displayWith(_option: ZardComboboxDeprecatedOption | null, value: unknown) {
-    if (value === null) {
+  readonly displayUser = (value: unknown) => {
+    if (!isUser(value)) {
       return ''
     }
 
-    const user = value as IUser
-    return user.fullName || user.firstName || user.email
-  }
-
-  remove(user: IUser): void {
-    const index = this.users.indexOf(user)
-
-    if (index >= 0) {
-      this.users.splice(index, 1)
-    }
+    return userLabel(value)
   }
 
   onSearchTermChange(value: string) {
-    if (this.skipNextSearchTermSync) {
-      this.skipNextSearchTermSync = false
-      this.searchControl.setValue('', { emitEvent: false })
-      return
-    }
-
     this.searchControl.setValue(value)
   }
 
-  selected(value: unknown): void {
-    const user = value as IUser | null
-    if (user && !this.users.find((item) => item.id === user.id)) {
-      if (this.single) {
-        this.users = [user]
-      } else {
-        this.users.push(user)
-      }
-    }
-    this.resetSearch()
+  onUsersChange(value: unknown[]) {
+    const nextUsers = Array.isArray(value) ? value.filter(isUser) : []
+    this.users = this.single && nextUsers.length > 1 ? [nextUsers[nextUsers.length - 1]] : nextUsers
   }
 
   onPaste(event: ClipboardEvent) {
@@ -177,8 +151,5 @@ export class UserRoleSelectComponent {
     this._dialogRef.close()
   }
 
-  private resetSearch() {
-    this.skipNextSearchTermSync = true
-    this.searchControl.setValue('', { emitEvent: false })
-  }
+  readonly compareUsers = (a: unknown, b: unknown) => isUser(a) && isUser(b) && a.id === b.id
 }

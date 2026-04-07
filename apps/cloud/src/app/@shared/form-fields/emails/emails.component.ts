@@ -1,14 +1,13 @@
 
-import { Component, Input, OnInit, forwardRef } from '@angular/core'
-import { ControlValueAccessor, FormControl, ReactiveFormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { distinctUntilChanged } from 'rxjs'
+import { Component, Input, forwardRef } from '@angular/core'
+import { ControlValueAccessor, ReactiveFormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { NgmFieldAppearance, NgmFieldColor } from "@metad/ocap-angular/core";
 import { TranslateModule } from '@ngx-translate/core'
-import { ZardChipInputEvent, ZardChipsImports, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
+import { ZardFormImports, ZardTagSelectComponent } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [...ZardChipsImports, ...ZardFormImports, ZardIconComponent, ZardInputDirective, ReactiveFormsModule, TranslateModule],
+  imports: [ZardTagSelectComponent, ...ZardFormImports, ReactiveFormsModule, TranslateModule],
   selector: 'pac-form-field-emails',
   templateUrl: 'emails.component.html',
   providers: [
@@ -19,7 +18,7 @@ import { ZardChipInputEvent, ZardChipsImports, ZardFormImports, ZardIconComponen
     }
   ]
 })
-export class FormFieldEmailsComponent implements ControlValueAccessor, OnInit {
+export class FormFieldEmailsComponent implements ControlValueAccessor {
   
   @Input() appearance: NgmFieldAppearance
   @Input() label: string
@@ -27,21 +26,11 @@ export class FormFieldEmailsComponent implements ControlValueAccessor, OnInit {
   @Input() color: NgmFieldColor = undefined
   @Input() removable: boolean
 
-  addOnBlur = true
-  keywords = new Set([])
-  formControl = new FormControl([])
+  keywords: string[] = []
   _onChange: (value: string[]) => void
 
-  ngOnInit(): void {
-    this.formControl.valueChanges.pipe(distinctUntilChanged()).subscribe((value) => {
-      this._onChange?.(value)
-    })
-  }
-
   writeValue(obj: any): void {
-    const values = Array.isArray(obj) ? obj.filter(Boolean) : []
-    this.keywords = new Set(values)
-    this.formControl.setValue(values, { emitEvent: false })
+    this.keywords = Array.isArray(obj) ? obj.filter(Boolean) : []
   }
   registerOnChange(fn: any): void {
     this._onChange = fn
@@ -51,16 +40,8 @@ export class FormFieldEmailsComponent implements ControlValueAccessor, OnInit {
   setDisabledState?(isDisabled: boolean): void {
   }
 
-  addKeywordFromInput(event: ZardChipInputEvent) {
-    if (event.value) {
-      this.keywords.add(event.value)
-      event.chipInput!.clear()
-      this.formControl.setValue(Array.from(this.keywords))
-    }
-  }
-
-  removeKeyword(keyword: string) {
-    this.keywords.delete(keyword)
-    this.formControl.setValue(Array.from(this.keywords))
+  onValueChange(value: unknown[]) {
+    this.keywords = Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+    this._onChange?.(this.keywords)
   }
 }

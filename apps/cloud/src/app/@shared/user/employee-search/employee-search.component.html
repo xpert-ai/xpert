@@ -8,45 +8,20 @@
   <div class="flex flex-col">
     <z-form-field appearance="fill" class="self-stretch" >
       <z-form-label>{{ 'PAC.KEY_WORDS.Users' | translate: {Default: 'Users'} }}</z-form-label>
-      <z-chip-grid #chipGrid>
-        @for (user of users; track user) {
-          <z-chip-row
-            (removed)="remove(user)">
-            @if (user.imageUrl) {
-              <img zChipAvatar class="h-5 w-5" src="{{user.user.imageUrl}}" alt="Avatar"/>
-            }
-            {{user.user | user}}
-            <button zChipRemove>
-              <z-icon zType="cancel"></z-icon>
-            </button>
-          </z-chip-row>
-        }
-      </z-chip-grid>
-
-      <z-combobox-deprecated
-        zTriggerMode="input"
-        class="w-full"
-        [value]="null"
+      <z-tag-select
+        mode="multiple"
+        [value]="users"
         [options]="(userOptions$ | async) ?? []"
+        [enableSuggestions]="true"
+        [searchable]="true"
+        [compareWith]="compareUsers"
+        [displayWith]="displayUser"
         [placeholder]=" 'PAC.SHARED.User.NameEmail' | translate: {Default: 'Name,Email'} "
-        [zSearchTerm]="searchControl.value ?? ''"
-        [zDisplayWith]="displayUser"
         (zSearchTermChange)="onSearchTermChange($event)"
-        (zValueChange)="selected($event)"
-      >
-        <ng-template zComboboxDeprecatedOption let-option let-searchTerm="searchTerm">
-          <ngm-display-behaviour
-            class="flex-1"
-            [option]="{
-              value: option.data?.user?.email,
-              label: userLabel(option.data?.user)
-            }"
-            [highlight]="searchTerm"
-          ></ngm-display-behaviour>
-        </ng-template>
-      </z-combobox-deprecated>
+        (valueChange)="onUsersChange($event)"
+      />
       @if (loading) {
-        <div zFormSuffix class="flex items-center pr-8">
+        <div class="flex items-center justify-end pt-2">
           <z-loader diameter="20" />
         </div>
       }

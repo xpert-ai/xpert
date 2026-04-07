@@ -10,18 +10,19 @@ import {
   signal
 } from '@angular/core'
 import { ControlValueAccessor, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { NgmHighlightDirective } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
-  ZardChipInputEvent,
-  ZardComboboxDeprecatedComponent,
-  ZardComboboxDeprecatedOptionTemplateDirective,
-  type ZardComboboxDeprecatedOption
+  ZardTagSelectComponent,
+  type ZardTagSelectOption
 } from '@xpert-ai/headless-ui'
 import { derivedAsync } from 'ngxtension/derived-async'
 import { ITag, Store, TagCategoryEnum, TagService } from '../../../@core'
 import { SharedUiModule } from '../../ui.module'
 import { NgmFieldColor } from '@metad/ocap-angular/core'
+
+function isTag(value: unknown): value is ITag {
+  return !!value && typeof value === 'object' && ('id' in value || 'name' in value || 'category' in value)
+}
 
 @Component({
   standalone: true,
@@ -29,9 +30,7 @@ import { NgmFieldColor } from '@metad/ocap-angular/core'
     CommonModule,
     SharedUiModule,
     TranslateModule,
-    NgmHighlightDirective,
-    ZardComboboxDeprecatedComponent,
-    ZardComboboxDeprecatedOptionTemplateDirective
+    ZardTagSelectComponent
   ],
   selector: 'pac-tag-editor',
   templateUrl: './editor.component.html',
@@ -49,32 +48,23 @@ import { NgmFieldColor } from '@metad/ocap-angular/core'
   ]
 })
 export class TagEditorComponent implements ControlValueAccessor {
-  readonly tagCategoryEnum = TagCategoryEnum
-
   private tagService = inject(TagService)
   private store = inject(Store)
-  private skipNextSearchTermSync = false
 
   disabled = false
   @Input() color: NgmFieldColor
-  // @Input() category: string
   readonly category = input<TagCategoryEnum>(null)
-  readonly searchTerm = signal('')
   readonly tags = signal<ITag[]>([])
 
   private onChange: (value: ITag[]) => void = () => {}
   private onTouched: () => void = () => {}
 
-  get highlight() {
-    return this.searchTerm()
-  }
-
   readonly _tags = derivedAsync(() => this.tagService.getAllByCategory(this.category()), { initialValue: [] })
-  readonly comboboxOptions = computed<ZardComboboxDeprecatedOption[]>(() =>
+  readonly selectOptions = computed<ZardTagSelectOption<ITag>[]>(() =>
     this._tags().map((tag) => ({
-      id: tag.id ?? tag.name,
       label: tag.name,
       value: tag,
+      keywords: tag.description ? [tag.description] : [],
       data: tag
     }))
   )
@@ -92,7 +82,6 @@ export class TagEditorComponent implements ControlValueAccessor {
 
   writeValue(obj: any): void {
     this.tags.set(Array.isArray(obj) ? obj : [])
-    this.searchTerm.set('')
   }
   registerOnChange(fn: any): void {
     this.onChange = fn
@@ -104,73 +93,40 @@ export class TagEditorComponent implements ControlValueAccessor {
     this.disabled = isDisabled
   }
 
-  displayTag(_option: ZardComboboxDeprecatedOption | null, value: unknown) {
-    return (value as ITag | null)?.name ?? `${value ?? ''}`
-  }
-
-  filterTagOption(option: ZardComboboxDeprecatedOption, searchTerm: string) {
-    const tag = option.data as ITag | undefined
-    const normalized = searchTerm?.trim().toLowerCase()
-    if (!normalized) {
-      return true
-    }
-
-    return (
-      tag?.name?.toLowerCase().includes(normalized) ||
-      tag?.description?.toLowerCase().includes(normalized)
-    )
-  }
-
-  remove(tag: ITag): void {
-    this.tags.set(this.tags().filter((item) => item !== tag))
-    this.onChange(this.tags())
-  }
-
   onBlur() {
     this.onTouched()
   }
 
-  onSearchTermChange(value: string) {
-    if (this.skipNextSearchTermSync) {
-      this.skipNextSearchTermSync = false
-      this.searchTerm.set('')
-      return
-    }
-
-    this.searchTerm.set(value)
+  onValueChange(value: unknown[]) {
+    this.tags.set(Array.isArray(value) ? value.filter(isTag) : [])
+    this.onChange(this.tags())
   }
 
-  selected(value: unknown): void {
-    const tag = value as ITag | null
-    if (tag && !this.tags().some((item) => item.id === tag.id)) {
-      this.tags.set([...(this.tags() ?? []), tag])
-      this.onChange(this.tags())
+  readonly compareTags = (a: unknown, b: unknown) => {
+    if (!isTag(a) || !isTag(b)) {
+      return false
     }
-    this.resetComboboxSearch()
+
+    if (a.id && b.id) {
+      return a.id === b.id
+    }
+
+    return (a.name ?? '').trim().toLowerCase() === (b.name ?? '').trim().toLowerCase()
   }
 
-  submitCustomTag(value: string) {
+  readonly createTagFromInput = (value: string): ITag | null => {
     const name = value.trim()
     if (!name) {
-      this.resetComboboxSearch()
-      return
+      return null
     }
 
-    this.tags.set([
-      ...(this.tags() ?? []),
-      {
-        name,
-        color: 'blue',
-        category: this.category(),
-        organizationId: this.store.organizationId
-      }
-    ])
-    this.onChange(this.tags())
-    this.resetComboboxSearch()
+    return {
+      name,
+      color: 'blue',
+      category: this.category(),
+      organizationId: this.store.organizationId
+    }
   }
 
-  private resetComboboxSearch() {
-    this.skipNextSearchTermSync = true
-    this.searchTerm.set('')
-  }
+  readonly displayTag = (value: unknown) => (isTag(value) ? value.name ?? '' : '')
 }

@@ -2,66 +2,19 @@
   <z-form-label>
     {{ 'PAC.KEY_WORDS.Tags' | translate: {Default: 'Tags'} }}
   </z-form-label>
-  <z-chip-grid
-    aria-label="Tag selection"
-    [showEmptyState]="category() === tagCategoryEnum.INDICATOR"
-    [emptyPlaceholder]="
-      'FORM.PLACEHOLDERS.TAGS_EMPTY_HINT'
-        | translate
-          : {
-              Default: 'Use the input below to search or create tags'
-            }
-    "
-  >
-    @for (tag of tags(); track tag.id ?? tag.name) {
-      <z-chip-row [ngClass]="'bg-'+tag.color+'-100'" class="bg-blue-100" (removed)="remove(tag)">
-        {{tag.name}}
-        <button zChipRemove>
-          <z-icon zType="cancel"></z-icon>
-        </button>
-      </z-chip-row>
-    }
-  </z-chip-grid>
-
-  <z-combobox-deprecated
-    zTriggerMode="input"
-    class="w-full"
-    [value]="null"
-    [options]="comboboxOptions()"
+  <z-tag-select
+    mode="tags"
+    [value]="tags()"
+    [options]="selectOptions()"
+    [zDisabled]="disabled"
+    [allowCreate]="true"
+    [enableSuggestions]="true"
+    [searchable]="true"
+    [compareWith]="compareTags"
+    [createValueFromInput]="createTagFromInput"
+    [displayWith]="displayTag"
     [placeholder]="'PAC.ACTIONS.NewTag' | translate: { Default: 'New tag' }"
-    [disabled]="disabled"
-    [allowCustomValue]="true"
-    [zSearchTerm]="searchTerm()"
-    [zDisplayWith]="displayTag"
-    [zFilterWith]="filterTagOption"
-    (zSearchTermChange)="onSearchTermChange($event)"
-    (zComboSelected)="selected($event.value)"
-    (zCustomValueSubmit)="submitCustomTag($event)"
+    (valueChange)="onValueChange($event)"
     (zBlur)="onBlur()"
-  >
-    <ng-template zComboboxDeprecatedOption let-option let-searchTerm="searchTerm">
-      <div class="flex flex-col justify-center items-start">
-        <span
-          [ngmHighlight]="searchTerm"
-          [caseSensitive]="false"
-          customClasses="bg-transparent font-semibold text-amber-500"
-          [content]="option.data?.name"
-          class="text-base"
-        >
-          {{ option.data?.name }}
-        </span>
-        @if (option.data?.description) {
-          <span
-            class="text-sm text-slate-300"
-            [content]="option.data?.description"
-            [ngmHighlight]="searchTerm"
-            [caseSensitive]="false"
-            customClasses="bg-transparent font-semibold text-amber-500"
-          >
-            {{ option.data?.description }}
-          </span>
-        }
-      </div>
-    </ng-template>
-  </z-combobox-deprecated>
+  />
 </z-form-field>
