@@ -5,7 +5,7 @@ services:
 
   # OLAP Services
   olap:
-    image: ghcr.io/xpert-ai/ocap-olap:latest
+    image: ghcr.io/xpert-ai/xpert-olap:latest
     profiles:
       - bi
     restart: on-failure
