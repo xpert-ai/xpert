@@ -5,7 +5,7 @@ import { Repository, FindOneOptions, FindOptionsWhere } from 'typeorm'
 import { TenantAwareCrudService } from './../core/crud'
 import { Organization } from './organization.entity'
 import { OrganizationDemoCommand } from './commands'
-import { InviteStatusEnum, OrgGenerateDemoOptions } from '@metad/contracts'
+import { InviteStatusEnum, OrgGenerateDemoOptions, RolesEnum } from '@metad/contracts'
 import { Invite, UserGroup, UserOrganization } from '../core/entities/internal'
 import { RequestContext } from '../core/context'
 
@@ -84,14 +84,18 @@ export class OrganizationService extends TenantAwareCrudService<Organization> {
 	override async delete(criteria: string | FindOptionsWhere<Organization>, options?: any) {
 		const organization = await this.findOrganizationForMutation(criteria)
 
-		const memberCount = await this.userOrganizationRepository.count({
+		const memberships = await this.userOrganizationRepository.find({
 			where: {
 				tenantId: organization.tenantId,
 				organizationId: organization.id
-			}
+			},
+			relations: ['user', 'user.role']
 		})
+		const hasNonSuperAdminMembers = memberships.some(
+			(membership) => membership.user?.role?.name !== RolesEnum.SUPER_ADMIN
+		)
 
-		if (memberCount > 0) {
+		if (hasNonSuperAdminMembers) {
 			throw new BadRequestException('Cannot delete an organization that still has members.')
 		}
 
