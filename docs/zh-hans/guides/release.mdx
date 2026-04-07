@@ -1,18 +1,97 @@
-# 发布 npm 包
+# 发布 npm 包与 Docker 镜像
 
-## 升级版本号
+## Docker 镜像发布
+
+仓库会发布以下 Docker 镜像：
+
+- `ghcr.io/<owner>/xpert-api`
+- `ghcr.io/<owner>/xpert-webapp`
+- `ghcr.io/<owner>/xpert-olap`
+
+其中 `<owner>` 来自 `github.repository_owner`。在上游仓库里，这个值是 `xpert-ai`。
+
+### Push `develop`
+
+向 `develop` push 时，会为 `api` 和 `webapp` 发布 candidate 镜像：
+
+```bash
+git checkout develop
+git push origin develop
+```
+
+发布的 tag：
+
+- `develop-candidate`
+- `sha-<full_commit_sha>`
+
+`olap` 使用单独的 workflow。只有当 `.deploy/olap/**` 或 `packages/olap/**` 有变更时，或者本次 push 的提交消息里包含 `[build olap]` 时，才会发布。
+
+强制构建示例：
+
+```bash
+git commit -m "ci: refresh olap image [build olap]"
+git push origin develop
+```
+
+### Push `main`
+
+向 `main` push 时，会为 `api` 和 `webapp` 发布 production 镜像：
+
+```bash
+git checkout main
+git push origin main
+```
+
+发布的 tag：
+
+- `main`
+- `latest`
+- `sha-<full_commit_sha>`
+
+`olap` 在被单独 workflow 触发构建时，也遵循同样的 tag 规则。
+
+### 创建并 push git tag
+
+创建并 push `v3.6.0` 这类 git tag 时，会发布同名 production 镜像：
+
+```bash
+git tag v3.6.0
+git push origin v3.6.0
+```
+
+发布的 tag：
+
+- `v3.6.0`
+
+独立的 `olap` workflow 会将当前 tag 与上一个 tag 做比较。只有当这段范围内有 OLAP 相关变更，或者有提交消息包含 `[build olap]` 时，才会发布。
+
+### 从 GHCR 拉取镜像
+
+按需要部署的分支或版本拉取对应 tag：
+
+```bash
+docker pull ghcr.io/xpert-ai/xpert-api:develop-candidate
+docker pull ghcr.io/xpert-ai/xpert-webapp:main
+docker pull ghcr.io/xpert-ai/xpert-webapp:latest
+docker pull ghcr.io/xpert-ai/xpert-api:v3.6.0
+docker pull ghcr.io/xpert-ai/xpert-olap:develop-candidate
+```
+
+## 发布 npm 包
+
+### 升级版本号
 
 ```bash
 pnpm nx release patch
 ```
 
-## 构建包
+### 构建包
 
 ```bash
 pnpm nx build plugin-sdk
 ```
 
-## 发布包
+### 发布包
 
 ```bash
 pnpm nx run plugin-sdk:nx-release-publish --access public --otp=<one-time-password-if-needed>

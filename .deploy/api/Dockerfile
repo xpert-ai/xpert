@@ -119,3 +119,5 @@ EXPOSE ${PORT}
 
 ENTRYPOINT [ "sh", "./entrypoint.prod.sh" ]
 CMD [ "pm2-runtime", "main.js" ]
+
+FROM production AS candidate

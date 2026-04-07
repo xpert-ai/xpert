@@ -88,3 +88,5 @@ EXPOSE 443
 ENTRYPOINT [ "sh", "./entrypoint.prod.sh" ]
 
 CMD [ "nginx", "-g", "daemon off;" ]
+
+FROM production AS candidate
