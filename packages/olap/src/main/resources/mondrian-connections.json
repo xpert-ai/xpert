@@ -8,7 +8,7 @@
 	},
 	"mysql" : {
 		"JdbcDriver" : "com.mysql.jdbc.Driver",
-		"Jdbc" : "jdbc:mysql://localhost/dev?user=pangolin&password=12345678",
+		"Jdbc" : "jdbc:mysql://localhost/dev?user=xpert&password=12345678",
 		"Catalog" : "/test.xml",
 		"Description" : "Mysql version of test connection",
 		"UnrecognizedProperty" : "foobar",

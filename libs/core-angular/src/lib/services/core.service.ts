@@ -11,7 +11,7 @@ export interface NxThemeOptions {
   name: string
 }
 
-export const NX_THEME_OPTIONS = new InjectionToken<NxThemeOptions>('Pangolin Theme Options', {
+export const NX_THEME_OPTIONS = new InjectionToken<NxThemeOptions>('Xpert Theme Options', {
   providedIn: 'root',
   factory: NX_THEME_OPTIONS_FACTORY
 })

@@ -11,11 +11,11 @@ ENV CI=true
 
 RUN apk --update add bash jq && npm i -g npm && \
     corepack enable && corepack prepare pnpm@10.24.0 --activate
-RUN mkdir /srv/pangolin && chown -R node:node /srv/pangolin
+RUN mkdir /srv/xpert && chown -R node:node /srv/xpert
 
 USER node:node
 
-WORKDIR /srv/pangolin
+WORKDIR /srv/xpert
 
 COPY --chown=node:node legacies/adapter/package.json ./legacies/adapter/
 COPY --chown=node:node legacies/copilot/package.json ./legacies/copilot/
@@ -88,22 +88,22 @@ RUN echo "node ALL=(ALL) NOPASSWD: ALL" > /etc/sudoers.d/node
 RUN apt-get install -y python3-pip && \
     python3 -m pip install uv --break-system-packages
 
-WORKDIR /srv/pangolin
+WORKDIR /srv/xpert
 
 RUN npm install pm2 -g
 RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
 
 COPY --chown=node:node wait ./
 # COPY dist and dependencies
-COPY --chown=node:node --from=build /srv/pangolin/dist/legacies ./legacies
-COPY --chown=node:node --from=build /srv/pangolin/dist/packages ./packages
-COPY --chown=node:node --from=build /srv/pangolin/packages/contracts/dist ./packages/contracts
-COPY --chown=node:node --from=build /srv/pangolin/packages/plugin-sdk/dist ./packages/plugin-sdk
-COPY --chown=node:node --from=build /srv/pangolin/dist/apps/api .
-COPY --chown=node:node --from=build /srv/pangolin/tsconfig.base.json ./
-COPY --chown=node:node --from=build /srv/pangolin/pnpm-lock.yaml ./
-COPY --chown=node:node --from=build /srv/pangolin/pnpm-workspace.yaml ./
-COPY --chown=node:node --from=build /srv/pangolin/.npmrc ./
+COPY --chown=node:node --from=build /srv/xpert/dist/legacies ./legacies
+COPY --chown=node:node --from=build /srv/xpert/dist/packages ./packages
+COPY --chown=node:node --from=build /srv/xpert/packages/contracts/dist ./packages/contracts
+COPY --chown=node:node --from=build /srv/xpert/packages/plugin-sdk/dist ./packages/plugin-sdk
+COPY --chown=node:node --from=build /srv/xpert/dist/apps/api .
+COPY --chown=node:node --from=build /srv/xpert/tsconfig.base.json ./
+COPY --chown=node:node --from=build /srv/xpert/pnpm-lock.yaml ./
+COPY --chown=node:node --from=build /srv/xpert/pnpm-workspace.yaml ./
+COPY --chown=node:node --from=build /srv/xpert/.npmrc ./
 COPY --chown=node:node .deploy/api/package-prod.json ./package.json
 
 COPY --chown=node:node .deploy/api/entrypoint.compose.sh ./
@@ -111,7 +111,7 @@ COPY --chown=node:node .deploy/api/entrypoint.prod.sh ./
 RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh
 
 RUN pnpm install --prod --no-frozen-lockfile && \
-    touch ormlogs.log && chown -R node:node /srv/pangolin
+    touch ormlogs.log && chown -R node:node /srv/xpert
 
 USER node:node
 

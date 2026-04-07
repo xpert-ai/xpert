@@ -25,7 +25,7 @@ console.log(chalk.blueBright('Plugin Config -> process.cwd: ' + process.cwd()));
 
 // for Docker
 if (process.env.IS_DOCKER && process.env.IS_DOCKER.toLowerCase() === 'true') {
-	serverRoot = '/srv/pangolin/';
+	serverRoot = '/srv/xpert/';
 	assetPath = serverRoot + 'assets';
 	assetPublicPath = serverRoot + 'public';
 	dataPath = '/var/lib/xpert/data/'

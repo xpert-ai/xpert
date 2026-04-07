@@ -60,10 +60,10 @@ services:
     ports:
       - '${API_PORT:-3000}:3000'
     volumes:
-      - ./volumes/api/public:/srv/pangolin/public
+      - ./volumes/api/public:/srv/xpert/public
       - ./volumes/api/ms-playwright:/ms-playwright
       - ./volumes/api/sandbox/:/sandbox/
-      - ./volumes/api/plugins:/srv/pangolin/plugins
+      - ./volumes/api/plugins:/srv/xpert/plugins
       - ./volumes/api/data/:/var/lib/xpert/data/
     networks:
       - overlay

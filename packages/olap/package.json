@@ -5,7 +5,7 @@
   "scripts": {
     "build": "rimraf target && mvn install && pnpm run docker-build",
     "mvn": "mvn install",
-    "docker-build": "docker build --tag pangolin/olap .",
+    "docker-build": "docker build --tag xpert/olap .",
     "start": "sh ./run.sh",
     "debug": "sh ./debug.sh"
   },

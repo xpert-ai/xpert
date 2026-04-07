@@ -21,12 +21,12 @@ ENV NODE_OPTIONS=${NODE_OPTIONS:-"--max-old-space-size=4096"}
 RUN apk --update add bash && \
     corepack enable && corepack prepare pnpm@10.24.0 --activate && \
     # apk add --no-cache --virtual build-dependencies dos2unix gcc g++ git make python3 vips-dev && \
-    mkdir /srv/pangolin && chown -R node:node /srv/pangolin
+    mkdir /srv/xpert && chown -R node:node /srv/xpert
 
 COPY wait .deploy/api/entrypoint.prod.sh .deploy/api/entrypoint.compose.sh /
 RUN chmod +x /wait /entrypoint.compose.sh /entrypoint.prod.sh && dos2unix /entrypoint.prod.sh && dos2unix /entrypoint.compose.sh
 
-WORKDIR /srv/pangolin
+WORKDIR /srv/xpert
 
 COPY --chown=node:node package.json ./package.json
 COPY --chown=node:node pnpm-lock.yaml ./pnpm-lock.yaml
@@ -57,17 +57,17 @@ ARG HOST
 ARG PORT
 ARG DEMO
 
-WORKDIR /srv/pangolin
+WORKDIR /srv/xpert
 
 COPY --chown=nginx:nginx --from=build /wait ./
 COPY --chown=nginx:nginx .deploy/webapp/entrypoint.compose.sh ./
 COPY --chown=nginx:nginx .deploy/webapp/entrypoint.prod.sh ./
 COPY --chown=nginx:nginx .deploy/webapp/nginx.compose.conf /etc/nginx/conf.d/compose.conf.template
 COPY --chown=nginx:nginx .deploy/webapp/nginx.prod.conf /etc/nginx/conf.d/prod.conf.template
-COPY --chown=nginx:nginx --from=build /srv/pangolin/dist/apps/cloud .
-COPY --chown=nginx:nginx --from=build /srv/pangolin/node_modules/@xpert-ai/chatkit-ui/dist/app ./chatkit
+COPY --chown=nginx:nginx --from=build /srv/xpert/dist/apps/cloud .
+COPY --chown=nginx:nginx --from=build /srv/xpert/node_modules/@xpert-ai/chatkit-ui/dist/app ./chatkit
 
-RUN sed -i 's#"/assets/#"/chatkit/assets/#g' /srv/pangolin/chatkit/index.html
+RUN sed -i 's#"/assets/#"/chatkit/assets/#g' /srv/xpert/chatkit/index.html
 
 RUN chmod +x wait entrypoint.compose.sh entrypoint.prod.sh && \
     chmod a+rw /etc/nginx/conf.d/compose.conf.template /etc/nginx/conf.d/prod.conf.template
