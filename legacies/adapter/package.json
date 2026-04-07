@@ -17,5 +17,9 @@
     "@types/mssql": "9.1.7",
     "@types/mysql": "^2.15.20",
     "@types/pg": "^8.6.2"
+  },
+  "peerDependencies": {
+    "@metad/contracts": "*",
+    "@xpert-ai/plugin-sdk": "^3.8.0"
   }
 }

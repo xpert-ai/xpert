@@ -11,6 +11,7 @@
         "main": "legacies/adapter/src/index.ts",
         "tsConfig": "legacies/adapter/tsconfig.lib.json",
         "project": "legacies/adapter/package.json",
+        "buildLibsFromSource": false,
         "assets": [
           {
             "glob": "README.md",
@@ -19,7 +20,11 @@
           }
         ],
         "compiler": "swc",
-        "format": ["cjs", "esm"]
+        "format": ["cjs", "esm"],
+        "external": [
+          "@metad/contracts",
+          "@xpert-ai/plugin-sdk"
+        ]
       }
     },
     "publish": {

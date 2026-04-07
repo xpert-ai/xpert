@@ -12,6 +12,7 @@
   "main": "./src/index.js",
   "typings": "./src/index.d.ts",
   "peerDependencies": {
+    "@metad/store": "*",
     "rxjs": ">=7.4.0",
     "uuid": "^8.3.2",
     "idb-keyval": "^6.2.0",
