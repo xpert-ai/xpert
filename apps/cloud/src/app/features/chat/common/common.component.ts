@@ -1,14 +1,12 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, effect, inject, signal } from '@angular/core'
 import { Router, RouterModule } from '@angular/router'
-import { firstValueFrom } from 'rxjs'
-import { AiAssistantService, AssistantCode, type IXpert } from '../../../@core'
-import { EmojiAvatarComponent } from '../../../@shared/avatar'
+import { AssistantCode } from '../../../@core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ChatKit, type ChatKitControl } from '@xpert-ai/chatkit-angular'
 import { getAssistantRegistryItem } from '../../assistant/assistant.registry'
 import { injectAssistantChatkitRuntime } from '../../assistant/assistant-chatkit.runtime'
-import { ChatHomeService } from '../home.service'
+import { clearChatCommonPendingInput, consumeChatCommonPendingInput } from './pending-input.util'
 
 type PendingCommonConversation = {
   id: number
@@ -19,166 +17,12 @@ type PendingCommonConversation = {
 @Component({
   standalone: true,
   selector: 'pac-chat-common-assistant',
-  imports: [CommonModule, RouterModule, TranslateModule, ChatKit, EmojiAvatarComponent],
+  imports: [CommonModule, RouterModule, TranslateModule, ChatKit],
   changeDetection: ChangeDetectionStrategy.OnPush,
-  template: `
-    <div class="flex h-full flex-col gap-4 overflow-hidden p-4">
-      <section class="rounded-3xl border border-divider-regular bg-components-card-bg shadow-sm">
-        <div class="flex flex-col gap-5 border-b border-divider-regular px-5 py-5 xl:flex-row xl:items-start xl:justify-between">
-          <div class="min-w-0 flex-1">
-            <div class="text-xs uppercase tracking-[0.24em] text-text-tertiary">
-              {{ definition.labelKey | translate: { Default: definition.defaultLabel } }}
-            </div>
-
-            <div class="mt-3 flex items-start gap-4">
-              @if (activeAssistant()) {
-                <emoji-avatar
-                  [avatar]="activeAssistant()?.avatar"
-                  class="mt-1 h-12 w-12 shrink-0 overflow-hidden rounded-2xl border border-divider-regular shadow-sm"
-                />
-              } @else {
-                <div
-                  class="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle text-text-secondary"
-                >
-                  <i class="ri-robot-line text-xl"></i>
-                </div>
-              }
-
-              <div class="min-w-0">
-                <div class="text-2xl font-semibold text-text-primary sm:text-3xl">
-                  {{ displayTitle() || (definition.titleKey | translate: { Default: definition.defaultTitle }) }}
-                </div>
-                <p class="mt-2 max-w-3xl text-sm text-text-secondary">
-                  {{
-                    displayDescription()
-                      || (definition.descriptionKey
-                        | translate
-                          : {
-                              Default: definition.defaultDescription
-                            })
-                  }}
-                </p>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex shrink-0 items-center gap-3">
-            <button
-              type="button"
-              class="inline-flex items-center rounded-full border border-divider-regular px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
-              (click)="newConv()"
-            >
-              {{ 'PAC.Chat.NewChat' | translate: { Default: 'New Chat' } }}
-            </button>
-
-            <a
-              class="inline-flex items-center rounded-full border border-divider-regular px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-hover-bg"
-              [routerLink]="assistantsRoute"
-            >
-              {{ 'PAC.Assistant.OpenSettings' | translate: { Default: 'Open Assistant Settings' } }}
-            </a>
-          </div>
-        </div>
-
-        <div class="grid gap-3 px-5 py-5 md:grid-cols-3">
-          <div class="rounded-2xl border border-divider-regular bg-background-default-subtle p-4">
-            <div class="text-xs uppercase tracking-[0.18em] text-text-tertiary">
-              {{ 'PAC.Assistant.EffectiveSource' | translate: { Default: 'Effective Source' } }}
-            </div>
-            <div class="mt-2 text-sm font-medium text-text-primary">
-              {{ sourceLabel() | translate: { Default: sourceLabelDefault() } }}
-            </div>
-          </div>
-
-          <div class="rounded-2xl border border-divider-regular bg-background-default-subtle p-4">
-            <div class="text-xs uppercase tracking-[0.18em] text-text-tertiary">
-              {{ 'PAC.Assistant.EffectiveStatus' | translate: { Default: 'Effective Status' } }}
-            </div>
-            <div class="mt-2 text-sm font-medium text-text-primary">
-              {{ statusLabel() | translate: { Default: statusLabelDefault() } }}
-            </div>
-          </div>
-
-          <div class="rounded-2xl border border-divider-regular bg-background-default-subtle p-4">
-            <div class="text-xs uppercase tracking-[0.18em] text-text-tertiary">
-              {{ 'PAC.Assistant.ActiveAssistant' | translate: { Default: 'Active Assistant' } }}
-            </div>
-            <div class="mt-2 text-sm font-medium text-text-primary">
-              {{ assistantIdentity() || ('PAC.Assistant.NotConfigured' | translate: { Default: 'Not Configured' }) }}
-            </div>
-          </div>
-        </div>
-      </section>
-
-      <section
-        class="min-h-0 flex-1 overflow-hidden rounded-3xl border border-divider-regular bg-components-card-bg shadow-sm"
-      >
-        @switch (status()) {
-          @case ('ready') {
-            <xpert-chatkit class="block h-full min-h-0" [control]="control()!" />
-          }
-          @case ('loading') {
-            <div class="flex h-full min-h-0 items-center justify-center px-6 text-sm text-text-secondary">
-              {{ 'PAC.Xpert.AssistantLoading' | translate: { Default: 'Preparing assistant…' } }}
-            </div>
-          }
-          @case ('disabled') {
-            <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
-              <i class="ri-pause-circle-line text-3xl text-text-tertiary"></i>
-              <div class="mt-4 text-base font-medium text-text-primary">
-                {{ 'PAC.Assistant.DisabledTitle' | translate: { Default: 'Assistant disabled' } }}
-              </div>
-              <div class="mt-2 max-w-sm text-sm text-text-secondary">
-                {{
-                  'PAC.Assistant.DisabledDesc'
-                    | translate
-                      : { Default: 'This assistant is configured but currently disabled for the active organization.' }
-                }}
-              </div>
-            </div>
-          }
-          @case ('error') {
-            <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
-              <i class="ri-error-warning-line text-3xl text-text-tertiary"></i>
-              <div class="mt-4 text-base font-medium text-text-primary">
-                {{ 'PAC.Assistant.LoadFailed' | translate: { Default: 'Failed to load assistant configuration.' } }}
-              </div>
-              <div class="mt-2 max-w-sm text-sm text-text-secondary">
-                {{
-                  'PAC.Assistant.ErrorDesc'
-                    | translate
-                      : { Default: 'Check the assistant configuration and try again from the common chat page.' }
-                }}
-              </div>
-            </div>
-          }
-          @default {
-            <div class="flex h-full min-h-0 flex-col items-center justify-center px-6 text-center">
-              <i class="ri-settings-3-line text-3xl text-text-tertiary"></i>
-              <div class="mt-4 text-base font-medium text-text-primary">
-                {{ 'PAC.Assistant.MissingTitle' | translate: { Default: 'Assistant not configured' } }}
-              </div>
-              <div class="mt-2 max-w-sm text-sm text-text-secondary">
-                {{
-                  'PAC.Assistant.MissingDesc'
-                    | translate
-                      : {
-                          Default: 'Configure the Common assistant in Settings / Assistants before starting a conversation here.'
-                        }
-                }}
-              </div>
-            </div>
-          }
-        }
-      </section>
-    </div>
-  `
+  templateUrl: './common.component.html',
 })
 export class ChatCommonAssistantComponent {
   readonly #router = inject(Router)
-  readonly #homeService = inject(ChatHomeService)
-  readonly #assistantService = inject(AiAssistantService)
-  #assistantRequestId = 0
 
   readonly definition = getAssistantRegistryItem(AssistantCode.CHAT_COMMON) ?? {
     code: AssistantCode.CHAT_COMMON,
@@ -200,84 +44,20 @@ export class ChatCommonAssistantComponent {
     titleKey: this.definition.titleKey,
     titleDefault: this.definition.defaultTitle,
     history: {
-      enabled: false,
+      enabled: true,
       showDelete: false,
       showRename: false
     }
   })
 
   readonly control = this.runtime.control
-  readonly config = this.runtime.config
   readonly status = this.runtime.status
-  readonly xperts = this.#homeService.sortedXperts
-  readonly assistant = signal<IXpert | null>(null)
-  readonly activeAssistant = computed<IXpert | null>(() => {
-    const assistantId = this.config()?.assistantId
-    return this.assistant() ?? (assistantId ? this.xperts()?.find((xpert) => xpert.id === assistantId) ?? null : null)
-  })
-  readonly displayTitle = computed(() => this.activeAssistant()?.title || this.activeAssistant()?.name || null)
-  readonly displayDescription = computed(() => this.activeAssistant()?.description || null)
-  readonly assistantIdentity = computed(
-    () => this.activeAssistant()?.title || this.activeAssistant()?.name || this.config()?.assistantId || null
-  )
-  readonly sourceLabel = computed(() => {
-    switch (this.config()?.sourceScope) {
-      case 'organization':
-        return 'PAC.Assistant.OrganizationOverride'
-      case 'tenant':
-        return 'PAC.Assistant.TenantDefault'
-      default:
-        return 'PAC.Assistant.NotConfigured'
-    }
-  })
-  readonly sourceLabelDefault = computed(() => {
-    switch (this.config()?.sourceScope) {
-      case 'organization':
-        return 'Organization Override'
-      case 'tenant':
-        return 'Tenant Default'
-      default:
-        return 'Not Configured'
-    }
-  })
-  readonly statusLabel = computed(() => {
-    switch (this.status()) {
-      case 'ready':
-        return 'PAC.Assistant.Enabled'
-      case 'disabled':
-        return 'PAC.KEY_WORDS.Disabled'
-      case 'loading':
-        return 'PAC.Xpert.AssistantLoading'
-      case 'error':
-        return 'PAC.Assistant.LoadFailed'
-      default:
-        return 'PAC.Assistant.NotConfigured'
-    }
-  })
-  readonly statusLabelDefault = computed(() => {
-    switch (this.status()) {
-      case 'ready':
-        return 'Enabled'
-      case 'disabled':
-        return 'Disabled'
-      case 'loading':
-        return 'Preparing assistant…'
-      case 'error':
-        return 'Failed to load assistant configuration.'
-      default:
-        return 'Not Configured'
-    }
-  })
 
   constructor() {
-    effect(() => {
-      void this.loadAssistant(this.config()?.assistantId ?? null)
-    })
-
     effect((onCleanup) => {
       const pendingConversation = this.pendingConversation()
       const control = this.control()
-
+      
       if (
         !pendingConversation ||
         this.status() !== 'ready' ||
@@ -315,31 +95,18 @@ export class ChatCommonAssistantComponent {
     await control.focusComposer()
   }
 
-  private async loadAssistant(assistantId: string | null) {
-    const requestId = ++this.#assistantRequestId
-
-    if (!assistantId) {
-      this.assistant.set(null)
-      return
-    }
-
-    const localAssistant = this.xperts()?.find((xpert) => xpert.id === assistantId) ?? null
-    this.assistant.set(localAssistant)
-
-    try {
-      const assistant = await firstValueFrom(this.#assistantService.getById(assistantId))
-      if (requestId === this.#assistantRequestId) {
-        this.assistant.set(assistant)
-      }
-    } catch {
-      if (requestId === this.#assistantRequestId) {
-        this.assistant.set(localAssistant)
-      }
-    }
-  }
-
   private readPendingConversation(): PendingCommonConversation | null {
-    const input = this.#router.getCurrentNavigation()?.extras.state?.['input']
+    const navigationInput = this.readPendingInputFromState(this.#router.getCurrentNavigation()?.extras.state)
+    if (navigationInput) {
+      clearChatCommonPendingInput()
+      return {
+        id: Date.now(),
+        text: navigationInput,
+        attempts: 0
+      }
+    }
+
+    const input = consumeChatCommonPendingInput()
     if (typeof input !== 'string' || !input.trim()) {
       return null
     }
@@ -349,6 +116,15 @@ export class ChatCommonAssistantComponent {
       text: input.trim(),
       attempts: 0
     }
+  }
+
+  private readPendingInputFromState(state: unknown): string | null {
+    if (!state || typeof state !== 'object' || !('input' in state)) {
+      return null
+    }
+
+    const { input } = state
+    return typeof input === 'string' && input.trim() ? input.trim() : null
   }
 
   private async beginPendingConversation(pendingConversation: PendingCommonConversation, control: ChatKitControl) {
@@ -365,7 +141,7 @@ export class ChatCommonAssistantComponent {
 
     try {
       await this.waitForChatkitMount(control)
-      await control.setThreadId(null)
+      // await control.setThreadId(null)
       await control.sendUserMessage({
         text: pendingConversation.text,
         newThread: true
