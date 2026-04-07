@@ -41,6 +41,7 @@ RUN pnpm install --no-frozen-lockfile
 COPY nx.json ./
 COPY tsconfig.base.json ./
 COPY packages ./packages
+COPY legacies ./legacies
 COPY libs ./libs
 COPY apps/cloud ./apps/cloud
 
