@@ -1,5 +1,4 @@
 import { IApiPrincipal } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
 import { ForbiddenException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { uniq } from 'lodash'
@@ -14,6 +13,7 @@ import {
     SelectQueryBuilder
 } from 'typeorm'
 import { Xpert } from './xpert.entity'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 type PublishedXpertQueryOptions = {
     where?: Partial<Pick<Xpert, 'id' | 'slug' | 'workspaceId' | 'type' | 'latest' | 'version'>>

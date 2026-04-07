@@ -6,10 +6,12 @@ import { ApiKeyService } from '../api-key/api-key.service'
 import {
 	applyTenantScopeHeaders,
 	resolveApiKeyRequestedOrganizationId,
-	resolveApiKeyRequestedUserId
 } from '../api-key/api-key-principal'
 import { SecretTokenService } from './secret-token.service'
 
+/**
+ * The secretToken belongs to the user, but apiKey belongs to system.
+ */
 @Injectable()
 export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secret') {
 	constructor(
@@ -34,19 +36,18 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 			token = authHeader.split(' ')[1]
 		}
 
-		const requestedUserId = resolveApiKeyRequestedUserId(req)
 		const requestedOrganizationId = resolveApiKeyRequestedOrganizationId(req)
 
 		this.validateToken(token)
-			.then(async (apiKey) => {
-				if (!apiKey?.createdBy) {
+			.then(async ({ apiKey, secretToken }) => {
+				if (!secretToken?.createdById) {
 					return this.fail(new UnauthorizedException('Invalid token'))
 				}
 
 				applyTenantScopeHeaders(req)
 				this.success(
-					await this.apiKeyService.resolvePrincipal(apiKey, {
-						requestedUserId,
+					await this.apiKeyService.resolvePrincipal(apiKey || secretToken, {
+						requestedUserId: secretToken.createdById,
 						requestedOrganizationId,
 						principalType: 'client_secret'
 					})
@@ -67,16 +68,16 @@ export class SecretTokenStrategy extends PassportStrategy(Strategy, 'client-secr
 			throw new UnauthorizedException('Token expired')
 		}
 
-		const apiKey = await this.apiKeyService.findOne(secretToken.entityId, {
+		const {record: apiKey} = await this.apiKeyService.findOneOrFailByIdString(secretToken.entityId, {
 			relations: ['createdBy', 'user']
 		})
-
-		if (apiKey.validUntil && apiKey.validUntil <= new Date()) {
-			throw new UnauthorizedException('ApiKey expired')
+		if (apiKey) {
+			if (apiKey.validUntil && apiKey.validUntil <= new Date()) {
+				throw new UnauthorizedException('ApiKey expired')
+			}
+			await this.apiKeyService.update(apiKey.id, { lastUsedAt: new Date() })
 		}
 
-		await this.apiKeyService.update(apiKey.id, { lastUsedAt: new Date() })
-
-		return apiKey
+		return {apiKey, secretToken}
 	}
 }

@@ -7,7 +7,7 @@ import {
   PermissionsEnum,
   RolesEnum
 } from '@metad/contracts'
-import type { RequestScopeLevel } from '@metad/contracts'
+import type { IApiPrincipal, RequestScopeLevel } from '@metad/contracts'
 import { BadRequestException, HttpException, HttpStatus } from '@nestjs/common'
 import type { IncomingMessage, ServerResponse } from 'http'
 import { AsyncLocalStorage } from 'node:async_hooks'
@@ -31,6 +31,15 @@ export class RequestContext {
     return session
   }
 
+  static currentApiKey(): IApiKey | null {
+		return RequestContext.currentApiPrincipal()?.apiKey ?? null;
+	}
+
+	static currentApiPrincipal(): IApiPrincipal | null {
+		const user = RequestContext.currentUser() as IApiPrincipal | null;
+		return user?.apiKey ? user : null;
+	}
+
   static currentRequest(): IncomingMessage {
     const requestContext = RequestContext.currentRequestContext()
 
@@ -39,11 +48,6 @@ export class RequestContext {
     }
 
     return null
-  }
-
-  static currentApiKey(): IApiKey | null {
-    const user = RequestContext.currentUser() as IUser & { apiKey?: IApiKey }
-    return user?.apiKey ?? null
   }
 
   static currentTenantId(): string {

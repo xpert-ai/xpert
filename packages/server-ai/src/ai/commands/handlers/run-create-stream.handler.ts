@@ -8,7 +8,6 @@ import {
     TChatRequest as TChatRequestV2,
     XpertAgentExecutionStatusEnum
 } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
 import { TChatRequest as LegacyTChatRequest } from '@xpert-ai/chatkit-types'
 import { BadRequestException, ForbiddenException, Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
@@ -23,8 +22,8 @@ import { PublishedXpertAccessService } from '../../../xpert'
 import { XpertChatCommand } from '../../../xpert/commands/chat.command'
 import { XpertAgentExecutionUpsertCommand } from '../../../xpert-agent-execution/commands/upsert.command'
 import { RunCreateStreamCommand } from '../run-create-stream.command'
-import type { components } from '../../schemas/agent-protocol-schema'
 import { RedisSseStreamService } from '../../stream/redis-sse.service'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 const humanInputSchema = z.object({}).passthrough()
 
