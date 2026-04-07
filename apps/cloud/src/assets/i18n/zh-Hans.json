@@ -675,6 +675,7 @@
       "MissingTitle": "助手未配置",
       "MissingDesc": "请先在“设置 / 助手”中完成助手配置，然后再在这里开始对话。",
       "OpenSettings": "打开助手设置",
+      "ChangeSettings": "更改设置",
       "ErrorDesc": "请检查助手配置后，再从通用聊天页面重试。",
       "ChatCommon": {
         "Label": "通用助手",

@@ -10,7 +10,7 @@ import { ChatProjectConversationComponent } from './project/conversation/convers
 import { ChatProjectComponent } from './project/project.component'
 import { ChatBiComponent } from './chatbi/chatbi.component'
 import { ChatCommonAssistantComponent } from './common/common.component'
-import { ChatCommonWelcomeComponent } from './common/welcome.component'
+import { ChatCommonWelcomeComponent } from './welcome/welcome.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
