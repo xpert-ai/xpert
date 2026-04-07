@@ -42,7 +42,10 @@ RUN pnpm install --no-frozen-lockfile
 COPY --chown=node:node nx.json ./
 COPY --chown=node:node tsconfig.base.json ./
 COPY --chown=node:node packages ./packages
+COPY --chown=node:node legacies/adapter ./legacies/adapter
+COPY --chown=node:node legacies/copilot ./legacies/copilot
 COPY --chown=node:node apps/api ./apps/api
+RUN rm -rf packages/angular packages/ui
 
 # Reinstall built-in plugins dependencies
 RUN pnpm install --no-frozen-lockfile
@@ -92,6 +95,7 @@ RUN corepack enable && corepack prepare pnpm@10.24.0 --activate
 
 COPY --chown=node:node wait ./
 # COPY dist and dependencies
+COPY --chown=node:node --from=build /srv/pangolin/dist/legacies ./legacies
 COPY --chown=node:node --from=build /srv/pangolin/dist/packages ./packages
 COPY --chown=node:node --from=build /srv/pangolin/packages/contracts/dist ./packages/contracts
 COPY --chown=node:node --from=build /srv/pangolin/packages/plugin-sdk/dist ./packages/plugin-sdk
