@@ -1,5 +1,5 @@
 import { Dialog } from '@angular/cdk/dialog'
-import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
+import { ChangeDetectionStrategy, Component, computed, effect, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
 import { injectOrganization, Store } from '@metad/cloud/state'
@@ -29,7 +29,7 @@ import { UserMutationComponent, UserUploadComponent } from '../../../@shared/use
   changeDetection: ChangeDetectionStrategy.OnPush,
   imports: [SharedModule, SharedUiModule]
 })
-export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseComponent {
+export class PACUsersComponent extends TranslationBaseComponent {
   routeAnimationsElements = ROUTE_ANIMATIONS_ELEMENTS
   userLabel = userLabel
 
@@ -40,8 +40,6 @@ export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseC
   private readonly permissionsService = inject(NgxPermissionsService)
   readonly organization = injectOrganization()
 
-  openedLinks = signal<T[]>([])
-  currentLink = signal<T | null>(null)
   readonly invitedEvent = new Subject<void>()
 
   readonly activeScope = toSignal(this.store.selectActiveScope(), {
@@ -80,28 +78,8 @@ export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseC
 
     effect(
       () => {
-        if (this.currentLink()) {
-          const links = this.openedLinks()
-          const index = links.findIndex((item) => item.id === this.currentLink().id)
-          if (index > -1) {
-            if (links[index] !== this.currentLink()) {
-              this.openedLinks.set([...links.slice(0, index), this.currentLink(), ...links.slice(index + 1)])
-            }
-          } else {
-            this.openedLinks.set([...links, this.currentLink()])
-          }
-        }
-      }
-    )
-
-    effect(
-      () => {
         const scopeLevel = this.activeScope().level
         const childPath = this._route.firstChild?.snapshot.routeConfig?.path ?? ''
-
-        if (scopeLevel !== RequestScopeLevel.TENANT && this.currentLink()) {
-          this.currentLink.set(null)
-        }
 
         const shouldResetToList =
           (scopeLevel === RequestScopeLevel.TENANT && childPath === 'invites') ||
@@ -117,22 +95,6 @@ export class PACUsersComponent<T extends IUser = IUser> extends TranslationBaseC
       },
       { allowSignalWrites: true }
     )
-  }
-
-  trackById(index: number, item: T) {
-    return item?.id
-  }
-
-  setCurrentLink(link: T) {
-    this.currentLink.set(link)
-  }
-
-  removeOpenedLink(event: Event, link: T) {
-    event.preventDefault()
-    event.stopPropagation()
-    this.currentLink.set(null)
-    this.openedLinks.set(this.openedLinks().filter((item) => item.id !== link.id))
-    this.router.navigate(['.'], { relativeTo: this._route })
   }
 
   navUser(user: IUser) {

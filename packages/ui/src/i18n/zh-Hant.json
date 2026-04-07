@@ -22,5 +22,8 @@
   },
   "select": {
     "moreItemsSelected_other": "還有 {{count}} 項已選擇"
+  },
+  "chipGrid": {
+    "emptyPlaceholder": "選擇或添加項目"
   }
 }

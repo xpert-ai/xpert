@@ -49,19 +49,6 @@
         {{ 'PAC.ACTIONS.INVITE' | translate: {Default: "Invite"} }}
       </span>
     }
-
-  @if (isTenantScope()) {
-    @for (link of openedLinks(); track link.id) {
-      <span z-tab-link [routerLink]="[link.id]"
-          [active]="link.id === currentLink()?.id">
-          <z-icon class="mr-1" zSize="default" zType="face"></z-icon>
-          {{ userLabel(link) }}
-          <button z-button zType="ghost" zSize="icon" zShape="circle" class="pac-tab-close" displayDensity="compact" (click)="removeOpenedLink($event, link)">
-              <z-icon zType="cancel"></z-icon>
-          </button>
-      </span>
-    }
-  }
   </nav>
 </div>
 

@@ -26,8 +26,9 @@ import { OrgAvatarComponent, OrgAvatarEditorComponent } from '@cloud/app/@shared
 import { TagMaintainComponent } from '@cloud/app/@shared/tag'
 import { CommonModule } from '@angular/common'
 import { OrganizationMembersComponent } from './organization-members/organization-members.component'
+import { OrganizationUserGroupsComponent } from './organization-user-groups/organization-user-groups.component'
 
-type OrganizationDetailsTab = 'general' | 'members' | 'controls' | 'tags' | 'demo'
+type OrganizationDetailsTab = 'general' | 'members' | 'user-groups' | 'controls' | 'tags' | 'demo'
 
 @Component({
   imports: [
@@ -49,7 +50,8 @@ type OrganizationDetailsTab = 'general' | 'members' | 'controls' | 'tags' | 'dem
     OrgAvatarComponent,
     NgmTableComponent,
     TagMaintainComponent,
-    OrganizationMembersComponent
+    OrganizationMembersComponent,
+    OrganizationUserGroupsComponent
   ],
   selector: 'pac-organizations',
   templateUrl: './organizations.component.html',

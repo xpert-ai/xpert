@@ -1,5 +1,4 @@
-
-import { Component, effect, inject, model, OnDestroy, signal } from '@angular/core'
+import { Component, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 
@@ -13,9 +12,7 @@ import { of } from 'rxjs'
 import { distinctUntilChanged, filter, map, startWith, switchMap } from 'rxjs/operators'
 import { getErrorMessage, injectToastr, RolesEnum, routeAnimations } from '../../../../@core'
 import { PACUserOrganizationsComponent } from '../organizations/organizations.component'
-import { PACUserGroupsComponent } from '../user-groups/user-groups.component'
 import { UserBasicComponent } from '../user-basic/user-basic.component'
-import { PACUsersComponent } from '../users.component'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({
@@ -31,19 +28,18 @@ import { ZardButtonComponent } from '@xpert-ai/headless-ui'
     NgmSpinComponent,
     UserBasicComponent,
     UserChangePasswordFormComponent,
-    PACUserOrganizationsComponent,
-    PACUserGroupsComponent
+    PACUserOrganizationsComponent
   ]
 })
-export class PACEditUserComponent implements OnDestroy {
+export class PACEditUserComponent {
   RolesEnum = RolesEnum
+  readonly userLabel = userLabel
 
   readonly store = inject(Store)
   private userService = inject(UsersService)
   private route = inject(ActivatedRoute)
   private router = inject(Router)
   private toastr = injectToastr()
-  private usersComponent = inject(PACUsersComponent)
   readonly #translate = inject(TranslateService)
   readonly confirmDelete = injectConfirmDelete()
 
@@ -62,12 +58,8 @@ export class PACEditUserComponent implements OnDestroy {
 
   readonly newPassword = model<{ password: string; confirmPassword: string }>()
 
-  constructor() {
-    effect(
-      () => {
-        this.usersComponent.setCurrentLink(this.user())
-      }
-    )
+  backToList() {
+    this.router.navigate(['/settings/users'])
   }
 
   navigate(url) {
@@ -116,9 +108,5 @@ export class PACEditUserComponent implements OnDestroy {
         this.toastr.error(getErrorMessage(err))
       }
     }
-  }
-
-  ngOnDestroy(): void {
-    this.usersComponent.setCurrentLink(null)
   }
 }

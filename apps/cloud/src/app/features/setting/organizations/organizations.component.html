@@ -292,6 +292,9 @@
             <button z-tab-link type="button" [active]="selectedTab() === 'members'" (click)="selectedTab.set('members')">
               {{ 'PAC.KEY_WORDS.Members' | translate: { Default: 'Members' } }}
             </button>
+            <button z-tab-link type="button" [active]="selectedTab() === 'user-groups'" (click)="selectedTab.set('user-groups')">
+              {{ 'PAC.UserGroup.Title' | translate: { Default: 'User Groups' } }}
+            </button>
             <button z-tab-link type="button" [active]="selectedTab() === 'controls'" (click)="selectedTab.set('controls')">
               {{ 'PAC.Organization.TabControls' | translate: { Default: 'Controls' } }}
             </button>
@@ -454,6 +457,10 @@
                 [organizationId]="selectedOrganizationId()"
                 [canEdit]="canManageSelectedMembers()"
               />
+            }
+
+            @case ('user-groups') {
+              <pac-organization-user-groups class="w-full" [organizationId]="selectedOrganizationId()" />
             }
 
             @case ('controls') {

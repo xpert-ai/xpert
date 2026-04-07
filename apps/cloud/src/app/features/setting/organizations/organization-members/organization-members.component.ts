@@ -83,6 +83,9 @@ export class OrganizationMembersComponent extends TranslationBaseComponent {
     const value = await firstValueFrom(
       this.dialog.open<{ users: IUser[] }>(UserRoleSelectComponent, {
         data: {
+          emptyHint: this.getTranslation('FORM.PLACEHOLDERS.MEMBERS_EMPTY_HINT', {
+            Default: 'Use the input on the right to search and add members'
+          }),
           searchOptions: {
             organizationId,
             membership: 'non-members'

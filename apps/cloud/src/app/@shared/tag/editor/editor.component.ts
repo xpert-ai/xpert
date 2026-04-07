@@ -49,6 +49,8 @@ import { NgmFieldColor } from '@metad/ocap-angular/core'
   ]
 })
 export class TagEditorComponent implements ControlValueAccessor {
+  readonly tagCategoryEnum = TagCategoryEnum
+
   private tagService = inject(TagService)
   private store = inject(Store)
   private skipNextSearchTermSync = false

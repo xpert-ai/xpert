@@ -3,11 +3,12 @@ import { Component, Input, OnInit, forwardRef } from '@angular/core'
 import { ControlValueAccessor, FormControl, ReactiveFormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
 import { distinctUntilChanged } from 'rxjs'
 import { NgmFieldAppearance, NgmFieldColor } from "@metad/ocap-angular/core";
+import { TranslateModule } from '@ngx-translate/core'
 import { ZardChipInputEvent, ZardChipsImports, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
-  imports: [...ZardChipsImports, ...ZardFormImports, ZardIconComponent, ZardInputDirective, ReactiveFormsModule],
+  imports: [...ZardChipsImports, ...ZardFormImports, ZardIconComponent, ZardInputDirective, ReactiveFormsModule, TranslateModule],
   selector: 'pac-form-field-emails',
   templateUrl: 'emails.component.html',
   providers: [
