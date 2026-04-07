@@ -16,7 +16,7 @@
     "@nestjs/config": "*",
     "@nestjs/core": ">=10",
     "@nestjs/typeorm": "*",
-    "@xpert-ai/plugin-sdk": "^3.8.0",
+    "@xpert-ai/plugin-sdk": "^3.8.4",
     "typeorm": "*",
     "zod": ">=3.22.4"
   }
