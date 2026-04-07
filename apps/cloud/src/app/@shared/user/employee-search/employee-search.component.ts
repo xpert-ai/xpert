@@ -3,23 +3,22 @@ import { Component, Inject } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
 import {
   ZardButtonComponent,
-  ZardComboboxDeprecatedComponent,
-  ZardComboboxDeprecatedOptionTemplateDirective,
   ZardFormImports,
-  ZardIconComponent,
   ZardLoaderComponent,
-  ZardChipsImports,
-  type ZardComboboxDeprecatedOption,
+  ZardTagSelectComponent,
   Z_MODAL_DATA,
   ZardDialogRef
 } from '@xpert-ai/headless-ui'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { catchError, debounceTime, EMPTY, filter, map, of, switchMap, tap } from 'rxjs'
 import { EmployeesService, IEmployee } from '../../../@core'
 import { userLabel } from '../../pipes'
 import { SharedModule } from '../../shared.module'
+
+function isEmployee(value: unknown): value is IEmployee {
+  return !!value && typeof value === 'object' && 'user' in value && 'userId' in value && 'isActive' in value && 'tags' in value
+}
 
 @Component({
   standalone: true,
@@ -29,24 +28,17 @@ import { SharedModule } from '../../shared.module'
     FormsModule,
     ReactiveFormsModule,
     ZardButtonComponent,
-    ZardComboboxDeprecatedComponent,
-    ZardComboboxDeprecatedOptionTemplateDirective,
+    ZardTagSelectComponent,
     ...ZardFormImports,
-    ...ZardChipsImports,
-    ZardIconComponent,
     ZardLoaderComponent,
     TranslateModule,
-    ButtonGroupDirective,
-    NgmCommonModule
+    ButtonGroupDirective
   ],
   selector: 'pac-employee-search',
   templateUrl: 'employee-search.component.html',
   styleUrls: ['employee-search.component.scss']
 })
 export class EmployeeSelectComponent {
-  private skipNextSearchTermSync = false
-  userLabel = userLabel
-
   role = null
   users: IEmployee[] = []
   loading = false
@@ -89,33 +81,20 @@ export class EmployeeSelectComponent {
     this.role = data?.role
   }
 
-  remove(user: IEmployee): void {
-    const index = this.users.indexOf(user)
-    if (index >= 0) {
-      this.users.splice(index, 1)
-    }
-  }
-
   onSearchTermChange(value: string) {
-    if (this.skipNextSearchTermSync) {
-      this.skipNextSearchTermSync = false
-      this.searchControl.setValue('', { emitEvent: false })
-      return
-    }
-
     this.searchControl.setValue(value)
   }
 
-  selected(value: unknown): void {
-    const user = value as IEmployee | null
-    if (user && !this.users.find((item) => item.id === user.id)) {
-      this.users.push(user)
-    }
-    this.resetSearch()
+  onUsersChange(value: unknown[]) {
+    this.users = Array.isArray(value) ? value.filter(isEmployee) : []
   }
 
-  displayUser(_option: ZardComboboxDeprecatedOption | null, value: unknown) {
-    return value ? userLabel((value as IEmployee).user) : ''
+  readonly displayUser = (value: unknown) => {
+    if (!isEmployee(value)) {
+      return ''
+    }
+
+    return userLabel(value.user)
   }
 
   onApply() {
@@ -125,8 +104,5 @@ export class EmployeeSelectComponent {
     })
   }
 
-  private resetSearch() {
-    this.skipNextSearchTermSync = true
-    this.searchControl.setValue('', { emitEvent: false })
-  }
+  readonly compareUsers = (a: unknown, b: unknown) => isEmployee(a) && isEmployee(b) && a.id === b.id
 }

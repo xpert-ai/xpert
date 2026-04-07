@@ -1,40 +1,14 @@
 <z-form-field class="w-full" [appearance]="appearance">
   <z-form-label>{{ label }}</z-form-label>
-
-  <z-chip-grid
-    #chipGrid
-    [attr.aria-label]="label"
-    [showEmptyState]="true"
-    [emptyPlaceholder]="
-      'FORM.PLACEHOLDERS.EMAILS_EMPTY_HINT'
-        | translate
-          : {
-              Default: 'Click the input on the right to add emails'
-            }
-    "
-    multiple
-  >
-    @for (keyword of keywords; track keyword) {
-      <z-chip-row
-        [value]="keyword"
-        [removable]="removable"
-        (removed)="removeKeyword(keyword)"
-        >{{keyword}}
-        @if (removable) {
-          <button zChipRemove>
-            <z-icon zType="cancel"></z-icon>
-          </button>
-        }
-      </z-chip-row>
-    }
-  </z-chip-grid>
-
-  <input
-    z-input
-    class="w-full"
-    [placeholder]="placeholder ?? ''"
-    [zChipInputFor]="chipGrid"
-    [zChipInputAddOnBlur]="addOnBlur"
-    (zChipInputTokenEnd)="addKeywordFromInput($event)"
-    >
+  <z-tag-select
+    mode="tags"
+    [value]="keywords"
+    [allowCreate]="true"
+    [enableSuggestions]="false"
+    [addOnBlur]="true"
+    [clearable]="true"
+    [tokenSeparators]="[',', ';', '\n']"
+    [placeholder]="placeholder ?? ('FORM.PLACEHOLDERS.EMAILS_EMPTY_HINT' | translate: { Default: 'Add emails' })"
+    (valueChange)="onValueChange($event)"
+  />
 </z-form-field>

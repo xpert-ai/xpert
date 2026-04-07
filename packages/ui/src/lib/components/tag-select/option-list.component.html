@@ -1,0 +1,19 @@
+<div [class]="listClasses" role="listbox">
+  @if (options().length) {
+    @for (option of options(); track option.label + ':' + $index; let index = $index) {
+      <div
+        #optionElement
+        role="option"
+        [attr.aria-selected]="activeIndex() === index"
+        [class]="optionClasses(index, !!option.disabled)"
+        (mousedown)="onMouseDown($event)"
+        (mouseenter)="onMouseEnter(index)"
+        (click)="onOptionClick(option)"
+      >
+        <span class="truncate">{{ option.label }}</span>
+      </div>
+    }
+  } @else {
+    <div [class]="emptyClasses">{{ emptyText() }}</div>
+  }
+</div>
