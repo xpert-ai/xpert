@@ -1457,7 +1457,7 @@
     },
     "Users": {
       "NoMoreOrganizations": "没有更多的组织可添加",
-      "GroupsHint": "管理用户在各个有效组织下所属的用户组。",
+      "GroupsHint": "查看用户在各个有效组织下所属的用户组。",
       "NoActiveOrganizations": "该用户当前不在任何有效组织中。",
       "DefaultOrganizationUpdated": "默认组织设置成功",
       "OrganizationStatusUpdated": "组织成员状态更新成功",
