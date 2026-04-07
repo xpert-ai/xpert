@@ -43,7 +43,6 @@ team:
   agent:
     key: Agent_PlatformChatKitAuthoring
   copilotModel:
-    copilotId: 25eef2b0-4465-488c-82ce-4c4511611dce
     referencedId: null
     modelType: llm
     model: glm-5
@@ -521,7 +520,6 @@ nodes:
             - Middleware_XpertAuthoringPlatformChatKit
             - Middleware_Summarization
       copilotModel:
-        copilotId: 25eef2b0-4465-488c-82ce-4c4511611dce
         referencedId: null
         modelType: llm
         model: glm-5
@@ -564,7 +562,6 @@ nodes:
           model: deepseek-chat
           options:
             context_size: 64000
-          copilotId: 25eef2b0-4465-488c-82ce-4c4511611dce
         trigger:
           messages: 30
         keep:
