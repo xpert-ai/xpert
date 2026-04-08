@@ -24,6 +24,7 @@ import { KnowledgebaseTask } from './task/task.entity'
 import { Validators, Strategies } from './plugins'
 import { KnowledgeRetrievalLog, KnowledgeRetrievalLogService } from './logs/'
 import { KnowledgebaseViewHostDefinition } from '../view-extension/hosts/knowledgebase-view-host.definition'
+import { AIModelModule } from '../ai-model/ai-model.module'
 
 @Module({
 	imports: [
@@ -34,6 +35,7 @@ import { KnowledgebaseViewHostDefinition } from '../view-extension/hosts/knowled
 		CqrsModule,
 		UserModule,
 		CopilotModule,
+		AIModelModule,
 		DatabaseModule,
 		forwardRef(() => XpertWorkspaceModule),
 		forwardRef(() => IntegrationModule),

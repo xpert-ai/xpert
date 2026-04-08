@@ -34,7 +34,7 @@ export class CopilotModelGetRerankHandler implements IQueryHandler<CopilotModelG
 		)
 
 		const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, ModelProvider>(
-			new AIModelGetProviderQuery(copilot.modelProvider.providerName)
+			new AIModelGetProviderQuery(copilot.modelProvider.providerName, copilot.organizationId)
 		)
 
 		return modelProvider.getModelInstance(

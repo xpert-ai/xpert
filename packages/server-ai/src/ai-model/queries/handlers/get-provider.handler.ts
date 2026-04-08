@@ -11,6 +11,6 @@ export class AIModelGetProviderHandler implements IQueryHandler<AIModelGetProvid
 
 	public async execute(command: AIModelGetProviderQuery) {
 		const providerName = command.name
-		return this.service.getProvider(providerName)
+		return this.service.getProvider(providerName, false, command.organizationId)
 	}
 }

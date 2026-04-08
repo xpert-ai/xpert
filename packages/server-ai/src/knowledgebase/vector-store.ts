@@ -14,6 +14,11 @@ export type TVectorSearchParams = {
 	filter?: Record<string, any>
 }
 
+function getStableChunkId(chunk: Partial<IKnowledgeDocumentChunk<TDocChunkMetadata>>): string | null {
+	const chunkId = chunk.metadata?.chunkId
+	return typeof chunkId === 'string' && chunkId.trim() ? chunkId : null
+}
+
 function getCopilotModel(knowledgebase: IKnowledgebase) {
 	return knowledgebase.copilotModel?.model || knowledgebase.copilotModel?.copilot?.copilotModel?.model
 }
@@ -63,8 +68,12 @@ export class KnowledgeDocumentStore {
 			}
 			return chunk
 		})
-		
-		return await this.vStore.addDocuments(chunksForEmbedding)
+		const ids = chunksForEmbedding.map((chunk) => getStableChunkId(chunk))
+		if (ids.some((id) => !id)) {
+			throw new Error('Chunk metadata.chunkId is required for vector store operations')
+		}
+
+		return await this.vStore.addDocuments(chunksForEmbedding, { ids: ids as string[] })
 	}
 	
 	/**
@@ -106,23 +115,23 @@ export class KnowledgeDocumentStore {
 		}
 	}
 
-	async getChunk(id: string) {
-		const docs = await this.vStore.similaritySearch('*', 1, {chunkId: id})
+	async getChunk(chunkId: string) {
+		const docs = await this.vStore.similaritySearch('*', 1, { chunkId })
 		return docs[0] ? this.restorePageContent(docs[0]) : undefined
 	}
 
-	async deleteChunk(id: string) {
-		return await this.vStore.delete({ ids: [id] })
+	async deleteChunk(chunkId: string) {
+		return await this.vStore.delete({ filter: { chunkId } })
 	}
 
-	async updateChunk(id: string, chunk: IKnowledgeDocumentChunk<TDocChunkMetadata>, document: IKnowledgeDocument) {
-		const _chunk = await this.getChunk(id)
-		await this.vStore.delete({ ids: [id] })
+	async updateChunk(chunkId: string, chunk: IKnowledgeDocumentChunk<TDocChunkMetadata>, document: IKnowledgeDocument) {
+		const _chunk = await this.getChunk(chunkId)
+		await this.vStore.delete({ filter: { chunkId } })
 		chunk.pageContent ??= _chunk?.pageContent ?? ''
 		chunk.metadata = {...(_chunk?.metadata ?? {}), ...chunk.metadata}
-		chunk.metadata.chunkId = id
+		chunk.metadata.chunkId = chunkId
 		this.fillMetadata(chunk, document)
-		await this.vStore.addDocuments([chunk])
+		await this.vStore.addDocuments([chunk], { ids: [chunkId] })
 	}
 
 	async delete({filter}) {
@@ -160,6 +169,7 @@ export class KnowledgeDocumentStore {
 	}
 
 	fillMetadata(document: IKnowledgeDocumentChunk, knowledgeDocument: IKnowledgeDocument) {
+		document.metadata ??= {}
 		document.metadata.enabled ??= true
 		document.metadata.knowledgeId = knowledgeDocument.id
 		document.metadata.documentId = knowledgeDocument.id

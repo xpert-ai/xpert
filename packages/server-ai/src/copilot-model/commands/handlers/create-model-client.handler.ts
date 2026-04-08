@@ -58,7 +58,7 @@ export class CreateModelClientHandler implements ICommandHandler<CreateModelClie
     )
 
     const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, ModelProvider>(
-      new AIModelGetProviderQuery(copilot.modelProvider.providerName)
+      new AIModelGetProviderQuery(copilot.modelProvider.providerName, copilot.organizationId ?? organizationId)
     )
 
     if (!modelProvider) {

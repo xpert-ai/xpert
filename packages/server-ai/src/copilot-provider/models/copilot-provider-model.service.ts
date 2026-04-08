@@ -62,7 +62,7 @@ export class CopilotProviderModelService extends TenantOrganizationAwareCrudServ
 		// Validate model credentials
 		if (modelProperties) {
 			const providerInstance = await this.queryBus.execute<AIModelGetProviderQuery, ModelProvider>(
-				new AIModelGetProviderQuery(copilotProvider.providerName)
+				new AIModelGetProviderQuery(copilotProvider.providerName, copilotProvider.organizationId)
 			)
 			const modelManager = providerInstance.getModelManager(entity.modelType)
 			await modelManager.validateCredentials(entity.modelName, {

@@ -73,6 +73,8 @@ import { KnowledgeDocumentService } from '../knowledge-document/document.service
 import { XpertAgentExecutionUpsertCommand } from '../xpert-agent-execution'
 import { PluginPermissionsCommand } from './commands'
 import { XpertEnqueueTriggerDispatchCommand } from '../xpert/commands'
+import { AIProvidersService } from '../ai-model/ai-model.service'
+import { CopilotGetOneQuery } from '../copilot/queries/get-one.query'
 
 @Injectable()
 export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebase> {
@@ -101,6 +103,9 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
 	@Inject(XpertService)
 	private readonly xpertService: XpertService
+
+	@Inject(AIProvidersService)
+	private readonly providersService: AIProvidersService
 
 	constructor(
 		@InjectRepository(Knowledgebase)
@@ -199,6 +204,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			)
 		}
 
+		await this.validateKnowledgebaseModels(entity, entity.tenantId, entity.organizationId)
+
 		return await super.create(entity)
 	}
 
@@ -277,6 +284,8 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 				)
 			}
 		}
+
+		await this.validateKnowledgebaseModels(entity, _entity.tenantId, _entity.organizationId)
 		
 		try {
 			assign(_entity, entity)
@@ -306,6 +315,79 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 
 	async getTextSplitterStrategies() {
 		return this.textSplitterRegistry.list().map((strategy) => strategy.meta)
+	}
+
+	private async validateKnowledgebaseModels(
+		entity: Partial<IKnowledgebase>,
+		tenantId?: string,
+		organizationId?: string
+	) {
+		await this.validateKnowledgebaseModel(entity.copilotModel, 'copilotModel', tenantId, organizationId)
+		await this.validateKnowledgebaseModel(entity.rerankModel, 'rerankModel', tenantId, organizationId)
+		await this.validateKnowledgebaseModel(entity.visionModel, 'visionModel', tenantId, organizationId)
+	}
+
+	private async validateKnowledgebaseModel(
+		model: TCopilotModel | null | undefined,
+		fieldName: string,
+		tenantId?: string,
+		organizationId?: string
+	) {
+		if (!model) {
+			return
+		}
+
+		if (this.isEmptyCopilotModel(model)) {
+			return
+		}
+
+		if (!model.model) {
+			throw new BadRequestException(`Knowledgebase ${fieldName} requires a model.`)
+		}
+
+		const copilotId = model.copilotId ?? model.copilot?.id
+		if (!copilotId) {
+			throw new BadRequestException(
+				`Knowledgebase ${fieldName} requires a copilotId for model '${model.model}'.`
+			)
+		}
+
+		const resolvedTenantId = tenantId ?? RequestContext.currentTenantId()
+		if (!resolvedTenantId) {
+			throw new InternalServerErrorException('Tenant context not found.')
+		}
+
+		const copilot = await this.queryBus.execute(
+			new CopilotGetOneQuery(resolvedTenantId, copilotId, ['modelProvider'])
+		)
+		if (!copilot) {
+			throw new BadRequestException(
+				`Knowledgebase ${fieldName} references copilot '${copilotId}', but it was not found.`
+			)
+		}
+
+		const providerName = copilot.modelProvider?.providerName
+		if (!providerName) {
+			throw new BadRequestException(
+				`Knowledgebase ${fieldName} references copilot '${copilotId}', but its provider is not configured.`
+			)
+		}
+
+		const provider = this.providersService.getProvider(
+			providerName,
+			false,
+			organizationId ?? RequestContext.getOrganizationId()
+		)
+		if (!provider) {
+			throw new BadRequestException(`AI model provider '${providerName}' not found.`)
+		}
+
+		model.copilotId = copilotId
+		model.copilot = copilot
+	}
+
+	private isEmptyCopilotModel(model: TCopilotModel) {
+		return !model.model && !model.modelType && !model.copilotId && !model.copilot?.id && !model.referencedId
 	}
 
 	async getDocumentTransformerStrategies() {

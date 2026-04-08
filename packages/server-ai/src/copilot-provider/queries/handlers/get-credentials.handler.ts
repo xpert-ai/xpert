@@ -15,7 +15,7 @@ export class GetAiProviderCredentialsHandler implements IQueryHandler<GetAiProvi
 		const copilotProvider = command.provider
 
 		const modelProvider = await this.queryBus.execute<AIModelGetProviderQuery, ModelProvider>(
-			new AIModelGetProviderQuery(copilotProvider.providerName)
+			new AIModelGetProviderQuery(copilotProvider.providerName, copilotProvider.organizationId)
 		)
 
 		return {

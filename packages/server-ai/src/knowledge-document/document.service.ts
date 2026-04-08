@@ -258,8 +258,15 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 	async updateChunk(documentId: string, id: string, entity: IKnowledgeDocumentChunk) {
 		try {
 			const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
+			const chunk = await this.chunkService.findOneByOptions({
+				where: { id }
+			})
+			const chunkId = chunk?.metadata?.chunkId ?? id
 			await this.chunkService.update(id, entity)
-			return await vectorStore.updateChunk(id, {
+			if (chunkId !== id) {
+				await vectorStore.deleteChunk(id)
+			}
+			return await vectorStore.updateChunk(chunkId, {
 				metadata: entity.metadata,
 				pageContent: entity.pageContent
 			}, document)
@@ -276,11 +283,18 @@ export class KnowledgeDocumentService extends TenantOrganizationAwareCrudService
 	 * @returns 
 	 */
 	async deleteChunk(documentId: string, id: string) {
-		const { vectorStore, document } = await this.getDocumentVectorStore(documentId)
+		const { vectorStore } = await this.getDocumentVectorStore(documentId)
+		const chunk = await this.chunkService.findOneByOptions({
+			where: { id }
+		})
+		const chunkId = chunk?.metadata?.chunkId ?? id
 		// Delete entity
 		await this.chunkService.delete(id)
 		// Delete vector
-		await vectorStore.deleteChunk(id)
+		if (chunkId !== id) {
+			await vectorStore.deleteChunk(id)
+		}
+		await vectorStore.deleteChunk(chunkId)
 	}
 
 	/**
