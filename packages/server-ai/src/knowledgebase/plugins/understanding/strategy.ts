@@ -3,6 +3,7 @@ import {
 	channelName,
 	IEnvironment,
 	IKnowledgeDocument,
+	IWFNKnowledgeBase,
 	IWFNUnderstanding,
 	IWorkflowNode,
 	IXpertAgentExecution,
@@ -125,8 +126,12 @@ export class WorkflowUnderstandingNodeStrategy implements IWorkflowNodeStrategy 
 							})
 						)
 
+						const knowledgebaseNode = graph.nodes.find(
+							(item) => item.type === 'workflow' && item.entity.type === WorkflowNodeTypeEnum.KNOWLEDGE_BASE
+						)
+						const inheritedVisionModel = (knowledgebaseNode?.entity as IWFNKnowledgeBase | undefined)?.visionModel
 						const visionModel = await this.knowledgebaseService.getVisionModel(
-							knowledgebaseId, entity.visionModel
+							knowledgebaseId, entity.visionModel ?? inheritedVisionModel
 						)
 
 						const permissions = await this.commandBus.execute(new PluginPermissionsCommand(strategy.permissions, {

@@ -1,6 +1,6 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { CommonModule } from '@angular/common'
-import { Component, computed, effect, inject, model, signal } from '@angular/core'
+import { Component, computed, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import {
@@ -22,7 +22,7 @@ import { NgmCheckboxComponent } from '@metad/ocap-angular/common'
 import { KnowledgeDocIdComponent } from '@cloud/app/@shared/knowledge'
 import { KnowledgeDocumentPreviewComponent } from '../preview/preview.component'
 import { IntegrationSelectComponent } from '@cloud/app/@shared/integration'
-import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
+import { CopilotModelSelectComponent, CopilotPromptEditorComponent } from '@cloud/app/@shared/copilot'
 import { KnowledgebaseComponent } from '../../../knowledgebase.component'
 import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
@@ -42,6 +42,7 @@ import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
     IconComponent,
     JSONSchemaFormComponent,
     CopilotModelSelectComponent,
+    CopilotPromptEditorComponent,
     KnowledgeDocIdComponent,
     IntegrationSelectComponent,
     KnowledgeDocumentPreviewComponent,
@@ -150,6 +151,35 @@ export class KnowledgeDocumentCreateSettingsComponent {
   readonly imageUnderstandingConfigSchema = computed(
     () => this.imageUnderstandingStrategy()?.meta.configSchema || ({} as JsonSchema7ObjectType)
   )
+  readonly imageUnderstandingPromptTemplate = attrModel(this.imageUnderstanding, 'promptTemplate')
+  readonly imageUnderstandingPromptTemplateSchema = computed(
+    () => this.imageUnderstandingConfigSchema()?.properties?.['promptTemplate'] ?? null
+  )
+  readonly defaultImageUnderstandingPromptTemplate = computed(() =>
+    typeof this.imageUnderstandingPromptTemplateSchema()?.default === 'string'
+      ? this.imageUnderstandingPromptTemplateSchema().default
+      : ''
+  )
+  readonly imageUnderstandingPromptTemplateValue = computed(
+    () => this.imageUnderstandingPromptTemplate() ?? this.defaultImageUnderstandingPromptTemplate()
+  )
+  readonly remainingImageUnderstandingConfigSchema = computed(() => {
+    const schema = this.imageUnderstandingConfigSchema()
+    if (!schema?.properties?.['promptTemplate']) {
+      return schema
+    }
+
+    const { promptTemplate, ...properties } = schema.properties
+    const required = schema.required?.filter((name) => name !== 'promptTemplate')
+    return {
+      ...schema,
+      properties,
+      required: required?.length ? required : undefined
+    }
+  })
+  readonly hasRemainingImageUnderstandingConfig = computed(
+    () => !!Object.keys(this.remainingImageUnderstandingConfigSchema()?.properties ?? {}).length
+  )
   readonly imageUnderstandingIntegration = computed(() => this.imageUnderstandingStrategy()?.integration)
   readonly imageUnderstandingIntegrationProvider = computed(() => this.imageUnderstandingIntegration()?.service)
   readonly requireVisionModel = computed(() => this.imageUnderstandingStrategy()?.requireVisionModel)
@@ -180,6 +210,10 @@ export class KnowledgeDocumentCreateSettingsComponent {
   })
 
   readonly preview = signal(false)
+
+  updateImageUnderstandingPromptTemplate(value: string) {
+    this.imageUnderstandingPromptTemplate.set(value)
+  }
 
   // constructor() {
   //   effect(() => {

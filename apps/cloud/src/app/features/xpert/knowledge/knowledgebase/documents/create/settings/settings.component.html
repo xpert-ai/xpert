@@ -346,10 +346,26 @@
                 />
               </div>
             }
-            @if (imageUnderstandingConfigSchema(); as imageUnderstandingConfigSchema) {
+            @if (imageUnderstandingPromptTemplateSchema()) {
+              <copilot-prompt-editor
+                class="relative shadow-md ngm-card-border-gradient self-stretch mt-3"
+                [tooltip]="
+                  'PAC.Pipeline.ImagePromptTooltip'
+                    | translate
+                      : {
+                          Default:
+                            'Prompts guide how the visual model extracts or describes image content. This prompt is sent as the system instruction for image understanding.'
+                        }
+                "
+                [role]="'system'"
+                [prompt]="imageUnderstandingPromptTemplateValue()"
+                (promptChange)="updateImageUnderstandingPromptTemplate($event)"
+              />
+            }
+            @if (hasRemainingImageUnderstandingConfig()) {
               <json-schema-form
-                class="grid grid-cols-2 gap-2"
-                [schema]="imageUnderstandingConfigSchema"
+                class="grid grid-cols-2 gap-2 mt-3"
+                [schema]="remainingImageUnderstandingConfigSchema()"
                 [(ngModel)]="imageUnderstanding"
               />
             }

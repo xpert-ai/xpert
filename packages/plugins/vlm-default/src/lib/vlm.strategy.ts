@@ -18,6 +18,12 @@ import { SvgIcon, VlmDefault } from './types'
 
 // Regex for markdown image tag: ![](image.png) or ![alt](image.png)
 const IMAGE_REGEX = /!\[[^\]]*\]\s*\(((?:https?:\/\/[^)]+|[^)\s]+))(\s*"[^"]*")?\)/g;
+const DEFAULT_PROMPT_TEMPLATE =
+  'You are a professional assistant, helping people understand images in context. Please provide a narrative description of the image.'
+
+type TVlmDefaultConfig = TImageUnderstandingConfig & {
+  promptTemplate?: string
+}
 
 @Injectable()
 @ImageUnderstandingStrategy(VlmDefault)
@@ -43,7 +49,16 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
     },
     configSchema: {
       type: 'object',
-      properties: {}
+      properties: {
+        promptTemplate: {
+          type: 'string',
+          title: {
+            en_US: 'Prompt Template',
+            zh_Hans: '提示词模版'
+          },
+          default: DEFAULT_PROMPT_TEMPLATE
+        }
+      }
     },
     icon: {
       type: 'svg' as IconType,
@@ -52,7 +67,7 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
     }
   }
 
-  async validateConfig(config: TImageUnderstandingConfig): Promise<void> {
+  async validateConfig(config: TVlmDefaultConfig): Promise<void> {
     if (!config?.visionModel) {
       throw new Error('Vision Model is required')
     }
@@ -60,7 +75,7 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
 
   async understandImages(
     doc: IKnowledgeDocument<ChunkMetadata>,
-    config: TImageUnderstandingConfig
+    config: TVlmDefaultConfig
   ): Promise<TImageUnderstandingResult> {
 
     await this.validateConfig(config)
@@ -114,7 +129,7 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
     }
   }
 
-  private async runV(client: BaseChatModel, context: string, imagePath: string, config: TImageUnderstandingConfig): Promise<string> {
+  private async runV(client: BaseChatModel, context: string, imagePath: string, config: TVlmDefaultConfig): Promise<string> {
     const imageStr = await config.permissions.fileSystem.readFile(imagePath)
     const sharped = sharp(imageStr)
     
@@ -129,7 +144,8 @@ export class VlmDefaultStrategy implements IImageUnderstandingStrategy {
     const mimetype = 'image/jpeg'
 
     // Keep system message concise to minimize token usage
-    const systemMessage = 'You are a professional assistant, helping people understand images in context. Please provide a narrative description of the image.'
+    const systemMessage =
+      typeof config.promptTemplate === 'string' ? config.promptTemplate : DEFAULT_PROMPT_TEMPLATE
     
     try {
       const response = await client.invoke([

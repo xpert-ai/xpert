@@ -434,16 +434,16 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 	}
 
 	async getVisionModel(knowledgebaseId: string, visionModel: TCopilotModel) {
-		if (!visionModel) {
+		const hasVisionModelRef = Boolean(visionModel?.model) && Boolean(visionModel?.copilotId || visionModel?.copilot)
+		if (!hasVisionModelRef) {
 			const knowledgebase = await this.findOne(knowledgebaseId, { relations: ['visionModel', 'visionModel.copilot'] })
 			visionModel = knowledgebase.visionModel
 		}
-		const copilot = visionModel?.copilot
-		if (!copilot) {
+		if (!visionModel?.model || (!visionModel?.copilotId && !visionModel?.copilot)) {
 			throw new BadRequestException(t('server-ai:Error.KBReqVisionModel'))
 		}
 		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
-			new CopilotModelGetChatModelQuery(copilot, visionModel, {
+			new CopilotModelGetChatModelQuery(visionModel.copilot, visionModel, {
 				usageCallback: (token) => {
 					// execution.tokens += (token ?? 0)
 				}

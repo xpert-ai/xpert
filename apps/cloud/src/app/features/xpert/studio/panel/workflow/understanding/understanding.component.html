@@ -51,11 +51,27 @@
   <div class="font-bold mb-2">
     {{ 'PAC.Pipeline.Configuration' | translate: {Default: 'Configuration'} }}
   </div>
-  @if (understandingConfigSchema(); as understandingConfigSchema) {
-    <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="understandingConfigSchema" 
+  @if (promptTemplateSchema()) {
+    <copilot-prompt-editor
+      class="relative shadow-md ngm-card-border-gradient self-stretch"
+      [tooltip]="
+        'PAC.Pipeline.ImagePromptTooltip'
+          | translate
+            : {
+                Default:
+                  'Prompts guide how the visual model extracts or describes image content. This prompt is sent as the system instruction for image understanding.'
+              }
+      "
+      [role]="'system'"
+      [prompt]="promptTemplateValue()"
+      (promptChange)="updatePromptTemplate($event)"
+    />
+  }
+  @if (hasRemainingUnderstandingConfig()) {
+    <json-schema-form class="mt-2 grid grid-cols-2 gap-2" [schema]="remainingUnderstandingConfigSchema()" 
       [(ngModel)]="understandingConfig"
     />
-  } @else {
+  } @else if (!promptTemplateSchema()) {
     <div class="text-sm text-text-secondary bg-orange-50 rounded-xl px-3 py-2">
       {{ 'PAC.Pipeline.NoPluginConfig' | translate: {Default: 'No configuration required for this plugin.'} }}
     </div>
