@@ -313,8 +313,9 @@ export class XpertStudioComponent {
         return
       }
 
+      const assistantRouteXpertId = this.#assistantFacade.xpertId()
       const currentXpertId = this.id()
-      if (!currentXpertId) {
+      if (!currentXpertId || assistantRouteXpertId !== currentXpertId) {
         this.#assistantFacade.clearStudioContext()
         return
       }
@@ -328,10 +329,11 @@ export class XpertStudioComponent {
     })
 
     effect(() => {
+      const assistantRouteXpertId = this.#assistantFacade?.xpertId()
       const refreshEvent = this.#assistantFacade?.studioRefresh()
       const currentXpertId = this.id()
 
-      if (!refreshEvent || !currentXpertId) {
+      if (!refreshEvent || !currentXpertId || assistantRouteXpertId !== currentXpertId) {
         return
       }
 
