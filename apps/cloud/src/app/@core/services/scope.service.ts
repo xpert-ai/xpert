@@ -1,6 +1,7 @@
 import { computed, effect, inject, Injectable } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRouteSnapshot, NavigationEnd, Route, Router } from '@angular/router'
+import { RolesEnum } from '@metad/contracts'
 import { IOrganization, RequestScopeLevel, Store } from '@metad/cloud/state'
 import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
 
@@ -42,7 +43,7 @@ export class ScopeService {
     }
   )
   readonly canUseTenantScope = computed(
-    () => !!this.#currentUser()?.tenantId
+    () => !!this.#currentUser()?.tenantId && this.#currentUser()?.role?.name === RolesEnum.SUPER_ADMIN
   )
   readonly currentScopeName = computed(() => {
     const scope = this.activeScope()

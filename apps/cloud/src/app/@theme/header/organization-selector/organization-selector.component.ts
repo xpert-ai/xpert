@@ -112,7 +112,8 @@ export class OrganizationSelectorComponent {
     })
 
     effect(() => {
-      if (!this.currentUser()) {
+      const user = this.currentUser()
+      if (!user || !Array.isArray(user.organizations)) {
         return
       }
 
