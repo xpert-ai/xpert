@@ -1,13 +1,15 @@
 import { CommonModule } from '@angular/common'
-import { Component, EventEmitter, HostBinding, Input, Output, input, signal } from '@angular/core'
+import { Component, EventEmitter, HostBinding, Input, Output, inject, input, signal } from '@angular/core'
+import { toSignal } from '@angular/core/rxjs-interop'
 
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { RouterModule } from '@angular/router'
+import { NavigationEnd, Router, RouterModule } from '@angular/router'
 import { DensityDirective } from '@metad/ocap-angular/core'
 import { isNil } from '@metad/ocap-core'
 import { PacMenuItem } from '../types'
 import { OverlayModule } from '@angular/cdk/overlay'
 import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { distinctUntilChanged, filter, map, startWith } from 'rxjs'
 @Component({
   standalone: true,
   selector: 'pac-menu-group',
@@ -26,6 +28,7 @@ import { ZardButtonComponent, ZardIconComponent, ZardTooltipImports } from '@xpe
 })
 export class PacMenuGroupComponent {
   isNil = isNil
+  readonly #router = inject(Router)
 
   @HostBinding('class.collapsed')
   @Input()
@@ -39,9 +42,34 @@ export class PacMenuGroupComponent {
 
   readonly menuOpen = signal<Record<string, boolean>>({})
   readonly delayClose = signal<Record<string, number>>({})
+  readonly currentUrl = toSignal(
+    this.#router.events.pipe(
+      filter((event): event is NavigationEnd => event instanceof NavigationEnd),
+      startWith(null),
+      map(() => this.#router.url),
+      distinctUntilChanged()
+    ),
+    { initialValue: this.#router.url }
+  )
 
   hasActiveChild(menu: PacMenuItem) {
-    return !!menu.children?.some((item) => item.isActive)
+    this.currentUrl()
+
+    return !!menu.children?.some((item) => this.isMenuItemActive(item))
+  }
+
+  isMenuItemActive(item: PacMenuItem, exact = true) {
+    const link = item.link
+    if (!link) {
+      return false
+    }
+
+    return this.#router.isActive(link, {
+      paths: exact ? 'exact' : 'subset',
+      queryParams: 'ignored',
+      fragment: 'ignored',
+      matrixParams: 'ignored'
+    })
   }
 
   isExpanded(menu: PacMenuItem) {
