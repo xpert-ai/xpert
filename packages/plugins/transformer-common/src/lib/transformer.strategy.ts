@@ -25,6 +25,30 @@ import { v4 as uuid } from 'uuid'
 import path from 'path'
 import { Default, icon, TDefaultTransformerConfig, TDefaultTransformerMetadata } from './types'
 
+function sanitizeTempFileName(value: string) {
+  return value.replace(/[^A-Za-z0-9._-]/g, '-')
+}
+
+function resolveRemoteTempPath(tempDir: string, file: Partial<IKnowledgeDocument>) {
+  const fileNameFromUrl = (() => {
+    if (!file.fileUrl) {
+      return null
+    }
+
+    try {
+      const pathname = new URL(file.fileUrl).pathname
+      const basename = path.basename(pathname)
+      return basename ? decodeURIComponent(basename) : null
+    } catch {
+      return null
+    }
+  })()
+
+  const fileName = sanitizeTempFileName(file.name || fileNameFromUrl || `remote-file-${randomUUID()}`)
+
+  return path.join(tempDir, 'remote', `${randomUUID()}-${fileName}`)
+}
+
 @Injectable()
 @DocumentTransformerStrategy(Default)
 export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<TDefaultTransformerConfig> {
@@ -98,9 +122,11 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
     for await (const file of files) {
       const assets: TDocumentAsset[] = []
       let fileAbsPath = ''
+      let readableFilePath = file.filePath
       if (!file.filePath && isRemoteFile(file.fileUrl)) {
         const tempDir = config.tempDir || '/tmp/'
-        const filePath = path.join(tempDir, file.filePath)
+        const filePath = resolveRemoteTempPath(tempDir, file)
+        const basePath = xpFileSystem.fullPath('')
         // Ensure the temp directory exists
         await fsPromises.mkdir(path.dirname(filePath), { recursive: true })
 
@@ -122,6 +148,8 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
 
         // Download the remote file to a local temporary directory
         fileAbsPath = await downloadRemoteFile(file.fileUrl, filePath)
+        const relativePath = path.relative(basePath, filePath)
+        readableFilePath = relativePath.startsWith('..') ? file.filePath : relativePath
       } else {
         fileAbsPath = xpFileSystem.fullPath(file.filePath)
         file.fileUrl ??= xpFileSystem.fullUrl(file.filePath)
@@ -167,7 +195,7 @@ export class DefaultTransformerStrategy implements IDocumentTransformerStrategy<
               assets.push({
                 type: 'image',
                 url: file.fileUrl,
-                filePath: file.filePath
+                filePath: readableFilePath
               })
               break;
             }

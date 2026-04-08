@@ -23,7 +23,6 @@ import { getErrorMessage, runWithConcurrencyLimit } from '@metad/server-common'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { countTokensSafe, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'
-import { get } from 'lodash'
 import { In } from 'typeorm'
 import { CopilotTokenRecordCommand } from '../../../copilot-user'
 import { KnowledgeDocumentService } from '../../../knowledge-document'
@@ -34,6 +33,7 @@ import { KnowledgeDocumentStore } from '../../vector-store'
 import { KnowledgebaseTaskService } from '../../task'
 import { ERROR_CHANNEL_NAME } from '../types'
 import { TDocChunkMetadata } from '../../../knowledge-document/types'
+import { resolveKnowledgeBaseInputDocuments } from './input-documents'
 
 
 const InfoChannelName = 'info'
@@ -93,8 +93,12 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 				const stage = knowledgebaseState?.['stage']
 				const isTest = stage === 'preview' || isDraft
 
-				const values = entity.inputs.map((input) => get(stateEnv, input)) as Partial<IKnowledgeDocument[]>[]
-				const inputDocuments = values.filter((docs) => !!docs).flat()
+				const inputDocuments = resolveKnowledgeBaseInputDocuments(
+					stateEnv,
+					graph,
+					node.key,
+					entity.inputs
+				)
 
 				const execution: IXpertAgentExecution = {
 					category: 'workflow',
@@ -220,7 +224,11 @@ export class WorkflowKnowledgeBaseNodeStrategy implements IWorkflowNodeStrategy 
 							}
 						})
 
-						const results = await runWithConcurrencyLimit(tasks, 3)
+						if (!documents.length) {
+							statisticsInformation += '- No input documents resolved for the knowledge base node. Check the selected inputs or upstream connections. \n'
+						} else {
+							await runWithConcurrencyLimit(tasks, 3)
+						}
 
 						// Update task status
 						await this.taskService.update(knowledgeTaskId, {
