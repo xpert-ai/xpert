@@ -85,4 +85,36 @@ describe('organization-plugin.store', () => {
 			})
 		).toThrow(/workspace package name mismatch/)
 	})
+
+	it('accepts a precompiled root entry without dist or src/index.ts', () => {
+		fs.rmSync(path.join(workspaceRoot, 'dist'), { recursive: true, force: true })
+		fs.writeFileSync(path.join(workspaceRoot, 'index.cjs.js'), 'module.exports = {}\n')
+
+		const pluginDir = stageWorkspacePlugin({
+			organizationId: 'org-1',
+			pluginName: '@xpert-ai/plugin-lark',
+			expectedPackageName: '@xpert-ai/plugin-lark',
+			workspacePath: workspaceRoot,
+			rootDir: pluginRoot
+		})
+
+		const targetPackageDir = path.join(pluginDir, 'node_modules', '@xpert-ai', 'plugin-lark')
+		expect(fs.existsSync(path.join(targetPackageDir, 'index.cjs.js'))).toBe(true)
+	})
+
+	it('includes plugin details when workspacePath is not loadable', () => {
+		fs.rmSync(path.join(workspaceRoot, 'dist'), { recursive: true, force: true })
+
+		expect(() =>
+			stageWorkspacePlugin({
+				organizationId: 'org-1',
+				pluginName: '@xpert-ai/plugin-lark',
+				expectedPackageName: '@xpert-ai/plugin-lark',
+				workspacePath: workspaceRoot,
+				rootDir: pluginRoot
+			})
+		).toThrow(
+			`Plugin "@xpert-ai/plugin-lark" (expected package "@xpert-ai/plugin-lark") has an invalid workspacePath "${workspaceRoot}"`
+		)
+	})
 })

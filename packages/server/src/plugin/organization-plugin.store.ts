@@ -28,6 +28,7 @@ export interface StageWorkspacePluginOptions extends OrganizationPluginStoreOpti
 
 export const DEFAULT_ORG_PLUGIN_ROOT = path.join(getConfig().assetOptions.serverRoot, 'plugins')
 export const DEFAULT_ORG_MANIFEST = 'plugins.json'
+const COMPILED_PLUGIN_ENTRY_FILES = ['index.js', 'index.cjs.js', 'index.esm.js'] as const
 
 function ensureDir(dir: string) {
 	if (!fs.existsSync(dir)) {
@@ -166,8 +167,16 @@ export function stageWorkspacePlugin(opts: StageWorkspacePluginOptions): string 
 
 	const hasDist = fs.existsSync(path.join(workspacePath, 'dist'))
 	const hasSrcEntry = fs.existsSync(path.join(workspacePath, 'src', 'index.ts'))
-	if (!hasDist && !hasSrcEntry) {
-		throw new Error(`workspacePath must contain either 'dist/' or 'src/index.ts' for plugin loading`)
+	const hasCompiledRootEntry = COMPILED_PLUGIN_ENTRY_FILES.some((fileName) =>
+		fs.existsSync(path.join(workspacePath, fileName))
+	)
+	if (!hasDist && !hasSrcEntry && !hasCompiledRootEntry) {
+		throw new Error(
+			`Plugin "${opts.pluginName}" (expected package "${normalizedPackageName}") has an invalid workspacePath "${workspacePath}": ` +
+				`workspacePath must contain 'dist/', 'src/index.ts', or a compiled root entry (${COMPILED_PLUGIN_ENTRY_FILES.join(
+					', '
+				)}) for plugin loading`
+		)
 	}
 
 	const pluginDir = getOrganizationPluginPath(opts.organizationId, opts.pluginName, opts)
