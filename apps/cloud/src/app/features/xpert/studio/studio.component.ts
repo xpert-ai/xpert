@@ -15,6 +15,7 @@ import {
   inject,
   model,
   signal,
+  untracked,
   viewChild
 } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
@@ -320,11 +321,13 @@ export class XpertStudioComponent {
       }
 
       const pristineDraft = this.apiService.pristineDraft()
-      this.#assistantFacade.setStudioContext({
-        targetXpertId: currentXpertId,
-        baseDraftHash: pristineDraft ? calculateHash(JSON.stringify(pristineDraft)) : null,
-        unsaved: this.apiService.unsaved()
-      })
+      untracked(() =>
+        this.#assistantFacade.setStudioContext({
+          targetXpertId: currentXpertId,
+          baseDraftHash: pristineDraft ? calculateHash(JSON.stringify(pristineDraft)) : null,
+          unsaved: this.apiService.unsaved()
+        })
+      )
     })
 
     effect(() => {

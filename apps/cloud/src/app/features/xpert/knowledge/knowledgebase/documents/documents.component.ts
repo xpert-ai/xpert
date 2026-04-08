@@ -47,7 +47,7 @@ import {
 } from '../../../../../@core'
 import { KnowledgeDocIdComponent, KnowledgeTaskComponent } from '../../../../../@shared/knowledge'
 import { KnowledgebaseComponent } from '../knowledgebase.component'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 const REFRESH_DEBOUNCE_TIME = 5000
 
@@ -62,6 +62,7 @@ const REFRESH_DEBOUNCE_TIME = 5000
     TranslateModule,
     CdkMenuModule,
     ...ZardTooltipImports,
+    ZardSwitchComponent,
     NgmCommonModule,
     KnowledgeDocIdComponent,
     NgmI18nPipe

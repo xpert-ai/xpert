@@ -1,4 +1,4 @@
-import { computed, effect, signal, WritableSignal } from '@angular/core'
+import { computed, effect, signal, untracked, WritableSignal } from '@angular/core'
 
 // Define the options interface for linkedModel
 interface LinkedModelOptions<T> {
@@ -16,15 +16,22 @@ export function linkedModel<T>(options: LinkedModelOptions<T>): WritableSignal<T
   // Use effect to automatically synchronize
   effect(
     () => {
-      currentValue = internalState()
-      derived.set(currentValue)
+      const nextValue = internalState()
+      if (Object.is(nextValue, currentValue)) {
+        return
+      }
+
+      currentValue = nextValue
+      untracked(() => derived.set(nextValue))
     }
   )
 
   effect(() => {
-    if (derived() !== currentValue) {
-      update(derived(), currentValue)
-      currentValue = derived()
+    const nextValue = derived()
+    if (!Object.is(nextValue, currentValue)) {
+      const previousValue = currentValue
+      currentValue = nextValue
+      untracked(() => update(nextValue, previousValue))
     }
   })
 
