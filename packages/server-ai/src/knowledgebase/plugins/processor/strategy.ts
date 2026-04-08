@@ -125,13 +125,16 @@ export class WorkflowProcessorNodeStrategy implements IWorkflowNodeStrategy {
 								...(doc.draft ?? {}),
 							}))
 						)
+						const inputDocumentsById = new Map(input.map((doc) => [doc.id, doc]))
 
 						let documents = []
 						// Update knowledge task progress
 						if (isTest) {
 							documents = results.map((result) => {
+								const sourceDoc = result.id ? inputDocumentsById.get(result.id) : null
 								return {
-									id: result.id || shortuuid(),
+									...sourceDoc,
+									id: result.id || sourceDoc?.id || shortuuid(),
 									metadata: result.metadata,
 									draft: {
 										chunks: result.chunks
