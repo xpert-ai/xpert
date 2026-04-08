@@ -20,13 +20,13 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ default: 'agent' })
+	@Column({ type: 'varchar', default: 'agent' })
 	category: TXpertTeamNodeType
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	type?: WorkflowNodeTypeEnum | string
 	
 	@ApiPropertyOptional({ type: () => Object })
@@ -68,7 +68,7 @@ export class XpertAgentExecution extends TenantOrganizationBaseEntity implements
 	@ApiProperty({ type: () => String, enum: XpertAgentExecutionStatusEnum })
 	@IsEnum(XpertAgentExecutionStatusEnum)
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	status?: XpertAgentExecutionStatusEnum
 
 	@ApiPropertyOptional({ type: () => String })

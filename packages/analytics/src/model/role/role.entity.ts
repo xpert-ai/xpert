@@ -21,7 +21,7 @@ export class SemanticModelRole extends TenantOrganizationBaseEntity implements I
 	name: string
 
 	@IsString()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	type: RoleTypeEnum
 
 	@IsNumber()

@@ -31,13 +31,13 @@ export class DataSourceType extends TenantBaseEntity implements IDataSourceType 
     @ApiProperty({ type: () => String, enum: DataSourceSyntaxEnum })
     @IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	syntax?: DataSourceSyntaxEnum;
 
     @ApiProperty({ type: () => String, enum: DataSourceProtocolEnum })
     @IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	protocol?: DataSourceProtocolEnum;
     
     @ApiPropertyOptional({ type: () => Object })

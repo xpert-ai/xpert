@@ -28,7 +28,7 @@ export class StoryTemplate extends TenantOrganizationBaseEntity implements IStor
 	@ApiPropertyOptional({ type: () => String, enum: StoryTemplateType })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	type?: StoryTemplateType
 
 	@ApiPropertyOptional({ type: () => Boolean })

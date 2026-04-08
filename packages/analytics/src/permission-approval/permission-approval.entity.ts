@@ -54,7 +54,7 @@ export class PermissionApproval
 
 	@ApiProperty({ type: () => String, enum: ApprovalPolicyTypesStringEnum })
 	@IsEnum(ApprovalPolicyTypesStringEnum)
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	permissionType: ApprovalPolicyTypesStringEnum;
 
 	/*

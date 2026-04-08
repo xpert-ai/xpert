@@ -54,7 +54,7 @@ export class XpertTask extends TenantOrganizationBaseEntity implements IXpertTas
 	@ApiPropertyOptional({ enum: ScheduleTaskStatus })
 	@IsEnum(ScheduleTaskStatus)
 	@IsOptional()
-	@Column({ nullable: true, length: 20 })
+	@Column({ type: 'varchar', nullable: true, length: 20 })
 	status?: ScheduleTaskStatus
 
 	@ApiProperty({ type: () => Xpert })

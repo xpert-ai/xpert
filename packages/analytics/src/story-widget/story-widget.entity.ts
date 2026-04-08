@@ -60,6 +60,6 @@ export class StoryWidget extends TenantOrganizationBaseEntity implements IStoryW
 	options?: any
 
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	visibility?: Visibility
 }

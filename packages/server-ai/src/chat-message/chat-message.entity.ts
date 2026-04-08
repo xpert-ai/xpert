@@ -31,7 +31,7 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	role: CopilotMessageType
 
 	@ApiPropertyOptional({ type: () => Object })
@@ -49,7 +49,7 @@ export class ChatMessage extends TenantOrganizationBaseEntity implements IChatMe
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	status: ChatMessageStatusEnum
 
 	@ApiPropertyOptional({ type: () => String })

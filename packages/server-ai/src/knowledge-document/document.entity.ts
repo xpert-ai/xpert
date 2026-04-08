@@ -33,7 +33,7 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
 	disabled?: boolean
 
 	@Optional()
-	@Column({ nullable: true, length: 20 })
+	@Column({ type: 'varchar', nullable: true, length: 20 })
 	sourceType?: DocumentSourceProviderCategoryEnum | DocumentTypeEnum
 
 	@ApiPropertyOptional({ type: () => Object })
@@ -45,7 +45,7 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
 	@ApiPropertyOptional({ enum: KBDocumentCategoryEnum, description: 'Category of the document' })
 	@IsEnum(KBDocumentCategoryEnum)
 	@Optional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	category?: KBDocumentCategoryEnum | null
 
 	@ApiPropertyOptional({ type: () => String, description: 'Type of the file' })
@@ -187,7 +187,7 @@ export class KnowledgeDocument<T extends KnowledgeDocumentMetadata = KnowledgeDo
 	@ApiPropertyOptional({ enum: KBDocumentStatusEnum, description: 'Status of the document process' })
 	@IsEnum(KBDocumentStatusEnum)
 	@Optional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	status?: KBDocumentStatusEnum
 
 	@ApiPropertyOptional({ type: () => String })

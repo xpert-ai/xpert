@@ -43,7 +43,7 @@ export class XpertProject extends TenantOrganizationBaseEntity implements IXpert
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	status: TXpertProjectStatus
 
 	@ApiPropertyOptional({ type: () => Object })

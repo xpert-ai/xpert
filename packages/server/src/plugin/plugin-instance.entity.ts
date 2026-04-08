@@ -36,7 +36,7 @@ export class PluginInstance extends TenantOrganizationBaseEntity implements IPlu
 	version?: string
 
 	@ApiProperty({ type: () => String })
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	@IsString()
 	source?: PluginSource
 

@@ -21,7 +21,7 @@ export class XpertToolset extends WorkspaceBaseEntity implements IXpertToolset {
 
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
-	@Column({ nullable: true, length: 10 })
+	@Column({ type: 'varchar', nullable: true, length: 10 })
 	category?: 'command' | XpertToolsetCategoryEnum
 
 	@ApiPropertyOptional({ type: () => String })

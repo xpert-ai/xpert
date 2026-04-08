@@ -1,4 +1,4 @@
-import { IIntegration, IntegrationEnum, IntegrationFeatureEnum, ITag, TAvatar } from '@metad/contracts'
+import { IIntegration, IntegrationFeatureEnum, ITag, TAvatar } from '@metad/contracts'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsNotEmpty, IsOptional, IsString } from 'class-validator'
@@ -37,7 +37,7 @@ export class Integration extends TenantOrganizationBaseEntity implements IIntegr
 	@IsString()
 	@IsNotEmpty()
 	@Column()
-	provider: string | IntegrationEnum
+	provider: string
 
 	@ApiPropertyOptional({ type: () => Object })
 	@IsJSON()

@@ -10,7 +10,7 @@ export class ChatMessageFeedback extends TenantOrganizationBaseEntity implements
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	rating: ChatMessageFeedbackRatingEnum
 
 	@ApiProperty({ type: () => String })

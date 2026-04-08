@@ -25,7 +25,7 @@ export class Subscription extends TenantOrganizationBaseEntity implements ISubsc
 	 */
 	// @ApiProperty({ type: () => SubscriptionType })
     // @IsEnum(SubscriptionType)
-    @Column({ nullable: true })
+    @Column({ type: 'varchar', nullable: true })
 	type: SubscriptionType
 
     @ApiPropertyOptional({ type: () => String })

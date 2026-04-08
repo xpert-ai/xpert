@@ -16,7 +16,7 @@ export interface IIntegration<T = any> extends IBasePerTenantAndOrganizationEnti
      */
 	avatar?: TAvatar
 	slug: string;
-	provider: string | IntegrationEnum
+	provider: string
 
 	/**
 	 * Integration features: ['knowledge', 'agent', ...]

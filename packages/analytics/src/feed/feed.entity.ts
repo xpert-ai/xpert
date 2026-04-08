@@ -6,7 +6,7 @@ import { IsJSON, IsOptional } from 'class-validator'
 
 @Entity('feed')
 export class Feed extends TenantOrganizationBaseEntity implements IFeed {
-	@Column()
+	@Column({ type: 'varchar' })
 	type: FeedTypeEnum
 
 	@Column({ nullable: true })

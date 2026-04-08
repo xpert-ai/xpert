@@ -61,7 +61,7 @@ export class Indicator extends ProjectBaseEntity implements IIndicator {
   isApplication ?: boolean
 
   @IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	visibility?: Visibility
 
   /**
@@ -91,7 +91,7 @@ export class Indicator extends ProjectBaseEntity implements IIndicator {
   @ApiProperty({ type: () => String, enum: IndicatorType })
   @IsEnum(IndicatorType)
   @IsOptional()
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   type?: IndicatorType
 
   /**
@@ -150,13 +150,13 @@ export class Indicator extends ProjectBaseEntity implements IIndicator {
   @ApiProperty({ type: () => String })
   @IsString()
   @IsOptional()
-  @Column({ nullable: true, default: IndicatorStatusEnum.DRAFT })
+  @Column({ type: 'varchar', nullable: true, default: IndicatorStatusEnum.DRAFT })
   status?: IndicatorStatusEnum
 
   @ApiProperty({ type: () => String, enum: EmbeddingStatusEnum })
   @IsEnum(EmbeddingStatusEnum)
   @IsOptional()
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   embeddingStatus?: EmbeddingStatusEnum
 
   @ApiProperty({ type: () => String })

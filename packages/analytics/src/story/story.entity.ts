@@ -46,7 +46,7 @@ export class Story extends ProjectBaseEntity implements IStory {
 	description?: string
 
 	@ApiProperty({ type: () => String, enum: StoryStatusEnum })
-	@Column({ nullable: true, default: StoryStatusEnum.DRAFT })
+	@Column({ type: 'varchar', nullable: true, default: StoryStatusEnum.DRAFT })
 	status?: StoryStatusEnum
 
 	/**
@@ -123,7 +123,7 @@ export class Story extends ProjectBaseEntity implements IStory {
 	tags?: ITag[]
 
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	visibility?: Visibility
 
 	@IsOptional()

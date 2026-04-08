@@ -23,7 +23,7 @@ export class Copilot extends TenantOrganizationBaseEntity implements ICopilot {
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true, length: 10 })
+	@Column({ type: 'varchar', nullable: true, length: 10 })
 	role: AiProviderRole
 
 	@ApiPropertyOptional({ type: () => Boolean })

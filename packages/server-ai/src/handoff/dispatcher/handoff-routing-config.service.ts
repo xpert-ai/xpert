@@ -208,12 +208,17 @@ export class HandoffRoutingConfigService implements OnModuleInit {
 
 	private loadConfig(): HandoffRoutingConfigSnapshot {
 		const configFilePath = this.resolveConfigFilePath()
-		let parsed: HandoffRoutingFile = {}
-		try {
-		  const raw = loadYamlFile<unknown>(configFilePath, this.#logger, false)
-		  parsed = HandoffRoutingFileSchema.parse(raw)
-		} catch	(error) {
-			this.#logger.warn(`Failed to load handoff routing config from "${configFilePath}". Using defaults. Error: ${error.message}`)
+		let parsed = HandoffRoutingFileSchema.parse({})
+		if (configFilePath) {
+			try {
+				const raw = loadYamlFile<unknown>(configFilePath, this.#logger, false)
+				parsed = HandoffRoutingFileSchema.parse(raw ?? {})
+			} catch (error) {
+				const message = error instanceof Error ? error.message : String(error)
+				this.#logger.warn(
+					`Failed to load handoff routing config from "${configFilePath}". Using defaults. Error: ${message}`
+				)
+			}
 		}
 		const normalized = this.normalizeConfig(parsed)
 		this.#logger.log(
@@ -398,14 +403,17 @@ export class HandoffRoutingConfigService implements OnModuleInit {
 	}
 
 	private resolveLaneAliasFromPolicy(
-		input: string,
+		input: string | undefined,
 		lanePolicy: Record<string, HandoffLanePolicy>
 	): LaneName | undefined {
+		if (!input) {
+			return undefined
+		}
 		const key = input.trim().toLowerCase()
 		return LANE_ALIAS_MAP[key] ?? lanePolicy[key]?.mapToLane
 	}
 
-	private resolveConfigFilePath(): string {
+	private resolveConfigFilePath(): string | null {
 		const configuredPath =
 			process.env[HANDOFF_ROUTING_CONFIG_PATH_ENV_KEY]
 		if (configuredPath) {

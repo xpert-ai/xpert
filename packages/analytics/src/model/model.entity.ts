@@ -93,7 +93,7 @@ export class SemanticModel extends TenantOrganizationBaseEntity implements ISema
 	options?: TSemanticModelOptions<Schema>
 
 	@ApiProperty({ type: () => String, enum: SemanticModelStatusEnum })
-	@Column({ nullable: true, default: SemanticModelStatusEnum.Progressing })
+	@Column({ type: 'varchar', nullable: true, default: SemanticModelStatusEnum.Progressing })
 	status?: SemanticModelStatusEnum
 
 	@ApiProperty({ type: () => User })
@@ -177,7 +177,7 @@ export class SemanticModel extends TenantOrganizationBaseEntity implements ISema
 	preferences?: ISemanticModelPreferences
 
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	visibility?: Visibility
 
 	/**

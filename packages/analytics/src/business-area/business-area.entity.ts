@@ -28,7 +28,7 @@ export class BusinessArea extends TenantOrganizationBaseEntity implements IBusin
 	@ApiProperty({ type: () => String, enum: BusinessType })
 	@IsEnum(BusinessType)
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	type?: BusinessType
 
 	@ApiPropertyOptional({ type: () => String })

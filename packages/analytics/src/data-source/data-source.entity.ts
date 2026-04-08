@@ -62,7 +62,7 @@ export class DataSource extends TenantOrganizationBaseEntity implements IDataSou
   useLocalAgent?: boolean
 
   @IsOptional()
-  @Column({ nullable: true })
+  @Column({ type: 'varchar', nullable: true })
   authType?: AuthenticationEnum
 
   // @Exclude()

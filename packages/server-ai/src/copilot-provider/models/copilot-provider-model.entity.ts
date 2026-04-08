@@ -22,7 +22,7 @@ export class CopilotProviderModel extends TenantOrganizationBaseEntity implement
 	@ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	modelType?: AiModelTypeEnum
 
 	@ApiPropertyOptional({ type: () => Object })

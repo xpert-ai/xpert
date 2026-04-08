@@ -25,7 +25,7 @@ export class Favorite extends ProjectBaseEntity implements IFavorite {
     @ApiProperty({ type: () => String, enum: BusinessType })
 	@IsEnum(BusinessType)
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	type?: BusinessType
 
     /**

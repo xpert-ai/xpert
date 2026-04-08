@@ -21,7 +21,7 @@ export class XpertWorkspace extends TenantOrganizationBaseEntity implements IXpe
     @ApiPropertyOptional({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	status: TXpertWorkspaceStatus
 
 	@ApiPropertyOptional({ type: () => Object })

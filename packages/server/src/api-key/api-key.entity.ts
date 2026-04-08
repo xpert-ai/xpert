@@ -23,7 +23,7 @@ export class ApiKey extends TenantOrganizationBaseEntity implements IApiKey {
 	/**
 	 * Stable binding kind for resolving the technical principal behind this key.
 	 */
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	type?: ApiKeyBindingType
 
 	/**

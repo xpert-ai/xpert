@@ -40,7 +40,7 @@ export class Project extends TenantOrganizationBaseEntity implements IProject {
 	description?: string
 
 	@ApiProperty({ type: () => String, enum: ProjectStatusEnum })
-	@Column({ nullable: true, default: ProjectStatusEnum.Progressing })
+	@Column({ type: 'varchar', nullable: true, default: ProjectStatusEnum.Progressing })
 	status?: ProjectStatusEnum
 
 	// Soft Delete

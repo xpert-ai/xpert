@@ -45,12 +45,17 @@ function resolveAllowedWorkspaceRoots(): string[] {
 		.map((item) => item.trim())
 		.filter(Boolean)
 		.map((item) => path.resolve(item))
+		.filter((item) => fs.existsSync(item))
+		.map((item) => fs.realpathSync.native(item))
 
 	if (configuredRoots?.length) {
 		return configuredRoots
 	}
 
 	return [path.resolve(process.cwd()), path.resolve(process.cwd(), '..')]
+		.filter((item, index, items) => items.indexOf(item) === index)
+		.filter((item) => fs.existsSync(item))
+		.map((item) => fs.realpathSync.native(item))
 }
 
 function assertWorkspacePathAllowed(workspacePath: string) {

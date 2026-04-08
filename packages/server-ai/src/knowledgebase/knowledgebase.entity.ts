@@ -32,13 +32,13 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 
 	@ApiPropertyOptional({ enum: KnowledgebaseTypeEnum, enumName: 'KnowledgebaseTypeEnum' })
 	@IsEnum(KnowledgebaseTypeEnum)
-	@Column({ nullable: true, length: 20 })
+	@Column({ type: 'varchar', nullable: true, length: 20 })
 	type: KnowledgebaseTypeEnum
 
 	@ApiPropertyOptional({ enum: KnowledgeStructureEnum, enumName: 'KnowledgeStructureEnum' })
 	@IsEnum(KnowledgeStructureEnum)
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	structure?: KnowledgeStructureEnum
 
 	@ApiPropertyOptional({ type: () => String })
@@ -62,7 +62,7 @@ export class Knowledgebase extends WorkspaceBaseEntity implements IKnowledgebase
 	@ApiProperty({ type: () => String, enum: KnowledgebasePermission })
 	@IsEnum(KnowledgebasePermission)
 	@IsOptional()
-	@Column({ nullable: true, default: KnowledgebasePermission.Private })
+	@Column({ type: 'varchar', nullable: true, default: KnowledgebasePermission.Private })
 	permission?: KnowledgebasePermission
 
 	// Copilot Model

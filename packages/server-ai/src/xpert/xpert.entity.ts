@@ -59,12 +59,12 @@ export class Xpert extends WorkspaceBaseEntity implements IXpert {
 
     @ApiPropertyOptional({ type: () => String })
     @IsString()
-    @Column({ length: 100 })
+    @Column({ type: 'varchar', length: 100 })
     name: AiBusinessRole | string
 
     @ApiPropertyOptional({ type: () => String })
     @IsString()
-    @Column({ length: 10 })
+    @Column({ type: 'varchar', length: 10 })
     type: XpertTypeEnum
 
     @ApiPropertyOptional({ type: () => String })

@@ -33,7 +33,7 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	status?: TChatConversationStatus
 
 	@ApiPropertyOptional({ type: () => Object })
@@ -57,7 +57,7 @@ export class ChatConversation extends TenantOrganizationBaseEntity implements IC
 	@ApiProperty({ type: () => String })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	from: TChatFrom
 
 	@ApiProperty({ type: () => String })

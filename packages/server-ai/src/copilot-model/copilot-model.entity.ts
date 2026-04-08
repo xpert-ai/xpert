@@ -12,7 +12,7 @@ export class CopilotModel extends TenantOrganizationBaseEntity implements ICopil
 	@ApiPropertyOptional({ enum: AiModelTypeEnum })
 	@IsString()
 	@IsOptional()
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	modelType?: AiModelTypeEnum
 
 	@ApiPropertyOptional({ type: () => String })

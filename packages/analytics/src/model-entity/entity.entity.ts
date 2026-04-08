@@ -34,7 +34,7 @@ export class SemanticModelEntity extends TenantOrganizationBaseEntity implements
 
 	@ApiProperty({ type: () => String, enum: ModelEntityType })
 	@IsEnum(ModelEntityType)
-	@Column({ nullable: true })
+	@Column({ type: 'varchar', nullable: true })
 	type: ModelEntityType
 
 	@ApiPropertyOptional({ type: () => Object })
@@ -64,7 +64,7 @@ export class SemanticModelEntity extends TenantOrganizationBaseEntity implements
 	@ApiPropertyOptional({ enum: ScheduleTaskStatus })
 	@IsEnum(ScheduleTaskStatus)
 	@IsOptional()
-	@Column({ nullable: true, length: 20 })
+	@Column({ type: 'varchar', nullable: true, length: 20 })
 	status?: ScheduleTaskStatus
 
 	/**
