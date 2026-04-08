@@ -1,4 +1,4 @@
-import { computed, effect, inject, Injectable, signal, untracked } from '@angular/core'
+import { computed, effect, inject, Injectable, signal } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { NavigationEnd, Router } from '@angular/router'
 import { injectWorkspace } from '@metad/cloud/state'
@@ -119,28 +119,24 @@ export class XpertAssistantFacade {
       return
     }
 
-    untracked(() => {
-      const current = this.#studioRuntimeContext()
-      if (
-        current?.targetXpertId === context.targetXpertId &&
-        current?.baseDraftHash === context.baseDraftHash &&
-        current?.unsaved === context.unsaved
-      ) {
-        return
-      }
+    const current = this.#studioRuntimeContext()
+    if (
+      current?.targetXpertId === context.targetXpertId &&
+      current?.baseDraftHash === context.baseDraftHash &&
+      current?.unsaved === context.unsaved
+    ) {
+      return
+    }
 
-      this.#studioRuntimeContext.set(context)
-    })
+    this.#studioRuntimeContext.set(context)
   }
 
   clearStudioContext() {
-    untracked(() => {
-      if (!this.#studioRuntimeContext()) {
-        return
-      }
+    if (!this.#studioRuntimeContext()) {
+      return
+    }
 
-      this.#studioRuntimeContext.set(null)
-    })
+    this.#studioRuntimeContext.set(null)
   }
 
   handleEffect(event: ChatKitEffectEvent) {
