@@ -64,7 +64,7 @@ COPY --chown=nginx:nginx .deploy/webapp/entrypoint.compose.sh ./
 COPY --chown=nginx:nginx .deploy/webapp/entrypoint.prod.sh ./
 COPY --chown=nginx:nginx .deploy/webapp/nginx.compose.conf /etc/nginx/conf.d/compose.conf.template
 COPY --chown=nginx:nginx .deploy/webapp/nginx.prod.conf /etc/nginx/conf.d/prod.conf.template
-COPY --chown=nginx:nginx --from=build /srv/xpert/dist/apps/cloud .
+COPY --chown=nginx:nginx --from=build /srv/xpert/dist/apps/cloud/browser .
 COPY --chown=nginx:nginx --from=build /srv/xpert/node_modules/@xpert-ai/chatkit-ui/dist/app ./chatkit
 
 RUN sed -i 's#"/assets/#"/chatkit/assets/#g' /srv/xpert/chatkit/index.html
