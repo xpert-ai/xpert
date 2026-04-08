@@ -1,0 +1,86 @@
+<section class="relative min-h-[420px]">
+  @if (loading()) {
+    <div class="flex min-h-[420px] items-center justify-center rounded-[28px] border border-divider-regular bg-components-card-bg">
+      <ngm-spin />
+    </div>
+  } @else if (items().length) {
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      @for (item of items(); track item.id) {
+        <article class="group flex h-full flex-col overflow-hidden rounded-[24px] border border-divider-regular bg-components-card-bg shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
+          <div class="flex items-start gap-3 border-b border-divider-regular px-5 py-5">
+            <div class="relative shrink-0">
+              <emoji-avatar [avatar]="item.avatar" class="overflow-hidden rounded-2xl shadow-sm" />
+              <span class="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-divider-regular bg-components-card-bg text-text-secondary shadow-sm">
+                <i [class]="typeIcon(item.type)"></i>
+              </span>
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-2">
+                <h3
+                  class="line-clamp-1 text-lg font-semibold text-text-primary"
+                  [title]="item.title || item.name"
+                  [ngmHighlight]="search()"
+                  [content]="item.title || item.name"
+                >
+                  {{ item.title || item.name }}
+                </h3>
+              </div>
+
+              <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                <span class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 font-medium text-text-secondary">
+                  <i [class]="typeIcon(item.type)"></i>
+                  {{ ('PAC.Explore.AgentType.' + typeLabel(item.type)) | translate: { Default: typeLabel(item.type) } }}
+                </span>
+
+                @if (item.category) {
+                  <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 font-medium text-text-tertiary">
+                    {{ ('PAC.Xpert.Categories.' + item.category) | translate: { Default: item.category } }}
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-1 flex-col px-5 py-4">
+            <div
+              class="line-clamp-4 min-h-[88px] text-sm leading-6 text-text-tertiary"
+              [title]="item.description"
+              [ngmHighlight]="search()"
+              [content]="item.description"
+            >
+              {{ item.description }}
+            </div>
+
+            <div class="mt-5 flex items-center justify-between gap-3">
+              <div class="text-xs text-text-quaternary">
+                {{ 'PAC.Explore.TemplateReady' | translate: { Default: '可直接用于工作区安装' } }}
+              </div>
+              <button type="button" class="btn btn-primary btn-small shrink-0" (click)="install(item)">
+                @if (item.type === 'project') {
+                  {{ 'PAC.Xpert.Install' | translate: { Default: 'Install' } }}
+                } @else {
+                  {{ 'PAC.Xpert.InstallToWorkspace' | translate: { Default: 'Install to workspace' } }}
+                }
+              </button>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="flex min-h-[420px] items-center justify-center rounded-[28px] border border-dashed border-divider-regular bg-components-card-bg/70 px-6 text-center">
+      <div class="max-w-lg">
+        <div class="text-4xl text-text-tertiary">
+          <i class="ri-robot-3-line"></i>
+        </div>
+        <h3 class="mt-4 text-xl font-semibold text-text-primary">
+          {{ 'PAC.Explore.NoAgents' | translate: { Default: '未找到匹配的智能体模板' } }}
+        </h3>
+        <p class="mt-2 text-sm leading-6 text-text-tertiary">
+          {{ 'PAC.Explore.NoAgentsHint' | translate: { Default: '可以尝试调整关键词，查看更多企业内可复用的智能体与项目模板。' } }}
+        </p>
+      </div>
+    </div>
+  }
+</section>

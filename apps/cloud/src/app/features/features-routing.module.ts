@@ -32,7 +32,7 @@ const routes: Routes = [
       },
       {
         path: 'explore',
-        loadChildren: () => import('./xpert/explore/routes').then(m => m.routes),
+        loadChildren: () => import('./explore/routes').then(m => m.routes),
         canActivate: [authGuard],
         data: {
           title: 'Explore Xperts',

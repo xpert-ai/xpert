@@ -14,7 +14,11 @@ jest.mock('@metad/server-core', () => ({
 			return entity
 		}
 	},
-	TenantOrganizationBaseEntity: class TenantOrganizationBaseEntity {}
+	TenantOrganizationBaseEntity: class TenantOrganizationBaseEntity {},
+	RequestContext: {
+		currentTenantId: jest.fn(() => 'tenant-1'),
+		getOrganizationId: jest.fn(() => 'org-1')
+	}
 }))
 
 jest.mock('@nestjs/typeorm', () => ({
@@ -39,6 +43,7 @@ describe('SkillRepositoryIndexService', () => {
 	let repository: {
 		find: jest.Mock
 		softDelete: jest.Mock
+		createQueryBuilder: jest.Mock
 	}
 	let skillRepositoryService: {
 		findOneByIdString: jest.Mock
@@ -53,7 +58,8 @@ describe('SkillRepositoryIndexService', () => {
 	beforeEach(() => {
 		repository = {
 			find: jest.fn(),
-			softDelete: jest.fn().mockResolvedValue({ affected: 1 })
+			softDelete: jest.fn().mockResolvedValue({ affected: 1 }),
+			createQueryBuilder: jest.fn()
 		}
 		skillRepositoryService = {
 			findOneByIdString: jest.fn().mockResolvedValue({
@@ -179,5 +185,56 @@ describe('SkillRepositoryIndexService', () => {
 			})
 		])
 		expect(skillRepositoryService.updateLastSyncAt).toHaveBeenCalledWith('repo-1')
+	})
+
+	it('builds a searchable marketplace query with pagination and repository filter', async () => {
+		const queryBuilder = {
+			leftJoinAndSelect: jest.fn().mockReturnThis(),
+			where: jest.fn().mockReturnThis(),
+			andWhere: jest.fn().mockReturnThis(),
+			orderBy: jest.fn().mockReturnThis(),
+			addOrderBy: jest.fn().mockReturnThis(),
+			skip: jest.fn().mockReturnThis(),
+			take: jest.fn().mockReturnThis(),
+			getManyAndCount: jest.fn().mockResolvedValue([
+				[
+					{
+						id: 'skill-1',
+						repositoryId: 'repo-1',
+						skillId: 'weather',
+						skillPath: 'weather',
+						name: 'Weather'
+					}
+				],
+				1
+			])
+		}
+		repository.createQueryBuilder.mockReturnValue(queryBuilder)
+
+		const result = await service.findMarketplace(
+			{
+				where: { repositoryId: 'repo-1' },
+				take: 24,
+				skip: 48,
+				order: { updatedAt: 'DESC' as any }
+			} as any,
+			'weather'
+		)
+
+		expect(repository.createQueryBuilder).toHaveBeenCalledWith('skill')
+		expect(queryBuilder.leftJoinAndSelect).toHaveBeenCalledWith('skill.repository', 'repository')
+		expect(queryBuilder.skip).toHaveBeenCalledWith(48)
+		expect(queryBuilder.take).toHaveBeenCalledWith(24)
+		expect(queryBuilder.addOrderBy).toHaveBeenCalledWith('skill.updatedAt', 'DESC')
+		expect(queryBuilder.getManyAndCount).toHaveBeenCalled()
+		expect(result).toEqual({
+			items: [
+				expect.objectContaining({
+					id: 'skill-1',
+					skillId: 'weather'
+				})
+			],
+			total: 1
+		})
 	})
 })

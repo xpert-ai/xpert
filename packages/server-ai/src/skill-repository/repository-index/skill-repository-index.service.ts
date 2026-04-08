@@ -1,10 +1,10 @@
 import { getErrorMessage } from '@metad/server-common'
-import { TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { SkillSourceProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { omit } from 'lodash'
-import { In, Repository } from 'typeorm'
+import { Brackets, FindManyOptions, In, Repository } from 'typeorm'
 import { SkillRepositoryService } from '../skill-repository.service'
 import { SkillRepositoryIndex } from './skill-repository-index.entity'
 
@@ -25,6 +25,45 @@ const compareSkillRepositoryIndexFreshness = (left: SkillRepositoryIndex, right:
 	getTimestamp(right.updatedAt) - getTimestamp(left.updatedAt) ||
 	getTimestamp(right.createdAt) - getTimestamp(left.createdAt)
 
+const isObjectValue = (value: unknown): value is object =>
+	typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const readStringFilter = (where: unknown, key: string) => {
+	if (!isObjectValue(where)) {
+		return undefined
+	}
+
+	const value = Reflect.get(where, key)
+	return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+const readStringArrayFilter = (where: unknown, key: string) => {
+	if (!isObjectValue(where)) {
+		return undefined
+	}
+
+	const value = Reflect.get(where, key)
+	if (Array.isArray(value)) {
+		const items = value.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+		return items.length ? items : undefined
+	}
+
+	if (!isObjectValue(value)) {
+		return undefined
+	}
+
+	const inValue = Reflect.get(value, '$in')
+	if (!Array.isArray(inValue)) {
+		return undefined
+	}
+
+	const items = inValue.filter((item): item is string => typeof item === 'string' && item.trim().length > 0)
+	return items.length ? items : undefined
+}
+
+const normalizeOrderDirection = (value: unknown): 'ASC' | 'DESC' =>
+	value === 'ASC' ? 'ASC' : 'DESC'
+
 @Injectable()
 export class SkillRepositoryIndexService extends TenantOrganizationAwareCrudService<SkillRepositoryIndex> {
 	readonly #logger = new Logger(SkillRepositoryIndexService.name)
@@ -38,6 +77,88 @@ export class SkillRepositoryIndexService extends TenantOrganizationAwareCrudServ
 		readonly skillRepositoryService: SkillRepositoryService
 	) {
 		super(repository)
+	}
+
+	async findMarketplace(options?: FindManyOptions<SkillRepositoryIndex>, search?: string) {
+		const tenantId = RequestContext.currentTenantId()
+		const organizationId = RequestContext.getOrganizationId()
+		const trimmedSearch = search?.trim()
+		const query = this.repository
+			.createQueryBuilder('skill')
+			.leftJoinAndSelect('skill.repository', 'repository')
+			.where('skill.tenantId = :tenantId', { tenantId })
+			.andWhere('skill.deletedAt IS NULL')
+
+		if (organizationId) {
+			query.andWhere(new Brackets((qb) => {
+				qb.where('skill.organizationId = :organizationId', { organizationId })
+					.orWhere('skill.organizationId IS NULL')
+			}))
+		} else {
+			query.andWhere('skill.organizationId IS NULL')
+		}
+
+		const repositoryId = readStringFilter(options?.where, 'repositoryId')
+		const repositoryIds = readStringArrayFilter(options?.where, 'repositoryId')
+		const skillId = readStringFilter(options?.where, 'skillId')
+
+		if (repositoryId) {
+			query.andWhere('skill.repositoryId = :repositoryId', { repositoryId })
+		} else if (repositoryIds?.length) {
+			query.andWhere('skill.repositoryId IN (:...repositoryIds)', { repositoryIds })
+		}
+
+		if (skillId) {
+			query.andWhere('skill.skillId = :skillId', { skillId })
+		}
+
+		if (trimmedSearch) {
+			query.andWhere(new Brackets((qb) => {
+				qb.where('skill.name ILIKE :search', { search: `%${trimmedSearch}%` })
+					.orWhere('skill.skillId ILIKE :search', { search: `%${trimmedSearch}%` })
+					.orWhere('skill.skillPath ILIKE :search', { search: `%${trimmedSearch}%` })
+					.orWhere('COALESCE(skill.description, \'\') ILIKE :search', { search: `%${trimmedSearch}%` })
+					.orWhere('COALESCE(skill.tags::text, \'\') ILIKE :search', { search: `%${trimmedSearch}%` })
+					.orWhere('COALESCE(skill.author::jsonb ->> \'handle\', \'\') ILIKE :search', { search: `%${trimmedSearch}%` })
+					.orWhere('COALESCE(skill.author::jsonb ->> \'displayName\', \'\') ILIKE :search', { search: `%${trimmedSearch}%` })
+					.orWhere('COALESCE(skill.author::jsonb ->> \'name\', \'\') ILIKE :search', { search: `%${trimmedSearch}%` })
+					.orWhere('COALESCE(repository.name, \'\') ILIKE :search', { search: `%${trimmedSearch}%` })
+			}))
+		}
+
+		const order = options?.order
+		if (order && typeof order === 'object') {
+			let applied = false
+			for (const [field, direction] of Object.entries(order)) {
+				switch (field) {
+					case 'name':
+					case 'skillId':
+					case 'skillPath':
+					case 'createdAt':
+					case 'updatedAt':
+						query.addOrderBy(`skill.${field}`, normalizeOrderDirection(direction))
+						applied = true
+						break
+				}
+			}
+
+			if (!applied) {
+				query.orderBy('skill.updatedAt', 'DESC')
+			}
+		} else {
+			query.orderBy('skill.updatedAt', 'DESC')
+		}
+
+		if (typeof options?.skip === 'number') {
+			query.skip(options.skip)
+		}
+
+		if (typeof options?.take === 'number') {
+			query.take(options.take)
+		}
+
+		const [items, total] = await query.getManyAndCount()
+		return { items, total }
 	}
 
 	/**

@@ -1,10 +1,11 @@
 import { IUser } from '@metad/contracts'
-import { PaginationParams, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { PaginationParams, TenantOrganizationAwareCrudService } from '@metad/server-core'
 import { Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Brackets, Repository } from 'typeorm'
 import { WorkspacePublicDTO } from './dto'
 import { XpertWorkspace } from './workspace.entity'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 @Injectable()
 export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<XpertWorkspace> {
@@ -51,6 +52,17 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
 		return {
 			items: workspaces.map((item) => new WorkspacePublicDTO(item))
 		}
+	}
+
+	async findMyDefault() {
+		const userId = RequestContext.currentUserId()
+		const organizationId = RequestContext.getOrganizationId()
+
+		if (!userId || !organizationId) {
+			return null
+		}
+
+		return this.findUserDefaultWorkspace(organizationId, userId)
 	}
 
 	async updateMembers(id: string, members: string[]) {

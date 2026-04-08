@@ -2,6 +2,42 @@ import { mkdirSync, mkdtempSync, readFileSync, rmSync, unlinkSync, writeFileSync
 import { tmpdir } from 'node:os'
 import { dirname, join } from 'node:path'
 import { LanguagesEnum } from '@metad/contracts'
+
+jest.mock('../skill-repository/skill-repository.service', () => ({
+	SkillRepositoryService: class SkillRepositoryService {}
+}))
+
+jest.mock('../skill-repository/repository-index/skill-repository-index.service', () => ({
+	SkillRepositoryIndexService: class SkillRepositoryIndexService {}
+}))
+
+jest.mock('@metad/server-config', () => ({
+	ConfigService: class ConfigService {}
+}))
+
+jest.mock('@metad/server-core', () => ({
+	TenantBaseEntity: class TenantBaseEntity {},
+	TenantAwareCrudService: class TenantAwareCrudService<T> {
+		constructor(protected readonly repository: unknown) {}
+
+		async findOneOrFailByWhereOptions() {
+			return { record: null }
+		}
+
+		async update() {
+			return undefined
+		}
+
+		async create() {
+			return undefined
+		}
+
+		async findAll() {
+			return { items: [] }
+		}
+	}
+}))
+
 import { XpertTemplateService } from './xpert-template.service'
 
 describe('XpertTemplateService', () => {
@@ -84,6 +120,9 @@ describe('XpertTemplateService', () => {
 		expect(readJson(join(externalRoot, 'knowledge-pipelines.json'))).toEqual(
 			readJson(join(builtinRoot, 'knowledge-pipelines.json'))
 		)
+		expect(readFileSync(join(externalRoot, 'skills-market.yaml'), 'utf8')).toBe(
+			readFileSync(join(builtinRoot, 'skills-market.yaml'), 'utf8')
+		)
 		expect(readFileSync(join(externalRoot, 'pipelines', 'pipeline-1.yaml'), 'utf8')).toBe(
 			readFileSync(join(builtinRoot, 'pipelines', 'pipeline-1.yaml'), 'utf8')
 		)
@@ -143,6 +182,34 @@ describe('XpertTemplateService', () => {
 				templates: [{ id: 'pipeline-1', name: 'External Pipeline' }]
 			}
 		})
+		writeFileSync(
+			join(externalRoot, 'skills-market.yaml'),
+			[
+				'en-US:',
+				'  featured:',
+				'    - provider: github',
+				'      repositoryName: anthropics/skills',
+				'      skillId: skills/claude-api',
+				'      badge: Official Picks',
+				'  filters:',
+				'    roles:',
+				'      label: Roles',
+				'      options:',
+				'        - value: all',
+				'          label: All roles',
+				'    appTypes:',
+				'      label: Application types',
+				'      options:',
+				'        - value: all',
+				'          label: All types',
+				'    hot:',
+				'      label: Trending',
+				'      options:',
+				'        - value: all',
+				'          label: Default'
+			].join('\n'),
+			'utf8'
+		)
 		writeFileSync(join(externalRoot, 'templates', 'template-1.yaml'), 'source: external-template\n', 'utf8')
 		writeFileSync(join(externalRoot, 'pipelines', 'pipeline-1.yaml'), 'source: external-pipeline\n', 'utf8')
 
@@ -160,6 +227,7 @@ describe('XpertTemplateService', () => {
 		const mcpTemplates = await service.readMCPTemplates()
 		const templateDetail = await service.getTemplateDetail('template-1', LanguagesEnum.English)
 		const knowledgePipeline = await service.getKnowledgePipeline(LanguagesEnum.English, 'pipeline-1')
+		const skillsMarket = await service.getSkillsMarket(LanguagesEnum.English)
 
 		expect(templatesFile.templates['en-US'].categories).toEqual(['external'])
 		expect(mcpTemplates['en-US'].templates[0].name).toBe('External MCP')
@@ -167,6 +235,8 @@ describe('XpertTemplateService', () => {
 		expect(templateDetail.export_data).toBe('source: external-template\n')
 		expect(knowledgePipeline.name).toBe('External Pipeline')
 		expect(knowledgePipeline.export_data).toBe('source: external-pipeline\n')
+		expect(skillsMarket.filters.roles.label).toBe('Roles')
+		expect(skillsMarket.featured).toEqual([])
 	})
 
 	it('throws a clear error when an external template file is missing after initialization', async () => {
@@ -201,13 +271,23 @@ describe('XpertTemplateService', () => {
 		env?: Record<string, string>
 	}) {
 		const cache = new Map<string, unknown>()
+		const skillRepositoryService = {
+			findAllInOrganizationOrTenant: jest.fn().mockResolvedValue({ items: [] })
+		}
+		const skillRepositoryIndexService = {
+			findAllInOrganizationOrTenant: jest.fn().mockResolvedValue({ items: [] })
+		}
 		const cacheManager = {
 			get: jest.fn(async (key: string) => cache.get(key)),
 			set: jest.fn(async (key: string, value: unknown) => {
 				cache.set(key, value)
 			})
 		}
-		const service = new XpertTemplateService({} as any)
+		const service = new XpertTemplateService(
+			{} as any,
+			skillRepositoryService as any,
+			skillRepositoryIndexService as any
+		)
 
 		;(service as any).configService = {
 			assetOptions: {
@@ -245,6 +325,7 @@ describe('XpertTemplateService', () => {
 			templatesJson?: Record<string, unknown>
 			mcpTemplatesJson?: Record<string, unknown>
 			knowledgePipelinesJson?: Record<string, unknown>
+			skillsMarketYaml?: string
 			templateYaml?: string
 			pipelineYaml?: string
 		} = {}
@@ -282,6 +363,25 @@ describe('XpertTemplateService', () => {
 					templates: [{ id: 'pipeline-1', name: 'Built-in Pipeline' }]
 				}
 			}
+		)
+		writeFileSync(
+			join(builtinRoot, 'skills-market.yaml'),
+			overrides.skillsMarketYaml ??
+				[
+					'en-US:',
+					'  featured: []',
+					'  filters:',
+					'    roles:',
+					'      label: Roles',
+					'      options: []',
+					'    appTypes:',
+					'      label: Application types',
+					'      options: []',
+					'    hot:',
+					'      label: Trending',
+					'      options: []'
+				].join('\n'),
+			'utf8'
 		)
 		writeFileSync(
 			join(builtinRoot, 'templates', 'template-1.yaml'),

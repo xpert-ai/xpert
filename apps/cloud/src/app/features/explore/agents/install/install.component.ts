@@ -1,69 +1,71 @@
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { TextFieldModule } from '@angular/cdk/text-field'
-
-import { ChangeDetectionStrategy, Component, computed, inject, model, signal } from '@angular/core'
+import { CommonModule } from '@angular/common'
+import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { FormsModule } from '@angular/forms'
 import { Router, RouterModule } from '@angular/router'
 import { injectWorkspace } from '@metad/cloud/state'
 import { parseYAML } from '@metad/core'
 import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardSelectImports } from '@xpert-ai/headless-ui'
 import {
   getErrorMessage,
   ICopilotModel,
   injectToastr,
-  TXpertTemplate,
+  OrderTypeEnum,
   TAvatar,
   TXpertTeamDraft,
+  TXpertTemplate,
   XpertAPIService,
   XpertTemplateService,
-  XpertWorkspaceService,
-  OrderTypeEnum
-} from 'apps/cloud/src/app/@core'
-import { NgmSelectComponent } from 'apps/cloud/src/app/@shared/common'
-import { XpertBasicFormComponent } from 'apps/cloud/src/app/@shared/xpert'
+  XpertWorkspaceService
+} from '@cloud/app/@core'
+import { XpertBasicFormComponent } from '@cloud/app/@shared/xpert'
 import { map, switchMap } from 'rxjs/operators'
 
 @Component({
   standalone: true,
+  selector: 'xp-explore-agent-install',
   imports: [
-    FormsModule,
+    CommonModule,
     TranslateModule,
     RouterModule,
     TextFieldModule,
     NgmSpinComponent,
-    NgmSelectComponent,
+    ...ZardSelectImports,
     XpertBasicFormComponent
-],
-  selector: 'xpert-install',
-  templateUrl: 'install.component.html',
-  styleUrl: 'install.component.scss',
-  animations: [],
+  ],
+  templateUrl: './install.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
-  providers: []
+  host: {
+    class: 'flex w-full max-w-2xl flex-col overflow-hidden rounded-2xl bg-components-panel-bg px-8 py-6 text-left shadow-xl'
+  }
 })
-export class XpertInstallComponent {
+export class ExploreAgentInstallComponent {
   readonly #data = inject<TXpertTemplate>(DIALOG_DATA)
   readonly #dialogRef = inject(DialogRef)
+  readonly #router = inject(Router)
+  readonly #toastr = injectToastr()
+
   readonly workspaceService = inject(XpertWorkspaceService)
   readonly templateService = inject(XpertTemplateService)
   readonly xpertService = inject(XpertAPIService)
-  readonly #router = inject(Router)
-  readonly #toastr = injectToastr()
   readonly selectedWorkspace = injectWorkspace()
 
-  readonly workspaces = toSignal(this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(map(({ items }) => items)))
-  readonly workspaceOptions = computed(() => {
-    return this.workspaces()?.map((workspace) => ({
+  readonly workspaces = toSignal(
+    this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(map(({ items }) => items)),
+    { initialValue: [] }
+  )
+  readonly workspaceOptions = computed(() =>
+    (this.workspaces() ?? []).map((workspace) => ({
       value: workspace.id,
       label: workspace.name
     }))
-  })
+  )
 
   readonly originName = this.#data.name
 
-  // Models
   readonly workspace = model<string>(this.selectedWorkspace()?.id)
   readonly name = model<string>(this.#data.name)
   readonly description = model<string>(this.#data.description)
@@ -73,36 +75,50 @@ export class XpertInstallComponent {
 
   readonly loading = signal(false)
 
+  constructor() {
+    effect(
+      () => {
+        const workspaces = this.workspaces()
+        if (!this.workspace() && workspaces?.length) {
+          this.workspace.set(workspaces[0].id)
+        }
+      },
+      { allowSignalWrites: true }
+    )
+  }
+
   close() {
     this.#dialogRef.close()
   }
 
-  async create() {
+  selectWorkspace(value: string | number | Array<string | number>) {
+    this.workspace.set(normalizeWorkspaceValue(value))
+  }
+
+  create() {
     const xpert = {
       workspaceId: this.workspace(),
       avatar: this.avatar(),
       name: this.name(),
       description: this.description(),
       title: this.title(),
-      copilotModel: this.copilotModel(),
+      copilotModel: this.copilotModel()
     }
 
     this.loading.set(true)
     this.templateService
       .getTemplate(this.#data.id)
       .pipe(
-        switchMap(async (data) => {
-          return await parseYAML<TXpertTeamDraft>(data.export_data)
-        }),
-        switchMap((draft) => {
-          return this.xpertService.importDSL({
+        switchMap(async (data) => parseYAML<TXpertTeamDraft>(data.export_data)),
+        switchMap((draft) =>
+          this.xpertService.importDSL({
             ...draft,
             team: {
               ...draft.team,
               ...xpert
             }
           })
-        })
+        )
       )
       .subscribe({
         next: (xpert) => {
@@ -110,10 +126,15 @@ export class XpertInstallComponent {
           this.close()
           this.#router.navigate(['/xpert/x/', xpert.id])
         },
-        error: (err) => {
+        error: (error) => {
           this.loading.set(false)
-          this.#toastr.error(getErrorMessage(err))
+          this.#toastr.error(getErrorMessage(error))
         }
-      })
+    })
   }
+}
+
+function normalizeWorkspaceValue(value: string | number | Array<string | number>): string {
+  const normalized = Array.isArray(value) ? value[0] : value
+  return typeof normalized === 'number' ? `${normalized}` : normalized || ''
 }

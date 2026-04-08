@@ -1,0 +1,125 @@
+en-US:
+  featured:
+    - provider: github
+      repositoryName: anthropics/skills
+      skillId: skills/claude-api
+      badge: Official Picks
+      title: Claude API Accelerator
+      description: A production-oriented starter for teams that build quickly around the Claude API.
+    - provider: github
+      repositoryName: anthropics/skills
+      skillId: skills/doc-coauthoring
+      badge: Official Picks
+      title: Document Co-authoring
+      description: A collaboration-ready skill for drafting, revising, and polishing long-form documents together.
+    - provider: github
+      repositoryName: anthropics/skills
+      skillId: skills/webapp-testing
+      badge: Official Picks
+      title: Webapp Testing
+      description: A QA-oriented skill template for validating web flows, regressions, and release readiness.
+  filters:
+    roles:
+      label: Roles
+      options:
+        - value: all
+          label: All roles
+        - value: analyst
+          label: Analyst
+        - value: designer
+          label: Designer
+        - value: developer
+          label: Developer
+        - value: marketer
+          label: Marketer
+        - value: operator
+          label: Operator
+    appTypes:
+      label: Application types
+      options:
+        - value: all
+          label: All types
+        - value: automation
+          label: Workflow automation
+        - value: content
+          label: Content creation
+        - value: design
+          label: Design assist
+        - value: development
+          label: Engineering
+        - value: productivity
+          label: Productivity
+    hot:
+      label: Trending
+      options:
+        - value: all
+          label: Default
+        - value: hot
+          label: Popular
+        - value: newest
+          label: Newest
+        - value: verified
+          label: Verified
+
+zh-Hans:
+  featured:
+    - provider: github
+      repositoryName: anthropics/skills
+      skillId: skills/claude-api
+      badge: 官方精选
+      title: Claude API 加速器
+      description: 面向企业落地的 Claude API 启动模板，适合快速搭建稳定的内部技能方案。
+    - provider: github
+      repositoryName: anthropics/skills
+      skillId: skills/doc-coauthoring
+      badge: 官方精选
+      title: 文档共创
+      description: 适合多人协作起草、润色与迭代长文档内容的技能模板。
+    - provider: github
+      repositoryName: anthropics/skills
+      skillId: skills/webapp-testing
+      badge: 官方精选
+      title: Web 应用测试
+      description: 面向回归测试、流程验证与发布前巡检的 QA 技能模板。
+  filters:
+    roles:
+      label: 角色
+      options:
+        - value: all
+          label: 全部角色
+        - value: analyst
+          label: 分析师
+        - value: designer
+          label: 设计师
+        - value: developer
+          label: 开发者
+        - value: marketer
+          label: 市场
+        - value: operator
+          label: 运营
+    appTypes:
+      label: 应用类型
+      options:
+        - value: all
+          label: 全部类型
+        - value: automation
+          label: 流程自动化
+        - value: content
+          label: 内容创作
+        - value: design
+          label: 设计辅助
+        - value: development
+          label: 工程研发
+        - value: productivity
+          label: 效率提效
+    hot:
+      label: 热门
+      options:
+        - value: all
+          label: 默认排序
+        - value: hot
+          label: 热门优先
+        - value: newest
+          label: 最新发布
+        - value: verified
+          label: 已验证

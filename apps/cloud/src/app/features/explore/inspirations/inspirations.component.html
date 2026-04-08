@@ -1,0 +1,90 @@
+<section class="relative min-h-[420px]">
+  @if (loading()) {
+    <div class="flex min-h-[420px] items-center justify-center rounded-[28px] border border-divider-regular bg-components-card-bg">
+      <div class="text-sm text-text-tertiary">
+        {{ 'PAC.Explore.LoadingInspirations' | translate: { Default: '正在加载灵感模板...' } }}
+      </div>
+    </div>
+  } @else if (items().length) {
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      @for (item of items(); track item.id) {
+        <article class="flex h-full flex-col overflow-hidden rounded-[24px] border border-divider-regular bg-components-card-bg shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
+          <div class="flex items-start gap-3 border-b border-divider-regular px-5 py-5">
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle">
+              @if (item.icon) {
+                <xp-icon [icon]="item.icon" size="32" />
+              } @else {
+                <i class="ri-lightbulb-flash-line text-xl text-text-tertiary"></i>
+              }
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <div class="line-clamp-2 text-lg font-semibold text-text-primary">
+                {{ item.title || item.name }}
+              </div>
+              <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-tertiary">
+                @if (item.author) {
+                  <span class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+                    <i class="ri-user-smile-line"></i>
+                    {{ item.author }}
+                  </span>
+                }
+                @if (item.category) {
+                  <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+                    {{ item.category }}
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-1 flex-col px-5 py-4">
+            <p class="line-clamp-4 min-h-[96px] text-sm leading-6 text-text-tertiary">
+              {{ item.description }}
+            </p>
+
+            @if (item.tags?.length) {
+              <div class="mt-4 flex flex-wrap gap-2">
+                @for (tag of item.tags ?? []; track tag) {
+                  <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-secondary">
+                    #{{ tag }}
+                  </span>
+                }
+              </div>
+            }
+
+            <div class="mt-5 border-t border-divider-regular pt-4 text-xs leading-5 text-text-quaternary">
+              {{
+                'PAC.Explore.InspirationBrowseOnly'
+                  | translate
+                    : {
+                        Default: 'V1 先提供浏览与筛选入口，后续会补充更完整的安装和沉淀流程。'
+                      }
+              }}
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="flex min-h-[420px] items-center justify-center rounded-[28px] border border-dashed border-divider-regular bg-components-card-bg px-6 text-center">
+      <div class="max-w-lg">
+        <div class="text-4xl text-text-tertiary">
+          <i class="ri-lightbulb-line"></i>
+        </div>
+        <h3 class="mt-4 text-xl font-semibold text-text-primary">
+          {{ 'PAC.Explore.NoInspirations' | translate: { Default: '当前暂无可展示的灵感模板' } }}
+        </h3>
+        <p class="mt-2 text-sm leading-6 text-text-tertiary">
+          {{
+            'PAC.Explore.NoInspirationsHint'
+              | translate
+                : {
+                    Default: '当前语言下还没有对应的灵感市集内容，后续可以继续补充更多 pipeline 模板。'
+                  }
+          }}
+        </p>
+      </div>
+    </div>
+  }
+</section>

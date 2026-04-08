@@ -30,8 +30,28 @@ export class SkillRepositoryIndexController extends CrudController<SkillReposito
 	}
 
 	@Get()
-	async findAll(@Query('data', ParseJsonPipe) data: PaginationParams<SkillRepositoryIndex>) {
-		const { items, total } = await this.service.findAllInOrganizationOrTenant(data)
+	async findAll(
+		@Query('data', ParseJsonPipe) filter: PaginationParams<SkillRepositoryIndex>,
+		@Query('$where', ParseJsonPipe) where?: PaginationParams<SkillRepositoryIndex>['where'],
+		@Query('$relations', ParseJsonPipe) relations?: PaginationParams<SkillRepositoryIndex>['relations'],
+		@Query('$order', ParseJsonPipe) order?: PaginationParams<SkillRepositoryIndex>['order'],
+		@Query('$take') take?: PaginationParams<SkillRepositoryIndex>['take'],
+		@Query('$skip') skip?: PaginationParams<SkillRepositoryIndex>['skip'],
+		@Query('$select', ParseJsonPipe) select?: PaginationParams<SkillRepositoryIndex>['select'],
+		@Query('search') search?: string,
+	) {
+		const { items, total } = await this.service.findMarketplace(
+			{
+				...(filter ?? {}),
+				where: where ?? filter?.where,
+				relations: relations ?? filter?.relations,
+				order: order ?? filter?.order,
+				take: take ?? filter?.take,
+				skip: skip ?? filter?.skip,
+				select: select ?? filter?.select,
+			},
+			search
+		)
 
 		return {
 			items: items.map((item) => new SimpleSkillIndexDto(item)),

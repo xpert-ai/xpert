@@ -1,0 +1,129 @@
+<div class="sticky top-0 z-20 border-b border-divider-deep bg-background-body backdrop-blur">
+  <div class="flex flex-col gap-4 px-6 pb-5 pt-5 xl:px-10">
+    <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
+      <div class="flex flex-1 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
+        <div class="flex flex-wrap items-center gap-4">
+          <div class="inline-flex items-center rounded-xl bg-components-input-bg-normal p-1 shadow-sm">
+            <button
+              type="button"
+              class="min-w-[96px] rounded-[10px] px-5 py-2 text-base font-semibold transition-colors"
+              [class]="
+                mode() === 'square'
+                  ? 'bg-components-card-bg text-text-primary shadow-sm'
+                  : 'text-text-tertiary hover:text-text-primary'
+              "
+              (click)="setMode('square')"
+            >
+              {{ 'PAC.Explore.Square' | translate: { Default: '广场' } }}
+            </button>
+            <button
+              type="button"
+              class="min-w-[96px] rounded-[10px] px-5 py-2 text-base font-semibold transition-colors"
+              [class]="
+                mode() === 'mine'
+                  ? 'bg-components-card-bg text-text-primary shadow-sm'
+                  : 'text-text-tertiary hover:text-text-primary'
+              "
+              (click)="setMode('mine')"
+            >
+              {{ 'PAC.Explore.Mine' | translate: { Default: '我的' } }}
+            </button>
+          </div>
+
+          <div class="inline-flex items-center rounded-xl bg-components-input-bg-normal p-1 shadow-sm">
+            <button
+              type="button"
+              class="rounded-[10px] px-5 py-2 text-base font-semibold transition-colors"
+              [class]="
+                tab() === 'skills'
+                  ? 'bg-components-card-bg text-primary-500 shadow-sm'
+                  : 'text-text-tertiary hover:text-text-primary'
+              "
+              (click)="setTab('skills')"
+            >
+              {{ 'PAC.Explore.Skills' | translate: { Default: '技能' } }}
+            </button>
+            <button
+              type="button"
+              class="rounded-[10px] px-5 py-2 text-base font-semibold transition-colors"
+              [class]="
+                tab() === 'agents'
+                  ? 'bg-components-card-bg text-primary-500 shadow-sm'
+                  : 'text-text-tertiary hover:text-text-primary'
+              "
+              (click)="setTab('agents')"
+            >
+              {{ 'PAC.Explore.Agents' | translate: { Default: '智能体' } }}
+            </button>
+            <button
+              type="button"
+              class="rounded-[10px] px-5 py-2 text-base font-semibold transition-colors"
+              [class]="
+                tab() === 'inspirations'
+                  ? 'bg-components-card-bg text-primary-500 shadow-sm'
+                  : 'text-text-tertiary hover:text-text-primary'
+              "
+              (click)="setTab('inspirations')"
+            >
+              {{ 'PAC.Explore.Inspirations' | translate: { Default: '灵感市集' } }}
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <div class="relative w-full max-w-[320px] xl:min-w-[320px]">
+        <i class="ri-search-2-line absolute left-3 top-1/2 -translate-y-1/2 text-components-input-text-placeholder"></i>
+        <input
+          class="w-full appearance-none rounded-xl border border-transparent bg-components-input-bg-normal py-2 pl-10 pr-10 text-sm text-components-input-text-filled caret-primary-600 outline-none placeholder:text-components-input-text-placeholder hover:border-components-input-border-hover hover:bg-components-input-bg-hover focus:border-components-input-border-active focus:bg-components-input-bg-active focus:shadow-xs"
+          [placeholder]="'PAC.KEY_WORDS.Search' | translate: { Default: '请输入关键词' }"
+          [(ngModel)]="search"
+        />
+        @if (search()) {
+          <button
+            type="button"
+            class="absolute right-3 top-1/2 flex -translate-y-1/2 items-center justify-center text-components-input-text-placeholder transition-colors hover:text-text-primary"
+            (click)="clearSearch()"
+          >
+            <i class="ri-close-circle-fill"></i>
+          </button>
+        }
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="flex-1 px-6 pb-8 pt-6 xl:px-10">
+  @if (mode() === 'mine') {
+    <section class="flex min-h-[520px] items-center justify-center rounded-[28px] border border-dashed border-divider-regular bg-components-card-bg px-6 py-10">
+      <div class="max-w-xl text-center">
+        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-background-default-subtle text-3xl text-text-tertiary">
+          <i class="ri-folder-user-line"></i>
+        </div>
+        <h2 class="mt-6 text-2xl font-semibold text-text-primary">
+          {{ 'PAC.Explore.MineEmptyTitle' | translate: { Default: mineTitle() } }}
+        </h2>
+        <p class="mt-3 text-base leading-7 text-text-tertiary">
+          {{ 'PAC.Explore.MineEmptyDescription' | translate: { Default: mineDescription() } }}
+        </p>
+        <div class="mt-6 flex justify-center">
+          <button type="button" class="btn btn-primary btn-medium" (click)="resetToSquare()">
+            {{ 'PAC.Explore.BackToSquare' | translate: { Default: '返回广场' } }}
+          </button>
+        </div>
+      </div>
+    </section>
+  } @else {
+    @switch (tab()) {
+      @case ('skills') {
+        <xp-explore-skills [search]="search()" />
+      }
+      @case ('inspirations') {
+        <xp-explore-inspirations [search]="search()" />
+      }
+      @default {
+        <xp-explore-agents [search]="search()" />
+      }
+    }
+  }
+</div>

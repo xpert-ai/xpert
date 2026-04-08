@@ -1,0 +1,102 @@
+<article
+  class="group relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-components-card-bg transition-all hover:-translate-y-0.5 hover:shadow-lg"
+  [class]="variant() === 'featured' ? 'min-h-[308px]' : 'min-h-[152px]'"
+>
+  <div
+    class="flex flex-1 cursor-pointer flex-col px-4 py-4 pb-4 outline-none"
+    role="button"
+    tabindex="0"
+    (click)="openDetails()"
+    (keydown)="onCardKeydown($event)"
+  >
+    <div class="flex items-start justify-between gap-3">
+      <div class="min-w-0 flex-1">
+        @if (badge()) {
+          <div class="mb-2 inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-[11px] font-semibold text-text-secondary">
+            {{ badge() }}
+          </div>
+        }
+
+        <div class="line-clamp-2 font-semibold text-text-primary" [class]="variant() === 'featured' ? 'text-[20px] leading-7' : 'text-base leading-6'">
+          {{ title() }}
+        </div>
+
+        @if (description()) {
+          <p class="mt-2 text-sm leading-6 text-text-tertiary" [class]="variant() === 'featured' ? 'line-clamp-4 min-h-[96px]' : 'line-clamp-3 min-h-[72px]'">
+            {{ description() }}
+          </p>
+        } @else {
+          <p class="mt-2 text-sm leading-6 text-text-tertiary" [class]="variant() === 'featured' ? 'min-h-[96px]' : 'min-h-[72px]'">
+            {{ 'PAC.Explore.SkillDescriptionFallback' | translate: { Default: '该技能暂未提供更多说明。' } }}
+          </p>
+        }
+      </div>
+    </div>
+
+    <div class="mt-3 flex flex-wrap items-center gap-1.5 text-[11px] text-text-tertiary">
+      <span class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2 py-1">
+        <i class="ri-star-line"></i>
+        {{ formatStat(item().stats?.stars) }}
+      </span>
+      <span class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2 py-1">
+        <i class="ri-download-line"></i>
+        {{ formatStat(item().stats?.downloads) }}
+      </span>
+      <span class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2 py-1">
+        <i class="ri-git-branch-line"></i>
+        {{ formatStat(item().stats?.versions) }}
+      </span>
+    </div>
+
+    @if (visibleTags().length) {
+      <div class="mt-3 flex flex-wrap gap-1.5">
+        @for (tag of visibleTags(); track tag) {
+          <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-1 text-[11px] font-medium text-text-secondary">
+            #{{ tag }}
+          </span>
+        }
+        @if (hiddenTagCount()) {
+          <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2 py-1 text-[11px] font-medium text-text-tertiary">
+            +{{ hiddenTagCount() }}
+          </span>
+        }
+      </div>
+    }
+
+    <div class="mt-auto flex items-center justify-between gap-3 pt-4 text-[11px] text-text-quaternary">
+      <div class="truncate">
+        @if (repositoryName()) {
+          {{ repositoryName() }}
+        } @else {
+          {{ item().skillId }}
+        }
+      </div>
+      <div class="shrink-0">
+        {{ item().updatedAt || item().createdAt | date: 'yyyy-MM-dd' }}
+      </div>
+    </div>
+  </div>
+
+  <div class="absolute inset-x-4 bottom-4 transition-all duration-200" [class]="actionsClass()">
+    <div class="bg-components-card-bg p-2">
+      <div class="flex items-end justify-between gap-3">
+        <div class="min-w-0">
+          <div class="text-[10px] font-semibold uppercase tracking-[0.18em] text-text-quaternary">
+            {{ 'PAC.Explore.Creator' | translate: { Default: '创建者' } }}
+          </div>
+          <div class="mt-1 truncate text-sm font-semibold text-text-primary">
+            {{ publisherName() }}
+          </div>
+          <div class="truncate text-[11px] text-text-tertiary">
+            {{ publisherHandle() }}
+          </div>
+        </div>
+
+        <button z-button type="button" zSize="lg" class="rounded-full cursor-pointer" (click)="addToWorkspace($event)">
+          <z-icon zType="plus"></z-icon>
+          {{ 'PAC.ACTIONS.Add' | translate: { Default: '添加' } }}
+        </button>
+      </div>
+    </div>
+  </div>
+</article>

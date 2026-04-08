@@ -110,6 +110,41 @@ export interface ISkillRepositoryIndex extends IBasePerTenantAndOrganizationEnti
   deletedAt?: Date;
 }
 
+export interface ISkillMarketFilterOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+export interface ISkillMarketFilterGroup {
+  label: string;
+  options: ISkillMarketFilterOption[];
+}
+
+export interface ISkillMarketFilterGroups {
+  roles: ISkillMarketFilterGroup;
+  appTypes: ISkillMarketFilterGroup;
+  hot: ISkillMarketFilterGroup;
+}
+
+export interface ISkillMarketFeaturedRef {
+  provider: string;
+  repositoryName: string;
+  skillId: string;
+  badge?: string;
+  title?: string;
+  description?: string;
+}
+
+export interface ISkillMarketFeaturedSkill extends ISkillMarketFeaturedRef {
+  skill: ISkillRepositoryIndex;
+}
+
+export interface ISkillMarketConfig {
+  featured: ISkillMarketFeaturedSkill[];
+  filters: ISkillMarketFilterGroups;
+}
+
 /**
  * Installed skill package record (skill.yaml)
  */

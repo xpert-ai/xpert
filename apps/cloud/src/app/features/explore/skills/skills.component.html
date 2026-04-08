@@ -1,0 +1,302 @@
+<section class="space-y-6">
+  @if (loadingRepositories()) {
+    <div class="flex min-h-[180px] items-center justify-center rounded-[28px] border border-divider-regular bg-components-card-bg">
+      <div class="text-sm text-text-tertiary">
+        {{ 'PAC.Explore.LoadingRepositories' | translate: { Default: '正在加载技能仓库...' } }}
+      </div>
+    </div>
+  } @else if (!repositories().length) {
+    <div class="flex min-h-[420px] items-center justify-center rounded-[28px] border border-dashed border-divider-regular bg-components-card-bg px-6 text-center">
+      <div class="max-w-lg">
+        <div class="text-4xl text-text-tertiary">
+          <i class="ri-folder-open-line"></i>
+        </div>
+        <h3 class="mt-4 text-xl font-semibold text-text-primary">
+          {{ 'PAC.Explore.NoSkillRepositories' | translate: { Default: '当前组织暂无可浏览的技能仓库' } }}
+        </h3>
+        <p class="mt-2 text-sm leading-6 text-text-tertiary">
+          {{
+            'PAC.Explore.NoSkillRepositoriesHint'
+              | translate
+                : {
+                    Default: '请先在组织中接入技能仓库，接入完成后这里会展示官方精选与全部技能。'
+                  }
+          }}
+        </p>
+        <div class="mt-6 flex justify-center">
+          <a class="btn btn-primary btn-medium" routerLink="/setting/skill-repository">
+            {{ 'PAC.Explore.OpenSkillRepositorySettings' | translate: { Default: '打开技能仓库设置' } }}
+          </a>
+        </div>
+      </div>
+    </div>
+  } @else {
+    <div class="px-5 py-5">
+      <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+        <div>
+          <div class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs font-semibold text-text-secondary">
+            {{ 'PAC.Explore.OfficialFeatured' | translate: { Default: '官方精选' } }}
+          </div>
+          <h2 class="mt-3 text-2xl font-semibold text-text-primary">
+            {{ 'PAC.Explore.FeaturedSkillsTitle' | translate: { Default: '精选技能推荐' } }}
+          </h2>
+          <p class="mt-2 max-w-2xl text-sm leading-6 text-text-tertiary">
+            {{
+              'PAC.Explore.FeaturedSkillsHint'
+                | translate
+                  : {
+                      Default: '通过 xpert-template 市场配置下发，优先展示适合企业内部客户浏览、交流与复用的技能模板。'
+                    }
+            }}
+          </p>
+        </div>
+
+        @if (defaultWorkspace()) {
+          <div class="inline-flex items-center gap-2 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-secondary">
+            <i class="ri-briefcase-3-line"></i>
+            {{
+              'PAC.Explore.DefaultWorkspaceHint'
+                | translate
+                  : {
+                      Default: '默认安装到 ' + defaultWorkspace()?.name
+                    }
+            }}
+          </div>
+        }
+      </div>
+
+      @if (loadingMarket()) {
+        <div class="mt-5 flex min-h-[220px] items-center justify-center rounded-[24px] border border-divider-regular bg-background-default-subtle">
+          <div class="text-sm text-text-tertiary">
+            {{ 'PAC.Explore.LoadingFeaturedSkills' | translate: { Default: '正在加载官方精选...' } }}
+          </div>
+        </div>
+      } @else if (!featuredSkills().length) {
+        <div class="mt-5 flex min-h-[220px] items-center justify-center rounded-[24px] border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+          <div class="max-w-xl">
+            <div class="text-3xl text-text-tertiary">
+              <i class="ri-award-line"></i>
+            </div>
+            <div class="mt-3 text-lg font-semibold text-text-primary">
+              {{ 'PAC.Explore.NoFeaturedSkills' | translate: { Default: '当前还没有可展示的官方精选' } }}
+            </div>
+            <p class="mt-2 text-sm leading-6 text-text-tertiary">
+              {{
+                'PAC.Explore.NoFeaturedSkillsHint'
+                  | translate
+                    : {
+                        Default: '可以继续通过 skills-market.yaml 配置精选技能；如果配置项暂未命中当前仓库索引，这里会自动保持空态。'
+                      }
+              }}
+            </p>
+          </div>
+        </div>
+      } @else {
+        <div class="mt-5 grid grid-cols-1 gap-4 xl:grid-cols-3">
+          @for (featured of featuredSkills(); track featured.skill.id) {
+            <xp-explore-skill-card
+              variant="featured"
+              [item]="featured.skill"
+              [featured]="featured"
+              (view)="openSkillDetail(featured.skill, featured)"
+              (install)="install(featured.skill)"
+            />
+          }
+        </div>
+      }
+    </div>
+
+    <div class="px-5 py-5">
+      <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
+        <div>
+          <h2 class="text-2xl font-semibold text-text-primary">
+            {{ 'PAC.Explore.AllSkillsTitle' | translate: { Default: '全部技能' } }}
+          </h2>
+          <p class="mt-2 text-sm leading-6 text-text-tertiary">
+            {{
+              'PAC.Explore.AllSkillsHint'
+                | translate
+                  : {
+                      Default: '按仓库浏览所有可用技能，支持搜索当前 tab 下的真实数据，并通过下滑持续加载更多。'
+                    }
+            }}
+          </p>
+        </div>
+
+        <div class="inline-flex items-center gap-2 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-tertiary">
+          <i class="ri-database-2-line"></i>
+          {{ repositoryCount() }} {{ 'PAC.Explore.RepositoriesCount' | translate: { Default: '个仓库' } }}
+        </div>
+      </div>
+
+      <div class="mt-5 space-y-4">
+        <div class="flex flex-wrap gap-3">
+          <button
+            type="button"
+            class="rounded-full border px-4 py-2 text-sm font-medium transition-colors"
+            [class]="
+              selectedRepositoryId() === '__all__'
+                ? 'border-transparent bg-background-default-subtle text-text-primary shadow-sm'
+                : 'border-divider-regular text-text-tertiary hover:text-text-primary'
+            "
+            (click)="selectRepository('__all__')"
+          >
+            {{ 'PAC.Explore.AllRepositories' | translate: { Default: '全部仓库' } }}
+          </button>
+
+          @for (repository of repositories(); track repository.id) {
+            <button
+              type="button"
+              class="rounded-full border px-4 py-2 text-sm font-medium transition-colors"
+              [class]="
+                selectedRepositoryId() === repository.id
+                  ? 'border-transparent bg-background-default-subtle text-text-primary shadow-sm'
+                  : 'border-divider-regular text-text-tertiary hover:text-text-primary'
+              "
+              (click)="selectRepository(repository.id)"
+            >
+              {{ repository.name }}
+            </button>
+          }
+        </div>
+
+        <div class="grid gap-3 lg:grid-cols-3">
+          <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3">
+            <div class="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
+              {{ roleFilterGroup().label || ('PAC.Explore.RoleFilter' | translate: { Default: '角色' }) }}
+            </div>
+            <z-select
+              class="w-full"
+              [zValue]="selectedRole()"
+              [zPlaceholder]="roleFilterGroup().label || ('PAC.Explore.RoleFilter' | translate: { Default: '角色' })"
+              (zSelectionChange)="selectRole($event)"
+            >
+              @for (option of roleOptions(); track option.value) {
+                <z-select-item [zValue]="option.value">
+                  <div class="flex flex-col text-left">
+                    <span>{{ option.label }}</span>
+                    @if (option.description) {
+                      <span class="text-xs text-text-tertiary">{{ option.description }}</span>
+                    }
+                  </div>
+                </z-select-item>
+              }
+            </z-select>
+          </div>
+
+          <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3">
+            <div class="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
+              {{ appTypeFilterGroup().label || ('PAC.Explore.AppTypeFilter' | translate: { Default: '应用类型' }) }}
+            </div>
+            <z-select
+              class="w-full"
+              [zValue]="selectedAppType()"
+              [zPlaceholder]="appTypeFilterGroup().label || ('PAC.Explore.AppTypeFilter' | translate: { Default: '应用类型' })"
+              (zSelectionChange)="selectAppType($event)"
+            >
+              @for (option of appTypeOptions(); track option.value) {
+                <z-select-item [zValue]="option.value">
+                  <div class="flex flex-col text-left">
+                    <span>{{ option.label }}</span>
+                    @if (option.description) {
+                      <span class="text-xs text-text-tertiary">{{ option.description }}</span>
+                    }
+                  </div>
+                </z-select-item>
+              }
+            </z-select>
+          </div>
+
+          <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3">
+            <div class="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
+              {{ hotFilterGroup().label || ('PAC.Explore.HotFilter' | translate: { Default: '热门' }) }}
+            </div>
+            <z-select
+              class="w-full"
+              [zValue]="selectedHot()"
+              [zPlaceholder]="hotFilterGroup().label || ('PAC.Explore.HotFilter' | translate: { Default: '热门' })"
+              (zSelectionChange)="selectHot($event)"
+            >
+              @for (option of hotOptions(); track option.value) {
+                <z-select-item [zValue]="option.value">
+                  <div class="flex flex-col text-left">
+                    <span>{{ option.label }}</span>
+                    @if (option.description) {
+                      <span class="text-xs text-text-tertiary">{{ option.description }}</span>
+                    }
+                  </div>
+                </z-select-item>
+              }
+            </z-select>
+          </div>
+        </div>
+
+        <div class="rounded-2xl border border-dashed border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-tertiary">
+          {{
+            'PAC.Explore.FilterShellHint'
+              | translate
+                : {
+                    Default: '当前版本中，仓库过滤与顶部搜索会真实影响列表；角色、应用类型、热门下拉先作为可配置筛选壳展示。'
+                  }
+          }}
+        </div>
+      </div>
+
+      <div class="mt-6 w-full relative overflow-auto" waIntersectionObserver waIntersectionThreshold="0.35">
+        @if (loadingSkills() && !skills().length) {
+          <div class="flex min-h-[320px] items-center justify-center rounded-[24px] border border-divider-regular bg-background-default-subtle">
+            <div class="text-sm text-text-tertiary">
+              {{ 'PAC.Explore.LoadingSkills' | translate: { Default: '正在加载技能索引...' } }}
+            </div>
+          </div>
+        } @else if (!skills().length) {
+          <div class="flex min-h-[320px] items-center justify-center rounded-[28px] border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
+            <div class="max-w-lg">
+              <div class="text-4xl text-text-tertiary">
+                <i class="ri-search-eye-line"></i>
+              </div>
+              <h3 class="mt-4 text-xl font-semibold text-text-primary">
+                {{ 'PAC.Explore.NoSkills' | translate: { Default: '未找到匹配的技能模板' } }}
+              </h3>
+              <p class="mt-2 text-sm leading-6 text-text-tertiary">
+                {{
+                  'PAC.Explore.NoSkillsHint'
+                    | translate
+                      : {
+                          Default: '可以尝试调整关键词，或者切换其他仓库继续浏览。'
+                        }
+                }}
+              </p>
+            </div>
+          </div>
+        } @else {
+          <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+            @for (item of skills(); track item.id) {
+              <xp-explore-skill-card
+                [item]="item"
+                (view)="openSkillDetail(item)"
+                (install)="install(item)"
+              />
+            }
+          </div>
+
+          @if (hasMore()) {
+            <button
+              type="button"
+              class="mt-5 flex w-full items-center justify-center rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-4 text-sm text-text-secondary transition-colors hover:text-text-primary"
+              [disabled]="loadingMore()"
+              (waIntersectionObservee)="onIntersection()"
+              (click)="onIntersection()"
+            >
+              @if (loadingMore()) {
+                <span>{{ 'PAC.Explore.LoadingMoreSkills' | translate: { Default: '正在加载更多技能...' } }}</span>
+              } @else {
+                <span>{{ 'PAC.Explore.LoadMoreSkills' | translate: { Default: '下滑或点击加载更多' } }}</span>
+              }
+            </button>
+          }
+        }
+      </div>
+    </div>
+  }
+</section>

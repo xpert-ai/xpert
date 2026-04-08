@@ -1,5 +1,15 @@
-import { IXpertMCPTemplate, LanguagesEnum, TKnowledgePipelineTemplate } from '@metad/contracts'
-import { getErrorMessage, omit } from '@metad/server-common'
+import {
+	ISkillMarketConfig,
+	ISkillMarketFeaturedRef,
+	ISkillMarketFeaturedSkill,
+	ISkillMarketFilterGroup,
+	ISkillMarketFilterGroups,
+	ISkillRepository,
+	IXpertMCPTemplate,
+	LanguagesEnum,
+	TKnowledgePipelineTemplate
+} from '@metad/contracts'
+import { getErrorMessage, omit, yaml } from '@metad/server-common'
 import { ConfigService } from '@metad/server-config'
 import { PaginationParams, TenantAwareCrudService } from '@metad/server-core'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
@@ -10,13 +20,15 @@ import * as fs from 'fs'
 import { isNil } from 'lodash'
 import * as path from 'path'
 import { In, Repository } from 'typeorm'
+import { SkillRepositoryService } from '../skill-repository/skill-repository.service'
+import { SkillRepositoryIndexService } from '../skill-repository/repository-index/skill-repository-index.service'
 import { XpertTemplate } from './xpert-template.entity'
 
 const builtinTemplatePath = 'packages/server-ai/src/xpert-template'
 const fallbackLanguage = 'en-US'
 const templateDirectoryName = 'xpert-template'
 const templateDirectories = ['templates', 'pipelines'] as const
-const templateFiles = ['templates.json', 'mcp-templates.json', 'knowledge-pipelines.json'] as const
+const templateFiles = ['templates.json', 'mcp-templates.json', 'knowledge-pipelines.json', 'skills-market.yaml'] as const
 
 type TXpertTemplateDescriptor = {
 	id: string
@@ -37,6 +49,55 @@ type TXpertTemplatesCatalog = {
 
 type TLocalizedTemplates<T> = Record<string, { categories?: string[]; templates: T[] }>
 
+type TSkillMarketLocaleConfig = {
+	featured: ISkillMarketFeaturedRef[]
+	filters: ISkillMarketFilterGroups
+}
+
+type TLocalizedSkillMarketCatalog = Record<string, TSkillMarketLocaleConfig>
+
+const DEFAULT_SKILL_MARKET_FILTERS: ISkillMarketFilterGroups = {
+	roles: {
+		label: 'Roles',
+		options: []
+	},
+	appTypes: {
+		label: 'Application types',
+		options: []
+	},
+	hot: {
+		label: 'Trending',
+		options: []
+	}
+}
+
+const isObjectValue = (value: unknown): value is object =>
+	typeof value === 'object' && value !== null && !Array.isArray(value)
+
+const isOptionalString = (value: unknown): value is string | undefined =>
+	typeof value === 'undefined' || typeof value === 'string'
+
+const isSkillMarketFeaturedRef = (value: unknown): value is ISkillMarketFeaturedRef =>
+	isObjectValue(value) &&
+	typeof Reflect.get(value, 'provider') === 'string' &&
+	typeof Reflect.get(value, 'repositoryName') === 'string' &&
+	typeof Reflect.get(value, 'skillId') === 'string' &&
+	isOptionalString(Reflect.get(value, 'badge')) &&
+	isOptionalString(Reflect.get(value, 'title')) &&
+	isOptionalString(Reflect.get(value, 'description'))
+
+const isSkillMarketFilterOption = (value: unknown): value is ISkillMarketFilterGroup['options'][number] =>
+	isObjectValue(value) &&
+	typeof Reflect.get(value, 'value') === 'string' &&
+	typeof Reflect.get(value, 'label') === 'string' &&
+	isOptionalString(Reflect.get(value, 'description'))
+
+const isSkillMarketFilterGroup = (value: unknown): value is ISkillMarketFilterGroup =>
+	isObjectValue(value) &&
+	typeof Reflect.get(value, 'label') === 'string' &&
+	Array.isArray(Reflect.get(value, 'options')) &&
+	(Reflect.get(value, 'options') as unknown[]).every(isSkillMarketFilterOption)
+
 @Injectable()
 export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> implements OnModuleInit {
 	readonly #logger = new Logger(XpertTemplateService.name)
@@ -52,6 +113,8 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 	constructor(
 		@InjectRepository(XpertTemplate)
 		readonly xtRepository: Repository<XpertTemplate>,
+		private readonly skillRepositoryService: SkillRepositoryService,
+		private readonly skillRepositoryIndexService: SkillRepositoryIndexService,
 	) {
 		super(xtRepository)
 	}
@@ -261,6 +324,34 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 		return temp
 	}
 
+	async getSkillsMarket(language: LanguagesEnum): Promise<ISkillMarketConfig> {
+		const catalog = await this.readSkillsMarketCatalog()
+		const localeConfig = catalog[language] ?? catalog[fallbackLanguage] ?? {
+			featured: [],
+			filters: DEFAULT_SKILL_MARKET_FILTERS
+		}
+		const featured = await this.resolveFeaturedSkills(localeConfig.featured)
+
+		return {
+			featured,
+			filters: localeConfig.filters
+		}
+	}
+
+	async readSkillsMarketCatalog(): Promise<TLocalizedSkillMarketCatalog> {
+		let config = await this.cacheManager.get<TLocalizedSkillMarketCatalog>('xpert:skills-market')
+		if (config) {
+			return config
+		}
+
+		const filePath = await this.getExternalTemplatePath('skills-market.yaml')
+		const raw = await this.readYamlFromFile(filePath, 'skills market config')
+		config = this.normalizeSkillMarketCatalog(raw)
+		await this.cacheManager.set('xpert:skills-market', config, 10 * 1000)
+
+		return config
+	}
+
 	private ensureTemplateDirectoryReady() {
 		if (!this.templateDirectoryReady) {
 			this.templateDirectoryReady = this.initializeTemplateDirectory().catch((error) => {
@@ -444,6 +535,162 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 		}
 	}
 
+	private normalizeSkillMarketCatalog(value: unknown): TLocalizedSkillMarketCatalog {
+		if (!isObjectValue(value)) {
+			return {
+				[fallbackLanguage]: {
+					featured: [],
+					filters: DEFAULT_SKILL_MARKET_FILTERS
+				}
+			}
+		}
+
+		const locales: TLocalizedSkillMarketCatalog = {}
+
+		for (const [locale, config] of Object.entries(value)) {
+			if (!locale.trim() || !isObjectValue(config)) {
+				continue
+			}
+
+			const featuredValue = Reflect.get(config, 'featured')
+			const featured = Array.isArray(featuredValue)
+				? featuredValue.filter(isSkillMarketFeaturedRef).map((item) => ({
+					provider: item.provider.trim(),
+					repositoryName: item.repositoryName.trim(),
+					skillId: item.skillId.trim(),
+					...(item.badge ? { badge: item.badge.trim() } : {}),
+					...(item.title ? { title: item.title.trim() } : {}),
+					...(item.description ? { description: item.description.trim() } : {})
+				}))
+				: []
+
+			const filters = this.normalizeSkillMarketFilters(Reflect.get(config, 'filters'))
+			locales[locale] = { featured, filters }
+		}
+
+		if (locales[fallbackLanguage]) {
+			return locales
+		}
+
+		return {
+			...locales,
+			[fallbackLanguage]: {
+				featured: [],
+				filters: DEFAULT_SKILL_MARKET_FILTERS
+			}
+		}
+	}
+
+	private normalizeSkillMarketFilters(value: unknown): ISkillMarketFilterGroups {
+		if (!isObjectValue(value)) {
+			return DEFAULT_SKILL_MARKET_FILTERS
+		}
+
+		return {
+			roles: this.normalizeSkillMarketFilterGroup(Reflect.get(value, 'roles'), DEFAULT_SKILL_MARKET_FILTERS.roles),
+			appTypes: this.normalizeSkillMarketFilterGroup(
+				Reflect.get(value, 'appTypes'),
+				DEFAULT_SKILL_MARKET_FILTERS.appTypes
+			),
+			hot: this.normalizeSkillMarketFilterGroup(Reflect.get(value, 'hot'), DEFAULT_SKILL_MARKET_FILTERS.hot)
+		}
+	}
+
+	private normalizeSkillMarketFilterGroup(
+		value: unknown,
+		fallback: ISkillMarketFilterGroup
+	): ISkillMarketFilterGroup {
+		if (!isSkillMarketFilterGroup(value)) {
+			return fallback
+		}
+
+		return {
+			label: value.label.trim(),
+			options: value.options.map((option) => ({
+				value: option.value.trim(),
+				label: option.label.trim(),
+				...(option.description ? { description: option.description.trim() } : {})
+			}))
+		}
+	}
+
+	private async resolveFeaturedSkills(featuredRefs: ISkillMarketFeaturedRef[]): Promise<ISkillMarketFeaturedSkill[]> {
+		if (!featuredRefs.length) {
+			return []
+		}
+
+		const { items: repositories } = await this.skillRepositoryService.findAllInOrganizationOrTenant()
+		const repositoriesByKey = new Map<string, ISkillRepository>()
+
+		for (const repository of repositories) {
+			const key = `${repository.provider}:${repository.name}`
+			const existing = repositoriesByKey.get(key)
+			if (!existing) {
+				repositoriesByKey.set(key, repository)
+				continue
+			}
+
+			if (!existing.organizationId && repository.organizationId) {
+				repositoriesByKey.set(key, repository)
+			}
+		}
+
+		const featured: ISkillMarketFeaturedSkill[] = []
+		for (const ref of featuredRefs) {
+			const repository = repositoriesByKey.get(`${ref.provider}:${ref.repositoryName}`)
+			if (!repository?.id) {
+				continue
+			}
+
+			let skill = null
+			for (const skillId of this.resolveFeaturedSkillIds(ref.skillId, repository)) {
+				const { items } = await this.skillRepositoryIndexService.findAllInOrganizationOrTenant({
+					where: {
+						repositoryId: repository.id,
+						skillId
+					},
+					relations: ['repository'],
+					take: 1,
+					order: {
+						updatedAt: 'DESC'
+					}
+				})
+				if (items[0]) {
+					skill = items[0]
+					break
+				}
+			}
+
+			if (!skill) {
+				continue
+			}
+
+			featured.push({
+				...ref,
+				skill
+			})
+		}
+
+		return featured
+	}
+
+	private resolveFeaturedSkillIds(skillId: string, repository: ISkillRepository) {
+		const skillIds = new Set([skillId])
+		const options = repository.options
+
+		if (isObjectValue(options)) {
+			const repositoryPath = Reflect.get(options, 'path')
+			if (typeof repositoryPath === 'string' && repositoryPath.trim()) {
+				const normalizedPath = repositoryPath.trim().replace(/^\/+|\/+$/g, '')
+				if (normalizedPath && skillId.startsWith(`${normalizedPath}/`)) {
+					skillIds.add(skillId.slice(normalizedPath.length + 1))
+				}
+			}
+		}
+
+		return Array.from(skillIds)
+	}
+
 	private async readJsonFromFile<T>(filePath: string) {
 		try {
 			const data = await fs.promises.readFile(filePath, 'utf8')
@@ -452,6 +699,17 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 			this.#logger.error(`Failed to read xpert template file '${filePath}'`, error instanceof Error ? error.stack : undefined)
 			throw new Error(
 				`Failed to read xpert template file '${filePath}' (xpert template dir: '${this.getExternalTemplateRoot()}'): ${getErrorMessage(error)}`
+			)
+		}
+	}
+
+	private async readYamlFromFile(filePath: string, description: string) {
+		try {
+			const data = await fs.promises.readFile(filePath, 'utf8')
+			return yaml.parse(data)
+		} catch (error) {
+			throw new Error(
+				`Failed to read ${description} at '${filePath}' (xpert template dir: '${this.getExternalTemplateRoot()}'): ${getErrorMessage(error)}`
 			)
 		}
 	}
