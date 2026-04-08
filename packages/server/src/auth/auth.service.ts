@@ -32,6 +32,7 @@ import { UserService } from '../user/user.service'
 import { AuthRegisterCommand, AuthTrialCommand } from './commands/index'
 import { PasswordResetCreateCommand, PasswordResetGetCommand } from '../password-reset/commands'
 import { RoleService } from '../role/role.service'
+import { OrganizationService } from '../organization'
 
 
 @Injectable()
@@ -45,6 +46,7 @@ export class AuthService extends SocialAuthService {
 	constructor(
 		private readonly userService: UserService,
 		private readonly roleService: RoleService,
+		private readonly organizationService: OrganizationService,
 		private emailService: EmailService,
 		private userOrganizationService: UserOrganizationService,
 		private readonly i18n: I18nService,
@@ -399,6 +401,9 @@ export class AuthService extends SocialAuthService {
 			tenant = creatingUser.tenant
 		}
 
+		const resolvedOrganizationId =
+			input.organizationId ?? (await this.resolveDefaultOrganizationId(tenant?.id))
+
 		
 		// Uniqueness Check
 		const where: FindOptionsWhere<User>[] = []
@@ -447,10 +452,10 @@ export class AuthService extends SocialAuthService {
 			relations: ['role', 'tenant'],
 		})
 
-		if (input.organizationId) {
+		if (resolvedOrganizationId) {
 			await this.userOrganizationService.addUserToOrganization(
 				user,
-				input.organizationId
+				resolvedOrganizationId
 			)
 		}
 
@@ -470,11 +475,28 @@ export class AuthService extends SocialAuthService {
 		this.emailService.welcomeUser(
 			user,
 			languageCode,
-			input.organizationId,
+			resolvedOrganizationId,
 			input.originalUrl
 		)
 
 		return user
+	}
+
+	private async resolveDefaultOrganizationId(tenantId?: string): Promise<string | undefined> {
+		if (!tenantId) {
+			return undefined
+		}
+
+		const organization = await this.organizationService.findOneByOptions({
+			select: ['id'],
+			where: {
+				tenantId,
+				isDefault: true,
+				isActive: true
+			}
+		})
+
+		return organization?.id
 	}
 
 	async getAuthenticatedUser(id: string, thirdPartyId?: string): Promise<User> {
