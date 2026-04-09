@@ -231,7 +231,7 @@ export class TenantDetailsComponent {
       })
     )
 
-    this.#store.selectedOrganization = organization
+    this.#store.setOrganizationScope(organization)
     await this.loadDataSourceTypes(organization.id)
     this.#copilotServer.refresh()
   }
