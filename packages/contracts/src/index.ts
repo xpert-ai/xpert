@@ -44,6 +44,7 @@ export type { IBaseEntityModel as BaseEntityModel } from './base-entity.model'
 export * from './role.model'
 export * from './user-organization.model'
 export * from './user-group.model'
+export * from './user-me-context.model'
 export * from './user.model'
 
 export * from './analytics/index'

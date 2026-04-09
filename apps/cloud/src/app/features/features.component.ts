@@ -181,7 +181,9 @@ export class FeaturesComponent implements OnInit {
         combineLatestWith(
           this.#translateService.onLangChange.pipe(startWith(null)),
           this.selectedOrganization$,
-          this.#store.selectActiveScope()
+          this.#store.selectActiveScope(),
+          this.#store.featureTenant$,
+          this.#store.featureOrganizations$
         ),
         takeUntilDestroyed(this.#destroyRef)
       )
@@ -207,18 +209,7 @@ export class FeaturesComponent implements OnInit {
     this.user =
       hasHydratedUser
         ? cachedUser
-        : await this.#usersService.getMe([
-            'employee',
-            'organizations',
-            'organizations.organization',
-            'organizations.organization.featureOrganizations',
-            'organizations.organization.featureOrganizations.feature',
-            'role',
-            'role.rolePermissions',
-            'tenant',
-            'tenant.featureOrganizations',
-            'tenant.featureOrganizations.feature'
-          ])
+        : await this.#usersService.getMe()
 
     //When a new user registers & logs in for the first time, he/she does not have tenantId.
     //In this case, we have to redirect the user to the onboarding page to create their first organization, tenant, role.
@@ -243,10 +234,29 @@ export class FeaturesComponent implements OnInit {
 
     //tenant enabled/disabled features for relatives organizations
     const { tenant, role } = this.user
-    this.#store.featureTenant = tenant.featureOrganizations.filter((item) => !item.organizationId)
+    this.#store.featureTenant = (tenant.featureOrganizations ?? []).filter((item) => !item.organizationId)
+    if (!hasHydratedUser) {
+      void this.hydrateUserFeatures()
+    }
 
     //only enabled permissions assign to logged in user
-    this.#store.userRolePermissions = role.rolePermissions.filter((permission) => permission.enabled)
+    this.#store.userRolePermissions = (role.rolePermissions ?? []).filter((permission) => permission.enabled)
+  }
+
+  private async hydrateUserFeatures() {
+    try {
+      const features = await this.#usersService.getMeFeatures()
+      this.user = this.#usersService.mergeMeFeatures(this.#store.user, features)
+    } catch (error) {
+      this.#logger?.error(error)
+      this.user = this.#usersService.mergeMeFeatures(this.#store.user, {
+        tenantFeatureOrganizations: [],
+        organizationFeatures: []
+      })
+    }
+
+    this.#store.user = this.user
+    this.#store.featureTenant = (this.user.tenant?.featureOrganizations ?? []).filter((item) => !item.organizationId)
   }
 
   loadItems() {

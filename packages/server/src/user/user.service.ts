@@ -1,20 +1,23 @@
 import { BadRequestException, ForbiddenException, Injectable, Logger, NotFoundException, Inject, forwardRef } from '@nestjs/common'
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions, DeleteResult } from 'typeorm'
+import { Repository, InsertResult, Like, Brackets, WhereExpressionBuilder, In, FindOneOptions, DeleteResult, IsNull } from 'typeorm'
 import bcrypt from 'bcryptjs'
 import { environment as env } from '@metad/server-config'
 import { nanoid } from 'nanoid'
 import { User } from './user.entity'
 import { TenantAwareCrudService } from './../core/crud'
-import { ID, IUser, LanguagesEnum, PermissionsEnum, RolesEnum, UserType } from '@metad/contracts'
+import { ID, IUser, IUserMeFeatures, IUserMeOrganizationFeatures, LanguagesEnum, PermissionsEnum, RolesEnum, UserType } from '@metad/contracts'
 import { RequestContext } from '../core/context'
 import { EmailVerification } from './email-verification/email-verification.entity'
 import { UserPublicDTO } from './dto'
 import { UserOrganizationService } from '../user-organization/user-organization.services'
 import { EVENT_USER_ORGANIZATION_DELETED, UserOrganizationDeletedEvent } from './events'
+import { FeatureOrganization } from '../feature/feature-organization.entity'
 
 const REQUEST_CONTEXT_USER_RELATIONS = ['role', 'role.rolePermissions', 'employee'] as const
+const CURRENT_USER_RELATIONS = ['employee', 'organizations', 'organizations.organization', 'role', 'role.rolePermissions', 'tenant'] as const
+const AUTHENTICATED_USER_RELATIONS = ['role', 'employee'] as const
 
 function normalizeEmail(email?: string | null) {
 	return email?.trim().toLowerCase() || null
@@ -31,11 +34,63 @@ export class UserService extends TenantAwareCrudService<User> {
 		userRepository: Repository<User>,
 		@InjectRepository(EmailVerification)
 		public emailVerificationRepository: Repository<EmailVerification>,
+		@InjectRepository(FeatureOrganization)
+		private readonly featureOrganizationRepository: Repository<FeatureOrganization>,
 		@Inject(forwardRef(() => UserOrganizationService))
 		private readonly userOrganizationService: UserOrganizationService,
 		private readonly eventEmitter: EventEmitter2
 	) {
 		super(userRepository)
+	}
+
+	async findCurrentUser(id: string): Promise<User> {
+		return this.findOne(id, {
+			relations: [...CURRENT_USER_RELATIONS]
+		})
+	}
+
+	async getCurrentUserFeatures(id: string): Promise<IUserMeFeatures> {
+		const tenantId = RequestContext.currentTenantId()
+		const user = await this.findOne(id, {
+			relations: ['organizations']
+		})
+		if (!user) {
+			throw new NotFoundException(`The user '${id}' was not found`)
+		}
+		const organizationIds = (user.organizations ?? [])
+			.map((membership) => membership.organizationId)
+			.filter((organizationId): organizationId is string => !!organizationId)
+
+		const [tenantFeatureOrganizations, organizationFeatureOrganizations] = await Promise.all([
+			this.featureOrganizationRepository.find({
+				where: {
+					tenantId,
+					organizationId: IsNull()
+				},
+				relations: ['feature']
+			}),
+			organizationIds.length
+				? this.featureOrganizationRepository.find({
+						where: {
+							tenantId,
+							organizationId: In(organizationIds)
+						},
+						relations: ['feature']
+				  })
+				: Promise.resolve([])
+		])
+
+		const organizationFeatures = organizationIds.map<IUserMeOrganizationFeatures>((organizationId) => ({
+			organizationId,
+			featureOrganizations: organizationFeatureOrganizations.filter(
+				(featureOrganization) => featureOrganization.organizationId === organizationId
+			)
+		}))
+
+		return {
+			tenantFeatureOrganizations,
+			organizationFeatures
+		}
 	}
 
 	async getUserByEmail(email: string): Promise<User> {
@@ -110,13 +165,9 @@ export class UserService extends TenantAwareCrudService<User> {
 	}
 
 	async getIfExists(id: string): Promise<User> {
-		return await this.repository
-			.createQueryBuilder('user')
-			.where('user.id = :id', { id })
-			.leftJoinAndSelect('user.role', 'role')
-			.leftJoinAndSelect('role.rolePermissions', 'rolePermissions')
-			.leftJoinAndSelect('user.employee', 'employee')
-			.getOne()
+		return this.findOne(id, {
+			relations: [...AUTHENTICATED_USER_RELATIONS]
+		})
 	}
 
 	async findOneByIdWithinTenant(id: string, tenantId: string, options?: Omit<FindOneOptions<User>, 'where'>) {
@@ -198,7 +249,6 @@ export class UserService extends TenantAwareCrudService<User> {
 			.createQueryBuilder('user')
 			.where('user.thirdPartyId = :thirdPartyId', { thirdPartyId })
 			.leftJoinAndSelect('user.role', 'role')
-			.leftJoinAndSelect('role.rolePermissions', 'rolePermissions')
 			.leftJoinAndSelect('user.employee', 'employee')
 			.getOne()
 	}

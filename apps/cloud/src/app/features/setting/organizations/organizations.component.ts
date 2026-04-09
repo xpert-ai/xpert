@@ -640,17 +640,11 @@ export class OrganizationsComponent {
   }
 
   private async refreshCurrentUserContext() {
-    this.#store.user = await this.#usersService.getMe([
-      'employee',
-      'organizations',
-      'organizations.organization',
-      'organizations.organization.featureOrganizations',
-      'organizations.organization.featureOrganizations.feature',
-      'role',
-      'role.rolePermissions',
-      'tenant',
-      'tenant.featureOrganizations',
-      'tenant.featureOrganizations.feature'
+    const [user, features] = await Promise.all([
+      this.#usersService.getMe(),
+      this.#usersService.getMeFeatures()
     ])
+    this.#store.user = this.#usersService.mergeMeFeatures(user, features)
+    this.#store.featureTenant = (this.#store.user.tenant?.featureOrganizations ?? []).filter((item) => !item.organizationId)
   }
 }
