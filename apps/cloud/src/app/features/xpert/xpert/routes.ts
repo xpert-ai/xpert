@@ -8,6 +8,7 @@ import { XpertLogsComponent } from './logs/logs.component'
 import { XpertMonitorComponent } from './monitor/monitor.component'
 import { XpertComponent } from './xpert.component'
 import { XpertMemoryComponent } from './memory/memory.component'
+import { XpertMemoryFilesComponent } from './memory/files/files.component'
 import { XpertMemoryStoreComponent } from './memory/store/store.component'
 
 export const routes: Routes = [
@@ -52,6 +53,10 @@ export const routes: Routes = [
           {
             path: 'store',
             component: XpertMemoryStoreComponent
+          },
+          {
+            path: 'files',
+            component: XpertMemoryFilesComponent
           }
         ]
       },
