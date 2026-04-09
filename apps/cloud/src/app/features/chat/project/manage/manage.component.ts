@@ -127,7 +127,7 @@ export class ChatProjectManageComponent {
         next: () => {
           this.loading.set(false)
           this.#dialogRef.close()
-          this.#router.navigate(['/chat/p'])
+          this.#router.navigate(['/project'])
         },
         error: (err) => {
           this.loading.set(false)

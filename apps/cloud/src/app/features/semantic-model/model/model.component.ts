@@ -482,7 +482,7 @@ export class ModelComponent {
   }
 
   createIndicator() {
-    this.router.navigate(['/project/indicators/new'], {
+    this.router.navigate(['/data', 'project', 'indicators', 'new'], {
       queryParams: {
         modelId: this.model.id
       }

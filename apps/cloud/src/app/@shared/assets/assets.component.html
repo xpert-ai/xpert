@@ -63,7 +63,7 @@
       }
 
       @if (asset.type === 'semanticModel') {
-        <li role="listitem" class="cursor-pointer group flex items-start gap-3 rounded-lg px-3 py-2 hover:bg-hover-bg" [routerLink]="['/models', asset.id]">
+        <li role="listitem" class="cursor-pointer group flex items-start gap-3 rounded-lg px-3 py-2 hover:bg-hover-bg" [routerLink]="['/data', 'models', asset.id]">
           <span class="shrink-0 text-lg font-notoColorEmoji">🧊</span>
           <div class="min-w-0 flex flex-1 flex-col">
             <div class="text-base">{{ asset.name }}</div>

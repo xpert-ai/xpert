@@ -288,7 +288,7 @@ export class StoryDesignerComponent extends TranslationBaseComponent implements 
   }
 
   openDataExploration(id: string) {
-    this.#router.navigate([`/models/${id}`])
+    this.#router.navigate(['/data', 'models', id])
   }
 
   toggleToolbarPin() {

@@ -301,6 +301,10 @@ export class FeaturesComponent implements OnInit {
       item.children.forEach((childItem) => {
         this.refreshMenuItem(childItem)
       })
+
+      if (item.data.hideWhenAllChildrenHidden) {
+        item.hidden = item.children.every((childItem) => childItem.hidden)
+      }
     }
   }
 
@@ -321,11 +325,14 @@ export class FeaturesComponent implements OnInit {
 
   navigate(link: MenuCatalog) {
     switch (link) {
+      case MenuCatalog.Project:
+        this.#router.navigate(['/data/project'])
+        break
       case MenuCatalog.Stories:
-        this.#router.navigate(['/project'])
+        this.#router.navigate(['/data/project'])
         break
       case MenuCatalog.Models:
-        this.#router.navigate(['/models'])
+        this.#router.navigate(['/data/models'])
         break
       case MenuCatalog.Settings:
         this.#router.navigate(['/settings'])
@@ -350,28 +357,30 @@ export class FeaturesComponent implements OnInit {
       this.loading.set(true)
     }
     if (event instanceof NavigationEnd) {
-      this.activeRouteUrl.set(event.urlAfterRedirects)
+      const url = event.urlAfterRedirects
+      this.activeRouteUrl.set(url)
       this.pendingRouteUrl.set(null)
       this.loading.set(false)
-      if (event.url.match(/^\/project/g)) {
+      if (url.match(/^\/data\/project(?:\/|$)/)) {
         this.#appService.setCatalog({
-          catalog: MenuCatalog.Project
+          catalog: MenuCatalog.Project,
+          id: !url.match(/^\/data\/project\/?$/)
         })
-      } else if (event.url.match(/^\/story/g)) {
+      } else if (url.match(/^\/story(?:\/|$)/)) {
         this.#appService.setCatalog({
           catalog: MenuCatalog.Stories
         })
-      } else if (event.url.match(/^\/models/g)) {
-        // this.#appService.setCatalog({
-        //   catalog: MenuCatalog.Models,
-        //   id: !event.url.match(/^\/models$/g)
-        // })
-      } else if (event.url.match(/^\/settings/g)) {
+      } else if (url.match(/^\/data\/models(?:\/|$)/)) {
+        this.#appService.setCatalog({
+          catalog: MenuCatalog.Models,
+          id: !url.match(/^\/data\/models\/?$/)
+        })
+      } else if (url.match(/^\/settings(?:\/|$)/)) {
         this.#appService.setCatalog({
           catalog: MenuCatalog.Settings,
-          id: !event.url.match(/^\/settings$/g)
+          id: !url.match(/^\/settings\/?$/)
         })
-      } else if (event.url.match(/^\/indicator-app/g)) {
+      } else if (url.match(/^\/indicator-app(?:\/|$)/)) {
         this.#appService.setCatalog({
           catalog: MenuCatalog.IndicatorApp
         })

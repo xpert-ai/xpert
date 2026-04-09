@@ -96,7 +96,7 @@ export class ProjectSelectorComponent {
   })
 
   routeProject(project: Partial<IProject>) {
-    this._router.navigate(['/project/'])
+    this._router.navigate(['/data/project'])
   }
 
   selectProject(project: IProject) {
@@ -110,7 +110,7 @@ export class ProjectSelectorComponent {
     this.store.selectedProject = project
 
     if (this.navigateOnSelect()) {
-      this._router.navigate(['/project'])
+      this._router.navigate(['/data/project'])
     }
   }
 
@@ -125,7 +125,7 @@ export class ProjectSelectorComponent {
       .subscribe({
         next: (newProject) => {
           this.store.selectedProject = newProject
-          this._router.navigate(['/project'])
+          this._router.navigate(['/data/project'])
         },
         error: (err) => {
           this._toastrService.error(err.message)

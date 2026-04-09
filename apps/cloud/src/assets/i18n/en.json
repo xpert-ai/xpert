@@ -96,6 +96,7 @@
       },
       "USERS": "Users",
       "FEATURES": "Features",
+      "Data": "Data",
       "MANAGE_ORGANIZATIONS": "Manage Organizations",
       "TENANT": {
         "TITLE": "Tenant"

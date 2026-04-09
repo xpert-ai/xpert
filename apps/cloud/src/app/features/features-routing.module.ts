@@ -10,7 +10,7 @@ export function redirectTo() {
   return '/chat'
 }
 
-const routes: Routes = [
+export const routes: Routes = [
   {
     path: '',
     component: FeaturesComponent,
@@ -27,6 +27,15 @@ const routes: Routes = [
         canActivate: [authGuard],
         data: {
           title: 'Chat',
+          scopeContext: 'dual-scope'
+        }
+      },
+      {
+        path: 'project',
+        loadChildren: () => import('./chat/project/routes').then((m) => m.routes),
+        canActivate: [authGuard],
+        data: {
+          title: 'Project',
           scopeContext: 'dual-scope'
         }
       },
@@ -76,32 +85,6 @@ const routes: Routes = [
         loadChildren: () => import('./home/home.module').then((m) => m.HomeModule)
       },
       {
-        path: 'models',
-        loadChildren: () => import('./semantic-model/model.module').then((m) => m.SemanticModelModule),
-        canActivate: [authGuard, NgxPermissionsGuard],
-        data: {
-          title: 'Models',
-          scopeContext: 'dual-scope',
-          permissions: {
-            only: [AnalyticsPermissionsEnum.MODELS_EDIT],
-            redirectTo
-          }
-        }
-      },
-      {
-        path: 'project',
-        loadChildren: () => import('./project/project.module').then((m) => m.ProjectModule),
-        canActivate: [authGuard, NgxPermissionsGuard],
-        data: {
-          title: 'Project',
-          scopeContext: 'dual-scope',
-          permissions: {
-            only: [AnalyticsPermissionsEnum.STORIES_EDIT],
-            redirectTo
-          }
-        }
-      },
-      {
         path: 'story',
         loadChildren: () => import('./story/story.module').then((m) => m.PACStoryModule),
         canActivate: [authGuard, NgxPermissionsGuard],
@@ -142,11 +125,15 @@ const routes: Routes = [
       },
       {
         path: 'data',
-        loadChildren: () => import('./data-factory/routes').then(m => m.routes),
-        canActivate: [authGuard],
+        loadChildren: () => import('./data/routes').then((m) => m.routes),
+        canActivate: [authGuard, NgxPermissionsGuard],
         data: {
-          title: 'Data-Factory',
+          title: 'Data',
           scopeContext: 'dual-scope',
+          permissions: {
+            only: [AnalyticsPermissionsEnum.MODELS_EDIT, AnalyticsPermissionsEnum.STORIES_EDIT],
+            redirectTo
+          }
         }
       },
       // Settings Routers

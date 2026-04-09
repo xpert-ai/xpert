@@ -17,6 +17,7 @@ type MenuData = {
   translationKey?: string
   permissionKeys?: string[]
   featureKey?: MenuFeatureKey | MenuFeatureKey[]
+  hideWhenAllChildrenHidden?: boolean
   [key: string]: unknown
 }
 
@@ -246,6 +247,18 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
       }
     },
     {
+      title: 'Project',
+      icon: 'ri-building-line',
+      link: '/project',
+      pathMatch: 'prefix',
+      scopeContext: 'dual-scope',
+      data: {
+        translationKey: 'Project',
+        featureKey: AiFeatureEnum.FEATURE_XPERT,
+        permissionKeys: [AIPermissionsEnum.CHAT_VIEW]
+      }
+    },
+    {
       title: 'Explore Xperts',
       icon: 'ri-book-shelf-line',
       link: '/explore',
@@ -323,47 +336,34 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     //   }
     // },
     {
-      title: 'Semantic Model',
+      title: 'Data',
       icon: 'ri-database-2-line',
-      link: '/models',
+      link: '/data',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope',
       data: {
-        translationKey: 'Semantic Model',
-        featureKey: AnalyticsFeatures.FEATURE_MODEL,
-        permissionKeys: [AnalyticsPermissionsEnum.MODELS_EDIT]
-      }
-    },
-    {
-      title: 'Project',
-      icon: 'ri-numbers-line',
-      link: '/project',
-      pathMatch: 'prefix',
-      scopeContext: 'dual-scope',
-      data: {
-        translationKey: 'BI Project',
-        featureKey: AnalyticsFeatures.FEATURE_PROJECT,
-        permissionKeys: [AnalyticsPermissionsEnum.STORIES_EDIT]
+        translationKey: 'Data',
+        hideWhenAllChildrenHidden: true
       },
       children: [
         {
-          title: 'Story',
-          icon: 'auto_stories',
-          link: '/project',
+          title: 'Project',
+          icon: 'ri-numbers-line',
+          link: '/data/project',
           data: {
-            translationKey: 'Story',
-            featureKey: AnalyticsFeatures.FEATURE_STORY,
+            translationKey: 'BI Project',
+            featureKey: AnalyticsFeatures.FEATURE_PROJECT,
             permissionKeys: [AnalyticsPermissionsEnum.STORIES_EDIT]
           }
         },
         {
-          title: 'Indicators',
-          icon: 'trending_up',
-          link: '/project/indicators',
+          title: 'Semantic Model',
+          icon: 'ri-database-2-line',
+          link: '/data/models',
           data: {
-            translationKey: 'Indicators',
-            featureKey: AnalyticsFeatures.FEATURE_INDICATOR,
-            permissionKeys: [AnalyticsPermissionsEnum.INDICATOR_EDIT]
+            translationKey: 'Semantic Model',
+            featureKey: AnalyticsFeatures.FEATURE_MODEL,
+            permissionKeys: [AnalyticsPermissionsEnum.MODELS_EDIT]
           }
         }
       ]
