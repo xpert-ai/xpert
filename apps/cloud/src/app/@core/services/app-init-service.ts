@@ -31,19 +31,7 @@ export class AppInitService {
     try {
       const id = this.store.userId
       if (id) {
-
-        this.user = await this.usersService.getMe([
-          'employee',
-          'organizations',
-          'organizations.organization',
-          'organizations.organization.featureOrganizations',
-          'organizations.organization.featureOrganizations.feature',
-          'role',
-          'role.rolePermissions',
-          'tenant',
-          'tenant.featureOrganizations',
-          'tenant.featureOrganizations.feature'
-        ])
+        this.user = await this.usersService.getMe()
 
         //When a new user registers & logs in for the first time, he/she does not have tenantId.
         //In this case, we have to redirect the user to the onboarding page to create their first organization, tenant, role.
@@ -68,10 +56,11 @@ export class AppInitService {
 
         //tenant enabled/disabled features for relatives organizations
         const { tenant } = this.user
-        this.store.featureTenant = tenant.featureOrganizations.filter((item) => !item.organizationId)
+        this.store.featureTenant = (tenant.featureOrganizations ?? []).filter((item) => !item.organizationId)
+        void this.hydrateUserFeatures()
 
         //only enabled permissions assign to logged in user
-        this.store.userRolePermissions = this.user.role.rolePermissions.filter((permission) => permission.enabled)
+        this.store.userRolePermissions = (this.user.role.rolePermissions ?? []).filter((permission) => permission.enabled)
 
         if (this.user.preferredLanguage && !this.store.preferredLanguage) {
           this.store.preferredLanguage = this.user.preferredLanguage
@@ -102,6 +91,22 @@ export class AppInitService {
     } catch (error) {
       console.log(error)
     }
+  }
+
+  private async hydrateUserFeatures() {
+    try {
+      const features = await this.usersService.getMeFeatures()
+      this.user = this.usersService.mergeMeFeatures(this.store.user, features)
+    } catch (error) {
+      console.log(error)
+      this.user = this.usersService.mergeMeFeatures(this.store.user, {
+        tenantFeatureOrganizations: [],
+        organizationFeatures: []
+      })
+    }
+
+    this.store.user = this.user
+    this.store.featureTenant = (this.user.tenant?.featureOrganizations ?? []).filter((item) => !item.organizationId)
   }
 
   private updateAbility(user: IUser) {
