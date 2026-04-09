@@ -6,18 +6,30 @@ en-US:
       badge: Official Picks
       title: Claude API Accelerator
       description: A production-oriented starter for teams that build quickly around the Claude API.
+      avatar:
+        type: font
+        value: ri-code-box-line
+        size: 22
     - provider: github
       repositoryName: anthropics/skills
       skillId: skills/doc-coauthoring
       badge: Official Picks
       title: Document Co-authoring
       description: A collaboration-ready skill for drafting, revising, and polishing long-form documents together.
+      avatar:
+        type: font
+        value: ri-quill-pen-line
+        size: 22
     - provider: github
       repositoryName: anthropics/skills
       skillId: skills/webapp-testing
       badge: Official Picks
       title: Webapp Testing
       description: A QA-oriented skill template for validating web flows, regressions, and release readiness.
+      avatar:
+        type: font
+        value: ri-bug-line
+        size: 22
   filters:
     roles:
       label: Roles
@@ -69,18 +81,30 @@ zh-Hans:
       badge: 官方精选
       title: Claude API 加速器
       description: 面向企业落地的 Claude API 启动模板，适合快速搭建稳定的内部技能方案。
+      avatar:
+        type: font
+        value: ri-code-box-line
+        size: 22
     - provider: github
       repositoryName: anthropics/skills
       skillId: skills/doc-coauthoring
       badge: 官方精选
       title: 文档共创
       description: 适合多人协作起草、润色与迭代长文档内容的技能模板。
+      avatar:
+        type: font
+        value: ri-quill-pen-line
+        size: 22
     - provider: github
       repositoryName: anthropics/skills
       skillId: skills/webapp-testing
       badge: 官方精选
       title: Web 应用测试
       description: 面向回归测试、流程验证与发布前巡检的 QA 技能模板。
+      avatar:
+        type: font
+        value: ri-bug-line
+        size: 22
   filters:
     roles:
       label: 角色

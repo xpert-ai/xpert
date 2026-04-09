@@ -145,6 +145,7 @@ export interface ISkillMarketFeaturedRef {
   badge?: string;
   title?: string;
   description?: string;
+  avatar?: IconDefinition;
 }
 
 export interface ISkillMarketFeaturedSkill extends ISkillMarketFeaturedRef {

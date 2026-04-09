@@ -1,4 +1,5 @@
 import {
+	IconDefinition,
 	ISkillMarketConfig,
 	ISkillMarketFeaturedRef,
 	ISkillMarketFeaturedSkill,
@@ -77,6 +78,48 @@ const isObjectValue = (value: unknown): value is object =>
 const isOptionalString = (value: unknown): value is string | undefined =>
 	typeof value === 'undefined' || typeof value === 'string'
 
+const isOptionalNumber = (value: unknown): value is number | undefined =>
+	typeof value === 'undefined' || (typeof value === 'number' && Number.isFinite(value))
+
+const isStringRecord = (value: unknown): value is NonNullable<IconDefinition['style']> =>
+	isObjectValue(value) && Object.values(value).every((item) => typeof item === 'string')
+
+const SKILL_MARKET_ICON_TYPES: IconDefinition['type'][] = ['image', 'svg', 'font', 'emoji', 'lottie']
+
+const isIconType = (value: unknown): value is IconDefinition['type'] =>
+	typeof value === 'string' && SKILL_MARKET_ICON_TYPES.some((type) => type === value)
+
+const isIconDefinition = (value: unknown): value is IconDefinition => {
+	if (!isObjectValue(value)) {
+		return false
+	}
+
+	const type = Reflect.get(value, 'type')
+	const iconValue = Reflect.get(value, 'value')
+
+	return (
+		isIconType(type) &&
+		typeof iconValue === 'string' &&
+		!!iconValue.trim() &&
+		isOptionalString(Reflect.get(value, 'color')) &&
+		isOptionalNumber(Reflect.get(value, 'size')) &&
+		isOptionalString(Reflect.get(value, 'alt')) &&
+		(typeof Reflect.get(value, 'style') === 'undefined' || isStringRecord(Reflect.get(value, 'style')))
+	)
+}
+
+const isOptionalIconDefinition = (value: unknown): value is IconDefinition | undefined =>
+	typeof value === 'undefined' || isIconDefinition(value)
+
+const normalizeIconDefinition = (value: IconDefinition): IconDefinition => ({
+	type: value.type,
+	value: value.value.trim(),
+	...(value.color?.trim() ? { color: value.color.trim() } : {}),
+	...(typeof value.size === 'number' ? { size: value.size } : {}),
+	...(value.alt?.trim() ? { alt: value.alt.trim() } : {}),
+	...(value.style ? { style: { ...value.style } } : {})
+})
+
 const isSkillMarketFeaturedRef = (value: unknown): value is ISkillMarketFeaturedRef =>
 	isObjectValue(value) &&
 	typeof Reflect.get(value, 'provider') === 'string' &&
@@ -84,7 +127,8 @@ const isSkillMarketFeaturedRef = (value: unknown): value is ISkillMarketFeatured
 	typeof Reflect.get(value, 'skillId') === 'string' &&
 	isOptionalString(Reflect.get(value, 'badge')) &&
 	isOptionalString(Reflect.get(value, 'title')) &&
-	isOptionalString(Reflect.get(value, 'description'))
+	isOptionalString(Reflect.get(value, 'description')) &&
+	isOptionalIconDefinition(Reflect.get(value, 'avatar'))
 
 const isSkillMarketFilterOption = (value: unknown): value is ISkillMarketFilterGroup['options'][number] =>
 	isObjectValue(value) &&
@@ -560,7 +604,8 @@ export class XpertTemplateService extends TenantAwareCrudService<XpertTemplate> 
 					skillId: item.skillId.trim(),
 					...(item.badge ? { badge: item.badge.trim() } : {}),
 					...(item.title ? { title: item.title.trim() } : {}),
-					...(item.description ? { description: item.description.trim() } : {})
+					...(item.description ? { description: item.description.trim() } : {}),
+					...(item.avatar ? { avatar: normalizeIconDefinition(item.avatar) } : {})
 				}))
 				: []
 
