@@ -395,7 +395,7 @@ export class ProjectComponent extends TranslationBaseComponent {
         this.storiesService.copy(story.id, _story).pipe(
           tap((newStory) => {
             this.refresh$.next()
-            this._router.navigate(['/project', newStory.id])
+            this._router.navigate(['/data', 'project', newStory.id])
             this._toastrService.success('PAC.Project.CopyStory', { Default: 'Copy story' })
           })
         )
@@ -462,7 +462,7 @@ export class ProjectComponent extends TranslationBaseComponent {
       this._toastrService.success('PAC.NOTES.STORY.STORY_DELETED', { name: story.name })
       this.refresh$.next()
 
-      this._router.navigate(['/project'])
+      this._router.navigate(['/data', 'project'])
     } catch (err) {
       this._toastrService.error('PAC.NOTES.STORY.STORY_DELETED', '', { name: story.name })
     }

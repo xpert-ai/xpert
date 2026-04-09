@@ -211,7 +211,7 @@
               aria-label="Projects"
               class="peer/menu-button flex items-center gap-2 overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active data-[active=true]:bg-button-ghost-active w-full bg-background text-text-primary hover:text-text-primary p-[.5rem]"
               tabindex="-1"
-              routerLink="/chat/p"
+              routerLink="/project"
               routerLinkActive="bg-hover-bg"
               (click)="projectsExpanded() ? projectsExpanded.set(false) : projectsExpanded.set(true)"
             >
@@ -672,7 +672,7 @@
             class="peer/menu-button relative items-center overflow-hidden rounded-xl text-left outline-none ring-sidebar-ring transition-[width,height,padding] focus-visible:ring-1 group-has-[[data-sidebar=menu-action]]/menu-item:pr-8 [&amp;>span:last-child]:truncate [&amp;>svg]:shrink-0 hover:text-primary h-[36px] border-transparent hover:bg-button-ghost-hover data-[state=open]:hover:bg-button-ghost-hover active:bg-button-ghost-active pl-2 pr-1 py-1 text-sm w-full flex flex-row gap-2 text-text-primary"
             [class.bg-hover-bg]="currentPage().type === 'project' && currentPage().id === project.id"
             tabindex="-1"
-            [routerLink]="['/chat/p', project.id]"
+            [routerLink]="['/project', project.id]"
           >
             <div>
               <emoji-avatar [avatar]="project.avatar" xs class="inline-flex overflow-hidden rounded-xl" />
@@ -704,7 +704,7 @@
       class="inline-flex items-center gap-2 whitespace-nowrap cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&amp;_svg]:shrink-0 select-none text-fg-primary bg-transparent hover:text-fg-secondary disabled:hover:text-fg-primary w-full justify-start px-2.5 text-sm font-semibold no-wrap pb-1 mt-1"
       type="button"
       tabindex="-1"
-      [routerLink]="['/chat/p']"
+      [routerLink]="['/project']"
     >
       {{ 'PAC.Chat.SeeAll' | translate: { Default: 'See All' } }}
     </button>

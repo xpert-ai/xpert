@@ -5,7 +5,7 @@
     @for (conversation of result.items; track conversation.id) {
       <div class="h-[48px] rounded-2xl grid grid-cols-1 grid-rows-1 hover:bg-button-ghost-hover">
         <a class="col-start-1 col-end-2 row-start-1 row-end-2 block z-10"
-          [routerLink]="['/chat/p', id(), 'c', conversation.id]"
+          [routerLink]="['/project', id(), 'c', conversation.id]"
         ></a>
         <div class="flex cursor-pointer items-center gap-2 col-start-1 col-end-2 row-start-1 row-end-2 p-4 rounded-2xl">
           <div class="flex-grow min-w-0">

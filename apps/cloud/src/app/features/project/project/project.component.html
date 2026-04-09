@@ -12,7 +12,7 @@
 
       <div
         class="pac-project__router-link p-2 pr-0 flex justify-start items-center group cursor-pointer rounded-md"
-        [routerLink]="['/project']"
+        [routerLink]="['/data', 'project']"
         routerLinkActive
         #rla1="routerLinkActive"
         [routerLinkActiveOptions]="{ exact: true }"
@@ -49,7 +49,7 @@
           @for (bookmark of bookmarks; track bookmark.story.id) {
             <li
               class="pac-project__router-link flex items-center group cursor-pointer rounded-md"
-              [routerLink]="['/project', bookmark.story.id]"
+              [routerLink]="['/data', 'project', bookmark.story.id]"
               routerLinkActive
               #rla="routerLinkActive"
               [routerLinkActiveOptions]="{ exact: true }"
@@ -112,7 +112,7 @@
           zTreeNodePadding
           zTreeNodePaddingIndent="10px"
           class="pac-project__router-link flex items-center group cursor-pointer rounded-md"
-          [routerLink]="node.raw.__type__ === 'story' ? ['/project', node.key] : null"
+          [routerLink]="node.raw.__type__ === 'story' ? ['/data', 'project', node.key] : null"
           routerLinkActive
           #rla="routerLinkActive"
           [routerLinkActiveOptions]="{ exact: false }"
@@ -274,7 +274,7 @@
           @for (model of project?.models; track model.id) {
             <li
               class="pac-project__router-link flex items-center group cursor-pointer rounded-md"
-              [routerLink]="['/models', model.id]"
+              [routerLink]="['/data', 'models', model.id]"
               cdkDrag
               [cdkDragData]="model"
               >

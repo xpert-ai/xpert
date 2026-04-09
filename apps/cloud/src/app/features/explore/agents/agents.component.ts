@@ -177,7 +177,7 @@ export class ExploreAgentsComponent {
         .closed.subscribe({
           next: (project) => {
             if (project) {
-              this.#router.navigate(['/chat', 'p', project.id])
+              this.#router.navigate(['/project', project.id])
             }
           }
         })

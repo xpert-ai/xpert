@@ -51,7 +51,7 @@
     </div>
     <div class="flex flex-wrap gap-4">
       @for (story of stories$ | async; track story.id) {
-        <pac-story-card class="flex-1 min-w-full lg:min-w-[360px] lg:max-w-[720px]" [story]="story" storyLink="/project" />
+        <pac-story-card class="flex-1 min-w-full lg:min-w-[360px] lg:max-w-[720px]" [story]="story" storyLink="/data/project" />
       }
     </div>
 

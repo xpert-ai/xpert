@@ -332,7 +332,7 @@ export class ChatHomeComponent {
       next: (project) => {
         this.projectLoading.set(false)
         this.projects.update((items) => [project, ...(items ?? [])])
-        this.#router.navigate(['/chat/p', project.id])
+        this.#router.navigate(['/project', project.id])
       },
       error: (err) => {
         this.projectLoading.set(false)

@@ -482,7 +482,7 @@ export class XpIndicatorFormComponent {
 
   openProject() {
     this.#store.selectedProject = this.project()
-    window.open(`/project/indicators`, '_blank')
+    window.open(`/data/project/indicators`, '_blank')
   }
 
   duplicate() {

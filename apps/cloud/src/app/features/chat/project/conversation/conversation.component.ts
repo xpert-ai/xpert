@@ -87,7 +87,7 @@ export class ChatProjectConversationComponent {
   }
 
   routeProject() {
-    this.#router.navigate(['/chat/p', this.projectId()])
+    this.#router.navigate(['/project', this.projectId()])
   }
 
   openConversations() {
@@ -95,7 +95,7 @@ export class ChatProjectConversationComponent {
       .open(ChatConversationsComponent, {
         viewContainerRef: this.#vcr,
         data: {
-          basePath: '/chat',
+          basePath: '/project',
           projectId: this.projectId()
         }
       })

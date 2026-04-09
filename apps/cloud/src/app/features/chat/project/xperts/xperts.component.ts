@@ -202,7 +202,7 @@ export class ChatProjectXpertsComponent {
   }
 
   selectXpert(xpert: IXpert) {
-    this.#router.navigate(['/chat/p', this.projectId(), 'x', xpert.slug])
+    this.#router.navigate(['/project', this.projectId(), 'x', xpert.slug])
     // this.chatService.conversationId.set(null)
   }
 
