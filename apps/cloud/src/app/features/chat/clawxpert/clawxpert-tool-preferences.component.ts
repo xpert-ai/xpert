@@ -145,7 +145,7 @@ const EMPTY_SKILL_PREFERENCE_STATE: SkillPreferenceState = {
             alignTabs="start"
             stretchTabs="false"
             disableRipple
-            displayDensity="cosy"
+            zSize="default"
             class="border-b border-divider-regular px-5 pt-3"
           >
             <button z-tab-link type="button" [active]="activeTab() === 'skills'" (click)="selectTab('skills')">

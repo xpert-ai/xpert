@@ -16,8 +16,35 @@ export const tabContainerVariants = cva('z-tab-group flex min-h-0 min-w-0', {
   },
 });
 
+export const tabNavBarVariants = cva(
+  'z-tab-nav-bar z-tab-group__nav nav-tab-scroll flex min-h-0 min-w-0 overflow-auto border-border',
+  {
+    variants: {
+      headerPosition: {
+        above: 'flex-row border-b mb-1',
+        below: 'flex-row border-t mt-1',
+      },
+      zAlignTabs: {
+        start: 'justify-start',
+        center: 'justify-center',
+        end: 'justify-end',
+      },
+      zSize: {
+        sm: 'gap-0.5',
+        default: 'gap-1',
+        lg: 'gap-1.5',
+      },
+    },
+    defaultVariants: {
+      headerPosition: 'above',
+      zAlignTabs: 'start',
+      zSize: 'default',
+    },
+  },
+);
+
 export const tabNavVariants = cva(
-  'z-tab-group__nav nav-tab-scroll flex min-h-0 min-w-0 gap-1 overflow-auto border-border',
+  'z-tab-group__nav nav-tab-scroll flex min-h-0 min-w-0 overflow-auto border-border',
   {
     variants: {
       zPosition: {
@@ -31,16 +58,22 @@ export const tabNavVariants = cva(
         center: 'justify-center',
         end: 'justify-end',
       },
+      zSize: {
+        sm: 'gap-0.5',
+        default: 'gap-1',
+        lg: 'gap-1.5',
+      },
     },
     defaultVariants: {
       zPosition: 'top',
       zAlignTabs: 'start',
+      zSize: 'default',
     },
   },
 );
 
 export const tabButtonVariants = cva(
-  'z-tab-group__trigger relative flex shrink-0 items-center gap-1 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 hover:bg-muted/60 hover:text-foreground',
+  'z-tab-group__trigger relative flex shrink-0 items-center font-medium text-muted-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 hover:bg-muted/60 hover:text-foreground',
   {
     variants: {
       zActivePosition: {
@@ -48,6 +81,11 @@ export const tabButtonVariants = cva(
         bottom: 'border-b-2',
         left: 'border-l-2',
         right: 'border-r-2',
+      },
+      zSize: {
+        sm: 'gap-1 px-2.5 py-1.5 text-xs',
+        default: 'gap-1 px-3 py-2 text-sm',
+        lg: 'gap-1.5 px-4 py-2.5 text-base',
       },
       isActive: {
         true: 'bg-muted/40 text-foreground',
@@ -106,6 +144,7 @@ export const tabButtonVariants = cva(
     ],
     defaultVariants: {
       zActivePosition: 'bottom',
+      zSize: 'default',
       isActive: false,
       isDisabled: false,
       stretchTabs: false,
@@ -113,6 +152,10 @@ export const tabButtonVariants = cva(
   },
 );
 
+type ZardTabNavVariants = VariantProps<typeof tabNavVariants>;
+type ZardTabButtonVariants = VariantProps<typeof tabButtonVariants>;
+
+export type ZardTabSizeVariants = NonNullable<ZardTabButtonVariants['zSize']>;
 export type ZardTabVariants = VariantProps<typeof tabContainerVariants> &
-  VariantProps<typeof tabNavVariants> &
-  VariantProps<typeof tabButtonVariants> & { zAlignTabs: zAlign };
+  ZardTabNavVariants &
+  ZardTabButtonVariants & { zAlignTabs: zAlign };

@@ -39,7 +39,7 @@ import { AppService } from '../../app.service'
       alignTabs="start"
       color="accent"
       disableRipple
-      displayDensity="cosy"
+      zSize="default"
       class="pac-home__navigation p-0 sm:px-2 md:px-8"
       >
       <span

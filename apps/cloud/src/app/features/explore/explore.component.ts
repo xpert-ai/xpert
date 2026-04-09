@@ -34,7 +34,7 @@ const DEFAULT_TAB: ExploreTab = 'agents'
   templateUrl: './explore.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: {
-    class: 'flex min-h-full w-full flex-col overflow-auto bg-background-body'
+    class: 'flex min-h-full w-full flex-col overflow-auto bg-(--background)'
   }
 })
 export class ExploreComponent {
