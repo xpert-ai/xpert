@@ -93,19 +93,16 @@ async function loadModule(modName: string, opts: PluginLoadOptions = {}): Promis
 	try {
 		return await import(target)
 	} catch (e1) {
-		console.warn(`ESM import failed for ${target}:`, e1)
+		if (!isProd) {
+			console.warn(`ESM import failed for ${target}:`, e1)
+		}
 		errorMessage += `ESM import failed for ${target}: ${getErrorMessage(e1)}\n`
 		try {
 			// eslint-disable-next-line @typescript-eslint/no-var-requires
 			return cjsRequire(target)
 		} catch (e2) {
 			errorMessage += `CJS require failed for ${target}: ${getErrorMessage(e2)}\n`
-			if (isProd || !preferredTsEntry) {
-				// Production mode: only ESM + CJS allowed
-				throw new PluginLoadError(modName, errorMessage, e2)
-			} else {
-				throw new PluginLoadError(modName, errorMessage, e2)
-			}
+			throw new PluginLoadError(modName, errorMessage, e2)
 		}
 	}
 }
