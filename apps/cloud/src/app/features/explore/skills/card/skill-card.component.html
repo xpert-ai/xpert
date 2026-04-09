@@ -22,7 +22,7 @@
         </div>
 
         @if (description()) {
-          <p class="mt-2 text-sm leading-6 text-text-tertiary" [class]="variant() === 'featured' ? 'line-clamp-4 min-h-[96px]' : 'line-clamp-3 min-h-[72px]'">
+          <p class="mt-2 text-sm leading-6 text-text-secondary" [class]="variant() === 'featured' ? 'line-clamp-4 min-h-[96px]' : 'line-clamp-3 min-h-[72px]'">
             {{ description() }}
           </p>
         } @else {
