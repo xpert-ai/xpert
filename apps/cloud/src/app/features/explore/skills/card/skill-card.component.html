@@ -1,6 +1,5 @@
 <article
   class="group relative flex h-full flex-col overflow-hidden rounded-xl border border-border bg-components-card-bg transition-all hover:-translate-y-0.5 hover:shadow-lg"
-  [class]="variant() === 'featured' ? 'min-h-[308px]' : 'min-h-[152px]'"
 >
   <div
     class="flex flex-1 cursor-pointer flex-col px-4 py-4 pb-4 outline-none"
@@ -22,11 +21,11 @@
         </div>
 
         @if (description()) {
-          <p class="mt-2 text-sm leading-6 text-text-secondary" [class]="variant() === 'featured' ? 'line-clamp-4 min-h-[96px]' : 'line-clamp-3 min-h-[72px]'">
+          <p class="mt-2 text-sm leading-6 line-clamp-3 text-text-secondary">
             {{ description() }}
           </p>
         } @else {
-          <p class="mt-2 text-sm leading-6 text-text-tertiary" [class]="variant() === 'featured' ? 'min-h-[96px]' : 'min-h-[72px]'">
+          <p class="mt-2 text-sm leading-6 text-text-tertiary">
             {{ 'PAC.Explore.SkillDescriptionFallback' | translate: { Default: '该技能暂未提供更多说明。' } }}
           </p>
         }
@@ -77,7 +76,7 @@
     </div>
   </div>
 
-  <div class="absolute inset-x-4 bottom-4 transition-all duration-200" [class]="actionsClass()">
+  <div class="absolute inset-x-4 bottom-2 transition-all duration-200" [class]="actionsClass()">
     <div class="bg-components-card-bg p-2">
       <div class="flex items-end justify-between gap-3">
         <div class="min-w-0">
@@ -92,7 +91,7 @@
           </div>
         </div>
 
-        <button z-button type="button" zSize="lg" class="rounded-full cursor-pointer" (click)="addToWorkspace($event)">
+        <button z-button type="button" zSize="lg" class="rounded-full cursor-pointer pr-4" (click)="addToWorkspace($event)">
           <z-icon zType="plus"></z-icon>
           {{ 'PAC.ACTIONS.Add' | translate: { Default: '添加' } }}
         </button>
