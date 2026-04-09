@@ -44,7 +44,9 @@ describe('message-content.utils', () => {
     expect(chunks[0].text).toBe('hello world')
   })
 
-  it('keeps append order when multiple text streams interleave', () => {
+  it('merges interleaved chunks from the same stream into one segment', () => {
+    // Concurrent streams: A → B → A (interleaved). A2 must merge back into the A1
+    // chunk rather than being appended as a third fragment (issue #471).
     const message = { id: 'm1', role: 'ai', content: '' } as CopilotChatMessage
 
     appendMessageContent(message, 'A1', { source: 'chat_stream', streamId: 'stream-a' })
@@ -52,13 +54,11 @@ describe('message-content.utils', () => {
     appendMessageContent(message, 'A2', { source: 'chat_stream', streamId: 'stream-a' })
 
     const chunks = message.content as any[]
-    expect(chunks).toHaveLength(3)
+    expect(chunks).toHaveLength(2)
     expect(chunks[0].id).toBe('stream-a')
-    expect(chunks[0].text).toBe('A1')
+    expect(chunks[0].text).toBe('A1A2')
     expect(chunks[1].id).toBe('stream-b')
     expect(chunks[1].text).toBe('\nB1')
-    expect(chunks[2].id).toBe('stream-a')
-    expect(chunks[2].text).toBe('\nA2')
   })
 
   it('adds a line break when next text follows a closed code fence from another stream', () => {
