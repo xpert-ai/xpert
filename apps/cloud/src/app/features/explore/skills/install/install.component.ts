@@ -37,7 +37,9 @@ export class ExploreSkillInstallComponent {
   readonly #selectedWorkspace = injectWorkspace()
 
   readonly item = this.#data
-  readonly workspace = model<string>(this.#selectedWorkspace()?.id)
+  readonly #workspaceTouched = signal(false)
+  readonly defaultWorkspace = toSignal(this.#workspaceService.getMyDefault(), { initialValue: null })
+  readonly workspace = model<string>('')
   readonly loading = signal(false)
 
   readonly workspaces = toSignal(
@@ -56,8 +58,19 @@ export class ExploreSkillInstallComponent {
     effect(
       () => {
         const workspaces = this.workspaces()
-        if (!this.workspace() && workspaces?.length) {
-          this.workspace.set(workspaces[0].id)
+        const preferredWorkspaceId =
+          this.defaultWorkspace()?.id ?? this.#selectedWorkspace()?.id ?? workspaces?.[0]?.id ?? ''
+
+        if (!preferredWorkspaceId) {
+          return
+        }
+
+        if (this.#workspaceTouched() && this.workspace()) {
+          return
+        }
+
+        if (this.workspace() !== preferredWorkspaceId) {
+          this.workspace.set(preferredWorkspaceId)
         }
       },
       { allowSignalWrites: true }
@@ -69,6 +82,7 @@ export class ExploreSkillInstallComponent {
   }
 
   selectWorkspace(value: string | number | Array<string | number>) {
+    this.#workspaceTouched.set(true)
     this.workspace.set(normalizeWorkspaceValue(value))
   }
 

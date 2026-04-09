@@ -33,6 +33,10 @@ export class XpertWorkspaceService extends OrganizationBaseCrudService<IXpertWor
     )
   }
 
+  setMyDefault(id: string) {
+    return this.httpClient.post<IXpertWorkspace>(this.apiBaseUrl + `/${id}/default`, {})
+  }
+
   getMembers(id: string) {
     return this.httpClient.get<IUser[]>(this.apiBaseUrl + `/${id}/members`)
   }

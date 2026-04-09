@@ -52,11 +52,13 @@ export class ExploreAgentInstallComponent {
   readonly templateService = inject(XpertTemplateService)
   readonly xpertService = inject(XpertAPIService)
   readonly selectedWorkspace = injectWorkspace()
+  readonly #workspaceTouched = signal(false)
 
   readonly workspaces = toSignal(
     this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(map(({ items }) => items)),
     { initialValue: [] }
   )
+  readonly defaultWorkspace = toSignal(this.workspaceService.getMyDefault(), { initialValue: null })
   readonly workspaceOptions = computed(() =>
     (this.workspaces() ?? []).map((workspace) => ({
       value: workspace.id,
@@ -66,7 +68,7 @@ export class ExploreAgentInstallComponent {
 
   readonly originName = this.#data.name
 
-  readonly workspace = model<string>(this.selectedWorkspace()?.id)
+  readonly workspace = model<string>('')
   readonly name = model<string>(this.#data.name)
   readonly description = model<string>(this.#data.description)
   readonly avatar = model<TAvatar>(this.#data.avatar)
@@ -79,8 +81,19 @@ export class ExploreAgentInstallComponent {
     effect(
       () => {
         const workspaces = this.workspaces()
-        if (!this.workspace() && workspaces?.length) {
-          this.workspace.set(workspaces[0].id)
+        const preferredWorkspaceId =
+          this.defaultWorkspace()?.id ?? this.selectedWorkspace()?.id ?? workspaces?.[0]?.id ?? ''
+
+        if (!preferredWorkspaceId) {
+          return
+        }
+
+        if (this.#workspaceTouched() && this.workspace()) {
+          return
+        }
+
+        if (this.workspace() !== preferredWorkspaceId) {
+          this.workspace.set(preferredWorkspaceId)
         }
       },
       { allowSignalWrites: true }
@@ -92,6 +105,7 @@ export class ExploreAgentInstallComponent {
   }
 
   selectWorkspace(value: string | number | Array<string | number>) {
+    this.#workspaceTouched.set(true)
     this.workspace.set(normalizeWorkspaceValue(value))
   }
 

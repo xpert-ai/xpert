@@ -28,7 +28,7 @@ import { TagFilterComponent } from 'apps/cloud/src/app/@shared/tag'
 import { concat } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { injectParams } from 'ngxtension/inject-params'
-import { BehaviorSubject } from 'rxjs'
+import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { debounceTime, map, startWith, tap } from 'rxjs/operators'
 import {
   getErrorMessage,
@@ -107,6 +107,7 @@ export class XpertWorkspaceHomeComponent {
   readonly lang = this.appService.lang
 
   readonly loading = signal(true)
+  readonly loadingDefaultWorkspace = signal(true)
   readonly workspaces = toSignal(
     this.workspaceService.getAllMy({ order: { updatedAt: OrderTypeEnum.DESC } }).pipe(
       map(({ items }) => items),
@@ -117,8 +118,12 @@ export class XpertWorkspaceHomeComponent {
   readonly workspace = computed(() => this.workspaces()?.find((_) => _.id === this.selectedWorkspace()?.id), {
     equal: (a, b) => a?.id === b?.id
   })
+  readonly defaultWorkspace = signal<IXpertWorkspace | null>(null)
+  readonly defaultWorkspaceId = computed(() => this.defaultWorkspace()?.id ?? null)
+  readonly settingDefaultWorkspaceId = signal<string | null>(null)
 
   readonly refresh$ = new BehaviorSubject<void>(null)
+  #defaultWorkspaceQueryVersion = 0
 
   // Xpert or tool type filter
   readonly types = model<Array<XpertTypeEnum | XpertToolsetCategoryEnum | 'knowledgebase'>>(null)
@@ -177,6 +182,18 @@ export class XpertWorkspaceHomeComponent {
   readonly inDevelopmentOpen = signal(false)
 
   constructor() {
+    effect(
+      () => {
+        const workspaces = this.workspaces()
+        if (workspaces === null) {
+          return
+        }
+
+        void this.loadDefaultWorkspace()
+      },
+      { allowSignalWrites: true }
+    )
+
     effect(() => {
       if (this.tags()?.[0]) {
         this.searchControl.setValue(this.tags()[0].name)
@@ -254,6 +271,56 @@ export class XpertWorkspaceHomeComponent {
 
   refresh() {
     this.refresh$.next()
+  }
+
+  async loadDefaultWorkspace() {
+    const version = ++this.#defaultWorkspaceQueryVersion
+    this.loadingDefaultWorkspace.set(true)
+
+    try {
+      const workspace = await firstValueFrom(this.workspaceService.getMyDefault())
+      if (version !== this.#defaultWorkspaceQueryVersion) {
+        return
+      }
+
+      this.defaultWorkspace.set(workspace)
+    } catch {
+      if (version !== this.#defaultWorkspaceQueryVersion) {
+        return
+      }
+
+      this.defaultWorkspace.set(null)
+    } finally {
+      if (version === this.#defaultWorkspaceQueryVersion) {
+        this.loadingDefaultWorkspace.set(false)
+      }
+    }
+  }
+
+  async setDefaultWorkspace(event: Event, workspace: IXpertWorkspace) {
+    event.stopPropagation()
+
+    if (!workspace?.id || this.defaultWorkspaceId() === workspace.id || this.settingDefaultWorkspaceId() === workspace.id) {
+      return
+    }
+
+    this.settingDefaultWorkspaceId.set(workspace.id)
+
+    try {
+      const defaultWorkspace = await firstValueFrom(this.workspaceService.setMyDefault(workspace.id))
+      this.defaultWorkspace.set(defaultWorkspace)
+      this.#toastr.success(
+        this.#translate.instant('PAC.Xpert.DefaultWorkspaceUpdated', {
+          Default: 'Default workspace updated'
+        })
+      )
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      if (this.settingDefaultWorkspaceId() === workspace.id) {
+        this.settingDefaultWorkspaceId.set(null)
+      }
+    }
   }
 
   openSettings() {
