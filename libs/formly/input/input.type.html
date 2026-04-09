@@ -1,22 +1,64 @@
-<ngm-input class="w-full" [displayDensity]="props?.displayDensity"
-  [class.ngm-input-error]="formControl.invalid && formControl.touched"
-  [label]="props?.label"
-  [required]="props?.required"
-  [placeholder]="props?.placeholder"
-  [type]="props?.type"
-  [options]="selectOptions()"
-  [ngModel]="newValue"
-  (ngModelChange)="newValue = $event"
-  (blur)="onBlur()"
-  (focus)="onFocus()"
-  >
-  @if (props?.help) {
-    <a ngmLabel [href]="props.help" target="_blank" rel="noopener noreferrer" class="group text-xs font-light text-primary-400 hover:text-primary-600 hover:underline hover:font-normal">
-      {{ 'FORMLY.COMMON.Help' | translate: {Default: 'Help'} }}
-      <i class="ri-external-link-line inline-block group-hover:translate-x-1 transition-transform"></i>
-    </a>
+<z-form-field class="w-full p-0" [displayDensity]="props?.displayDensity">
+  <z-form-label class="pac-formly-input__label" [zRequired]="props?.required" [attr.title]="props?.label || null">
+    {{ props?.label || '' }}
+    @if (props?.help) {
+      <a
+        [href]="props.help"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="group text-xs font-light text-primary-400 hover:text-primary-600 hover:underline hover:font-normal"
+      >
+        {{ 'FORMLY.COMMON.Help' | translate: { Default: 'Help' } }}
+        <i class="ri-external-link-line inline-block transition-transform group-hover:translate-x-1"></i>
+      </a>
+    }
+  </z-form-label>
+
+  <z-form-control>
+    @if (hasOptions()) {
+      <z-combobox-deprecated
+        zTriggerMode="input"
+        class="w-full pac-formly-input__control"
+        [class.pac-formly-input__control--error]="hasError()"
+        [value]="newValue"
+        [options]="comboboxOptions()"
+        [placeholder]="props?.placeholder || ''"
+        [disabled]="props?.readonly || formControl.disabled"
+        [allowCustomValue]="true"
+        [zSearchTerm]="searchTerm()"
+        [zDisplayWith]="displayValue"
+        [zFilterWith]="filterOption"
+        (zValueChange)="onOptionSelected($event)"
+        (zSearchTermChange)="onSearchTermChange($event)"
+        (zBlur)="onBlur()"
+        (zFocus)="onFocus()"
+      >
+        <ng-template zComboboxDeprecatedOption let-option let-searchTerm="searchTerm">
+          <span [ngmHighlight]="searchTerm" [content]="option.label || option.value"></span>
+        </ng-template>
+      </z-combobox-deprecated>
+    } @else {
+      <input
+        z-input
+        class="w-full pac-formly-input__control"
+        [class.pac-formly-input__control--error]="hasError()"
+        [zStatus]="inputStatus()"
+        [type]="props?.type || 'text'"
+        [placeholder]="props?.placeholder"
+        [required]="props?.required"
+        [readonly]="props?.readonly"
+        [disabled]="props?.readonly || formControl.disabled"
+        [value]="newValue ?? ''"
+        (input)="onTextInput($event)"
+        (blur)="onBlur()"
+        (focus)="onFocus()"
+      />
+    }
+  </z-form-control>
+
+  @if (hasError()) {
+    <z-form-message zType="error" class="text-xs">
+      <formly-validation-message [field]="field" />
+    </z-form-message>
   }
-  @if (formControl.invalid && formControl.touched) {
-    <formly-validation-message ngmError [field]="field" />
-  }
-</ngm-input>
+</z-form-field>
