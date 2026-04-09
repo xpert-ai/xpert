@@ -4,24 +4,25 @@
       <div class="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
           <div class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs font-semibold text-text-secondary">
-            {{ 'PAC.Explore.MySkills' | translate: { Default: '我的技能' } }}
+            {{ 'PAC.Explore.MySkills' | translate: { Default: 'My Skills' } }}
           </div>
           <h2 class="mt-3 text-2xl font-semibold text-text-primary">
-            {{ 'PAC.Explore.MySkillsTitle' | translate: { Default: '默认工作区中的已安装技能' } }}
+            {{ 'PAC.Explore.MySkillsTitle' | translate: { Default: 'Skills Installed in the Default Workspace' } }}
           </h2>
           <p class="mt-2 max-w-2xl text-sm leading-6 text-text-tertiary">
             {{
               'PAC.Explore.MySkillsHint'
                 | translate
                   : {
-                      Default: '这里展示当前默认工作区里已经安装的技能资产，支持继续查看详情或进入工作区进行管理。'
+                      Default:
+                        'This section shows the skills already installed in the current default workspace. You can review details or open the workspace to manage them.'
                     }
             }}
           </p>
         </div>
 
         <button type="button" class="btn btn-secondary btn-medium" (click)="openWorkspaceSkills()">
-          {{ 'PAC.Explore.OpenWorkspaceSkills' | translate: { Default: '打开工作区技能' } }}
+          {{ 'PAC.Explore.OpenWorkspaceSkills' | translate: { Default: 'Open Workspace Skills' } }}
         </button>
       </div>
     </div>
@@ -29,7 +30,7 @@
     @if (loadingInstalledSkills()) {
       <div class="flex min-h-[320px] items-center justify-center rounded-[28px] border border-divider-regular bg-components-card-bg">
         <div class="text-sm text-text-tertiary">
-          {{ 'PAC.Explore.LoadingMySkills' | translate: { Default: '正在加载我的技能...' } }}
+          {{ 'PAC.Explore.LoadingMySkills' | translate: { Default: 'Loading my skills...' } }}
         </div>
       </div>
     } @else if (!mineSkills().length) {
@@ -39,20 +40,21 @@
             <i class="ri-box-3-line"></i>
           </div>
           <h3 class="mt-4 text-xl font-semibold text-text-primary">
-            {{ 'PAC.Explore.NoMySkills' | translate: { Default: '当前默认工作区还没有技能' } }}
+            {{ 'PAC.Explore.NoMySkills' | translate: { Default: 'No Skills in the Default Workspace Yet' } }}
           </h3>
           <p class="mt-2 text-sm leading-6 text-text-tertiary">
             {{
               'PAC.Explore.NoMySkillsHint'
                 | translate
                   : {
-                      Default: '可以先从广场安装技能，或进入默认工作区手动上传与管理技能包。'
+                      Default:
+                        'Install skills from the market first, or open the default workspace to upload and manage skill packages manually.'
                     }
             }}
           </p>
           <div class="mt-6 flex justify-center">
             <button type="button" class="btn btn-secondary btn-medium" (click)="openWorkspaceSkills()">
-              {{ 'PAC.Explore.OpenWorkspaceSkills' | translate: { Default: '打开工作区技能' } }}
+              {{ 'PAC.Explore.OpenWorkspaceSkills' | translate: { Default: 'Open Workspace Skills' } }}
             </button>
           </div>
         </div>
@@ -72,6 +74,12 @@
                 <h3 class="line-clamp-2 text-lg font-semibold text-text-primary">
                   {{ displayInstalledSkillName(skill) }}
                 </h3>
+                @if (isLocalSkill(skill) && skill.publishAt) {
+                  <div class="mt-2 inline-flex items-center gap-2 rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-secondary">
+                    <i class="ri-broadcast-line"></i>
+                    {{ 'PAC.Explore.SharedToMarket' | translate: { Default: 'Shared to organization market' } }}
+                  </div>
+                }
                 <p class="mt-2 line-clamp-4 min-h-[96px] text-sm leading-6 text-text-tertiary">
                   {{ installedSkillSummary(skill) }}
                 </p>
@@ -95,7 +103,7 @@
             <div class="mt-4 grid gap-3 rounded-2xl bg-background-default-subtle px-4 py-4 text-sm text-text-secondary">
               <div class="flex items-center justify-between gap-3">
                 <span class="text-text-tertiary">
-                  {{ 'PAC.Explore.Creator' | translate: { Default: '创建者' } }}
+                  {{ 'PAC.Explore.Creator' | translate: { Default: 'Creator' } }}
                 </span>
                 <span class="truncate text-right text-text-primary">
                   {{ installedSkillPublisherLabel(skill) }}
@@ -113,11 +121,27 @@
 
             <div class="mt-auto flex items-center justify-between gap-3 pt-5">
               <div class="text-xs text-text-quaternary">
-                {{ skill.updatedAt || skill.createdAt | date: 'yyyy-MM-dd' }}
+                @if (isLocalSkill(skill) && skill.publishAt) {
+                  {{ 'PAC.Explore.SharedAt' | translate: { Default: 'Shared at' } }}
+                  {{ skill.publishAt | date: 'yyyy-MM-dd' }}
+                } @else {
+                  {{ skill.updatedAt || skill.createdAt | date: 'yyyy-MM-dd' }}
+                }
               </div>
-              <button type="button" class="btn btn-secondary btn-small shrink-0" (click)="openWorkspaceSkills($event)">
-                {{ 'PAC.Explore.OpenWorkspaceSkills' | translate: { Default: '打开工作区技能' } }}
-              </button>
+              <div class="flex items-center gap-2">
+                @if (isLocalSkill(skill)) {
+                  <button type="button" class="btn btn-primary btn-small shrink-0" (click)="openShareDialog(skill, $event)">
+                    {{
+                      skill.publishAt
+                        ? ('PAC.Explore.RepublishSkill' | translate: { Default: 'Update Share' })
+                        : ('PAC.Explore.ShareSkill' | translate: { Default: 'Share' })
+                    }}
+                  </button>
+                }
+                <button type="button" class="btn btn-secondary btn-small shrink-0" (click)="openWorkspaceSkills($event)">
+                  {{ 'PAC.Explore.OpenWorkspaceSkills' | translate: { Default: 'Open Workspace Skills' } }}
+                </button>
+              </div>
             </div>
           </article>
         }
@@ -126,7 +150,7 @@
   } @else if (loadingRepositories()) {
     <div class="flex min-h-[180px] items-center justify-center rounded-[28px] border border-divider-regular bg-components-card-bg">
       <div class="text-sm text-text-tertiary">
-        {{ 'PAC.Explore.LoadingRepositories' | translate: { Default: '正在加载技能仓库...' } }}
+        {{ 'PAC.Explore.LoadingRepositories' | translate: { Default: 'Loading skill repositories...' } }}
       </div>
     </div>
   } @else if (!repositories().length) {
@@ -136,20 +160,21 @@
           <i class="ri-folder-open-line"></i>
         </div>
         <h3 class="mt-4 text-xl font-semibold text-text-primary">
-          {{ 'PAC.Explore.NoSkillRepositories' | translate: { Default: '当前组织暂无可浏览的技能仓库' } }}
+          {{ 'PAC.Explore.NoSkillRepositories' | translate: { Default: 'No Skill Repositories Available for This Organization' } }}
         </h3>
         <p class="mt-2 text-sm leading-6 text-text-tertiary">
           {{
             'PAC.Explore.NoSkillRepositoriesHint'
               | translate
                 : {
-                    Default: '请先在组织中接入技能仓库，接入完成后这里会展示官方精选与全部技能。'
+                    Default:
+                      'Connect a skill repository in the organization first. Once connected, featured picks and the full catalog will appear here.'
                   }
           }}
         </p>
         <div class="mt-6 flex justify-center">
           <a class="btn btn-primary btn-medium" routerLink="/setting/skill-repository">
-            {{ 'PAC.Explore.OpenSkillRepositorySettings' | translate: { Default: '打开技能仓库设置' } }}
+            {{ 'PAC.Explore.OpenSkillRepositorySettings' | translate: { Default: 'Open Skill Repository Settings' } }}
           </a>
         </div>
       </div>
@@ -159,17 +184,18 @@
       <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
         <div>
           <div class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs font-semibold text-text-secondary">
-            {{ 'PAC.Explore.OfficialFeatured' | translate: { Default: '官方精选' } }}
+            {{ 'PAC.Explore.OfficialFeatured' | translate: { Default: 'Featured' } }}
           </div>
           <h2 class="mt-3 text-2xl font-semibold text-text-primary">
-            {{ 'PAC.Explore.FeaturedSkillsTitle' | translate: { Default: '精选技能推荐' } }}
+            {{ 'PAC.Explore.FeaturedSkillsTitle' | translate: { Default: 'Featured Skills' } }}
           </h2>
           <p class="mt-2 max-w-2xl text-sm leading-6 text-text-tertiary">
             {{
               'PAC.Explore.FeaturedSkillsHint'
                 | translate
                   : {
-                      Default: '通过 xpert-template 市场配置下发，优先展示适合企业内部客户浏览、交流与复用的技能模板。'
+                      Default:
+                        'Delivered through the xpert-template market configuration, prioritizing skill templates suitable for internal enterprise discovery, collaboration, and reuse.'
                     }
             }}
           </p>
@@ -182,7 +208,7 @@
               'PAC.Explore.DefaultWorkspaceHint'
                 | translate
                   : {
-                      Default: '默认安装到 ' + workspace()?.name
+                      Default: 'Installed by default to ' + workspace()?.name
                     }
             }}
           </div>
@@ -192,24 +218,25 @@
       @if (loadingMarket()) {
         <div class="mt-5 flex min-h-[220px] items-center justify-center rounded-[24px] border border-divider-regular bg-background-default-subtle">
           <div class="text-sm text-text-tertiary">
-            {{ 'PAC.Explore.LoadingFeaturedSkills' | translate: { Default: '正在加载官方精选...' } }}
+            {{ 'PAC.Explore.LoadingFeaturedSkills' | translate: { Default: 'Loading featured skills...' } }}
           </div>
         </div>
       } @else if (!featuredSkills().length) {
         <div class="mt-5 flex min-h-[220px] items-center justify-center rounded-[24px] border border-dashed border-divider-regular bg-background-default-subtle px-6 text-center">
           <div class="max-w-xl">
-            <div class="text-3xl text-text-tertiary">
-              <i class="ri-award-line"></i>
-            </div>
-            <div class="mt-3 text-lg font-semibold text-text-primary">
-              {{ 'PAC.Explore.NoFeaturedSkills' | translate: { Default: '当前还没有可展示的官方精选' } }}
-            </div>
-            <p class="mt-2 text-sm leading-6 text-text-tertiary">
+          <div class="text-3xl text-text-tertiary">
+            <i class="ri-award-line"></i>
+          </div>
+          <div class="mt-3 text-lg font-semibold text-text-primary">
+              {{ 'PAC.Explore.NoFeaturedSkills' | translate: { Default: 'No Featured Skills Available Yet' } }}
+          </div>
+          <p class="mt-2 text-sm leading-6 text-text-tertiary">
               {{
                 'PAC.Explore.NoFeaturedSkillsHint'
                   | translate
                     : {
-                        Default: '可以继续通过 skills-market.yaml 配置精选技能；如果配置项暂未命中当前仓库索引，这里会自动保持空态。'
+                        Default:
+                          'You can keep configuring featured skills through skills-market.yaml. If the config does not match the current repository indexes yet, this section will stay empty automatically.'
                       }
               }}
             </p>
@@ -234,14 +261,15 @@
       <div class="flex flex-col gap-4 xl:flex-row xl:items-start xl:justify-between">
         <div>
           <h2 class="text-2xl font-semibold text-text-primary">
-            {{ 'PAC.Explore.AllSkillsTitle' | translate: { Default: '全部技能' } }}
+            {{ 'PAC.Explore.AllSkillsTitle' | translate: { Default: 'All Skills' } }}
           </h2>
           <p class="mt-2 text-sm leading-6 text-text-tertiary">
             {{
               'PAC.Explore.AllSkillsHint'
                 | translate
                   : {
-                      Default: '按仓库浏览所有可用技能，支持搜索当前 tab 下的真实数据，并通过下滑持续加载更多。'
+                      Default:
+                        'Browse all available skills by repository, search the real data in the current tab, and keep loading more as you scroll.'
                     }
             }}
           </p>
@@ -249,7 +277,7 @@
 
         <div class="inline-flex items-center gap-2 rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3 text-sm text-text-tertiary">
           <i class="ri-database-2-line"></i>
-          {{ repositoryCount() }} {{ 'PAC.Explore.RepositoriesCount' | translate: { Default: '个仓库' } }}
+          {{ repositoryCount() }} {{ 'PAC.Explore.RepositoriesCount' | translate: { Default: 'repositories' } }}
         </div>
       </div>
 
@@ -265,7 +293,7 @@
             "
             (click)="selectRepository('__all__')"
           >
-            {{ 'PAC.Explore.AllRepositories' | translate: { Default: '全部仓库' } }}
+            {{ 'PAC.Explore.AllRepositories' | translate: { Default: 'All Repositories' } }}
           </button>
 
           @for (repository of repositories(); track repository.id) {
@@ -287,12 +315,12 @@
         <div class="grid gap-3 lg:grid-cols-3">
           <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3">
             <div class="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
-              {{ roleFilterGroup().label || ('PAC.Explore.RoleFilter' | translate: { Default: '角色' }) }}
+              {{ roleFilterGroup().label || ('PAC.Explore.RoleFilter' | translate: { Default: 'Role' }) }}
             </div>
             <z-select
               class="w-full"
               [zValue]="selectedRole()"
-              [zPlaceholder]="roleFilterGroup().label || ('PAC.Explore.RoleFilter' | translate: { Default: '角色' })"
+              [zPlaceholder]="roleFilterGroup().label || ('PAC.Explore.RoleFilter' | translate: { Default: 'Role' })"
               (zSelectionChange)="selectRole($event)"
             >
               @for (option of roleOptions(); track option.value) {
@@ -310,12 +338,12 @@
 
           <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3">
             <div class="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
-              {{ appTypeFilterGroup().label || ('PAC.Explore.AppTypeFilter' | translate: { Default: '应用类型' }) }}
+              {{ appTypeFilterGroup().label || ('PAC.Explore.AppTypeFilter' | translate: { Default: 'App Type' }) }}
             </div>
             <z-select
               class="w-full"
               [zValue]="selectedAppType()"
-              [zPlaceholder]="appTypeFilterGroup().label || ('PAC.Explore.AppTypeFilter' | translate: { Default: '应用类型' })"
+              [zPlaceholder]="appTypeFilterGroup().label || ('PAC.Explore.AppTypeFilter' | translate: { Default: 'App Type' })"
               (zSelectionChange)="selectAppType($event)"
             >
               @for (option of appTypeOptions(); track option.value) {
@@ -333,12 +361,12 @@
 
           <div class="rounded-2xl border border-divider-regular bg-background-default-subtle px-4 py-3">
             <div class="mb-2 text-xs font-medium uppercase tracking-[0.16em] text-text-quaternary">
-              {{ hotFilterGroup().label || ('PAC.Explore.HotFilter' | translate: { Default: '热门' }) }}
+              {{ hotFilterGroup().label || ('PAC.Explore.HotFilter' | translate: { Default: 'Trending' }) }}
             </div>
             <z-select
               class="w-full"
               [zValue]="selectedHot()"
-              [zPlaceholder]="hotFilterGroup().label || ('PAC.Explore.HotFilter' | translate: { Default: '热门' })"
+              [zPlaceholder]="hotFilterGroup().label || ('PAC.Explore.HotFilter' | translate: { Default: 'Trending' })"
               (zSelectionChange)="selectHot($event)"
             >
               @for (option of hotOptions(); track option.value) {
@@ -360,7 +388,8 @@
             'PAC.Explore.FilterShellHint'
               | translate
                 : {
-                    Default: '当前版本中，仓库过滤与顶部搜索会真实影响列表；角色、应用类型、热门下拉先作为可配置筛选壳展示。'
+                    Default:
+                      'In the current version, repository filtering and the top search affect the list for real; the role, app type, and trending dropdowns are shown as configurable filter shells for now.'
                   }
           }}
         </div>
@@ -370,7 +399,7 @@
         @if (loadingSkills() && !skills().length) {
           <div class="flex min-h-[320px] items-center justify-center rounded-[24px] border border-divider-regular bg-background-default-subtle">
             <div class="text-sm text-text-tertiary">
-              {{ 'PAC.Explore.LoadingSkills' | translate: { Default: '正在加载技能索引...' } }}
+              {{ 'PAC.Explore.LoadingSkills' | translate: { Default: 'Loading skill indexes...' } }}
             </div>
           </div>
         } @else if (!skills().length) {
@@ -380,14 +409,14 @@
                 <i class="ri-search-eye-line"></i>
               </div>
               <h3 class="mt-4 text-xl font-semibold text-text-primary">
-                {{ 'PAC.Explore.NoSkills' | translate: { Default: '未找到匹配的技能模板' } }}
+                {{ 'PAC.Explore.NoSkills' | translate: { Default: 'No Matching Skill Templates Found' } }}
               </h3>
               <p class="mt-2 text-sm leading-6 text-text-tertiary">
                 {{
                   'PAC.Explore.NoSkillsHint'
                     | translate
                       : {
-                          Default: '可以尝试调整关键词，或者切换其他仓库继续浏览。'
+                          Default: 'Try adjusting the keywords, or switch to another repository to keep browsing.'
                         }
                 }}
               </p>
@@ -413,9 +442,9 @@
               (click)="onIntersection()"
             >
               @if (loadingMore()) {
-                <span>{{ 'PAC.Explore.LoadingMoreSkills' | translate: { Default: '正在加载更多技能...' } }}</span>
+                <span>{{ 'PAC.Explore.LoadingMoreSkills' | translate: { Default: 'Loading more skills...' } }}</span>
               } @else {
-                <span>{{ 'PAC.Explore.LoadMoreSkills' | translate: { Default: '下滑或点击加载更多' } }}</span>
+                <span>{{ 'PAC.Explore.LoadMoreSkills' | translate: { Default: 'Scroll down or click to load more' } }}</span>
               }
             </button>
           }

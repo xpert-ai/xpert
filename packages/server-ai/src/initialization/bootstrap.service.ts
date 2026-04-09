@@ -90,6 +90,7 @@ export class ServerAIBootstrapService {
 		await this.runInOrganizationContext(owner, event.organizationId, async () => {
 			const workspace = await this.ensureOrganizationWorkspace(event.organizationId, owner.id)
 			await this.ensureDefaultEnvironment(workspace.id)
+			await this.skillRepositoryService.ensureWorkspacePublicRepository()
 
 			for (const memberId of memberIds) {
 				await this.workspaceService.ensureMember(workspace.id, memberId)

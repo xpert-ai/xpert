@@ -2,7 +2,7 @@ import { inject, Injectable } from '@angular/core'
 import { API_PREFIX, ISkillPackage } from '@metad/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { toParams } from '@metad/core'
-import { TFile, TFileDirectory } from '../types'
+import { IShareSkillPackageInput, TFile, TFileDirectory } from '../types'
 import { XpertWorkspaceBaseCrudService } from './xpert-workspace.service'
 
 @Injectable({ providedIn: 'root' })
@@ -23,10 +23,18 @@ export class SkillPackageService extends XpertWorkspaceBaseCrudService<ISkillPac
     return this.httpClient.post<ISkillPackage[]>(`${this.apiBaseUrl}/workspace/${workspaceId}/upload`, formData)
   }
 
+  sharePackage(workspaceId: string, id: string, input: IShareSkillPackageInput) {
+    return this.httpClient.post<ISkillPackage>(`${this.apiBaseUrl}/workspace/${workspaceId}/${id}/share`, input)
+  }
+
   uninstallPackages(ids: string[]) {
     return this.httpClient.delete(`${this.apiBaseUrl}/uninstall`, {
       body: ids
     })
+  }
+
+  uninstallPackageInWorkspace(workspaceId: string, id: string) {
+    return this.httpClient.delete(`${this.apiBaseUrl}/workspace/${workspaceId}/${id}`)
   }
 
   getFiles(workspaceId: string, id: string, path = '', deepth = 1) {

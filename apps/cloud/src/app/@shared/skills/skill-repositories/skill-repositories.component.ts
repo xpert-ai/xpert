@@ -3,7 +3,12 @@ import { CommonModule } from '@angular/common'
 import { afterNextRender, Component, effect, inject, input, model, signal } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { getErrorMessage, ISkillRepository, ISkillRepositoryIndex } from '@cloud/app/@core'
+import {
+  getErrorMessage,
+  ISkillRepository,
+  ISkillRepositoryIndex,
+  WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
+} from '@cloud/app/@core'
 import { injectConfirmDelete } from '@metad/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { finalize } from 'rxjs'
@@ -80,6 +85,10 @@ export class XpertSkillRepositoriesComponent {
     return item.name || item.skillId || item.skillPath
   }
 
+  isSystemManaged(repo: ISkillRepository) {
+    return repo.provider === WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
+  }
+
   openRepository(repo: ISkillRepository, event: Event) {
     event.stopPropagation()
     this.#dialog
@@ -99,6 +108,9 @@ export class XpertSkillRepositoriesComponent {
   }
 
   editRepository(repo: ISkillRepository, event: Event) {
+    if (this.isSystemManaged(repo)) {
+      return
+    }
     event.stopPropagation()
     this.#dialog
       .open<string | null>(XpertSkillRepositoryRegisterComponent, {
@@ -117,6 +129,9 @@ export class XpertSkillRepositoriesComponent {
   }
 
   deleteRepository(repo: ISkillRepository, event: Event) {
+    if (this.isSystemManaged(repo)) {
+      return
+    }
     event.stopPropagation()
     this.confirmDelete(
       {

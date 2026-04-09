@@ -115,6 +115,10 @@ describe('ServerAIBootstrapService', () => {
       }),
       register: jest.fn().mockResolvedValue({
         id: 'repo-1'
+      }),
+      ensureWorkspacePublicRepository: jest.fn().mockResolvedValue({
+        id: 'repo-public',
+        provider: 'workspace-public'
       })
     }
     const skillRepositoryIndexService = {
@@ -175,6 +179,7 @@ describe('ServerAIBootstrapService', () => {
       tenantId: 'tenant-1'
     } as any)
 
+    expect(skillRepositoryService.ensureWorkspacePublicRepository).toHaveBeenCalledTimes(1)
     expect(skillRepositoryService.findAll).not.toHaveBeenCalled()
     expect(skillRepositoryService.register).not.toHaveBeenCalled()
     expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-1')
