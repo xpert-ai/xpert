@@ -235,7 +235,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     // Xpert AI Features
     {
       title: 'Chat',
-      icon: 'robot_2',
+      icon: 'ri-robot-2-line',
       link: '/chat',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope',
@@ -247,7 +247,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     },
     {
       title: 'Explore Xperts',
-      icon: 'explore',
+      icon: 'ri-book-shelf-line',
       link: '/explore',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope',
@@ -259,7 +259,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     },
     {
       title: 'Xpert',
-      icon: 'orbit',
+      icon: 'ri-apps-line',
       link: '/xpert',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope',
@@ -324,7 +324,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     // },
     {
       title: 'Semantic Model',
-      icon: 'deployed_code',
+      icon: 'ri-database-2-line',
       link: '/models',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope',
@@ -336,7 +336,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     },
     {
       title: 'Project',
-      icon: 'dashboard',
+      icon: 'ri-numbers-line',
       link: '/project',
       pathMatch: 'prefix',
       scopeContext: 'dual-scope',
@@ -370,7 +370,7 @@ export function getFeatureMenus(scopeLevel: RequestScopeLevel, _org: IOrganizati
     },
     {
       title: 'Indicator App',
-      icon: 'trending_up',
+      icon: 'ri-stock-line',
       pathMatch: 'prefix',
       link: '/indicator-app',
       scopeContext: 'dual-scope',
