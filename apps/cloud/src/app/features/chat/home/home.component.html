@@ -199,7 +199,7 @@
         (click)="$event.stopPropagation()"
       >
         <ul data-sidebar="menu" class="flex w-full min-w-0 flex-col cursor-default">
-          <li
+          <!-- <li
             data-sidebar="menu-item"
             class="group/menu-item whitespace-nowrap mx-[.125rem] relative"
             cdkOverlayOrigin
@@ -272,7 +272,7 @@
                 </button>
               </span>
             }
-          </li>
+          </li> -->
 
           @if (sidebarState() === 'expanded' && projectsExpanded()) {
             <div style="overflow: hidden; height: auto">
@@ -425,7 +425,7 @@
   </div>
 </ng-template>
 
-<ng-template
+<!-- <ng-template
   cdkConnectedOverlay
   [cdkConnectedOverlayOrigin]="project_trigger"
   [cdkConnectedOverlayOpen]="menuOverlay() === 'project' && sidebarState() === 'closed'"
@@ -450,7 +450,7 @@
     </div>
     <ng-container *ngTemplateOutlet="projectsTempl; context: { projects: projects() }"></ng-container>
   </div>
-</ng-template>
+</ng-template> -->
 
 <ng-template
   cdkConnectedOverlay
