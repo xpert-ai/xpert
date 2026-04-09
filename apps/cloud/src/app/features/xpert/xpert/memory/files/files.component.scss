@@ -1,5 +1,5 @@
 @reference "../../../../../../styles/tailwind-reference.css";
 
 :host {
-  @apply relative flex h-full w-full flex-col items-stretch justify-start pt-4 bg-components-panel-bg;
+  @apply relative flex h-full w-full flex-col items-stretch justify-start p-4 bg-components-panel-bg;
 }

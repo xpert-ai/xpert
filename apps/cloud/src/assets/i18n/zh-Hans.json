@@ -4106,6 +4106,7 @@
         "Score": "分数"
       },
       "LongTermMemory": "长期记忆",
+      "MemoryFiles": "记忆文件",
       "DeleteTheMemory": "删除此记忆",
       "GainMemoryAgain": "可以被再次触发总结来获得记忆。",
       "ConversationSummary": "会话总结",

@@ -6,6 +6,8 @@ import {
     IXpertAgentExecution,
     LongTermMemoryTypeEnum,
     OrderTypeEnum,
+    TFile,
+    TFileDirectory,
     TMemoryQA,
     TMemoryUserProfile,
     TXpertTeamDraft
@@ -29,6 +31,7 @@ import { FindOptionsWhere, In, IsNull, Like, Not, Repository } from 'typeorm'
 import { CopilotStoreBulkPutCommand } from '../copilot-store'
 import { CopilotStoreService } from '../copilot-store/copilot-store.service'
 import { SandboxService } from '../sandbox/sandbox.service'
+import { VolumeClient, WorkspaceVolumeClient } from '../shared/volume'
 import { GetXpertWorkspaceQuery, MyXpertWorkspaceQuery } from '../xpert-workspace'
 import { XpertPublishCommand } from './commands'
 import { XpertIdentiDto } from './dto'
@@ -441,6 +444,31 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
         }
     }
 
+    async getMemoryFiles(id: string, path?: string, deepth?: number): Promise<TFileDirectory[]> {
+        const xpert = await this.findOne(id)
+        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).list(xpert.id, {
+            path,
+            deepth
+        })
+    }
+
+    async getMemoryFile(id: string, filePath: string): Promise<TFile> {
+        const xpert = await this.findOne(id)
+        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).readFile(
+            xpert.id,
+            filePath
+        )
+    }
+
+    async saveMemoryFile(id: string, filePath: string, content: string): Promise<TFile> {
+        const xpert = await this.findOne(id)
+        return this.createWorkspaceVolumeClient(xpert.tenantId, RequestContext.currentUserId()).saveFile(
+            xpert.id,
+            filePath,
+            content
+        )
+    }
+
     async getTriggerProviders() {
         return this.triggerRegistry.list().map((provider) => ({
             ...provider.meta
@@ -449,5 +477,17 @@ export class XpertService extends TenantOrganizationAwareCrudService<Xpert> {
 
     async getSandboxProviders() {
         return this.sandboxService.listProviders()
+    }
+
+    private createWorkspaceVolumeClient(tenantId: string, userId: string) {
+        return new WorkspaceVolumeClient(this.createVolumeClient(tenantId, userId))
+    }
+
+    private createVolumeClient(tenantId: string, userId: string) {
+        return new VolumeClient({
+            tenantId,
+            catalog: 'users',
+            userId
+        })
     }
 }

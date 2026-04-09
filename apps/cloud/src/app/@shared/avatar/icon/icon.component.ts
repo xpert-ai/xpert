@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, Inject, input, numberAttribute } from '@angular/core'
+import { Component, computed, inject, input, numberAttribute } from '@angular/core'
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
 import { IconDefinition } from '@cloud/app/@core'
 
@@ -110,8 +110,7 @@ import { IconDefinition } from '@cloud/app/@core'
 })
 export class IconComponent {
 
-  @Inject(DomSanitizer)
-  private sanitizer: DomSanitizer
+  private sanitizer = inject(DomSanitizer)
   
   /** Input signal for the icon definition. */
   icon = input<IconDefinition | null>(null)

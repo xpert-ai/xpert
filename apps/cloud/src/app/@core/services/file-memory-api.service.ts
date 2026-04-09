@@ -7,10 +7,10 @@ import { TFile, TFileDirectory } from '../types'
 @Injectable({ providedIn: 'root' })
 export class FileMemoryApiService {
   readonly #httpClient = inject(HttpClient)
-  readonly #apiBaseUrl = `${API_PREFIX}/file-memory`
+  readonly #apiBaseUrl = `${API_PREFIX}/xpert`
 
   getFiles(xpertId: string, workspaceId?: string | null, path = '') {
-    return this.#httpClient.get<TFileDirectory[]>(`${this.#apiBaseUrl}/xpert/${xpertId}/files`, {
+    return this.#httpClient.get<TFileDirectory[]>(`${this.#apiBaseUrl}/${xpertId}/memory/files`, {
       params: toParams({
         workspaceId: workspaceId ?? undefined,
         path
@@ -19,7 +19,7 @@ export class FileMemoryApiService {
   }
 
   getFile(xpertId: string, workspaceId: string | null | undefined, path: string) {
-    return this.#httpClient.get<TFile>(`${this.#apiBaseUrl}/xpert/${xpertId}/file`, {
+    return this.#httpClient.get<TFile>(`${this.#apiBaseUrl}/${xpertId}/memory/file`, {
       params: toParams({
         workspaceId: workspaceId ?? undefined,
         path
@@ -28,7 +28,7 @@ export class FileMemoryApiService {
   }
 
   saveFile(xpertId: string, workspaceId: string | null | undefined, path: string, content: string) {
-    return this.#httpClient.put<TFile>(`${this.#apiBaseUrl}/xpert/${xpertId}/file`, {
+    return this.#httpClient.put<TFile>(`${this.#apiBaseUrl}/${xpertId}/memory/file`, {
       workspaceId: workspaceId ?? null,
       path,
       content
