@@ -3,13 +3,13 @@
     <div class="flex flex-col gap-4 xl:flex-row xl:items-center xl:justify-between">
       <div class="flex flex-1 flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
         <div class="flex flex-wrap items-center gap-4">
-          <div class="inline-flex items-center rounded-xl bg-components-input-bg-normal p-1 shadow-sm">
+          <div class="inline-flex items-center p-1 text-xl">
             <button
               type="button"
-              class="min-w-[96px] rounded-[10px] px-5 py-2 text-base font-semibold transition-colors"
+              class="min-w-16 rounded-[10px] px-5 py-2 text-base font-semibold cursor-pointer transition-colors"
               [class]="
                 mode() === 'square'
-                  ? 'bg-components-card-bg text-text-primary shadow-sm'
+                  ? 'text-text-primary font-semibold'
                   : 'text-text-tertiary hover:text-text-primary'
               "
               (click)="setMode('square')"
@@ -18,10 +18,10 @@
             </button>
             <button
               type="button"
-              class="min-w-[96px] rounded-[10px] px-5 py-2 text-base font-semibold transition-colors"
+              class="min-w-16 rounded-[10px] px-5 py-2 text-base font-semibold cursor-pointer transition-colors"
               [class]="
                 mode() === 'mine'
-                  ? 'bg-components-card-bg text-text-primary shadow-sm'
+                  ? 'text-text-primary font-semibold'
                   : 'text-text-tertiary hover:text-text-primary'
               "
               (click)="setMode('mine')"
@@ -30,44 +30,17 @@
             </button>
           </div>
 
-          <div class="inline-flex items-center rounded-xl bg-components-input-bg-normal p-1 shadow-sm">
-            <button
-              type="button"
-              class="rounded-[10px] px-5 py-2 text-base font-semibold transition-colors"
-              [class]="
-                tab() === 'skills'
-                  ? 'bg-components-card-bg text-primary-500 shadow-sm'
-                  : 'text-text-tertiary hover:text-text-primary'
-              "
-              (click)="setTab('skills')"
-            >
+          <nav z-tab-nav-bar [tabPanel]="tabPanel" stretchTabs="false" alignTabs="start" disableRipple>
+            <button z-tab-link type="button" [active]="tab() === 'skills'" (click)="setTab('skills')">
               {{ 'PAC.Explore.Skills' | translate: { Default: '技能' } }}
             </button>
-            <button
-              type="button"
-              class="rounded-[10px] px-5 py-2 text-base font-semibold transition-colors"
-              [class]="
-                tab() === 'agents'
-                  ? 'bg-components-card-bg text-primary-500 shadow-sm'
-                  : 'text-text-tertiary hover:text-text-primary'
-              "
-              (click)="setTab('agents')"
-            >
+            <button z-tab-link type="button" [active]="tab() === 'agents'" (click)="setTab('agents')">
               {{ 'PAC.Explore.Agents' | translate: { Default: '智能体' } }}
             </button>
-            <button
-              type="button"
-              class="rounded-[10px] px-5 py-2 text-base font-semibold transition-colors"
-              [class]="
-                tab() === 'inspirations'
-                  ? 'bg-components-card-bg text-primary-500 shadow-sm'
-                  : 'text-text-tertiary hover:text-text-primary'
-              "
-              (click)="setTab('inspirations')"
-            >
+            <button z-tab-link type="button" [active]="tab() === 'inspirations'" (click)="setTab('inspirations')">
               {{ 'PAC.Explore.Inspirations' | translate: { Default: '灵感市集' } }}
             </button>
-          </div>
+          </nav>
         </div>
       </div>
 
@@ -93,37 +66,97 @@
   </div>
 </div>
 
-<div class="flex-1 px-6 pb-8 pt-6 xl:px-10">
+<z-tab-nav-panel #tabPanel class="flex-1 px-6 pb-8 pt-6 xl:px-10">
   @if (mode() === 'mine') {
-    <section class="flex min-h-[520px] items-center justify-center rounded-[28px] border border-dashed border-divider-regular bg-components-card-bg px-6 py-10">
-      <div class="max-w-xl text-center">
-        <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-background-default-subtle text-3xl text-text-tertiary">
-          <i class="ri-folder-user-line"></i>
+    @if (loadingDefaultWorkspace()) {
+      <section class="flex min-h-[420px] items-center justify-center rounded-[28px] border border-divider-regular bg-components-card-bg px-6 py-10">
+        <div class="text-sm text-text-tertiary">
+          {{ 'PAC.Explore.LoadingMineWorkspace' | translate: { Default: '正在加载你的默认工作区...' } }}
         </div>
-        <h2 class="mt-6 text-2xl font-semibold text-text-primary">
-          {{ 'PAC.Explore.MineEmptyTitle' | translate: { Default: mineTitle() } }}
-        </h2>
-        <p class="mt-3 text-base leading-7 text-text-tertiary">
-          {{ 'PAC.Explore.MineEmptyDescription' | translate: { Default: mineDescription() } }}
-        </p>
-        <div class="mt-6 flex justify-center">
-          <button type="button" class="btn btn-primary btn-medium" (click)="resetToSquare()">
-            {{ 'PAC.Explore.BackToSquare' | translate: { Default: '返回广场' } }}
-          </button>
+      </section>
+    } @else if (!defaultWorkspace()) {
+      <section class="flex min-h-[520px] items-center justify-center rounded-[28px] border border-dashed border-divider-regular bg-components-card-bg px-6 py-10">
+        <div class="max-w-xl text-center">
+          <div class="mx-auto flex h-16 w-16 items-center justify-center rounded-2xl bg-background-default-subtle text-3xl text-text-tertiary">
+            <i class="ri-briefcase-3-line"></i>
+          </div>
+          <h2 class="mt-6 text-2xl font-semibold text-text-primary">
+            {{ 'PAC.Explore.NoDefaultWorkspaceTitle' | translate: { Default: '暂未找到默认工作区' } }}
+          </h2>
+          <p class="mt-3 text-base leading-7 text-text-tertiary">
+            {{
+              'PAC.Explore.NoDefaultWorkspaceDescription'
+                | translate
+                  : {
+                      Default: '“我的” 内容会从当前用户的默认工作区读取。当前账号还没有可用的默认工作区，请先进入工作区完成初始化。'
+                    }
+            }}
+          </p>
+          <div class="mt-6 flex flex-wrap justify-center gap-3">
+            <a class="btn btn-primary btn-medium" routerLink="/xpert/w">
+              {{ 'PAC.Explore.OpenWorkspace' | translate: { Default: '打开工作区' } }}
+            </a>
+            <button type="button" class="btn btn-secondary btn-medium" (click)="resetToSquare()">
+              {{ 'PAC.Explore.BackToSquare' | translate: { Default: '返回广场' } }}
+            </button>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    } @else {
+      <section class="space-y-6">
+        <div class="flex flex-col gap-4 rounded-[28px] border border-divider-regular bg-components-card-bg px-6 py-5 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <div class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-3 py-1 text-xs font-semibold text-text-secondary">
+              {{ 'PAC.Explore.MineWorkspace' | translate: { Default: '我的默认工作区' } }}
+            </div>
+            <h2 class="mt-3 text-2xl font-semibold text-text-primary">
+              {{ defaultWorkspace()?.name }}
+            </h2>
+            <p class="mt-2 max-w-2xl text-sm leading-6 text-text-tertiary">
+              {{
+                'PAC.Explore.MineWorkspaceHint'
+                  | translate
+                    : {
+                        Default: '当前展示该默认工作区中的技能、智能体与灵感资产，便于你快速回看和继续使用。'
+                      }
+              }}
+            </p>
+          </div>
+
+          <div class="flex flex-wrap gap-3">
+            <a class="btn btn-secondary btn-medium" [routerLink]="['/xpert/w', defaultWorkspace()?.id]">
+              {{ 'PAC.Explore.OpenCurrentWorkspace' | translate: { Default: '打开当前工作区' } }}
+            </a>
+            <button type="button" class="btn btn-secondary btn-medium" (click)="resetToSquare()">
+              {{ 'PAC.Explore.BackToSquare' | translate: { Default: '返回广场' } }}
+            </button>
+          </div>
+        </div>
+
+        @switch (tab()) {
+          @case ('skills') {
+            <xp-explore-skills mode="mine" [search]="search()" [workspace]="defaultWorkspace()" />
+          }
+          @case ('inspirations') {
+            <xp-explore-inspirations mode="mine" [search]="search()" [workspace]="defaultWorkspace()" />
+          }
+          @default {
+            <xp-explore-agents mode="mine" [search]="search()" [workspace]="defaultWorkspace()" />
+          }
+        }
+      </section>
+    }
   } @else {
     @switch (tab()) {
       @case ('skills') {
-        <xp-explore-skills [search]="search()" />
+        <xp-explore-skills [search]="search()" [workspace]="defaultWorkspace()" />
       }
       @case ('inspirations') {
-        <xp-explore-inspirations [search]="search()" />
+        <xp-explore-inspirations [search]="search()" [workspace]="defaultWorkspace()" />
       }
       @default {
-        <xp-explore-agents [search]="search()" />
+        <xp-explore-agents [search]="search()" [workspace]="defaultWorkspace()" />
       }
     }
   }
-</div>
+</z-tab-nav-panel>

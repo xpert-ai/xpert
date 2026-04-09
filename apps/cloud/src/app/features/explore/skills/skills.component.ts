@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog'
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, input, signal } from '@angular/core'
-import { RouterModule } from '@angular/router'
+import { Router, RouterModule } from '@angular/router'
 import { firstValueFrom } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { WaIntersectionObserver } from '@ng-web-apis/intersection-observer'
@@ -11,22 +11,24 @@ import {
   injectToastr,
   ISkillMarketConfig,
   ISkillMarketFeaturedSkill,
+  ISkillPackage,
   ISkillRepository,
   ISkillRepositoryIndex,
   ISkillMarketFilterGroup,
   IXpertWorkspace,
+  OrderTypeEnum,
   SkillPackageService,
   SkillRepositoryIndexService,
   SkillRepositoryService,
-  XpertTemplateService,
-  XpertWorkspaceService
+  XpertTemplateService
 } from '@cloud/app/@core'
 import { ExploreSkillCardComponent } from './card/skill-card.component'
 import { ExploreSkillDetailDialogComponent } from './detail/detail-dialog.component'
 import { ExploreSkillInstallComponent } from './install/install.component'
 
 const ALL_REPOSITORIES = '__all__'
-const PAGE_SIZE = 24
+const PAGE_SIZE = 20
+type ExploreViewMode = 'square' | 'mine'
 
 const EMPTY_FILTER_GROUP: ISkillMarketFilterGroup = {
   label: '',
@@ -49,29 +51,32 @@ const EMPTY_FILTER_GROUP: ISkillMarketFilterGroup = {
 })
 export class ExploreSkillsComponent {
   readonly search = input('')
+  readonly mode = input<ExploreViewMode>('square')
+  readonly workspace = input<IXpertWorkspace | null>(null)
 
   readonly #dialog = inject(Dialog)
+  readonly #router = inject(Router)
   readonly #repositoryService = inject(SkillRepositoryService)
   readonly #indexService = inject(SkillRepositoryIndexService)
   readonly #templateService = inject(XpertTemplateService)
-  readonly #workspaceService = inject(XpertWorkspaceService)
   readonly #skillPackageService = inject(SkillPackageService)
   readonly #toastr = injectToastr()
   readonly #translate = inject(TranslateService)
 
   readonly repositories = signal<ISkillRepository[]>([])
   readonly market = signal<ISkillMarketConfig | null>(null)
-  readonly defaultWorkspace = signal<IXpertWorkspace | null>(null)
+  readonly installedSkills = signal<ISkillPackage[]>([])
   readonly selectedRepositoryId = signal<string>(ALL_REPOSITORIES)
   readonly selectedRole = signal('all')
   readonly selectedAppType = signal('all')
   readonly selectedHot = signal('all')
   readonly skills = signal<ISkillRepositoryIndex[]>([])
   readonly total = signal(0)
-  readonly loadingRepositories = signal(false)
+  readonly loadingRepositories = signal(true)
   readonly loadingMarket = signal(false)
   readonly loadingSkills = signal(false)
   readonly loadingMore = signal(false)
+  readonly loadingInstalledSkills = signal(false)
   readonly installingSkillId = signal<string | null>(null)
 
   readonly featuredSkills = computed(() => this.market()?.featured ?? [])
@@ -80,6 +85,32 @@ export class ExploreSkillsComponent {
   )
   readonly repositoryCount = computed(() => this.repositories().length)
   readonly hasMore = computed(() => this.skills().length < this.total())
+  readonly mineSkills = computed(() => {
+    const term = this.search().trim().toLowerCase()
+    const items = this.installedSkills()
+
+    if (!term) {
+      return items
+    }
+
+    return items.filter((item) =>
+      [
+        this.displayInstalledSkillName(item),
+        this.installedSkillSummary(item),
+        this.installedSkillRepositoryLabel(item),
+        this.installedSkillProviderLabel(item),
+        this.installedSkillPublisherLabel(item),
+        ...(item.metadata?.tags ?? []),
+        ...(item.skillIndex?.tags ?? []),
+        item.skillIndex?.skillId,
+        item.packagePath
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase()
+        .includes(term)
+    )
+  })
 
   readonly roleFilterGroup = computed(() => this.market()?.filters.roles ?? EMPTY_FILTER_GROUP)
   readonly appTypeFilterGroup = computed(() => this.market()?.filters.appTypes ?? EMPTY_FILTER_GROUP)
@@ -108,10 +139,16 @@ export class ExploreSkillsComponent {
   )
 
   #queryVersion = 0
+  #mineQueryVersion = 0
+  readonly #squareInitialized = signal(false)
 
   constructor() {
     effect(
       () => {
+        if (this.mode() !== 'square') {
+          return
+        }
+
         const repositoryId = this.selectedRepositoryId()
         const search = this.search().trim()
         void this.resetAndLoad(repositoryId, search)
@@ -119,11 +156,32 @@ export class ExploreSkillsComponent {
       { allowSignalWrites: true }
     )
 
-    void this.initialize()
+    effect(
+      () => {
+        if (this.mode() !== 'square' || this.#squareInitialized()) {
+          return
+        }
+
+        this.#squareInitialized.set(true)
+        void this.initializeSquare()
+      },
+      { allowSignalWrites: true }
+    )
+
+    effect(
+      () => {
+        if (this.mode() !== 'mine') {
+          return
+        }
+
+        void this.loadInstalledSkills(this.workspace()?.id ?? null)
+      },
+      { allowSignalWrites: true }
+    )
   }
 
-  async initialize() {
-    await Promise.all([this.loadRepositories(), this.loadMarket(), this.loadDefaultWorkspace()])
+  async initializeSquare() {
+    await Promise.all([this.loadRepositories(), this.loadMarket()])
   }
 
   async loadRepositories() {
@@ -155,12 +213,38 @@ export class ExploreSkillsComponent {
     }
   }
 
-  async loadDefaultWorkspace() {
+  async loadInstalledSkills(workspaceId: string | null) {
+    const version = ++this.#mineQueryVersion
+    this.installedSkills.set([])
+
+    if (!workspaceId) {
+      this.loadingInstalledSkills.set(false)
+      return
+    }
+
+    this.loadingInstalledSkills.set(true)
     try {
-      const workspace = await firstValueFrom(this.#workspaceService.getMyDefault())
-      this.defaultWorkspace.set(workspace)
+      const { items } = await firstValueFrom(
+        this.#skillPackageService.getAllByWorkspace(workspaceId, {
+          relations: ['skillIndex', 'skillIndex.repository'],
+          order: { updatedAt: OrderTypeEnum.DESC }
+        })
+      )
+
+      if (version !== this.#mineQueryVersion) {
+        return
+      }
+
+      this.installedSkills.set(items ?? [])
     } catch (error) {
-      this.defaultWorkspace.set(null)
+      if (version === this.#mineQueryVersion) {
+        this.installedSkills.set([])
+        this.#toastr.error(getErrorMessage(error))
+      }
+    } finally {
+      if (version === this.#mineQueryVersion) {
+        this.loadingInstalledSkills.set(false)
+      }
     }
   }
 
@@ -267,7 +351,7 @@ export class ExploreSkillsComponent {
       data: {
         item,
         featured,
-        defaultWorkspaceName: this.defaultWorkspace()?.name ?? null
+        defaultWorkspaceName: this.workspace()?.name ?? null
       }
     })
 
@@ -283,8 +367,8 @@ export class ExploreSkillsComponent {
       return
     }
 
-    if (this.defaultWorkspace()?.id) {
-      await this.installToWorkspace(this.defaultWorkspace()!.id, item)
+    if (this.workspace()?.id) {
+      await this.installToWorkspace(this.workspace()!.id, item)
       return
     }
 
@@ -312,6 +396,84 @@ export class ExploreSkillsComponent {
       this.installingSkillId.set(null)
     }
   }
+
+  installedSkillTags(item: ISkillPackage) {
+    return [...new Set([...(item.metadata?.tags ?? []), ...(item.skillIndex?.tags ?? [])])].slice(0, 4)
+  }
+
+  displayInstalledSkillName(item: ISkillPackage): string {
+    return readI18nText(item.metadata?.displayName) || item.name || item.metadata?.name || item.skillIndex?.name || '-'
+  }
+
+  installedSkillSummary(item: ISkillPackage): string {
+    return (
+      readI18nText(item.metadata?.summary) ||
+      readI18nText(item.metadata?.description) ||
+      item.skillIndex?.description ||
+      this.#translate.instant('PAC.Explore.SkillDescriptionFallback', {
+        Default: '该技能暂未提供更多说明。'
+      })
+    )
+  }
+
+  installedSkillRepositoryLabel(item: ISkillPackage): string {
+    return (
+      item.skillIndex?.repository?.name ||
+      this.#translate.instant('PAC.Explore.LocalSkill', {
+        Default: '本地技能'
+      })
+    )
+  }
+
+  installedSkillProviderLabel(item: ISkillPackage): string {
+    return (
+      item.skillIndex?.repository?.provider ||
+      this.#translate.instant('PAC.Explore.LocalProvider', {
+        Default: 'local'
+      })
+    )
+  }
+
+  installedSkillPublisherLabel(item: ISkillPackage): string {
+    return (
+      item.skillIndex?.publisher?.displayName ||
+      item.skillIndex?.publisher?.name ||
+      item.skillIndex?.publisher?.handle ||
+      item.metadata?.author?.name ||
+      this.#translate.instant('PAC.Explore.LocalAuthor', {
+        Default: '本地上传'
+      })
+    )
+  }
+
+  openInstalledSkill(item: ISkillPackage) {
+    if (item.skillIndex) {
+      this.openSkillDetail(item.skillIndex)
+      return
+    }
+
+    this.openWorkspaceSkills()
+  }
+
+  onInstalledSkillKeydown(event: KeyboardEvent, item: ISkillPackage) {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return
+    }
+
+    event.preventDefault()
+    this.openInstalledSkill(item)
+  }
+
+  openWorkspaceSkills(event?: Event) {
+    event?.stopPropagation()
+
+    const workspaceId = this.workspace()?.id
+    if (!workspaceId) {
+      return
+    }
+
+    this.#router.navigate(['/xpert/w', workspaceId, 'skills'])
+  }
 }
 
 function normalizeSingleSelectValue(value: string | number | Array<string | number> | null): string | null {
@@ -320,4 +482,18 @@ function normalizeSingleSelectValue(value: string | number | Array<string | numb
     return `${normalized}`
   }
   return typeof normalized === 'string' && normalized ? normalized : null
+}
+
+function readI18nText(
+  value?: string | { value?: string; zh_Hans?: string; en_US?: string; en?: string } | null
+): string {
+  if (!value) {
+    return ''
+  }
+
+  if (typeof value === 'string') {
+    return value
+  }
+
+  return value.value || value.zh_Hans || value.en_US || value.en || ''
 }

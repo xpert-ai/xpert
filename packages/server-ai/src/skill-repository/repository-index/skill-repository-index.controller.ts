@@ -21,6 +21,24 @@ import { SimpleSkillIndexDto } from '../dto'
 import { SkillRepositoryIndex } from './skill-repository-index.entity'
 import { SkillRepositoryIndexService } from './skill-repository-index.service'
 
+const normalizePaginationNumber = (value: unknown): number | undefined => {
+	if (typeof value === 'number' && Number.isInteger(value) && value >= 0) {
+		return value
+	}
+
+	if (typeof value !== 'string') {
+		return undefined
+	}
+
+	const trimmed = value.trim()
+	if (!trimmed) {
+		return undefined
+	}
+
+	const parsed = Number(trimmed)
+	return Number.isInteger(parsed) && parsed >= 0 ? parsed : undefined
+}
+
 @ApiTags('SkillRepositoryIndex')
 @UseInterceptors(TransformInterceptor)
 @Controller('skill-repository-indexes')
@@ -40,14 +58,17 @@ export class SkillRepositoryIndexController extends CrudController<SkillReposito
 		@Query('$select', ParseJsonPipe) select?: PaginationParams<SkillRepositoryIndex>['select'],
 		@Query('search') search?: string,
 	) {
+		const normalizedTake = normalizePaginationNumber(take) ?? normalizePaginationNumber(filter?.take)
+		const normalizedSkip = normalizePaginationNumber(skip) ?? normalizePaginationNumber(filter?.skip)
+
 		const { items, total } = await this.service.findMarketplace(
 			{
 				...(filter ?? {}),
 				where: where ?? filter?.where,
 				relations: relations ?? filter?.relations,
 				order: order ?? filter?.order,
-				take: take ?? filter?.take,
-				skip: skip ?? filter?.skip,
+				take: normalizedTake,
+				skip: normalizedSkip,
 				select: select ?? filter?.select,
 			},
 			search

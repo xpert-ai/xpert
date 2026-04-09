@@ -1,10 +1,13 @@
 import { CommonModule } from '@angular/common'
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
+import { IXpertWorkspace, XpertWorkspaceService } from '@cloud/app/@core'
 import { linkedModel } from '@metad/ocap-angular/core'
+import { ZardTabsImports } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
+import { firstValueFrom } from 'rxjs'
 import { ExploreAgentsComponent } from './agents/agents.component'
 import { ExploreInspirationsComponent } from './inspirations/inspirations.component'
 import { ExploreSkillsComponent } from './skills/skills.component'
@@ -23,6 +26,7 @@ const DEFAULT_TAB: ExploreTab = 'agents'
     FormsModule,
     RouterModule,
     TranslateModule,
+    ...ZardTabsImports,
     ExploreAgentsComponent,
     ExploreSkillsComponent,
     ExploreInspirationsComponent
@@ -36,10 +40,14 @@ const DEFAULT_TAB: ExploreTab = 'agents'
 export class ExploreComponent {
   readonly #router = inject(Router)
   readonly #route = inject(ActivatedRoute)
+  readonly #workspaceService = inject(XpertWorkspaceService)
 
   readonly #queryMode = injectQueryParams<string>('mode')
   readonly #queryTab = injectQueryParams<string>('tab')
   readonly #querySearch = injectQueryParams('search')
+
+  readonly loadingDefaultWorkspace = signal(false)
+  readonly defaultWorkspace = signal<IXpertWorkspace | null>(null)
 
   readonly mode = linkedModel<ExploreMode>({
     initialValue: DEFAULT_MODE,
@@ -72,27 +80,9 @@ export class ExploreComponent {
     }
   })
 
-  readonly mineTitle = computed(() => {
-    switch (this.tab()) {
-      case 'skills':
-        return '我的技能即将开放'
-      case 'inspirations':
-        return '我的灵感市集即将开放'
-      default:
-        return '我的智能体即将开放'
-    }
-  })
-
-  readonly mineDescription = computed(() => {
-    switch (this.tab()) {
-      case 'skills':
-        return '后续这里会汇总你安装、收藏或发布的技能模板。'
-      case 'inspirations':
-        return '后续这里会展示你沉淀的灵感模版和知识流感资产。'
-      default:
-        return '后续这里会沉淀你创建、安装或收藏的智能体模版。'
-    }
-  })
+  constructor() {
+    void this.loadDefaultWorkspace()
+  }
 
   setMode(mode: ExploreMode) {
     this.mode.set(mode)
@@ -108,6 +98,18 @@ export class ExploreComponent {
 
   resetToSquare() {
     this.mode.set(DEFAULT_MODE)
+  }
+
+  async loadDefaultWorkspace() {
+    this.loadingDefaultWorkspace.set(true)
+
+    try {
+      this.defaultWorkspace.set(await firstValueFrom(this.#workspaceService.getMyDefault()))
+    } catch (error) {
+      this.defaultWorkspace.set(null)
+    } finally {
+      this.loadingDefaultWorkspace.set(false)
+    }
   }
 
   private navigate(queryParams: Record<string, string | null>) {
