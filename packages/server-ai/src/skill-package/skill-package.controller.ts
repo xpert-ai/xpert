@@ -1,3 +1,4 @@
+import { IShareSkillPackageInput } from '@metad/contracts'
 import { PaginationParams, ParseJsonPipe, TransformInterceptor } from '@metad/server-core'
 import {
 	BadRequestException,
@@ -80,6 +81,20 @@ export class SkillPackageController {
 			return await this.service.uploadSkillPackagesFromFile(workspaceId, file)
 		} catch (error) {
 			throw new BadRequestException(`Failed to upload skill package: ${getErrorMessage(error)}`)
+		}
+	}
+
+	@UseGuards(WorkspaceGuard)
+	@Post('workspace/:workspaceId/:id/share')
+	async shareSkillPackage(
+		@Param('workspaceId') workspaceId: string,
+		@Param('id') id: string,
+		@Body() body: IShareSkillPackageInput
+	) {
+		try {
+			return await this.service.shareSkillPackage(workspaceId, id, body)
+		} catch (error) {
+			throw new BadRequestException(`Failed to share skill package: ${getErrorMessage(error)}`)
 		}
 	}
 

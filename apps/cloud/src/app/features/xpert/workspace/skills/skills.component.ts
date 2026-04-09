@@ -15,7 +15,7 @@ import { OverlayAnimation1 } from '@metad/core'
 import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { myRxResource, NgmI18nPipe } from '@metad/ocap-angular/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { firstValueFrom } from 'rxjs'
+import { firstValueFrom, forkJoin } from 'rxjs'
 import {
   getErrorMessage,
   IconDefinition,
@@ -318,7 +318,11 @@ export class XpertWorkspaceSkillsComponent {
 
   deleteSkill(skill: ISkillPackage) {
     const skillId = skill.id
+    const workspaceId = this.workspace()?.id
     if (!skillId) {
+      return
+    }
+    if (!workspaceId) {
       return
     }
 
@@ -334,7 +338,7 @@ export class XpertWorkspaceSkillsComponent {
       },
       () => {
         this.#loading.set(true)
-        return this.skillPackageAPI.delete(skillId)
+        return this.skillPackageAPI.uninstallPackageInWorkspace(workspaceId, skillId)
       }
     ).subscribe({
       next: () => {
@@ -378,6 +382,11 @@ export class XpertWorkspaceSkillsComponent {
   }
 
   deleteSelectedSkills() {
+    const workspaceId = this.workspace()?.id
+    if (!workspaceId) {
+      return
+    }
+
     const ids = Array.from(this.selectedSkillIds())
     if (!ids.length) {
       return
@@ -398,7 +407,7 @@ export class XpertWorkspaceSkillsComponent {
       },
       () => {
         this.#loading.set(true)
-        return this.skillPackageAPI.uninstallPackages(ids)
+        return forkJoin(ids.map((id) => this.skillPackageAPI.uninstallPackageInWorkspace(workspaceId, id)))
       }
     ).subscribe({
       next: () => {

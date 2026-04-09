@@ -25,6 +25,7 @@ import {
 import { ExploreSkillCardComponent } from './card/skill-card.component'
 import { ExploreSkillDetailDialogComponent } from './detail/detail-dialog.component'
 import { ExploreSkillInstallComponent } from './install/install.component'
+import { ExploreSkillShareDialogComponent } from './share/share-dialog.component'
 
 const ALL_REPOSITORIES = '__all__'
 const PAGE_SIZE = 20
@@ -473,6 +474,32 @@ export class ExploreSkillsComponent {
     }
 
     this.#router.navigate(['/xpert/w', workspaceId, 'skills'])
+  }
+
+  isLocalSkill(item: ISkillPackage) {
+    return !item.skillIndex
+  }
+
+  openShareDialog(item: ISkillPackage, event?: Event) {
+    event?.stopPropagation()
+
+    const workspaceId = this.workspace()?.id
+    if (!workspaceId || !item.id || !this.isLocalSkill(item)) {
+      return
+    }
+
+    this.#dialog
+      .open<ISkillPackage | null>(ExploreSkillShareDialogComponent, {
+        data: {
+          skill: item,
+          workspaceId
+        }
+      })
+      .closed.subscribe((result) => {
+        if (result) {
+          void this.loadInstalledSkills(workspaceId)
+        }
+      })
   }
 }
 

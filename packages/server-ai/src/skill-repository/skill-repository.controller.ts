@@ -1,5 +1,5 @@
 import { CrudController, TransformInterceptor } from '@metad/server-core'
-import { Body, Controller, Get, Post, UseInterceptors } from '@nestjs/common'
+import { Body, Controller, Delete, Get, Param, Post, Put, UseInterceptors } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { SkillRepository } from './skill-repository.entity'
 import { SkillRepositoryService } from './skill-repository.service'
@@ -13,8 +13,18 @@ export class SkillRepositoryController extends CrudController<SkillRepository> {
 	}
 
 	@Post()
-	async save(@Body() entity: SkillRepository) {
+	override async create(@Body() entity: SkillRepository) {
 		return this.service.register(entity)
+	}
+
+	@Put(':id')
+	override async update(@Param('id') id: string, @Body() entity: Partial<SkillRepository>) {
+		return this.service.updateRepository(id, entity)
+	}
+
+	@Delete(':id')
+	override async delete(@Param('id') id: string) {
+		return this.service.deleteRepository(id)
 	}
 
 	@Get('source-strategies')
