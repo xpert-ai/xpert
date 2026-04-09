@@ -63,6 +63,11 @@ export class XpertWorkspaceController extends CrudController<XpertWorkspace> {
 		return workspace ? new WorkspacePublicDTO(workspace) : null
 	}
 
+	@Post(':workspaceId/default')
+	async setMyDefault(@Param('workspaceId') workspaceId: string) {
+		return new WorkspacePublicDTO(await this.service.setMyDefault(workspaceId))
+	}
+
 	@ApiOperation({ summary: 'Create new record' })
 	@ApiResponse({
 		status: HttpStatus.CREATED,

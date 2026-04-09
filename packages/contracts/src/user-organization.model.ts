@@ -1,11 +1,16 @@
 import { IBasePerTenantAndOrganizationEntityModel } from './base-entity.model';
 import { LanguagesEnum, IUser } from './user.model';
 
+export interface IUserOrganizationPreferences {
+	defaultWorkspaceId?: string | null;
+}
+
 export interface IUserOrganization
 	extends IBasePerTenantAndOrganizationEntityModel {
 	userId: string;
 	isDefault: boolean;
 	isActive: boolean;
+	preferences?: IUserOrganizationPreferences | null;
 	user?: IUser;
 }
 

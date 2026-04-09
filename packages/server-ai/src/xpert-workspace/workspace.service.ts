@@ -1,11 +1,15 @@
 import { IUser } from '@metad/contracts'
-import { PaginationParams, TenantOrganizationAwareCrudService } from '@metad/server-core'
-import { Injectable, Logger, NotFoundException } from '@nestjs/common'
+import {
+	PaginationParams,
+	RequestContext,
+	TenantOrganizationAwareCrudService,
+	UserOrganizationService
+} from '@metad/server-core'
+import { BadRequestException, Injectable, Logger, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Brackets, Repository } from 'typeorm'
 import { WorkspacePublicDTO } from './dto'
 import { XpertWorkspace } from './workspace.entity'
-import { RequestContext } from '@xpert-ai/plugin-sdk'
 
 @Injectable()
 export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<XpertWorkspace> {
@@ -13,7 +17,8 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
 
 	constructor(
 		@InjectRepository(XpertWorkspace)
-		private readonly workspaceRepository: Repository<XpertWorkspace>
+		private readonly workspaceRepository: Repository<XpertWorkspace>,
+		private readonly userOrganizationService: UserOrganizationService
 	) {
 		super(workspaceRepository)
 	}
@@ -55,14 +60,59 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
 	}
 
 	async findMyDefault() {
+		const user = RequestContext.currentUser()
 		const userId = RequestContext.currentUserId()
 		const organizationId = RequestContext.getOrganizationId()
+		const tenantId = user?.tenantId
 
-		if (!userId || !organizationId) {
+		if (!userId || !organizationId || !tenantId) {
 			return null
 		}
 
+		const defaultWorkspaceId = await this.userOrganizationService.getCurrentUserDefaultWorkspaceId()
+		if (defaultWorkspaceId) {
+			const workspace = await this.findAccessibleWorkspaceForUser(defaultWorkspaceId, {
+				organizationId,
+				tenantId,
+				userId
+			})
+
+			if (workspace) {
+				return workspace
+			}
+		}
+
 		return this.findUserDefaultWorkspace(organizationId, userId)
+	}
+
+	async setMyDefault(workspaceId: string) {
+		const user = RequestContext.currentUser()
+		const userId = RequestContext.currentUserId()
+		const organizationId = RequestContext.getOrganizationId()
+		const tenantId = user?.tenantId
+		const normalizedWorkspaceId = workspaceId?.trim()
+
+		if (!normalizedWorkspaceId) {
+			throw new BadRequestException('Workspace id is required.')
+		}
+
+		if (!userId || !organizationId || !tenantId) {
+			throw new BadRequestException('Organization scope is required for this operation.')
+		}
+
+		const workspace = await this.findAccessibleWorkspaceForUser(normalizedWorkspaceId, {
+			organizationId,
+			tenantId,
+			userId
+		})
+
+		if (!workspace) {
+			throw new NotFoundException(`Workspace '${normalizedWorkspaceId}' was not found`)
+		}
+
+		await this.userOrganizationService.setCurrentUserDefaultWorkspaceId(workspace.id)
+
+		return workspace
 	}
 
 	async updateMembers(id: string, members: string[]) {
@@ -158,5 +208,35 @@ export class XpertWorkspaceService extends TenantOrganizationAwareCrudService<Xp
 		}
 
 		return workspaceIds.length
+	}
+
+	private async findAccessibleWorkspaceForUser(
+		workspaceId: string,
+		{
+			organizationId,
+			tenantId,
+			userId
+		}: {
+			organizationId: string
+			tenantId: string
+			userId: string
+		}
+	) {
+		const query = this.workspaceRepository
+			.createQueryBuilder('workspace')
+			.leftJoin('workspace.members', 'member')
+			.where('workspace.id = :workspaceId', { workspaceId })
+			.andWhere('workspace.tenantId = :tenantId', { tenantId })
+			.andWhere('workspace.organizationId = :organizationId', { organizationId })
+			.andWhere(new Brackets((qb) => {
+				qb.where(`workspace.status <> 'archived'`)
+					.orWhere(`workspace.status IS NULL`)
+			}))
+			.andWhere(new Brackets((qb) => {
+				qb.where('workspace.ownerId = :ownerId', { ownerId: userId })
+					.orWhere('member.id = :userId', { userId })
+			}))
+
+		return query.getOne()
 	}
 }

@@ -6,9 +6,9 @@ import {
 	RelationId,
 	ManyToOne
 } from 'typeorm';
-import { IUser, IUserOrganization } from '@metad/contracts';
-import { ApiProperty } from '@nestjs/swagger';
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IUser, IUserOrganization, IUserOrganizationPreferences } from '@metad/contracts';
+import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { IsNotEmpty, IsOptional, IsString } from 'class-validator';
 import { TenantOrganizationBaseEntity, User } from '../core/entities/internal';
 
 @Entity('user_organization')
@@ -25,6 +25,11 @@ export class UserOrganization
 	@Index()
 	@Column({ default: true })
 	isActive: boolean;
+
+	@ApiPropertyOptional({ type: () => Object, nullable: true })
+	@IsOptional()
+	@Column({ type: 'json', nullable: true })
+	preferences?: IUserOrganizationPreferences | null;
 
 	/*
     |--------------------------------------------------------------------------
