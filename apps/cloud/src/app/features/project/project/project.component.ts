@@ -68,6 +68,7 @@ import {
   ZardTreeFlatDataSource,
   ZardTreeImports
 } from '@xpert-ai/headless-ui'
+import { ProjectSelectorComponent } from '../../../@theme/header'
 
 @Component({
   standalone: true,
@@ -85,6 +86,7 @@ import {
     NgmCommonModule,
     AppearanceDirective,
     XpTreeSelectComponent,
+    ProjectSelectorComponent,
     ...ZardTreeImports
   ],
   selector: 'pac-project',

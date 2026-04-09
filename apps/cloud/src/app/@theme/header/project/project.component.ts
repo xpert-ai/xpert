@@ -2,7 +2,7 @@ import { Dialog } from '@angular/cdk/dialog'
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { CdkMenuModule } from '@angular/cdk/menu'
 
-import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
+import { ChangeDetectionStrategy, Component, inject, input } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 import { Router } from '@angular/router'
@@ -30,6 +30,7 @@ import { DefaultProject, IProject, ProjectAPIService, Store, ToastrService } fro
 })
 export class ProjectSelectorComponent {
   readonly #dialog = inject(Dialog)
+  readonly navigateOnSelect = input(false)
   private _toastrService = inject(ToastrService)
   private _router = inject(Router)
   private projectService = inject(ProjectAPIService)
@@ -99,7 +100,18 @@ export class ProjectSelectorComponent {
   }
 
   selectProject(project: IProject) {
+    const currentProjectId = this.store.selectedProject?.id ?? DefaultProject.id
+    const nextProjectId = project?.id ?? DefaultProject.id
+
+    if (currentProjectId === nextProjectId) {
+      return
+    }
+
     this.store.selectedProject = project
+
+    if (this.navigateOnSelect()) {
+      this._router.navigate(['/project'])
+    }
   }
 
   createProject() {
