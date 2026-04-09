@@ -15,9 +15,9 @@ import {
 } from './constants'
 import { ServerAIBootstrapService } from './bootstrap.service'
 
-type OrganizationSkillRepositorySyncJob = {
+type SkillRepositorySyncJob = {
 	tenantId: string
-	organizationId: string
+	organizationId?: string | null
 	repositoryId: string
 	ownerUserId?: string | null
 }
@@ -89,16 +89,15 @@ export class ServerAIBootstrapProcessor {
 		try {
 			const result = await this.bootstrapService.bootstrapTenantSkillRepositories(job.data)
 			await Promise.all(
-				(result.repositories ?? []).map(({ organizationId, repositoryId }) =>
+				(result.repositoryIds ?? []).map((repositoryId) =>
 					this.bootstrapQueue.add(
 						AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB,
 						{
 							tenantId: job.data.tenantId,
-							organizationId,
 							repositoryId
 						},
 						{
-							jobId: `org-skill-repository-sync:${organizationId}:${repositoryId}`,
+							jobId: `skill-repository-sync:tenant:${job.data.tenantId}:${repositoryId}`,
 							attempts: 3,
 							backoff: 10_000,
 							removeOnComplete: true
@@ -143,14 +142,15 @@ export class ServerAIBootstrapProcessor {
 	}
 
 	@Process(AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB)
-	async handleOrganizationSkillRepositorySync(job: Job<OrganizationSkillRepositorySyncJob>) {
+	async handleOrganizationSkillRepositorySync(job: Job<SkillRepositorySyncJob>) {
 		try {
-			await this.bootstrapService.syncOrganizationSkillRepository(job.data)
+			await this.bootstrapService.syncSkillRepository(job.data)
 		} catch (error) {
+			const scopeLabel = job.data.organizationId
+				? `${job.data.organizationId}:${job.data.repositoryId}`
+				: `${job.data.tenantId}:${job.data.repositoryId}`
 			this.logger.error(
-				`Failed organization skill repository sync for '${job.data.organizationId}:${job.data.repositoryId}': ${
-					error instanceof Error ? error.stack : error
-				}`
+				`Failed skill repository sync for '${scopeLabel}': ${error instanceof Error ? error.stack : error}`
 			)
 			throw error
 		}
