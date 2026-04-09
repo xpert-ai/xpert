@@ -1,5 +1,8 @@
 <form class="py-4" [formGroup]="form">
-  <ngm-input formControlName="name" label="{{ 'PAC.BUSINESS_AREA.BASIC_INFO_FORM.Name' | translate: {Default: 'Name'} }}"></ngm-input>
+  <z-form-field>
+    <z-form-label>{{ 'PAC.BUSINESS_AREA.BASIC_INFO_FORM.Name' | translate: {Default: 'Name'} }}</z-form-label>
+    <input z-input formControlName="name" />
+  </z-form-field>
 </form>
 
 <div class="flex justify-end">

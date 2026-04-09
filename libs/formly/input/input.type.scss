@@ -3,10 +3,6 @@
   @apply w-full flex flex-col;
 }
 
-.pac-formly-input__control {
-  @apply w-full;
-}
-
 .pac-formly-input__control--error {
   [role='combobox'] {
     @apply border-destructive focus-visible:ring-destructive;

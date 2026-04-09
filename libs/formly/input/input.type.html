@@ -18,7 +18,7 @@
     @if (hasOptions()) {
       <z-combobox-deprecated
         zTriggerMode="input"
-        class="w-full pac-formly-input__control"
+        class="w-full"
         [class.pac-formly-input__control--error]="hasError()"
         [value]="newValue"
         [options]="comboboxOptions()"
@@ -56,9 +56,9 @@
     }
   </z-form-control>
 
-  @if (hasError()) {
-    <z-form-message zType="error" class="text-xs">
+  <z-form-message zType="error" class="text-xs">
+    @if (hasError()) {
       <formly-validation-message [field]="field" />
-    </z-form-message>
-  }
+    }
+  </z-form-message>
 </z-form-field>

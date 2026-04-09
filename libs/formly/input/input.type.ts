@@ -10,8 +10,7 @@ import {
   ZardComboboxDeprecatedOptionTemplateDirective,
   type ZardComboboxDeprecatedOption
 } from '@xpert-ai/headless-ui/components/combobox-deprecated'
-import { ZardFormImports } from '@xpert-ai/headless-ui/components/form'
-import { ZardInputDirective } from '@xpert-ai/headless-ui/components/input'
+import { ZardFormImports, ZardInputStatusVariants, ZardInputDirective } from '@xpert-ai/headless-ui'
 
 @Component({
   standalone: true,
@@ -48,8 +47,8 @@ export class PACFormlyInputComponent extends FieldType implements OnInit {
     }))
   )
 
-  oldValue: unknown = null
-  newValue: unknown = null
+  oldValue: string | null = null
+  newValue: string | null = null
 
   ngOnInit(): void {
     this.formControl.valueChanges.pipe(startWith(this.formControl.value), takeUntilDestroyed(this.#destroyRef)).subscribe((value) => {
@@ -78,7 +77,7 @@ export class PACFormlyInputComponent extends FieldType implements OnInit {
 
   onOptionSelected(value: unknown) {
     this.searchTerm.set('')
-    this.newValue = value
+    this.newValue = value as string | null
   }
 
   onTextInput(event: Event) {
@@ -103,8 +102,8 @@ export class PACFormlyInputComponent extends FieldType implements OnInit {
     return this.formControl.invalid && this.formControl.touched
   }
 
-  inputStatus() {
-    return this.hasError() ? 'error' : undefined
+  inputStatus(): ZardInputStatusVariants | undefined {
+    return this.hasError() ? 'error' : undefined as ZardInputStatusVariants
   }
 
   readonly filterOption = (option: ZardComboboxDeprecatedOption<unknown, ISelectOption>, searchTerm: string) => {
