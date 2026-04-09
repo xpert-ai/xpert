@@ -7,7 +7,7 @@
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       @for (item of myItems(); track item.id) {
         <article
-          class="group flex h-full cursor-pointer flex-col overflow-hidden rounded-[24px] border border-divider-regular bg-components-card-bg shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          class="group flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-components-card-bg transition-all hover:-translate-y-0.5 hover:shadow-lg"
           role="button"
           tabindex="0"
           (click)="openMineItem(item)"
@@ -82,10 +82,11 @@
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       @for (item of items(); track item.id) {
         <article class="group flex h-full flex-col overflow-hidden rounded-[24px] border border-divider-regular bg-components-card-bg shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
-          <div class="flex items-start gap-3 border-b border-divider-regular px-5 py-5">
+          <div class="flex items-start gap-3 border-b border-divider-regular p-4 pb-2">
             <div class="relative shrink-0">
-              <emoji-avatar [avatar]="item.avatar" class="overflow-hidden rounded-2xl shadow-sm" />
-              <span class="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-divider-regular bg-components-card-bg text-text-secondary shadow-sm">
+              <emoji-avatar [avatar]="item.avatar" class="overflow-hidden rounded-xl shadow-sm" />
+              <span class="absolute -bottom-1 -right-1 flex h-5 w-5 text-sm items-center justify-center rounded-full border border-divider-regular bg-components-card-bg text-text-secondary shadow-sm"
+                [zTooltip]="('PAC.Explore.AgentType.' + typeLabel(item.type)) | translate: { Default: typeLabel(item.type) }">
                 <i [class]="typeIcon(item.type)"></i>
               </span>
             </div>
@@ -103,11 +104,6 @@
               </div>
 
               <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                <span class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 font-medium text-text-secondary">
-                  <i [class]="typeIcon(item.type)"></i>
-                  {{ ('PAC.Explore.AgentType.' + typeLabel(item.type)) | translate: { Default: typeLabel(item.type) } }}
-                </span>
-
                 @if (item.category) {
                   <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 font-medium text-text-tertiary">
                     {{ ('PAC.Xpert.Categories.' + item.category) | translate: { Default: item.category } }}
@@ -126,19 +122,19 @@
             >
               {{ item.description }}
             </div>
+          </div>
 
-            <div class="mt-5 flex items-center justify-between gap-3">
-              <div class="text-xs text-text-quaternary">
-                {{ 'PAC.Explore.TemplateReady' | translate: { Default: '可直接用于工作区安装' } }}
-              </div>
-              <button type="button" class="btn btn-primary btn-small shrink-0" (click)="install(item)">
-                @if (item.type === 'project') {
-                  {{ 'PAC.Xpert.Install' | translate: { Default: 'Install' } }}
-                } @else {
-                  {{ 'PAC.Xpert.InstallToWorkspace' | translate: { Default: 'Install to workspace' } }}
-                }
-              </button>
+          <div class="mt-5 flex items-center justify-between gap-3 absolute bottom-4 left-5 right-5">
+            <div class="text-xs text-text-quaternary">
+              {{ 'PAC.Explore.TemplateReady' | translate: { Default: '可直接用于工作区安装' } }}
             </div>
+            <button z-button type="button" zSize="lg" class="shrink-0 rounded-lg cursor-pointer" (click)="install(item)">
+              @if (item.type === 'project') {
+                {{ 'PAC.Xpert.Install' | translate: { Default: 'Install' } }}
+              } @else {
+                {{ 'PAC.Xpert.InstallToWorkspace' | translate: { Default: 'Install to workspace' } }}
+              }
+            </button>
           </div>
         </article>
       }

@@ -20,13 +20,14 @@ import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertProjectInstallComponent } from '@cloud/app/@shared/chat'
 import { NgmHighlightDirective, NgmSpinComponent } from '@metad/ocap-angular/common'
 import { ExploreAgentInstallComponent } from './install/install.component'
+import { ZardButtonComponent, ZardTooltipDirective } from '@xpert-ai/headless-ui'
 
 type ExploreViewMode = 'square' | 'mine'
 
 @Component({
   standalone: true,
   selector: 'xp-explore-agents',
-  imports: [CommonModule, TranslateModule, NgmSpinComponent, NgmHighlightDirective, EmojiAvatarComponent],
+  imports: [CommonModule, TranslateModule, NgmSpinComponent, NgmHighlightDirective, EmojiAvatarComponent, ZardButtonComponent, ZardTooltipDirective],
   templateUrl: './agents.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
