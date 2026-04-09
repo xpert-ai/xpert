@@ -9,7 +9,12 @@ en-US:
       avatar:
         type: font
         value: ri-code-box-line
-        size: 22
+        color: var(--color-chart-1)
+        size: 30
+        style:
+          background: color-mix(in oklab, var(--color-chart-1) 16%, transparent)
+          borderRadius: 999px
+          padding: 10px
     - provider: github
       repositoryName: anthropics/skills
       skillId: skills/doc-coauthoring
@@ -19,7 +24,12 @@ en-US:
       avatar:
         type: font
         value: ri-quill-pen-line
-        size: 22
+        color: var(--color-chart-4)
+        size: 30
+        style:
+          background: color-mix(in oklab, var(--color-chart-4) 18%, transparent)
+          borderRadius: 999px
+          padding: 10px
     - provider: github
       repositoryName: anthropics/skills
       skillId: skills/webapp-testing
@@ -29,7 +39,42 @@ en-US:
       avatar:
         type: font
         value: ri-bug-line
-        size: 22
+        color: var(--color-chart-5)
+        size: 30
+        style:
+          background: color-mix(in oklab, var(--color-chart-5) 18%, transparent)
+          borderRadius: 999px
+          padding: 10px
+    - provider: clawhub
+      repositoryName: clawhub/official
+      skillId: mcporter
+      badge: ClawHub Official
+      title: MCPorter
+      description: Configure, authenticate, and call MCP servers from the CLI, including ad-hoc servers and tool inspection.
+      avatar:
+        type: font
+        value: ri-terminal-box-line
+        color: var(--color-chart-2)
+        size: 30
+        style:
+          background: color-mix(in oklab, var(--color-chart-2) 18%, transparent)
+          borderRadius: 999px
+          padding: 10px
+    - provider: clawhub
+      repositoryName: clawhub/official
+      skillId: x-search
+      badge: ClawHub Official
+      title: X Search
+      description: Search X posts through the xAI API when teams need current signals from public conversations.
+      avatar:
+        type: font
+        value: ri-search-2-line
+        color: var(--color-chart-3)
+        size: 30
+        style:
+          background: color-mix(in oklab, var(--color-chart-3) 18%, transparent)
+          borderRadius: 999px
+          padding: 10px
   filters:
     roles:
       label: Roles
@@ -84,7 +129,12 @@ zh-Hans:
       avatar:
         type: font
         value: ri-code-box-line
-        size: 22
+        color: var(--color-chart-1)
+        size: 30
+        style:
+          background: color-mix(in oklab, var(--color-chart-1) 16%, transparent)
+          borderRadius: 999px
+          padding: 10px
     - provider: github
       repositoryName: anthropics/skills
       skillId: skills/doc-coauthoring
@@ -94,7 +144,12 @@ zh-Hans:
       avatar:
         type: font
         value: ri-quill-pen-line
-        size: 22
+        color: var(--color-chart-4)
+        size: 30
+        style:
+          background: color-mix(in oklab, var(--color-chart-4) 18%, transparent)
+          borderRadius: 999px
+          padding: 10px
     - provider: github
       repositoryName: anthropics/skills
       skillId: skills/webapp-testing
@@ -104,7 +159,42 @@ zh-Hans:
       avatar:
         type: font
         value: ri-bug-line
-        size: 22
+        color: var(--color-chart-5)
+        size: 30
+        style:
+          background: color-mix(in oklab, var(--color-chart-5) 18%, transparent)
+          borderRadius: 999px
+          padding: 10px
+    - provider: clawhub
+      repositoryName: clawhub/official
+      skillId: mcporter
+      badge: ClawHub 官方
+      title: MCPorter
+      description: 用于直接在命令行里配置、鉴权并调用 MCP 服务，适合排查、调试和快速接入工具链。
+      avatar:
+        type: font
+        value: ri-terminal-box-line
+        color: var(--color-chart-2)
+        size: 30
+        style:
+          background: color-mix(in oklab, var(--color-chart-2) 18%, transparent)
+          borderRadius: 999px
+          padding: 10px
+    - provider: clawhub
+      repositoryName: clawhub/official
+      skillId: x-search
+      badge: ClawHub 官方
+      title: X Search
+      description: 通过 xAI API 搜索 X 平台公开内容，适合快速捕捉热点讨论和实时外部信号。
+      avatar:
+        type: font
+        value: ri-search-2-line
+        color: var(--color-chart-3)
+        size: 30
+        style:
+          background: color-mix(in oklab, var(--color-chart-3) 18%, transparent)
+          borderRadius: 999px
+          padding: 10px
   filters:
     roles:
       label: 角色

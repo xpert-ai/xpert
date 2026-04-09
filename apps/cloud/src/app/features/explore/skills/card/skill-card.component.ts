@@ -2,7 +2,8 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, input, output, signal } from '@angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ISkillMarketFeaturedSkill, ISkillRepositoryIndex } from '@cloud/app/@core'
-import { IconComponent } from '../../../../@shared/avatar/icon/icon.component'
+import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+import { IconComponent } from '../../../../@shared/avatar'
 import {
   skillDisplayDescription,
   skillDisplayTitle,
@@ -12,7 +13,7 @@ import {
   skillPublisherDisplayName,
   skillPublisherHandle
 } from '../skill.utils'
-import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
+
 
 @Component({
   standalone: true,
