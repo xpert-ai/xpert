@@ -1,4 +1,6 @@
-import { ISkillMarketFeaturedSkill, ISkillRepositoryIndex } from '@cloud/app/@core'
+import { IconDefinition, ISkillMarketFeaturedSkill, ISkillRepositoryIndex } from '@cloud/app/@core'
+
+const FEATURED_AVATAR_TYPES: IconDefinition['type'][] = ['image', 'svg', 'font', 'emoji']
 
 export function skillDisplayTitle(item: ISkillRepositoryIndex, featured?: ISkillMarketFeaturedSkill | null): string {
   return featured?.title || item.name || item.skillId || item.skillPath
@@ -21,6 +23,15 @@ export function skillPublisherHandle(item: ISkillRepositoryIndex): string {
   }
 
   return skillPublisherDisplayName(item)
+}
+
+export function skillFeaturedAvatar(featured?: ISkillMarketFeaturedSkill | null): IconDefinition | null {
+  const avatar = featured?.avatar
+  return avatar && FEATURED_AVATAR_TYPES.some((type) => type === avatar.type) ? avatar : null
+}
+
+export function skillPublisherAvatarImage(item: ISkillRepositoryIndex): string | null {
+  return item.publisher?.image?.trim() || null
 }
 
 export function skillPublisherAvatarFallback(item: ISkillRepositoryIndex): string {

@@ -261,6 +261,86 @@ describe('XpertTemplateService', () => {
 		await expect(service.readTemplatesFile()).rejects.toThrow('templates.json')
 	})
 
+	it('preserves featured avatars from skills market config when resolving featured skills', async () => {
+		const workspaceRoot = createTempDir()
+		const dataRoot = createTempDir()
+		const externalRoot = join(dataRoot, 'external-templates')
+
+		seedBuiltinTemplates(workspaceRoot)
+		mkdirSync(externalRoot, { recursive: true })
+		writeFileSync(
+			join(externalRoot, 'skills-market.yaml'),
+			[
+				'en-US:',
+				'  featured:',
+				'    - provider: github',
+				'      repositoryName: anthropics/skills',
+				'      skillId: skills/claude-api',
+				'      avatar:',
+				'        type: font',
+				'        value: ri-code-box-line',
+				'        size: 22',
+				'  filters:',
+				'    roles:',
+				'      label: Roles',
+				'      options: []',
+				'    appTypes:',
+				'      label: Application types',
+				'      options: []',
+				'    hot:',
+				'      label: Trending',
+				'      options: []'
+			].join('\n'),
+			'utf8'
+		)
+
+		const { service, skillRepositoryService, skillRepositoryIndexService } = createService({
+			serverRoot: workspaceRoot,
+			dataPath: join(dataRoot, 'fallback-data'),
+			env: {
+				XPERT_TEMPLATE_DIR: externalRoot
+			}
+		})
+
+		skillRepositoryService.findAllInOrganizationOrTenant.mockResolvedValue({
+			items: [
+				{
+					id: 'repo-1',
+					provider: 'github',
+					name: 'anthropics/skills'
+				}
+			]
+		})
+		skillRepositoryIndexService.findAllInOrganizationOrTenant.mockResolvedValue({
+			items: [
+				{
+					id: 'skill-1',
+					repositoryId: 'repo-1',
+					skillId: 'skills/claude-api',
+					skillPath: 'skills/claude-api',
+					name: 'Claude API',
+					repository: {
+						id: 'repo-1',
+						provider: 'github',
+						name: 'anthropics/skills'
+					}
+				}
+			]
+		})
+
+		await service.onModuleInit()
+
+		const skillsMarket = await service.getSkillsMarket(LanguagesEnum.English)
+
+		expect(skillsMarket.featured).toHaveLength(1)
+		expect(skillsMarket.featured[0].avatar).toEqual({
+			type: 'font',
+			value: 'ri-code-box-line',
+			size: 22
+		})
+		expect(skillsMarket.featured[0].skill.id).toBe('skill-1')
+	})
+
 	function createService({
 		serverRoot,
 		dataPath,
@@ -310,7 +390,7 @@ describe('XpertTemplateService', () => {
 		jest.spyOn(service as any, 'create').mockResolvedValue(undefined)
 		jest.spyOn(service as any, 'findAll').mockResolvedValue({ items: [] })
 
-		return { service, cacheManager }
+		return { service, cacheManager, skillRepositoryService, skillRepositoryIndexService }
 	}
 
 	function createTempDir() {

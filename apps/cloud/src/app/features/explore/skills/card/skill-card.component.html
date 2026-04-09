@@ -9,6 +9,31 @@
     (keydown)="onCardKeydown($event)"
   >
     <div class="flex items-start justify-between gap-3">
+      <div
+        class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-full border border-divider-regular bg-background-default-subtle text-sm font-semibold text-text-primary"
+        data-testid="skill-card-avatar"
+      >
+        @if (featuredAvatar(); as avatar) {
+          <xp-icon
+            data-testid="skill-card-avatar-icon"
+            class="flex h-full w-full items-center justify-center text-text-primary"
+            [icon]="avatar"
+            [size]="avatarIconSize()"
+          />
+        } @else if (publisherAvatarImage()) {
+          <img
+            data-testid="skill-card-avatar-image"
+            [src]="publisherAvatarImage()!"
+            [alt]="publisherName()"
+            class="h-full w-full object-cover"
+          />
+        } @else {
+          <span data-testid="skill-card-avatar-fallback">
+            {{ publisherAvatarFallback() }}
+          </span>
+        }
+      </div>
+
       <div class="min-w-0 flex-1">
         @if (badge()) {
           <div class="mb-2 inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-[11px] font-semibold text-text-secondary">
