@@ -1,6 +1,7 @@
 import { inject } from '@angular/core'
 import { Router, Routes, UrlMatchResult, UrlSegment } from '@angular/router'
 import { AiFeatureEnum, Store } from '../../@core'
+import { filter, map, take } from 'rxjs/operators'
 import { ChatTasksComponent } from './tasks/tasks.component'
 import { ChatXpertComponent } from './xpert/xpert.component'
 import { ChatHomeComponent } from './home/home.component'
@@ -14,6 +15,23 @@ import { ChatCommonWelcomeComponent } from './welcome/welcome.component'
 import { ClawXpertConversationDetailComponent } from './clawxpert/clawxpert-conversation-detail.component'
 import { ClawXpertComponent } from './clawxpert/clawxpert.component'
 import { ClawXpertOverviewComponent } from './clawxpert/clawxpert-overview.component'
+
+function featureGate(featureKeys: AiFeatureEnum[]) {
+  return () => {
+    const store = inject(Store)
+    const router = inject(Router)
+
+    return store.user$.pipe(
+      filter((user) => Array.isArray(user?.tenant?.featureOrganizations)),
+      take(1),
+      map(() =>
+        featureKeys.every((featureKey) => store.hasFeatureEnabled(featureKey))
+          ? true
+          : router.createUrlTree(['/chat'])
+      )
+    )
+  }
+}
 
 export const routes: Routes = [
   {
@@ -68,18 +86,7 @@ export const routes: Routes = [
       {
         path: 'clawxpert',
         component: ClawXpertComponent,
-        canActivate: [
-          () => {
-            const store = inject(Store)
-            if (
-              store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) &&
-              store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_CLAWXPERT)
-            ) {
-              return true
-            }
-            return inject(Router).createUrlTree(['/chat'])
-          }
-        ],
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CLAWXPERT])],
         data: {
           title: 'ClawXpert',
         },
@@ -103,18 +110,7 @@ export const routes: Routes = [
       {
         path: 'chatbi',
         component: ChatBiComponent,
-        canActivate: [
-          () => {
-            const store = inject(Store)
-            if (
-              store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT) &&
-              store.hasFeatureEnabled(AiFeatureEnum.FEATURE_XPERT_CHATBI)
-            ) {
-              return true
-            }
-            return inject(Router).createUrlTree(['/chat'])
-          }
-        ],
+        canActivate: [featureGate([AiFeatureEnum.FEATURE_XPERT, AiFeatureEnum.FEATURE_XPERT_CHATBI])],
         data: {
           title: 'Chat BI',
         }
