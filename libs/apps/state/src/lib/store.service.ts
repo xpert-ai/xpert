@@ -550,7 +550,13 @@ export class Store {
 
 	clear() {
 		this.appStore.reset();
-		this.persistStore.reset();
+		this.persistStore.update((state) => ({
+			...state,
+			token: null,
+			refreshToken: null,
+			userId: null,
+			workspaceId: null
+		}));
 	}
 
 	loadRoles() {

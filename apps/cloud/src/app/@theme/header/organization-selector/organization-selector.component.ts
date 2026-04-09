@@ -9,7 +9,7 @@ import { NgmSearchComponent, NgmHighlightDirective } from '@metad/ocap-angular/c
 import { debouncedSignal } from '@metad/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqBy } from 'lodash-es'
-import { IOrganization, RequestScopeLevel, ScopeService, Store } from '../../../@core'
+import { IOrganization, RequestScopeLevel, RolesEnum, ScopeService, Store } from '../../../@core'
 import { OrgAvatarComponent } from '../../../@shared/organization'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({
@@ -99,7 +99,9 @@ export class OrganizationSelectorComponent {
         })
   )
 
-  readonly showTenantScopeItem = computed(() => this.canUseTenantScope() || this.isTenantScope())
+  readonly showTenantScopeItem = computed(
+    () => this.currentUser()?.role?.name === RolesEnum.SUPER_ADMIN
+  )
   readonly hasOrganizations = computed(() => this.#organizations().length > 0)
   readonly hasVisibleOrganizations = computed(() => this.organizations().length > 0)
   readonly canOpenMenu = computed(() => this.showTenantScopeItem() || this.hasOrganizations())
@@ -110,7 +112,8 @@ export class OrganizationSelectorComponent {
     })
 
     effect(() => {
-      if (!this.currentUser()) {
+      const user = this.currentUser()
+      if (!user || !Array.isArray(user.organizations)) {
         return
       }
 
