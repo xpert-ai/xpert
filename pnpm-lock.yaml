@@ -1179,12 +1179,24 @@ importers:
 
   packages/plugins/agent-middlewares:
     dependencies:
+      '@metad/contracts':
+        specifier: '*'
+        version: 3.7.0
+      '@nestjs/common':
+        specifier: '>=10'
+        version: 11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2)
+      '@nestjs/core':
+        specifier: '>=10'
+        version: 11.1.13(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/microservices@11.1.13)(@nestjs/platform-express@11.1.13)(@nestjs/websockets@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2)
       '@xpert-ai/chatkit-types':
         specifier: 0.0.17
         version: 0.0.17(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
       '@xpert-ai/plugin-sdk':
         specifier: ^3.9.0-beta.0
         version: 3.9.0-beta.0(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@metad/contracts@3.7.0)(@metad/ocap-core@3.7.5(date-fns@3.6.0)(i18next@23.16.8)(idb-keyval@6.2.2)(money-clip@3.0.5)(rxjs@7.8.2)(uuid@10.0.0))(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(@nestjs/cqrs@11.0.3(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2))(ajv@8.18.0)(fs@0.0.1-security)(i18next-fs-backend@2.6.1)(i18next@23.16.8)(json-schema@0.4.0)(jsonwebtoken@9.0.3)(lodash-es@4.17.23)(passport-jwt@4.0.1)(path@0.12.7)(rxjs@7.8.2)(stream@0.0.3)(yaml@2.8.2)(zod@3.25.67)
+      zod:
+        specifier: 3.25.67
+        version: 3.25.67
 
   packages/plugins/draft:
     dependencies:
@@ -1278,6 +1290,9 @@ importers:
       '@metad/contracts':
         specifier: '*'
         version: 3.7.0
+      '@nestjs/common':
+        specifier: '>=10'
+        version: 11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2)
       '@xpert-ai/plugin-sdk':
         specifier: ^3.9.0-beta.0
         version: 3.9.0-beta.0(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@metad/contracts@3.7.0)(@metad/ocap-core@3.7.5(date-fns@3.6.0)(i18next@23.16.8)(idb-keyval@6.2.2)(money-clip@3.0.5)(rxjs@7.8.2)(uuid@10.0.0))(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(@nestjs/cqrs@11.0.3(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2))(ajv@8.18.0)(fs@0.0.1-security)(i18next-fs-backend@2.6.1)(i18next@23.16.8)(json-schema@0.4.0)(jsonwebtoken@9.0.3)(lodash-es@4.17.23)(passport-jwt@4.0.1)(path@0.12.7)(rxjs@7.8.2)(stream@0.0.3)(yaml@2.8.2)(zod@3.25.67)
@@ -1287,6 +1302,9 @@ importers:
       '@langchain/textsplitters':
         specifier: '*'
         version: 1.0.1(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+      '@nestjs/common':
+        specifier: '>=10'
+        version: 11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2)
       '@xpert-ai/plugin-sdk':
         specifier: ^3.9.0-beta.0
         version: 3.9.0-beta.0(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@metad/contracts@3.7.0)(@metad/ocap-core@3.7.5(date-fns@3.6.0)(i18next@23.16.8)(idb-keyval@6.2.2)(money-clip@3.0.5)(rxjs@7.8.2)(uuid@10.0.0))(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(@nestjs/cqrs@11.0.3(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2))(ajv@8.18.0)(fs@0.0.1-security)(i18next-fs-backend@2.6.1)(i18next@23.16.8)(json-schema@0.4.0)(jsonwebtoken@9.0.3)(lodash-es@4.17.23)(passport-jwt@4.0.1)(path@0.12.7)(rxjs@7.8.2)(stream@0.0.3)(yaml@2.8.2)(zod@3.25.67)
@@ -1302,6 +1320,9 @@ importers:
       '@langchain/community':
         specifier: 0.3.53
         version: 0.3.53(e3a9bca1e3ccafff43166d7b19c92f74)
+      '@nestjs/common':
+        specifier: '>=10'
+        version: 11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2)
       '@xpert-ai/plugin-sdk':
         specifier: ^3.9.0-beta.0
         version: 3.9.0-beta.0(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@metad/contracts@3.7.0)(@metad/ocap-core@3.7.5(date-fns@3.6.0)(i18next@23.16.8)(idb-keyval@6.2.2)(money-clip@3.0.5)(rxjs@7.8.2)(uuid@10.0.0))(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(@nestjs/cqrs@11.0.3(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2))(ajv@8.18.0)(fs@0.0.1-security)(i18next-fs-backend@2.6.1)(i18next@23.16.8)(json-schema@0.4.0)(jsonwebtoken@9.0.3)(lodash-es@4.17.23)(passport-jwt@4.0.1)(path@0.12.7)(rxjs@7.8.2)(stream@0.0.3)(yaml@2.8.2)(zod@3.25.67)
@@ -1335,6 +1356,9 @@ importers:
 
   packages/plugins/vlm-default:
     dependencies:
+      '@nestjs/common':
+        specifier: '>=10'
+        version: 11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2)
       '@xpert-ai/plugin-sdk':
         specifier: ^3.9.0-beta.0
         version: 3.9.0-beta.0(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(@metad/contracts@3.7.0)(@metad/ocap-core@3.7.5(date-fns@3.6.0)(i18next@23.16.8)(idb-keyval@6.2.2)(money-clip@3.0.5)(rxjs@7.8.2)(uuid@10.0.0))(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(@nestjs/cqrs@11.0.3(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(reflect-metadata@0.1.14)(rxjs@7.8.2))(ajv@8.18.0)(fs@0.0.1-security)(i18next-fs-backend@2.6.1)(i18next@23.16.8)(json-schema@0.4.0)(jsonwebtoken@9.0.3)(lodash-es@4.17.23)(passport-jwt@4.0.1)(path@0.12.7)(rxjs@7.8.2)(stream@0.0.3)(yaml@2.8.2)(zod@3.25.67)
