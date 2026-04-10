@@ -118,6 +118,10 @@ export class JSONSchemaPropertyComponent {
   readonly xUiSpan = computed(() => this.xUi()?.span)
   readonly xUiCols = computed(() => this.xUi()?.cols)
   readonly xUiStyles = computed(() => this.xUi()?.styles)
+  readonly textareaRows = computed(() => {
+    const rows = this.xUi()?.inputs?.['rows']
+    return typeof rows === 'number' && Number.isFinite(rows) && rows > 0 ? rows : 1
+  })
   readonly hasCustomWidget = computed(() => this.widgetRegistry?.has(this.xUiComponent()))
   readonly depends = computed(() =>
     (this.xUi()?.depends ?? []).reduce((acc: Record<string, unknown>, _) => {
