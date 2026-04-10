@@ -10,7 +10,7 @@ import { isNil } from 'lodash-es'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { AiModelTypeEnum, IKnowledgebase } from '../../../@core/types'
 import { CopilotModelSelectComponent } from '../../copilot'
-import { ZardTooltipImports } from '@xpert-ai/headless-ui'
+import { ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 /**
  *
  */
@@ -21,6 +21,7 @@ import { ZardTooltipImports } from '@xpert-ai/headless-ui'
     FormsModule,
     TranslateModule,
     ...ZardTooltipImports,
+    ZardSwitchComponent,
     NgmCommonModule,
     CopilotModelSelectComponent
 ],

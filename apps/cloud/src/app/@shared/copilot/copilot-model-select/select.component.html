@@ -20,10 +20,26 @@
 >
   <div
     class="flex-1 relative flex items-center rounded-md px-1 overflow-hidden"
-    #menuTrigger
+    #modelTrigger
     #mt="cdkMenuTriggerFor"
     [cdkMenuTriggerFor]="readonly() ? null : modelsMenu"
     [cdkMenuTriggerData]="{ mt: mt }"
+    [cdkMenuPosition]="[
+      {
+        originX: 'start',
+        originY: 'bottom',
+        overlayX: 'start',
+        overlayY: 'top',
+        offsetY: 8
+      },
+      {
+        originX: 'start',
+        originY: 'top',
+        overlayX: 'start',
+        overlayY: 'bottom',
+        offsetY: -8
+      }
+    ]"
   >
     @if (inheritModel()) {
       @if (isInherit()) {
@@ -188,9 +204,9 @@
   @if (!readonly()) {
     <div
       class="cursor-pointer p-1 rounded-lg border border-transparent hover:bg-hover-bg hover:border-divider-deep"
-      #menuTrigger="cdkMenuTriggerFor"
+      #parametersTrigger="cdkMenuTriggerFor"
       [cdkMenuTriggerFor]="parametersMenu"
-      [class.active]="menuTrigger.isOpen()"
+      [class.active]="parametersTrigger.isOpen()"
     >
       <svg
         width="24"
@@ -261,7 +277,7 @@
 </ng-template>
 
 <ng-template #modelsMenu let-mt="mt">
-  <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu pl-2" [style.width.px]="menuTrigger.offsetWidth">
+  <div #menu="cdkMenu" cdkMenu class="ngm-cdk-menu pl-2" [style.width.px]="modelTrigger.offsetWidth">
     <div class="px-1 py-2 sticky top-0 w-full bg-components-card-bg border-b border-solid border-divider-regular z-10">
       <div class="w-full relative">
         <i class="ri-search-2-line absolute left-1.5 top-1"></i>
