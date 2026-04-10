@@ -1,8 +1,8 @@
 import { ICopilotModel, IXpertAgent, mapTranslationLanguage, WorkflowNodeTypeEnum } from '@metad/contracts'
 import { nonNullable } from '@metad/copilot'
 import { pick } from '@metad/server-common'
-import { RequestContext } from '@metad/server-core'
 import { IQueryHandler, QueryHandler, QueryBus } from '@nestjs/cqrs'
+import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { I18nService } from 'nestjs-i18n'
 import { XpertService } from '../../xpert.service'
 import { CopilotGetOneQuery } from '../../../copilot'
@@ -107,6 +107,11 @@ export class GetXpertWorkflowHandler implements IQueryHandler<GetXpertWorkflowQu
 				fail
 			}
 		} else {
+			if (!xpert.graph) {
+				throw new Error(await this.i18nService.translate('xpert.Error.NoGraph', {
+					lang: mapTranslationLanguage(RequestContext.getLanguageCode())
+				}))
+			}
 			const agents = [xpert.agent, ...xpert.agents]
 			const agent = keyOrName ? agents.find((_) => _.key === keyOrName || _.name === keyOrName) : xpert.agent
 			if (agent) {

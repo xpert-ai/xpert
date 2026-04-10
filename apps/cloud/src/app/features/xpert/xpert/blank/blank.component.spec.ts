@@ -581,6 +581,36 @@ describe('XpertNewBlankComponent', () => {
     })
   })
 
+  it('persists a draft for create mode blank agents before closing', async () => {
+    const createdXpert = createAgentXpert('created-xpert')
+    const { component, dialogRef, fixture, xpertService } = await createComponent(
+      {
+        completionMode: 'create',
+        type: XpertTypeEnum.Agent
+      },
+      {
+        createdXpert
+      }
+    )
+
+    component.create()
+    await fixture.whenStable()
+    await flushPromises()
+
+    expect(xpertService.create).toHaveBeenCalled()
+    expect(xpertService.saveDraft).toHaveBeenCalled()
+    expect(xpertService.publish).not.toHaveBeenCalled()
+    expect(dialogRef.close).toHaveBeenCalledWith({
+      xpert: {
+        ...createdXpert,
+        draft: {
+          checklist: []
+        }
+      },
+      status: 'created'
+    })
+  })
+
   it('imports a selected template and publishes when the imported checklist is clean', async () => {
     const importedXpert = createAgentXpert('imported-xpert')
     const publishedXpert = {

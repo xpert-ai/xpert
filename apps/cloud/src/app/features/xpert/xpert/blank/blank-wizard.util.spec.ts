@@ -52,11 +52,11 @@ describe('blank wizard util', () => {
     expect(shouldHideBlankWizardPrimaryAgent(XpertTypeEnum.Agent)).toBe(false)
   })
 
-  it('should always initialize workflow drafts and only initialize agent drafts when needed', () => {
+  it('should always initialize blank wizard drafts', () => {
     expect(shouldInitializeBlankWizardDraft(BLANK_XPERT_WORKFLOW_MODE, false)).toBe(true)
     expect(shouldInitializeBlankWizardDraft(BLANK_XPERT_WORKFLOW_MODE, true)).toBe(true)
     expect(shouldInitializeBlankWizardDraft(XpertTypeEnum.Knowledge, false)).toBe(true)
-    expect(shouldInitializeBlankWizardDraft(XpertTypeEnum.Agent, false)).toBe(false)
+    expect(shouldInitializeBlankWizardDraft(XpertTypeEnum.Agent, false)).toBe(true)
     expect(shouldInitializeBlankWizardDraft(XpertTypeEnum.Agent, true)).toBe(true)
   })
 

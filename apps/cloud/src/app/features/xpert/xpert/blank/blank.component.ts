@@ -8,7 +8,7 @@ import { injectWorkspace } from '@metad/cloud/state'
 import { parseYAML } from '@metad/core'
 import { NgmI18nPipe } from '@metad/ocap-angular/core'
 import { ZardComboboxDeprecatedComponent, ZardDialogService, ZardStepperImports } from '@xpert-ai/headless-ui'
-import { TranslateModule } from '@ngx-translate/core'
+import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   EnvironmentService,
   IDocumentChunkerProvider,
@@ -62,8 +62,7 @@ import {
   of,
   startWith,
   switchMap,
-  take,
-  throwError
+  take
 } from 'rxjs'
 import {
   BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER,
@@ -243,6 +242,7 @@ export class XpertNewBlankComponent {
   readonly knowledgebaseService = inject(KnowledgebaseService)
   readonly environmentService = inject(EnvironmentService)
   readonly #toastr = inject(ToastrService)
+  readonly #translate = inject(TranslateService)
   readonly basicForm = viewChild(XpertBasicFormComponent)
 
   readonly requestedType = signal(this.#dialogData.type ?? null)
@@ -647,7 +647,7 @@ export class XpertNewBlankComponent {
     })
   }
 
-  create() {
+  async create() {
     if (
       this.loading() ||
       this.startStepInvalid() ||
@@ -659,26 +659,23 @@ export class XpertNewBlankComponent {
     }
 
     this.loading.set(true)
-    const creation$ = this.startMode() === 'template' ? this.createFromTemplate() : this.createBlankXpert()
+    try {
+      const result = this.startMode() === 'template' ? await this.createFromTemplate() : await this.createBlankXpert()
 
-    creation$.subscribe({
-      next: (result) => {
-        this.loading.set(false)
-        this.#toastr.success(
-          result.status === 'published'
-            ? 'PAC.Xpert.CreatedAndPublishedSuccessfully'
-            : 'PAC.Messages.CreatedSuccessfully',
-          {
-            Default: result.status === 'published' ? 'Created and published successfully' : 'Created Successfully'
-          }
-        )
-        this.close(result)
-      },
-      error: (error) => {
-        this.loading.set(false)
-        this.#toastr.error(getErrorMessage(error))
-      }
-    })
+      this.#toastr.success(
+        result.status === 'published'
+          ? 'PAC.Xpert.CreatedAndPublishedSuccessfully'
+          : 'PAC.Messages.CreatedSuccessfully',
+        {
+          Default: result.status === 'published' ? 'Created and published successfully' : 'Created Successfully'
+        }
+      )
+      this.close(result)
+    } catch (error) {
+      this.#toastr.error(getErrorMessage(error))
+    } finally {
+      this.loading.set(false)
+    }
   }
 
   setStartMode(mode: BlankXpertStartMode) {
@@ -695,12 +692,12 @@ export class XpertNewBlankComponent {
     this.applyBlankDefaults()
   }
 
-  private createBlankXpert() {
+  private async createBlankXpert(): Promise<BlankXpertWizardResult> {
     const selectedType = this.selectedType()
     const selectedMode = this.selectedMode()
 
-    return this.xpertService
-      .create({
+    const xpert = await firstValueFrom(
+      this.xpertService.create({
         type: selectedType,
         name: this.name(),
         title: this.title(),
@@ -724,21 +721,21 @@ export class XpertNewBlankComponent {
           }
         }
       })
-      .pipe(switchMap((xpert) => this.provisionKnowledgebaseIfNeeded(xpert)))
-      .pipe(switchMap((xpert) => this.completeCreation(xpert)))
+    )
+    const preparedXpert = await this.provisionKnowledgebaseIfNeeded(xpert)
+    return this.completeCreation(preparedXpert)
   }
 
-  private createFromTemplate() {
+  private async createFromTemplate(): Promise<BlankXpertWizardResult> {
     const draft = this.selectedTemplateDraft()
     if (!draft) {
-      return throwError(() => new Error('Select a template before continuing.'))
+      throw new Error('Select a template before continuing.')
     }
 
-    return of(this.buildTemplateImportDraft(draft)).pipe(
-      switchMap((nextDraft) => this.xpertService.importDSL(nextDraft)),
-      switchMap((xpert) => this.provisionKnowledgebaseIfNeeded(xpert)),
-      switchMap((xpert) => this.completeImportedCreation(xpert))
-    )
+    const nextDraft = this.buildTemplateImportDraft(draft)
+    const xpert = await firstValueFrom(this.xpertService.importDSL(nextDraft))
+    const preparedXpert = await this.provisionKnowledgebaseIfNeeded(xpert)
+    return this.completeImportedCreation(preparedXpert)
   }
 
   toggleMiddleware(provider: string, enabled: boolean) {
@@ -827,79 +824,52 @@ export class XpertNewBlankComponent {
     this.skillRefreshTick.update((value) => value + 1)
   }
 
-  private completeCreation(xpert: IXpert) {
-    return this.initializeDraftIfNeeded(xpert).pipe(
-      switchMap((result) => {
-        if (this.completionMode !== 'publish') {
-          return of({ xpert: result.xpert, status: 'created' as const })
-        }
-
-        if (result.preparationFailed || result.hasBlockingChecklist) {
-          this.#toastr.warning('PAC.Xpert.AutoPublishInterrupted', {
-            Default: 'Expert created, but auto publish was not completed. You can continue in Studio.'
-          })
-          return of({ xpert: result.xpert, status: 'created' as const })
-        }
-
-        return this.publishCreatedXpert(result.xpert).pipe(
-          map((publishedXpert) => ({ xpert: publishedXpert, status: 'published' as const })),
-          catchError((error) => {
-            this.#toastr.warning(
-              'PAC.Xpert.AutoPublishFailed',
-              {
-                Default: 'Expert created, but auto publish was not completed. You can continue in Studio.'
-              },
-              getErrorMessage(error)
-            )
-            console.error(error)
-            return of({ xpert: result.xpert, status: 'created' as const })
-          })
-        )
-      })
-    )
-  }
-
-  private completeImportedCreation(xpert: IXpert) {
+  private async completeCreation(xpert: IXpert): Promise<BlankXpertWizardResult> {
+    const result = await this.initializeDraftIfNeeded(xpert)
     if (this.completionMode !== 'publish') {
-      return of({ xpert, status: 'created' as const })
+      return { xpert: result.xpert, status: 'created' as const }
     }
 
-    return this.xpertService.getTeam(xpert.id, { relations: ['agent'] }).pipe(
-      switchMap((draftTeam) => {
-        if (hasBlockingChecklist(draftTeam.draft?.checklist)) {
-          this.#toastr.warning('PAC.Xpert.AutoPublishInterrupted', {
-            Default: 'Expert created, but auto publish was not completed. You can continue in Studio.'
-          })
-          return of({ xpert, status: 'created' as const })
-        }
+    if (result.preparationFailed || result.hasBlockingChecklist) {
+      this.showAutoPublishInterruptedWarning()
+      return { xpert: result.xpert, status: 'created' as const }
+    }
 
-        return this.publishCreatedXpert(xpert).pipe(
-          map((publishedXpert) => ({ xpert: publishedXpert, status: 'published' as const })),
-          catchError((error) => {
-            this.#toastr.warning(
-              'PAC.Xpert.AutoPublishFailed',
-              {
-                Default: 'Expert created, but auto publish was not completed. You can continue in Studio.'
-              },
-              getErrorMessage(error)
-            )
-            console.error(error)
-            return of({ xpert, status: 'created' as const })
-          })
-        )
-      }),
-      catchError((error) => {
-        this.#toastr.warning(
-          'PAC.Xpert.AutoPublishInterrupted',
-          {
-            Default: 'Expert created, but auto publish was not completed. You can continue in Studio.'
-          },
-          getErrorMessage(error)
-        )
+    try {
+      const publishedXpert = await this.publishCreatedXpert(result.xpert)
+      return { xpert: publishedXpert, status: 'published' as const }
+    } catch (error) {
+      this.showAutoPublishFailedWarning(getErrorMessage(error))
+      console.error(error)
+      return { xpert: result.xpert, status: 'created' as const }
+    }
+  }
+
+  private async completeImportedCreation(xpert: IXpert): Promise<BlankXpertWizardResult> {
+    if (this.completionMode !== 'publish') {
+      return { xpert, status: 'created' as const }
+    }
+
+    try {
+      const draftTeam = await firstValueFrom(this.xpertService.getTeam(xpert.id, { relations: ['agent'] }))
+      if (hasBlockingChecklist(draftTeam.draft?.checklist)) {
+        this.showAutoPublishInterruptedWarning()
+        return { xpert, status: 'created' as const }
+      }
+
+      try {
+        const publishedXpert = await this.publishCreatedXpert(xpert)
+        return { xpert: publishedXpert, status: 'published' as const }
+      } catch (error) {
+        this.showAutoPublishFailedWarning(getErrorMessage(error))
         console.error(error)
-        return of({ xpert, status: 'created' as const })
-      })
-    )
+        return { xpert, status: 'created' as const }
+      }
+    } catch (error) {
+      this.showAutoPublishInterruptedWarning(getErrorMessage(error))
+      console.error(error)
+      return { xpert, status: 'created' as const }
+    }
   }
 
   private buildTemplateImportDraft(draft: TXpertTeamDraft) {
@@ -989,165 +959,208 @@ export class XpertNewBlankComponent {
     this.templateLoadError.set(null)
   }
 
-  private initializeDraftIfNeeded(xpert: IXpert) {
+  private async initializeDraftIfNeeded(xpert: IXpert): Promise<DraftPreparationResult> {
     if (!shouldInitializeBlankWizardDraft(this.selectedMode(), this.hasAdvancedSelections(), this.completionMode)) {
-      return of({
+      return {
         xpert,
         draftSaved: false,
         hasBlockingChecklist: false,
         preparationFailed: false
-      } satisfies DraftPreparationResult)
+      } satisfies DraftPreparationResult
     }
 
     if (this.isKnowledgeType()) {
-      return from(buildBlankKnowledgeDraft(xpert, this.getKnowledgeSelections())).pipe(
-        switchMap((draft) => this.xpertService.saveDraft(xpert.id, draft)),
-        map((savedDraft) => ({
-          xpert,
+      try {
+        const draft = await buildBlankKnowledgeDraft(xpert, this.getKnowledgeSelections())
+        const savedDraft = await firstValueFrom(this.xpertService.saveDraft(xpert.id, draft))
+        return {
+          xpert: {
+            ...xpert,
+            draft: savedDraft
+          },
           draftSaved: true,
           hasBlockingChecklist: hasBlockingChecklist(savedDraft?.checklist),
           preparationFailed: false
-        })),
-        catchError((error) => {
-          this.#toastr.warning('PAC.Xpert.PreconfigurationNotSaved', {
-            Default: 'Expert created, but the preconfiguration could not be saved. You can continue in Studio.'
-          })
-          console.error(error)
-          return of({
-            xpert,
-            draftSaved: false,
-            hasBlockingChecklist: false,
-            preparationFailed: true
-          } satisfies DraftPreparationResult)
-        })
-      )
-    }
-
-    if (this.isWorkflowType()) {
-      return this.getDraftTeam(xpert).pipe(
-        switchMap((team) =>
-          from(buildBlankWorkflowDraft(team, this.getWorkflowSelections())).pipe(
-            switchMap((draft) => this.xpertService.saveDraft(xpert.id, draft)),
-            map((savedDraft) => ({
-              xpert,
-              draftSaved: true,
-              hasBlockingChecklist: hasBlockingChecklist(savedDraft?.checklist),
-              preparationFailed: false
-            }))
-          )
-        ),
-        catchError((error) => {
-          this.#toastr.warning('PAC.Xpert.PreconfigurationNotSaved', {
-            Default: 'Expert created, but the preconfiguration could not be saved. You can continue in Studio.'
-          })
-          console.error(error)
-          return of({
-            xpert,
-            draftSaved: false,
-            hasBlockingChecklist: false,
-            preparationFailed: true
-          } satisfies DraftPreparationResult)
-        })
-      )
-    }
-
-    return this.getDraftTeam(xpert).pipe(
-      switchMap((team) =>
-        from(buildBlankXpertDraft(team, this.getSelections())).pipe(
-          switchMap((draft) => this.xpertService.saveDraft(xpert.id, draft)),
-          map((savedDraft) => ({
-            xpert,
-            draftSaved: true,
-            hasBlockingChecklist: hasBlockingChecklist(savedDraft?.checklist),
-            preparationFailed: false
-          }))
-        )
-      ),
-      catchError((error) => {
-        this.#toastr.warning('PAC.Xpert.PreconfigurationNotSaved', {
-          Default: 'Expert created, but the preconfiguration could not be saved. You can continue in Studio.'
-        })
+        }
+      } catch (error) {
+        this.showPreconfigurationNotSavedWarning()
         console.error(error)
-        return of({
+        return {
           xpert,
           draftSaved: false,
           hasBlockingChecklist: false,
           preparationFailed: true
-        } satisfies DraftPreparationResult)
+        } satisfies DraftPreparationResult
+      }
+    }
+
+    if (this.isWorkflowType()) {
+      try {
+        const team = await this.getDraftTeam(xpert)
+        const draft = await buildBlankWorkflowDraft(team, this.getWorkflowSelections())
+        const savedDraft = await firstValueFrom(this.xpertService.saveDraft(xpert.id, draft))
+        return {
+          xpert: {
+            ...xpert,
+            draft: savedDraft
+          },
+          draftSaved: true,
+          hasBlockingChecklist: hasBlockingChecklist(savedDraft?.checklist),
+          preparationFailed: false
+        }
+      } catch (error) {
+        this.showPreconfigurationNotSavedWarning()
+        console.error(error)
+        return {
+          xpert,
+          draftSaved: false,
+          hasBlockingChecklist: false,
+          preparationFailed: true
+        } satisfies DraftPreparationResult
+      }
+    }
+
+    try {
+      const team = await this.getDraftTeam(xpert)
+      const draft = await buildBlankXpertDraft(team, this.getSelections())
+      const savedDraft = await firstValueFrom(this.xpertService.saveDraft(xpert.id, draft))
+      return {
+        xpert: {
+          ...xpert,
+          draft: savedDraft
+        },
+        draftSaved: true,
+        hasBlockingChecklist: hasBlockingChecklist(savedDraft?.checklist),
+        preparationFailed: false
+      }
+    } catch (error) {
+      this.showPreconfigurationNotSavedWarning()
+      console.error(error)
+      return {
+        xpert,
+        draftSaved: false,
+        hasBlockingChecklist: false,
+        preparationFailed: true
+      } satisfies DraftPreparationResult
+    }
+  }
+
+  private async publishCreatedXpert(xpert: IXpert): Promise<IXpert> {
+    const workspaceId = xpert.workspaceId ?? this.workspaceId() ?? null
+    let environmentId: string | null = null
+
+    if (workspaceId) {
+      try {
+        environmentId = (await firstValueFrom(this.environmentService.getDefaultByWorkspace(workspaceId)))?.id ?? null
+      } catch {
+        environmentId = null
+      }
+    }
+
+    return firstValueFrom(
+      this.xpertService.publish(xpert.id, false, {
+        environmentId,
+        releaseNotes: XPERT_AUTO_PUBLISH_RELEASE_NOTES
       })
     )
   }
 
-  private publishCreatedXpert(xpert: IXpert) {
-    const workspaceId = xpert.workspaceId ?? this.workspaceId() ?? null
-    const defaultEnvironment$ = workspaceId
-      ? this.environmentService.getDefaultByWorkspace(workspaceId).pipe(catchError(() => of(null)))
-      : of(null)
-
-    return defaultEnvironment$.pipe(
-      switchMap((environment) =>
-        this.xpertService.publish(xpert.id, false, {
-          environmentId: environment?.id ?? null,
-          releaseNotes: XPERT_AUTO_PUBLISH_RELEASE_NOTES
-        })
-      )
-    )
-  }
-
-  private provisionKnowledgebaseIfNeeded(xpert: IXpert) {
+  private async provisionKnowledgebaseIfNeeded(xpert: IXpert): Promise<IXpert> {
     if (xpert.type !== XpertTypeEnum.Knowledge) {
-      return of(xpert)
+      return xpert
     }
 
     if (xpert.knowledgebase?.id) {
-      return of(xpert)
+      return xpert
     }
 
-    return this.knowledgebaseService
-      .create({
-        name: xpert.title || xpert.name,
-        description: xpert.description,
-        avatar: xpert.avatar,
-        workspaceId: xpert.workspaceId ?? this.workspaceId() ?? undefined,
-        copilotModel: xpert.copilotModel
-      })
-      .pipe(
-        catchError((error) => this.rollbackKnowledgeXpertCreation(xpert.id, error)),
-        switchMap((knowledgebase) =>
-          this.knowledgebaseService.update(knowledgebase.id, { pipelineId: xpert.id }).pipe(
-            map(() => ({
-              ...xpert,
-              knowledgebase: {
-                ...knowledgebase,
-                pipelineId: xpert.id
-              }
-            })),
-            catchError((error) => this.rollbackKnowledgePipelineCreation(xpert.id, knowledgebase.id, error))
-          )
-        )
+    try {
+      const knowledgebase = await firstValueFrom(
+        this.knowledgebaseService.create({
+          name: xpert.title || xpert.name,
+          description: xpert.description,
+          avatar: xpert.avatar,
+          workspaceId: xpert.workspaceId ?? this.workspaceId() ?? undefined,
+          copilotModel: xpert.copilotModel
+        })
       )
+
+      try {
+        await firstValueFrom(this.knowledgebaseService.update(knowledgebase.id, { pipelineId: xpert.id }))
+        return {
+          ...xpert,
+          knowledgebase: {
+            ...knowledgebase,
+            pipelineId: xpert.id
+          }
+        }
+      } catch (error) {
+        return this.rollbackKnowledgePipelineCreation(xpert.id, knowledgebase.id, error)
+      }
+    } catch (error) {
+      return this.rollbackKnowledgeXpertCreation(xpert.id, error)
+    }
   }
 
-  private rollbackKnowledgeXpertCreation(xpertId: string, error: unknown) {
-    return this.xpertService.delete(xpertId).pipe(
-      catchError(() => of(null)),
-      switchMap(() => throwError(() => error))
-    )
-  }
-
-  private rollbackKnowledgePipelineCreation(xpertId: string, knowledgebaseId: string, error: unknown) {
-    return this.knowledgebaseService.delete(knowledgebaseId).pipe(
-      catchError(() => of(null)),
-      switchMap(() => this.rollbackKnowledgeXpertCreation(xpertId, error))
-    )
-  }
-
-  private getDraftTeam(xpert: IXpert) {
-    if (xpert.agent?.key) {
-      return of(xpert)
+  private async rollbackKnowledgeXpertCreation(xpertId: string, error: unknown): Promise<never> {
+    try {
+      await firstValueFrom(this.xpertService.delete(xpertId))
+    } catch {
+      // Ignore rollback errors and surface the original failure.
     }
 
-    return this.xpertService.getTeam(xpert.id, { relations: ['agent'] })
+    throw error
+  }
+
+  private async rollbackKnowledgePipelineCreation(
+    xpertId: string,
+    knowledgebaseId: string,
+    error: unknown
+  ): Promise<never> {
+    try {
+      await firstValueFrom(this.knowledgebaseService.delete(knowledgebaseId))
+    } catch {
+      // Ignore rollback errors and surface the original failure.
+    }
+
+    return this.rollbackKnowledgeXpertCreation(xpertId, error)
+  }
+
+  private async getDraftTeam(xpert: IXpert): Promise<IXpert> {
+    if (xpert.agent?.key) {
+      return xpert
+    }
+
+    return firstValueFrom(this.xpertService.getTeam(xpert.id, { relations: ['agent'] }))
+  }
+
+  private showAutoPublishInterruptedWarning(detail?: string) {
+    this.showTranslatedWarning(
+      'PAC.Xpert.AutoPublishInterrupted',
+      'Expert created, but auto publish was not completed. You can continue in Studio.',
+      detail
+    )
+  }
+
+  private showAutoPublishFailedWarning(detail?: string) {
+    this.showTranslatedWarning(
+      'PAC.Xpert.AutoPublishFailed',
+      'Expert created, but auto publish was not completed. You can continue in Studio.',
+      detail
+    )
+  }
+
+  private showPreconfigurationNotSavedWarning(detail?: string) {
+    this.showTranslatedWarning(
+      'PAC.Xpert.PreconfigurationNotSaved',
+      'Expert created, but the preconfiguration could not be saved. You can continue in Studio.',
+      detail
+    )
+  }
+
+  private showTranslatedWarning(key: string, defaultMessage: string, detail?: string) {
+    const message = this.#translate.instant(key, { Default: defaultMessage })
+    this.#toastr.warning(detail ? `${message}: ${detail}` : message)
   }
 
   private getSelections() {

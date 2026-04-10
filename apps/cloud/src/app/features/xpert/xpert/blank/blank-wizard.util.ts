@@ -51,17 +51,11 @@ export function shouldHideBlankWizardPrimaryAgent(mode: BlankXpertMode): boolean
 }
 
 export function shouldInitializeBlankWizardDraft(
-  mode: BlankXpertMode,
-  hasAgentAdvancedSelections: boolean,
-  completionMode: BlankXpertCompletionMode = 'create'
+  _mode: BlankXpertMode,
+  _hasAgentAdvancedSelections: boolean,
+  _completionMode: BlankXpertCompletionMode = 'create'
 ): boolean {
-  if (completionMode === 'publish') {
-    return true
-  }
-
-  return (
-    mode === XpertTypeEnum.Knowledge ||
-    mode === BLANK_XPERT_WORKFLOW_MODE ||
-    (mode === XpertTypeEnum.Agent && hasAgentAdvancedSelections)
-  )
+  // Keep blank-create entrypoints aligned with template/import flows by always
+  // persisting an initial Studio draft before handing control back to the UI.
+  return true
 }
