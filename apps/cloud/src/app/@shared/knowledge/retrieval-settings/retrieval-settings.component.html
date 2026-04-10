@@ -74,9 +74,10 @@
             />
           }
         </div>
-        <div class="mt-4 flex justify-between space-x-4">
-          <div class="mt-1 flex items-center">
+        <div class="mt-4 flex gap-4">
+          <div class="mt-1 flex min-w-0 flex-1 items-center">
             <ngm-slider-input
+              class="block w-full min-w-0"
               [label]="'PAC.Knowledgebase.TopK' | translate: { Default: 'Top Count' }"
               color="accent"
               [(ngModel)]="topK"
@@ -85,8 +86,9 @@
               [step]="1"
             />
           </div>
-          <div class="mt-1 flex items-center">
+          <div class="mt-1 flex min-w-0 flex-1 items-center">
             <ngm-slider-input
+              class="block w-full min-w-0"
               [label]="'PAC.Knowledgebase.SimilarityThreshold' | translate: { Default: 'Similarity Threshold' }"
               color="accent"
               [disabled]="!useScore()"

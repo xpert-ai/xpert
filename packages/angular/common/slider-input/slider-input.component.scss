@@ -1,6 +1,6 @@
 @reference "../../../../tailwind-workspace-reference.css";
 :host {
-  @apply block overflow-hidden;
+  @apply block overflow-visible;
 }
 
 [z-input] {
