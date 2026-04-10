@@ -18,6 +18,22 @@
           class="flex h-7 cursor-pointer items-center space-x-0.5 rounded-lg border-[0.5px] border-components-button-secondary-bg bg-components-button-secondary-bg px-1.5 shadow-xs backdrop-blur-[5px]
             hover:bg-components-button-secondary-bg-hover"
           [cdkMenuTriggerFor]="vectorMenu"
+          [cdkMenuPosition]="[
+            {
+              originX: 'end',
+              originY: 'bottom',
+              overlayX: 'end',
+              overlayY: 'top',
+              offsetY: 8
+            },
+            {
+              originX: 'end',
+              originY: 'top',
+              overlayX: 'end',
+              overlayY: 'bottom',
+              offsetY: -8
+            }
+          ]"
           #cdkMenu="cdkMenuTriggerFor"
         >
           <i class="ri-focus-mode mr-1"></i>
@@ -133,7 +149,7 @@
 </div>
 
 <ng-template #vectorMenu>
-  <div class="bg-components-card-bg rounded-2xl border border-divider-deep shadow-lg p-3">
+  <div cdkMenu class="w-[min(720px,calc(100vw-32px))] bg-components-card-bg rounded-2xl border border-divider-deep shadow-lg p-3">
     <div class="flex shrink-0 justify-between pl-3 pb-1 pt-1">
       <div class="text-base font-semibold text-text-primary">
         <div>{{ 'PAC.Knowledgebase.RetrievalSetting' | translate: {Default: 'Retrieval Setting'} }}</div>

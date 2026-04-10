@@ -86,12 +86,13 @@
             @switch (xUiComponent()) {
               @case ('textarea') {
                 <textarea
-                  class="w-full px-3 py-1 text-sm whitespace-nowrap text-text-primary border-0 rounded-lg h-10 min-h-[36px] bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
+                  class="w-full resize-y px-3 py-2 text-sm text-text-primary border-0 rounded-lg min-h-[36px] bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
                   [placeholder]="
                     (meta().description || meta().title || '' | i18n) +
                     (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
                   "
                   type="text"
+                  [rows]="textareaRows()"
                   [disabled]="readonly()"
                   [ngModel]="value$()"
                   [ngModelOptions]="{ standalone: true }"
@@ -131,12 +132,13 @@
           }
           @case ('textarea') {
             <textarea
-              class="w-full px-3 py-1 text-sm whitespace-nowrap text-text-primary border-0 rounded-lg h-10 bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
+              class="w-full resize-y px-3 py-2 text-sm text-text-primary border-0 rounded-lg min-h-[36px] bg-components-input-bg-normal focus:outline-none focus:ring-1 focus:ring-inset focus:ring-components-input-border-active"
               [placeholder]="
                 (meta().description || meta().title || '' | i18n) +
                 (required() ? '' : '(' + ('PAC.KEY_WORDS.Optional' | translate: { Default: 'Optional' }) + ')')
               "
               type="text"
+              [rows]="textareaRows()"
               [disabled]="readonly()"
               [ngModel]="value$()"
               [ngModelOptions]="{ standalone: true }"

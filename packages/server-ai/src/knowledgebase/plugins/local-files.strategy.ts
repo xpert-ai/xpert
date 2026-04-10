@@ -98,12 +98,11 @@ export class LocalFileStrategy implements IDocumentSourceStrategy<LocalFileConfi
 			)
 			// const fileProvider = new FileStorage().getProvider()
 			return storageFiles.map((file) => {
-				// const fullPath = fileProvider.path(file.file)
 				return new Document({
 					pageContent: '',
 					metadata: {
 						source: 'file-system',
-						// filePath: fullPath,
+						filePath: file.file,
 						fileUrl: file.fileUrl,
 						size: file.size,
 						originalName: file.originalName,
