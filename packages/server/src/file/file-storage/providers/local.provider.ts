@@ -6,7 +6,7 @@ import { environment, getConfig } from '@metad/server-config'
 import { FileStorageProvider } from '@xpert-ai/plugin-sdk'
 import { Injectable } from '@nestjs/common'
 import { Provider } from './provider'
-import { basename, join, resolve } from 'path'
+import { basename, dirname, join, resolve } from 'path'
 import { RequestContext } from '../../../core/context'
 import { v4 as uuid } from 'uuid'
 
@@ -93,6 +93,7 @@ export class LocalProvider extends Provider<LocalProvider> {
 	async putFile(fileContent: any, path = ''): Promise<UploadedFile> {
 		return new Promise((putFileResolve, reject) => {
 			const fullPath = join(this.config.rootPath, path)
+			fs.mkdirSync(dirname(fullPath), { recursive: true })
 			fs.writeFile(fullPath, fileContent, (err) => {
 				if (err) {
 					reject(err)
