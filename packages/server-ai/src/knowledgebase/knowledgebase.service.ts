@@ -438,12 +438,12 @@ export class KnowledgebaseService extends XpertWorkspaceBaseService<Knowledgebas
 			const knowledgebase = await this.findOne(knowledgebaseId, { relations: ['visionModel', 'visionModel.copilot'] })
 			visionModel = knowledgebase.visionModel
 		}
-		const copilot = visionModel?.copilot
-		if (!copilot) {
+		// Workflow nodes usually persist only copilotId, not the eager-loaded copilot relation.
+		if (!visionModel?.copilot && !visionModel?.copilotId) {
 			throw new BadRequestException(t('server-ai:Error.KBReqVisionModel'))
 		}
 		const chatModel = await this.queryBus.execute<CopilotModelGetChatModelQuery, BaseChatModel>(
-			new CopilotModelGetChatModelQuery(copilot, visionModel, {
+			new CopilotModelGetChatModelQuery(visionModel?.copilot ?? null, visionModel, {
 				usageCallback: (token) => {
 					// execution.tokens += (token ?? 0)
 				}
