@@ -6,137 +6,19 @@
   } @else if (mode() === 'mine' && myItems().length) {
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       @for (item of myItems(); track item.id) {
-        <article
-          class="group flex h-full cursor-pointer flex-col overflow-hidden rounded-xl border border-border bg-components-card-bg transition-all hover:-translate-y-0.5 hover:shadow-lg"
-          role="button"
-          tabindex="0"
-          (click)="openMineItem(item)"
-          (keydown)="onMineCardKeydown($event, item)"
-        >
-          <div class="flex items-start gap-3 border-b border-divider-regular px-5 py-5">
-            <div class="relative shrink-0">
-              <emoji-avatar [avatar]="item.avatar" class="overflow-hidden rounded-2xl shadow-sm" />
-              <span class="absolute -bottom-1 -right-1 flex h-7 w-7 items-center justify-center rounded-full border border-divider-regular bg-components-card-bg text-text-secondary shadow-sm">
-                <i [class]="typeIcon(item.type)"></i>
-              </span>
-            </div>
-
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2">
-                <h3
-                  class="line-clamp-1 text-lg font-semibold text-text-primary"
-                  [title]="item.title || item.name"
-                  [ngmHighlight]="search()"
-                  [content]="item.title || item.name"
-                >
-                  {{ item.title || item.name }}
-                </h3>
-              </div>
-
-              <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                <span class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 font-medium text-text-secondary">
-                  <i [class]="typeIcon(item.type)"></i>
-                  {{ ('PAC.Explore.AgentType.' + typeLabel(item.type)) | translate: { Default: typeLabel(item.type) } }}
-                </span>
-                <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 font-medium text-text-secondary">
-                  {{ 'PAC.Explore.InMyWorkspace' | translate: { Default: '已在工作区中' } }}
-                </span>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex flex-1 flex-col px-5 py-4">
-            <div
-              class="line-clamp-4 min-h-[88px] text-sm leading-6 text-text-tertiary"
-              [title]="item.description"
-              [ngmHighlight]="search()"
-              [content]="item.description"
-            >
-              {{ item.description }}
-            </div>
-
-            <div class="mt-4 rounded-2xl bg-background-default-subtle px-4 py-4 text-sm text-text-secondary">
-              <div class="flex items-center justify-between gap-3">
-                <span class="text-text-tertiary">
-                  {{ 'PAC.Explore.Creator' | translate: { Default: '创建者' } }}
-                </span>
-                <span class="truncate text-right text-text-primary">
-                  {{ creatorName(item) }}
-                </span>
-              </div>
-            </div>
-
-            <div class="mt-5 flex items-center justify-between gap-3">
-              <div class="text-xs text-text-quaternary">
-                {{ item.updatedAt || item.createdAt | date: 'yyyy-MM-dd' }}
-              </div>
-              <button type="button" class="btn btn-secondary btn-small shrink-0" (click)="openMineWorkspace($event)">
-                {{ 'PAC.Explore.OpenWorkspaceAgents' | translate: { Default: '打开工作区智能体' } }}
-              </button>
-            </div>
-          </div>
-        </article>
+        <xp-explore-xpert-card
+          [variant]="'mine'"
+          [search]="search()"
+          [mineItem]="item"
+          (cardClick)="openMineItem(item)"
+          (actionClick)="openMineWorkspace()"
+        />
       }
     </div>
   } @else if (mode() !== 'mine' && items().length) {
     <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
       @for (item of items(); track item.id) {
-        <article class="group flex h-full flex-col overflow-hidden rounded-[24px] border border-divider-regular bg-components-card-bg shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
-          <div class="flex items-start gap-3 border-b border-divider-regular p-4 pb-2">
-            <div class="relative shrink-0">
-              <emoji-avatar [avatar]="item.avatar" class="overflow-hidden rounded-xl shadow-sm" />
-              <span class="absolute -bottom-1 -right-1 flex h-5 w-5 text-sm items-center justify-center rounded-full border border-divider-regular bg-components-card-bg text-text-secondary shadow-sm"
-                [zTooltip]="('PAC.Explore.AgentType.' + typeLabel(item.type)) | translate: { Default: typeLabel(item.type) }">
-                <i [class]="typeIcon(item.type)"></i>
-              </span>
-            </div>
-
-            <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-2">
-                <h3
-                  class="line-clamp-1 text-lg font-semibold text-text-primary"
-                  [title]="item.title || item.name"
-                  [ngmHighlight]="search()"
-                  [content]="item.title || item.name"
-                >
-                  {{ item.title || item.name }}
-                </h3>
-              </div>
-
-              <div class="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                @if (item.category) {
-                  <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 font-medium text-text-tertiary">
-                    {{ ('PAC.Xpert.Categories.' + item.category) | translate: { Default: item.category } }}
-                  </span>
-                }
-              </div>
-            </div>
-          </div>
-
-          <div class="flex flex-1 flex-col px-5 py-4">
-            <div
-              class="line-clamp-4 min-h-[88px] text-sm leading-6 text-text-tertiary"
-              [title]="item.description"
-              [ngmHighlight]="search()"
-              [content]="item.description"
-            >
-              {{ item.description }}
-            </div>
-          </div>
-
-          <div class="mt-5 flex items-center justify-between gap-3 absolute bottom-4 left-5 right-5">
-            <div class="text-xs text-text-quaternary">
-              {{ 'PAC.Explore.TemplateReady' | translate: { Default: '可直接用于工作区安装' } }}
-            </div>
-            <button z-button type="button" zSize="lg" class="shrink-0 rounded-lg cursor-pointer" (click)="install(item)">
-              @if (item.type === 'project') {
-                {{ 'PAC.Xpert.Install' | translate: { Default: 'Install' } }}
-              } @else {
-                {{ 'PAC.Xpert.InstallToWorkspace' | translate: { Default: 'Install to workspace' } }}
-              }
-            </button>
-          </div>
-        </article>
+        <xp-explore-xpert-card [search]="search()" [templateItem]="item" (actionClick)="install(item)" />
       }
     </div>
   } @else {

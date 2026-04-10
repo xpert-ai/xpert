@@ -16,18 +16,17 @@ import {
   XpertTemplateService,
   XpertTypeEnum
 } from '@cloud/app/@core'
-import { EmojiAvatarComponent } from '@cloud/app/@shared/avatar'
 import { XpertProjectInstallComponent } from '@cloud/app/@shared/chat'
-import { NgmHighlightDirective, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@metad/ocap-angular/common'
 import { ExploreAgentInstallComponent } from './install/install.component'
-import { ZardButtonComponent, ZardTooltipDirective } from '@xpert-ai/headless-ui'
+import { ExploreXpertCardComponent } from './xpert-card.component'
 
 type ExploreViewMode = 'square' | 'mine'
 
 @Component({
   standalone: true,
   selector: 'xp-explore-agents',
-  imports: [CommonModule, TranslateModule, NgmSpinComponent, NgmHighlightDirective, EmojiAvatarComponent, ZardButtonComponent, ZardTooltipDirective],
+  imports: [CommonModule, TranslateModule, NgmSpinComponent, ExploreXpertCardComponent],
   templateUrl: './agents.component.html',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
@@ -35,7 +34,6 @@ export class ExploreAgentsComponent {
   readonly search = input('')
   readonly mode = input<ExploreViewMode>('square')
   readonly workspace = input<IXpertWorkspace | null>(null)
-  readonly eXpertTypeEnum = XpertTypeEnum
 
   readonly #templateService = inject(XpertTemplateService)
   readonly #xpertService = inject(XpertAPIService)
@@ -188,15 +186,6 @@ export class ExploreAgentsComponent {
     this.#router.navigate(item.type === XpertTypeEnum.Copilot ? ['/xpert/x', item.id, 'copilot'] : ['/xpert/x', item.id])
   }
 
-  onMineCardKeydown(event: KeyboardEvent, item: IXpert) {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return
-    }
-
-    event.preventDefault()
-    this.openMineItem(item)
-  }
-
   openMineWorkspace(event?: Event) {
     event?.stopPropagation()
 
@@ -206,33 +195,5 @@ export class ExploreAgentsComponent {
     }
 
     this.#router.navigate(['/xpert/w', workspaceId, 'xperts'])
-  }
-
-  creatorName(item: IXpert) {
-    return item.createdBy?.fullName || item.createdBy?.name || item.createdBy?.email || '-'
-  }
-
-  typeLabel(type: TXpertTemplate['type'] | IXpert['type']) {
-    switch (type) {
-      case XpertTypeEnum.Copilot:
-        return 'Copilot'
-      case XpertTypeEnum.Agent:
-        return 'Agent'
-      case 'project':
-        return 'Project'
-      default:
-        return 'Template'
-    }
-  }
-
-  typeIcon(type: TXpertTemplate['type'] | IXpert['type']) {
-    switch (type) {
-      case XpertTypeEnum.Copilot:
-        return 'ri-sparkling-line'
-      case 'project':
-        return 'ri-team-line'
-      default:
-        return 'ri-robot-3-line'
-    }
   }
 }
