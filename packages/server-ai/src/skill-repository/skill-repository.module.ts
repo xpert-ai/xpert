@@ -11,10 +11,11 @@ import { SkillRepository } from './skill-repository.entity'
 import { SkillRepositoryService } from './skill-repository.service'
 import { SkillRepositoryIndexModule } from './repository-index/skill-repository-index.module'
 import { SkillSourceProviders } from './plugins'
+import { SkillPackage } from '../skill-package/skill-package.entity'
 
 @Module({
 	imports: [
-		TypeOrmModule.forFeature([SkillRepository]),
+		TypeOrmModule.forFeature([SkillRepository, SkillPackage]),
 		TenantModule,
 		DiscoveryModule,
 		SkillRepositoryIndexModule,

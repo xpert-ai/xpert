@@ -26,7 +26,7 @@
       @for (project of projects(); track project.id) {
         <div class="group">
           <div class="relative max-w-4/5">
-            <a class="block w-full" [routerLink]="['/chat/p', project.id]">
+            <a class="block w-full" [routerLink]="['/project', project.id]">
               <div class="border border-components-panel-border text-card-foreground flex flex-row items-center @sm:flex-col @sm:items-stretch gap-2 px-5 py-4 pe-12 @sm:pe-5 w-full rounded-3xl hover:bg-surface-l1 shadow-none h-full overflow-hidden
               bg-none bg-transparent hover:bg-components-card-bg">
                 <emoji-avatar class="shrink-0 rounded-xl overflow-hidden" [avatar]="project.avatar" />

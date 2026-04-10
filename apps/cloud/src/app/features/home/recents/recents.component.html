@@ -7,7 +7,7 @@
       @switch (recent.entity) {
         @case('SemanticModel') {
           <span class="font-notoColorEmoji">🧊</span>
-          <a [routerLink]="['/models', recent.entityId]" class="ml-1 text-ellipsis overflow-hidden">{{recent.entityName}}</a>
+          <a [routerLink]="['/data', 'models', recent.entityId]" class="ml-1 text-ellipsis overflow-hidden">{{recent.entityName}}</a>
         }
         @case('Story') {
           <span class="font-notoColorEmoji">📖</span>

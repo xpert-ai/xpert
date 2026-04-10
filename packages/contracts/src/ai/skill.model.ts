@@ -8,6 +8,9 @@ import { IBasePerWorkspaceEntityModel } from "./xpert-workspace.model";
 
 export type SkillId = string;
 
+export const WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER = 'workspace-public'
+export const WORKSPACE_PUBLIC_SKILL_REPOSITORY_NAME = 'Workspace Shared Skills'
+
 export interface ISkillRepositoryIndexStats {
   comments?: number;
   downloads?: number;
@@ -23,6 +26,14 @@ export interface ISkillRepositoryIndexPublisher {
   name?: string;
   image?: string;
   kind?: string;
+}
+
+export interface IShareSkillPackageInput {
+  displayName: string;
+  description: string;
+  tags?: string[];
+  license?: string;
+  version?: string;
 }
 
 export interface SkillMetadata {
@@ -110,6 +121,42 @@ export interface ISkillRepositoryIndex extends IBasePerTenantAndOrganizationEnti
   deletedAt?: Date;
 }
 
+export interface ISkillMarketFilterOption {
+  value: string;
+  label: string;
+  description?: string;
+}
+
+export interface ISkillMarketFilterGroup {
+  label: string;
+  options: ISkillMarketFilterOption[];
+}
+
+export interface ISkillMarketFilterGroups {
+  roles: ISkillMarketFilterGroup;
+  appTypes: ISkillMarketFilterGroup;
+  hot: ISkillMarketFilterGroup;
+}
+
+export interface ISkillMarketFeaturedRef {
+  provider: string;
+  repositoryName: string;
+  skillId: string;
+  badge?: string;
+  title?: string;
+  description?: string;
+  avatar?: IconDefinition;
+}
+
+export interface ISkillMarketFeaturedSkill extends ISkillMarketFeaturedRef {
+  skill: ISkillRepositoryIndex;
+}
+
+export interface ISkillMarketConfig {
+  featured: ISkillMarketFeaturedSkill[];
+  filters: ISkillMarketFilterGroups;
+}
+
 /**
  * Installed skill package record (skill.yaml)
  */
@@ -119,6 +166,8 @@ export interface ISkillPackage extends IBasePerWorkspaceEntityModel, TSkillPacka
   name?: string;
   visibility: 'private' | 'team' | 'tenant';
   packagePath?: string;
+  sharedSkillId?: string;
+  sharedPackagePath?: string;
 }
 
 /**

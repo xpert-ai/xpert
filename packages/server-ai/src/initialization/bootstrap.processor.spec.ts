@@ -2,6 +2,17 @@ jest.mock('./bootstrap.service', () => ({
   ServerAIBootstrapService: class ServerAIBootstrapService {}
 }))
 
+jest.mock('@metad/server-core', () => ({
+  EVENT_ORGANIZATION_CREATED: 'organization.created',
+  EVENT_TENANT_CREATED: 'tenant.created',
+  EVENT_USER_ORGANIZATION_CREATED: 'user.organization.created',
+  EVENT_USER_ORGANIZATION_DELETED: 'user.organization.deleted',
+  OrganizationCreatedEvent: class OrganizationCreatedEvent {},
+  TenantCreatedEvent: class TenantCreatedEvent {},
+  UserOrganizationCreatedEvent: class UserOrganizationCreatedEvent {},
+  UserOrganizationDeletedEvent: class UserOrganizationDeletedEvent {}
+}))
+
 import {
   AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB,
   AI_TENANT_SKILL_REPOSITORY_BOOTSTRAP_JOB
@@ -17,7 +28,7 @@ describe('ServerAIBootstrapProcessor', () => {
       bootstrapOrganization: jest.fn(),
       bootstrapTenantSkillRepositories: jest.fn(),
       bootstrapUserInOrganization: jest.fn(),
-      syncOrganizationSkillRepository: jest.fn()
+      syncSkillRepository: jest.fn()
     }
 
     const processor = new ServerAIBootstrapProcessor(bootstrapQueue as any, bootstrapService as any)
@@ -49,13 +60,10 @@ describe('ServerAIBootstrapProcessor', () => {
     const bootstrapService = {
       bootstrapOrganization: jest.fn(),
       bootstrapTenantSkillRepositories: jest.fn().mockResolvedValue({
-        repositories: [
-          { organizationId: 'org-1', repositoryId: 'repo-1' },
-          { organizationId: 'org-2', repositoryId: 'repo-2' }
-        ]
+        repositoryIds: ['repo-1', 'repo-2']
       }),
       bootstrapUserInOrganization: jest.fn(),
-      syncOrganizationSkillRepository: jest.fn()
+      syncSkillRepository: jest.fn()
     }
 
     const processor = new ServerAIBootstrapProcessor(bootstrapQueue as any, bootstrapService as any)
@@ -75,12 +83,11 @@ describe('ServerAIBootstrapProcessor', () => {
       1,
       AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB,
       {
-        organizationId: 'org-1',
         tenantId: 'tenant-1',
         repositoryId: 'repo-1'
       },
       {
-        jobId: 'org-skill-repository-sync:org-1:repo-1',
+        jobId: 'skill-repository-sync:tenant:tenant-1:repo-1',
         attempts: 3,
         backoff: 10_000,
         removeOnComplete: true
@@ -90,12 +97,11 @@ describe('ServerAIBootstrapProcessor', () => {
       2,
       AI_ORGANIZATION_SKILL_REPOSITORY_SYNC_JOB,
       {
-        organizationId: 'org-2',
         tenantId: 'tenant-1',
         repositoryId: 'repo-2'
       },
       {
-        jobId: 'org-skill-repository-sync:org-2:repo-2',
+        jobId: 'skill-repository-sync:tenant:tenant-1:repo-2',
         attempts: 3,
         backoff: 10_000,
         removeOnComplete: true
@@ -113,7 +119,7 @@ describe('ServerAIBootstrapProcessor', () => {
       }),
       bootstrapTenantSkillRepositories: jest.fn(),
       bootstrapUserInOrganization: jest.fn(),
-      syncOrganizationSkillRepository: jest.fn()
+      syncSkillRepository: jest.fn()
     }
 
     const processor = new ServerAIBootstrapProcessor(bootstrapQueue as any, bootstrapService as any)
@@ -142,7 +148,7 @@ describe('ServerAIBootstrapProcessor', () => {
       bootstrapOrganization: jest.fn(),
       bootstrapTenantSkillRepositories: jest.fn(),
       bootstrapUserInOrganization: jest.fn(),
-      syncOrganizationSkillRepository: jest.fn().mockResolvedValue(undefined)
+      syncSkillRepository: jest.fn().mockResolvedValue(undefined)
     }
 
     const processor = new ServerAIBootstrapProcessor(bootstrapQueue as any, bootstrapService as any)
@@ -156,7 +162,7 @@ describe('ServerAIBootstrapProcessor', () => {
       }
     } as any)
 
-    expect(bootstrapService.syncOrganizationSkillRepository).toHaveBeenCalledWith({
+    expect(bootstrapService.syncSkillRepository).toHaveBeenCalledWith({
       organizationId: 'org-1',
       ownerUserId: 'owner-1',
       tenantId: 'tenant-1',

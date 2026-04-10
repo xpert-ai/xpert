@@ -35,7 +35,7 @@
 </div>
 
 <!-- <div>
-  <nav z-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple displayDensity="cosy" stretchTabs="false" alignTabs="start">
+<nav z-tab-nav-bar [tabPanel]="tabPanel" color="accent" disableRipple zSize="default" stretchTabs="false" alignTabs="start">
     <span z-tab-link [active]="type === 'my'" (click)="type='my'">
       {{ 'PAC.MENU.MODEL.MY' | translate: {Default: "My"} }}
     </span>
@@ -69,7 +69,7 @@
     class="group max-w-[300px] inline-flex justify-start items-center overflow-hidden whitespace-nowrap text-ellipsis"
   >
     @if (item.__isModel__) {
-      <a [routerLink]="['/models', key]" class="flex justify-start items-center hover:underline">
+      <a [routerLink]="['/data', 'models', key]" class="flex justify-start items-center hover:underline">
         <i class="ri-instance-line mr-1 text-lg text-text-secondary group-hover:text-text-primary"></i>
         @if (item.agentType === 'wasm') {
           <z-icon zSize="sm" class="shrink-0 text-emerald-600" zType="memory"></z-icon>
@@ -124,7 +124,7 @@
         class="text-text-secondary hover:text-text-primary"
         [zTooltip]="'PAC.ACTIONS.Edit' | translate: { Default: '✒️Edit' }"
         zPosition="top"
-        [routerLink]="['/models', key]"
+        [routerLink]="['/data', 'models', key]"
       >
         <z-icon zType="edit"></z-icon>
       </button>

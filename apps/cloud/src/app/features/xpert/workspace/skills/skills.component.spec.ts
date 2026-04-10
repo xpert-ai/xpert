@@ -118,6 +118,7 @@ async function setup(skills: ISkillPackage[] = [createRepositorySkill(), createL
     installPackage: jest.fn(() => of(createRepositorySkill('skill-3'))),
     delete: jest.fn(() => of(null)),
     uninstallPackages: jest.fn(() => of(null)),
+    uninstallPackageInWorkspace: jest.fn(() => of(null)),
     getFiles: jest.fn(),
     getFile: jest.fn(),
     saveFile: jest.fn()

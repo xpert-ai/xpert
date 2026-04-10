@@ -1,7 +1,8 @@
-import { NoopAnimationsModule } from '@angular/platform-browser/animations';
 import { FormlyFieldConfig } from '@ngx-formly/core';
 import { createFieldComponent } from '@ngx-formly/core/testing';
 import { PACFormlyTextAreaModule } from './textarea.module';
+
+const { NoopAnimationsModule } = require('@angular/platform-browser/animations');
 
 const renderComponent = (field: FormlyFieldConfig) => {
   return createFieldComponent(field, {

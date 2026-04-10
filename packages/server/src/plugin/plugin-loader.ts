@@ -14,7 +14,9 @@ export interface PluginLoadOptions {
 	workspacePath?: string
 }
 
-const isProd = process.env.NODE_ENV === 'production'
+function isProd() {
+	return process.env.NODE_ENV === 'production'
+}
 
 function getRequire(basedir?: string) {
 	if (!basedir) return require
@@ -69,6 +71,7 @@ function readPluginLevelFromPackageJson(modName: string, opts: PluginLoadOptions
 async function loadModule(modName: string, opts: PluginLoadOptions = {}): Promise<any> {
 	const basedir = opts.basedir
 	const cjsRequire = getRequire(basedir)
+	const production = isProd()
 	const resolveFromBase = (name: string) => {
 		if (!basedir) return name
 		try {
@@ -81,11 +84,22 @@ async function loadModule(modName: string, opts: PluginLoadOptions = {}): Promis
 	let errorMessage = ''
 	const preferredTsEntry = getPreferredWorkspaceTsEntry(opts)
 
-	if (!isProd && preferredTsEntry) {
+	if (!production && preferredTsEntry) {
 		try {
 			return loadTsEntry(cjsRequire, preferredTsEntry)
 		} catch (error) {
 			errorMessage += `Preferred TS source load failed for ${modName}: ${getErrorMessage(error)}\n`
+		}
+	}
+
+	// Production runs the bundled server build, where a dynamic import of a runtime-resolved
+	// path may be rewritten by the bundler. Prefer Node's own loader in that environment.
+	if (production) {
+		try {
+			return cjsRequire(target)
+		} catch (error) {
+			errorMessage += `CJS require failed for ${target}: ${getErrorMessage(error)}\n`
+			throw new PluginLoadError(modName, errorMessage, error)
 		}
 	}
 
@@ -100,12 +114,7 @@ async function loadModule(modName: string, opts: PluginLoadOptions = {}): Promis
 			return cjsRequire(target)
 		} catch (e2) {
 			errorMessage += `CJS require failed for ${target}: ${getErrorMessage(e2)}\n`
-			if (isProd || !preferredTsEntry) {
-				// Production mode: only ESM + CJS allowed
-				throw new PluginLoadError(modName, errorMessage, e2)
-			} else {
-				throw new PluginLoadError(modName, errorMessage, e2)
-			}
+			throw new PluginLoadError(modName, errorMessage, e2)
 		}
 	}
 }

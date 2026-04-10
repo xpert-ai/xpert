@@ -10,6 +10,7 @@
   "main": "./index.cjs",
   "module": "./index.js",
   "peerDependencies": {
+    "@nestjs/common": ">=10",
     "@metad/contracts": "*",
     "@xpert-ai/plugin-sdk": "^3.8.4"
   }

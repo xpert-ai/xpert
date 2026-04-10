@@ -255,7 +255,7 @@
 
 <ng-template #workspaceMenu>
   <div cdkMenu class="cdk-menu__large">
-    @if (workspaces().length > 10) {
+    @if (workspaces()?.length > 10) {
       <div class="p-1 relative w-full">
         <div
           class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-components-input-text-placeholder flex justify-center items-center"
@@ -273,9 +273,9 @@
     }
 
     <div class="max-h-96 w-56 overflow-y-auto" (click)="$event.stopPropagation()">
-      @for (item of filteredWorkspaces(); track item.name) {
+      @for (item of filteredWorkspaces(); track item.id) {
         <div
-          class="workspace-item p-2 rounded-lg cursor-pointer hover:bg-hover-bg"
+          class="workspace-item flex items-center gap-2 p-2 rounded-lg cursor-pointer hover:bg-hover-bg"
           [class.active]="item.id === selectedWorkspace()?.id"
           (click)="selectWorkspace(item)"
         >
@@ -289,6 +289,29 @@
             }
             <span [ngmHighlight]="searchWorkspace()" [content]="item.name">{{ item.name }}</span>
           </div>
+
+          @if (!loadingDefaultWorkspace() && defaultWorkspaceId() === item.id) {
+            <span
+              class="inline-flex shrink-0 items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2 py-0.5 text-[11px] font-medium text-text-secondary"
+            >
+              <i class="ri-star-fill text-[10px]"></i>
+              {{ 'PAC.Xpert.DefaultWorkspace' | translate: { Default: '默认' } }}
+            </span>
+          } @else {
+            <button
+              type="button"
+              class="inline-flex shrink-0 items-center gap-1 rounded-full border border-transparent px-2 py-1 text-[11px] font-medium text-text-tertiary hover:border-divider-regular hover:bg-background-default-subtle hover:text-text-primary disabled:cursor-not-allowed disabled:opacity-60"
+              [disabled]="settingDefaultWorkspaceId() === item.id"
+              (click)="setDefaultWorkspace($event, item)"
+            >
+              @if (settingDefaultWorkspaceId() === item.id) {
+                <i class="ri-loader-4-line animate-spin"></i>
+              } @else {
+                <i class="ri-star-line"></i>
+              }
+              {{ 'PAC.Xpert.SetDefaultWorkspace' | translate: { Default: '设为默认' } }}
+            </button>
+          }
         </div>
       } @empty {
         <div class="flex justify-center p-4 text-token-text-secondary">

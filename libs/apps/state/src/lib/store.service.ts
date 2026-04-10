@@ -555,7 +555,10 @@ export class Store {
 			token: null,
 			refreshToken: null,
 			userId: null,
-			workspaceId: null
+			workspaceId: null,
+			organizationId: null,
+			activeScopeLevel: RequestScopeLevel.TENANT,
+			lastOrganizationId: null
 		}));
 	}
 

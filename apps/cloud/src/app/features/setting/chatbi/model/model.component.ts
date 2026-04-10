@@ -126,7 +126,7 @@ export class ChatBIModelComponent implements IsDirty {
   // Get the route to add entity for the selected model
   readonly addEntityRoute = computed(() => {
     const modelId = this.modelId()
-    return modelId ? ['/models', modelId] : null
+    return modelId ? ['/data', 'models', modelId] : null
   })
 
   readonly loading = signal(true)
@@ -197,7 +197,7 @@ export class ChatBIModelComponent implements IsDirty {
   openSemanticModelPage(event: Event) {
     event.preventDefault()
     event.stopPropagation()
-    const url = this.router.serializeUrl(this.router.createUrlTree(['/models']))
+    const url = this.router.serializeUrl(this.router.createUrlTree(['/data', 'models']))
     window.open(url, '_blank', 'noopener,noreferrer')
   }
 

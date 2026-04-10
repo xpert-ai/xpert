@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common'
-import { Component, computed, input, numberAttribute } from '@angular/core'
+import { Component, computed, inject, input, numberAttribute } from '@angular/core'
 import { DomSanitizer, SafeHtml } from '@angular/platform-browser'
 import { IconDefinition } from '@cloud/app/@core'
 
@@ -109,13 +109,14 @@ import { IconDefinition } from '@cloud/app/@core'
   `],
 })
 export class IconComponent {
+
+  private sanitizer = inject(DomSanitizer)
+  
   /** Input signal for the icon definition. */
   icon = input<IconDefinition | null>(null)
   size = input<number, number | string>(null, {
     transform: numberAttribute
   })
-
-  constructor(private sanitizer: DomSanitizer) {}
 
   /** Derived size string (e.g., "24px"). */
   readonly sizePx = computed(() => {
@@ -128,11 +129,11 @@ export class IconComponent {
     const v = this.icon()
     const base: Record<string, string> = {}
     if (!v) return base
-    if (v.size) {
-      base['width'] = `${v.size}px`
-      base['height'] = `${v.size}px`
-      base['line-height'] = `${v.size}px`
-    }
+    // if (v.size) {
+    //   base['width'] = `${v.size}px`
+    //   base['height'] = `${v.size}px`
+    //   base['line-height'] = `${v.size}px`
+    // }
     if (v.color) base['color'] = v.color
     if (v.style) Object.assign(base, v.style)
     return base

@@ -31,15 +31,17 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop';
 
-import clsx from 'clsx';
+import type { ClassValue } from 'clsx';
 import { debounceTime, distinctUntilChanged, fromEvent, map, merge } from 'rxjs';
-import { twMerge } from 'tailwind-merge';
 
+import { mergeClasses } from '../../utils/merge-classes';
 import { ZardIconComponent } from '../icon/icon.component';
 import {
   tabButtonVariants,
+  tabNavBarVariants,
   tabContainerVariants,
   tabNavVariants,
+  type ZardTabSizeVariants,
   type ZardTabVariants,
 } from './tabs.variants';
 
@@ -88,8 +90,7 @@ export class ZardTabNavPanelComponent {
 @Directive({
   selector: '[z-tab-link]',
   host: {
-    'class':
-      'z-tab-link relative flex shrink-0 items-center gap-1 border-b-2 px-3 py-2 text-sm font-medium text-muted-foreground transition-colors outline-none focus-visible:ring-2 focus-visible:ring-primary/50 hover:bg-muted/60 hover:text-foreground',
+    '[class]': 'classes()',
     'role': 'tab',
     '[attr.aria-selected]': 'active()',
     '[attr.aria-controls]': 'panelId()',
@@ -97,16 +98,6 @@ export class ZardTabNavPanelComponent {
     '[attr.tabindex]': 'tabIndex()',
     '[attr.data-active]': 'active() ? "true" : null',
     '[attr.data-disabled]': 'disabled() ? "true" : null',
-    '[class.cursor-pointer]': '!disabled()',
-    '[class.cursor-not-allowed]': 'disabled()',
-    '[class.opacity-50]': 'disabled()',
-    '[class.border-b-transparent]': '!active()',
-    '[class.border-b-primary]': 'active()',
-    '[class.bg-muted/40]': 'active()',
-    '[class.text-foreground]': 'active()',
-    '[class.flex-1]': 'stretchTabs()',
-    '[class.justify-center]': 'stretchTabs()',
-    '[class.text-center]': 'stretchTabs()',
     '(click)': 'onClick($event)',
     '(keydown)': 'onKeydown($event)',
   },
@@ -114,12 +105,26 @@ export class ZardTabNavPanelComponent {
 export class ZardTabNavLinkDirective {
   readonly active = input(false, { transform: booleanAttribute });
   readonly disabled = input(false, { transform: booleanAttribute });
+  readonly class = input<ClassValue>('');
 
   private readonly elementRef = inject<ElementRef<HTMLElement>>(ElementRef);
   private readonly navBar = inject(ZARD_TAB_NAV_BAR, { optional: true });
 
   readonly panelId = computed(() => this.navBar?.panelId() ?? null);
   readonly stretchTabs = computed(() => this.navBar?.stretchTabs() ?? false);
+  readonly classes = computed(() =>
+    mergeClasses(
+      'z-tab-link',
+      tabButtonVariants({
+        zActivePosition: this.navBar?.effectiveHeaderPosition() === 'below' ? 'top' : 'bottom',
+        zSize: this.navBar?.effectiveZSize() ?? 'default',
+        isActive: this.active(),
+        isDisabled: this.disabled(),
+        stretchTabs: this.stretchTabs(),
+      }),
+      this.class(),
+    ),
+  );
   readonly tabIndex = computed(() => {
     if (this.disabled()) {
       return -1;
@@ -188,33 +193,42 @@ export class ZardTabNavLinkDirective {
     },
   ],
   host: {
-    'class': 'z-tab-nav-bar z-tab-group__nav nav-tab-scroll flex min-h-0 min-w-0 gap-1 overflow-auto border-(--border)',
+    '[class]': 'classes()',
     'role': 'tablist',
     '[attr.aria-orientation]': '"horizontal"',
     '[attr.data-header-position]': 'effectiveHeaderPosition()',
+    '[attr.data-z-size]': 'effectiveZSize()',
     '[attr.data-tab-align]': 'stretchTabs() ? null : alignTabs()',
     '[attr.data-stretch-tabs]': 'stretchTabs() ? "true" : null',
-    '[class.border-b]': 'effectiveHeaderPosition() === "above"',
-    '[class.border-t]': 'effectiveHeaderPosition() === "below"',
-    '[class.mb-1]': 'effectiveHeaderPosition() === "above"',
-    '[class.mt-1]': 'effectiveHeaderPosition() === "below"',
-    '[class.justify-start]': '!stretchTabs() && alignTabs() === "start"',
-    '[class.justify-center]': '!stretchTabs() && alignTabs() === "center"',
-    '[class.justify-end]': '!stretchTabs() && alignTabs() === "end"',
   },
 })
 export class ZardTabNavBarDirective {
+  readonly class = input<ClassValue>('');
   readonly tabPanel = input<ZardTabNavPanelComponent | null>(null);
   readonly alignTabs = input<zAlign>('start');
   readonly stretchTabs = input(false, { transform: booleanAttribute });
   readonly headerPosition = input<ZardTabHeaderPosition | null>(null);
   readonly disableRipple = input(false, { transform: booleanAttribute });
   readonly color = input<string | null>(null);
-  readonly displayDensity = input<unknown>(null);
+  readonly zSize = input<ZardTabSizeVariants | null>(null);
+  readonly legacyDisplayDensity = input<string | null>(null, { alias: 'displayDensity' });
 
   private readonly linkDirectives = contentChildren(ZardTabNavLinkDirective, { descendants: true });
 
   readonly effectiveHeaderPosition = computed<ZardTabHeaderPosition>(() => this.headerPosition() ?? 'above');
+  readonly effectiveZSize = computed<ZardTabSizeVariants>(
+    () => this.zSize() ?? displayDensityToTabSize(this.legacyDisplayDensity()) ?? 'default',
+  );
+  readonly classes = computed(() =>
+    mergeClasses(
+      tabNavBarVariants({
+        headerPosition: this.effectiveHeaderPosition(),
+        zAlignTabs: this.stretchTabs() ? null : this.alignTabs(),
+        zSize: this.effectiveZSize(),
+      }),
+      this.class(),
+    ),
+  );
 
   panelId(): string | null {
     return this.tabPanel()?.panelId ?? null;
@@ -358,7 +372,6 @@ export class ZardTabComponent {
             <div
               #tabTrigger
               role="tab"
-              class="z-tab-group__trigger"
               [class]="buttonClassesSignal()[index]"
               [attr.id]="'tab-' + index"
               [attr.aria-controls]="'tabpanel-' + index"
@@ -431,6 +444,7 @@ export class ZardTabComponent {
   host: {
     '[class]': 'containerClasses()',
     '[attr.data-header-position]': 'effectiveHeaderPosition()',
+    '[attr.data-z-size]': 'effectiveZSize()',
     '[attr.data-stretch-tabs]': 'stretchTabs() ? "true" : null',
     '[attr.data-fit-ink-bar]': 'fitInkBarToContent() ? "true" : null',
   },
@@ -459,7 +473,8 @@ export class ZardTabGroupComponent implements AfterContentInit, AfterViewInit {
   readonly zShowArrow = input(true, { transform: booleanAttribute });
   readonly zScrollAmount = input(100);
   readonly zAlignTabs = input<zAlign>('start');
-  readonly class = input<string>('');
+  readonly zSize = input<ZardTabSizeVariants | null>(null);
+  readonly class = input<ClassValue>('');
 
   readonly preserveContent = input(false, { transform: booleanAttribute });
   readonly headerPosition = input<ZardTabHeaderPosition | null>(null);
@@ -470,7 +485,7 @@ export class ZardTabGroupComponent implements AfterContentInit, AfterViewInit {
   readonly disableRipple = input(false, { transform: booleanAttribute });
   readonly animationDuration = input<string | number | null>(null);
   readonly color = input<string | null>(null);
-  readonly displayDensity = input<unknown>(null);
+  readonly legacyDisplayDensity = input<string | null>(null, { alias: 'displayDensity' });
 
   @Output() readonly selectedIndexChange = new EventEmitter<number>();
   @Output() readonly selectedTabChange = new EventEmitter<ZardTabChangeEvent>();
@@ -503,7 +518,9 @@ export class ZardTabGroupComponent implements AfterContentInit, AfterViewInit {
   readonly effectiveHeaderPosition = computed<ZardTabHeaderPosition>(() =>
     this.effectiveTabsPosition() === 'bottom' ? 'below' : 'above',
   );
-
+  readonly effectiveZSize = computed<ZardTabSizeVariants>(
+    () => this.zSize() ?? displayDensityToTabSize(this.legacyDisplayDensity()) ?? 'default',
+  );
   readonly effectiveAlignTabs = computed<zAlign>(() => this.alignTabs() ?? this.zAlignTabs());
   readonly showArrow = computed(
     () => this.zShowArrow() && !this.disablePagination() && this.scrollPresent(),
@@ -522,36 +539,43 @@ export class ZardTabGroupComponent implements AfterContentInit, AfterViewInit {
       : 'grid-rows-[25px_minmax(0,1fr)_25px]';
 
     if (this.showArrow()) {
-      return twMerge('grid min-h-0 min-w-0', gridLayout);
+      return mergeClasses('grid min-h-0 min-w-0', gridLayout);
     }
 
     return 'grid min-h-0 min-w-0';
   });
   readonly containerClasses = computed(() =>
-    twMerge(tabContainerVariants({ zPosition: this.effectiveTabsPosition() }), this.class()),
+    mergeClasses(tabContainerVariants({ zPosition: this.effectiveTabsPosition() }), this.class()),
   );
   readonly navClasses = computed(() =>
-    tabNavVariants({
-      zPosition: this.effectiveTabsPosition(),
-      zAlignTabs: this.showArrow() ? 'start' : this.effectiveAlignTabs(),
-    }),
+    mergeClasses(
+      tabNavVariants({
+        zPosition: this.effectiveTabsPosition(),
+        zAlignTabs: this.showArrow() ? 'start' : this.effectiveAlignTabs(),
+        zSize: this.effectiveZSize(),
+      }),
+    ),
   );
   readonly buttonClassesSignal = computed(() => {
     const activeIndex = this.activeTabIndex();
     const position = this.zActivePosition();
     const stretchTabs = this.stretchTabs();
+    const zSize = this.effectiveZSize();
 
     return this.tabs().map((tab, index) =>
-      tabButtonVariants({
-        zActivePosition: position,
-        isActive: activeIndex === index,
-        isDisabled: tab.disabled(),
-        stretchTabs,
-      }),
+      mergeClasses(
+        tabButtonVariants({
+          zActivePosition: position,
+          zSize,
+          isActive: activeIndex === index,
+          isDisabled: tab.disabled(),
+          stretchTabs,
+        }),
+      ),
     );
   });
   readonly panelClasses = computed(() =>
-    this.tabs().map(tab => twMerge('min-h-0 h-full', tab.bodyClass())),
+    this.tabs().map(tab => mergeClasses('min-h-0 h-full', tab.bodyClass())),
   );
 
   constructor() {
@@ -829,4 +853,18 @@ function getNavigationDelta(key: string, isHorizontal: boolean): number | null {
   }
 
   return null;
+}
+
+function displayDensityToTabSize(displayDensity: string | null | undefined): ZardTabSizeVariants | null {
+  switch (displayDensity) {
+    case 'compact':
+      return 'sm';
+    case 'comfortable':
+      return 'lg';
+    case 'cosy':
+    case 'default':
+      return 'default';
+    default:
+      return null;
+  }
 }

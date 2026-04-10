@@ -1,12 +1,13 @@
 import { Component, forwardRef, input, NgModule, output } from '@angular/core'
-import { TestBed } from '@angular/core/testing'
 import { By } from '@angular/platform-browser'
-import { NoopAnimationsModule } from '@angular/platform-browser/animations'
 import { ControlValueAccessor, FormGroup, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 
 import { NgmFormlyCheckboxComponent } from './checkbox.type'
+
+const { TestBed } = require('@angular/core/testing')
+const { NoopAnimationsModule } = require('@angular/platform-browser/animations')
 
 @Component({
   selector: 'z-checkbox',

@@ -1,4 +1,4 @@
-import { TenantModule } from '@metad/server-core'
+import { TenantModule, UserOrganizationModule } from '@metad/server-core'
 import { Module } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { TypeOrmModule } from '@nestjs/typeorm'
@@ -13,6 +13,7 @@ import { QueryHandlers } from './queries/handlers'
 		RouterModule.register([{ path: '/xpert-workspace', module: XpertWorkspaceModule }]),
 		TypeOrmModule.forFeature([XpertWorkspace]),
 		TenantModule,
+		UserOrganizationModule,
 		CqrsModule,
 	],
 	controllers: [XpertWorkspaceController],

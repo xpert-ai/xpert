@@ -40,10 +40,7 @@ export type OrganizationBootstrapResult = {
 }
 
 export type TenantSkillRepositoryBootstrapResult = {
-	repositories: Array<{
-		organizationId: string
-		repositoryId: string
-	}>
+	repositoryIds: string[]
 }
 
 const DEFAULT_SKILL_REPOSITORIES_ENV = 'AI_DEFAULT_SKILL_REPOSITORIES'
@@ -90,6 +87,7 @@ export class ServerAIBootstrapService {
 		await this.runInOrganizationContext(owner, event.organizationId, async () => {
 			const workspace = await this.ensureOrganizationWorkspace(event.organizationId, owner.id)
 			await this.ensureDefaultEnvironment(workspace.id)
+			await this.skillRepositoryService.ensureWorkspacePublicRepository()
 
 			for (const memberId of memberIds) {
 				await this.workspaceService.ensureMember(workspace.id, memberId)
@@ -112,39 +110,15 @@ export class ServerAIBootstrapService {
 	async bootstrapTenantSkillRepositories(event: TenantCreatedEvent): Promise<TenantSkillRepositoryBootstrapResult> {
 		const configuredRepositories = this.loadDefaultSkillRepositories()
 		if (!configuredRepositories.length) {
-			return { repositories: [] }
+			return { repositoryIds: [] }
 		}
 
 		const owner = await this.resolveTenantBootstrapUser(event.tenantId)
-		const { items: organizations } = await this.organizationService.findAll({
-			where: {
-				tenantId: event.tenantId
-			}
-		})
-		const repositories: TenantSkillRepositoryBootstrapResult['repositories'] = []
+		const repositoryIds = await this.runInTenantContext(owner, async () =>
+			this.ensureTenantSkillRepositories(configuredRepositories, event.tenantId)
+		)
 
-		if (!organizations?.length) {
-			this.logger.warn(`No organizations found for tenant '${event.tenantId}' during skill repository bootstrap`)
-			return { repositories }
-		}
-
-		for (const organization of organizations) {
-			if (!organization?.id) {
-				continue
-			}
-
-			const repositoryIds = await this.runInOrganizationContext(owner, organization.id, async () =>
-				this.ensureOrganizationSkillRepositories(configuredRepositories, organization.id)
-			)
-			repositories.push(
-				...repositoryIds.map((repositoryId) => ({
-					organizationId: organization.id,
-					repositoryId
-				}))
-			)
-		}
-
-		return { repositories }
+		return { repositoryIds }
 	}
 
 	async bootstrapUserInOrganization(event: UserOrganizationCreatedEvent) {
@@ -171,27 +145,35 @@ export class ServerAIBootstrapService {
 		)
 	}
 
-	async syncOrganizationSkillRepository(event: {
+	async syncSkillRepository(event: {
 		tenantId: string
-		organizationId: string
+		organizationId?: string | null
 		repositoryId: string
 		ownerUserId?: string | null
 	}) {
 		const owner = await this.resolveSyncBootstrapUser(event)
 
-		await this.runInOrganizationContext(owner, event.organizationId, async () => {
+		if (event.organizationId) {
+			await this.runInOrganizationContext(owner, event.organizationId, async () => {
+				await this.skillRepositoryIndexService.sync(event.repositoryId, { mode: 'full' })
+			})
+			return
+		}
+
+		await this.runInTenantContext(owner, async () => {
 			await this.skillRepositoryIndexService.sync(event.repositoryId, { mode: 'full' })
 		})
 	}
 
-	private async ensureOrganizationSkillRepositories(
-		repositories = this.loadDefaultSkillRepositories(),
-		organizationId?: string
-	) {
+	private async ensureTenantSkillRepositories(repositories = this.loadDefaultSkillRepositories(), tenantId?: string) {
 		if (!repositories.length) {
 			return []
 		}
 
+		return this.ensureDefaultSkillRepositories(repositories, `tenant '${tenantId ?? 'unknown'}'`)
+	}
+
+	private async ensureDefaultSkillRepositories(repositories: DefaultSkillRepositoryEntry[], scopeLabel: string) {
 		const repositoryIds: string[] = []
 		for (const repository of repositories) {
 			const name = repository.name?.trim()
@@ -206,7 +188,7 @@ export class ServerAIBootstrapService {
 					where: {
 						name,
 						provider
-					} as any,
+					},
 					take: 1
 				})
 				const existing = items[0]
@@ -216,16 +198,16 @@ export class ServerAIBootstrapService {
 					provider,
 					options: repository.options ?? null,
 					credentials: repository.credentials ?? null
-				} as any)
+				})
 
 				if (saved?.id) {
 					repositoryIds.push(saved.id)
 				}
 			} catch (error) {
 				this.logger.error(
-					`Failed to initialize default skill repository '${name}' (${provider}) for organization '${
-						organizationId ?? 'unknown'
-					}': ${getErrorMessage(error)}`,
+					`Failed to initialize default skill repository '${name}' (${provider}) for ${scopeLabel}: ${getErrorMessage(
+						error
+					)}`,
 					error as Error
 				)
 			}
@@ -290,22 +272,27 @@ export class ServerAIBootstrapService {
 
 	private async resolveSyncBootstrapUser(event: {
 		tenantId: string
-		organizationId: string
+		organizationId?: string | null
 		ownerUserId?: string | null
 	}) {
 		if (event.ownerUserId) {
 			try {
 				return await this.userService.findOne(event.ownerUserId, { relations: ['role'] })
 			} catch (error) {
+				const scopeLabel = event.organizationId
+					? `organization '${event.organizationId}'`
+					: `tenant '${event.tenantId}'`
 				this.logger.warn(
-					`Failed to resolve preferred sync user '${event.ownerUserId}' for organization '${event.organizationId}': ${getErrorMessage(
-						error
-					)}`
+					`Failed to resolve preferred sync user '${event.ownerUserId}' for ${scopeLabel}: ${getErrorMessage(error)}`
 				)
 			}
 		}
 
-		return this.resolveBootstrapUser(event.organizationId).catch(() => this.resolveTenantBootstrapUser(event.tenantId))
+		if (event.organizationId) {
+			return this.resolveBootstrapUser(event.organizationId).catch(() => this.resolveTenantBootstrapUser(event.tenantId))
+		}
+
+		return this.resolveTenantBootstrapUser(event.tenantId)
 	}
 
 	private async ensureOrganizationWorkspace(organizationId: string, ownerId: string) {
@@ -651,6 +638,22 @@ export class ServerAIBootstrapService {
 					user,
 					headers: {
 						['organization-id']: organizationId,
+						language: user.preferredLanguage ?? LanguagesEnum.English
+					}
+				},
+				() => {
+					callback().then(resolve).catch(reject)
+				}
+			)
+		})
+	}
+
+	private async runInTenantContext<T>(user: IUser, callback: () => Promise<T>) {
+		return new Promise<T>((resolve, reject) => {
+			runWithRequestContext(
+				{
+					user,
+					headers: {
 						language: user.preferredLanguage ?? LanguagesEnum.English
 					}
 				},

@@ -267,7 +267,7 @@ export class ModelsComponent implements AfterViewInit {
       )
       .subscribe((model) => {
         this.refresh$.next()
-        this.router.navigate(['/models', model.id])
+        this.router.navigate(['/data', 'models', model.id])
       })
   }
 
@@ -333,7 +333,7 @@ export class ModelsComponent implements AfterViewInit {
       model = await firstValueFrom(this.modelsAPI.upload(model))
       this.modelUploading.set(false)
       this.#toastr.success('PAC.MODEL.TOASTR.ModelUpload', { Default: 'Model upload' })
-      this.router.navigate(['/models', model.id])
+      this.router.navigate(['/data', 'models', model.id])
     } catch (err) {
       this.modelUploading.set(false)
       this.#toastr.error((<HttpErrorResponse>err).statusText)

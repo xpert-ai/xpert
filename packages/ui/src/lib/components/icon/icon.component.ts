@@ -89,7 +89,7 @@ export class ZardIconComponent {
   });
 
   protected readonly classIconClasses = computed(() =>
-    mergeClasses(this.innerClasses(), this.classIconName()),
+    mergeClasses(this.innerClasses(), this.classIconName(), 'flex justify-center items-center'),
   );
 
   protected readonly resolvedIcon = computed(() => {

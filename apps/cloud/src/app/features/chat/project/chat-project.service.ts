@@ -32,9 +32,9 @@ export class ChatProjectService extends ChatService {
     )
     .subscribe(([role, paramRole]) => {
       if (role?.slug === 'common') {
-        this.#location.replaceState('/chat')
+        this.#location.replaceState('/project/' + this.projectService.id())
       } else if (role?.name && role.slug !== paramRole) {
-        this.#location.replaceState('/chat/x/' + role.slug)
+        this.#location.replaceState('/project/' + this.projectService.id() + '/x/' + role.slug)
       }
 
       if (!this.conversationId()) {
@@ -55,14 +55,14 @@ export class ChatProjectService extends ChatService {
     .subscribe((id) => {
       if (this.xpert()?.slug) {
         if (id) {
-          this.#location.replaceState('/chat/p/' + this.projectService.id() + '/x/' + this.xpert().slug + '/c/' + id)
+          this.#location.replaceState('/project/' + this.projectService.id() + '/x/' + this.xpert().slug + '/c/' + id)
         } else {
-          this.#location.replaceState('/chat/p/' + this.projectService.id() + '/x/' + this.xpert().slug)
+          this.#location.replaceState('/project/' + this.projectService.id() + '/x/' + this.xpert().slug)
         }
       } else if (id) {
-        this.#location.replaceState('/chat/p/' + this.projectService.id() + '/c/' + id)
+        this.#location.replaceState('/project/' + this.projectService.id() + '/c/' + id)
       } else {
-        this.#location.replaceState('/chat/p/' + this.projectService.id())
+        this.#location.replaceState('/project/' + this.projectService.id())
       }
       this.homeService.conversationId.set(id)
     })
@@ -84,9 +84,9 @@ export class ChatProjectService extends ChatService {
     this.conversationId.set(null)
     this.conversation.set(null)
     if (xpert?.slug) {
-      this.#router.navigate(['/chat/p', this.project().id, 'x', xpert.slug])
+      this.#router.navigate(['/project', this.project().id, 'x', xpert.slug])
     } else {
-      this.#router.navigate(['/chat/p', this.project().id])
+      this.#router.navigate(['/project', this.project().id])
     }
   }
 

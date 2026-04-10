@@ -1,9 +1,0 @@
-@reference "../../../../styles/tailwind-reference.css";
-
-:host {
-  @apply w-full relative flex flex-col border-l border-divider-deep overflow-auto bg-background-body;
-}
-
-.category-option.active {
-  @apply bg-components-card-bg border-divider-deep text-primary-600 shadow-sm;
-}

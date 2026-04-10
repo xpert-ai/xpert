@@ -83,7 +83,7 @@ const PREFERENCE_TABS: PreferenceTab[] = [
             alignTabs="start"
             stretchTabs="false"
             disableRipple
-            displayDensity="cosy"
+            zSize="default"
             class="border-b border-divider-regular px-5 pt-3"
           >
             @for (tab of tabs; track tab.key) {

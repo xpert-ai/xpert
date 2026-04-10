@@ -25,11 +25,6 @@ import { TranslateModule } from '@ngx-translate/core'
 import { NgmOptionContent } from './option-content'
 import { NgmHighlightDirective } from '../directives'
 
-/**
- * You can use the following custom elements to customize the input:
- * - ngmLabel: the custom label elements of the input
- * @deprecated use headless components instead
- */
 @Component({
   standalone: true,
   imports: [
@@ -61,6 +56,12 @@ import { NgmHighlightDirective } from '../directives'
     }
   ]
 })
+/**
+ * You can use the following custom elements to customize the input:
+ * - ngmLabel: the custom label elements of the input
+ * @deprecated Use `z-form-field` + `input[z-input]` for plain inputs, or
+ * `z-form-field` + `z-combobox-deprecated` for option-backed inputs.
+ */
 export class NgmInputComponent implements ControlValueAccessor {
   readonly label = input<string>()
   readonly placeholder = input<string>()
@@ -109,7 +110,7 @@ export class NgmInputComponent implements ControlValueAccessor {
   private _onTouched: (value) => void
 
   readonly hasOptions = computed(() => !!this.options()?.length)
-  readonly comboboxOptions = computed<ZardComboboxDeprecatedOption[]>(() =>
+  readonly comboboxOptions = computed<ZardComboboxDeprecatedOption<unknown, ISelectOption>[]>(() =>
     (this.options() ?? []).map((option) => ({
       id: option.key ?? option[this.valueKey],
       label: option.caption || option.label || `${option[this.valueKey] ?? ''}`,
@@ -147,19 +148,19 @@ export class NgmInputComponent implements ControlValueAccessor {
     this.onChange(value)
   }
 
-  readonly filterOption = (option: ZardComboboxDeprecatedOption, searchTerm: string) => {
+  readonly filterOption = (option: ZardComboboxDeprecatedOption<unknown, ISelectOption>, searchTerm: string) => {
     const normalized = searchTerm?.trim().toLowerCase()
     if (!normalized) {
       return true
     }
 
-    const original = option.data as ISelectOption | undefined
+    const original = option.data
     const terms = normalized.split(' ').filter(Boolean)
     const haystack = `${original?.caption || original?.label || ''}${original?.[this.valueKey] ?? ''}`.toLowerCase()
     return terms.every((term) => haystack.includes(term))
   }
 
-  displayValue(_option: ZardComboboxDeprecatedOption | null, value: unknown) {
+  displayValue(_option: ZardComboboxDeprecatedOption<unknown, ISelectOption> | null, value: unknown) {
     return value == null ? '' : `${value}`
   }
 }

@@ -111,6 +111,8 @@ export class ChatConversationsComponent {
     return this.searchControl.value
   }
 
+  readonly #basePath = this.#data.basePath ?? '/chat'
+
   private searchSub = this.searchControl.valueChanges.pipe(debounceTime(1000), distinctUntilChanged()).subscribe(() => {
     this.resetLoadConversations()
     this.loadConversations()
@@ -131,10 +133,7 @@ export class ChatConversationsComponent {
   }
 
   selectConversation(item: IChatConversation) {
-    let basePath = this.#data.basePath ?? '/chat'
-    if (item.projectId) {
-      basePath += `/p/${item.projectId}`
-    }
+    const basePath = item.projectId ? this.getProjectBasePath(item.projectId) : this.#basePath
     if (this.xpertSlug()) {
       this.#router.navigate([basePath, 'x', this.xpertSlug(), 'c', item.id])
     } else {
@@ -144,11 +143,7 @@ export class ChatConversationsComponent {
   }
 
   newConversation() {
-    let url = this.#data.basePath ?? '/chat'
-
-    if (this.projectId()) {
-      url += `/p/${this.projectId()}`
-    }
+    let url = this.projectId() ? this.getProjectBasePath(this.projectId()) : this.#basePath
 
     if (this.xpertSlug()) {
       url += `/x/${this.xpertSlug()}`
@@ -162,6 +157,10 @@ export class ChatConversationsComponent {
 
   closeDialog() {
     this.#dialogRef.close()
+  }
+
+  private getProjectBasePath(projectId: string) {
+    return this.#basePath === '/project' ? `/project/${projectId}` : `${this.#basePath}/p/${projectId}`
   }
 
   deleteConv(id: string) {

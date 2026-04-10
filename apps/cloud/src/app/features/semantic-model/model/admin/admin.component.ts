@@ -179,7 +179,7 @@ export class ModelAdminComponent extends TranslationBaseComponent {
         next: () => {
           this.loading.set(false)
           this.#toastr.success('PAC.MODEL.TOASTR.ModelDelete', { Default: 'Model delete' })
-          this.#router.navigate(['/models'])
+          this.#router.navigate(['/data', 'models'])
         },
         error: (err) => {
           this.loading.set(false)

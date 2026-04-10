@@ -59,6 +59,7 @@
       },
       "USERS": "Users",
       "FEATURES": "Features",
+      "Data": "Data",
       "TENANT": {
         "TITLE": "Tenant"
       }

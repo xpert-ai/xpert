@@ -397,6 +397,41 @@ export class XpertController extends CrudController<Xpert> {
         return this.service.findAllMemory(id, _types)
     }
 
+    @UseGuards(XpertGuard)
+    @Get(':id/memory/files')
+    async getMemoryFiles(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('deepth') deepth: number,
+        @Query('path') path: string,
+        @Query('workspaceId') _workspaceId?: string
+    ) {
+        return await this.service.getMemoryFiles(id, path, deepth)
+    }
+
+    @UseGuards(XpertGuard)
+    @Get(':id/memory/file')
+    async getMemoryFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Query('path') path: string,
+        @Query('workspaceId') _workspaceId?: string
+    ) {
+        return await this.service.getMemoryFile(id, path)
+    }
+
+    @UseGuards(XpertGuard)
+    @Put(':id/memory/file')
+    async saveMemoryFile(
+        @Param('id', UUIDValidationPipe) id: string,
+        @Body()
+        body: {
+            path: string
+            content: string
+            workspaceId?: string | null
+        }
+    ) {
+        return await this.service.saveMemoryFile(id, body?.path, body?.content ?? '')
+    }
+
     @Post(':id/memory/bulk')
     async createBulkMemory(
         @Param('id') id: string,

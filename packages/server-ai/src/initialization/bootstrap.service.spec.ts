@@ -115,6 +115,10 @@ describe('ServerAIBootstrapService', () => {
       }),
       register: jest.fn().mockResolvedValue({
         id: 'repo-1'
+      }),
+      ensureWorkspacePublicRepository: jest.fn().mockResolvedValue({
+        id: 'repo-public',
+        provider: 'workspace-public'
       })
     }
     const skillRepositoryIndexService = {
@@ -175,6 +179,7 @@ describe('ServerAIBootstrapService', () => {
       tenantId: 'tenant-1'
     } as any)
 
+    expect(skillRepositoryService.ensureWorkspacePublicRepository).toHaveBeenCalledTimes(1)
     expect(skillRepositoryService.findAll).not.toHaveBeenCalled()
     expect(skillRepositoryService.register).not.toHaveBeenCalled()
     expect(environmentService.getDefaultByWorkspace).toHaveBeenCalledWith('workspace-1')
@@ -376,11 +381,7 @@ connections: []`
     } as any)
 
     expect(userService.getAdminUsers).toHaveBeenCalledWith('tenant-1')
-    expect(organizationService.findAll).toHaveBeenCalledWith({
-      where: {
-        tenantId: 'tenant-1'
-      }
-    })
+    expect(organizationService.findAll).not.toHaveBeenCalled()
     expect(skillRepositoryService.findAll).toHaveBeenCalledWith({
       where: {
         name: 'anthropics/skills',
@@ -398,12 +399,7 @@ connections: []`
       credentials: null
     })
     expect(result).toEqual({
-      repositories: [
-        {
-          organizationId: 'org-1',
-          repositoryId: 'repo-1'
-        }
-      ]
+      repositoryIds: ['repo-1']
     })
   })
 
@@ -437,12 +433,7 @@ connections: []`
       },
       credentials: null
     })
-    expect(result.repositories).toEqual([
-      {
-        organizationId: 'org-1',
-        repositoryId: 'repo-1'
-      }
-    ])
+    expect(result.repositoryIds).toEqual(['repo-1'])
   })
 
   it('supports env JSON arrays for default repositories during tenant bootstrap', async () => {
@@ -474,12 +465,7 @@ connections: []`
       },
       credentials: null
     })
-    expect(result.repositories).toEqual([
-      {
-        organizationId: 'org-1',
-        repositoryId: 'repo-1'
-      }
-    ])
+    expect(result.repositoryIds).toEqual(['repo-1'])
   })
 
   it('continues initializing later repositories when one default repository fails', async () => {
@@ -538,12 +524,7 @@ connections: []`
       },
       credentials: null
     })
-    expect(result.repositories).toEqual([
-      {
-        organizationId: 'org-1',
-        repositoryId: 'repo-2'
-      }
-    ])
+    expect(result.repositoryIds).toEqual(['repo-2'])
   })
 
   it('ignores invalid env JSON and skips repository registration during tenant bootstrap', async () => {
@@ -561,7 +542,7 @@ connections: []`
     expect(organizationService.findAll).not.toHaveBeenCalled()
     expect(skillRepositoryService.findAll).not.toHaveBeenCalled()
     expect(skillRepositoryService.register).not.toHaveBeenCalled()
-    expect(result.repositories).toEqual([])
+    expect(result.repositoryIds).toEqual([])
   })
 
   it('bootstraps a personal workspace for non-super-admin members', async () => {

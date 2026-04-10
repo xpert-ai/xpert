@@ -40,6 +40,9 @@ export type ZardFormFieldColor = 'primary' | 'accent' | 'warn' | string | null |
 export class ZardFormFieldComponent {
   readonly class = input<ClassValue>('');
   readonly appearance = input<ZardFormFieldAppearance>('fill');
+  /**
+   * @deprecated use zSize instead.
+   */
   readonly displayDensity = input<ZardFormFieldDisplayDensity>('comfortable');
   readonly floatLabel = input<ZardFormFieldFloatLabel>('auto');
   readonly color = input<ZardFormFieldColor>(null);

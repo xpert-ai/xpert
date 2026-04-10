@@ -3,8 +3,14 @@
   @apply w-full flex flex-col;
 }
 
+.pac-formly-input__control--error {
+  [role='combobox'] {
+    @apply border-destructive focus-visible:ring-destructive;
+  }
+}
+
 :host ::ng-deep {
-  .ngm-input-label::after {
+  .pac-formly-input__label::after {
     content: none !important;
   }
 }

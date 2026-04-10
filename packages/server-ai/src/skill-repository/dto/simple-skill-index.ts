@@ -1,7 +1,7 @@
 import { ISkillRepository, ISkillRepositoryIndex, ISkillRepositoryIndexPublisher, ISkillRepositoryIndexStats } from '@metad/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { Exclude, Expose, Transform } from 'class-transformer'
-import { IsDateString, IsObject, IsOptional, IsString, IsUUID } from 'class-validator'
+import { IsArray, IsDateString, IsObject, IsOptional, IsString, IsUUID } from 'class-validator'
 import { SimpleSkillRepositoryDTO } from './simple-skill-repository.dto'
 
 @Exclude()
@@ -105,6 +105,17 @@ export class SimpleSkillIndexDto implements ISkillRepositoryIndex {
 	@IsOptional()
 	@IsString()
 	type?: string
+
+	@Expose()
+	@ApiProperty({
+		description: 'Skill tags',
+		required: false,
+		type: [String]
+	})
+	@IsOptional()
+	@IsArray()
+	@IsString({ each: true })
+	tags?: string[]
 
 	@Expose()
 	@ApiProperty({

@@ -381,7 +381,7 @@ export class CubeStudioComponent {
 
   openModelInNewTab() {
     const url = this.#router
-      .createUrlTree(['/models', this.#studioService.model().id, 'cube', this.cube().__id__])
+      .createUrlTree(['/data', 'models', this.#studioService.model().id, 'cube', this.cube().__id__])
       .toString()
     window.open(url, '_blank')
   }

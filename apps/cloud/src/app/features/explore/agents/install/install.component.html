@@ -1,0 +1,72 @@
+<div class="mb-9 truncate text-xl font-semibold leading-[30px] text-text-primary">
+  {{
+    'PAC.Xpert.CreateXpertFromTemplate'
+      | translate
+        : {
+            Default: 'Create a digital expert from template ' + originName,
+            value: originName
+          }
+  }}
+</div>
+
+<div class="relative mb-9">
+  <div class="pt-2">
+    <div class="py-2 text-sm font-medium leading-[20px] text-text-primary">
+      {{ 'PAC.KEY_WORDS.Workspace' | translate: { Default: 'Workspace' } }}
+    </div>
+    <z-select
+      class="w-full"
+      [zValue]="workspace()"
+      [zPlaceholder]="'PAC.Xpert.SelectAWorkspace' | translate: { Default: 'Select a workspace' }"
+      (zSelectionChange)="selectWorkspace($event)"
+    >
+      @for (workspaceOption of workspaceOptions(); track workspaceOption.value) {
+        <z-select-item [zValue]="workspaceOption.value">
+          {{ workspaceOption.label }}
+        </z-select-item>
+      }
+    </z-select>
+
+    <a
+      [routerLink]="['/xpert/w']"
+      target="_blank"
+      rel="noopener noreferrer"
+      class="inline-flex items-center p-1 text-xs !text-primary-400 hover:!text-primary-600"
+    >
+      {{ 'PAC.Xpert.HowtoCreate' | translate: { Default: 'How to create' } }}
+      <i class="ri-external-link-line"></i>
+    </a>
+  </div>
+
+  <xpert-basic-form
+    #basicForm
+    [(name)]="name"
+    [(avatar)]="avatar"
+    [(description)]="description"
+    [(title)]="title"
+    [(copilotModel)]="copilotModel"
+  />
+
+  @if (loading()) {
+    <ngm-spin class="absolute left-0 top-0 h-full w-full"></ngm-spin>
+  }
+</div>
+
+<div class="flex flex-row-reverse">
+  <button
+    type="button"
+    class="btn btn-primary btn-large ml-2 w-24 justify-center disabled:btn-disabled"
+    [disabled]="!workspace() || basicForm.invalid() || loading()"
+    (click)="create()"
+  >
+    {{ 'PAC.Xpert.Create' | translate: { Default: 'Create' } }}
+  </button>
+  <button
+    type="button"
+    class="btn btn-secondary btn-large w-24 justify-center disabled:btn-disabled"
+    [disabled]="loading()"
+    (click)="close()"
+  >
+    {{ 'PAC.Xpert.Cancel' | translate: { Default: 'Cancel' } }}
+  </button>
+</div>

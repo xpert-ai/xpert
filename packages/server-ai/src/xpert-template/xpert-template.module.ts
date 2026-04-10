@@ -1,8 +1,10 @@
 import { TenantModule } from '@metad/server-core'
-import { forwardRef, Module } from '@nestjs/common'
+import { Module } from '@nestjs/common'
 import { TypeOrmModule } from '@nestjs/typeorm'
 import { CqrsModule } from '@nestjs/cqrs'
 import { RouterModule } from '@nestjs/core'
+import { SkillRepositoryModule } from '../skill-repository/skill-repository.module'
+import { SkillRepositoryIndexModule } from '../skill-repository/repository-index/skill-repository-index.module'
 import { XpertTemplateService } from './xpert-template.service'
 import { XpertTemplateController } from './xpert-template.controller'
 import { XpertTemplate } from './xpert-template.entity'
@@ -14,6 +16,8 @@ import { XpertTemplate } from './xpert-template.entity'
 		TypeOrmModule.forFeature([ XpertTemplate ]),
 		TenantModule,
 		CqrsModule,
+		SkillRepositoryModule,
+		SkillRepositoryIndexModule,
 	],
 	controllers: [XpertTemplateController],
 	providers: [XpertTemplateService,],

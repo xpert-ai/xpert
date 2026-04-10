@@ -2,6 +2,7 @@ import type { IIntegration } from '@metad/contracts'
 import { Controller, Get, Logger, Query, Res, SetMetadata } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { ModuleRef } from '@nestjs/core'
+import { VIEW_EXTENSION_CACHE_SERVICE_TOKEN } from '@xpert-ai/plugin-sdk'
 import { DataSource } from 'typeorm'
 import type { Response } from 'express'
 import {
@@ -207,14 +208,7 @@ function parseIntegrationOptions(value: unknown): IIntegration['options'] {
 }
 
 function getViewExtensionCacheToken(): string | symbol | Function | null {
-  try {
-    const serverCore = require('@metad/server-core') as {
-      ViewExtensionCacheService?: string | symbol | Function
-    }
-    return serverCore.ViewExtensionCacheService ?? null
-  } catch {
-    return null
-  }
+  return VIEW_EXTENSION_CACHE_SERVICE_TOKEN
 }
 
 function isObject(value: unknown): value is object {

@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
-import { ViewExtensionProviderRegistry } from '@xpert-ai/plugin-sdk'
+import { VIEW_EXTENSION_CACHE_SERVICE_TOKEN, ViewExtensionProviderRegistry } from '@xpert-ai/plugin-sdk'
 import { IntegrationModule } from '../integration/integration.module'
 import { IntegrationViewHostDefinition } from './hosts/integration-view-host.definition'
 import { ViewHostDefinitionRegistry } from './host-definition.registry'
@@ -23,6 +23,7 @@ import { ViewExtensionService } from './view-extension.service'
     ViewHostDefinitionRegistry,
     ViewExtensionPermissionService,
     ViewExtensionCacheService,
+    { provide: VIEW_EXTENSION_CACHE_SERVICE_TOKEN, useExisting: ViewExtensionCacheService },
     ViewExtensionService,
     IntegrationViewHostDefinition,
     IntegrationViewHostCacheSubscriber
@@ -31,6 +32,7 @@ import { ViewExtensionService } from './view-extension.service'
     ViewHostDefinitionRegistry,
     ViewExtensionService,
     ViewExtensionCacheService,
+    VIEW_EXTENSION_CACHE_SERVICE_TOKEN,
     ViewExtensionPermissionService
   ]
 })

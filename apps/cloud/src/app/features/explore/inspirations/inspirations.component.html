@@ -1,0 +1,184 @@
+<section class="relative min-h-[420px]">
+  @if (loading()) {
+    <div class="flex min-h-[420px] items-center justify-center rounded-[28px] border border-divider-regular bg-components-card-bg">
+      <div class="text-sm text-text-tertiary">
+        @if (mode() === 'mine') {
+          {{ 'PAC.Explore.LoadingMyInspirations' | translate: { Default: '正在加载我的灵感资产...' } }}
+        } @else {
+          {{ 'PAC.Explore.LoadingInspirations' | translate: { Default: '正在加载灵感模板...' } }}
+        }
+      </div>
+    </div>
+  } @else if (mode() === 'mine' && myItems().length) {
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      @for (item of myItems(); track item.id) {
+        <article
+          class="flex h-full cursor-pointer flex-col overflow-hidden rounded-[24px] border border-divider-regular bg-components-card-bg shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg"
+          role="button"
+          tabindex="0"
+          (click)="openMineItem(item)"
+          (keydown)="onMineCardKeydown($event, item)"
+        >
+          <div class="flex items-start gap-3 border-b border-divider-regular px-5 py-5">
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle">
+              <emoji-avatar [avatar]="item.avatar" />
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <div class="line-clamp-2 text-lg font-semibold text-text-primary">
+                {{ item.name }}
+              </div>
+              <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-tertiary">
+                <span class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+                  <i class="ri-database-2-line"></i>
+                  {{ 'PAC.Explore.InMyWorkspace' | translate: { Default: '已在工作区中' } }}
+                </span>
+                @if (item.pipelineId) {
+                  <span class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+                    <i class="ri-flow-chart"></i>
+                    {{ 'PAC.Explore.BoundPipeline' | translate: { Default: '已绑定 Pipeline' } }}
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-1 flex-col px-5 py-4">
+            <p class="line-clamp-4 min-h-[96px] text-sm leading-6 text-text-tertiary">
+              {{ item.description || ('PAC.Explore.InspirationDescriptionFallback' | translate: { Default: '该灵感资产暂未提供更多说明。' }) }}
+            </p>
+
+            <div class="mt-4 grid gap-3 rounded-2xl bg-background-default-subtle px-4 py-4 text-sm text-text-secondary">
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-text-tertiary">
+                  {{ 'PAC.Explore.Creator' | translate: { Default: '创建者' } }}
+                </span>
+                <span class="truncate text-right text-text-primary">
+                  {{ creatorName(item) }}
+                </span>
+              </div>
+              <div class="flex items-center justify-between gap-3">
+                <span class="text-text-tertiary">
+                  {{ 'PAC.Explore.Documents' | translate: { Default: '文档数' } }}
+                </span>
+                <span class="text-text-primary">
+                  {{ item.documentNum ?? 0 }}
+                </span>
+              </div>
+            </div>
+
+            <div class="mt-5 flex items-center justify-between gap-3">
+              <div class="text-xs text-text-quaternary">
+                {{ item.updatedAt || item.createdAt | date: 'yyyy-MM-dd' }}
+              </div>
+              <button type="button" class="btn btn-secondary btn-small shrink-0" (click)="openMineWorkspace($event)">
+                {{ 'PAC.Explore.OpenWorkspaceInspirations' | translate: { Default: '打开工作区灵感' } }}
+              </button>
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  } @else if (mode() !== 'mine' && items().length) {
+    <div class="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4">
+      @for (item of items(); track item.id) {
+        <article class="flex h-full flex-col overflow-hidden rounded-[24px] border border-divider-regular bg-components-card-bg shadow-sm transition-all hover:-translate-y-0.5 hover:shadow-lg">
+          <div class="flex items-start gap-3 border-b border-divider-regular px-5 py-5">
+            <div class="flex h-12 w-12 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-divider-regular bg-background-default-subtle">
+              @if (item.icon) {
+                <xp-icon [icon]="item.icon" size="32" />
+              } @else {
+                <i class="ri-lightbulb-flash-line text-xl text-text-tertiary"></i>
+              }
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <div class="line-clamp-2 text-lg font-semibold text-text-primary">
+                {{ item.title || item.name }}
+              </div>
+              <div class="mt-2 flex flex-wrap items-center gap-2 text-xs text-text-tertiary">
+                @if (item.author) {
+                  <span class="inline-flex items-center gap-1 rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+                    <i class="ri-user-smile-line"></i>
+                    {{ item.author }}
+                  </span>
+                }
+                @if (item.category) {
+                  <span class="inline-flex items-center rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1">
+                    {{ item.category }}
+                  </span>
+                }
+              </div>
+            </div>
+          </div>
+
+          <div class="flex flex-1 flex-col px-5 py-4">
+            <p class="line-clamp-4 min-h-[96px] text-sm leading-6 text-text-tertiary">
+              {{ item.description }}
+            </p>
+
+            @if (item.tags?.length) {
+              <div class="mt-4 flex flex-wrap gap-2">
+                @for (tag of item.tags ?? []; track tag) {
+                  <span class="rounded-full border border-divider-regular bg-background-default-subtle px-2.5 py-1 text-xs font-medium text-text-secondary">
+                    #{{ tag }}
+                  </span>
+                }
+              </div>
+            }
+
+            <div class="mt-5 border-t border-divider-regular pt-4 text-xs leading-5 text-text-quaternary">
+              {{
+                'PAC.Explore.InspirationBrowseOnly'
+                  | translate
+                    : {
+                        Default: 'V1 先提供浏览与筛选入口，后续会补充更完整的安装和沉淀流程。'
+                      }
+              }}
+            </div>
+          </div>
+        </article>
+      }
+    </div>
+  } @else {
+    <div class="flex min-h-[420px] items-center justify-center rounded-[28px] border border-dashed border-divider-regular bg-components-card-bg px-6 text-center">
+      <div class="max-w-lg">
+        <div class="text-4xl text-text-tertiary">
+          <i class="ri-lightbulb-line"></i>
+        </div>
+        @if (mode() === 'mine') {
+          <h3 class="mt-4 text-xl font-semibold text-text-primary">
+            {{ 'PAC.Explore.NoMyInspirations' | translate: { Default: '当前默认工作区还没有灵感资产' } }}
+          </h3>
+          <p class="mt-2 text-sm leading-6 text-text-tertiary">
+            {{
+              'PAC.Explore.NoMyInspirationsHint'
+                | translate
+                  : {
+                      Default: '可以先在默认工作区中创建知识库或沉淀灵感内容，后续这里会自动展示。'
+                    }
+            }}
+          </p>
+          <div class="mt-6 flex justify-center">
+            <button type="button" class="btn btn-secondary btn-medium" (click)="openMineWorkspace()">
+              {{ 'PAC.Explore.OpenWorkspaceInspirations' | translate: { Default: '打开工作区灵感' } }}
+            </button>
+          </div>
+        } @else {
+          <h3 class="mt-4 text-xl font-semibold text-text-primary">
+            {{ 'PAC.Explore.NoInspirations' | translate: { Default: '当前暂无可展示的灵感模板' } }}
+          </h3>
+          <p class="mt-2 text-sm leading-6 text-text-tertiary">
+            {{
+              'PAC.Explore.NoInspirationsHint'
+                | translate
+                  : {
+                      Default: '当前语言下还没有对应的灵感市集内容，后续可以继续补充更多 pipeline 模板。'
+                    }
+            }}
+          </p>
+        }
+      </div>
+    </div>
+  }
+</section>

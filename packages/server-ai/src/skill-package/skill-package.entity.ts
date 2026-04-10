@@ -22,6 +22,12 @@ export class SkillPackage extends WorkspaceBaseEntity implements ISkillPackage {
 	@Column({ nullable: true })
 	packagePath?: string
 
+	@Column({ nullable: true })
+	sharedSkillId?: string
+
+	@Column({ nullable: true })
+	sharedPackagePath?: string
+
 	@Column({ type: 'json', nullable: true })
 	metadata: SkillMetadata
 

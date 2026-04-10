@@ -1,6 +1,6 @@
-import { IUser, IUserOrganization, RolesEnum } from '@metad/contracts';
+import { IUser, IUserOrganization, IUserOrganizationPreferences, RolesEnum } from '@metad/contracts';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { BadRequestException, Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { DeepPartial, DeleteResult, FindOneOptions, FindOptionsWhere, Repository } from 'typeorm';
 import { TenantAwareCrudService } from './../core/crud';
@@ -136,6 +136,59 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 
 	private pickNextDefaultMembership(memberships: UserOrganization[]) {
 		return memberships.find((membership) => membership.isActive) ?? memberships[0] ?? null
+	}
+
+	async findMembershipByUserAndOrganization({
+		organizationId,
+		tenantId,
+		userId
+	}: {
+		organizationId: string
+		tenantId?: string
+		userId: string
+	}) {
+		return this.repository.findOne({
+			where: {
+				organizationId,
+				tenantId: this.currentTenantId(tenantId),
+				userId
+			}
+		})
+	}
+
+	async findCurrentUserMembership() {
+		const userId = RequestContext.currentUserId()
+		const organizationId = RequestContext.getOrganizationId()
+
+		if (!userId || !organizationId) {
+			return null
+		}
+
+		return this.findMembershipByUserAndOrganization({
+			organizationId,
+			userId
+		})
+	}
+
+	async getCurrentUserDefaultWorkspaceId() {
+		const membership = await this.findCurrentUserMembership()
+		return membership?.preferences?.defaultWorkspaceId ?? null
+	}
+
+	async setCurrentUserDefaultWorkspaceId(defaultWorkspaceId: string | null) {
+		const membership = await this.findCurrentUserMembership()
+
+		if (!membership) {
+			throw new NotFoundException('Current organization membership was not found.')
+		}
+
+		if (membership.preferences?.defaultWorkspaceId === defaultWorkspaceId) {
+			return membership
+		}
+
+		return this.update(membership.id, {
+			preferences: updateUserOrganizationPreferences(membership.preferences, defaultWorkspaceId)
+		})
 	}
 
 	private async prepareCreateEntity(
@@ -329,5 +382,15 @@ export class UserOrganizationService extends TenantAwareCrudService<UserOrganiza
 		}
 
 		return memberships;
+	}
+}
+
+function updateUserOrganizationPreferences(
+	preferences: IUserOrganizationPreferences | null | undefined,
+	defaultWorkspaceId: string | null
+): IUserOrganizationPreferences {
+	return {
+		...(preferences ?? {}),
+		defaultWorkspaceId
 	}
 }

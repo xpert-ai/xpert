@@ -33,6 +33,7 @@ This repo uses NestJS + TypeORM on the server and Angular 17 (standalone, signal
 - Use translate for text in html.
 - Support light/dark modes via Tailwind CSS classes, No hard-coded color classes or color literals introduced.
 - Prefer using JavaScript's async/await functionality over RxJS.
+- Prefer using the inject() function over constructor parameter injection.
 
 ### Class Binding Rule
 

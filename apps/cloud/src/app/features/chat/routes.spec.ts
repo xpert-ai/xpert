@@ -39,22 +39,6 @@ jest.mock('./tasks/tasks.component', () => ({
   ChatTasksComponent: class ChatTasksComponent {}
 }))
 
-jest.mock('./projects/projects.component', () => ({
-  ChatProjectsComponent: class ChatProjectsComponent {}
-}))
-
-jest.mock('./project/home/home.component', () => ({
-  ChatProjectHomeComponent: class ChatProjectHomeComponent {}
-}))
-
-jest.mock('./project/conversation/conversation.component', () => ({
-  ChatProjectConversationComponent: class ChatProjectConversationComponent {}
-}))
-
-jest.mock('./project/project.component', () => ({
-  ChatProjectComponent: class ChatProjectComponent {}
-}))
-
 jest.mock('./home/home.component', () => ({
   ChatHomeComponent: class ChatHomeComponent {}
 }))
@@ -85,6 +69,11 @@ describe('chat routes', () => {
     const route = children.find((item) => item.path === 'c/:id')
 
     expect(route?.component).toBe(ChatXpertComponent)
+  })
+
+  it('removes chat project routes from /chat', () => {
+    expect(children.some((item) => item.path === 'p')).toBe(false)
+    expect(children.some((item) => item.path === 'p/:id')).toBe(false)
   })
 
   it('routes /chat/clawxpert to the ClawXpert page', () => {

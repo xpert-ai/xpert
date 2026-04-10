@@ -1,21 +1,19 @@
 import { Component, effect, inject } from '@angular/core'
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms'
 import { BusinessAreasService, ToastrService } from '@metad/cloud/state'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
 import { pick } from '@metad/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
+import { ZardButtonComponent, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
 import { firstValueFrom } from 'rxjs'
 import { EditBusinessAreaComponent } from '../business-area/business-area.component'
-import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
-import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 
 @Component({
   standalone: true,
   selector: 'pac-area-info-form',
   templateUrl: './area-info-form.component.html',
-  imports: [SharedUiModule, TranslateModule, ReactiveFormsModule, NgmCommonModule]
+  imports: [TranslateModule, ReactiveFormsModule, ...ZardFormImports, ZardInputDirective, ZardButtonComponent]
 })
-export class BusinessAreaInfoFormComponent extends TranslationBaseComponent {
+export class BusinessAreaInfoFormComponent {
   private readonly businessAreasService = inject(BusinessAreasService)
   private readonly businessAreaComponent = inject(EditBusinessAreaComponent)
   private readonly _toastrService = inject(ToastrService)
@@ -30,8 +28,6 @@ export class BusinessAreaInfoFormComponent extends TranslationBaseComponent {
   }
 
   constructor() {
-    super()
-
     effect(() => {
       this.form.patchValue(this.businessAreaComponent.businessArea())
       this.form.markAsPristine()

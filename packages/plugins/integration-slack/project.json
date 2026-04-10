@@ -26,7 +26,6 @@
         "format": ["cjs", "esm"],
         "external": [
           "@metad/contracts",
-          "@metad/server-core",
           "@nestjs/config",
           "@nestjs/common",
           "@nestjs/core",
