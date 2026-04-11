@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
-import { EntityCapacity } from '@metad/ocap-angular/entity'
-import { DataSettingsSchemaService, FORMLY_W_1_2, IntentNavigation } from '@metad/story/designer'
+import { EntityCapacity } from '@xpert-ai/ocap-angular/entity'
+import { DataSettingsSchemaService, FORMLY_W_1_2, IntentNavigation } from '@xpert-ai/story/designer'
 import { map } from 'rxjs/operators'
 
 @Injectable()

@@ -10,13 +10,13 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { BusinessAreasService, hierarchizeBusinessAreas, NgmSemanticModel } from '@metad/cloud/state'
-import { nonBlank, nonNullable } from '@metad/core'
-import { NgmAdvancedSelectComponent, NgmHierarchySelectComponent } from '@metad/ocap-angular/common'
-import { ISelectOption, NgmDSCoreService, NgmFieldAppearance } from '@metad/ocap-angular/core'
-import { NgmCalculatedMeasureComponent } from '@metad/ocap-angular/entity'
-import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
+import { BusinessAreasService, hierarchizeBusinessAreas, NgmSemanticModel } from '@xpert-ai/cloud/state'
+import { nonBlank, nonNullable } from '@xpert-ai/core'
+import { NgmAdvancedSelectComponent, NgmHierarchySelectComponent } from '@xpert-ai/ocap-angular/common'
+import { ISelectOption, NgmDSCoreService, NgmFieldAppearance } from '@xpert-ai/ocap-angular/core'
+import { NgmCalculatedMeasureComponent } from '@xpert-ai/ocap-angular/entity'
+import { NgmSelectionModule, SlicersCapacity } from '@xpert-ai/ocap-angular/selection'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
 import {
   ISlicer,
   Indicator,
@@ -26,7 +26,7 @@ import {
   getEntityMeasures,
   isEntityType,
   isSemanticCalendar
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ISemanticModel, ITag, registerModel, TagCategoryEnum } from 'apps/cloud/src/app/@core'
 import { format, parseISO } from 'date-fns'

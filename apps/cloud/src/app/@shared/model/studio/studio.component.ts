@@ -26,9 +26,9 @@ import {
   FFlowModule,
   FZoomDirective
 } from '@foblex/flow'
-import { SemanticModelServerService, TSemanticModelDraft } from '@metad/cloud/state'
-import { attrModel, linkedModel, NgmOcapCoreService } from '@metad/ocap-angular/core'
-import { CalculationProperty, DeepPartial, isEntityType, ParameterProperty, Schema, Syntax } from '@metad/ocap-core'
+import { SemanticModelServerService, TSemanticModelDraft } from '@xpert-ai/cloud/state'
+import { attrModel, linkedModel, NgmOcapCoreService } from '@xpert-ai/ocap-angular/core'
+import { CalculationProperty, DeepPartial, isEntityType, ParameterProperty, Schema, Syntax } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IPoint } from '@foblex/2d'
 import { suuid } from '@cloud/app/@core'
@@ -43,9 +43,9 @@ import { layoutCubeGraph } from './layout'
 import { ModelStudioService } from '../model.service'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { filter, switchMap } from 'rxjs/operators'
-import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
+import { NgmCalculationEditorComponent } from '@xpert-ai/ocap-angular/entity'
 import { Dialog } from '@angular/cdk/dialog'
-import { NgmParameterCreateComponent } from '@metad/ocap-angular/parameter'
+import { NgmParameterCreateComponent } from '@xpert-ai/ocap-angular/parameter'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({

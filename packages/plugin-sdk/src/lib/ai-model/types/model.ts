@@ -1,5 +1,5 @@
 import { BaseChatModel } from "@langchain/core/language_models/chat_models";
-import { AIModelEntity, ICopilot, ICopilotModel, ILLMUsage, ParameterType, PriceInfo, PriceType } from "@metad/contracts"
+import { AIModelEntity, ICopilot, ICopilotModel, ILLMUsage, ParameterType, PriceInfo, PriceType } from "@xpert-ai/contracts"
 
 
 export type TChatModelOptions = {

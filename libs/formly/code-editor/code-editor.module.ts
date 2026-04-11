@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common'
 import { NgModule } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 
-import { AppearanceDirective } from '@metad/ocap-angular/core'
+import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
 import { FormlyModule } from '@ngx-formly/core'
 import { PACFormlyCodeEditorComponent } from './code-editor.component'
 import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'

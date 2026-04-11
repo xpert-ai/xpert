@@ -1,7 +1,7 @@
 import { Controller, Get } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
-import { TENANT_AGENT_LOCAL_URL } from '@metad/contracts'
-import { TenantSettingService } from '@metad/server-core'
+import { TENANT_AGENT_LOCAL_URL } from '@xpert-ai/contracts'
+import { TenantSettingService } from '@xpert-ai/server-core'
 
 @ApiTags('Agent')
 @ApiBearerAuth()

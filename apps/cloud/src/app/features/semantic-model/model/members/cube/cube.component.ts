@@ -2,9 +2,9 @@ import { CommonModule } from '@angular/common'
 import { Component, computed, effect, inject, model, signal, viewChild, ViewContainerRef } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { SemanticModelServerService } from '@metad/cloud/state'
-import { CdkConfirmDeleteComponent, NgmCheckboxComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { SemanticModelServerService } from '@xpert-ai/cloud/state'
+import { CdkConfirmDeleteComponent, NgmCheckboxComponent } from '@xpert-ai/ocap-angular/common'
+import { AppearanceDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import {
   Cube,
   EntityType,
@@ -12,7 +12,7 @@ import {
   Property,
   getEntityDimensions,
   getEntityProperty
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ISemanticModelEntity,
@@ -25,7 +25,7 @@ import {
 import { EMPTY, Subject, catchError, debounceTime, switchMap, tap } from 'rxjs'
 import { Dialog } from '@angular/cdk/dialog'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { NgmValueHelpComponent } from '@metad/ocap-angular/controls'
+import { NgmValueHelpComponent } from '@xpert-ai/ocap-angular/controls'
 import { SemanticModelService } from '../../model.service'
 import { ModelMembersRetrievalTestingComponent } from '../retrieval/retrieval.component'
 import { ModelTaskDialogComponent } from '../task/task.component'

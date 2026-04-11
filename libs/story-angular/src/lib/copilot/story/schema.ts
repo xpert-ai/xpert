@@ -1,9 +1,9 @@
-import { DimensionSchema, MeasureSchema } from '@metad/core'
-import { WidgetComponentType } from '@metad/story/core'
+import { DimensionSchema, MeasureSchema } from '@xpert-ai/core'
+import { WidgetComponentType } from '@xpert-ai/story/core'
 import { z } from 'zod'
 import zodToJsonSchema from 'zod-to-json-schema'
-import { CopilotDefaultOptions } from '@metad/copilot'
-import { StoryPageSchema, StoryWidgetSchema } from '@metad/story/story'
+import { CopilotDefaultOptions } from '@xpert-ai/copilot'
+import { StoryPageSchema, StoryWidgetSchema } from '@xpert-ai/story/story'
 
 export const StoryPagesSchema = z.object({
   pages: z.array(

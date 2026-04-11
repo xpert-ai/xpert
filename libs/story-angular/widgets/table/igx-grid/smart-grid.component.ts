@@ -11,7 +11,7 @@ import {
   Output,
   ViewChild
 } from '@angular/core'
-import { Semantics } from '@metad/ocap-core'
+import { Semantics } from '@xpert-ai/ocap-core'
 import {
   AbstractStoryWidget,
   Intent,
@@ -21,8 +21,8 @@ import {
   Semantic,
   TableColumn,
   WidgetService
-} from '@metad/core'
-import { NxSettingsPanelService } from '@metad/story/designer'
+} from '@xpert-ai/core'
+import { NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { isDate } from 'date-fns'
 import { Parser } from 'expr-eval'
 import {

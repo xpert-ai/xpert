@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { EFResizeHandleType, FFlowModule } from '@foblex/flow'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNNote,

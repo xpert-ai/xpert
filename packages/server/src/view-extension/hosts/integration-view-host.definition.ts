@@ -1,4 +1,4 @@
-import { PermissionsEnum, XpertViewSlot } from '@metad/contracts'
+import { PermissionsEnum, XpertViewSlot } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { RequestContext } from '../../core/context'
 import { IntegrationService } from '../../integration/integration.service'

@@ -1,7 +1,7 @@
 import { ApiProperty } from '@nestjs/swagger';
 import { Column, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm';
 import { IsString, IsOptional } from 'class-validator';
-import { IBasePerTenantEntityModel, ITenant } from '@metad/contracts';
+import { IBasePerTenantEntityModel, ITenant } from '@xpert-ai/contracts';
 import { BaseEntity, Tenant } from '../entities/internal';
 
 export abstract class TenantBaseEntity

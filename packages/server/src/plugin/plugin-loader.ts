@@ -1,5 +1,5 @@
-import { PluginLevel, PluginSource } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+import { PluginLevel, PluginSource } from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import type { XpertPlugin } from '@xpert-ai/plugin-sdk'
 import { existsSync, readFileSync } from 'fs'
 import { createRequire } from 'node:module'

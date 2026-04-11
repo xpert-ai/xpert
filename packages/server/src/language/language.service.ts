@@ -1,4 +1,4 @@
-import { ILanguage } from '@metad/contracts'
+import { ILanguage } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { EntityManager, Repository } from 'typeorm'

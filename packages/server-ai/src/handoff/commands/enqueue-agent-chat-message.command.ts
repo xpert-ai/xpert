@@ -1,4 +1,4 @@
-import { IUser } from '@metad/contracts'
+import { IUser } from '@xpert-ai/contracts'
 import { Command } from '@nestjs/cqrs'
 import { LaneName, RunSource } from '@xpert-ai/plugin-sdk'
 import { LocalQueuedTaskContext } from '../types'

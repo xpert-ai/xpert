@@ -1,4 +1,4 @@
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentUserId: jest.fn()
     }
@@ -12,8 +12,8 @@ jest.mock('../../xpert-task.service', () => ({
     XpertTaskService: class XpertTaskService {}
 }))
 
-import { ScheduleTaskStatus } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { ScheduleTaskStatus } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { QueryXpertTaskCommand } from '../query.command'
 import { QueryXpertTaskHandler } from './query.handler'
 

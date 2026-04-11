@@ -1,6 +1,6 @@
 import { DataSource } from '@angular/cdk/collections'
 import { BehaviorSubject, Observable } from 'rxjs'
-import { extractHierarchyFromUniqueName } from '@metad/ocap-core'
+import { extractHierarchyFromUniqueName } from '@xpert-ai/ocap-core'
 
 /**
  * @deprecated Analytical grid now manages flat sorting and paging in component state.

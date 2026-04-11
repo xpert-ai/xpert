@@ -1,5 +1,5 @@
 
-import { StoryPoint, StoryPointType, WidgetComponentType } from '@metad/story/core'
+import { StoryPoint, StoryPointType, WidgetComponentType } from '@xpert-ai/story/core'
 import { DisplayGrid } from 'angular-gridster2'
 
 export const COMPONENTS: {

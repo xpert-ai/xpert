@@ -1,5 +1,5 @@
-import { mapTranslationLanguage } from '@metad/contracts'
-import { omit } from '@metad/server-common'
+import { mapTranslationLanguage } from '@xpert-ai/contracts'
+import { omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { AIModelProviderNotFoundException, CreateModelClientCommand, RequestContext } from '@xpert-ai/plugin-sdk'

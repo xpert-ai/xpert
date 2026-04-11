@@ -1,5 +1,5 @@
 import { Document } from '@langchain/core/documents'
-import { DSCoreService } from '@metad/ocap-core';
+import { DSCoreService } from '@xpert-ai/ocap-core';
 import { Command } from '@nestjs/cqrs';
 
 /**

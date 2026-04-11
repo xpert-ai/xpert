@@ -13,7 +13,7 @@ import {
   isNil,
   omitBlank,
   QueryReturn
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { graphic } from 'echarts/core'
 import {t} from 'i18next'
 import { includes, indexOf, sumBy } from 'lodash-es'

@@ -1,4 +1,4 @@
-import { IRole } from '@metad/contracts';
+import { IRole } from '@xpert-ai/contracts';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { RoleService } from '../../role.service';
 import { TenantRoleBulkCreateCommand } from '../tenant-role-bulk-create.command';

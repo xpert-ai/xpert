@@ -20,10 +20,10 @@ import {
 	TransformInterceptor,
 	transformWhere,
 	UUIDValidationPipe
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { CommandBus } from '@nestjs/cqrs'
 import { FindOptionsOrder, FindOptionsWhere, Like } from 'typeorm'
-import { IChatConversation, IChatMessage, IChatMessageFeedback } from '@metad/contracts'
+import { IChatConversation, IChatMessage, IChatMessageFeedback } from '@xpert-ai/contracts'
 import { ChatConversationService } from '../chat-conversation'
 import { ChatMessageService } from '../chat-message/chat-message.service'
 import { ChatMessageFeedbackService } from '../chat-message-feedback/feedback.service'

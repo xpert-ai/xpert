@@ -23,10 +23,10 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Params, Router } from '@angular/router'
-import { NxCoreModule, nonNullable, uploadYamlFile } from '@metad/core'
-import { NgmCommonModule, NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
-import { NgmSmartFilterBarService, effectAction } from '@metad/ocap-angular/core'
-import { assignDeepOmitBlank, omit, omitBlank } from '@metad/ocap-core'
+import { NxCoreModule, nonNullable, uploadYamlFile } from '@xpert-ai/core'
+import { NgmCommonModule, NgmConfirmUniqueComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSmartFilterBarService, effectAction } from '@xpert-ai/ocap-angular/core'
+import { assignDeepOmitBlank, omit, omitBlank } from '@xpert-ai/ocap-core'
 import {
   ComponentSettingsType,
   MoveDirection,
@@ -37,9 +37,9 @@ import {
   StoryWidget,
   WidgetComponentType,
   componentStyling
-} from '@metad/story/core'
-import { NxSettingsPanelService } from '@metad/story/designer'
-import { FlexItemType, FlexLayout, NxStoryResponsiveModule, ResponsiveService } from '@metad/story/responsive'
+} from '@xpert-ai/story/core'
+import { NxSettingsPanelService } from '@xpert-ai/story/designer'
+import { FlexItemType, FlexLayout, NxStoryResponsiveModule, ResponsiveService } from '@xpert-ai/story/responsive'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import {

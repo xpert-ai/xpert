@@ -1,4 +1,4 @@
-import { ServerAIModule } from '@metad/server-ai'
+import { ServerAIModule } from '@xpert-ai/server-ai'
 import {
 	provideBullModule,
 	provideCacheModule,
@@ -9,8 +9,8 @@ import {
 	RedisModule,
 	SeederModule,
 	ServerAppModule
-} from '@metad/server-core'
-import { ConfigModule, getConfig } from '@metad/server-config'
+} from '@xpert-ai/server-core'
+import { ConfigModule, getConfig } from '@xpert-ai/server-config'
 import { Logger, MiddlewareConsumer, Module, NestModule, OnApplicationShutdown } from '@nestjs/common'
 import { AnalyticsModule } from '../app.module'
 export * from '../ai/index'

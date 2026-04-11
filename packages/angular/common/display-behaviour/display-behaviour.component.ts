@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, HostBinding, Input, computed, input } from '@angular/core'
-import { ISelectOption, splitByHighlight } from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { ISelectOption, splitByHighlight } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @Component({

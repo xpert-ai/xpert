@@ -20,7 +20,7 @@ import {
   subWeeks
 } from 'date-fns'
 import { InjectionToken } from "@angular/core"
-import { OffSetDirection, TimeGranularity, TimeRange, TimeRangeType } from "@metad/ocap-core"
+import { OffSetDirection, TimeGranularity, TimeRange, TimeRangeType } from "@xpert-ai/ocap-core"
 
 export interface DateVariable {
   id: string

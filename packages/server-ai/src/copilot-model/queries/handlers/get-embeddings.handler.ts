@@ -1,5 +1,5 @@
-import { AiModelTypeEnum, ILLMUsage, mapTranslationLanguage } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { AiModelTypeEnum, ILLMUsage, mapTranslationLanguage } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { CopilotModelInvalidException } from '../../../core/errors'

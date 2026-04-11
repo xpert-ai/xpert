@@ -14,7 +14,7 @@ const workspaceRoot = process.cwd()
 const releasePackages = [
   {
     projectName: 'core',
-    packageName: '@metad/ocap-core',
+    packageName: '@xpert-ai/ocap-core',
     sourcePackageJson: 'packages/core/package.json',
     packageRoot: 'dist/packages/core',
     access: 'public'

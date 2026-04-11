@@ -37,7 +37,7 @@ jest.mock('../core/crud', () => ({
 }))
 
 const { BadRequestException } = require('@nestjs/common')
-const { RolesEnum } = require('@metad/contracts')
+const { RolesEnum } = require('@xpert-ai/contracts')
 const { RequestContext } = require('../core/context')
 const { OrganizationService } = require('./organization.service')
 

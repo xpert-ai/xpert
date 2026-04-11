@@ -3,7 +3,7 @@ import { Repository } from 'typeorm'
 import { ChatConversation } from '../../conversation.entity'
 import { ChatConversationService } from '../../conversation.service'
 import { StatisticsAverageSessionInteractionsQuery } from '../statistics-average-session-interactions.query'
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { InjectRepository } from '@nestjs/typeorm'
 
 @QueryHandler(StatisticsAverageSessionInteractionsQuery)

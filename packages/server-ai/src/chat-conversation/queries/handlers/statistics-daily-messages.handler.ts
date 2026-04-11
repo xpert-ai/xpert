@@ -2,7 +2,7 @@ import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { Repository } from 'typeorm'
 import { ChatConversation } from '../../conversation.entity'
 import { StatisticsDailyMessagesQuery } from '../statistics-daily-messages.query'
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { InjectRepository } from '@nestjs/typeorm'
 
 @QueryHandler(StatisticsDailyMessagesQuery)

@@ -1,5 +1,5 @@
-import { XpertTypeEnum } from '@metad/contracts'
-import { ViewExtensionCacheService } from '@metad/server-core'
+import { XpertTypeEnum } from '@xpert-ai/contracts'
+import { ViewExtensionCacheService } from '@xpert-ai/server-core'
 import { Injectable } from '@nestjs/common'
 import { DataSource, EntitySubscriberInterface, EventSubscriber, InsertEvent, RemoveEvent, UpdateEvent } from 'typeorm'
 import { Environment } from '../environment/environment.entity'

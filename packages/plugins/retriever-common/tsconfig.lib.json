@@ -6,7 +6,7 @@
     "declaration": true,
     "types": ["node"],
     "paths": {
-      "@metad/contracts": ["packages/contracts/dist/index.d.ts"],
+      "@xpert-ai/contracts": ["packages/contracts/dist/index.d.ts"],
       "@xpert-ai/plugin-sdk": ["packages/plugin-sdk/dist/index.d.ts"]
     }
   },

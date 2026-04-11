@@ -1,7 +1,7 @@
 import { z } from 'zod'
 import type { PluginInstanceService } from './plugin-instance.service'
 
-jest.mock('@metad/contracts', () => ({
+jest.mock('@xpert-ai/contracts', () => ({
 	PLUGIN_CONFIGURATION_STATUS: {
 		VALID: 'valid',
 		INVALID: 'invalid'

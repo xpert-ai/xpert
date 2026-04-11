@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/member-ordering */
-import { IDataSource, IIndicator, ISemanticModel, IStory, IStoryWidget, IndicatorOptionFields } from '@metad/contracts'
-import { Indicator as OCAPIndicator, SemanticModel, isNil, omit, omitBy, pick } from '@metad/ocap-core'
-import { Story, StoryConnection, StoryModel, StoryPoint, StoryWidget, uuid } from '@metad/story/core'
+import { IDataSource, IIndicator, ISemanticModel, IStory, IStoryWidget, IndicatorOptionFields } from '@xpert-ai/contracts'
+import { Indicator as OCAPIndicator, SemanticModel, isNil, omit, omitBy, pick } from '@xpert-ai/ocap-core'
+import { Story, StoryConnection, StoryModel, StoryPoint, StoryWidget, uuid } from '@xpert-ai/story/core'
 import { HttpParams } from '@angular/common/http'
-export * from '@metad/contracts'
+export * from '@xpert-ai/contracts'
 import { convertNewSemanticModelResult } from './models.service'
 
 

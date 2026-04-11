@@ -1,6 +1,6 @@
 import { inject } from '@angular/core'
 import { Router, Routes } from '@angular/router'
-import { AppQuery, PersistQuery } from '@metad/cloud/state'
+import { AppQuery, PersistQuery } from '@xpert-ai/cloud/state'
 import { XpertWorkspaceAllComponent } from './all/all.component'
 import { XpertWorkspaceApiToolsComponent } from './api-tools/tools.component'
 import { XpertWorkspaceBuiltinToolsComponent } from './builtin-tools/tools.component'

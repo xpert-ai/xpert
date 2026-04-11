@@ -1,5 +1,5 @@
-import { OCAP_AGENT_TOKEN, OCAP_DATASOURCE_TOKEN } from '@metad/ocap-angular/core'
-import { DataSource, Type } from '@metad/ocap-core'
+import { OCAP_AGENT_TOKEN, OCAP_DATASOURCE_TOKEN } from '@xpert-ai/ocap-angular/core'
+import { DataSource, Type } from '@xpert-ai/ocap-core'
 import { ServerSocketAgent } from '../services'
 
 /**
@@ -18,7 +18,7 @@ export function provideOcap() {
       useValue: {
         type: 'SQL',
         factory: async (): Promise<Type<DataSource>> => {
-          const { SQLDataSource } = await import('@metad/ocap-sql')
+          const { SQLDataSource } = await import('@xpert-ai/ocap-sql')
           return SQLDataSource
         }
       },
@@ -29,7 +29,7 @@ export function provideOcap() {
       useValue: {
         type: 'XMLA',
         factory: async (): Promise<Type<DataSource>> => {
-          const { XmlaDataSource } = await import('@metad/ocap-xmla')
+          const { XmlaDataSource } = await import('@xpert-ai/ocap-xmla')
           return XmlaDataSource
         }
       },

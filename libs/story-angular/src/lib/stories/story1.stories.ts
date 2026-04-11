@@ -1,13 +1,13 @@
 import { HttpClientModule } from '@angular/common/http'
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations'
-import { DisplayDensity, NxCoreModule } from '@metad/core'
-import { NxDSCoreModule, Sales, uuid } from '@metad/ds-core'
-import { NxDSMockModule } from '@metad/ds-mock'
+import { DisplayDensity, NxCoreModule } from '@xpert-ai/core'
+import { NxDSCoreModule, Sales, uuid } from '@xpert-ai/ds-core'
+import { NxDSMockModule } from '@xpert-ai/ds-mock'
 import { Meta, moduleMetadata, Story as StoryBook } from '@storybook/angular'
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
 import { NxAnalyticsStoryModule } from '../analytics-story.module'
 import { NxStoryDesignerComponent } from '../story/story.component'
-import { NX_STORY_STORE, Story, WidgetComponentType } from '@metad/story/core'
+import { NX_STORY_STORE, Story, WidgetComponentType } from '@xpert-ai/story/core'
 import { StoryStoreMockService } from './story-store.service'
 
 export default {

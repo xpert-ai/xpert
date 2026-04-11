@@ -1,8 +1,8 @@
 import { ApiPropertyOptional } from '@nestjs/swagger'
 import {
     IIndicatorApp,
-} from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { IsJSON, IsOptional } from 'class-validator'
 import {
     Column,

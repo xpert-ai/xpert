@@ -3,9 +3,9 @@ import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, inject, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { AbstractStoryWidget, StoryWidgetState, StoryWidgetStyling, WidgetMenuType, nonNullable } from '@metad/core'
-import { NgmObjectNumberComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmSelectionModule, SlicersCapacity } from '@metad/ocap-angular/selection'
+import { AbstractStoryWidget, StoryWidgetState, StoryWidgetStyling, WidgetMenuType, nonNullable } from '@xpert-ai/core'
+import { NgmObjectNumberComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmSelectionModule, SlicersCapacity } from '@xpert-ai/ocap-angular/selection'
 import {
   DataSettings,
   Dimension,
@@ -16,11 +16,11 @@ import {
   isEmpty,
   isEqual,
   isNil
-} from '@metad/ocap-core'
-import { ComponentStyling, NxStoryService, componentStyling } from '@metad/story/core'
+} from '@xpert-ai/ocap-core'
+import { ComponentStyling, NxStoryService, componentStyling } from '@xpert-ai/story/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { AnalyticalGridComponent, AnalyticalGridModule } from '@metad/ocap-angular/analytical-grid'
-import { DisplayDensity } from '@metad/ocap-angular/core'
+import { AnalyticalGridComponent, AnalyticalGridModule } from '@xpert-ai/ocap-angular/analytical-grid'
+import { DisplayDensity } from '@xpert-ai/ocap-angular/core'
 import { NGXLogger } from 'ngx-logger'
 import { distinctUntilChanged, filter, map } from 'rxjs/operators'
 import { KPIPlaceholderComponent } from './placeholder/placeholder.component'

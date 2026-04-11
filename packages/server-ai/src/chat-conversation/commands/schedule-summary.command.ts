@@ -1,4 +1,4 @@
-import { TLongTermMemory } from '@metad/contracts'
+import { TLongTermMemory } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class ScheduleSummaryJobCommand implements ICommand {

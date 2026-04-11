@@ -1,6 +1,6 @@
 // import { formatNumber } from '@angular/common'
 // import { EventEmitter } from '@angular/core'
-// import { ComponentStore } from '@metad/store'
+// import { ComponentStore } from '@xpert-ai/store'
 // import {
 //   ChartDimension,
 //   ChartDimensionRoleType,
@@ -17,7 +17,7 @@
 //   Property,
 //   PropertyPath,
 //   QueryReturn
-// } from '@metad/ocap-core'
+// } from '@xpert-ai/ocap-core'
 // import { format } from 'date-fns'
 // import { assign, extend, find, isNil, isNumber, isString, merge } from 'lodash-es'
 // import { NGXLogger } from 'ngx-logger'

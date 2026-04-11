@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { API_PREFIX } from '@metad/cloud/state'
+import { API_PREFIX } from '@xpert-ai/cloud/state'
 import { map } from 'rxjs/operators'
 import { ICertification } from '../types'
 

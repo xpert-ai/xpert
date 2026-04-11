@@ -1,4 +1,4 @@
-import { WidgetComponentType } from '@metad/story/core'
+import { WidgetComponentType } from '@xpert-ai/story/core'
 
 export const WIDGET_INIT_POSITION = { rows: 10, cols: 20 }
 

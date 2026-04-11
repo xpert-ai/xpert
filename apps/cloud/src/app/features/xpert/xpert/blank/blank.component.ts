@@ -4,9 +4,9 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 import { ChangeDetectionStrategy, Component, computed, effect, inject, model, signal, viewChild } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { injectWorkspace } from '@metad/cloud/state'
-import { parseYAML } from '@metad/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { injectWorkspace } from '@xpert-ai/cloud/state'
+import { parseYAML } from '@xpert-ai/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { ZardComboboxDeprecatedComponent, ZardDialogService, ZardStepperImports } from '@xpert-ai/headless-ui'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
@@ -42,7 +42,7 @@ import {
 import { genAgentKey } from '../../utils'
 import { XpertBasicFormComponent } from 'apps/cloud/src/app/@shared/xpert'
 import { DragDropModule } from '@angular/cdk/drag-drop'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 
 import {
   CHAT_WORKFLOW_TRIGGER_PROVIDER,

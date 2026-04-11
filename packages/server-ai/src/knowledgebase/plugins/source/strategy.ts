@@ -24,10 +24,10 @@ import {
 	KNOWLEDGE_FOLDER_ID_NAME,
 	DocumentSourceProviderCategoryEnum,
 	TWorkflowNodeMeta
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { PromptTemplate } from '@langchain/core/prompts'
-import { getErrorMessage, omit, shortuuid } from '@metad/server-common'
-import { GetIntegrationQuery } from '@metad/server-core'
+import { getErrorMessage, omit, shortuuid } from '@xpert-ai/server-common'
+import { GetIntegrationQuery } from '@xpert-ai/server-core'
 import { Inject, Injectable } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IDocumentSourceStrategy, IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'

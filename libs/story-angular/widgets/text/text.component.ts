@@ -1,9 +1,9 @@
 
 import { Component, ElementRef, HostBinding, HostListener, ViewChild, computed, effect, inject, signal, viewChild } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
-import { PropertyMeasure, QueryReturn, formatting, getEntityProperty, indicatorFormatter } from '@metad/ocap-core'
+import { PropertyMeasure, QueryReturn, formatting, getEntityProperty, indicatorFormatter } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
-import { AbstractStoryWidget, Intent, WidgetMenu, WidgetMenuType, replaceParameters } from '@metad/core'
+import { AbstractStoryWidget, Intent, WidgetMenu, WidgetMenuType, replaceParameters } from '@xpert-ai/core'
 import { Observable, debounceTime, map, tap } from 'rxjs'
 import { TextDataService } from './text-data.service'
 

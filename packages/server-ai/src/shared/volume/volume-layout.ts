@@ -1,4 +1,4 @@
-import { environment } from '@metad/server-config'
+import { environment } from '@xpert-ai/server-config'
 import path from 'path'
 
 const LEGACY_PUBLIC_VOLUME_PREFIX = /^(user|project|knowledges|skills)\/[0-9a-fA-F-]{36}\//

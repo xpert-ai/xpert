@@ -2,7 +2,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, computed, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { TKBRecallParams } from '@metad/contracts'
+import { TKBRecallParams } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { ZardSliderComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'

@@ -9,7 +9,7 @@ import {
 	TXpertParameter,
 	TXpertTeamNode,
 	WorkflowNodeTypeEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'

@@ -1,7 +1,7 @@
-import { ICopilot, ISemanticModel, IUser, TGatewayQueryEvent, TGatewayRespError, TGatewayRespEvent } from '@metad/contracts'
-import { CopilotTokenRecordCommand } from '@metad/server-ai'
-import { getErrorMessage } from '@metad/server-common'
-import { WsJWTGuard, WsUser } from '@metad/server-core'
+import { ICopilot, ISemanticModel, IUser, TGatewayQueryEvent, TGatewayRespError, TGatewayRespEvent } from '@xpert-ai/contracts'
+import { CopilotTokenRecordCommand } from '@xpert-ai/server-ai'
+import { getErrorMessage } from '@xpert-ai/server-common'
+import { WsJWTGuard, WsUser } from '@xpert-ai/server-core'
 import { Inject, UseGuards } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import {

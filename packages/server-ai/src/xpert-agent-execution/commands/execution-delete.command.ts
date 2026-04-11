@@ -1,5 +1,5 @@
-import { IXpertAgentExecution } from '@metad/contracts'
-import { FindOptionsWhere } from '@metad/server-core'
+import { IXpertAgentExecution } from '@xpert-ai/contracts'
+import { FindOptionsWhere } from '@xpert-ai/server-core'
 import { ICommand } from '@nestjs/cqrs'
 
 export class XpertAgentExecutionDelCommand implements ICommand {

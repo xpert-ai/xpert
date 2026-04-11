@@ -30,7 +30,7 @@ import {
   getDimensionMemberCaption,
   ISlicer,
   Property,
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { ECharts, format, time, use, registerMap, graphic, getMap } from 'echarts/core'
 
 import {

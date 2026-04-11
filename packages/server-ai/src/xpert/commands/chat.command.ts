@@ -1,4 +1,4 @@
-import { TChatOptions, TChatRequest } from '@metad/contracts'
+import { TChatOptions, TChatRequest } from '@xpert-ai/contracts'
 import { Command } from '@nestjs/cqrs'
 import { Observable } from 'rxjs'
 

@@ -1,4 +1,4 @@
-import { IXpertProjectFile } from '@metad/contracts'
+import { IXpertProjectFile } from '@xpert-ai/contracts'
 import { Column, Entity } from 'typeorm'
 import { XpertProjectBaseEntity } from './project.base'
 

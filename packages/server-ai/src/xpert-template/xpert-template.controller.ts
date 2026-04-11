@@ -1,5 +1,5 @@
-import { LanguagesEnum, LanguagesMap } from '@metad/contracts'
-import { PaginationParams, ParseJsonPipe, TransformInterceptor } from '@metad/server-core'
+import { LanguagesEnum, LanguagesMap } from '@xpert-ai/contracts'
+import { PaginationParams, ParseJsonPipe, TransformInterceptor } from '@xpert-ai/server-core'
 import { Controller, Get, Logger, Param, Query, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'

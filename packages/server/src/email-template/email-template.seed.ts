@@ -3,7 +3,7 @@ import { Connection } from 'typeorm';
 import { EmailTemplate } from './email-template.entity';
 import mjml2html from 'mjml';
 import path from 'path';
-import { ITenant } from '@metad/contracts';
+import { ITenant } from '@xpert-ai/contracts';
 
 /**
  * Note: This seed file assumes the following directory structure in seeds/data/email/default-email-templates/ folder

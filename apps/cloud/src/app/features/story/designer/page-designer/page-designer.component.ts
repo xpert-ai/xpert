@@ -1,9 +1,9 @@
 
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject } from '@angular/core'
 import { FormControl, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { AppearanceDirective } from '@metad/ocap-angular/core'
+import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { STORY_DESIGNER_FORM, STORY_DESIGNER_LIVE_MODE } from '@metad/story/designer'
+import { STORY_DESIGNER_FORM, STORY_DESIGNER_LIVE_MODE } from '@xpert-ai/story/designer'
 import { debounceTime, filter, isObservable, of } from 'rxjs'
 import { DesignerWidgetComponent } from '../widget/widget.component'
 import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'

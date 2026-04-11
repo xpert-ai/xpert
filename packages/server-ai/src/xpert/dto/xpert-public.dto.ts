@@ -1,5 +1,5 @@
-import { IOrganization, IXpert, IXpertAgent, TXpertGraph, TXpertOptions, TXpertTeamDraft } from '@metad/contracts'
-import { OrganizationPublicDTO } from '@metad/server-core'
+import { IOrganization, IXpert, IXpertAgent, TXpertGraph, TXpertOptions, TXpertTeamDraft } from '@xpert-ai/contracts'
+import { OrganizationPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform, TransformFnParams } from 'class-transformer'
 import { Knowledgebase, XpertToolset } from '../../core/entities/internal'
 import { KnowledgebasePublicDTO } from '../../knowledgebase/dto'

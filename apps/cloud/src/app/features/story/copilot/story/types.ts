@@ -1,5 +1,5 @@
 import { StateGraphArgs } from '@langchain/langgraph/web'
-import { Team } from '@metad/copilot'
+import { Team } from '@xpert-ai/copilot'
 
 export const STORY_COMMAND_NAME = 'story'
 

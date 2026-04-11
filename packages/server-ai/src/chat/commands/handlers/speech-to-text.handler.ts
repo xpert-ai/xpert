@@ -1,6 +1,6 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { HumanMessage } from '@langchain/core/messages'
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { InternalServerErrorException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { CopilotGetOneQuery } from '../../../copilot'

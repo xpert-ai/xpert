@@ -1,4 +1,4 @@
-import { ParameterRule, ParameterType } from '@metad/contracts'
+import { ParameterRule, ParameterType } from '@xpert-ai/contracts'
 import { AIModel } from './ai-model'
 
 export abstract class TextToSpeechModel extends AIModel {

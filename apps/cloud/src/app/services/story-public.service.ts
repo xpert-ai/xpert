@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { C_API_STORY_POINT, API_SUBSCRIPTION, C_API_STORY } from '@metad/cloud/state'
+import { C_API_STORY_POINT, API_SUBSCRIPTION, C_API_STORY } from '@xpert-ai/cloud/state'
 import {
   NxStoryStore,
   Story,
@@ -10,7 +10,7 @@ import {
   StorySubscription,
   StoryWidget,
   StoryWidgetKey
-} from '@metad/story/core'
+} from '@xpert-ai/story/core'
 import { Observable, of } from 'rxjs'
 import { map } from 'rxjs/operators'
 import { PACNotificationDestinationsService } from '../@core'

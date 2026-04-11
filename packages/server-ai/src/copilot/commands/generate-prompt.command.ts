@@ -1,4 +1,4 @@
-import { ICopilotModel } from '@metad/contracts'
+import { ICopilotModel } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class GeneratePromptCommand implements ICommand {

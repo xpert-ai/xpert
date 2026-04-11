@@ -2,9 +2,9 @@
 import { Component, DestroyRef, computed, effect, inject } from '@angular/core'
 
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { NgmCalculationEditorComponent } from '@metad/ocap-angular/entity'
-import { CalculationProperty } from '@metad/ocap-core'
-import { NxStoryService } from '@metad/story/core'
+import { NgmCalculationEditorComponent } from '@xpert-ai/ocap-angular/entity'
+import { CalculationProperty } from '@xpert-ai/ocap-core'
+import { NxStoryService } from '@xpert-ai/story/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { isEqual } from 'lodash-es'
 import { derivedFrom } from 'ngxtension/derived-from'

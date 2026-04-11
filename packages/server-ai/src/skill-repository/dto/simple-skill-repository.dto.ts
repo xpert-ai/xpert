@@ -1,4 +1,4 @@
-import { ISkillRepository } from '@metad/contracts'
+import { ISkillRepository } from '@xpert-ai/contracts'
 import { Exclude, Expose } from 'class-transformer'
 
 @Expose()

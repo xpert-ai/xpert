@@ -1,7 +1,7 @@
 
 import { Component, Input, OnChanges, SimpleChanges } from '@angular/core'
-import { ChartAnnotation, ChartDimensionRoleType, ChartOrient } from '@metad/ocap-core'
-import { NxChartType } from '@metad/core'
+import { ChartAnnotation, ChartDimensionRoleType, ChartOrient } from '@xpert-ai/ocap-core'
+import { NxChartType } from '@xpert-ai/core'
 
 @Component({
   standalone: true,

@@ -1,4 +1,4 @@
-import { RolesEnum } from '@metad/contracts';
+import { RolesEnum } from '@xpert-ai/contracts';
 import { SetMetadata, createParamDecorator } from '@nestjs/common';
 import { RequestContext } from '../../core/context';
 

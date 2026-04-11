@@ -1,5 +1,5 @@
 import { BaseToolkit, StructuredTool, StructuredToolInterface } from "@langchain/core/tools"
-import { I18nObject, TStateVariable, TToolsetParams } from "@metad/contracts"
+import { I18nObject, TStateVariable, TToolsetParams } from "@xpert-ai/contracts"
 import { z } from 'zod'
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

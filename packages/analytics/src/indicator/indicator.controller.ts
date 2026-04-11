@@ -1,5 +1,5 @@
-import { IndicatorStatusEnum, IPagination, TIndicatorDraft } from '@metad/contracts';
-import { CrudController, PaginationParams, ParseJsonPipe, transformWhere, UUIDValidationPipe } from '@metad/server-core';
+import { IndicatorStatusEnum, IPagination, TIndicatorDraft } from '@xpert-ai/contracts';
+import { CrudController, PaginationParams, ParseJsonPipe, transformWhere, UUIDValidationPipe } from '@xpert-ai/server-core';
 import { Body, ClassSerializerInterceptor, Controller, Delete, Get, HttpCode, HttpStatus, Param, Post, Put, Query, UseInterceptors } from '@nestjs/common';
 import { CommandBus, QueryBus } from '@nestjs/cqrs';
 import {

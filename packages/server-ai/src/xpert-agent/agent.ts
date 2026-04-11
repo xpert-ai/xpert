@@ -19,7 +19,7 @@ import {
 	TMessageContentReasoning,
 	TXpertAgentConfig,
 	TXpertTeamNode
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { Subscriber } from 'rxjs'
 import { instanceToPlain } from 'class-transformer'

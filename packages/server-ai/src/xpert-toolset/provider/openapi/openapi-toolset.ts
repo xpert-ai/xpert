@@ -1,4 +1,4 @@
-import { I18nObject, isEnableTool, IXpertTool, IXpertToolset, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { I18nObject, isEnableTool, IXpertTool, IXpertToolset, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { BaseToolset } from '../../toolset'
 import { OpenAPITool } from './tools/openapi-tool'
 

@@ -1,6 +1,6 @@
 
 import { ChangeDetectionStrategy, Component, ElementRef, inject, input } from '@angular/core'
-import { TXpertTeamNode } from '@metad/contracts'
+import { TXpertTeamNode } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { EmojiAvatarComponent } from '../../../../../../@shared/avatar/'
 import { XpertStudioApiService } from '../../../domain'

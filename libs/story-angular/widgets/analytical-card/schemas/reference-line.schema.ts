@@ -1,7 +1,7 @@
 import { Injectable, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { ReferenceLineAggregation, ReferenceLineType, ReferenceLineValueType } from '@metad/ocap-core'
-import { DesignerSchema, FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
+import { ReferenceLineAggregation, ReferenceLineType, ReferenceLineValueType } from '@xpert-ai/ocap-core'
+import { DesignerSchema, FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/story/designer'
 import { TranslateService } from '@ngx-translate/core'
 import { BehaviorSubject, Observable, map } from 'rxjs'
 

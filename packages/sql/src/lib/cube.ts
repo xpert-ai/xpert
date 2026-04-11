@@ -21,7 +21,7 @@ import {
   QueryOptions,
   EntityProperty,
   CalculationProperty,
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import {
   compileDimensionSchema,
   DimensionContext,

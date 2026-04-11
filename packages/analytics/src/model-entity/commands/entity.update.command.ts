@@ -1,4 +1,4 @@
-import { ISemanticModelEntity } from '@metad/contracts';
+import { ISemanticModelEntity } from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs';
 
 export class ModelEntityUpdateCommand implements ICommand {

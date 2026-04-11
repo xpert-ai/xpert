@@ -1,4 +1,4 @@
-import { RecursiveHierarchyType, TreeNodeInterface } from '@metad/ocap-core'
+import { RecursiveHierarchyType, TreeNodeInterface } from '@xpert-ai/ocap-core'
 import { assign, isEmpty } from 'lodash-es'
 
 

@@ -1,5 +1,5 @@
-// import { ICopilotStoreVector } from '@metad/contracts'
-// import { TenantOrganizationBaseEntity } from '@metad/server-core'
+// import { ICopilotStoreVector } from '@xpert-ai/contracts'
+// import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 // import { Column, Entity } from 'typeorm'
 // import { ApiPropertyOptional } from '@nestjs/swagger'
 // import { IsOptional, IsString } from 'class-validator'

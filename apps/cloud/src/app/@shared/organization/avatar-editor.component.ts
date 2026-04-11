@@ -1,7 +1,7 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, inject, input } from '@angular/core'
-import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { AppearanceDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { IOrganization, OrganizationsService, ScreenshotService, Store } from '../../@core'

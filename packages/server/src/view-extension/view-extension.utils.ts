@@ -11,9 +11,9 @@ import {
   XpertViewHostContext,
   XpertViewQuery,
   XpertViewSchemaType
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { BadRequestException, UnauthorizedException } from '@nestjs/common'
-import { LanguagesEnum } from '@metad/contracts'
+import { LanguagesEnum } from '@xpert-ai/contracts'
 import { RequestContext } from '../core/context'
 
 const ALLOWED_SCHEMA_TYPES = new Set<XpertViewSchemaType>(['stats', 'table', 'list', 'detail', 'raw_json'])

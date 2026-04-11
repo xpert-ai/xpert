@@ -1,4 +1,4 @@
-import { ICopilot } from "@metad/contracts";
+import { ICopilot } from "@xpert-ai/contracts";
 import { Command } from "@nestjs/cqrs";
 import { PGMemberVectorStore } from "../vector-store";
 

@@ -1,4 +1,4 @@
-import { MemberType, PivotColumn } from "@metad/ocap-core";
+import { MemberType, PivotColumn } from "@xpert-ai/ocap-core";
 
 /**
  * https://docs.microsoft.com/en-us/analysis-services/multidimensional-models/mdx/mdx-member-properties-intrinsic-member-properties?view=asallproducts-allversions

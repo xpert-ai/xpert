@@ -1,4 +1,4 @@
-import { TXpertTeamDraft, WorkflowNodeTypeEnum, XpertTypeEnum } from '@metad/contracts'
+import { TXpertTeamDraft, WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
 import { BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER } from './blank-draft.util'
 import {
   applyAgentTemplateWizardState,

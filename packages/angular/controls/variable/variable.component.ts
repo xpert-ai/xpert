@@ -3,9 +3,9 @@ import { ChangeDetectionStrategy, Component, computed, effect, forwardRef, injec
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
 
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
-import { DataSettings, getMemberKey, IMember, isArray, ISlicer, VariableProperty } from '@metad/ocap-core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { DataSettings, getMemberKey, IMember, isArray, ISlicer, VariableProperty } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'

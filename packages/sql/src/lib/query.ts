@@ -14,7 +14,7 @@ import {
   RecursiveHierarchyType,
   Table,
   wrapHierarchyValue
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { buildCubeContext, CubeContext } from './cube'
 import {
   DimensionContext,

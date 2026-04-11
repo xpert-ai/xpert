@@ -2,7 +2,7 @@
 
 import { BaseStore, LangGraphRunnableConfig } from "@langchain/langgraph";
 import { tool } from "@langchain/core/tools";
-import { ChatMessageEventTypeEnum, ChatMessageStepCategory, getToolCallFromConfig, LongTermMemoryTypeEnum, TChatMessageStep } from "@metad/contracts";
+import { ChatMessageEventTypeEnum, ChatMessageStepCategory, getToolCallFromConfig, LongTermMemoryTypeEnum, TChatMessageStep } from "@xpert-ai/contracts";
 import { Logger } from "@nestjs/common";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
 import { t } from 'i18next'

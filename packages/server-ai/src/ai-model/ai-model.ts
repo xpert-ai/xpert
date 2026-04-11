@@ -1,7 +1,7 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
-import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilotModel, ModelFeature, ParameterRule, PriceInfo, PriceType, } from '@metad/contracts'
+import { AIModelEntity, AiModelTypeEnum, FetchFrom, ICopilotModel, ModelFeature, ParameterRule, PriceInfo, PriceType, } from '@xpert-ai/contracts'
 import { Injectable, Logger } from '@nestjs/common'
-import { yaml } from '@metad/server-common';
+import { yaml } from '@xpert-ai/server-common';
 import { IAIModel, ModelProfile } from '@xpert-ai/plugin-sdk';
 import * as fs from 'fs'
 import * as path from 'path'

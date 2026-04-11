@@ -1,5 +1,5 @@
-import { IUser, IXpertToolset, TToolCredentials, TXpertToolsetOptions } from '@metad/contracts'
-import { UserPublicDTO } from '@metad/server-core'
+import { IUser, IXpertToolset, TToolCredentials, TXpertToolsetOptions } from '@xpert-ai/contracts'
+import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform } from 'class-transformer'
 
 @Expose()

@@ -1,6 +1,6 @@
 import { Connection } from 'typeorm';
 import bcrypt from 'bcryptjs';
-import { environment as env } from '@metad/server-config';
+import { environment as env } from '@xpert-ai/server-config';
 import faker from 'faker';
 import {
 	IDefaultUser,
@@ -11,7 +11,7 @@ import {
 	ITenant,
 	IUser,
 	DEFAULT_TENANT
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import chalk from 'chalk';
 import { User } from './user.entity';
 import { generateRandomPassword, getUserDummyImage, Role } from '../core';

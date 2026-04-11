@@ -1,4 +1,4 @@
-import { IXpertToolset } from '@metad/contracts'
+import { IXpertToolset } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { TBuiltinToolsetParams } from '@xpert-ai/plugin-sdk'
 

@@ -1,4 +1,4 @@
-import { IUser } from '@metad/contracts'
+import { IUser } from '@xpert-ai/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { Exclude, Expose, Transform } from 'class-transformer'
 import { User } from '../../core/entities/internal'

@@ -1,7 +1,7 @@
 import {
 	LanguagesEnum,
 	IOrganizationContactAcceptInviteInput
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs';
 
 export class InviteAcceptOrganizationContactCommand implements ICommand {

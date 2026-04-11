@@ -1,5 +1,5 @@
 import { computed, Injectable, signal } from '@angular/core'
-import { injectXpertPreferences } from '@metad/cloud/state'
+import { injectXpertPreferences } from '@xpert-ai/cloud/state'
 import { derivedFrom } from 'ngxtension/derived-from'
 import { map, Observable, pipe, shareReplay } from 'rxjs'
 import { IXpert, LanguagesEnum, OrderTypeEnum, XpertTypeEnum } from '../../@core/types'

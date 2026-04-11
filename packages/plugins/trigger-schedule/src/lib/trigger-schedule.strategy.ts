@@ -1,4 +1,4 @@
-import { ChecklistItem, STATE_VARIABLE_HUMAN, TWorkflowTriggerMeta } from '@metad/contracts'
+import { ChecklistItem, STATE_VARIABLE_HUMAN, TWorkflowTriggerMeta } from '@xpert-ai/contracts'
 import { Inject, Injectable } from '@nestjs/common'
 import { SchedulerRegistry } from '@nestjs/schedule'
 import { IWorkflowTriggerStrategy, TWorkflowTriggerParams, WorkflowTriggerStrategy } from '@xpert-ai/plugin-sdk'

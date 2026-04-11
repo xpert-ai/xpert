@@ -1,5 +1,5 @@
 import { Entity, Column, Unique, OneToMany, JoinColumn } from 'typeorm';
-import { ILanguage, IOrganizationLanguage } from '@metad/contracts';
+import { ILanguage, IOrganizationLanguage } from '@xpert-ai/contracts';
 import { ApiProperty } from '@nestjs/swagger';
 import { IsOptional } from 'class-validator';
 import { BaseEntity, OrganizationLanguage } from '../core/entities/internal';

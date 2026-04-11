@@ -1,4 +1,4 @@
-import { JsonSchemaObjectType } from '@metad/contracts'
+import { JsonSchemaObjectType } from '@xpert-ai/contracts'
 import type { XpertPlugin } from '@xpert-ai/plugin-sdk'
 import zodToJsonSchema from 'zod-to-json-schema'
 

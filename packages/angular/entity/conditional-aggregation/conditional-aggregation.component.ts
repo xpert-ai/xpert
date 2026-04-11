@@ -9,9 +9,9 @@ import {
   ReactiveFormsModule,
   Validators
 } from '@angular/forms'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmDSCoreService } from '@metad/ocap-angular/core'
-import { NgmParameterSelectComponent } from '@metad/ocap-angular/parameter'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { NgmParameterSelectComponent } from '@xpert-ai/ocap-angular/parameter'
 import {
   AggregationCompareOperations,
   AggregationOperation,
@@ -25,7 +25,7 @@ import {
   negate,
   Property,
   PropertyMeasure
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { sortBy } from 'lodash-es'
 import { PropertyCapacity } from '../types'

@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { API_PREFIX } from '@metad/cloud/state'
+import { API_PREFIX } from '@xpert-ai/cloud/state'
 import { IScreenshot } from '../types'
 
 export const C_API_SCREENSHOT = API_PREFIX + '/screenshot'

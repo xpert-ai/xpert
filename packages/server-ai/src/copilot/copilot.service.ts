@@ -1,12 +1,12 @@
-import { AiProviderRole, IAiProviderEntity, ICopilot } from '@metad/contracts'
-import { DeepPartial } from '@metad/server-common'
-import { ConfigService } from '@metad/server-config'
+import { AiProviderRole, IAiProviderEntity, ICopilot } from '@xpert-ai/contracts'
+import { DeepPartial } from '@xpert-ai/server-common'
+import { ConfigService } from '@xpert-ai/server-config'
 import {
 	FindOptionsWhere,
 	PaginationParams,
 	RequestContext,
 	TenantOrganizationAwareCrudService
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { Inject, Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'

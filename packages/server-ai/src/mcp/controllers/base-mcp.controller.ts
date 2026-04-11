@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Req, Res, Inject } from '@nestjs/common';
 import { Request, Response } from 'express';
 import { MCPService } from '../mcp.service';
-import { Public } from '@metad/server-auth';
+import { Public } from '@xpert-ai/server-auth';
 
 /**
  * Base controller for MCP endpoints without throttling

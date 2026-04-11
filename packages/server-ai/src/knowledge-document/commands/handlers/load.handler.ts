@@ -6,9 +6,9 @@ import {
 	IKnowledgeDocumentChunk,
 	KBDocumentCategoryEnum,
 	KBDocumentStatusEnum,
-} from '@metad/contracts'
-import { loadCsvWithAutoEncoding, loadExcel, pick } from '@metad/server-common'
-import { computeObjectHash, RequestContext } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { loadCsvWithAutoEncoding, loadExcel, pick } from '@xpert-ai/server-common'
+import { computeObjectHash, RequestContext } from '@xpert-ai/server-core'
 import { Inject } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import {

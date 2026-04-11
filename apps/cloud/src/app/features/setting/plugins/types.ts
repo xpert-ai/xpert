@@ -1,4 +1,4 @@
-import { IPluginDescriptor } from '@metad/cloud/state'
+import { IPluginDescriptor } from '@xpert-ai/cloud/state'
 import { TPlugin } from '@cloud/app/@shared/plugins'
 
 export type TPluginWithDownloads = TPlugin & {

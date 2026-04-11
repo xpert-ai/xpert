@@ -2,8 +2,8 @@ import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { Injectable, computed, effect, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
-import { nonNullable } from '@metad/core'
-import { attrModel, effectAction, linkedModel } from '@metad/ocap-angular/core'
+import { nonNullable } from '@xpert-ai/core'
+import { attrModel, effectAction, linkedModel } from '@xpert-ai/ocap-angular/core'
 import {
   AggregationRole,
   C_MEASURES,
@@ -26,8 +26,8 @@ import {
   isEntitySet,
   isNil,
   nonBlank
-} from '@metad/ocap-core'
-import { NxSettingsPanelService } from '@metad/story/designer'
+} from '@xpert-ai/ocap-core'
+import { NxSettingsPanelService } from '@xpert-ai/story/designer'
 import { select, withProps } from '@ngneat/elf'
 import { uuid } from 'apps/cloud/src/app/@core'
 import { assign, cloneDeep, isEqual, negate, omit, omitBy } from 'lodash-es'
@@ -47,7 +47,7 @@ import {
 } from 'rxjs'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
 import { MODEL_DEBOUNCE_TIME } from '@cloud/app/@shared/model'
-import { getSemanticModelKey } from '@metad/story/core'
+import { getSemanticModelKey } from '@xpert-ai/story/core'
 import { SemanticModelService } from '../model.service'
 import { createSubStore, dirtyCheckWith, write } from '../../store'
 import { EntityPreview, MODEL_TYPE, ModelDesignerType } from '../types'

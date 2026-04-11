@@ -5,7 +5,7 @@ import { IXpert, TChatOptions, TChatRequest } from '../@core'
 import { ActivatedRoute, Router } from '@angular/router'
 import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { distinctUntilChanged, filter, map, of, withLatestFrom } from 'rxjs'
-import { nonNullable } from '@metad/core'
+import { nonNullable } from '@xpert-ai/core'
 import { injectParams } from 'ngxtension/inject-params'
 
 /**

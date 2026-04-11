@@ -8,7 +8,7 @@ import {
   NgmCommonModule,
   NgmConfirmDeleteService,
   NgmCountdownConfirmationComponent
-} from '@metad/ocap-angular/common'
+} from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { get } from 'lodash-es'
 import {

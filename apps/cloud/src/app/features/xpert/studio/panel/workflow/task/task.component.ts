@@ -5,7 +5,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
-import { attrModel, linkedModel } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,

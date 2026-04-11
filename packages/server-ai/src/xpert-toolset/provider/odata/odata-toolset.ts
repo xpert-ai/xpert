@@ -1,4 +1,4 @@
-import { ApiAuthType, I18nObject, IXpertTool, IXpertToolset, TXpertToolEntity, XpertToolsetCategoryEnum } from '@metad/contracts'
+import { ApiAuthType, I18nObject, IXpertTool, IXpertToolset, TXpertToolEntity, XpertToolsetCategoryEnum } from '@xpert-ai/contracts'
 import { Service } from '@sap_oss/odata-library'
 import { uniq } from 'lodash'
 import { ToolProviderCredentialValidationError } from '../../errors'

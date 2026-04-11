@@ -11,8 +11,8 @@ import {
   runInInjectionContext
 } from '@angular/core'
 import { TinyArea } from '@antv/g2plot/esm/plots/tiny-area'
-import { NgmLanguageEnum } from '@metad/ocap-angular/core'
-import { Indicator } from '@metad/ocap-core'
+import { NgmLanguageEnum } from '@xpert-ai/ocap-angular/core'
+import { Indicator } from '@xpert-ai/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
 import { StatisticalType, Trend, TrendColor, TrendReverseColor } from '../types'
 

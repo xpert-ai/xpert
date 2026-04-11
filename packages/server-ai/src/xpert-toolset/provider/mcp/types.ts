@@ -8,9 +8,9 @@ import {
 	TChatEventMessage,
 	TMCPSchema,
 	TMCPServer
-} from '@metad/contracts'
-import { environment } from '@metad/server-config'
-import { runScript } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { environment } from '@xpert-ai/server-config'
+import { runScript } from '@xpert-ai/server-core'
 import { t } from 'i18next'
 import { isNil, omitBy } from 'lodash'
 

@@ -3,7 +3,7 @@ import { Router } from '@angular/router'
 import { TranslateModule } from '@ngx-translate/core'
 import { of } from 'rxjs'
 import { ToastrService, ViewExtensionApiService } from '@cloud/app/@core'
-import { XpertExtensionViewManifest } from '@metad/contracts'
+import { XpertExtensionViewManifest } from '@xpert-ai/contracts'
 import { ViewRendererComponent } from './view-renderer.component'
 
 describe('ViewRendererComponent', () => {

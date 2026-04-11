@@ -1,12 +1,12 @@
 import { Injectable } from '@angular/core'
-import { StoryWidget } from '@metad/story/core'
+import { StoryWidget } from '@xpert-ai/story/core'
 import {
   Appearances,
   BaseDesignerSchemaService,
   BaseSchemaState,
   FORMLY_ROW,
   FORMLY_W_1_2
-} from '@metad/story/designer'
+} from '@xpert-ai/story/designer'
 import { map } from 'rxjs/operators'
 
 @Injectable()

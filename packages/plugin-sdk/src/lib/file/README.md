@@ -82,7 +82,7 @@ Implementation steps:
 ## Example provider plugin shape
 
 ```ts
-import { JsonSchemaObjectType } from '@metad/contracts'
+import { JsonSchemaObjectType } from '@xpert-ai/contracts'
 import { FileStorageProvider, IFileStorageProvider, XpertPlugin } from '@xpert-ai/plugin-sdk'
 import { Injectable } from '@nestjs/common'
 import { z } from 'zod'

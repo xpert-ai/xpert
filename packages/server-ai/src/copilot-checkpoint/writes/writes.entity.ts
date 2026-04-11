@@ -1,5 +1,5 @@
-import { ICopilotCheckpointWrites } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { ICopilotCheckpointWrites } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiPropertyOptional } from '@nestjs/swagger'
 import { IsNumber, IsString } from 'class-validator'
 import { Column, Entity, Index } from 'typeorm'

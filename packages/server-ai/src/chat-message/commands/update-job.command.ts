@@ -1,4 +1,4 @@
-import { TSummaryJob } from '@metad/contracts'
+import { TSummaryJob } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 export class ChatMessageUpdateJobCommand implements ICommand {

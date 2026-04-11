@@ -1,4 +1,4 @@
-import { KnowledgeDocumentMetadata, TWFCase } from '@metad/contracts'
+import { KnowledgeDocumentMetadata, TWFCase } from '@xpert-ai/contracts'
 import { IQuery } from '@nestjs/cqrs'
 
 export class KnowledgeSearchQuery implements IQuery {

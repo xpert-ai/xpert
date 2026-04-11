@@ -1,5 +1,5 @@
-import { Agent, DataSourceFactory } from '@metad/ocap-core'
-import { race } from '@metad/server-common'
+import { Agent, DataSourceFactory } from '@xpert-ai/ocap-core'
+import { race } from '@xpert-ai/server-common'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { firstValueFrom, switchMap } from 'rxjs'

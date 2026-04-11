@@ -10,7 +10,7 @@ import {
   getEntityProperty,
   Property,
   PropertyMeasure
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { maxBy, minBy, range } from 'lodash-es'
 import { getChromaticScale } from '../chromatics'
 import { EChartsDataset, IVisualMap } from '../types'

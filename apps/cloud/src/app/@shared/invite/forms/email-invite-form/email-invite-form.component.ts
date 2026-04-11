@@ -14,7 +14,7 @@ import {
   RolesEnum
 } from '../../../../@core/types'
 import { TranslateService } from '@ngx-translate/core'
-import { AuthService, InviteService } from '@metad/cloud/state'
+import { AuthService, InviteService } from '@xpert-ai/cloud/state'
 import { firstValueFrom } from 'rxjs'
 import { filter, tap } from 'rxjs/operators'
 import { EmailValidator } from '../../../../@core/validators'

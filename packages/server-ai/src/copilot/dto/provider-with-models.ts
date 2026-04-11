@@ -1,4 +1,4 @@
-import { ModelCredentialSchema, ProviderCredentialSchema, ProviderModel } from '@metad/contracts'
+import { ModelCredentialSchema, ProviderCredentialSchema, ProviderModel } from '@xpert-ai/contracts'
 import { Exclude, Expose, Transform } from 'class-transformer'
 import { PublicAIModelDto } from './public-ai-model'
 import { AiProviderDto } from '../../ai-model'

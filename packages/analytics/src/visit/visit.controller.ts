@@ -1,5 +1,5 @@
-import { VisitEntityEnum } from '@metad/contracts'
-import { CrudController } from '@metad/server-core'
+import { VisitEntityEnum } from '@xpert-ai/contracts'
+import { CrudController } from '@xpert-ai/server-core'
 import { ClassSerializerInterceptor, Controller, Get, Query, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { Visit } from './visit.entity'

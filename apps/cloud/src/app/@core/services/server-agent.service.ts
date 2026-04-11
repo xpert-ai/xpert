@@ -1,8 +1,8 @@
 import { HttpClient, HttpParams, HttpRequest, HttpResponse } from '@angular/common/http'
 import { Inject, Injectable, InjectionToken } from '@angular/core'
-import { AgentEvent, AuthenticationEnum, IDataSource, IDataSourceAuthentication, ISemanticModel } from '@metad/contracts'
-import { Agent, AgentStatus, AgentType, DataSourceOptions, UUID } from '@metad/ocap-core'
-import { API_DATA_SOURCE, C_URI_API_MODELS, DataSourceService } from '@metad/cloud/state'
+import { AgentEvent, AuthenticationEnum, IDataSource, IDataSourceAuthentication, ISemanticModel } from '@xpert-ai/contracts'
+import { Agent, AgentStatus, AgentType, DataSourceOptions, UUID } from '@xpert-ai/ocap-core'
+import { API_DATA_SOURCE, C_URI_API_MODELS, DataSourceService } from '@xpert-ai/cloud/state'
 import { chunk, flatten, groupBy } from 'lodash-es'
 import {
   bufferTime,

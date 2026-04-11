@@ -13,7 +13,7 @@ import {
   NgmI18nPipe,
   toParams,
   TSelectOption
-} from '@metad/ocap-angular/core'
+} from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { derivedAsync } from 'ngxtension/derived-async'

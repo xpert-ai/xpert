@@ -21,14 +21,14 @@ import {
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { StoriesService, convertNewSemanticModelResult } from '@metad/cloud/state'
-import { CopilotChatMessage } from '@metad/copilot'
-import { IsNilPipe } from '@metad/core'
-import { NgmConfirmUniqueComponent, NgmInputComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { CHARTS, cloneDeep, DeepPartial, omit } from '@metad/ocap-core'
-import { NgmConfirmCodeEditorComponent } from '@metad/ocap-angular/editor'
-import { PreferencesComponent, QuerySettingComponent, ThemeBuilderComponent } from '@metad/story'
+import { StoriesService, convertNewSemanticModelResult } from '@xpert-ai/cloud/state'
+import { CopilotChatMessage } from '@xpert-ai/copilot'
+import { IsNilPipe } from '@xpert-ai/core'
+import { NgmConfirmUniqueComponent, NgmInputComponent } from '@xpert-ai/ocap-angular/common'
+import { AppearanceDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { CHARTS, cloneDeep, DeepPartial, omit } from '@xpert-ai/ocap-core'
+import { NgmConfirmCodeEditorComponent } from '@xpert-ai/ocap-angular/editor'
+import { PreferencesComponent, QuerySettingComponent, ThemeBuilderComponent } from '@xpert-ai/story'
 import {
   EmulatedDevice,
   NxStoryService,
@@ -38,8 +38,8 @@ import {
   StoryWidget,
   StoryWidgetComponentProvider,
   WidgetComponentType
-} from '@metad/story/core'
-import { StorySharesComponent } from '@metad/story/story'
+} from '@xpert-ai/story/core'
+import { StorySharesComponent } from '@xpert-ai/story/story'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import { map } from 'rxjs/operators'

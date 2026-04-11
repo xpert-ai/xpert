@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { BackgroundProperties, BaseDesignerSchemaService, BaseSchemaState, FORMLY_W_1_2 } from '@metad/story/designer'
+import { BackgroundProperties, BaseDesignerSchemaService, BaseSchemaState, FORMLY_W_1_2 } from '@xpert-ai/story/designer'
 import { of } from 'rxjs'
 
 @Injectable()

@@ -1,5 +1,5 @@
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs';
-import { ConfigService } from '@metad/server-config';
+import { ConfigService } from '@xpert-ai/server-config';
 import Handlebars from 'handlebars';
 import mjml2html from 'mjml';
 import { EmailTemplateService } from '../../email-template.service';

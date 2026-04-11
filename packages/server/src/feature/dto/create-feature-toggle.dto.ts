@@ -1,4 +1,4 @@
-import { IFeatureOrganizationUpdateInput, IOrganization } from "@metad/contracts";
+import { IFeatureOrganizationUpdateInput, IOrganization } from "@xpert-ai/contracts";
 import { ApiProperty } from "@nestjs/swagger";
 import { IsString,IsNotEmpty, IsBoolean, IsOptional, IsObject } from "class-validator";
 import { IsOrganizationBelongsToUser } from "./../../shared/validators";

@@ -14,7 +14,7 @@ import {
 import { EmojiAvatarComponent } from '../../avatar'
 import { XpertWorkflowIconComponent } from '../../workflow'
 import { XpertAgentExecutionComponent } from '../execution/execution.component'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 
 @Component({
   standalone: true,

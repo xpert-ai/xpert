@@ -1,4 +1,4 @@
-import { isClassInstance, isObject } from "@metad/server-common";
+import { isClassInstance, isObject } from "@xpert-ai/server-common";
 
 /**
  * Interface of the simple literal object with any string keys.

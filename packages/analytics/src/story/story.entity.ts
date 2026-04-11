@@ -12,8 +12,8 @@ import {
 	IVisit,
 	StoryStatusEnum,
 	Visibility
-} from '@metad/contracts'
-import { Tag } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { Tag } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, JoinTable, ManyToMany, ManyToOne, OneToMany, OneToOne, RelationId } from 'typeorm'

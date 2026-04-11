@@ -1,6 +1,6 @@
-import { LanguagesEnum, TXpertAgentChatRequest } from '@metad/contracts'
-import { getErrorMessage, keepAlive, takeUntilClose } from '@metad/server-common'
-import { CrudController, TimeZone, TransformInterceptor } from '@metad/server-core'
+import { LanguagesEnum, TXpertAgentChatRequest } from '@xpert-ai/contracts'
+import { getErrorMessage, keepAlive, takeUntilClose } from '@xpert-ai/server-common'
+import { CrudController, TimeZone, TransformInterceptor } from '@xpert-ai/server-core'
 import {
     BadRequestException,
     Body,

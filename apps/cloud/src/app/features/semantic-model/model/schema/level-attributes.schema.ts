@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@metad/story/designer'
+import { FORMLY_ROW, FORMLY_W_1_2, FORMLY_W_FULL } from '@xpert-ai/story/designer'
 import { map } from 'rxjs/operators'
 import { HierarchySchemaService } from './hierarchy.schema'
 import { hiddenPropertiesAccordion, SemanticsAccordionWrapper } from '@cloud/app/@shared/model'

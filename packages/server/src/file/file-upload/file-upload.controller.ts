@@ -1,4 +1,4 @@
-import { IFileAsset, IUploadFileTarget } from '@metad/contracts'
+import { IFileAsset, IUploadFileTarget } from '@xpert-ai/contracts'
 import { BadRequestException, Body, Controller, Post, UploadedFile, UseInterceptors } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { FileInterceptor } from '@nestjs/platform-express'

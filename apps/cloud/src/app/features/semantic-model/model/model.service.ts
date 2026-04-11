@@ -2,9 +2,9 @@ import { CdkDropList, DropListRef, moveItemInArray } from '@angular/cdk/drag-dro
 import { DestroyRef, Injectable, computed, inject, signal } from '@angular/core'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ActivatedRoute, Router } from '@angular/router'
-import { SemanticModelServerService as SemanticModelsService, NgmSemanticModel, convertNewSemanticModelResult } from '@metad/cloud/state'
-import { NgmDSCoreService, effectAction, linkedModel } from '@metad/ocap-angular/core'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
+import { SemanticModelServerService as SemanticModelsService, NgmSemanticModel, convertNewSemanticModelResult } from '@xpert-ai/cloud/state'
+import { NgmDSCoreService, effectAction, linkedModel } from '@xpert-ai/ocap-angular/core'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
 import {
   AgentType,
   Cube,
@@ -22,8 +22,8 @@ import {
   omit,
   upsertHierarchy,
   wrapHierarchyValue
-} from '@metad/ocap-core'
-import { getSemanticModelKey } from '@metad/story/core'
+} from '@xpert-ai/ocap-core'
+import { getSemanticModelKey } from '@xpert-ai/story/core'
 import { Store, createStore, select, withProps } from '@ngneat/elf'
 import { stateHistory } from '@ngneat/elf-state-history'
 import { cloneDeep, isEqual, negate } from 'lodash-es'
@@ -53,7 +53,7 @@ import {
   initDimensionSubState,
   initEntitySubState
 } from './types'
-import { limitSelect } from '@metad/ocap-sql'
+import { limitSelect } from '@xpert-ai/ocap-sql'
 import { calculateHash } from '@cloud/app/@shared/utils'
 import { MODEL_DEBOUNCE_TIME } from '@cloud/app/@shared/model'
 import { CreateEntityDialogRetType, toDimension } from './create-entity/create-entity.component'

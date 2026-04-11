@@ -1,5 +1,5 @@
 import { tool } from '@langchain/core/tools'
-import { TAgentRunnableConfigurable } from '@metad/contracts'
+import { TAgentRunnableConfigurable } from '@xpert-ai/contracts'
 import { z } from 'zod'
 import { XpertProjectTaskService } from '../../../services'
 import { ProjectToolEnum } from '../project'

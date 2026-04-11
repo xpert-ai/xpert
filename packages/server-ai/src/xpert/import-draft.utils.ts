@@ -5,7 +5,7 @@ import {
   TXpertTeamConnection,
   TXpertTeamNode,
   TXpertTeamDraft
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { omit } from 'lodash'
 
 const SYSTEM_FIELDS = ['tenantId', 'organizationId', 'id', 'createdById', 'updatedById']

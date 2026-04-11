@@ -1,7 +1,7 @@
 
 import { Component, computed, input, output } from '@angular/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
-import { injectOrganizationId } from '@metad/cloud/state'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { injectOrganizationId } from '@xpert-ai/cloud/state'
 import { TranslateModule } from '@ngx-translate/core'
 import { upperFirst } from 'lodash-es'
 import { injectHelpWebsite, ITag, IToolProvider, TagCategoryEnum } from '../../../@core'

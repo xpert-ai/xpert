@@ -11,8 +11,8 @@ import {
 	KnowledgeStructureEnum,
 	TAvatar,
 	TKBRecallParams
-} from '@metad/contracts'
-import { Integration } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { Integration } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { Transform, TransformFnParams } from 'class-transformer'
 import { IsBoolean, IsEnum, IsJSON, IsNumber, IsOptional, IsString } from 'class-validator'

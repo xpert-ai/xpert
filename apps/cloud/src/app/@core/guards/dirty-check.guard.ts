@@ -3,7 +3,7 @@ import { ActivatedRouteSnapshot, CanDeactivateFn } from '@angular/router'
 import { TranslateService } from '@ngx-translate/core'
 import { Observable, defer, isObservable, of } from 'rxjs'
 import { switchMap, take } from 'rxjs/operators'
-import { IsDirty } from '@metad/core'
+import { IsDirty } from '@xpert-ai/core'
 import { ZardAlertDialogService } from '@xpert-ai/headless-ui'
 
 /**

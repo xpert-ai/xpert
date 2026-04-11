@@ -2,8 +2,8 @@ import { AfterViewInit, ChangeDetectorRef, Component, DestroyRef, Input, OnChang
 import { FormBuilder, FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { ActivatedRoute } from '@angular/router'
-import { ICustomSmtp, IOrganization, IUser, SMTPSecureEnum } from '@metad/contracts'
-import { ButtonGroupDirective, OcapCoreModule } from '@metad/ocap-angular/core'
+import { ICustomSmtp, IOrganization, IUser, SMTPSecureEnum } from '@xpert-ai/contracts'
+import { ButtonGroupDirective, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { combineLatest } from 'rxjs'

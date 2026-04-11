@@ -1,4 +1,4 @@
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { Inject, Injectable } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { CopilotGetOneQuery } from '../copilot'

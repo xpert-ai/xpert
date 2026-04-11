@@ -1,4 +1,4 @@
-import { RolesEnum } from '@metad/contracts'
+import { RolesEnum } from '@xpert-ai/contracts'
 import { Body, Controller, HttpStatus, Post, UseGuards } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'

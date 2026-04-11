@@ -9,7 +9,7 @@ import {
 	TXpertGraph,
 	TXpertTeamNode,
 	WorkflowNodeTypeEnum,
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { XpertWorkflowSubgraphCommand } from '../workflow-subgraph.command'

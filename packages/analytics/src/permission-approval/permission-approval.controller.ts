@@ -4,7 +4,7 @@ import {
 	IPermissionApproval,
 	IPermissionApprovalCreateInput,
 	PermissionApprovalStatus
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import {
 	CrudController,
 	ParseJsonPipe,
@@ -13,7 +13,7 @@ import {
 	RequestContext,
 	TenantPermissionGuard,
 	UUIDValidationPipe
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import {
 	Body,
 	ClassSerializerInterceptor,

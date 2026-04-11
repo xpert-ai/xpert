@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, input } from '@angular/core'
-import { NgmIsNilPipe } from '@metad/ocap-angular/core'
+import { NgmIsNilPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IXpertAgentExecution } from '../../../@core'
 

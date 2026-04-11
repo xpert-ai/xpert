@@ -7,8 +7,8 @@ import {
   PaginationParams,
   TFileDirectory,
   toHttpParams
-} from '@metad/cloud/state'
-import { toParams } from '@metad/core'
+} from '@xpert-ai/cloud/state'
+import { toParams } from '@xpert-ai/core'
 import { EMPTY, switchMap } from 'rxjs'
 import { TFile } from '../types'
 

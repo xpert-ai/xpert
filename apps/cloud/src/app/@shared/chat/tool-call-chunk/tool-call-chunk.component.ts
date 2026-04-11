@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { booleanAttribute, Component, computed, effect, input, output, signal } from '@angular/core'
 import { TMessageComponent, TMessageComponentStep } from '@cloud/app/@core'
-import { RelativeTimesPipe } from '@metad/ocap-angular/core'
+import { RelativeTimesPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxJsonViewerModule } from 'ngx-json-viewer'
 import { Copy2Component } from '../../common'

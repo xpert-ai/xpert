@@ -1,5 +1,5 @@
-import { ICustomSmtp, ICustomSmtpFindInput, IVerifySMTPTransport } from '@metad/contracts'
-import { isEmpty, ISMTPConfig } from '@metad/server-common'
+import { ICustomSmtp, ICustomSmtpFindInput, IVerifySMTPTransport } from '@xpert-ai/contracts'
+import { isEmpty, ISMTPConfig } from '@xpert-ai/server-common'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { IsNull, Repository } from 'typeorm'

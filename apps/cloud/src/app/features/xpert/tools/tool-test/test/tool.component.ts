@@ -13,8 +13,8 @@ import {
 } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { XpToolParametersFormComponent } from '@cloud/app/@shared/xpert'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmDensityDirective, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmDensityDirective, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,

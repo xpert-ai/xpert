@@ -1,6 +1,6 @@
 import { RunSource, LaneName } from '@xpert-ai/plugin-sdk'
-import { ConfigService } from '@metad/server-config'
-import { loadYamlFile } from '@metad/server-core'
+import { ConfigService } from '@xpert-ai/server-config'
+import { loadYamlFile } from '@xpert-ai/server-core'
 import { Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import * as path from 'path'
 import { z } from 'zod'

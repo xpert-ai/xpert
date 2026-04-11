@@ -1,4 +1,4 @@
-import { PLUGIN_LEVEL, PluginLevel, PluginSource, RolesEnum } from '@metad/contracts'
+import { PLUGIN_LEVEL, PluginLevel, PluginSource, RolesEnum } from '@xpert-ai/contracts'
 import { GLOBAL_ORGANIZATION_SCOPE, RequestContext } from '@xpert-ai/plugin-sdk'
 import { LoadedPluginRecord } from './types'
 

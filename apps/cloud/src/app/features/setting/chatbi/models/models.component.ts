@@ -6,14 +6,14 @@ import { FormControl, ReactiveFormsModule } from '@angular/forms'
 
 import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { SemanticModelServerService } from '@metad/cloud/state'
+import { SemanticModelServerService } from '@xpert-ai/cloud/state'
 import {
   CdkConfirmDeleteComponent,
   NgmSearchComponent,
   NgmTableComponent,
   TableColumn
-} from '@metad/ocap-angular/common'
-import { AppearanceDirective } from '@metad/ocap-angular/core'
+} from '@xpert-ai/ocap-angular/common'
+import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { BehaviorSubject, EMPTY } from 'rxjs'

@@ -2,7 +2,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import { ChangeDetectionStrategy, Component, inject } from '@angular/core'
 import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxFloatUiModule, NgxFloatUiPlacements, NgxFloatUiTriggers } from 'ngx-float-ui'
 import { getErrorMessage, TagCategoryEnum, TagService, ToastrService } from '../../../@core'

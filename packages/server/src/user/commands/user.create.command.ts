@@ -1,5 +1,5 @@
 import { ICommand } from '@nestjs/cqrs';
-import { IUserCreateInput } from '@metad/contracts';
+import { IUserCreateInput } from '@xpert-ai/contracts';
 
 /**
  * EmailVerified automatically

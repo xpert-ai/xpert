@@ -45,7 +45,7 @@ export function prefersColorScheme() {
   return new Observable<ThemesEnum>((subscriber) => {
     if (typeof window === 'undefined' || typeof window.matchMedia !== 'function') {
       subscriber.next(ThemesEnum.light)
-      return
+      return undefined
     }
 
     const mediaQueryList = window.matchMedia('(prefers-color-scheme: dark)')

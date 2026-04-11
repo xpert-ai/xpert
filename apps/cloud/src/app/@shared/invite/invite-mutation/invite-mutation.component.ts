@@ -3,7 +3,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop'
 import { ChangeDetectionStrategy, Component, HostBinding, Input, ViewChild, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { getErrorMessage } from '../../../@core'
 import { ToastrService } from '../../../@core/services'

@@ -23,10 +23,10 @@ import {
 	wrapLevelNumber,
 	wrapLevelUniqueName,
 	wrapMemberCaption
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { Logger } from '@nestjs/common'
-import { LanguagesEnum } from '@metad/contracts'
-import { omit } from '@metad/server-common'
+import { LanguagesEnum } from '@xpert-ai/contracts'
+import { omit } from '@xpert-ai/server-common'
 import { CommandBus } from '@nestjs/cqrs'
 import { z } from 'zod'
 import { LanguageSchema, TimeSlicerSchema } from '../../schema'

@@ -1,4 +1,4 @@
-import { ConfigService, IEnvironment } from '@metad/server-config';
+import { ConfigService, IEnvironment } from '@xpert-ai/server-config';
 import { Injectable } from '@nestjs/common';
 import { PassportStrategy } from '@nestjs/passport';
 import { Strategy } from 'passport-google-oauth20';

@@ -8,8 +8,8 @@ import {
 	ITag,
 	IUser,
 	ProjectStatusEnum
-} from '@metad/contracts'
-import { StorageFile, Tag, TenantOrganizationBaseEntity, User } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { StorageFile, Tag, TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsDateString, IsOptional, IsString } from 'class-validator'
 import {

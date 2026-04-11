@@ -1,5 +1,5 @@
-import { DEFAULT_TENANT, StoryStatusEnum } from '@metad/contracts'
-import { RequestContext, TenantService, User } from '@metad/server-core'
+import { DEFAULT_TENANT, StoryStatusEnum } from '@xpert-ai/contracts'
+import { RequestContext, TenantService, User } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'

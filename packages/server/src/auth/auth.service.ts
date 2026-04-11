@@ -2,7 +2,7 @@ import { BadRequestException, ForbiddenException, Injectable, InternalServerErro
 import { CommandBus } from '@nestjs/cqrs'
 import { ConfigService } from '@nestjs/config'
 import { InjectRepository } from '@nestjs/typeorm'
-import { buildQueryString } from '@metad/server-common'
+import { buildQueryString } from '@xpert-ai/server-common'
 import {
 	IAuthResponse,
 	IChangePasswordRequest,
@@ -16,9 +16,9 @@ import {
 	IUserRegistrationInput,
 	LanguagesEnum,
 	mapTranslationLanguage,
-} from '@metad/contracts'
-import { SocialAuthService } from '@metad/server-auth'
-import { environment as env, environment, IEnvironment } from '@metad/server-config'
+} from '@xpert-ai/contracts'
+import { SocialAuthService } from '@xpert-ai/server-auth'
+import { environment as env, environment, IEnvironment } from '@xpert-ai/server-config'
 import bcrypt from 'bcryptjs'
 import { StringValue } from 'ms'
 import { nanoid } from 'nanoid'

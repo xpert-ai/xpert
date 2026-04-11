@@ -12,7 +12,7 @@ import {
   PrimitiveType,
   Property,
   PropertyMeasure
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { find, isNumber } from 'lodash-es'
 import { formatNumber } from './decimal'
 import { FORMAT_LOCALE_DATA, SeriesComponentType } from './types'

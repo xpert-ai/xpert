@@ -1,6 +1,6 @@
 import { HttpParams } from '@angular/common/http'
 import { inject, Injectable } from '@angular/core'
-import { OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
+import { OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@xpert-ai/cloud/state'
 import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject } from 'rxjs'
 import { API_XPERT_AGENT_EXECUTION } from '../constants/app.constants'

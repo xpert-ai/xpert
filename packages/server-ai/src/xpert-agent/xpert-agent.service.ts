@@ -4,8 +4,8 @@ import {
     TChatOptions,
     TXpertAgentChatRequest,
     WorkflowNodeTypeEnum
-} from '@metad/contracts'
-import { TenantOrganizationAwareCrudService } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'

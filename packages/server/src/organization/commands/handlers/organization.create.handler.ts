@@ -1,4 +1,4 @@
-import { IOrganization, RolesEnum } from '@metad/contracts';
+import { IOrganization, RolesEnum } from '@xpert-ai/contracts';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { getManager } from 'typeorm';

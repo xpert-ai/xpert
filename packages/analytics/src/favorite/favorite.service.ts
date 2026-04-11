@@ -3,7 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm'
 import {
 	RequestContext,
 	TenantOrganizationAwareCrudService,
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { FindManyOptions, Repository } from 'typeorm'
 import { Favorite } from './favorite.entity'
 

@@ -1,6 +1,6 @@
 import { interrupt } from '@langchain/langgraph'
 import { BaseStore } from '@langchain/langgraph-checkpoint'
-import { IIndicator } from '@metad/contracts'
+import { IIndicator } from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { TBIContext } from '../../../types'

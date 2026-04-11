@@ -1,4 +1,4 @@
-import { UserModule } from '@metad/server-core'
+import { UserModule } from '@xpert-ai/server-core'
 import { Module, forwardRef } from '@nestjs/common'
 import { CqrsModule } from '@nestjs/cqrs'
 import { AIModule } from './ai'

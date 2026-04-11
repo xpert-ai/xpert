@@ -1,7 +1,7 @@
 import { BaseMessage, mapChatMessagesToStoredMessages } from '@langchain/core/messages'
-import { LanguagesEnum, TChatOptions, TChatRequest, UploadedFile } from '@metad/contracts'
-import { keepAlive, takeUntilClose } from '@metad/server-common'
-import { FileStorage, LazyFileInterceptor, RequestContext, TimeZone, UploadedFileStorage } from '@metad/server-core'
+import { LanguagesEnum, TChatOptions, TChatRequest, UploadedFile } from '@xpert-ai/contracts'
+import { keepAlive, takeUntilClose } from '@xpert-ai/server-common'
+import { FileStorage, LazyFileInterceptor, RequestContext, TimeZone, UploadedFileStorage } from '@xpert-ai/server-core'
 import {
 	Body,
 	Controller,

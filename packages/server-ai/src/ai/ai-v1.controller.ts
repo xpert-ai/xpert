@@ -5,8 +5,8 @@ import {
 	IUploadFileTarget,
 	TChatOptions,
 	TChatRequest
-} from '@metad/contracts'
-import { keepAlive, takeUntilClose } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { keepAlive, takeUntilClose } from '@xpert-ai/server-common'
 import {
 	ApiKeyAuthGuard,
 	ApiKeyOrClientSecretAuthGuard,
@@ -17,7 +17,7 @@ import {
 	UploadFileCommand,
 	getFileAssetDestination,
 	getStorageFileFromAsset
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import {
 	BadRequestException,
 	Body,

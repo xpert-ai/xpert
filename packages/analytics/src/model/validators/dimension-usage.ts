@@ -1,6 +1,6 @@
-import { IDSTable } from '@metad/adapter'
-import { ChecklistItem, RuleValidator } from '@metad/contracts'
-import { Cube, DimensionUsage, Schema } from '@metad/ocap-core'
+import { IDSTable } from '@xpert-ai/adapter'
+import { ChecklistItem, RuleValidator } from '@xpert-ai/contracts'
+import { Cube, DimensionUsage, Schema } from '@xpert-ai/ocap-core'
 import { TablesCache } from './tables'
 
 export class DimensionUsageValidator implements RuleValidator {

@@ -3,9 +3,9 @@ import { DialogRef } from '@angular/cdk/dialog'
 import { Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { IBusinessArea, injectBusinessAreaTree } from '@metad/cloud/state'
-import { TreeTableModule } from '@metad/ocap-angular/common'
-import { DisplayDensity } from '@metad/ocap-angular/core'
+import { IBusinessArea, injectBusinessAreaTree } from '@xpert-ai/cloud/state'
+import { TreeTableModule } from '@xpert-ai/ocap-angular/common'
+import { DisplayDensity } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 
 @Component({

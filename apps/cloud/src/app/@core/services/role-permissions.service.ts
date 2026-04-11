@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IRolePermission, IRolePermissionCreateInput, IRolePermissionUpdateInput } from '@metad/contracts'
-import { API_PREFIX } from '@metad/cloud/state'
+import { IRolePermission, IRolePermissionCreateInput, IRolePermissionUpdateInput } from '@xpert-ai/contracts'
+import { API_PREFIX } from '@xpert-ai/cloud/state'
 import { lastValueFrom, Observable } from 'rxjs'
 
 @Injectable({

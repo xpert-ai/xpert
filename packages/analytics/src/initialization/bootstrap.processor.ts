@@ -1,4 +1,4 @@
-import { OrganizationCreatedEvent, EVENT_ORGANIZATION_CREATED } from '@metad/server-core'
+import { OrganizationCreatedEvent, EVENT_ORGANIZATION_CREATED } from '@xpert-ai/server-core'
 import { InjectQueue, Process, Processor } from '@nestjs/bull'
 import { Logger } from '@nestjs/common'
 import { OnEvent } from '@nestjs/event-emitter'

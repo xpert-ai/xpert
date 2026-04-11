@@ -1,5 +1,5 @@
-import { IBasePerProjectEntityModel } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { IBasePerProjectEntityModel } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty } from '@nestjs/swagger'
 import { IsOptional, IsString } from 'class-validator'
 import { Column, Index, JoinColumn, ManyToOne, RelationId } from 'typeorm'

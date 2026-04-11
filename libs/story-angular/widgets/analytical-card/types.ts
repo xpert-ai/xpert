@@ -1,5 +1,5 @@
-import { Dimension, ISlicer, OrderDirection } from '@metad/ocap-core'
-import { WidgetMenu } from '@metad/core'
+import { Dimension, ISlicer, OrderDirection } from '@xpert-ai/ocap-core'
+import { WidgetMenu } from '@xpert-ai/core'
 
 export interface DrillLevel {
   // 父级维度， 从哪个维度下钻来的

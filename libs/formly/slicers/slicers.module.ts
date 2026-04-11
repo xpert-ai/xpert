@@ -5,7 +5,7 @@ import { ReactiveFormsModule } from '@angular/forms'
 
 import { FormlyModule } from '@ngx-formly/core'
 import { PACFormlySlicersComponent } from './slicers.type'
-import { NgmSelectionModule } from '@metad/ocap-angular/selection'
+import { NgmSelectionModule } from '@xpert-ai/ocap-angular/selection'
 import { ZardButtonComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
 
 @NgModule({

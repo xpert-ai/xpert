@@ -1,4 +1,4 @@
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { DeleteResult } from 'typeorm'
 import { SemanticModelCacheService } from '../../cache/cache.service'

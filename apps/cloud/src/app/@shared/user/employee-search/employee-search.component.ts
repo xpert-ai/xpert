@@ -9,7 +9,7 @@ import {
   Z_MODAL_DATA,
   ZardDialogRef
 } from '@xpert-ai/headless-ui'
-import { ButtonGroupDirective, ISelectOption } from '@metad/ocap-angular/core'
+import { ButtonGroupDirective, ISelectOption } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { catchError, debounceTime, EMPTY, filter, map, of, switchMap, tap } from 'rxjs'
 import { EmployeesService, IEmployee } from '../../../@core'

@@ -1,4 +1,4 @@
-import { API_PREFIX } from '@metad/cloud/state'
+import { API_PREFIX } from '@xpert-ai/cloud/state'
 export const API_EMAIL_TEMPLATE = API_PREFIX + '/email-template'
 export const API_VISITS = API_PREFIX + '/visits'
 export const API_FEEDS = API_PREFIX + '/feeds'

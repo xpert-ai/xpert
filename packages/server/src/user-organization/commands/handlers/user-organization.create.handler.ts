@@ -1,4 +1,4 @@
-import { IUserOrganization } from '@metad/contracts'
+import { IUserOrganization } from '@xpert-ai/contracts'
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { RoleService } from '../../../role/role.service'

@@ -1,5 +1,5 @@
 {
-  "name": "@metad/core",
+  "name": "@xpert-ai/core",
   "version": "2.1.0",
   "peerDependencies": {
     "@angular/common": "^21.0.0",

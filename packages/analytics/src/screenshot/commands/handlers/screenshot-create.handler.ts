@@ -3,7 +3,7 @@ import { BadRequestException } from '@nestjs/common';
 import moment from 'moment';
 import { ScreenshotCreateCommand } from './../screenshot-create.command';
 import { ScreenshotService } from './../../../screenshot/screenshot.service';
-import { RequestContext } from '@metad/server-core';
+import { RequestContext } from '@xpert-ai/server-core';
 
 @CommandHandler(ScreenshotCreateCommand)
 export class ScreenshotCreateHandler

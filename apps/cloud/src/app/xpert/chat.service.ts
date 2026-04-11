@@ -1,6 +1,6 @@
 import { HttpErrorResponse } from '@angular/common/http'
 import { computed, DestroyRef, effect, inject, Injectable, signal } from '@angular/core'
-import { linkedModel } from '@metad/core'
+import { linkedModel } from '@xpert-ai/core'
 import { omit, uniq } from 'lodash-es'
 import { NGXLogger } from 'ngx-logger'
 import { derivedAsync } from 'ngxtension/derived-async'

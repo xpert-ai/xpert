@@ -2,7 +2,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { nonNullable } from '@metad/copilot'
+import { nonNullable } from '@xpert-ai/copilot'
 import { TranslateModule } from '@ngx-translate/core'
 import { TXpertAgentOptions, TXpertTeamNode } from 'apps/cloud/src/app/@core'
 import { KnowledgeRecallParamsComponent } from 'apps/cloud/src/app/@shared/knowledge'

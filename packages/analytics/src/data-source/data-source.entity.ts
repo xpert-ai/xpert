@@ -5,8 +5,8 @@ import {
   IDataSourceAuthentication,
   IDataSourceType,
   ISemanticModel,
-} from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import {
   IsBoolean,
   IsJSON,

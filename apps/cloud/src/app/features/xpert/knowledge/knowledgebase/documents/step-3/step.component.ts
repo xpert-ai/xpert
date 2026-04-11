@@ -5,7 +5,7 @@ import { Component, computed, effect, inject, input, signal } from '@angular/cor
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router } from '@angular/router'
-import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import { KnowledgeDocIdComponent } from 'apps/cloud/src/app/@shared/knowledge'

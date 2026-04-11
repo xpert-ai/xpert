@@ -1,6 +1,6 @@
 # XpertAI Core Server
 
-`@metad/server-core` is the core service library of the XpertAI platform, providing unified foundational capabilities such as tenant isolation, organizational structure, user and permission management for upper-layer business modules. Built on NestJS, this package integrates key components like authentication, storage, caching, and internationalization, serving as the backbone for building intelligent analytics applications and enterprise-level AI scenarios.
+`@xpert-ai/server-core` is the core service library of the XpertAI platform, providing unified foundational capabilities such as tenant isolation, organizational structure, user and permission management for upper-layer business modules. Built on NestJS, this package integrates key components like authentication, storage, caching, and internationalization, serving as the backbone for building intelligent analytics applications and enterprise-level AI scenarios.
 
 ## Core Features
 

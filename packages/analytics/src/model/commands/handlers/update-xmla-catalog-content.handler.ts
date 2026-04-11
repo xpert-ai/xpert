@@ -1,5 +1,5 @@
-import { getErrorMessage } from '@metad/server-common'
-import { REDIS_CLIENT } from '@metad/server-core'
+import { getErrorMessage } from '@xpert-ai/server-common'
+import { REDIS_CLIENT } from '@xpert-ai/server-core'
 import { Inject, Logger } from '@nestjs/common'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { RedisClientType } from 'redis'

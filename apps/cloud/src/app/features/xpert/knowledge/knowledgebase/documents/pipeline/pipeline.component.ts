@@ -4,7 +4,7 @@ import { Component, computed, effect, inject, model, signal } from '@angular/cor
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
-import { myRxResource } from '@metad/ocap-angular/core'
+import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectQueryParams } from 'ngxtension/inject-query-params'
 import { BehaviorSubject } from 'rxjs'

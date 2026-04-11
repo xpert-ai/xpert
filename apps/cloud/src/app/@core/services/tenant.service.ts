@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { API_PREFIX } from '@metad/cloud/state'
+import { API_PREFIX } from '@xpert-ai/cloud/state'
 import { catchError, firstValueFrom, map, of, shareReplay } from 'rxjs'
 import { ITenant, ITenantCreateInput, ITenantSetting } from '../types'
 

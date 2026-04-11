@@ -1,5 +1,5 @@
-import { IPagination } from '@metad/contracts'
-import { RequestContext, TenantAwareCrudService } from '@metad/server-core'
+import { IPagination } from '@xpert-ai/contracts'
+import { RequestContext, TenantAwareCrudService } from '@xpert-ai/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'

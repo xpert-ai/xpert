@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, input, output } from '@angular/core'
 import { mergeClasses } from '@xpert-ai/headless-ui'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { FILE_TREE_SIZE_PRESETS, type FileTreeSizeVariants } from './tree.component.variants'
 import { FileTreeNode, flattenFileTree } from './tree.utils'

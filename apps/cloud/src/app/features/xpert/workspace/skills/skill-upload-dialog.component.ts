@@ -3,7 +3,7 @@ import { AfterViewInit, Component, ElementRef, inject, signal, viewChild } from 
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { getErrorMessage, injectSkillPackageAPI, injectToastr, ISkillPackage } from '@cloud/app/@core'
 import { forkJoin } from 'rxjs'
 

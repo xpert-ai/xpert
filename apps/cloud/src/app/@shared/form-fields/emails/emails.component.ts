@@ -1,7 +1,7 @@
 
 import { Component, Input, forwardRef } from '@angular/core'
 import { ControlValueAccessor, ReactiveFormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { NgmFieldAppearance, NgmFieldColor } from "@metad/ocap-angular/core";
+import { NgmFieldAppearance, NgmFieldColor } from "@xpert-ai/ocap-angular/core";
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardFormImports, ZardTagSelectComponent } from '@xpert-ai/headless-ui'
 

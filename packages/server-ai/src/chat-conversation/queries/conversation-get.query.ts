@@ -1,5 +1,5 @@
-import { IChatConversation } from '@metad/contracts'
-import { FindOptionsWhere } from '@metad/server-core'
+import { IChatConversation } from '@xpert-ai/contracts'
+import { FindOptionsWhere } from '@xpert-ai/server-core'
 import { Query } from '@nestjs/cqrs'
 import { ChatConversation } from '../conversation.entity'
 

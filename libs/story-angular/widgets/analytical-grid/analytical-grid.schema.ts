@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
-import { DataSettings, EntityType } from '@metad/ocap-core'
-import { ColorPalettes } from '@metad/core'
+import { DataSettings, EntityType } from '@xpert-ai/ocap-core'
+import { ColorPalettes } from '@xpert-ai/core'
 import {
   AccordionWrappers,
   DataSettingsSchemaService,
@@ -10,10 +10,10 @@ import {
   FORMLY_W_1_2,
   PresentationVariantExpansion,
   SelectionVariantExpansion,
-} from '@metad/story/designer'
+} from '@xpert-ai/story/designer'
 import { Observable } from 'rxjs'
 import { map, tap } from 'rxjs/operators'
-import { PropertyCapacity } from '@metad/ocap-angular/entity'
+import { PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
 
 @Injectable()
 export class AnalyticalGridSchemaService extends DataSettingsSchemaService {

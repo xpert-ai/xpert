@@ -1,7 +1,7 @@
 
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, Input, forwardRef, inject } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR, ReactiveFormsModule } from '@angular/forms'
-import { AppearanceDirective } from '@metad/ocap-angular/core'
+import { AppearanceDirective } from '@xpert-ai/ocap-angular/core'
 import { FieldType, FormlyModule } from '@ngx-formly/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IScreenshot, ScreenshotService } from 'apps/cloud/src/app/@core'

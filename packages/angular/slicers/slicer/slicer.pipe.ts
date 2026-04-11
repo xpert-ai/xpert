@@ -1,5 +1,5 @@
 import { Pipe, PipeTransform } from '@angular/core'
-import { slicerAsString } from '@metad/ocap-core'
+import { slicerAsString } from '@xpert-ai/ocap-core'
 
 @Pipe({
   standalone: true,

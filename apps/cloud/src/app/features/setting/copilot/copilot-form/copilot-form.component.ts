@@ -1,7 +1,7 @@
 import { DecimalPipe } from '@angular/common'
 import { Component, input, output } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ICopilot } from '@metad/contracts'
+import { ICopilot } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { CopilotConfigFormComponent } from '@cloud/app/@shared/copilot'
 import { ZardButtonComponent, ZardSliderComponent } from '@xpert-ai/headless-ui'

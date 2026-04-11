@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core'
-import { API_PREFIX, OrganizationBaseCrudService } from '@metad/cloud/state'
-import { IIntegration, IntegrationFeatureEnum, TIntegrationProvider } from '@metad/contracts'
-import { TSelectOption } from '@metad/ocap-angular/core'
+import { API_PREFIX, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
+import { IIntegration, IntegrationFeatureEnum, TIntegrationProvider } from '@xpert-ai/contracts'
+import { TSelectOption } from '@xpert-ai/ocap-angular/core'
 import { Observable } from 'rxjs'
 
 const API_INTEGRATION = API_PREFIX + '/integration'

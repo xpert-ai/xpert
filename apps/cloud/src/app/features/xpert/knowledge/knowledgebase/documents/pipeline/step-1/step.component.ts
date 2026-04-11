@@ -5,8 +5,8 @@ import { Component, computed, effect, inject, model, signal } from '@angular/cor
 import { FormsModule } from '@angular/forms'
 import { ActivatedRoute, Router, RouterModule } from '@angular/router'
 import { IconComponent } from '@cloud/app/@shared/avatar'
-import { myRxResource, NgmI18nPipe, omitBlank } from '@metad/ocap-angular/core'
-import { nonNullable } from '@metad/ocap-core'
+import { myRxResource, NgmI18nPipe, omitBlank } from '@xpert-ai/ocap-angular/core'
+import { nonNullable } from '@xpert-ai/ocap-core'
 import { ContentLoaderModule } from '@ngneat/content-loader'
 import { TranslateModule } from '@ngx-translate/core'
 import {
@@ -35,7 +35,7 @@ import { KnowledgeDocumentsComponent } from '../../documents.component'
 import { KnowledgeDocumentPipelineComponent } from '../pipeline.component'
 import { XpertParametersFormComponent } from '@cloud/app/@shared/xpert'
 import { MarkdownModule } from 'ngx-markdown'
-import { NgmCheckboxComponent } from '@metad/ocap-angular/common'
+import { NgmCheckboxComponent } from '@xpert-ai/ocap-angular/common'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({

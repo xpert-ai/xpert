@@ -1,5 +1,5 @@
 import { CheckpointTuple } from '@langchain/langgraph-checkpoint'
-import { TXpertAgentExecutionCheckpoint } from '@metad/contracts'
+import { TXpertAgentExecutionCheckpoint } from '@xpert-ai/contracts'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { CopilotCheckpointGetTupleQuery } from '../../../copilot-checkpoint/queries'
 import { XpertAgentExecutionService } from '../../agent-execution.service'

@@ -1,7 +1,7 @@
 import { CdkDragDrop, moveItemInArray } from '@angular/cdk/drag-drop'
 import { Injectable, inject } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
-import { IModelRole, IUser, MDX } from '@metad/contracts'
+import { IModelRole, IUser, MDX } from '@xpert-ai/contracts'
 import { Store, select, withProps } from '@ngneat/elf'
 import { ToastrService } from '@cloud/app/@core'
 import { isEqual, negate } from 'lodash-es'

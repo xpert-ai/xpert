@@ -4,8 +4,8 @@ import {
 	ISkillRepositoryIndexPublisher,
 	ISkillRepositoryIndexStats,
 	TSkillSourceMeta
-} from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { Injectable } from '@nestjs/common'
 import { ISkillSourceProvider, SkillSourceProviderStrategy } from '@xpert-ai/plugin-sdk'
 import { access, cp, mkdtemp, mkdir, rm, writeFile } from 'fs/promises'

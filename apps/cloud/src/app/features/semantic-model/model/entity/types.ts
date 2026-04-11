@@ -1,6 +1,6 @@
 import { CdkDragDrop } from '@angular/cdk/drag-drop'
-import { AggregationRole, Dimension, Property, PropertyDimension } from '@metad/ocap-core'
-import { serializeUniqueName } from '@metad/ocap-sql'
+import { AggregationRole, Dimension, Property, PropertyDimension } from '@xpert-ai/ocap-core'
+import { serializeUniqueName } from '@xpert-ai/ocap-sql'
 import { uuid } from 'apps/cloud/src/app/@core'
 import { mapToTableColumnType } from '../../types'
 import { MODEL_TYPE } from '../types'

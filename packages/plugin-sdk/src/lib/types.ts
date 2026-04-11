@@ -1,4 +1,4 @@
-import { JsonSchemaObjectType, PluginMeta } from '@metad/contracts'
+import { JsonSchemaObjectType, PluginMeta } from '@xpert-ai/contracts'
 import type { DynamicModule, INestApplicationContext } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import type { ZodSchema } from 'zod'

@@ -1,6 +1,6 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsObject, IsOptional, IsString, IsUUID, ValidateIf } from 'class-validator';
-import { IOrganization, IBasePerTenantAndOrganizationEntityModel, ID } from '@metad/contracts';
+import { IOrganization, IBasePerTenantAndOrganizationEntityModel, ID } from '@xpert-ai/contracts';
 import { TenantBaseDTO } from './tenant-base.dto';
 import { IsOrganizationBelongsToUser } from '../../shared/validators';
 

@@ -1,4 +1,4 @@
-import { C_MEASURES } from '@metad/ocap-core'
+import { C_MEASURES } from '@xpert-ai/ocap-core'
 import { getCoordinateSystem } from './components/coordinate'
 import { SALES_ENTITY_TYPE } from './mock'
 import { EChartsContext } from './types'

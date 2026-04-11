@@ -1,6 +1,6 @@
 import { Inject, Injectable, InjectionToken, OnDestroy, Optional, inject } from '@angular/core'
-import { nonBlank, nonNullable, replaceParameters } from '@metad/core'
-import { NgmDSCoreService, NgmSmartFilterBarService } from '@metad/ocap-angular/core'
+import { nonBlank, nonNullable, replaceParameters } from '@xpert-ai/core'
+import { NgmDSCoreService, NgmSmartFilterBarService } from '@xpert-ai/ocap-angular/core'
 import {
   CriticalityCalculationType,
   CriticalityType,
@@ -25,7 +25,7 @@ import {
   isNil,
   isString,
   mergeOptions
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { NGXLogger } from 'ngx-logger'
 import { Observable } from 'rxjs'
 import { filter, map, shareReplay, switchMap } from 'rxjs/operators'

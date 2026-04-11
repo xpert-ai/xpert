@@ -1,5 +1,5 @@
-import { LanguagesEnum } from '@metad/contracts'
-import { environment } from '@metad/server-config'
+import { LanguagesEnum } from '@xpert-ai/contracts'
+import { environment } from '@xpert-ai/server-config'
 import { HeaderResolver, I18nModule } from 'nestjs-i18n'
 import path from 'path'
 import { sync as globSync } from 'glob'

@@ -1,4 +1,4 @@
-import { IntegrationEnum, KDocumentWebTypeEnum, ParameterTypeEnum, TKDocumentWebSchema } from '@metad/contracts'
+import { IntegrationEnum, KDocumentWebTypeEnum, ParameterTypeEnum, TKDocumentWebSchema } from '@xpert-ai/contracts'
 
 export default {
 	type: KDocumentWebTypeEnum.FireCrawl,

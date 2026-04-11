@@ -1,7 +1,7 @@
 
 import { Component, computed, inject, input, signal } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { nonNullable } from '@metad/copilot'
+import { nonNullable } from '@xpert-ai/copilot'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectUser, IUser, IXpertWorkspace, XpertWorkspaceService } from 'apps/cloud/src/app/@core'
 import { UserProfileInlineComponent, UserRoleSelectComponent } from 'apps/cloud/src/app/@shared/user'

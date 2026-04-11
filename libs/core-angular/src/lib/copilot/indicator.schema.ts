@@ -1,4 +1,4 @@
-import { IndicatorType, SlicerSchema } from '@metad/ocap-core'
+import { IndicatorType, SlicerSchema } from '@xpert-ai/ocap-core'
 import { z } from 'zod'
 
 /**

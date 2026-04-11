@@ -1,6 +1,6 @@
 import { Inject, Injectable, InjectionToken } from '@angular/core'
-import { TimeGranularity } from '@metad/ocap-core'
-import { ComponentStore } from '@metad/store'
+import { TimeGranularity } from '@xpert-ai/ocap-core'
+import { ComponentStore } from '@xpert-ai/store'
 import { combineLatest, Observable, Subject } from 'rxjs'
 import { map, pairwise, shareReplay } from 'rxjs/operators'
 import { Intent, QuerySettings } from '../models/index'

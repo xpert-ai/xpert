@@ -25,7 +25,7 @@
         "compiler": "swc",
         "format": ["cjs", "esm"],
         "external": [
-          "@metad/contracts",
+          "@xpert-ai/contracts",
           "@nestjs/config",
           "@nestjs/common",
           "@nestjs/core",

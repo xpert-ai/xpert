@@ -1,4 +1,4 @@
-import { ISemanticModel } from '@metad/contracts'
+import { ISemanticModel } from '@xpert-ai/contracts'
 import {
   camelCase,
   cloneDeep,

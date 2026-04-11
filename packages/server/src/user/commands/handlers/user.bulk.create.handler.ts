@@ -1,5 +1,5 @@
-import { IRole, IUser, mapTranslationLanguage } from '@metad/contracts'
-import { ConfigService } from '@metad/server-config'
+import { IRole, IUser, mapTranslationLanguage } from '@xpert-ai/contracts'
+import { ConfigService } from '@xpert-ai/server-config'
 import { BadRequestException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { uniq } from 'lodash'

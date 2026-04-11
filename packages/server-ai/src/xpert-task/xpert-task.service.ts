@@ -6,10 +6,10 @@ import {
     TChatOptions,
     ScheduleTaskStatus,
     TaskFrequency
-} from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
-import { ConfigService } from '@metad/server-config'
-import { RequestContext, runWithRequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
+import { ConfigService } from '@xpert-ai/server-config'
+import { RequestContext, runWithRequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Inject, Injectable, Logger, OnModuleInit } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { SchedulerRegistry } from '@nestjs/schedule'

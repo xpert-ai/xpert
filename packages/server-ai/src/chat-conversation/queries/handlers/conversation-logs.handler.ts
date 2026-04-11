@@ -1,5 +1,5 @@
-import { TChatConversationLog } from '@metad/contracts'
-import { User } from '@metad/server-core'
+import { TChatConversationLog } from '@xpert-ai/contracts'
+import { User } from '@xpert-ai/server-core'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { FindOptionsRelationByString, Repository } from 'typeorm'

@@ -10,8 +10,8 @@ import {
   EntityType,
   markdownModelCube,
   MeasureControlProperty
-} from '@metad/ocap-core'
-import { NxStoryService } from '@metad/story/core'
+} from '@xpert-ai/ocap-core'
+import { NxStoryService } from '@xpert-ai/story/core'
 import { Route } from 'apps/cloud/src/app/@core/copilot'
 import { nanoid } from 'nanoid'
 import { NGXLogger } from 'ngx-logger'

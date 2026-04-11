@@ -1,7 +1,7 @@
 import { SystemMessage, ToolMessage } from '@langchain/core/messages'
 import { tool } from '@langchain/core/tools'
 import { Command } from '@langchain/langgraph'
-import { TAgentMiddlewareMeta } from '@metad/contracts'
+import { TAgentMiddlewareMeta } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import {
   AgentMiddleware,

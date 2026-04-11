@@ -9,7 +9,7 @@ import {
   ParameterType,
   PriceType,
   TTokenUsage
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Logger } from '@nestjs/common'
 import { ChatGenerationChunk, LLMResult } from '@langchain/core/outputs'
 import { AIMessage } from '@langchain/core/messages'

@@ -1,4 +1,4 @@
-import { DisplayBehaviour, TreeNodeInterface } from '@metad/ocap-core'
+import { DisplayBehaviour, TreeNodeInterface } from '@xpert-ai/ocap-core'
 import {
   displayTreeSelectText,
   findTreeSelectNode,

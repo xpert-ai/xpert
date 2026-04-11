@@ -6,7 +6,7 @@ import {
 	PluginLevel,
 	PluginSourceConfig,
 	PluginSource
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { ApiProperty } from '@nestjs/swagger'
 import { Column, Entity, Index } from 'typeorm'
 import { IsOptional, IsString } from 'class-validator'

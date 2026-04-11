@@ -1,8 +1,8 @@
 import { Component, computed, inject, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@metad/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { calcTimeRange, TimeRangeEnum, TimeRangeOptions } from '@xpert-ai/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { injectCopilotServer, KnowledgebaseService, XpertAPIService } from 'apps/cloud/src/app/@core'
 import {

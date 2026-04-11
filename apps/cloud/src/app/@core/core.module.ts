@@ -18,7 +18,7 @@ import {
 } from '@ngx-translate/core'
 import { throwIfAlreadyLoaded } from './module-import-guard'
 import { HttpLoaderFactory } from './theme'
-import { NgmMissingTranslationHandler } from '@metad/ocap-angular/core'
+import { NgmMissingTranslationHandler } from '@xpert-ai/ocap-angular/core'
 
 @NgModule({
   imports: [

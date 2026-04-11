@@ -3,8 +3,8 @@ import { Component, computed, effect, EventEmitter, forwardRef, HostBinding, inj
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
 
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmAppearance, OcapCoreModule } from '@metad/ocap-angular/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmAppearance, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -14,7 +14,7 @@ import {
   getEntityProperty,
   ISlicer,
   TreeNodeInterface
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { BehaviorSubject, delayWhen, filter, firstValueFrom } from 'rxjs'
 import { NgmSmartFilterService } from '../smart-filter.service'
 import { TreeControlOptions } from '../types'

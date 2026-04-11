@@ -1,8 +1,8 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, input } from '@angular/core'
-import { XpertStatsViewSchema } from '@metad/contracts'
+import { XpertStatsViewSchema } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 
 @Component({
   standalone: true,

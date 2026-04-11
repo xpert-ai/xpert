@@ -14,7 +14,7 @@ import {
   omitBlank,
   ReferenceLineType,
   ReferenceLineValueType
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { includes, maxBy, minBy, range } from 'lodash-es'
 import { getLegendColorForVisualMap, getVisualMapValueAxisIndex } from '../cartesian'
 import { getChromaticScale } from '../chromatics'

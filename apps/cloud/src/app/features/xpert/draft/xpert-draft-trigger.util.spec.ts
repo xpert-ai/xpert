@@ -1,4 +1,4 @@
-import { TXpertTeamDraft, WorkflowNodeTypeEnum } from '@metad/contracts'
+import { TXpertTeamDraft, WorkflowNodeTypeEnum } from '@xpert-ai/contracts'
 import { WorkflowTriggerProviderOption } from './workflow-trigger-provider-option'
 import {
   readTriggerEditorItemsFromDraft,

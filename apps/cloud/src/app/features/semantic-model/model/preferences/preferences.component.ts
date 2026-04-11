@@ -3,18 +3,18 @@ import { Component, HostBinding, inject, OnInit, signal } from '@angular/core'
 import { FormGroup } from '@angular/forms'
 import { injectApiBaseUrl, injectToastr } from '@cloud/app/@core'
 import { I18nService } from '@cloud/app/@shared/i18n'
-import { DataSourceService, NgmSemanticModel, SemanticModelServerService } from '@metad/cloud/state'
-import { FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
+import { DataSourceService, NgmSemanticModel, SemanticModelServerService } from '@xpert-ai/cloud/state'
+import { FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/story/designer'
 import { FormlyFieldConfig, FormlyModule } from '@ngx-formly/core'
 import { cloneDeep, merge } from 'lodash-es'
 import { map } from 'rxjs'
 import { getErrorMessage, LANGUAGES, Visibility } from '../../../../@core/types'
 
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 
 import { DragDropModule } from '@angular/cdk/drag-drop'
 import { TranslateModule } from '@ngx-translate/core'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { ZardButtonComponent } from '@xpert-ai/headless-ui'
 
 @Component({

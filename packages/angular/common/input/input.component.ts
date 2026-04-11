@@ -20,7 +20,7 @@ import {
   ZardFormImports,
   ZardInputDirective
 } from '@xpert-ai/headless-ui'
-import { DisplayDensity, ISelectOption, NgmDensityDirective } from '@metad/ocap-angular/core'
+import { DisplayDensity, ISelectOption, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmOptionContent } from './option-content'
 import { NgmHighlightDirective } from '../directives'

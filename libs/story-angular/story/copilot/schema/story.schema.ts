@@ -1,5 +1,5 @@
-import { DisplayDensity } from '@metad/ocap-angular/core'
-import { CalculationType } from '@metad/ocap-core'
+import { DisplayDensity } from '@xpert-ai/ocap-angular/core'
+import { CalculationType } from '@xpert-ai/ocap-core'
 import { z } from 'zod'
 
 export const ComponentStylingSchema = z.object({

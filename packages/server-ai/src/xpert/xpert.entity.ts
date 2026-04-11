@@ -21,8 +21,8 @@ import {
     TXpertOptions,
     TXpertTeamDraft,
     XpertTypeEnum
-} from '@metad/contracts'
-import { Integration, Tag, User, UserGroup } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { Integration, Tag, User, UserGroup } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsBoolean, IsJSON, IsObject, IsOptional, IsString } from 'class-validator'
 import { Transform, TransformFnParams } from 'class-transformer'

@@ -9,8 +9,8 @@
 // import { MistralAIEmbeddings } from '@langchain/mistralai'
 // import { ChatOllama, OllamaEmbeddings } from '@langchain/ollama'
 // import { ChatOpenAI, ClientOptions, OpenAIEmbeddings } from '@langchain/openai'
-// import { ICopilot, OllamaEmbeddingsProviders, OpenAIEmbeddingsProviders } from '@metad/contracts'
-// import { AI_PROVIDERS, AiProtocol, AiProvider, sumTokenUsage } from '@metad/copilot'
+// import { ICopilot, OllamaEmbeddingsProviders, OpenAIEmbeddingsProviders } from '@xpert-ai/contracts'
+// import { AI_PROVIDERS, AiProtocol, AiProvider, sumTokenUsage } from '@xpert-ai/copilot'
 
 // /**
 //  * @deprecated use Command `AIModelGetOneQuery`

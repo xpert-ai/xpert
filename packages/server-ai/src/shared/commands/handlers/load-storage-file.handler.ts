@@ -1,4 +1,4 @@
-import { FileStorage, GetStorageFileQuery, StorageFile } from '@metad/server-core'
+import { FileStorage, GetStorageFileQuery, StorageFile } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { Document } from 'langchain/document'

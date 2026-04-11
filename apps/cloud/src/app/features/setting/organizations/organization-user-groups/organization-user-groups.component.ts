@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common'
 import { Component, Input, effect, inject, signal } from '@angular/core'
-import { NgmSpinComponent, NgmTableComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { firstValueFrom } from 'rxjs'
 import {

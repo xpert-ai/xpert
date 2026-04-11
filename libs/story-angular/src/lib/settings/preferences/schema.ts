@@ -1,6 +1,6 @@
-import { ColorPalettes } from '@metad/core'
-import { ThemesEnum } from '@metad/ocap-angular/core'
-import { PageHeaderLabelEnum } from '@metad/story/core'
+import { ColorPalettes } from '@xpert-ai/core'
+import { ThemesEnum } from '@xpert-ai/ocap-angular/core'
+import { PageHeaderLabelEnum } from '@xpert-ai/story/core'
 import {
   AccordionWrappers,
   Borders,
@@ -10,7 +10,7 @@ import {
   FORMLY_ROW,
   FORMLY_W_1_2,
   FORMLY_W_FULL
-} from '@metad/story/designer'
+} from '@xpert-ai/story/designer'
 import { gridsterOptions } from '../schemas'
 
 export function PreferencesSchema(Story: any) {

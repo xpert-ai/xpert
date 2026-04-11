@@ -1,4 +1,4 @@
-import { IntegrationDelCommand } from '@metad/server-core'
+import { IntegrationDelCommand } from '@xpert-ai/server-core'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { XpertService } from '../../xpert.service'

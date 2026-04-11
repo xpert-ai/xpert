@@ -1,5 +1,5 @@
-import { IDataSource, IDataSourceAuthentication } from '@metad/contracts'
-import { TenantBaseEntity } from '@metad/server-core'
+import { IDataSource, IDataSourceAuthentication } from '@xpert-ai/contracts'
+import { TenantBaseEntity } from '@xpert-ai/server-core'
 import { Exclude } from 'class-transformer'
 import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
 import { DataSource } from '../data-source.entity'

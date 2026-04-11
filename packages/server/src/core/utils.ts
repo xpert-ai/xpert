@@ -1,7 +1,7 @@
 import { Logger } from '@nestjs/common'
-import { IUser } from '@metad/contracts';
-import { getConfig } from '@metad/server-config';
-import { yaml } from '@metad/server-common';
+import { IUser } from '@xpert-ai/contracts';
+import { getConfig } from '@xpert-ai/server-config';
+import { yaml } from '@xpert-ai/server-common';
 import { sample } from 'underscore';
 import moment from 'moment';
 import path from 'path';

@@ -1,5 +1,5 @@
 import { DynamicStructuredTool } from '@langchain/core/tools'
-import { IXpert, IXpertAgentExecution, TChatOptions, TXpertGraph, TXpertParameter } from '@metad/contracts'
+import { IXpert, IXpertAgentExecution, TChatOptions, TXpertGraph, TXpertParameter } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 import { TAgentSubgraphParams } from '../agent'

@@ -5,7 +5,7 @@ import type {
 	IPluginUpdateResult,
 	PluginLevel,
 	PluginSource
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 
 // Expose a list of loaded plugins through a global provider for lifecycle control.
 export const LOADED_PLUGINS = 'XPERT_LOADED_PLUGINS'

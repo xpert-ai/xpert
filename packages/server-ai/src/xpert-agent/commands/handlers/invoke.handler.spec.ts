@@ -3,7 +3,7 @@ jest.mock('isolated-vm', () => ({
     Isolate: class Isolate {}
 }))
 
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
     RequestContext: {
         currentTenantId: jest.fn(),
         getOrganizationId: jest.fn(),
@@ -12,7 +12,7 @@ jest.mock('@metad/server-core', () => ({
     }
 }))
 
-jest.mock('@metad/copilot', () => ({
+jest.mock('@xpert-ai/copilot', () => ({
     AgentRecursionLimit: 25,
     isNil: (value: unknown) => value == null
 }))
@@ -57,7 +57,7 @@ jest.mock('../../../knowledgebase', () => ({
     KnowledgeTaskServiceQuery: class KnowledgeTaskServiceQuery {}
 }))
 
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { I18nService } from 'nestjs-i18n'
 import { Observable } from 'rxjs'
 import { Command } from '@langchain/langgraph'

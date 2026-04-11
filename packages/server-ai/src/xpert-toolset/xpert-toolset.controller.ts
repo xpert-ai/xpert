@@ -1,6 +1,6 @@
 import { RunnableLambda } from '@langchain/core/runnables'
-import { getErrorMessage, keepAlive, takeUntilClose } from '@metad/server-common'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, IPagination, IXpertTool, IXpertToolset, TAvatar } from '@metad/contracts'
+import { getErrorMessage, keepAlive, takeUntilClose } from '@xpert-ai/server-common'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, IPagination, IXpertTool, IXpertToolset, TAvatar } from '@xpert-ai/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -9,8 +9,8 @@ import {
 	RequestContext,
 	TransformInterceptor,
 	UUIDValidationPipe
-} from '@metad/server-core'
-import { ConfigService } from '@metad/server-config'
+} from '@xpert-ai/server-core'
+import { ConfigService } from '@xpert-ai/server-config'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import {
 	Body,

@@ -6,7 +6,7 @@ import { ApprovalPolicy } from './approval-policy.entity';
 import { ApprovalPolicyController } from './approval-policy.controller';
 import { ApprovalPolicyService } from './approval-policy.service';
 import { CommandHandlers } from './commands/handlers';
-import { TenantModule, UserModule } from '@metad/server-core';
+import { TenantModule, UserModule } from '@xpert-ai/server-core';
 
 @Module({
 	imports: [

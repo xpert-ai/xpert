@@ -3,8 +3,8 @@ import { ChangeDetectionStrategy, Component, computed, effect, ElementRef, injec
 import { toSignal } from '@angular/core/rxjs-interop'
 import { KnowledgebaseService } from '@cloud/app/@core'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@metad/ocap-angular/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNUnderstanding,

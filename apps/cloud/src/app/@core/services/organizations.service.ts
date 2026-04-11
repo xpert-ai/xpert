@@ -6,8 +6,8 @@ import {
   IOrganizationFindInput,
   OrgGenerateDemoOptions,
   OrganizationSelectInput
-} from '@metad/contracts'
-import { API_PREFIX } from '@metad/cloud/state'
+} from '@xpert-ai/contracts'
+import { API_PREFIX } from '@xpert-ai/cloud/state'
 import { Observable } from 'rxjs'
 
 @Injectable({

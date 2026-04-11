@@ -1,5 +1,5 @@
 import { Embeddings } from '@langchain/core/embeddings'
-import { AiProviderRole, ICopilot, TLongTermMemory, TXpertTeamDraft } from '@metad/contracts'
+import { AiProviderRole, ICopilot, TLongTermMemory, TXpertTeamDraft } from '@xpert-ai/contracts'
 import { HttpException, HttpStatus } from '@nestjs/common'
 import { QueryBus } from '@nestjs/cqrs'
 import { CopilotGetOneQuery, CopilotOneByRoleQuery } from '../copilot'

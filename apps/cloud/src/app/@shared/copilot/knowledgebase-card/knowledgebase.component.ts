@@ -1,7 +1,7 @@
 
 import { Component, model } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { ButtonGroupDirective } from '@metad/ocap-angular/core'
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IKnowledgebase } from '../../../@core/types'
 import { EmojiAvatarComponent } from '../../avatar'

@@ -1,5 +1,5 @@
-import { XpertService } from '@metad/server-ai'
-import { IntegrationService, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { XpertService } from '@xpert-ai/server-ai'
+import { IntegrationService, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Injectable, Logger } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'

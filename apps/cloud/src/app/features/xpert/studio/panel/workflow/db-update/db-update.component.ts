@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, effect, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel, linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,

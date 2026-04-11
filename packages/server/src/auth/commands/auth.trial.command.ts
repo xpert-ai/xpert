@@ -1,5 +1,5 @@
 import { ICommand } from '@nestjs/cqrs';
-import { IUserRegistrationInput, LanguagesEnum } from '@metad/contracts';
+import { IUserRegistrationInput, LanguagesEnum } from '@xpert-ai/contracts';
 
 export class AuthTrialCommand implements ICommand {
 	static readonly type = '[Auth] Register Trial';

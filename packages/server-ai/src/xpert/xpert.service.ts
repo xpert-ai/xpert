@@ -11,8 +11,8 @@ import {
     TMemoryQA,
     TMemoryUserProfile,
     TXpertTeamDraft
-} from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import {
     OptionParams,
     PaginationParams,
@@ -20,7 +20,7 @@ import {
     TenantOrganizationAwareCrudService,
     transformWhere,
     UserGroupService
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { HttpException, HttpStatus, Injectable, NotFoundException } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { EventEmitter2 } from '@nestjs/event-emitter'

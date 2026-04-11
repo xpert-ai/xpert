@@ -11,7 +11,7 @@ import {
   TAgentRunnableConfigurable,
   TChatEventMessage,
   WorkflowNodeTypeEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import {

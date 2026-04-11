@@ -1,5 +1,5 @@
 import { createParamDecorator, ExecutionContext } from '@nestjs/common';
-import { LanguagesEnum, LanguagesMap } from '@metad/contracts';
+import { LanguagesEnum, LanguagesMap } from '@xpert-ai/contracts';
 
 export const LanguageDecorator = createParamDecorator(
     (data: unknown, ctx: ExecutionContext) => {

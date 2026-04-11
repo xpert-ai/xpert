@@ -1,4 +1,4 @@
-import { DocumentTypeEnum } from '@metad/contracts'
+import { DocumentTypeEnum } from '@xpert-ai/contracts'
 import { EntitySubscriberInterface, EventSubscriber, InsertEvent } from 'typeorm'
 import { Knowledgebase } from '../core/entities/internal'
 import { KnowledgeDocument } from './document.entity'

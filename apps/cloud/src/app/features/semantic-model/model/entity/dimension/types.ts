@@ -1,4 +1,4 @@
-import { AggregationRole, PropertyDimension } from '@metad/ocap-core'
+import { AggregationRole, PropertyDimension } from '@xpert-ai/ocap-core'
 
 /**
  * Node for Property item

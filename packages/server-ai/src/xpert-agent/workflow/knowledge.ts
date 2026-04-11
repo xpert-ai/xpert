@@ -1,4 +1,4 @@
-import { IWFNKnowledgeRetrieval, XpertParameterTypeEnum } from '@metad/contracts'
+import { IWFNKnowledgeRetrieval, XpertParameterTypeEnum } from '@xpert-ai/contracts'
 
 export function knowledgeOutputVariables(knowledge: IWFNKnowledgeRetrieval) {
 	return [

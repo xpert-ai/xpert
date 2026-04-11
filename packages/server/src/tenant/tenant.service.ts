@@ -9,7 +9,7 @@ import {
 	FileStorageProviderEnum,
 	DEFAULT_TENANT,
 	IOrganizationCreateInput
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { EventEmitter2 } from '@nestjs/event-emitter'
 import { CrudService } from '../core/crud/crud.service';
 import { Tenant } from './tenant.entity';

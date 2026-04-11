@@ -1,5 +1,5 @@
-import { IShareSkillPackageInput } from '@metad/contracts'
-import { PaginationParams, ParseJsonPipe, TransformInterceptor } from '@metad/server-core'
+import { IShareSkillPackageInput } from '@xpert-ai/contracts'
+import { PaginationParams, ParseJsonPipe, TransformInterceptor } from '@xpert-ai/server-core'
 import {
 	BadRequestException,
 	Body,
@@ -15,7 +15,7 @@ import {
 	UseInterceptors
 } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
-import { getErrorMessage } from '@metad/server-common'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import { FileInterceptor } from '@nestjs/platform-express'
 import { SkillPackage } from './skill-package.entity'

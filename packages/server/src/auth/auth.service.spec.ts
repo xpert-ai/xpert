@@ -1,6 +1,6 @@
 export {}
 
-jest.mock('@metad/server-auth', () => ({
+jest.mock('@xpert-ai/server-auth', () => ({
 	SocialAuthService: class SocialAuthService {
 		async getPasswordHash(password: string) {
 			return `hashed:${password}`
@@ -8,7 +8,7 @@ jest.mock('@metad/server-auth', () => ({
 	}
 }))
 
-jest.mock('@metad/server-config', () => ({
+jest.mock('@xpert-ai/server-config', () => ({
 	environment: {
 		clientBaseUrl: 'http://localhost',
 		JWT_SECRET: 'test-secret'

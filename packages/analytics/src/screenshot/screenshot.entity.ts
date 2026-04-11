@@ -1,9 +1,9 @@
 import { Entity, Column } from 'typeorm'
-import { IScreenshot } from '@metad/contracts'
+import { IScreenshot } from '@xpert-ai/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsString, IsOptional, IsNumber, IsDateString } from 'class-validator'
 import { Exclude } from 'class-transformer'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 
 @Entity('screenshot')
 export class Screenshot extends TenantOrganizationBaseEntity implements IScreenshot {

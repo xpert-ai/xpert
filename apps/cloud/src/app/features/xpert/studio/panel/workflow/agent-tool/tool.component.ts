@@ -6,7 +6,7 @@ import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input
 import { FormsModule } from '@angular/forms'
 import { XpertOutputVariablesEditComponent } from '@cloud/app/@shared/xpert'
 import { injectConfigureBuiltin } from '@cloud/app/features/xpert/tools'
-import { attrModel, linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,

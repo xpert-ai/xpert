@@ -16,7 +16,7 @@ import {
 	TXpertTeamNode,
 	WorkflowNodeTypeEnum,
 	XpertParameterTypeEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Inject, Injectable, InternalServerErrorException, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { IWorkflowNodeStrategy, WorkflowNodeStrategy } from '@xpert-ai/plugin-sdk'

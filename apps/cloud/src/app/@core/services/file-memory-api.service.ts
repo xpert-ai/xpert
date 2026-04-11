@@ -1,7 +1,7 @@
 import { inject, Injectable } from '@angular/core'
 import { HttpClient } from '@angular/common/http'
-import { API_PREFIX } from '@metad/cloud/state'
-import { toParams } from '@metad/core'
+import { API_PREFIX } from '@xpert-ai/cloud/state'
+import { toParams } from '@xpert-ai/core'
 import { TFile, TFileDirectory } from '../types'
 
 @Injectable({ providedIn: 'root' })

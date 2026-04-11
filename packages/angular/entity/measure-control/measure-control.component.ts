@@ -11,7 +11,7 @@ import {
   NG_VALUE_ACCESSOR,
   ReactiveFormsModule
 } from '@angular/forms'
-import { NgmPropertyComponent, NgmSelectComponent } from '@metad/ocap-angular/common'
+import { NgmPropertyComponent, NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
 import {
   CalculationProperty,
   CalculationType,
@@ -21,7 +21,7 @@ import {
   Property,
   getEntityMeasures,
   isMeasureControlProperty
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { BehaviorSubject } from 'rxjs'
 import { map } from 'rxjs/operators'

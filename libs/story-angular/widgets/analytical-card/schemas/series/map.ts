@@ -1,4 +1,4 @@
-import { AccordionWrappers, FORMLY_ROW } from '@metad/story/designer'
+import { AccordionWrappers, FORMLY_ROW } from '@xpert-ai/story/designer'
 import { Positions, SeriesCommon } from '../common'
 
 export function MapCapacity(className: string, I18N) {

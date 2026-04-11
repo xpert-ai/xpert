@@ -7,8 +7,8 @@ import {
 	TXpertTeamNodeType,
 	WorkflowNodeTypeEnum,
 	XpertAgentExecutionStatusEnum,
-} from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsNumber, IsOptional, IsString, IsEnum, IsObject } from 'class-validator'
 import { Column, Entity, Index, JoinColumn, ManyToOne, OneToMany, RelationId } from 'typeorm'

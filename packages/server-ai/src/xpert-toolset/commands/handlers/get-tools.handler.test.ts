@@ -7,7 +7,7 @@ import { In } from 'typeorm';
 import * as path from 'path';
 import * as fs from 'fs'
 import { ApiBasedToolSchemaParser } from '../../utils/parser';
-import { ApiToolBundle } from '@metad/contracts';
+import { ApiToolBundle } from '@xpert-ai/contracts';
 
 describe('ToolsetGetToolsHandler', () => {
   let handler: ToolsetGetToolsHandler;

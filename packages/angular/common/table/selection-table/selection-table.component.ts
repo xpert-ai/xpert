@@ -26,7 +26,7 @@ import {
   ZardTableImports,
   type ZardTableSortDirection
 } from '@xpert-ai/headless-ui'
-import { DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
+import { DensityDirective, DisplayDensity } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import get from 'lodash-es/get'
 import { NgmSearchComponent } from '../../search/search.component'

@@ -1,5 +1,5 @@
 import { ICommand } from '@nestjs/cqrs';
-import { ITenantSetting } from '@metad/contracts';
+import { ITenantSetting } from '@xpert-ai/contracts';
 
 export class TenantSettingSaveCommand implements ICommand {
 	static readonly type = '[Tenant] Setting Save';

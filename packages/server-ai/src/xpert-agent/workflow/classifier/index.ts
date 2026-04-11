@@ -1,4 +1,4 @@
-import { IWorkflowNode, XpertParameterTypeEnum } from '@metad/contracts'
+import { IWorkflowNode, XpertParameterTypeEnum } from '@xpert-ai/contracts'
 
 export function classifierOutputVariables(entity: IWorkflowNode) {
     return [

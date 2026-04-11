@@ -1,6 +1,6 @@
 import { ZardFlatTreeControl, ZardTreeFlatDataSource, ZardTreeFlattener } from '@xpert-ai/headless-ui'
-import { Indicator } from '@metad/cloud/state'
-import { FlatTreeNode, TreeNodeInterface, isString, omitBlank } from '@metad/ocap-core'
+import { Indicator } from '@xpert-ai/cloud/state'
+import { FlatTreeNode, TreeNodeInterface, isString, omitBlank } from '@xpert-ai/ocap-core'
 import { DefaultCollection, ICollection } from '../../@core'
 
 export type ProjectIndicatorsState = {

@@ -1,4 +1,4 @@
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { CACHE_MANAGER } from '@nestjs/cache-manager'
 import { CanActivate, ExecutionContext, ForbiddenException, Inject, Injectable } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'

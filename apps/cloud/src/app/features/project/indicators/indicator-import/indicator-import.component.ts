@@ -12,10 +12,10 @@ import {
   IndicatorsService,
   NgmSemanticModel,
   SemanticModelServerService
-} from '@metad/cloud/state'
-import { AppearanceDirective, ButtonGroupDirective, ISelectOption, NgmDSCoreService } from '@metad/ocap-angular/core'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { Indicator, assign, isNil, omitBy } from '@metad/ocap-core'
+} from '@xpert-ai/cloud/state'
+import { AppearanceDirective, ButtonGroupDirective, ISelectOption, NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
+import { Indicator, assign, isNil, omitBy } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService, getErrorMessage, registerModel } from 'apps/cloud/src/app/@core'
 import { combineLatest, firstValueFrom } from 'rxjs'

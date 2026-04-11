@@ -8,23 +8,23 @@
       "outputs": ["{options.outputPath}"],
       "options": {
         "outputPath": "dist/packages/duckdb",
-        "main": "packages/duckdb/src/index.ts",
-        "tsConfig": "packages/duckdb/tsconfig.lib.json",
-        "assets": ["packages/duckdb/*.md", "packages/duckdb/dist/*"]
+        "main": "legacies/duckdb/src/index.ts",
+        "tsConfig": "legacies/duckdb/tsconfig.lib.json",
+        "assets": ["legacies/duckdb/*.md", "legacies/duckdb/dist/*"]
       }
     },
     "lint": {
       "executor": "@nx/eslint:lint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["packages/duckdb/**/*.ts"]
+        "lintFilePatterns": ["legacies/duckdb/**/*.ts"]
       }
     },
     "test": {
       "executor": "@nx/jest:jest",
       "outputs": ["{workspaceRoot}/coverage/packages/duckdb"],
       "options": {
-        "jestConfig": "packages/duckdb/jest.config.ts"
+        "jestConfig": "legacies/duckdb/jest.config.ts"
       }
     }
   },

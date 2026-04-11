@@ -1,4 +1,4 @@
-import { TSandboxProviderMeta, TSandboxWorkForType } from '@metad/contracts'
+import { TSandboxProviderMeta, TSandboxWorkForType } from '@xpert-ai/contracts'
 import { SandboxBackendProtocol } from './protocol'
 
 export type SandboxProviderCreateOptions = {

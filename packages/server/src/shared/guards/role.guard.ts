@@ -1,5 +1,5 @@
-import { RolesEnum } from '@metad/contracts';
-import { isEmpty, ROLES_METADATA } from '@metad/server-common';
+import { RolesEnum } from '@xpert-ai/contracts';
+import { isEmpty, ROLES_METADATA } from '@xpert-ai/server-common';
 import { Injectable, CanActivate, ExecutionContext, Type, Logger } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { RequestContext } from './../../core/context';

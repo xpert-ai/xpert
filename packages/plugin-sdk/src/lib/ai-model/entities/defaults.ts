@@ -1,4 +1,4 @@
-import { ParameterRule, ParameterType } from "@metad/contracts";
+import { ParameterRule, ParameterType } from "@xpert-ai/contracts";
 import { DefaultParameterName } from "./model_entities";
 
 export const PARAMETER_RULE_TEMPLATE: Record<DefaultParameterName, ParameterRule> = {

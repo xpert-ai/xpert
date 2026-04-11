@@ -1,4 +1,4 @@
-import type { IIntegration } from '@metad/contracts'
+import type { IIntegration } from '@xpert-ai/contracts'
 import { Controller, Get, Logger, Query, Res, SetMetadata } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { ModuleRef } from '@nestjs/core'

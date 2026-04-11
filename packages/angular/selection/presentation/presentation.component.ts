@@ -2,8 +2,8 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { Component, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel } from '@metad/ocap-angular/core'
-import { PresentationVariant } from '@metad/ocap-core'
+import { attrModel } from '@xpert-ai/ocap-angular/core'
+import { PresentationVariant } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 @Component({

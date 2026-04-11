@@ -1,5 +1,5 @@
 import { Injectable, inject, signal } from '@angular/core'
-import { CalculationProperty, DataSettings, ParameterProperty } from '@metad/ocap-core'
+import { CalculationProperty, DataSettings, ParameterProperty } from '@xpert-ai/ocap-core'
 import { EMPTY, Observable, Subject, of, switchMap } from 'rxjs'
 import { NGM_DATE_VARIABLES } from '../models'
 

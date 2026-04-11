@@ -1,4 +1,4 @@
-import { IWFNSubflow, XpertParameterTypeEnum } from '@metad/contracts'
+import { IWFNSubflow, XpertParameterTypeEnum } from '@xpert-ai/contracts'
 
 export function subflowOutputVariables(subflow: IWFNSubflow) {
 	return subflow.outputParams?.map((item) => ({

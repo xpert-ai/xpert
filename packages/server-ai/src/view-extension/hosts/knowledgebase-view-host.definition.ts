@@ -1,7 +1,7 @@
-import { AIPermissionsEnum, XpertViewSlot } from '@metad/contracts'
-import { ViewHostDefinition, XpertViewHostDefinition } from '@metad/server-core'
+import { AIPermissionsEnum, XpertViewSlot } from '@xpert-ai/contracts'
+import { ViewHostDefinition, XpertViewHostDefinition } from '@xpert-ai/server-core'
 import { Injectable } from '@nestjs/common'
-import { RequestContext } from '@metad/server-core'
+import { RequestContext } from '@xpert-ai/server-core'
 import { KnowledgebaseService } from '../../knowledgebase/knowledgebase.service'
 
 @Injectable()

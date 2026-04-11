@@ -1,7 +1,7 @@
 
 import { ChangeDetectionStrategy, Component, booleanAttribute, computed, effect, input, signal } from '@angular/core'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { DensityDirective, DisplayDensity } from '@xpert-ai/ocap-angular/core'
 import { type ZardIconSizeVariants, ZardIconComponent } from '@xpert-ai/headless-ui'
 import {
   AggregationRole,
@@ -14,7 +14,7 @@ import {
   isMeasureControlProperty,
   isParameterProperty,
   isSemanticCalendar
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 
 @Component({
   standalone: true,

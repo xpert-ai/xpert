@@ -24,9 +24,9 @@ import {
 import { XpertStudioApiService } from '../../../domain'
 import { XpertStudioComponent } from '../../../studio.component'
 import { XpertWorkflowBaseComponent } from '../workflow-base.component'
-import { attrModel, linkedModel, TSelectOption } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, TSelectOption } from '@xpert-ai/ocap-angular/core'
 import { NgmSelectPanelComponent } from '@cloud/app/@shared/common'
-import { CapitalizePipe } from '@metad/core'
+import { CapitalizePipe } from '@xpert-ai/core'
 import { ZardTooltipImports } from '@xpert-ai/headless-ui'
 
 @Component({

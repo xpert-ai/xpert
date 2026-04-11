@@ -1,4 +1,4 @@
-import { C_MEASURES } from '@metad/ocap-core'
+import { C_MEASURES } from '@xpert-ai/ocap-core'
 import { referenceLines } from './series'
 import { AxisEnum } from '../types'
 

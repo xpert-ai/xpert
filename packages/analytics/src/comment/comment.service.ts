@@ -1,6 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { Employee, RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { Employee, RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Repository, TreeRepository } from 'typeorm'
 import { Comment } from './comment.entity'
 

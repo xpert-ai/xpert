@@ -1,4 +1,4 @@
-import { FileStorageOption } from '@metad/contracts'
+import { FileStorageOption } from '@xpert-ai/contracts'
 import { RequestContext } from '@xpert-ai/plugin-sdk'
 import moment from 'moment'
 import { posix } from 'path'

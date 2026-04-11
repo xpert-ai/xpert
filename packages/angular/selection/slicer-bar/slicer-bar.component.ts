@@ -10,7 +10,7 @@ import {
   getEntityDimensions,
   getPropertyName,
   nonNullable
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { BehaviorSubject, filter, map } from 'rxjs'
 import { BaseSlicersComponent } from '../base-slicers'
 import { SlicersCapacity } from '../types'

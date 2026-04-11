@@ -20,10 +20,10 @@ import {
     XpertAgentExecutionStatusEnum,
     figureOutXpert,
     IXpert
-} from '@metad/contracts'
-import { AgentRecursionLimit, isNil } from '@metad/copilot'
-import { RequestContext } from '@metad/server-core'
-import { getErrorMessage, omit } from '@metad/server-common'
+} from '@xpert-ai/contracts'
+import { AgentRecursionLimit, isNil } from '@xpert-ai/copilot'
+import { RequestContext } from '@xpert-ai/server-core'
+import { getErrorMessage, omit } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { format } from 'date-fns/format'

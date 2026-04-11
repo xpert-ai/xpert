@@ -4,7 +4,7 @@ import { FormsModule } from '@angular/forms'
 import { I18nObject, TSelectOption } from '@cloud/app/@core'
 import { NgmSelectComponent } from '@cloud/app/@shared/common'
 import { injectI18nService } from '@cloud/app/@shared/i18n'
-import { linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { linkedModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { AbstractInterruptComponent } from '../../types'
 

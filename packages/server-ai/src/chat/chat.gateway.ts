@@ -1,4 +1,4 @@
-import { ChatGatewayEvent, ChatGatewayMessage, ChatMessage, IUser } from '@metad/contracts'
+import { ChatGatewayEvent, ChatGatewayMessage, ChatMessage, IUser } from '@xpert-ai/contracts'
 import { UseGuards } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import {
@@ -10,7 +10,7 @@ import {
 	WebSocketServer,
 	WsResponse
 } from '@nestjs/websockets'
-import { WsJWTGuard, WsUser } from '@metad/server-core'
+import { WsJWTGuard, WsUser } from '@xpert-ai/server-core'
 import { from, map, Observable, switchMap } from 'rxjs'
 import { Server, Socket } from 'socket.io'
 import { CancelChatCommand, ChatWSCommand } from './commands'

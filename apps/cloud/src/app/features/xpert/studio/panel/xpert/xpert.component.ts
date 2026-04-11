@@ -2,9 +2,9 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { AsyncPipe } from '@angular/common'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { OverlayAnimations } from '@metad/core'
-import { CloseSvgComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, NgmDensityDirective } from '@metad/ocap-angular/core'
+import { OverlayAnimations } from '@xpert-ai/core'
+import { CloseSvgComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { linkedModel, NgmDensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,

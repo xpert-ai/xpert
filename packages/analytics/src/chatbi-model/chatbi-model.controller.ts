@@ -1,4 +1,4 @@
-import { CrudController } from '@metad/server-core'
+import { CrudController } from '@xpert-ai/server-core'
 import { Controller, Get } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { ChatBIModel } from './chatbi-model.entity'

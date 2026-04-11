@@ -3,7 +3,7 @@ import {
 	BaseEntityModel as IBaseEntityModel,
 	ID,
 	IUser,
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { IsOptional, IsString } from 'class-validator'
 import {
 	Column,

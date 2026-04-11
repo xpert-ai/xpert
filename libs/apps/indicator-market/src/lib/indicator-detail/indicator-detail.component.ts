@@ -14,10 +14,10 @@ import {
 } from '@angular/core'
 import { Dialog } from '@angular/cdk/dialog'
 import { takeUntilDestroyed, toObservable, toSignal } from '@angular/core/rxjs-interop'
-import { CommentsService, Store, ToastrService } from '@metad/cloud/state'
-import { BusinessAreaRole, IBusinessAreaUser, IComment } from '@metad/contracts'
-import { convertTableToCSV, nonNullable } from '@metad/core'
-import { DisplayDensity, NgmDSCoreService, NgmLanguageEnum, PERIODS } from '@metad/ocap-angular/core'
+import { CommentsService, Store, ToastrService } from '@xpert-ai/cloud/state'
+import { BusinessAreaRole, IBusinessAreaUser, IComment } from '@xpert-ai/contracts'
+import { convertTableToCSV, nonNullable } from '@xpert-ai/core'
+import { DisplayDensity, NgmDSCoreService, NgmLanguageEnum, PERIODS } from '@xpert-ai/ocap-angular/core'
 import {
   C_MEASURES,
   calcOffsetRange,
@@ -52,8 +52,8 @@ import {
   ReferenceLineValueType,
   slicerAsString,
   TimeRangeType
-} from '@metad/ocap-core'
-import { ExplainComponent } from '@metad/story/story'
+} from '@xpert-ai/ocap-core'
+import { ExplainComponent } from '@xpert-ai/story/story'
 import { TranslateService } from '@ngx-translate/core'
 import { graphic } from 'echarts/core'
 import { NGXLogger } from 'ngx-logger'

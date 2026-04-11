@@ -1,4 +1,4 @@
-import { PaginationParams } from '@metad/server-core'
+import { PaginationParams } from '@xpert-ai/server-core'
 import { IQuery } from '@nestjs/cqrs'
 import { XpertAgentExecution } from '../agent-execution.entity'
 

@@ -1,4 +1,4 @@
-import { BusinessType, IFavorite } from '@metad/contracts'
+import { BusinessType, IFavorite } from '@xpert-ai/contracts'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { IsNull } from 'typeorm'
 import { FavoriteService } from '../../favorite.service'

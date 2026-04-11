@@ -2,7 +2,7 @@ import { InjectionToken, Signal, inject } from '@angular/core'
 import { CallbackManagerForToolRun } from '@langchain/core/callbacks/manager'
 import { BaseRetriever } from '@langchain/core/retrievers'
 import { DynamicStructuredTool } from '@langchain/core/tools'
-import { MEMBER_RETRIEVER_TOOL_NAME } from '@metad/ocap-core'
+import { MEMBER_RETRIEVER_TOOL_NAME } from '@xpert-ai/ocap-core'
 import { formatDocumentsAsString } from 'langchain/util/document'
 import { z } from 'zod'
 

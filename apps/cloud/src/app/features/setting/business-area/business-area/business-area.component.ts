@@ -1,6 +1,6 @@
 import { Component, OnDestroy, computed, effect, inject } from '@angular/core'
-import { BusinessAreasService } from '@metad/cloud/state'
-import { BusinessType } from '@metad/contracts'
+import { BusinessAreasService } from '@xpert-ai/cloud/state'
+import { BusinessType } from '@xpert-ai/contracts'
 import { TranslateModule } from '@ngx-translate/core'
 import { SharedUiModule } from 'apps/cloud/src/app/@shared/ui.module'
 import { computedAsync } from 'ngxtension/computed-async'

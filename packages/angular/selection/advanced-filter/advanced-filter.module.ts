@@ -4,9 +4,9 @@ import { NgModule } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 
 import { ZardButtonComponent, ZardChipsImports, ZardDialogModule, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { NgmSelectComponent } from '@metad/ocap-angular/common'
-import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
-import { NgmEntityModule } from '@metad/ocap-angular/entity'
+import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { AppearanceDirective, ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
+import { NgmEntityModule } from '@xpert-ai/ocap-angular/entity'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgmAdvancedFilterComponent } from './advanced-filter.component'
 

@@ -17,7 +17,7 @@ import {
 	IXpertWorkspace,
 	AiFeatureEnum,
 	RequestScopeLevel
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { Injectable, inject } from '@angular/core';
 import { StoreConfig, Store as AkitaStore, Query } from '@datorama/akita';
 import { NgxPermissionsService, NgxRolesService } from 'ngx-permissions';
@@ -25,7 +25,7 @@ import { combineLatest } from 'rxjs';
 import { distinctUntilChanged, map } from 'rxjs/operators';
 import { uniqBy } from 'lodash-es';
 import { toSignal } from '@angular/core/rxjs-interop';
-import { ThemesEnum, linkedModel, normalizeTheme, prefersColorScheme, resolveTheme } from '@metad/ocap-angular/core';
+import { ThemesEnum, linkedModel, normalizeTheme, prefersColorScheme, resolveTheme } from '@xpert-ai/ocap-angular/core';
 
 export type ActiveScope =
 	| { level: RequestScopeLevel.TENANT }

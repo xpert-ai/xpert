@@ -33,7 +33,7 @@ import {
   VariableOperationEnum,
   WorkflowNodeTypeEnum,
   XpertParameterTypeEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { layoutGraphWithMixedDirection } from '../../studio/domain/layout/layout'
 
 const HORIZONTAL_OFFSET = 280

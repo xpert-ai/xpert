@@ -1,4 +1,4 @@
-import { IUser } from '@metad/contracts'
+import { IUser } from '@xpert-ai/contracts'
 import { Exclude, Expose } from 'class-transformer'
 
 @Exclude()

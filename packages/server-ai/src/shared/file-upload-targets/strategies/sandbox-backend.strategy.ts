@@ -1,4 +1,4 @@
-import { IFileAssetDestination, IUploadFileSandboxTarget } from '@metad/contracts'
+import { IFileAssetDestination, IUploadFileSandboxTarget } from '@xpert-ai/contracts'
 import {
 	FileUploadTargetStrategy,
 	IFileUploadTargetStrategy,

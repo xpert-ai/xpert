@@ -1,4 +1,4 @@
-import { Agent, AgentStatus, AgentType, DataSourceOptions } from '@metad/ocap-core'
+import { Agent, AgentStatus, AgentType, DataSourceOptions } from '@xpert-ai/ocap-core'
 import { merge } from 'lodash'
 import { map, Observable } from 'rxjs'
 import { Dataset } from '../types'

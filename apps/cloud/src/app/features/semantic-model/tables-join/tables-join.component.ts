@@ -4,9 +4,9 @@ import { ChangeDetectionStrategy, Component, EventEmitter, Input, OnInit, Output
 import { FormsModule } from '@angular/forms'
 
 import { ZardButtonComponent, ZardDividerComponent, ZardIconComponent } from '@xpert-ai/headless-ui'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmDSCoreService, OcapCoreModule } from '@metad/ocap-angular/core'
-import { Join, Table } from '@metad/ocap-core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { Join, Table } from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { cloneDeep, isEqual, values } from 'lodash-es'
 import { BehaviorSubject, EMPTY, map, shareReplay } from 'rxjs'

@@ -1,4 +1,4 @@
-import { CredentialFormSchema, CredentialFormTypeEnum, ParameterType } from "@metad/contracts";
+import { CredentialFormSchema, CredentialFormTypeEnum, ParameterType } from "@xpert-ai/contracts";
 
 
 export class CommonValidator {

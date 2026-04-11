@@ -1,4 +1,4 @@
-import { ConfigService, environment } from '@metad/server-config';
+import { ConfigService, environment } from '@xpert-ai/server-config';
 import {
 	ICreateEmailInvitesInput,
 	ICreateEmailInvitesOutput,
@@ -15,7 +15,7 @@ import {
 	InvitationExpirationEnum,
 	InvitationTypeEnum,
 	IInvite,
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { BadRequestException, Injectable, UnauthorizedException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { JwtPayload, sign, verify } from 'jsonwebtoken';

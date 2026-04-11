@@ -4,7 +4,7 @@ This repository uses [Changesets](https://github.com/changesets/changesets) to m
 
 Current release automation scope:
 
-- CI only publishes `@metad/ocap-core`
+- CI only publishes `@xpert-ai/ocap-core`
 - changeset entries that target other packages are blocked by `pnpm release:verify`
 
 Create a release note with:
@@ -17,7 +17,7 @@ Use this frontmatter when releasing the current automated npm package:
 
 ```md
 ---
-'@metad/ocap-core': patch
+'@xpert-ai/ocap-core': patch
 ---
 
 Describe the user-facing change here.

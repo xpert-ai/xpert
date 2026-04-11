@@ -2,7 +2,7 @@ import { CdkListboxModule } from '@angular/cdk/listbox'
 
 import { Component, effect, inject, input, model, output, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { injectConfirmDelete, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { injectConfirmDelete, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   getErrorMessage,

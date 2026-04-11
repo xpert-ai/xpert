@@ -1,7 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { Transform, TransformFnParams, Type } from 'class-transformer';
 import { IsNotEmpty, IsOptional, Max, Min, ValidateNested } from 'class-validator';
-import { parseToBoolean } from '@metad/server-common';
+import { parseToBoolean } from '@xpert-ai/server-common';
 import { parseObject } from './pagination.helper';
 import { escapeQueryWithParameters, TenantOrganizationBaseDTO } from '../dto';
 import { FindOptionsOrder } from 'typeorm';

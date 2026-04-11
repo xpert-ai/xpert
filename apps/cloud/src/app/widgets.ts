@@ -1,6 +1,6 @@
 import { Type } from '@angular/core'
-import { IStoryWidget } from '@metad/core'
-import { ComponentSettingsType, STORY_WIDGET_COMPONENT, WidgetComponentType } from '@metad/story/core'
+import { IStoryWidget } from '@xpert-ai/core'
+import { ComponentSettingsType, STORY_WIDGET_COMPONENT, WidgetComponentType } from '@xpert-ai/story/core'
 
 export const STORY_WIDGET_COMPONENTS = [
   {
@@ -19,7 +19,7 @@ export const STORY_WIDGET_COMPONENTS = [
       label: 'Analytical Card',
       category: 'card',
       factory: async (): Promise<Type<IStoryWidget<unknown>>> => {
-        const { WidgetAnalyticalCardComponent } = await import('@metad/story/widgets/analytical-card')
+        const { WidgetAnalyticalCardComponent } = await import('@xpert-ai/story/widgets/analytical-card')
         return WidgetAnalyticalCardComponent
       }
     },
@@ -34,7 +34,7 @@ export const STORY_WIDGET_COMPONENTS = [
       label: 'Analytical Grid',
       category: 'table',
       factory: async (): Promise<Type<IStoryWidget<unknown>>> => {
-        const { WidgetAnalyticalGridComponent } = await import('@metad/story/widgets/analytical-grid')
+        const { WidgetAnalyticalGridComponent } = await import('@xpert-ai/story/widgets/analytical-grid')
         return WidgetAnalyticalGridComponent
       }
     },
@@ -47,7 +47,7 @@ export const STORY_WIDGET_COMPONENTS = [
     useValue: {
       type: ComponentSettingsType.StoryFilterBar,
       factory: async (): Promise<Type<IStoryWidget<unknown>>> => {
-        const { NxSmartFilterBarComponent } = await import('@metad/story/widgets/filter-bar')
+        const { NxSmartFilterBarComponent } = await import('@xpert-ai/story/widgets/filter-bar')
         return NxSmartFilterBarComponent
       },
       mapping: ['title', 'dataSettings', 'options', 'styling'],
@@ -71,7 +71,7 @@ export const STORY_WIDGET_COMPONENTS = [
     useValue: {
       type: WidgetComponentType.InputControl,
       factory: async (): Promise<Type<IStoryWidget<unknown>>> => {
-        const { NxInputControlComponent } = await import('@metad/story/widgets/input-control')
+        const { NxInputControlComponent } = await import('@xpert-ai/story/widgets/input-control')
         return NxInputControlComponent
       },
       mapping: ['title', 'dataSettings', 'options', 'styling'],
@@ -99,7 +99,7 @@ export const STORY_WIDGET_COMPONENTS = [
       disableFab: true,
       category: 'kpi',
       factory: async (): Promise<Type<IStoryWidget<unknown>>> => {
-        const { NxWidgetKpiComponent } = await import('@metad/story/widgets/kpi')
+        const { NxWidgetKpiComponent } = await import('@xpert-ai/story/widgets/kpi')
         return NxWidgetKpiComponent
       }
     },
@@ -112,7 +112,7 @@ export const STORY_WIDGET_COMPONENTS = [
     useValue: {
       type: 'TabGroup',
       factory: async (): Promise<Type<IStoryWidget<unknown>>> => {
-        const { NxWidgetTabGroupComponent } = await import('@metad/story/widgets/tab-group')
+        const { NxWidgetTabGroupComponent } = await import('@xpert-ai/story/widgets/tab-group')
         return NxWidgetTabGroupComponent
       },
       mapping: ['title', 'options', 'styling'],
@@ -131,7 +131,7 @@ export const STORY_WIDGET_COMPONENTS = [
       label: 'Iframe',
       disableFab: true,
       factory: async (): Promise<Type<IStoryWidget<unknown>>> => {
-        const { NxWidgetIframeComponent } = await import('@metad/story/widgets/iframe')
+        const { NxWidgetIframeComponent } = await import('@xpert-ai/story/widgets/iframe')
         return NxWidgetIframeComponent
       }
     },
@@ -143,7 +143,7 @@ export const STORY_WIDGET_COMPONENTS = [
     useValue: {
       type: WidgetComponentType.Document,
       factory: async (): Promise<Type<IStoryWidget<unknown>>> => {
-        const { NxWidgetDocumentComponent } = await import('@metad/story/widgets/document')
+        const { NxWidgetDocumentComponent } = await import('@xpert-ai/story/widgets/document')
         return NxWidgetDocumentComponent
       },
       mapping: ['dataSettings', 'title', 'options', 'styling'],
@@ -160,7 +160,7 @@ export const STORY_WIDGET_COMPONENTS = [
       group: 'Indicator',
       type: 'AccountingStatement',
       factory: async (): Promise<Type<IStoryWidget<unknown>>> => {
-        const { AccountingStatementComponent } = await import('@metad/story/widgets/financial/accounting-statement')
+        const { AccountingStatementComponent } = await import('@xpert-ai/story/widgets/financial/accounting-statement')
         return AccountingStatementComponent
       },
       mapping: ['title', 'dataSettings', 'options', 'styling'],
@@ -177,7 +177,7 @@ export const STORY_WIDGET_COMPONENTS = [
       group: 'Indicator',
       type: 'IndicatorCard',
       factory: async (): Promise<Type<IStoryWidget<unknown>>> => {
-        const { IndicatorCardComponent } = await import('@metad/story/widgets/indicator-card')
+        const { IndicatorCardComponent } = await import('@xpert-ai/story/widgets/indicator-card')
         return IndicatorCardComponent
       },
       mapping: ['title', 'dataSettings', 'options', 'styling'],
@@ -195,7 +195,7 @@ export const STORY_WIDGET_COMPONENTS = [
     useValue: {
       type: 'Swiper',
       factory: async (): Promise<Type<IStoryWidget<unknown>>> => {
-        const { NxWidgetSwiperComponent } = await import('@metad/story/widgets/swiper')
+        const { NxWidgetSwiperComponent } = await import('@xpert-ai/story/widgets/swiper')
         return NxWidgetSwiperComponent
       },
       mapping: ['title', 'options', 'styling'],
@@ -218,7 +218,7 @@ export const STORY_WIDGET_COMPONENTS = [
     useValue: {
       type: WidgetComponentType.Text,
       factory: async (): Promise<Type<IStoryWidget<unknown>>> => {
-        const { NxWidgetTextComponent } = await import('@metad/story/widgets/text')
+        const { NxWidgetTextComponent } = await import('@xpert-ai/story/widgets/text')
         return NxWidgetTextComponent
       },
       mapping: ['title', 'dataSettings', 'options', 'styling'],
@@ -242,7 +242,7 @@ export const STORY_WIDGET_COMPONENTS = [
     useValue: {
       type: WidgetComponentType.Image,
       factory: async (): Promise<Type<IStoryWidget<unknown>>> => {
-        const { NxWidgetImageComponent } = await import('@metad/story/widgets/image')
+        const { NxWidgetImageComponent } = await import('@xpert-ai/story/widgets/image')
         return NxWidgetImageComponent
       },
       mapping: ['title', 'options', 'styling'],
@@ -259,7 +259,7 @@ export const STORY_WIDGET_COMPONENTS = [
     useValue: {
       type: WidgetComponentType.Video,
       factory: async (): Promise<Type<IStoryWidget<unknown>>> => {
-        const { NxWidgetVideoComponent } = await import('@metad/story/widgets/video')
+        const { NxWidgetVideoComponent } = await import('@xpert-ai/story/widgets/video')
         return NxWidgetVideoComponent
       },
       mapping: ['title', 'options', 'styling'],
@@ -277,7 +277,7 @@ export const STORY_WIDGET_COMPONENTS = [
     useValue: {
       type: WidgetComponentType.Today,
       factory: async (): Promise<Type<IStoryWidget<unknown>>> => {
-        const { WidgetTodayComponent } = await import('@metad/story/widgets/today')
+        const { WidgetTodayComponent } = await import('@xpert-ai/story/widgets/today')
         return WidgetTodayComponent
       },
       mapping: ['title', 'options', 'styling'],

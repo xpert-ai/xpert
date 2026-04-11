@@ -1,4 +1,4 @@
-import { IInvite, InviteStatusEnum } from '@metad/contracts';
+import { IInvite, InviteStatusEnum } from '@xpert-ai/contracts';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { UpdateResult } from 'typeorm';
 import { AuthService } from '../../../auth/auth.service';

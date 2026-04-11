@@ -15,7 +15,7 @@ import {
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage, injectToastr, SandboxService, TChatMessageStep, TProgramToolMessage } from '../../../@core'
-import { omitBlank } from '@metad/ocap-angular/core'
+import { omitBlank } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { Subscription } from 'rxjs'
 

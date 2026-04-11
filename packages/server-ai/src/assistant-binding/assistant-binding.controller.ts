@@ -3,8 +3,8 @@ import {
   AssistantCode,
   IAssistantBindingUserPreferenceUpsertInput,
   IAssistantBindingUpsertInput
-} from '@metad/contracts'
-import { TransformInterceptor } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { TransformInterceptor } from '@xpert-ai/server-core'
 import {
   Body,
   Controller,

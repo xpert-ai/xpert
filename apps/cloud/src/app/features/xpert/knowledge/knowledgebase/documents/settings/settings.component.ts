@@ -11,8 +11,8 @@ import {
   KnowledgebaseService,
   KnowledgeDocumentService
 } from '@cloud/app/@core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { linkedModel, myRxResource } from '@metad/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { linkedModel, myRxResource } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { pick } from 'lodash-es'
 import { injectParams } from 'ngxtension/inject-params'

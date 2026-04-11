@@ -3,8 +3,8 @@ import { CommandBus } from '@nestjs/cqrs';
 import {
     ApiBearerAuth, ApiTags
 } from '@nestjs/swagger';
-import { CrudController, UUIDValidationPipe } from '@metad/server-core';
-import { INotificationDestinationType } from '@metad/contracts'
+import { CrudController, UUIDValidationPipe } from '@xpert-ai/server-core';
+import { INotificationDestinationType } from '@xpert-ai/contracts'
 import { NotificationDestination } from './notification-destination.entity';
 import { NotificationDestinationService } from './notification-destination.service';
 import { getNotificationDestinationTypes } from './base-destination';

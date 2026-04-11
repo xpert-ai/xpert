@@ -2,8 +2,8 @@ import { Dialog, DialogRef } from '@angular/cdk/dialog'
 import { ComponentType } from '@angular/cdk/portal'
 import { booleanAttribute, Directive, inject, Input, input, signal, ViewContainerRef } from '@angular/core'
 import { toObservable } from '@angular/core/rxjs-interop'
-import { NgmTimeFilterEditorComponent, NgmValueHelpComponent } from '@metad/ocap-angular/controls'
-import { DateVariableEnum, NgmOcapCoreService } from '@metad/ocap-angular/core'
+import { NgmTimeFilterEditorComponent, NgmValueHelpComponent } from '@xpert-ai/ocap-angular/controls'
+import { DateVariableEnum, NgmOcapCoreService } from '@xpert-ai/ocap-angular/core'
 import {
   AdvancedSlicer,
   AggregationRole,
@@ -22,7 +22,7 @@ import {
   TimeRange,
   VariableProperty,
   VariableSelectionType
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { pick } from 'lodash-es'
 import { BehaviorSubject, firstValueFrom } from 'rxjs'
 import { NgmAdvancedFilterComponent } from './advanced-filter'

@@ -13,7 +13,7 @@ import {
 import { ChatConversationFilesComponent } from '@cloud/app/@shared/chat'
 import { FileEditorComponent } from '@cloud/app/@shared/files'
 import { XpertProjectTasksComponent } from '@cloud/app/@shared/xpert'
-import { FileTypePipe, ListHeightStaggerAnimation } from '@metad/core'
+import { FileTypePipe, ListHeightStaggerAnimation } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniq } from 'lodash-es'
 import { ChatService } from '../../chat.service'

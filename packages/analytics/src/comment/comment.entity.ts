@@ -1,5 +1,5 @@
-import { IComment, IIndicator } from "@metad/contracts";
-import { TenantOrganizationBaseEntity } from "@metad/server-core";
+import { IComment, IIndicator } from "@xpert-ai/contracts";
+import { TenantOrganizationBaseEntity } from "@xpert-ai/server-core";
 import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
 import { IsJSON, IsOptional, IsString } from 'class-validator'
 import {

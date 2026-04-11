@@ -1,7 +1,7 @@
 jest.mock('./agent-execution.service', () => ({
     XpertAgentExecutionService: class {}
 }))
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
     CrudController: class {
         constructor() {}
     },

@@ -1,4 +1,4 @@
-import { Integration, RequestContext } from '@metad/server-core'
+import { Integration, RequestContext } from '@xpert-ai/server-core'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectDataSource } from '@nestjs/typeorm'
 import { DataSource } from 'typeorm'

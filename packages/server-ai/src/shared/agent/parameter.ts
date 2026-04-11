@@ -1,4 +1,4 @@
-import { TXpertParameter, XpertParameterTypeEnum } from "@metad/contracts"
+import { TXpertParameter, XpertParameterTypeEnum } from "@xpert-ai/contracts"
 import { z } from 'zod'
 import { ARRAY_FILE_ITEMS } from "./constants"
 

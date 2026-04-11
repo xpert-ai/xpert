@@ -15,7 +15,7 @@ jest.mock('@langchain/langgraph', () => {
 })
 
 import { Command } from '@langchain/langgraph'
-import { AiModelTypeEnum } from '@metad/contracts'
+import { AiModelTypeEnum } from '@xpert-ai/contracts'
 import { XpertAuthoringMiddleware } from './xpert-authoring.middleware'
 import { AssistantDraftConflictError, AssistantDraftMutationResult, AuthoringToolName } from './xpert-authoring.types'
 

@@ -14,9 +14,9 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { routeAnimations } from '@metad/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { routeAnimations } from '@xpert-ai/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   CredentialsType,

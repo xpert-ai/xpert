@@ -1,5 +1,5 @@
-import { ISkillPackage, ISkillRepositoryIndex, IUser, TSkillPackage } from '@metad/contracts'
-import { UserPublicDTO } from '@metad/server-core'
+import { ISkillPackage, ISkillRepositoryIndex, IUser, TSkillPackage } from '@xpert-ai/contracts'
+import { UserPublicDTO } from '@xpert-ai/server-core'
 import { Exclude, Expose, Transform } from 'class-transformer'
 import { SimpleSkillIndexDto } from '../../skill-repository/dto'
 

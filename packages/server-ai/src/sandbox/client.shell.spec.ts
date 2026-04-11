@@ -29,7 +29,7 @@ jest.mock('@langchain/core/callbacks/dispatch', () => ({
 	dispatchCustomEvent: jest.fn().mockResolvedValue(undefined)
 }))
 
-jest.mock('@metad/contracts', () => ({
+jest.mock('@xpert-ai/contracts', () => ({
 	ChatMessageEventTypeEnum: {
 		ON_TOOL_MESSAGE: 'ON_TOOL_MESSAGE'
 	},
@@ -38,19 +38,19 @@ jest.mock('@metad/contracts', () => ({
 	}
 }))
 
-jest.mock('@metad/server-common', () => ({
+jest.mock('@xpert-ai/server-common', () => ({
 	getPythonErrorMessage: (error: any) => error?.message ?? String(error),
 	shortuuid: () => 'shortuuid',
 	urlJoin: (...parts: string[]) => parts.join('/')
 }))
 
-jest.mock('@metad/server-config', () => ({
+jest.mock('@xpert-ai/server-config', () => ({
 	environment: {
 		pro: true
 	}
 }))
 
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
 	DeployWebappCommand: class DeployWebappCommand {},
 	RequestContext: {
 		currentTenantId: () => 'tenant-id'

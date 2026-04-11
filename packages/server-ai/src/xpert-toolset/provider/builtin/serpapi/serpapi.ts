@@ -1,5 +1,5 @@
-import { IXpertToolset, TToolCredentials } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+import { IXpertToolset, TToolCredentials } from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { ToolProviderCredentialValidationError } from '../../../errors'
 import { BuiltinToolset } from '../builtin-toolset'
 import { SerpAPI } from './tools/serpapi'

@@ -3,7 +3,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { CqrsModule } from '@nestjs/cqrs';
 import { RouterModule } from '@nestjs/core';
 import { PermissionApproval } from './permission-approval.entity';
-import { TenantModule, UserModule } from '@metad/server-core';
+import { TenantModule, UserModule } from '@xpert-ai/server-core';
 import { PermissionApprovalControler } from './permission-approval.controller';
 import { CommandHandlers } from './commands/handlers';
 import { PermissionApprovalService } from './permission-approval.service';

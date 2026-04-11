@@ -1,4 +1,4 @@
-import { ICollection } from '@metad/contracts'
+import { ICollection } from '@xpert-ai/contracts'
 import { ApiPropertyOptional } from '@nestjs/swagger'
 import { IsOptional, IsString } from 'class-validator'
 import { Column, Entity, TreeChildren, TreeParent } from 'typeorm'

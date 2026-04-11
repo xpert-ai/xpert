@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { RequestScopeLevel } from '@metad/contracts'
+import { RequestScopeLevel } from '@xpert-ai/contracts'
 import { AssistantBindingScope, AssistantCode, Store, routeAnimations } from '../../../@core'
 import { type AssistantRegistryItem } from '../../assistant/assistant.registry'
 import { AssistantsSettingsFacade } from './assistants.facade'

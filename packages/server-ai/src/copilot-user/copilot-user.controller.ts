@@ -1,4 +1,4 @@
-import { AIPermissionsEnum, ICopilotUser, IPagination } from '@metad/contracts'
+import { AIPermissionsEnum, ICopilotUser, IPagination } from '@xpert-ai/contracts'
 import {
 	CrudController,
 	PaginationParams,
@@ -7,7 +7,7 @@ import {
 	Permissions,
 	TransformInterceptor,
 	UseValidationPipe
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import { Body, Controller, Get, Logger, Param, Post, Query, UseGuards, UseInterceptors } from '@nestjs/common'
 import { ApiBearerAuth, ApiTags } from '@nestjs/swagger'
 import { CopilotUser } from './copilot-user.entity'

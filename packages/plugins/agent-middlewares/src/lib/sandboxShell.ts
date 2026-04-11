@@ -1,5 +1,5 @@
 import { tool } from '@langchain/core/tools'
-import { TAgentMiddlewareMeta, TAgentRunnableConfigurable } from '@metad/contracts'
+import { TAgentMiddlewareMeta, TAgentRunnableConfigurable } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import {
   AgentMiddleware,

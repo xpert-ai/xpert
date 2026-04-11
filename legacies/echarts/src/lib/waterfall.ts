@@ -12,7 +12,7 @@ import {
   getEntityProperty,
   isNil,
   omitBlank
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { BarChart } from 'echarts/charts'
 import { use } from 'echarts/core'
 import { includes, sumBy } from 'lodash-es'

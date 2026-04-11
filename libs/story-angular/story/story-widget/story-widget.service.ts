@@ -1,13 +1,13 @@
 import { computed, inject, Inject, Injectable, Optional } from '@angular/core'
-import { ID } from '@metad/contracts'
-import { createSubStore, dirtyCheckWith, WidgetService, write } from '@metad/core'
-import { DataSettings } from '@metad/ocap-core'
+import { ID } from '@xpert-ai/contracts'
+import { createSubStore, dirtyCheckWith, WidgetService, write } from '@xpert-ai/core'
+import { DataSettings } from '@xpert-ai/ocap-core'
 import {
   LinkedAnalysisSettings,
   NX_STORY_FEED,
   NxStoryFeedService,
   StoryWidget
-} from '@metad/story/core'
+} from '@xpert-ai/story/core'
 import { TranslateService } from '@ngx-translate/core'
 import { ZardToastService } from '@xpert-ai/headless-ui'
 import { firstValueFrom, Observable } from 'rxjs'
@@ -16,7 +16,7 @@ import { NxStoryPointService } from '../story-point.service'
 import { select, withProps } from '@ngneat/elf'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { isEqual, negate } from 'lodash-es'
-import { effectAction } from '@metad/ocap-angular/core'
+import { effectAction } from '@xpert-ai/ocap-angular/core'
 
 @Injectable()
 export class NxStoryWidgetService {

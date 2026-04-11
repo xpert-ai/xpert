@@ -3,7 +3,7 @@ import { ApiTags, ApiOperation, ApiResponse } from '@nestjs/swagger'
 import { FileInterceptor } from '@nestjs/platform-express'
 import path from 'path'
 import { CommandBus } from '@nestjs/cqrs'
-import { IImportHistory, ImportHistoryStatusEnum, IPagination, UploadedFile } from '@metad/contracts'
+import { IImportHistory, ImportHistoryStatusEnum, IPagination, UploadedFile } from '@xpert-ai/contracts'
 // import { ImportAllService } from './import-all.service';
 import { RequestContext } from './../../core/context/request-context'
 import { FileStorage } from '../../file/file-storage/file-storage'

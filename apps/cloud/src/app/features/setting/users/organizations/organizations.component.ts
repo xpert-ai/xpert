@@ -2,7 +2,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 import { Component, computed } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 
-import { injectConfirmDelete, NgmTableComponent } from '@metad/ocap-angular/common'
+import { injectConfirmDelete, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslationBaseComponent } from 'apps/cloud/src/app/@shared/language'
 import { SharedModule } from 'apps/cloud/src/app/@shared/shared.module'
 import { UserProfileInlineComponent } from 'apps/cloud/src/app/@shared/user'

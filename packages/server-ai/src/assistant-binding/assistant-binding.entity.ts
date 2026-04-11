@@ -3,8 +3,8 @@ import {
   AssistantCode,
   IAssistantBinding,
   IUser
-} from '@metad/contracts'
-import { TenantOrganizationBaseEntity, User } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import {
   IsBoolean,

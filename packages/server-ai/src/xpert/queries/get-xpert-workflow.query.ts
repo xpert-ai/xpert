@@ -1,4 +1,4 @@
-import { IXpertAgent, TXpertGraph, TXpertTeamNode } from '@metad/contracts';
+import { IXpertAgent, TXpertGraph, TXpertTeamNode } from '@xpert-ai/contracts';
 import { IQuery } from '@nestjs/cqrs'
 
 export type TXpertWorkflowQueryOutput = {

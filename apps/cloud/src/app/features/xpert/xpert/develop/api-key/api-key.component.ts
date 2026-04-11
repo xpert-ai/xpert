@@ -4,8 +4,8 @@ import { Dialog, DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { ChangeDetectionStrategy, Component, inject, signal } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { MaskPipe } from '@metad/core'
-import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@metad/ocap-angular/common'
+import { MaskPipe } from '@xpert-ai/core'
+import { CdkConfirmDeleteComponent, NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ApiKeyBindingType,

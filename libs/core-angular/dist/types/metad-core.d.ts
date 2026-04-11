@@ -1,22 +1,22 @@
 import * as _angular_animations from '@angular/animations';
 import * as i0 from '@angular/core';
 import { Signal, InjectionToken, OnDestroy, EventEmitter, ElementRef, PipeTransform, ModuleWithProviders, Renderer2, DebugElement, TemplateRef, OutputEmitterRef, AfterViewInit, DestroyRef, WritableSignal } from '@angular/core';
-import * as _metad_ocap_core from '@metad/ocap-core';
-import { IndicatorType, EntityType, Cube, PivotColumn, RecursiveHierarchyType, PropertyName, ValueListAnnotation, IFilter, EntityBusinessState, SelectionVariant, PresentationVariant, DataSettings, Dimension, ISlicer, TimeGranularity, SemanticObjectMappingType, Property, IAdvancedFilter, OrderBy } from '@metad/ocap-core';
-export { CubeVariablePrompt, MEMBER_RETRIEVER_TOOL_NAME, PROMPT_RETRIEVE_DIMENSION_MEMBER, makeCubeRulesPrompt, markdownEntityType, markdownModelCube, nonBlank, nonNullable } from '@metad/ocap-core';
+import * as _metad_ocap_core from '@xpert-ai/ocap-core';
+import { IndicatorType, EntityType, Cube, PivotColumn, RecursiveHierarchyType, PropertyName, ValueListAnnotation, IFilter, EntityBusinessState, SelectionVariant, PresentationVariant, DataSettings, Dimension, ISlicer, TimeGranularity, SemanticObjectMappingType, Property, IAdvancedFilter, OrderBy } from '@xpert-ai/ocap-core';
+export { CubeVariablePrompt, MEMBER_RETRIEVER_TOOL_NAME, PROMPT_RETRIEVE_DIMENSION_MEMBER, makeCubeRulesPrompt, markdownEntityType, markdownModelCube, nonBlank, nonNullable } from '@xpert-ai/ocap-core';
 import { z, ZodType, ZodTypeDef } from 'zod';
-import { EntitySelectResultType } from '@metad/ocap-angular/entity';
+import { EntitySelectResultType } from '@xpert-ai/ocap-angular/entity';
 import { BaseRetriever } from '@langchain/core/retrievers';
 import { DynamicStructuredTool } from '@langchain/core/tools';
-import * as i3 from '@metad/ocap-angular/core';
-import { NgmAppearance } from '@metad/ocap-angular/core';
+import * as i3 from '@xpert-ai/ocap-angular/core';
+import { NgmAppearance } from '@xpert-ai/ocap-angular/core';
 import { DomSanitizer, SafeHtml, SafeStyle, SafeScript, SafeUrl, SafeResourceUrl } from '@angular/platform-browser';
 import * as rxjs from 'rxjs';
 import { Observable, ReplaySubject, Subject, BehaviorSubject, OperatorFunction } from 'rxjs';
 import * as i1 from '@ng-web-apis/resize-observer';
 import { ResizeObserverService } from '@ng-web-apis/resize-observer';
 import { TranslateService } from '@ngx-translate/core';
-import { ComponentStore } from '@metad/store';
+import { ComponentStore } from '@xpert-ai/store';
 import { ComponentStore as ComponentStore$1 } from '@ngrx/component-store';
 import * as _ngneat_elf_src_lib_state from '@ngneat/elf/src/lib/state';
 import { StoreDef, Store, StoreConfig, PropsFactory } from '@ngneat/elf';
@@ -675,7 +675,7 @@ declare class PropertyPipe implements PipeTransform {
 }
 
 /**
- * @deprecated Migrate to `@metad/ocap-angular/core`
+ * @deprecated Migrate to `@xpert-ai/ocap-angular/core`
  */
 declare class NxCoreModule {
     static forRoot(): ModuleWithProviders<NxCoreModule>;

@@ -1,4 +1,4 @@
-import { TWorkflowVarGroup } from '@metad/contracts'
+import { TWorkflowVarGroup } from '@xpert-ai/contracts'
 import { Query } from '@nestjs/cqrs'
 
 /**

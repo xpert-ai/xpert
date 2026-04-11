@@ -12,9 +12,9 @@ import { NGXLogger } from 'ngx-logger'
 import { BehaviorSubject, switchMap } from 'rxjs'
 import { API_XPERT_PROJECT } from '../constants/app.constants'
 import { IXpertProject } from '../types'
-import { IXpertProjectVCS, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@metad/cloud/state'
+import { IXpertProjectVCS, OrganizationBaseCrudService, PaginationParams, toHttpParams } from '@xpert-ai/cloud/state'
 import { Endpoints } from '@octokit/types'
-import { toParams } from '@metad/core'
+import { toParams } from '@xpert-ai/core'
 
 type GitHubInstallationsResponse = Endpoints['GET /user/installations']['response']['data']
 

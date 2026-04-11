@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable, inject } from '@angular/core'
-import { API_PREFIX } from '@metad/cloud/state'
+import { API_PREFIX } from '@xpert-ai/cloud/state'
 import { IStoryTemplate } from '../types'
 
 export const C_API_STORY_TEMPLATE = API_PREFIX + '/story-template'

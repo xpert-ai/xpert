@@ -1,4 +1,4 @@
-import { IXpert, WorkflowNodeTypeEnum, XpertTypeEnum } from '@metad/contracts'
+import { IXpert, WorkflowNodeTypeEnum, XpertTypeEnum } from '@xpert-ai/contracts'
 import {
   BLANK_WIZARD_SKILLS_MIDDLEWARE_PROVIDER,
   BLANK_WORKFLOW_NODE_ORDER,

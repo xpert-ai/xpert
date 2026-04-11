@@ -18,7 +18,7 @@ import {
 } from '../../../@core'
 import { TranslationBaseComponent } from '../../../@shared/language'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
-import { NgmConfirmDeleteService, NgmConfirmUniqueComponent } from '@metad/ocap-angular/common'
+import { NgmConfirmDeleteService, NgmConfirmUniqueComponent } from '@xpert-ai/ocap-angular/common'
 
 @Component({
   standalone: false,

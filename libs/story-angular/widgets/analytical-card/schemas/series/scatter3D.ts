@@ -1,4 +1,4 @@
-import { AccordionWrappers, FORMLY_ROW } from "@metad/story/designer";
+import { AccordionWrappers, FORMLY_ROW } from "@xpert-ai/story/designer";
 import { Borders, Opacity, SingleColor, Symbols } from "../common";
 import { Common3D } from "./bar3D";
 

@@ -17,11 +17,11 @@
   "main": "./index.cjs",
   "module": "./index.js",
   "peerDependencies": {
-    "@metad/contracts": "*",
+    "@xpert-ai/contracts": "workspace:*",
     "@nestjs/common": "*",
     "@nestjs/config": "*",
     "@nestjs/core": "*",
     "@xpert-ai/chatkit-types": "^0.0.15",
-    "@xpert-ai/plugin-sdk": "^3.8.0"
+    "@xpert-ai/plugin-sdk": "workspace:*"
   }
 }

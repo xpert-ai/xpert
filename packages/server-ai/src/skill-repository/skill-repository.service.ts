@@ -1,9 +1,9 @@
 import {
 	WORKSPACE_PUBLIC_SKILL_REPOSITORY_NAME,
 	WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
-} from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
-import { TenantOrganizationAwareCrudService } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
+import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { BadRequestException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { SkillSourceProviderRegistry } from '@xpert-ai/plugin-sdk'

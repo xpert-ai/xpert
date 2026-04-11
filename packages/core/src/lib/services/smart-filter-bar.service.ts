@@ -1,4 +1,4 @@
-import { ComponentStore } from '@metad/store'
+import { ComponentStore } from '@xpert-ai/store'
 import { BehaviorSubject, Observable, of, Subject } from 'rxjs'
 import { distinctUntilChanged, filter, map, takeUntil, withLatestFrom } from 'rxjs/operators'
 import { putFilter, removeFilter } from '../filter'

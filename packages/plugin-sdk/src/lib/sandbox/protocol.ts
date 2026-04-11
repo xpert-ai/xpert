@@ -1,4 +1,4 @@
-import { IBackendProtocol, TSandboxConfigurable } from '@metad/contracts'
+import { IBackendProtocol, TSandboxConfigurable } from '@xpert-ai/contracts'
 import type { SandboxExecutionOptions } from './execution'
 
 /**

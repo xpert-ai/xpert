@@ -1,7 +1,7 @@
-import { CopilotDefaultOptions } from '@metad/copilot'
-import { AnalyticsAnnotation, EntityType } from '@metad/ocap-core'
-import { fixDimension } from '@metad/story/core'
-import { GridWidgetSchema } from '@metad/story/story'
+import { CopilotDefaultOptions } from '@xpert-ai/copilot'
+import { AnalyticsAnnotation, EntityType } from '@xpert-ai/ocap-core'
+import { fixDimension } from '@xpert-ai/story/core'
+import { GridWidgetSchema } from '@xpert-ai/story/story'
 import zodToJsonSchema from 'zod-to-json-schema'
 
 export const editWidgetGrid = {

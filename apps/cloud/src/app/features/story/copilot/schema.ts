@@ -1,4 +1,4 @@
-import { AggregationOperations, CompareToEnum, DimensionMemberSchema, DimensionSchema, DisplayBehaviour } from '@metad/ocap-core'
+import { AggregationOperations, CompareToEnum, DimensionMemberSchema, DimensionSchema, DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { z } from 'zod'
 
 /**

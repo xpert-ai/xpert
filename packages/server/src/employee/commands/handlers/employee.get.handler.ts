@@ -1,6 +1,6 @@
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { EmployeeService } from '../../employee.service';
-import { IEmployee } from '@metad/contracts';
+import { IEmployee } from '@xpert-ai/contracts';
 import { EmployeeGetCommand } from '../employee.get.command';
 
 @CommandHandler(EmployeeGetCommand)

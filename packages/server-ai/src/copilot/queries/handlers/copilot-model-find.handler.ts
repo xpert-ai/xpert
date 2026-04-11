@@ -1,5 +1,5 @@
-import { FetchFrom, ICopilotProviderModel, ModelFeature, ProviderModel } from '@metad/contracts'
-import { ConfigService } from '@metad/server-config'
+import { FetchFrom, ICopilotProviderModel, ModelFeature, ProviderModel } from '@xpert-ai/contracts'
+import { ConfigService } from '@xpert-ai/server-config'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { Inject } from '@nestjs/common'
 import { AIProvidersService } from '../../../ai-model/index'

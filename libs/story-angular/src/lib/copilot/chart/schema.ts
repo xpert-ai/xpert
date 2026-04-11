@@ -1,8 +1,8 @@
-import { CopilotDefaultOptions } from '@metad/copilot'
-import { DimensionSchema, MeasureSchema } from '@metad/core'
-import { ChartAnnotation, ChartType, EntityType, assignDeepOmitBlank, cloneDeep, flatten, omit } from '@metad/ocap-core'
-import { fixDimension } from '@metad/story/core'
-import { CHARTS, ChartMainTypeEnum, getChartType } from '@metad/story/widgets/analytical-card'
+import { CopilotDefaultOptions } from '@xpert-ai/copilot'
+import { DimensionSchema, MeasureSchema } from '@xpert-ai/core'
+import { ChartAnnotation, ChartType, EntityType, assignDeepOmitBlank, cloneDeep, flatten, omit } from '@xpert-ai/ocap-core'
+import { fixDimension } from '@xpert-ai/story/core'
+import { CHARTS, ChartMainTypeEnum, getChartType } from '@xpert-ai/story/widgets/analytical-card'
 import { z } from 'zod'
 import zodToJsonSchema from 'zod-to-json-schema'
 

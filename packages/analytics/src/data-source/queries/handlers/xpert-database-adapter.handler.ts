@@ -1,4 +1,4 @@
-import { XpertDatabaseAdapterQuery } from '@metad/server-ai'
+import { XpertDatabaseAdapterQuery } from '@xpert-ai/server-ai'
 import { Logger } from '@nestjs/common'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { DataSourceService } from '../../data-source.service'

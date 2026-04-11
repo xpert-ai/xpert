@@ -1,8 +1,8 @@
 
 import { ChangeDetectionStrategy, ChangeDetectorRef, Component, inject, input } from '@angular/core'
 import { FormBuilder, FormsModule, ReactiveFormsModule } from '@angular/forms'
-import { routeAnimations } from '@metad/core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { routeAnimations } from '@xpert-ai/core'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { IBuiltinTool, XpertToolsetService } from 'apps/cloud/src/app/@core'
 import { ZardDialogModule, ZardDialogService, ZardSwitchComponent, ZardTooltipImports } from '@xpert-ai/headless-ui'

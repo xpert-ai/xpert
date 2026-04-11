@@ -8,18 +8,18 @@ import { FormControl, FormGroup } from '@angular/forms'
 
 import { Router, RouterModule } from '@angular/router'
 import { ModelCreationComponent } from '@cloud/app/@shared/model'
-import { DataSourceService, IBusinessArea, SemanticModelServerService } from '@metad/cloud/state'
-import { uploadYamlFile } from '@metad/core'
+import { DataSourceService, IBusinessArea, SemanticModelServerService } from '@xpert-ai/cloud/state'
+import { uploadYamlFile } from '@xpert-ai/core'
 import {
   NgmConfirmUniqueComponent,
   NgmSpinComponent,
   TreeTableColumn,
   TreeTableModule
-} from '@metad/ocap-angular/common'
-import { NgmControlsModule } from '@metad/ocap-angular/controls'
-import { ButtonGroupDirective, DensityDirective, DisplayDensity } from '@metad/ocap-angular/core'
-import { AgentType, Property, Syntax } from '@metad/ocap-core'
-import { NX_STORY_STORE, NxStoryStore, StoryModel, uuid } from '@metad/story/core'
+} from '@xpert-ai/ocap-angular/common'
+import { NgmControlsModule } from '@xpert-ai/ocap-angular/controls'
+import { ButtonGroupDirective, DensityDirective, DisplayDensity } from '@xpert-ai/ocap-angular/core'
+import { AgentType, Property, Syntax } from '@xpert-ai/ocap-core'
+import { NX_STORY_STORE, NxStoryStore, StoryModel, uuid } from '@xpert-ai/story/core'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { formatRelative } from 'date-fns'
 import { NgxPermissionsModule } from 'ngx-permissions'

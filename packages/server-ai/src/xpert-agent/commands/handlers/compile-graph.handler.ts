@@ -1,5 +1,5 @@
 import { CompiledStateGraph } from '@langchain/langgraph'
-import { channelName, getSwarmPartners, IXpertAgent, TXpertGraph } from '@metad/contracts'
+import { channelName, getSwarmPartners, IXpertAgent, TXpertGraph } from '@xpert-ai/contracts'
 import { Logger, NotFoundException } from '@nestjs/common'
 import { CommandBus, CommandHandler, ICommandHandler, QueryBus } from '@nestjs/cqrs'
 import { GetXpertWorkflowQuery } from '../../../xpert/queries'

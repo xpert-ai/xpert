@@ -4,7 +4,7 @@ import { ResolveLatestPluginVersionQuery } from './queries'
 import type { PluginInstanceService } from './plugin-instance.service'
 import type { PluginManagementService } from './plugin-management.service'
 
-jest.mock('@metad/contracts', () => ({
+jest.mock('@xpert-ai/contracts', () => ({
 	PLUGIN_CONFIGURATION_STATUS: {
 		VALID: 'valid',
 		INVALID: 'invalid'
@@ -58,7 +58,7 @@ jest.mock('./plugin-management.service', () => ({
 	PluginManagementService: class PluginManagementService {}
 }))
 
-const { PLUGIN_LEVEL } = require('@metad/contracts')
+const { PLUGIN_LEVEL } = require('@xpert-ai/contracts')
 const { GLOBAL_ORGANIZATION_SCOPE, RequestContext } = require('@xpert-ai/plugin-sdk')
 const { buildConfig, inspectConfig } = require('./config')
 const { findPluginLoadFailure } = require('./plugin.helper')

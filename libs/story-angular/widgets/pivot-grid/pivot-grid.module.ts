@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { ModuleWithProviders, NgModule } from '@angular/core'
-import { STORY_WIDGET_COMPONENT, WidgetComponentType } from '@metad/story/core'
-import { NxComponentSettingsComponent, STORY_DESIGNER_COMPONENT } from '@metad/story/designer'
+import { STORY_WIDGET_COMPONENT, WidgetComponentType } from '@xpert-ai/story/core'
+import { NxComponentSettingsComponent, STORY_DESIGNER_COMPONENT } from '@xpert-ai/story/designer'
 import { ZardIconComponent } from '@xpert-ai/headless-ui'
 import {
   IgxGridModule, IgxTreeGridModule, IgxExcelExporterService, IgxGridResizingModule

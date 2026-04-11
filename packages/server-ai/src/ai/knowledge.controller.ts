@@ -1,5 +1,5 @@
-import { IApiKey } from '@metad/contracts'
-import { ApiKeyOrClientSecretAuthGuard, ApiKeyDecorator, Public, TransformInterceptor } from '@metad/server-core'
+import { IApiKey } from '@xpert-ai/contracts'
+import { ApiKeyOrClientSecretAuthGuard, ApiKeyDecorator, Public, TransformInterceptor } from '@xpert-ai/server-core'
 import { Body, Controller, Delete, Get, Logger, Param, Post, Put, Query, UseGuards, UseInterceptors } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { ApiBearerAuth, ApiBody, ApiTags } from '@nestjs/swagger'

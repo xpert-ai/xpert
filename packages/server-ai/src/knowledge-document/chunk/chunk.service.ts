@@ -1,5 +1,5 @@
-import { IKnowledgeDocumentChunk } from '@metad/contracts'
-import { TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { IKnowledgeDocumentChunk } from '@xpert-ai/contracts'
+import { TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { DataSource, Repository } from 'typeorm'

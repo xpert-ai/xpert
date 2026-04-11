@@ -7,7 +7,7 @@ import {
 	IUser,
 	TagCategoryEnum,
 	I18nObject,
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import {
 	Employee,
 	Organization,

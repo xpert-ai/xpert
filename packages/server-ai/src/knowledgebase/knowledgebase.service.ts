@@ -34,9 +34,9 @@ import {
 	TCopilotModel,
 	KnowledgeDocumentMetadata,
 	IUser
-} from '@metad/contracts'
-import { getErrorMessage, shortuuid } from '@metad/server-common'
-import { IntegrationService, PaginationParams, RequestContext } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { getErrorMessage, shortuuid } from '@xpert-ai/server-common'
+import { IntegrationService, PaginationParams, RequestContext } from '@xpert-ai/server-core'
 import { BadRequestException, Inject, Injectable, InternalServerErrorException, Logger, NotFoundException } from '@nestjs/common'
 import { QueryFailedError } from 'typeorm'
 import { OnEvent } from '@nestjs/event-emitter'

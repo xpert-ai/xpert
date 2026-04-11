@@ -4,7 +4,7 @@ import {
 	IApprovalPolicy,
 	IListQueryInput,
 	IPermissionApprovalFindInput,
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import {
 	Query,
 	HttpStatus,
@@ -29,7 +29,7 @@ import {
 	PermissionApprovalPolicyGetCommand,
 } from './commands';
 import { CreateApprovalPolicyDTO, UpdateApprovalPolicyDTO } from './dto';
-import { PermissionGuard, TenantPermissionGuard, Permissions, CrudController, ParseJsonPipe, PaginationParams, UUIDValidationPipe } from '@metad/server-core';
+import { PermissionGuard, TenantPermissionGuard, Permissions, CrudController, ParseJsonPipe, PaginationParams, UUIDValidationPipe } from '@xpert-ai/server-core';
 
 @ApiTags('ApprovalPolicy')
 @UseGuards(TenantPermissionGuard, PermissionGuard)

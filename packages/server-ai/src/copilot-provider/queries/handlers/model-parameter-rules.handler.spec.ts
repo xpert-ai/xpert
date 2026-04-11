@@ -10,7 +10,7 @@ jest.mock('../../models/copilot-provider-model.service', () => ({
 	CopilotProviderModelService: class CopilotProviderModelService {}
 }))
 
-import { AiModelTypeEnum } from '@metad/contracts'
+import { AiModelTypeEnum } from '@xpert-ai/contracts'
 import { NotFoundException } from '@nestjs/common'
 import { CopilotProviderModelParameterRulesHandler } from './model-parameter-rules.handler'
 import { CopilotProviderModelParameterRulesQuery } from '../model-parameter-rules.query'

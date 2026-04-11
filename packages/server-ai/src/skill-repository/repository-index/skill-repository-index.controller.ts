@@ -1,11 +1,11 @@
-import { getErrorMessage } from '@metad/server-common'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import {
 	CrudController,
 	PaginationParams,
 	ParseJsonPipe,
 	TransformInterceptor,
 	UUIDValidationPipe
-} from '@metad/server-core'
+} from '@xpert-ai/server-core'
 import {
 	Body,
 	Controller,

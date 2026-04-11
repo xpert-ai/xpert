@@ -5,7 +5,7 @@ import {
 	ISkillRepositoryIndexPublisher,
 	TSkillSourceMeta,
 	WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { ISkillSourceProvider, SkillSourceProviderStrategy } from '@xpert-ai/plugin-sdk'

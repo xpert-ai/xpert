@@ -4,10 +4,10 @@ import { Component, HostBinding, OnInit } from '@angular/core'
 import { FormControl, FormGroup, FormsModule, ReactiveFormsModule, Validators } from '@angular/forms'
 
 import { ZardButtonComponent, ZardDialogModule, ZardDialogRef, ZardFormImports, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { NgmSelectComponent } from '@metad/ocap-angular/common'
-import { ButtonGroupDirective, DensityDirective } from '@metad/ocap-angular/core'
+import { NgmSelectComponent } from '@xpert-ai/ocap-angular/common'
+import { ButtonGroupDirective, DensityDirective } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
-import { SemanticModelServerService } from '@metad/cloud/state'
+import { SemanticModelServerService } from '@xpert-ai/cloud/state'
 import { firstValueFrom } from 'rxjs'
 import { ModelQueryService, uuid } from '../../@core'
 

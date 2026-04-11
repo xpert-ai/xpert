@@ -1,4 +1,4 @@
-import { IIntegration, INTEGRATION_PROVIDERS, IntegrationFeatureEnum, IUser } from '@metad/contracts'
+import { IIntegration, INTEGRATION_PROVIDERS, IntegrationFeatureEnum, IUser } from '@xpert-ai/contracts'
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { IntegrationStrategyRegistry, RequestContext } from '@xpert-ai/plugin-sdk'

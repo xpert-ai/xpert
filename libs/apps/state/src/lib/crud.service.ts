@@ -1,6 +1,6 @@
 import { HttpClient, HttpParams } from '@angular/common/http'
 import { inject } from '@angular/core'
-import { PaginationParams } from '@metad/contracts'
+import { PaginationParams } from '@xpert-ai/contracts'
 export {PaginationParams}
 
 

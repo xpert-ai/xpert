@@ -1,4 +1,4 @@
-import { LongTermMemoryTypeEnum } from '@metad/contracts'
+import { LongTermMemoryTypeEnum } from '@xpert-ai/contracts'
 import { CommandBus, CommandHandler, ICommandHandler } from '@nestjs/cqrs'
 import { v4 as uuidv4 } from 'uuid'
 import { CopilotMemoryStore } from '../../store'

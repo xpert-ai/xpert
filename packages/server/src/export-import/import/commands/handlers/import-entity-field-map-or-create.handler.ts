@@ -1,7 +1,7 @@
 import { BadRequestException, NotFoundException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { CommandBus } from '@nestjs/cqrs';
-import { isNotEmpty } from '@metad/server-common';
+import { isNotEmpty } from '@xpert-ai/server-common';
 import { RequestContext } from './../../../../core';
 import { ImportRecordFindOrFailCommand } from './../../../import-record';
 import { ImportEntityFieldMapOrCreateCommand } from './../import-entity-field-map-or-create.command';

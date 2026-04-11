@@ -1,7 +1,7 @@
 import { Component, computed, effect, forwardRef, inject, input, Input, model, OnInit, output } from '@angular/core'
 import { toObservable, toSignal } from '@angular/core/rxjs-interop'
 import { ControlValueAccessor, FormControl, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { DisplayDensity, NgmOcapCoreService, TIME_GRANULARITY_SEQUENCES, NgmFieldAppearance } from '@metad/ocap-angular/core'
+import { DisplayDensity, NgmOcapCoreService, TIME_GRANULARITY_SEQUENCES, NgmFieldAppearance } from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -18,7 +18,7 @@ import {
   Semantics,
   mapSemanticTimeGranularity,
   getEntityHierarchy,
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { isEqual } from 'lodash-es'
 import {
   catchError,

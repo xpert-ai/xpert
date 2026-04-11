@@ -11,7 +11,7 @@ import {
   getPropertyHierarchy,
   getPropertyMeasure,
   QueryReturn
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { groupBy } from 'lodash-es'
 import { formatMeasureNumber } from './common'
 import { DEFAULT_GRID } from './components/cartesian2d'

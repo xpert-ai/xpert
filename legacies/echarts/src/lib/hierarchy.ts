@@ -20,7 +20,7 @@ import {
   PropertyMeasure,
   QueryReturn,
   TreeNodeInterface
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TreemapChart } from 'echarts/charts'
 import { use } from 'echarts/core'
 import { groupBy, sumBy } from 'lodash-es'

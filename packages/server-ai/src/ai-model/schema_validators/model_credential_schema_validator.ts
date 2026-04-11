@@ -1,4 +1,4 @@
-import { AiModelTypeEnum, ModelCredentialSchema } from "@metad/contracts";
+import { AiModelTypeEnum, ModelCredentialSchema } from "@xpert-ai/contracts";
 import { CommonValidator } from "./common_validator";
 
 export class ModelCredentialSchemaValidator extends CommonValidator {

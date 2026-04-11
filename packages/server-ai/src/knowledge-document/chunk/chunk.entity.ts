@@ -1,5 +1,5 @@
-import { IKnowledgebase, IKnowledgeDocument, IKnowledgeDocumentChunk } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { IKnowledgebase, IKnowledgeDocument, IKnowledgeDocumentChunk } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { Optional } from '@nestjs/common'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsJSON, IsOptional, IsString } from 'class-validator'

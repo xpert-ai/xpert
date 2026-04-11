@@ -1,9 +1,12 @@
 {
-  "name": "@metad/copilot",
+  "name": "@xpert-ai/copilot",
   "version": "3.8.4",
   "license": "AGPL-3.0",
   "scripts": {
     "docs": "pnpm typedoc --out ./.docs"
+  },
+  "dependencies": {
+    "@xpert-ai/contracts": "workspace:*"
   },
   "peerDependencies": {
     "nanoid": "^4.0.2",

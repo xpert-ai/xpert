@@ -1,5 +1,5 @@
 import { Component, HostListener, inject } from '@angular/core'
-import { WidgetMenuType, WidgetService } from '@metad/core'
+import { WidgetMenuType, WidgetService } from '@xpert-ai/core'
 
 @Component({
   standalone: true,

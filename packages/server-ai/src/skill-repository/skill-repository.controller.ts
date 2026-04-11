@@ -1,4 +1,4 @@
-import { CrudController, TransformInterceptor } from '@metad/server-core'
+import { CrudController, TransformInterceptor } from '@xpert-ai/server-core'
 import { Body, Controller, Delete, Get, Param, Post, Put, UseInterceptors } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { SkillRepository } from './skill-repository.entity'

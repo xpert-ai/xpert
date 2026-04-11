@@ -1,6 +1,6 @@
 import { HttpParams } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { API_PREFIX, OrganizationBaseCrudService } from '@metad/cloud/state'
+import { API_PREFIX, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
 import { BehaviorSubject, Subject } from 'rxjs'
 import { map, tap } from 'rxjs/operators'
 import { IProject } from '../types'

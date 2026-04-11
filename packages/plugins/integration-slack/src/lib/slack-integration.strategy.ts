@@ -3,7 +3,7 @@ import type {
   IIntegration,
   IntegrationFeatureEnum,
   TIntegrationProvider
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import type { IntegrationStrategy, IntegrationTestResult, TIntegrationStrategyParams } from '@xpert-ai/plugin-sdk'

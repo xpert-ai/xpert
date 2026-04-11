@@ -1,4 +1,4 @@
-import { AIPermissionsEnum, RolesEnum } from '@metad/contracts'
+import { AIPermissionsEnum, RolesEnum } from '@xpert-ai/contracts'
 
 const FULL_AI_PERMISSIONS = [
 	AIPermissionsEnum.KNOWLEDGEBASE_EDIT,

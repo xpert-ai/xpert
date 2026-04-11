@@ -1,6 +1,6 @@
 import { Embeddings } from '@langchain/core/embeddings'
-import { AiProviderRole, ICopilot, IXpert, mapTranslationLanguage } from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+import { AiProviderRole, ICopilot, IXpert, mapTranslationLanguage } from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { IQueryHandler, QueryBus, QueryHandler } from '@nestjs/cqrs'
 import { I18nService } from 'nestjs-i18n'
 import { CopilotModelGetEmbeddingsQuery } from '../../../copilot-model'

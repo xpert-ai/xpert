@@ -8,7 +8,7 @@ import {
 	CONTEXT_VARIABLE_CURRENTSTATE,
 	getToolCallIdFromConfig,
 	IIndicator,
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import {
 	DSCoreService,
 	EntityType,
@@ -20,8 +20,8 @@ import {
 	TimeGranularity,
 	TimeRangesSlicer,
 	TimeRangeType
-} from '@metad/ocap-core'
-import { race, TimeoutError } from '@metad/server-common'
+} from '@xpert-ai/ocap-core'
+import { race, TimeoutError } from '@xpert-ai/server-common'
 import { Logger } from '@nestjs/common'
 import { Cache } from 'cache-manager'
 import { t } from 'i18next'

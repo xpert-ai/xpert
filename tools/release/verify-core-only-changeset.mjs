@@ -1,6 +1,6 @@
 /**
  * Why this exists:
- * CI currently publishes only @metad/ocap-core.
+ * CI currently publishes only @xpert-ai/ocap-core.
  * Changesets can describe any workspace package, so we fail fast when a
  * release note would drift beyond the package scope supported by automation.
  */
@@ -11,7 +11,7 @@ import process from 'node:process'
 
 const workspaceRoot = process.cwd()
 const changesetDirectory = path.join(workspaceRoot, '.changeset')
-const allowedPackages = new Set(['@metad/ocap-core'])
+const allowedPackages = new Set(['@xpert-ai/ocap-core'])
 
 function parseFrontmatterPackages(content) {
   const match = content.match(/^---\r?\n([\s\S]*?)\r?\n---/)
@@ -77,7 +77,7 @@ async function main() {
     console.error(`- ${entry.fileName}: ${entry.disallowedPackages.join(', ')}`)
   }
 
-  console.error('CI currently publishes only @metad/ocap-core. Update the release scripts before expanding scope.')
+  console.error('CI currently publishes only @xpert-ai/ocap-core. Update the release scripts before expanding scope.')
   process.exit(1)
 }
 

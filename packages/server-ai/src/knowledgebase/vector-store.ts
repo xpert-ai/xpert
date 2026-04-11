@@ -1,7 +1,7 @@
 import { Callbacks } from '@langchain/core/callbacks/manager'
 import { DocumentInterface } from '@langchain/core/documents'
 import { VectorStore } from '@langchain/core/vectorstores'
-import { IKnowledgebase, IKnowledgeDocument, IKnowledgeDocumentChunk } from '@metad/contracts'
+import { IKnowledgebase, IKnowledgeDocument, IKnowledgeDocumentChunk } from '@xpert-ai/contracts'
 import { IRerank } from '@xpert-ai/plugin-sdk'
 import { v4 as uuidv4 } from 'uuid'
 import { TDocChunkMetadata } from '../knowledge-document/types'

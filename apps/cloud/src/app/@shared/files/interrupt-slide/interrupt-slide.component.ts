@@ -2,7 +2,7 @@
 import { Component, computed, inject, signal } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { injectToastr, SandboxService } from '@cloud/app/@core/'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { uniqWith } from 'lodash-es'
 import { AbstractInterruptComponent } from '../../agent'

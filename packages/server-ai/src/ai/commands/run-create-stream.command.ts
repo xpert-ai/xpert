@@ -1,4 +1,4 @@
-import { IXpertAgentExecution } from '@metad/contracts'
+import { IXpertAgentExecution } from '@xpert-ai/contracts'
 import { Command } from '@nestjs/cqrs'
 import { Observable } from 'rxjs'
 import type { components } from '../schemas/agent-protocol-schema'

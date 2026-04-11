@@ -1,6 +1,6 @@
 import { FocusOrigin, FocusableOption } from '@angular/cdk/a11y'
 import { AfterViewInit, DestroyRef, Directive, EventEmitter, HostBinding, Input, Output, OutputEmitterRef, computed, inject, output, signal } from '@angular/core'
-import { DisplayDensity, NgmAppearance } from '@metad/ocap-angular/core'
+import { DisplayDensity, NgmAppearance } from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -12,8 +12,8 @@ import {
   PresentationVariant,
   SelectionVariant,
   getPropertyName,
-} from '@metad/ocap-core'
-import { ComponentStore } from '@metad/store'
+} from '@xpert-ai/ocap-core'
+import { ComponentStore } from '@xpert-ai/store'
 import { TranslateService } from '@ngx-translate/core'
 import { cloneDeep, isEmpty, isEqual, isNil } from 'lodash-es'
 import {

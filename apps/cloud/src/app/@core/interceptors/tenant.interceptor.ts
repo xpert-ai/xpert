@@ -1,6 +1,6 @@
 import { HttpEvent, HttpHandler, HttpInterceptor, HttpRequest } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { RequestScopeLevel } from '@metad/contracts'
+import { RequestScopeLevel } from '@xpert-ai/contracts'
 import { Observable } from 'rxjs'
 import { RequestMethodEnum } from '../types'
 import { Store } from './../services/store.service'

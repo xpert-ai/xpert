@@ -1,4 +1,4 @@
-import { TFile, TFileDirectory } from '@metad/contracts'
+import { TFile, TFileDirectory } from '@xpert-ai/contracts'
 import { BadRequestException } from '@nestjs/common'
 import fsPromises from 'fs/promises'
 import { basename, isAbsolute, relative, resolve } from 'path'

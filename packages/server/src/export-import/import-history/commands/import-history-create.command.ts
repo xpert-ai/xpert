@@ -1,4 +1,4 @@
-import { IImportHistory } from '@metad/contracts';
+import { IImportHistory } from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs';
 
 export class ImportHistoryCreateCommand implements ICommand {

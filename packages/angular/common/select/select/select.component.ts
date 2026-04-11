@@ -29,8 +29,8 @@ import {
   ZardInputDirective,
   ZardSelectImports
 } from '@xpert-ai/headless-ui'
-import { DisplayDensity, ISelectOption, NgmDensityDirective, OcapCoreModule } from '@metad/ocap-angular/core'
-import { DisplayBehaviour } from '@metad/ocap-core'
+import { DisplayDensity, ISelectOption, NgmDensityDirective, OcapCoreModule } from '@xpert-ai/ocap-angular/core'
+import { DisplayBehaviour } from '@xpert-ai/ocap-core'
 import { distinctUntilChanged, filter } from 'rxjs/operators'
 import { NgmDisplayBehaviourComponent } from '../../display-behaviour'
 import { NgmOptionContent } from '../../input/option-content'

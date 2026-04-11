@@ -1,4 +1,4 @@
-import { IEnvironment, TEnvironmentVariable } from '@metad/contracts'
+import { IEnvironment, TEnvironmentVariable } from '@xpert-ai/contracts'
 
 function isRecord(value: unknown): value is Record<string, unknown> {
 	return typeof value === 'object' && value !== null && !Array.isArray(value)

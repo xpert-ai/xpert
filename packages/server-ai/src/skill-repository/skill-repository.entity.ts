@@ -1,5 +1,5 @@
-import { ISkillRepository } from '@metad/contracts'
-import { TenantOrganizationBaseEntity } from '@metad/server-core'
+import { ISkillRepository } from '@xpert-ai/contracts'
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsDateString, IsJSON, IsOptional, IsString } from 'class-validator'
 import { Column, DeleteDateColumn, Entity } from 'typeorm'

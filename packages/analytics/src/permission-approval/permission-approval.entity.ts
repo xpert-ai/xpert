@@ -20,10 +20,10 @@ import {
 	IPermissionApprovalUser,
 	IIndicator,
 	IBusinessArea,
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import { IsString, IsNumber, IsEnum } from 'class-validator';
-import { TenantOrganizationBaseEntity } from '@metad/server-core';
+import { TenantOrganizationBaseEntity } from '@xpert-ai/server-core';
 import { ApprovalPolicy, BusinessArea, Indicator, PermissionApprovalUser } from '../core/entities/internal';
 
 

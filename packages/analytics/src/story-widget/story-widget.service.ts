@@ -1,11 +1,11 @@
 import { Injectable, NotFoundException, UnauthorizedException } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
-import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { FindOneOptions, FindOptionsRelationByString, Repository } from 'typeorm'
 import { StoryWidget } from './story-widget.entity'
 import { BusinessArea, BusinessAreaService } from '../business-area'
 import { StoryWidgetPublicDTO } from './dto'
-import { Visibility } from '@metad/contracts'
+import { Visibility } from '@xpert-ai/contracts'
 
 @Injectable()
 export class StoryWidgetService extends TenantOrganizationAwareCrudService<StoryWidget> {

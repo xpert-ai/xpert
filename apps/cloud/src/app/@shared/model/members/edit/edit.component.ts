@@ -13,10 +13,10 @@ import {
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
 import { getErrorMessage } from '@cloud/app/@core'
-import { convertQueryResultColumns } from '@metad/core'
-import { NgmSpinComponent, NgmTableComponent } from '@metad/ocap-angular/common'
-import { linkedModel, NgmDSCoreService } from '@metad/ocap-angular/core'
-import { NgmCalculatedMeasureComponent, NgmEntityModule, PropertyCapacity } from '@metad/ocap-angular/entity'
+import { convertQueryResultColumns } from '@xpert-ai/core'
+import { NgmSpinComponent, NgmTableComponent } from '@xpert-ai/ocap-angular/common'
+import { linkedModel, NgmDSCoreService } from '@xpert-ai/ocap-angular/core'
+import { NgmCalculatedMeasureComponent, NgmEntityModule, PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
 import {
   CalculatedMember,
   Dimension,
@@ -26,8 +26,8 @@ import {
   QueryReturn,
   stringifyProperty,
   Syntax
-} from '@metad/ocap-core'
-import { Crossjoin, Members } from '@metad/ocap-xmla'
+} from '@xpert-ai/ocap-core'
+import { Crossjoin, Members } from '@xpert-ai/ocap-xmla'
 import { TranslateModule } from '@ngx-translate/core'
 import { isPlainObject } from 'lodash-es'
 import { derivedAsync } from 'ngxtension/derived-async'

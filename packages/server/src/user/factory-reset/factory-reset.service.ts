@@ -1,4 +1,4 @@
-import { ConfigService } from '@metad/server-config';
+import { ConfigService } from '@xpert-ai/server-config';
 import { ForbiddenException, Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository, In } from 'typeorm';

@@ -1,7 +1,7 @@
 import { Injectable, Injector } from '@angular/core'
-import { ISelectOption } from '@metad/ocap-angular/core'
-import { LinkedAnalysisSettings, LinkedInteractionApplyTo, NxStoryService } from '@metad/story/core'
-import { BaseDesignerSchemaService, BaseSchemaState } from '@metad/story/designer'
+import { ISelectOption } from '@xpert-ai/ocap-angular/core'
+import { LinkedAnalysisSettings, LinkedInteractionApplyTo, NxStoryService } from '@xpert-ai/story/core'
+import { BaseDesignerSchemaService, BaseSchemaState } from '@xpert-ai/story/designer'
 import { map, shareReplay, tap } from 'rxjs'
 
 export interface LinkedAnalysisModel {

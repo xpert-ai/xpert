@@ -1,5 +1,5 @@
-import { environment as env } from '@metad/server-config';
-import { RolesEnum } from '@metad/contracts';
+import { environment as env } from '@xpert-ai/server-config';
+import { RolesEnum } from '@xpert-ai/contracts';
 import { CanActivate, ExecutionContext, Injectable } from '@nestjs/common';
 import { Reflector } from '@nestjs/core';
 import { InjectRepository } from '@nestjs/typeorm';

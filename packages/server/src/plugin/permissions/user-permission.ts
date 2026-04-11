@@ -1,4 +1,4 @@
-import { RolesEnum } from '@metad/contracts'
+import { RolesEnum } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { ModuleRef } from '@nestjs/core'
 import {

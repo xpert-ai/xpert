@@ -1,8 +1,8 @@
 
 import { Component, computed, inject, input, model } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { TSelectOption, TVariableAssigner, TWorkflowVarGroup, TXpertParameter } from '@metad/contracts'
-import { attrModel } from '@metad/ocap-angular/core'
+import { TSelectOption, TVariableAssigner, TWorkflowVarGroup, TXpertParameter } from '@xpert-ai/contracts'
+import { attrModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
 import { NgmSelectComponent } from '../../common'

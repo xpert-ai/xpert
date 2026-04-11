@@ -1,6 +1,6 @@
 import { NotFoundException } from '@nestjs/common';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
-import { ISecretToken } from '@metad/contracts';
+import { ISecretToken } from '@xpert-ai/contracts';
 import { SecretTokenGetCommand } from '../secret-token.get.command';
 import { SecretTokenService } from '../../secret-token.service';
 

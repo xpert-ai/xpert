@@ -1,4 +1,4 @@
-import { IResetPasswordRequest } from "@metad/contracts";
+import { IResetPasswordRequest } from "@xpert-ai/contracts";
 import { ApiProperty } from "@nestjs/swagger";
 import { IsNotEmpty, IsString } from "class-validator";
 

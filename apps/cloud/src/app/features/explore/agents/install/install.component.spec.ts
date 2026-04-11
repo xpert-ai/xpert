@@ -11,7 +11,7 @@ import { XpertBasicFormComponent } from '@cloud/app/@shared/xpert'
 
 const selectedWorkspace = signal<{ id: string } | null>({ id: 'selected-workspace' })
 
-jest.mock('@metad/cloud/state', () => ({
+jest.mock('@xpert-ai/cloud/state', () => ({
   injectWorkspace: () => selectedWorkspace
 }))
 

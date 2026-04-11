@@ -14,7 +14,7 @@ import {
   ISlicer,
   omitBlank,
   QueryReturn
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { formatMeasureNumber } from './common'
 import { trellisCoordinates, gatherCoordinates } from './coordinates'
 import { CoordinateContext, EChartsContext, EChartsOptions, ICoordinateSingleAxis } from './types'

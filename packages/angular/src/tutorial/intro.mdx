@@ -13,8 +13,8 @@ import { Canvas, Meta, Story } from '@storybook/blocks';
 
 ```typescript
 import { Inject, Injectable, Optional } from '@angular/core'
-import { NgmDSCacheService, NgmDSCoreService, OCAP_AGENT_TOKEN, OCAP_DATASOURCE_TOKEN } from '@metad/ocap-angular/core'
-import { Agent, AgentType, DataSourceFactory, DataSourceOptions, Syntax } from '@metad/ocap-core'
+import { NgmDSCacheService, NgmDSCoreService, OCAP_AGENT_TOKEN, OCAP_DATASOURCE_TOKEN } from '@xpert-ai/ocap-angular/core'
+import { Agent, AgentType, DataSourceFactory, DataSourceOptions, Syntax } from '@xpert-ai/ocap-core'
 
 @Injectable()
 export class ZngS4DSCoreService extends NgmDSCoreService {
@@ -50,7 +50,7 @@ export class ZngS4DSCoreService extends NgmDSCoreService {
 
 ```typescript
 import { Injectable } from '@angular/core'
-import { Agent, AgentStatus, AgentStatusEnum, AgentType, DataSourceOptions } from '@metad/ocap-core'
+import { Agent, AgentStatus, AgentStatusEnum, AgentType, DataSourceOptions } from '@xpert-ai/ocap-core'
 import { EMPTY, Observable, of } from 'rxjs'
 
 @Injectable()
@@ -124,7 +124,7 @@ export class S4ServerAgent implements Agent {
       useValue: {
         type: 'XMLA',
         factory: async (): Promise<Type<DataSource>> => {
-          const { XmlaDataSource } = await import('@metad/ocap-xmla')
+          const { XmlaDataSource } = await import('@xpert-ai/ocap-xmla')
           return XmlaDataSource
         }
       },

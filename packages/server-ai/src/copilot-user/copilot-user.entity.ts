@@ -1,8 +1,8 @@
-import { AiProvider, ICopilotUser, IOrganization, IUser } from '@metad/contracts'
+import { AiProvider, ICopilotUser, IOrganization, IUser } from '@xpert-ai/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsNumber, IsOptional, IsString } from 'class-validator'
 import { Column, Entity, JoinColumn, ManyToOne, RelationId } from 'typeorm'
-import { Organization, TenantOrganizationBaseEntity, User } from '@metad/server-core'
+import { Organization, TenantOrganizationBaseEntity, User } from '@xpert-ai/server-core'
 import { Copilot } from '../core/entities/internal'
 
 /**

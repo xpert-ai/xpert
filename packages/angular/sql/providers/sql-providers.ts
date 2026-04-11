@@ -1,4 +1,4 @@
-import { EntitySet } from '@metad/ocap-core'
+import { EntitySet } from '@xpert-ai/ocap-core'
 import { isEmpty, isNil, lowerCase } from 'lodash-es'
 
 declare var monaco: any

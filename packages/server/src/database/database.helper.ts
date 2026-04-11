@@ -1,4 +1,4 @@
-import { isMySQL } from '@metad/server-config';
+import { isMySQL } from '@xpert-ai/server-config';
 
 /**
  *

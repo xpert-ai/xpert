@@ -5,8 +5,8 @@ import { takeUntilDestroyed, toObservable } from '@angular/core/rxjs-interop'
 import { AbstractControl, FormBuilder, FormControl, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms'
 
 import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogRef, ZardFormImports, ZardIconComponent, ZardInputDirective } from '@xpert-ai/headless-ui'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
-import { NgmDSCoreService, NgmFieldAppearance } from '@metad/ocap-angular/core'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
+import { NgmDSCoreService, NgmFieldAppearance } from '@xpert-ai/ocap-angular/core'
 import {
   CalculatedProperty,
   CalculationProperty,
@@ -17,7 +17,7 @@ import {
   isEntityType,
   nonNullable,
   suuid,
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { EMPTY, filter, switchMap } from 'rxjs'

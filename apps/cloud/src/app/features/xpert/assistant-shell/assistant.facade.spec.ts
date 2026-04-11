@@ -25,7 +25,7 @@ jest.mock('apps/cloud/src/app/@core', () => {
   }
 })
 
-jest.mock('@metad/cloud/state', () => ({
+jest.mock('@xpert-ai/cloud/state', () => ({
   injectWorkspace: () => (() => ({ id: 'selected-workspace' }))
 }))
 

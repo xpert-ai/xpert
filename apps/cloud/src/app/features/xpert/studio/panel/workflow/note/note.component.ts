@@ -1,7 +1,7 @@
 import { CdkMenuModule } from '@angular/cdk/menu'
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { attrModel, linkedModel } from '@metad/core'
+import { attrModel, linkedModel } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNNote,

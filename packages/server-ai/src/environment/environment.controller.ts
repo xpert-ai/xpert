@@ -2,7 +2,7 @@ import { Controller, Get, Param, Put, UseGuards } from '@nestjs/common'
 import { ApiTags } from '@nestjs/swagger'
 import { Environment } from './environment.entity'
 import { EnvironmentService } from './environment.service'
-import { CrudController } from '@metad/server-core'
+import { CrudController } from '@xpert-ai/server-core'
 import { WorkspaceGuard } from '../xpert-workspace'
 import { EnvironmentPublicDTO } from './dto'
 

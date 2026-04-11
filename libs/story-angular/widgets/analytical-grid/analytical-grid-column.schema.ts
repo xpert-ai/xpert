@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core'
-import { AnalyticalGridColumnOptions } from '@metad/ocap-angular/analytical-grid'
-import { BaseDesignerSchemaService, BaseSchemaState, FORMLY_ROW, FORMLY_W_1_2 } from '@metad/story/designer'
+import { AnalyticalGridColumnOptions } from '@xpert-ai/ocap-angular/analytical-grid'
+import { BaseDesignerSchemaService, BaseSchemaState, FORMLY_ROW, FORMLY_W_1_2 } from '@xpert-ai/story/designer'
 import { combineLatest } from 'rxjs'
 import { map } from 'rxjs/operators'
 

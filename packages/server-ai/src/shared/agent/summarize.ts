@@ -1,6 +1,6 @@
 import { BaseChatModel } from '@langchain/core/language_models/chat_models'
 import { HumanMessage, isHumanMessage, RemoveMessage } from '@langchain/core/messages'
-import { channelName, TMessageChannel, TSummarize } from '@metad/contracts'
+import { channelName, TMessageChannel, TSummarize } from '@xpert-ai/contracts'
 import { v4 as uuidv4 } from 'uuid'
 import { AgentStateAnnotation } from './state'
 

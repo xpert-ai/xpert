@@ -1,6 +1,6 @@
 import { CdkDragDrop } from '@angular/cdk/drag-drop';
 import { ChangeDetectionStrategy, Component, Type } from '@angular/core';
-import { EntitySchemaType } from '@metad/ocap-angular/entity';
+import { EntitySchemaType } from '@xpert-ai/ocap-angular/entity';
 import { FieldType, FieldTypeConfig, FormlyFieldConfig, FormlyFieldProps } from '@ngx-formly/core';
 
 interface TextAreaProps extends FormlyFieldProps {

@@ -1,6 +1,6 @@
 import { DynamicModule, Module } from '@nestjs/common';
 import { GraphQLModule, GraphQLTypesLoader } from '@nestjs/graphql';
-import { ConfigService } from '@metad/server-config';
+import { ConfigService } from '@xpert-ai/server-config';
 import { createGraphqlModuleOptions } from './graphql-helper';
 
 @Module({})

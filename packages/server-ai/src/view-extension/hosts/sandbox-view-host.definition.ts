@@ -1,5 +1,5 @@
-import { AIPermissionsEnum, XpertViewSlot } from '@metad/contracts'
-import { RequestContext, ViewHostDefinition, XpertViewHostDefinition } from '@metad/server-core'
+import { AIPermissionsEnum, XpertViewSlot } from '@xpert-ai/contracts'
+import { RequestContext, ViewHostDefinition, XpertViewHostDefinition } from '@xpert-ai/server-core'
 import { Injectable } from '@nestjs/common'
 import { EnvironmentService } from '../../environment/environment.service'
 

@@ -1,4 +1,4 @@
-import { FORMLY_ROW } from "@metad/story/designer"
+import { FORMLY_ROW } from "@xpert-ai/story/designer"
 
 export function GlobalCapacity(className: string, I18N?) {
   return [

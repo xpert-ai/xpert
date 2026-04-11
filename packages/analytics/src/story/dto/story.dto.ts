@@ -1,4 +1,4 @@
-import { AccessEnum, Accessibility, IFavorite, IProject, ISemanticModel } from '@metad/contracts'
+import { AccessEnum, Accessibility, IFavorite, IProject, ISemanticModel } from '@xpert-ai/contracts'
 import { Expose, Transform } from 'class-transformer'
 import { IsOptional } from 'class-validator'
 import { SemanticModelPublicDTO } from '../../model/dto'

@@ -12,7 +12,7 @@ import { CrudController, PaginationParams } from './../core/crud';
 import { Tag } from './tag.entity';
 import { TagService } from './tag.service';
 import { PermissionGuard, TenantPermissionGuard } from './../shared/guards';
-import { IPagination, ITag, PermissionsEnum } from '@metad/contracts';
+import { IPagination, ITag, PermissionsEnum } from '@xpert-ai/contracts';
 import { Permissions } from './../shared/decorators';
 import { ParseJsonPipe } from './../shared/pipes';
 

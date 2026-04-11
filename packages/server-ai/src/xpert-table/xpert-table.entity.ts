@@ -1,4 +1,4 @@
-import { IXpertTable, TXpertTableColumn, XpertTableStatus } from '@metad/contracts'
+import { IXpertTable, TXpertTableColumn, XpertTableStatus } from '@xpert-ai/contracts'
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger'
 import { IsEnum, IsObject, IsOptional, IsString } from 'class-validator'
 import { Column, DeleteDateColumn, Entity } from 'typeorm'

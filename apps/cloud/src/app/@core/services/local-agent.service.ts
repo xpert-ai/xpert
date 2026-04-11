@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { AgentEvent, AgentEventType, AuthenticationEnum } from '@metad/contracts'
+import { AgentEvent, AgentEventType, AuthenticationEnum } from '@xpert-ai/contracts'
 import {
   Agent,
   AgentRequestOptions,
@@ -9,9 +9,9 @@ import {
   DataSourceOptions,
   pick,
   UUID
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateService } from '@ngx-translate/core'
-import { DataSourceService, UsersService } from '@metad/cloud/state'
+import { DataSourceService, UsersService } from '@xpert-ai/cloud/state'
 import { BehaviorSubject, firstValueFrom, Observable, of, Subject, Subscription, throwError, timer } from 'rxjs'
 import { filter, finalize, mergeMap, retryWhen, switchMap, tap, timeout } from 'rxjs/operators'
 import { webSocket, WebSocketSubject } from 'rxjs/webSocket'

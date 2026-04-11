@@ -1,5 +1,5 @@
 import { EventEmitter } from '@angular/core'
-import { IFilter, ISlicer } from '@metad/ocap-core'
+import { IFilter, ISlicer } from '@xpert-ai/ocap-core'
 import { IBaseEventArgs } from './state'
 
 export interface IFilterChangedEventArgs extends IBaseEventArgs {

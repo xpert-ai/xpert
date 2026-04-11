@@ -1,5 +1,5 @@
-import { ChatMessageEventTypeEnum, IXpertAgentExecution, JSONValue, XpertAgentExecutionStatusEnum } from '@metad/contracts'
-import { getErrorMessage } from '@metad/server-common'
+import { ChatMessageEventTypeEnum, IXpertAgentExecution, JSONValue, XpertAgentExecutionStatusEnum } from '@xpert-ai/contracts'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { Subscriber } from 'rxjs'
 import { XpertAgentExecutionUpsertCommand } from '../../xpert-agent-execution/commands'

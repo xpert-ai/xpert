@@ -1,5 +1,5 @@
 import { Injectable } from '@angular/core'
-import { API_PREFIX, OrganizationBaseCrudService } from '@metad/cloud/state'
+import { API_PREFIX, OrganizationBaseCrudService } from '@xpert-ai/cloud/state'
 import { IChatMessageFeedback } from '../types'
 
 @Injectable({ providedIn: 'root' })

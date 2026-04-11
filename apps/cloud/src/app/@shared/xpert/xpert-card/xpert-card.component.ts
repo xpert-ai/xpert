@@ -2,7 +2,7 @@ import { CdkMenuModule } from '@angular/cdk/menu'
 
 import { booleanAttribute, Component, computed, effect, inject, input, output } from '@angular/core'
 import { Router } from '@angular/router'
-import { NgmHighlightDirective } from '@metad/ocap-angular/common'
+import { NgmHighlightDirective } from '@xpert-ai/ocap-angular/common'
 import { TranslateModule } from '@ngx-translate/core'
 import { DateRelativePipe, injectHelpWebsite, IXpert, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../avatar'

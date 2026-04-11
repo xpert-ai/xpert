@@ -5,8 +5,8 @@ import { FormBuilder, ReactiveFormsModule, Validators } from '@angular/forms'
 import { firstValueFrom } from 'rxjs'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import { getErrorMessage, IShareSkillPackageInput, ISkillPackage, SkillPackageService, ToastrService } from '@cloud/app/@core'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
 
 type ExploreSkillShareDialogData = {
   skill: ISkillPackage

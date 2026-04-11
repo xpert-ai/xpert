@@ -1,4 +1,4 @@
-import { FormulaSchema } from "@metad/ocap-core"
+import { FormulaSchema } from "@xpert-ai/ocap-core"
 import { z } from 'zod'
 
 /**

@@ -15,10 +15,10 @@ import {
 } from '@angular/core'
 import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop'
 import { FormsModule } from '@angular/forms'
-import { nonBlank } from '@metad/core'
-import { injectConfirmOptions, NgmCommonModule, SplitterType } from '@metad/ocap-angular/common'
-import { debouncedSignal, effectAction } from '@metad/ocap-angular/core'
-import { NgmEntityPropertyComponent } from '@metad/ocap-angular/entity'
+import { nonBlank } from '@xpert-ai/core'
+import { injectConfirmOptions, NgmCommonModule, SplitterType } from '@xpert-ai/ocap-angular/common'
+import { debouncedSignal, effectAction } from '@xpert-ai/ocap-angular/core'
+import { NgmEntityPropertyComponent } from '@xpert-ai/ocap-angular/entity'
 import {
   AggregationRole,
   Join,
@@ -31,7 +31,7 @@ import {
   getEntityDimensions,
   getEntityMeasures,
   pick
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { ToastrService, uuid } from 'apps/cloud/src/app/@core'
 import { isEmpty, values } from 'lodash-es'

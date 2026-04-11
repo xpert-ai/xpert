@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { ActivatedRouteSnapshot, Router, RouterStateSnapshot } from '@angular/router';
-import { Store } from '@metad/cloud/state'
+import { Store } from '@xpert-ai/cloud/state'
 import { PacAuthService } from '../services'
 
 /**

@@ -1,5 +1,5 @@
-import { urlJoin } from '@metad/server-common'
-import { environment } from '@metad/server-config'
+import { urlJoin } from '@xpert-ai/server-common'
+import { environment } from '@xpert-ai/server-config'
 import fsPromises from 'fs/promises'
 import path, { join } from 'path'
 import { getWorkspace, listFiles, sandboxVolume, sandboxVolumeUrl } from '../utils'

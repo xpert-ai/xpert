@@ -1,7 +1,7 @@
 
 import { Component, effect, forwardRef, model, signal } from '@angular/core'
 import { ControlValueAccessor, FormsModule, NG_VALUE_ACCESSOR } from '@angular/forms'
-import { NgmSchemaFormComponent, NxDesignerModule, STORY_DESIGNER_SCHEMA } from '@metad/story/designer'
+import { NgmSchemaFormComponent, NxDesignerModule, STORY_DESIGNER_SCHEMA } from '@xpert-ai/story/designer'
 import { TranslateModule } from '@ngx-translate/core'
 import { DimensionChartOptionsSchemaService } from '../analytical-card.schema'
 

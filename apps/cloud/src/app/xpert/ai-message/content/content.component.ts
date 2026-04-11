@@ -4,7 +4,7 @@ import { ChangeDetectionStrategy, Component, computed, inject, input, signal } f
 import { DateRelativePipe } from '@cloud/app/@core'
 import { TMessageContentComplex, TMessageContentText } from '@cloud/app/@core/types'
 import { Copy2Component } from '@cloud/app/@shared/common'
-import { listEnterAnimation } from '@metad/core'
+import { listEnterAnimation } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { MarkdownModule } from 'ngx-markdown'
 import { ChatService } from '../../chat.service'

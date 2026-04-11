@@ -1,4 +1,4 @@
-import { ICustomSmtpCreateInput } from '@metad/contracts';
+import { ICustomSmtpCreateInput } from '@xpert-ai/contracts';
 import { ICommand } from '@nestjs/cqrs';
 
 export class CustomSmtpCreateCommand implements ICommand {

@@ -1,4 +1,4 @@
-import { XpertExtensionViewManifest, XpertResolvedViewHostContext, XpertViewQuery } from '@metad/contracts'
+import { XpertExtensionViewManifest, XpertResolvedViewHostContext, XpertViewQuery } from '@xpert-ai/contracts'
 import {
   normalizeManifest,
   parseViewQuery,

@@ -10,7 +10,7 @@ $ngm-density-config: (
   @return map.get($ngm-density-config, $density);
 }
 
-// from @metad/core
+// from @xpert-ai/core
 @function ngm-get-densities() {
   @return '', '__comfortable', '__cosy', '__compact';
 }

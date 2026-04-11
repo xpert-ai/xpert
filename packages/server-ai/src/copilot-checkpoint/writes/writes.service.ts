@@ -1,11 +1,11 @@
 import { SerializerProtocol } from '@langchain/langgraph-checkpoint'
 import { JsonPlusSerializer } from '../serde/jsonplus'
-import { ICopilotCheckpointWrites } from '@metad/contracts'
+import { ICopilotCheckpointWrites } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
 import { CopilotCheckpointWrites } from './writes.entity'
-import { RequestContext, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { RequestContext, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 
 @Injectable()
 export class CopilotCheckpointWritesService extends TenantOrganizationAwareCrudService<CopilotCheckpointWrites> {

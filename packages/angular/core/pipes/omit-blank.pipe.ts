@@ -1,5 +1,5 @@
 import { Pipe, PipeTransform } from '@angular/core'
-import { JSONValue, omitBlank } from '@metad/ocap-core'
+import { JSONValue, omitBlank } from '@xpert-ai/ocap-core'
 
 @Pipe({
   standalone: true,

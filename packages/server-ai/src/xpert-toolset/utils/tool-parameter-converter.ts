@@ -1,4 +1,4 @@
-import { ToolParameterType } from "@metad/contracts";
+import { ToolParameterType } from "@xpert-ai/contracts";
 
 export class ToolParameterConverter {
     static getParameterType(parameterType: string | ToolParameterType): string {

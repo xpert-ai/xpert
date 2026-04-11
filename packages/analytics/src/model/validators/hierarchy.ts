@@ -1,5 +1,5 @@
-import { ChecklistItem, RuleValidator } from '@metad/contracts'
-import { PropertyHierarchy, Schema } from '@metad/ocap-core'
+import { ChecklistItem, RuleValidator } from '@xpert-ai/contracts'
+import { PropertyHierarchy, Schema } from '@xpert-ai/ocap-core'
 import { LevelValidator } from './level';
 
 export class HierarchyValidator implements RuleValidator {

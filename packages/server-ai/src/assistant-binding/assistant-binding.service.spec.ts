@@ -3,7 +3,7 @@ import {
   ForbiddenException
 } from '@nestjs/common'
 
-jest.mock('@metad/contracts', () => ({
+jest.mock('@xpert-ai/contracts', () => ({
   AssistantCode: {
     CHAT_COMMON: 'chat_common',
     XPERT_SHARED: 'xpert_shared',
@@ -31,7 +31,7 @@ jest.mock('@metad/contracts', () => ({
   isUserManagedAssistant: (code: string) => code === 'clawxpert'
 }))
 
-jest.mock('@metad/server-core', () => ({
+jest.mock('@xpert-ai/server-core', () => ({
   RequestContext: {
     currentTenantId: jest.fn(),
     getOrganizationId: jest.fn(),
@@ -64,8 +64,8 @@ import {
   AssistantBindingSourceScope,
   AssistantCode,
   RolesEnum
-} from '@metad/contracts'
-import { RequestContext } from '@metad/server-core'
+} from '@xpert-ai/contracts'
+import { RequestContext } from '@xpert-ai/server-core'
 import { AssistantBindingService } from './assistant-binding.service'
 
 describe('AssistantBindingService', () => {

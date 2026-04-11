@@ -1,5 +1,5 @@
 import { Inject, Injectable, OnDestroy, Optional } from '@angular/core'
-import { Agent, DataSourceFactory, DataSourceOptions, DSCoreService } from '@metad/ocap-core'
+import { Agent, DataSourceFactory, DataSourceOptions, DSCoreService } from '@xpert-ai/ocap-core'
 import { NgmDSCacheService } from './agent.service'
 import { OCAP_AGENT_TOKEN, OCAP_DATASOURCE_TOKEN, OCAP_MODEL_TOKEN } from './types'
 

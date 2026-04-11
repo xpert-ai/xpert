@@ -1,6 +1,6 @@
 import { EntitySubscriberInterface, EventSubscriber, LoadEvent, RemoveEvent } from "typeorm";
-import { IScreenshot } from "@metad/contracts";
-import { FileStorage } from "@metad/server-core";
+import { IScreenshot } from "@xpert-ai/contracts";
+import { FileStorage } from "@xpert-ai/server-core";
 import { Screenshot } from "./screenshot.entity";
 
 @EventSubscriber()

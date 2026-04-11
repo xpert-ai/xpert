@@ -1,4 +1,4 @@
-import { BUILTIN_TOOLSET_REPOSITORY } from '@metad/server-ai'
+import { BUILTIN_TOOLSET_REPOSITORY } from '@xpert-ai/server-ai'
 import {
 	ChatBIToolset,
 	ChatDBToolset,

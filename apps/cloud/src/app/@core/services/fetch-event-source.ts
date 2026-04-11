@@ -1,5 +1,5 @@
 import { inject } from '@angular/core'
-import { RequestScopeLevel } from '@metad/contracts'
+import { RequestScopeLevel } from '@xpert-ai/contracts'
 import { EventSourceMessage, EventStreamContentType, fetchEventSource } from '@microsoft/fetch-event-source'
 import { firstValueFrom, Observable } from 'rxjs'
 import { AuthStrategy } from '../auth'

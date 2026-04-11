@@ -1,4 +1,4 @@
-import { IKnowledgeDocument, TXpertParameter, XpertParameterTypeEnum } from '@metad/contracts'
+import { IKnowledgeDocument, TXpertParameter, XpertParameterTypeEnum } from '@xpert-ai/contracts'
 import { instanceToPlain } from 'class-transformer'
 import { DocumentVariableDTO } from '../../knowledge-document/dto'
 

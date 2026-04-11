@@ -1,5 +1,5 @@
 import { Component, OnInit } from '@angular/core'
-import { DataSettings } from '@metad/ocap-core'
+import { DataSettings } from '@xpert-ai/ocap-core'
 import { FieldType } from '@ngx-formly/core'
 import { isObservable, Observable, of } from 'rxjs'
 

@@ -12,8 +12,8 @@ import {
   ToastrService
 } from '@cloud/app/@core'
 import { ScheduleFormComponent } from '@cloud/app/@shared/schedule'
-import { NgmSpinComponent } from '@metad/ocap-angular/common'
-import { attrModel } from '@metad/ocap-angular/core'
+import { NgmSpinComponent } from '@xpert-ai/ocap-angular/common'
+import { attrModel } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { omit } from 'lodash-es'
 

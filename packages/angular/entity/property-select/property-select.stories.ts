@@ -5,7 +5,7 @@ import type { Meta, StoryObj } from '@storybook/angular'
 import { applicationConfig, argsToTemplate, componentWrapperDecorator, moduleMetadata } from '@storybook/angular'
 import { provideHttpClient } from '@angular/common/http'
 import { provideAnimations } from '@angular/platform-browser/animations'
-import { provideOcapMock, provideTranslate } from '@metad/ocap-angular/mock'
+import { provideOcapMock, provideTranslate } from '@xpert-ai/ocap-angular/mock'
 import { action } from '@storybook/addon-actions'
 import {
   AggregationRole,
@@ -15,7 +15,7 @@ import {
   Dimension,
   EntityType,
   Measure
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { LoggerModule, NgxLoggerLevel } from 'ngx-logger'
 import { MonacoEditorModule } from 'ngx-monaco-editor'
 import { NgmPropertySelectComponent } from '../property-select/property-select.component'

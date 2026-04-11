@@ -1,10 +1,10 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IEmployee, IEmployeeCreateInput, IEmployeeFindInput, IEmployeeUpdateInput } from '@metad/contracts'
-import { API_PREFIX } from '@metad/cloud/state'
+import { IEmployee, IEmployeeCreateInput, IEmployeeFindInput, IEmployeeUpdateInput } from '@xpert-ai/contracts'
+import { API_PREFIX } from '@xpert-ai/cloud/state'
 import { firstValueFrom, Observable } from 'rxjs'
 import { first, map } from 'rxjs/operators'
-import { toParams } from '@metad/core'
+import { toParams } from '@xpert-ai/core'
 
 @Injectable({ providedIn: 'root' })
 export class EmployeesService {

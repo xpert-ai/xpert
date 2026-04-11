@@ -1,4 +1,4 @@
-import { IXpert, TXpertGraph } from '@metad/contracts'
+import { IXpert, TXpertGraph } from '@xpert-ai/contracts'
 import { ICommand } from '@nestjs/cqrs'
 
 /**

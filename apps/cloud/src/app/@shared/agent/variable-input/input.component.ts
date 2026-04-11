@@ -15,10 +15,10 @@ import {
   ViewContainerRef
 } from '@angular/core'
 import { FormsModule } from '@angular/forms'
-import { linkedModel } from '@metad/core'
+import { linkedModel } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NgxControlValueAccessor } from 'ngxtension/control-value-accessor'
-import { myRxResource } from '@metad/ocap-angular/core'
+import { myRxResource } from '@xpert-ai/ocap-angular/core'
 import { XpertAPIService } from '@cloud/app/@core'
 import { of } from 'rxjs'
 import { TXpertVariablesOptions, XpertVariablePanelComponent } from '../variable-panel/variable.component'

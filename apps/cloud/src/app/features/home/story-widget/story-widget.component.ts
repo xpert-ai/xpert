@@ -1,15 +1,15 @@
 import { Component, Input, computed, inject } from '@angular/core'
 import { toSignal } from '@angular/core/rxjs-interop'
-import { WidgetsService, convertStoryResult, convertStoryWidgetResult } from '@metad/cloud/state'
-import { WasmAgentService } from '@metad/ocap-angular/wasm-agent'
-import { AgentType } from '@metad/ocap-core'
+import { WidgetsService, convertStoryResult, convertStoryWidgetResult } from '@xpert-ai/cloud/state'
+import { WasmAgentService } from '@xpert-ai/ocap-angular/wasm-agent'
+import { AgentType } from '@xpert-ai/ocap-core'
 import { omit } from 'lodash-es'
 import { BehaviorSubject, EMPTY } from 'rxjs'
 import { catchError, filter, switchMap } from 'rxjs/operators'
 import { registerWasmAgentModel } from '../../../@core'
 import { CommonModule } from '@angular/common'
 import { TranslateModule } from '@ngx-translate/core'
-import { EmbedWidgetComponent } from '@metad/story/story'
+import { EmbedWidgetComponent } from '@xpert-ai/story/story'
 
 @Component({
   standalone: true,

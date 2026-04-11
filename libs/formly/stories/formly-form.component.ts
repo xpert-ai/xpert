@@ -1,7 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, Input, NgModule } from '@angular/core'
 import { FormGroup, ReactiveFormsModule } from '@angular/forms'
-import { NgmFormlyModule } from '@metad/formly'
+import { NgmFormlyModule } from '@xpert-ai/formly'
 
 import { FormlyFormOptions, FormlyModule } from '@ngx-formly/core'
 import { PACFormlyArrayModule } from '../array'

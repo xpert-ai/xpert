@@ -1,4 +1,4 @@
-import { DatabaseModule, IntegrationModule, TenantModule, UserModule } from '@metad/server-core'
+import { DatabaseModule, IntegrationModule, TenantModule, UserModule } from '@xpert-ai/server-core'
 import { forwardRef, Module } from '@nestjs/common'
 import { DiscoveryModule, RouterModule } from '@nestjs/core'
 import { CqrsModule } from '@nestjs/cqrs'

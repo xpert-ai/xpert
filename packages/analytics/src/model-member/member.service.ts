@@ -1,6 +1,6 @@
 import { Document } from '@langchain/core/documents'
-import { ISemanticModel } from '@metad/contracts'
-import { DATABASE_POOL_TOKEN, TenantOrganizationAwareCrudService } from '@metad/server-core'
+import { ISemanticModel } from '@xpert-ai/contracts'
+import { DATABASE_POOL_TOKEN, TenantOrganizationAwareCrudService } from '@xpert-ai/server-core'
 import { Inject, Injectable, Logger } from '@nestjs/common'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'

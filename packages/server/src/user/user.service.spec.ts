@@ -56,7 +56,7 @@ jest.mock('./events', () => ({
 }))
 
 const { RequestContext } = require('../core/context')
-const { RolesEnum } = require('@metad/contracts')
+const { RolesEnum } = require('@xpert-ai/contracts')
 const { UserService } = require('./user.service')
 
 describe('UserService', () => {

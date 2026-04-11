@@ -1,4 +1,4 @@
-import { getErrorMessage } from '@metad/server-common'
+import { getErrorMessage } from '@xpert-ai/server-common'
 import {
 	I18nObject,
 	IShareSkillPackageInput,
@@ -9,7 +9,7 @@ import {
 	TFileDirectory,
 	uuid,
 	WORKSPACE_PUBLIC_SKILL_SOURCE_PROVIDER
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { BadRequestException, ForbiddenException, Inject, Injectable, Logger } from '@nestjs/common'
 import { InjectRepository } from '@nestjs/typeorm'
 import { RequestContext, SkillSourceProviderRegistry } from '@xpert-ai/plugin-sdk'

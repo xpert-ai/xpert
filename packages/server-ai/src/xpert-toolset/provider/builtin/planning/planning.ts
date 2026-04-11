@@ -1,4 +1,4 @@
-import { IXpertToolset, TStateVariable, TToolCredentials, XpertParameterTypeEnum } from '@metad/contracts'
+import { IXpertToolset, TStateVariable, TToolCredentials, XpertParameterTypeEnum } from '@xpert-ai/contracts'
 import { BuiltinTool } from '../builtin-tool'
 import { BuiltinToolset, TBuiltinToolsetParams } from '../builtin-toolset'
 import { PLAN_STEPS_NAME, PLAN_TITLE_NAME, PlanningToolEnum } from './types'

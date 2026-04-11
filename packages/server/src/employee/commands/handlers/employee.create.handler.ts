@@ -2,7 +2,7 @@ import {
 	IEmployee,
 	IEmployeeCreateInput,
 	LanguagesEnum
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { CommandHandler, ICommandHandler } from '@nestjs/cqrs';
 import { AuthService } from '../../../auth/auth.service';
 import { UserOrganizationService } from '../../../user-organization/user-organization.services';

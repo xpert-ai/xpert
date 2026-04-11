@@ -10,14 +10,14 @@ import {
   ValidatorFn,
   Validators
 } from '@angular/forms'
-import { nonNullable } from '@metad/core'
-import { AggregationRole, Cube, DBTable, isNil, omitBy, Property, PropertyDimension } from '@metad/ocap-core'
+import { nonNullable } from '@xpert-ai/core'
+import { AggregationRole, Cube, DBTable, isNil, omitBy, Property, PropertyDimension } from '@xpert-ai/ocap-core'
 import { of } from 'rxjs'
 import { debounceTime, distinctUntilChanged, map, startWith, switchMap, tap } from 'rxjs/operators'
 import { SemanticModelService } from '../model.service'
 import { MODEL_TYPE, SemanticModelEntityType } from '../types'
 import { uuid } from '@cloud/app/@core'
-import { debouncedSignal, ISelectOption } from '@metad/ocap-angular/core'
+import { debouncedSignal, ISelectOption } from '@xpert-ai/ocap-angular/core'
 import { CommonModule } from '@angular/common'
 import { CdkListboxModule } from '@angular/cdk/listbox'
 import {
@@ -32,9 +32,9 @@ import {
   ZardLoaderComponent
 } from '@xpert-ai/headless-ui'
 import { TranslateModule } from '@ngx-translate/core'
-import { NgmCommonModule } from '@metad/ocap-angular/common'
+import { NgmCommonModule } from '@xpert-ai/ocap-angular/common'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
-import { mergeSelectedValues } from '@metad/ocap-angular/core'
+import { mergeSelectedValues } from '@xpert-ai/ocap-angular/core'
 
 export type CreateEntityColumnType = {
   name: string

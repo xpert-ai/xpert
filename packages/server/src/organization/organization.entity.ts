@@ -31,7 +31,7 @@ import {
 	IOrganizationLanguage,
 	IFeatureOrganization,
 	LanguagesEnum
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import {
 	Employee,
 	FeatureOrganization,

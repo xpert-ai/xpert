@@ -6,8 +6,8 @@ import {
 	InferSubjects,
 } from '@casl/ability'
 import { Injectable } from '@nestjs/common'
-import { RolesEnum } from '@metad/contracts'
-import { RequestContext, User } from '@metad/server-core'
+import { RolesEnum } from '@xpert-ai/contracts'
+import { RequestContext, User } from '@xpert-ai/server-core'
 import { Story } from '../entities/internal'
 import { AuthActions } from './action'
 

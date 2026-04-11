@@ -18,7 +18,7 @@ import {
 	TXpertTeamNode,
 	WorkflowNodeTypeEnum,
 	XpertAgentExecutionStatusEnum
-} from '@metad/contracts'
+} from '@xpert-ai/contracts'
 import { CommandBus, QueryBus } from '@nestjs/cqrs'
 import { t } from 'i18next'
 import { z } from 'zod'

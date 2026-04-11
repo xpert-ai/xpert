@@ -1,5 +1,5 @@
 import { CollectionViewer, DataSource } from '@angular/cdk/collections'
-import { Indicator } from '@metad/ocap-core'
+import { Indicator } from '@xpert-ai/ocap-core'
 import { BehaviorSubject, Observable, Subject } from 'rxjs'
 import { takeUntil } from 'rxjs/operators'
 import { IndicatorsStore } from './store'

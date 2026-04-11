@@ -1,5 +1,5 @@
-import { BusinessAreaRole, IPagination, RolesEnum } from '@metad/contracts'
-import { CrudController, ParseJsonPipe, RoleGuard, Roles, TenantPermissionGuard } from '@metad/server-core'
+import { BusinessAreaRole, IPagination, RolesEnum } from '@xpert-ai/contracts'
+import { CrudController, ParseJsonPipe, RoleGuard, Roles, TenantPermissionGuard } from '@xpert-ai/server-core'
 import { Body, Controller, Get, HttpCode, HttpStatus, Param, Post, Query, UseGuards } from '@nestjs/common'
 import { CommandBus } from '@nestjs/cqrs'
 import { ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger'

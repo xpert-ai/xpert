@@ -1,7 +1,7 @@
 import { FormGroup, ReactiveFormsModule } from '@angular/forms';
 
 import { BrowserAnimationsModule } from '@angular/platform-browser/animations';
-import { NgmFormlyModule } from '@metad/formly';
+import { NgmFormlyModule } from '@xpert-ai/formly';
 import { FormlyModule } from '@ngx-formly/core';
 import { Meta, moduleMetadata, Story } from '@storybook/angular';
 import { MetadFormlyPanelModule } from './panel.module';

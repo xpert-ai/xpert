@@ -14,8 +14,8 @@ import {
 } from '@xpert-ai/headless-ui'
 import type { ZardSwitchChange } from '@xpert-ai/headless-ui'
 import { injectToastr } from '@cloud/app/@core'
-import { TMessageContentVirtualCube } from '@metad/contracts'
-import { NgmCommonModule, NgmSelectComponent, ResizerModule } from '@metad/ocap-angular/common'
+import { TMessageContentVirtualCube } from '@xpert-ai/contracts'
+import { NgmCommonModule, NgmSelectComponent, ResizerModule } from '@xpert-ai/ocap-angular/common'
 import {
   attrModel,
   linkedModel,
@@ -23,8 +23,8 @@ import {
   NgmDSCoreService,
   NgmI18nPipe,
   OcapCoreModule
-} from '@metad/ocap-angular/core'
-import { EntityCapacity, NgmCalculatedMeasureComponent, NgmEntitySchemaComponent } from '@metad/ocap-angular/entity'
+} from '@xpert-ai/ocap-angular/core'
+import { EntityCapacity, NgmCalculatedMeasureComponent, NgmEntitySchemaComponent } from '@xpert-ai/ocap-angular/entity'
 import {
   AggregationRole,
   C_MEASURES,
@@ -34,7 +34,7 @@ import {
   Syntax,
   VirtualCube,
   VirtualCubeDimension
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { NGXLogger } from 'ngx-logger'
 import { ModelDraftBaseComponent } from '../draft-base'

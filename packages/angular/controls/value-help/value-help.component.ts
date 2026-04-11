@@ -25,14 +25,14 @@ import {
 } from '@xpert-ai/headless-ui'
 import { DIALOG_DATA, DialogRef } from '@angular/cdk/dialog'
 import { CdkMenuModule } from '@angular/cdk/menu'
-import { NgmCommonModule, NgmResizableDirective } from '@metad/ocap-angular/common'
+import { NgmCommonModule, NgmResizableDirective } from '@xpert-ai/ocap-angular/common'
 import {
   DisplayDensity,
   NgmAppearance,
   NgmDSCoreService,
   OcapCoreModule,
   NgmFieldAppearance
-} from '@metad/ocap-angular/core'
+} from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   Dimension,
@@ -45,7 +45,7 @@ import {
   PropertyHierarchy,
   TreeSelectionMode,
   getEntityProperty
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { merge } from 'lodash-es'
 import { filter, map, switchMap } from 'rxjs'

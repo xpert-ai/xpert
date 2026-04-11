@@ -1,5 +1,5 @@
 {
-  "name": "@metad/ocap-sql",
+  "name": "@xpert-ai/ocap-sql",
   "version": "3.9.0-beta.0",
   "keywords": [
     "metad",
@@ -14,7 +14,7 @@
     "url": "git+https://github.com/xpert-ai/xpert.git"
   },
   "peerDependencies": {
-    "@metad/ocap-core": ">=3.0.0",
+    "@xpert-ai/ocap-core": "workspace:*",
     "i18next": "^23.14.0",
     "rxjs": "~7.8.0"
   },

@@ -1,5 +1,5 @@
 import { ApiProperty } from '@nestjs/swagger'
-import { IEmailVerification, IUser } from '@metad/contracts'
+import { IEmailVerification, IUser } from '@xpert-ai/contracts'
 import { IsNotEmpty, IsString } from 'class-validator'
 import {
 	Column,

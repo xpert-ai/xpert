@@ -1,7 +1,7 @@
 import { HttpClient } from '@angular/common/http'
 import { Injectable } from '@angular/core'
-import { IPagination, IRole, ITenant, RolesEnum } from '@metad/contracts'
-import { API_PREFIX } from '@metad/cloud/state';
+import { IPagination, IRole, ITenant, RolesEnum } from '@xpert-ai/contracts'
+import { API_PREFIX } from '@xpert-ai/cloud/state';
 import { Observable } from 'rxjs'
 
 @Injectable({

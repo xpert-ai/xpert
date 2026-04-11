@@ -14,7 +14,7 @@ import {
   AbstractControl,
   ValidationErrors
 } from '@angular/forms'
-import { OcapCoreModule } from '@metad/ocap-angular/core'
+import { OcapCoreModule } from '@xpert-ai/ocap-angular/core'
 import {
   DataSettings,
   DisplayBehaviour,
@@ -24,7 +24,7 @@ import {
   isNil,
   negate,
   PropertyMeasure
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { TranslateModule } from '@ngx-translate/core'
 import { sortBy } from 'lodash-es'
 import { BehaviorSubject, map } from 'rxjs'

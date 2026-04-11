@@ -5,7 +5,7 @@ import { StateVariableSelectComponent } from '@cloud/app/@shared/agent'
 import { IconComponent } from '@cloud/app/@shared/avatar'
 import { CopilotModelSelectComponent } from '@cloud/app/@shared/copilot'
 import { JSONSchemaFormComponent } from '@cloud/app/@shared/forms'
-import { attrModel, linkedModel, NgmI18nPipe } from '@metad/ocap-angular/core'
+import { attrModel, linkedModel, NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   AiModelTypeEnum,

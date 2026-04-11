@@ -8,9 +8,9 @@ import {
 	IPermissionApprovalFindInput,
 	IPagination,
 	IApprovalPolicyCreateInput
-} from '@metad/contracts';
+} from '@xpert-ai/contracts';
 import { ApprovalPolicy } from './approval-policy.entity';
-import { PaginationParams, RequestContext, TenantAwareCrudService } from '@metad/server-core';
+import { PaginationParams, RequestContext, TenantAwareCrudService } from '@xpert-ai/server-core';
 
 @Injectable()
 export class ApprovalPolicyService extends TenantAwareCrudService<ApprovalPolicy> {

@@ -1,4 +1,4 @@
-import { PropertyHierarchy } from "@metad/ocap-core"
+import { PropertyHierarchy } from "@xpert-ai/ocap-core"
 
 export type TCubeNode<T = any> = {
   key: string

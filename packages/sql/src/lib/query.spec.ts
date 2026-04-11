@@ -1,4 +1,4 @@
-import { C_MEASURES } from '@metad/ocap-core'
+import { C_MEASURES } from '@xpert-ai/ocap-core'
 import { buildCubeContext, compileCubeSchema, CubeContext } from './cube'
 import { CUBE_SALESORDER, ENTITY_TYPE_SALESORDER, SCHEMA } from './mock-data'
 import { queryCube, serializeCubeFact, serializeCubeFrom, transposePivot } from './query'

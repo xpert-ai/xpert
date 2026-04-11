@@ -1,6 +1,6 @@
 import { tool } from '@langchain/core/tools'
 import { InferInteropZodInput, interopParse, interopSafeParse } from '@langchain/core/utils/types'
-import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, TAgentMiddlewareMeta, TAgentRunnableConfigurable } from '@metad/contracts'
+import { ChatMessageEventTypeEnum, ChatMessageTypeEnum, TAgentMiddlewareMeta, TAgentRunnableConfigurable } from '@xpert-ai/contracts'
 import { Injectable } from '@nestjs/common'
 import {
   AgentMiddleware,

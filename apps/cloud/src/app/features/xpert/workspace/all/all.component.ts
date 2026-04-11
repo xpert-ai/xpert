@@ -2,7 +2,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core'
 import { FormsModule, ReactiveFormsModule } from '@angular/forms'
 import { RouterModule } from '@angular/router'
-import { routeAnimations } from '@metad/core'
+import { routeAnimations } from '@xpert-ai/core'
 import { TranslateModule } from '@ngx-translate/core'
 import { XpertWorkspaceApiToolsComponent } from '../api-tools/tools.component'
 import { XpertWorkspaceBuiltinToolsComponent } from '../builtin-tools/tools.component'

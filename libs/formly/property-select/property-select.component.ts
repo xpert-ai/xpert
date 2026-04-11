@@ -1,8 +1,8 @@
 import { Component, DestroyRef, Input, OnInit, inject } from '@angular/core'
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop'
 import { FormControl, UntypedFormArray } from '@angular/forms'
-import { NgmFormlyArrayComponent } from '@metad/formly/array'
-import { NgmDSCoreService, NgmFieldAppearance } from '@metad/ocap-angular/core'
+import { NgmFormlyArrayComponent } from '@xpert-ai/formly/array'
+import { NgmDSCoreService, NgmFieldAppearance } from '@xpert-ai/ocap-angular/core'
 import {
   AggregationRole,
   CalculationProperty,
@@ -14,11 +14,11 @@ import {
   EntitySet,
   EntityType,
   getEntityProperty
-} from '@metad/ocap-core'
+} from '@xpert-ai/ocap-core'
 import { FieldType } from '@ngx-formly/core'
 import { TranslateService } from '@ngx-translate/core'
-import { NgmChromaticInterpolateGroup, getScaleChromaticInterpolates } from '@metad/components/palette'
-import { PropertyCapacity } from '@metad/ocap-angular/entity'
+import { NgmChromaticInterpolateGroup, getScaleChromaticInterpolates } from '@xpert-ai/components/palette'
+import { PropertyCapacity } from '@xpert-ai/ocap-angular/entity'
 import { isEqual, startCase } from 'lodash-es'
 import {
   BehaviorSubject,

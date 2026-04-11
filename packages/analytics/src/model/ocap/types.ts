@@ -1,5 +1,5 @@
-import { AgentType, IIndicator, IndicatorStatusEnum, ISemanticModel } from '@metad/contracts'
-import { DataSourceOptions, DSCoreService, Indicator, SemanticModel, Syntax } from '@metad/ocap-core'
+import { AgentType, IIndicator, IndicatorStatusEnum, ISemanticModel } from '@xpert-ai/contracts'
+import { DataSourceOptions, DSCoreService, Indicator, SemanticModel, Syntax } from '@xpert-ai/ocap-core'
 import { isNil, omit } from 'lodash'
 
 export const OCAP_AGENT_TOKEN = 'OCAP_AGENT_TOKEN'

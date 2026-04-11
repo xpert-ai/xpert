@@ -24,7 +24,7 @@ import { REMOVE_ALL_MESSAGES } from "@langchain/langgraph";
 import { Inject, Injectable } from "@nestjs/common";
 import { CommandBus } from "@nestjs/cqrs";
 import { AgentMiddleware, AgentMiddlewareStrategy, CreateModelClientCommand, getModelContextSize, IAgentMiddlewareContext, IAgentMiddlewareStrategy, WrapWorkflowNodeExecutionCommand } from "@xpert-ai/plugin-sdk";
-import { AiModelTypeEnum, ICopilotModel, JSONValue, TAgentMiddlewareMeta, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from "@metad/contracts";
+import { AiModelTypeEnum, ICopilotModel, JSONValue, TAgentMiddlewareMeta, TAgentRunnableConfigurable, WorkflowNodeTypeEnum } from "@xpert-ai/contracts";
 import { isNil, omitBy } from "lodash";
 import { countTokensApproximately, hasToolCalls } from "./utils";
 

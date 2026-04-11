@@ -1,4 +1,4 @@
-import { IXpertAgent, TXpertGraph } from '@metad/contracts'
+import { IXpertAgent, TXpertGraph } from '@xpert-ai/contracts'
 
 export function parseXmlString(content: string) {
 	return content?.replace(/&lt;/g, '<').replace(/&gt;/g, '>')

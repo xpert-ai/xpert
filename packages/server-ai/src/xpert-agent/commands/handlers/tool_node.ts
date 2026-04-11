@@ -10,8 +10,8 @@ import { StructuredToolInterface } from "@langchain/core/tools";
 import { AsyncLocalStorageProviderSingleton } from "@langchain/core/singletons";
 import { Command, isCommand, isGraphInterrupt } from "@langchain/langgraph";
 import { dispatchCustomEvent } from "@langchain/core/callbacks/dispatch";
-import { channelName, ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE, TVariableAssigner } from "@metad/contracts";
-import { getErrorMessage } from "@metad/server-common";
+import { channelName, ChatMessageEventTypeEnum, CONTEXT_VARIABLE_CURRENTSTATE, TVariableAssigner } from "@xpert-ai/contracts";
+import { getErrorMessage } from "@xpert-ai/server-common";
 import { setContextVariable } from "@langchain/core/context";
 import type { AgentBuiltInState, ToolCallHandler, ToolCallRequest, WrapToolCallHook } from "@xpert-ai/plugin-sdk";
 

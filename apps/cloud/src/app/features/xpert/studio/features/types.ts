@@ -1,4 +1,4 @@
-import { linkedModel } from '@metad/ocap-angular/core'
+import { linkedModel } from '@xpert-ai/ocap-angular/core'
 import { XpertStudioApiService } from '../domain'
 
 export function linkedXpertFeaturesModel(apiService: XpertStudioApiService) {

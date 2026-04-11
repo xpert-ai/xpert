@@ -3,7 +3,7 @@ import { DragDropModule } from '@angular/cdk/drag-drop';
 import { Component, HostBinding, inject, signal } from '@angular/core';
 import { FormGroup, FormsModule, ReactiveFormsModule } from '@angular/forms';
 
-import { ButtonGroupDirective } from '@metad/ocap-angular/core';
+import { ButtonGroupDirective } from '@xpert-ai/ocap-angular/core';
 import { FormlyModule } from '@ngx-formly/core';
 import { TranslateModule } from '@ngx-translate/core';
 import { Z_MODAL_DATA, ZardButtonComponent, ZardDialogModule, ZardDialogRef } from '@xpert-ai/headless-ui'

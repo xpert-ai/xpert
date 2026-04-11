@@ -1,5 +1,5 @@
 // import { Injectable } from '@angular/core'
-// // import { NxChromatic, NxChromatics, NxIScaleChromatic } from '@metad/core'
+// // import { NxChromatic, NxChromatics, NxIScaleChromatic } from '@xpert-ai/core'
 // // import { scaleOrdinal, scaleSequential } from 'd3-scale'
 // import extend from 'lodash/extend'
 // import { interval, Observable, ReplaySubject } from 'rxjs'

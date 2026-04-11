@@ -1,6 +1,6 @@
 import { Injectable, Injector } from '@angular/core'
-import { StylingWidgetSchema } from '@metad/story/designer'
-import { GridOptions, PivotGridSchemaService } from '@metad/story/widgets/pivot-grid'
+import { StylingWidgetSchema } from '@xpert-ai/story/designer'
+import { GridOptions, PivotGridSchemaService } from '@xpert-ai/story/widgets/pivot-grid'
 
 @Injectable()
 export class SmartGridSettingsSchemaService extends PivotGridSchemaService {

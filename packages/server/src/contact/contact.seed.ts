@@ -1,6 +1,6 @@
 import { Connection } from 'typeorm';
 import faker from 'faker';
-import { IContact, ICountry, IOrganization, ITenant } from '@metad/contracts';
+import { IContact, ICountry, IOrganization, ITenant } from '@xpert-ai/contracts';
 import { Contact, Country } from './../core/entities/internal';
 
 export const createRandomContacts = async (

@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, ElementRef, inject, input } from '@angular/core'
 import { FFlowModule } from '@foblex/flow'
-import { PlusSvgComponent } from '@metad/ocap-angular/common'
-import { NgmI18nPipe } from '@metad/ocap-angular/core'
+import { PlusSvgComponent } from '@xpert-ai/ocap-angular/common'
+import { NgmI18nPipe } from '@xpert-ai/ocap-angular/core'
 import { TranslateModule } from '@ngx-translate/core'
 import {
   IWFNChunker,

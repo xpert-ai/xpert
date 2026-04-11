@@ -1,4 +1,4 @@
-import { ICopilotOrganization } from '@metad/contracts'
+import { ICopilotOrganization } from '@xpert-ai/contracts'
 import { IQueryHandler, QueryHandler } from '@nestjs/cqrs'
 import { InjectRepository } from '@nestjs/typeorm'
 import { Repository } from 'typeorm'
