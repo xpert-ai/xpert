@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common'
 import { Component, computed, inject } from '@angular/core'
 import { FormsModule } from '@angular/forms'
+import { Router } from '@angular/router'
 import { TranslateModule, TranslateService } from '@ngx-translate/core'
 import {
   ZardButtonComponent,
@@ -9,7 +10,7 @@ import {
   ZardIconComponent,
   ZardMenuImports
 } from '@xpert-ai/headless-ui'
-import { AiModelTypeEnum, ICopilotModel, IXpert } from '../../../@core'
+import { AiModelTypeEnum, ICopilotModel, IXpert, XpertTypeEnum } from '../../../@core'
 import { EmojiAvatarComponent } from '../../../@shared/avatar'
 import { CopilotModelSelectComponent } from '../../../@shared/copilot'
 import { ClawXpertFacade } from './clawxpert.facade'
@@ -225,6 +226,10 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
                     {{ 'PAC.Chat.ClawXpert.Change' | translate: { Default: 'Change ClawXpert' } }}
                   </button>
 
+                  <button type="button" z-menu-item (click)="openXpertOrchestration()">
+                    {{ 'PAC.Chat.ClawXpert.OpenOrchestration' | translate: { Default: '编排 ClawXpert' } }}
+                  </button>
+
                   <z-divider zSpacing="sm"></z-divider>
 
                   <button type="button" z-menu-item [disabled]="facade.clearing()" (click)="clearPreference()">
@@ -405,6 +410,7 @@ const HEATMAP_LEGEND_LEVELS = [0, 0.35, 0.65, 1]
 export class ClawXpertOverviewComponent {
   readonly eModelType = AiModelTypeEnum
   readonly facade = inject(ClawXpertFacade)
+  readonly #router = inject(Router)
   readonly #translate = inject(TranslateService)
   readonly #locale = normalizeLocale(this.#translate.currentLang || this.#translate.getDefaultLang())
 
@@ -495,6 +501,17 @@ export class ClawXpertOverviewComponent {
 
   openWizard() {
     this.facade.openWizard()
+  }
+
+  openXpertOrchestration() {
+    const currentXpert = this.facade.currentXpert()
+    const xpertId = currentXpert?.id ?? this.facade.xpertId()
+
+    if (!xpertId) {
+      return
+    }
+
+    void this.#router.navigate(['/xpert/x', xpertId, 'agents'])
   }
 
   async clearPreference() {

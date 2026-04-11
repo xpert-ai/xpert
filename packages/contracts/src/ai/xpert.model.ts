@@ -24,7 +24,7 @@ export enum XpertTypeEnum {
   Agent = 'agent',
 
   /**
-   * Copilot in UI
+   * @deprecated use Chatkit with agent instead.
    */
   Copilot = 'copilot',
 
