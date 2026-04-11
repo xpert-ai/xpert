@@ -1401,6 +1401,9 @@ importers:
       '@keyv/redis':
         specifier: ^5.1.1
         version: 5.1.6(keyv@5.6.0)
+      '@metad/contracts':
+        specifier: 3.8.4
+        version: 3.8.4(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(signal-polyfill@0.2.2)
       '@nestjs/bull':
         specifier: ^11.0.3
         version: 11.0.4(@nestjs/common@11.1.13(class-transformer@0.5.1)(class-validator@0.13.2)(reflect-metadata@0.1.14)(rxjs@7.8.2))(@nestjs/core@11.1.13)(bull@4.16.5)
@@ -5433,6 +5436,9 @@ packages:
 
   '@messageformat/runtime@3.0.2':
     resolution: {integrity: sha512-dkIPDCjXcfhSHgNE1/qV6TeczQZR59Yx0xXeafVKgK3QVWoxc38ljwpksUpnzCGvN151KUbCJTDZVmahtf1YZw==}
+
+  '@metad/contracts@3.8.4':
+    resolution: {integrity: sha512-ltWt2YJmCZ6T6YSMUuEFcMSBjL30jRhtG/G56b9qBHyjr0TkQeDAWxbEQhsU5jrxTGkhft+yg/1aIHfw2j83Vg==}
 
   '@microsoft/fetch-event-source@2.0.1':
     resolution: {integrity: sha512-W6CLUJ2eBMw3Rec70qrsEW0jOm/3twwJv21mrmj2yORiaVmVYGS4sSS5yUwvQc1ZlDLYGPnClVWmUUMagKNsfA==}
@@ -26124,6 +26130,14 @@ snapshots:
   '@messageformat/runtime@3.0.2':
     dependencies:
       make-plural: 7.5.0
+
+  '@metad/contracts@3.8.4(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))(signal-polyfill@0.2.2)':
+    dependencies:
+      '@a2ui/lit': 0.8.3(signal-polyfill@0.2.2)
+      '@xpert-ai/chatkit-types': 0.0.17(@a2ui/lit@0.8.3(signal-polyfill@0.2.2))(@langchain/core@0.3.72(openai@5.23.2(ws@8.19.0)(zod@3.25.67)))
+    transitivePeerDependencies:
+      - '@langchain/core'
+      - signal-polyfill
 
   '@microsoft/fetch-event-source@2.0.1': {}
 

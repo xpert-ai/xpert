@@ -1,6 +1,6 @@
 import type { PluginSourceConfig } from '@xpert-ai/contracts'
 import { execFile } from 'node:child_process'
-import { existsSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
+import { existsSync, lstatSync, mkdirSync, readdirSync, readFileSync, realpathSync, rmSync, symlinkSync } from 'node:fs'
 import { createRequire } from 'node:module'
 import { dirname, join, resolve } from 'node:path'
 import { major, satisfies, validRange } from 'semver'
@@ -89,6 +89,15 @@ function getWorkspacePluginSearchDirs(basedir?: string) {
 	return Array.from(candidates).filter((candidate) => existsSync(candidate))
 }
 
+function pathEntryExists(targetPath: string) {
+	try {
+		lstatSync(targetPath)
+		return true
+	} catch {
+		return false
+	}
+}
+
 export function findWorkspacePluginManifestPath(pluginName: string, basedir?: string) {
 	for (const workspacePluginsDir of getWorkspacePluginSearchDirs(basedir)) {
 		for (const entry of readdirSync(workspacePluginsDir)) {
@@ -169,8 +178,29 @@ function resolveHostPluginSdkPackageJsonPath() {
 	)
 }
 
-function normalizePeerRange(range?: string) {
-	return range?.replace(/^workspace:/, '').trim() ?? ''
+// Resolve pnpm workspace protocol ranges to concrete semver so runtime validation
+// can treat local workspace plugins the same way published manifests are treated.
+function normalizePeerRange(range: string | undefined, hostVersion: string) {
+	if (!range) {
+		return ''
+	}
+
+	const trimmed = range.trim()
+	if (!trimmed.startsWith('workspace:')) {
+		return trimmed
+	}
+
+	const workspaceRange = trimmed.replace(/^workspace:/, '').trim()
+	if (!workspaceRange || workspaceRange === '*') {
+		// `workspace:*` means "follow the current workspace package version".
+		return hostVersion
+	}
+
+	if (workspaceRange === '^' || workspaceRange === '~') {
+		return `${workspaceRange}${hostVersion}`
+	}
+
+	return workspaceRange
 }
 
 function assertSingleMajorRange(pluginName: string, range: string, hostVersion: string, rawRange: string) {
@@ -228,7 +258,7 @@ export function assertPluginSdkCompatibility(
 	const hostVersion = options.hostVersion ?? getHostPluginSdkVersion()
 	const sdkDependency = manifest.dependencies?.[HOSTED_PLUGIN_SDK_PACKAGE]
 	const rawPeerRange = manifest.peerDependencies?.[HOSTED_PLUGIN_SDK_PACKAGE]
-	const peerRange = normalizePeerRange(rawPeerRange)
+	const peerRange = normalizePeerRange(rawPeerRange, hostVersion)
 
 	if (expectedPackageName && manifest.name && manifest.name !== expectedPackageName) {
 		throw new PluginSdkValidationError(
@@ -320,7 +350,7 @@ export function ensureHostPluginSdkLink(basedir?: string) {
 	const targetDir = resolve(basedir, 'node_modules', ...HOSTED_PLUGIN_SDK_PACKAGE.split('/'))
 	const parentDir = dirname(targetDir)
 
-	if (existsSync(targetDir)) {
+	if (pathEntryExists(targetDir)) {
 		try {
 			if (realpathSync(targetDir) === realpathSync(hostPluginSdkDir)) {
 				return targetDir
@@ -333,7 +363,25 @@ export function ensureHostPluginSdkLink(basedir?: string) {
 	}
 
 	mkdirSync(parentDir, { recursive: true })
-	symlinkSync(hostPluginSdkDir, targetDir, 'junction')
+
+	try {
+		symlinkSync(hostPluginSdkDir, targetDir, 'junction')
+	} catch (error) {
+		if ((error as NodeJS.ErrnoException).code !== 'EEXIST') {
+			throw error
+		}
+
+		try {
+			if (realpathSync(targetDir) === realpathSync(hostPluginSdkDir)) {
+				return targetDir
+			}
+		} catch {
+			// Fall through and replace any broken or conflicting link created concurrently.
+		}
+
+		rmSync(targetDir, { recursive: true, force: true })
+		symlinkSync(hostPluginSdkDir, targetDir, 'junction')
+	}
 
 	return targetDir
 }
