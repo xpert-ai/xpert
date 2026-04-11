@@ -30,11 +30,8 @@
     "i18next": "*",
     "json-schema": "*",
     "jsonwebtoken": "*",
-    "fs": "*",
-    "path": "*",
     "passport-jwt": "*",
     "rxjs": "*",
-    "stream": "*",
     "yaml": "*",
     "zod": "*"
   }
